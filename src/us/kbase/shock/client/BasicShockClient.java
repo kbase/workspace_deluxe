@@ -54,10 +54,10 @@ public class BasicShockClient {
 		}
 		URL shockurl = new URL(shockresp.get("url").toString());
 		//https->http is caused by the router, not shock, per Jared
-//		if (url.getProtocol().equals("https")) {
-//			shockurl = new URL("https", shockurl.getAuthority(),
-//					shockurl.getPort(), shockurl.getFile());
-//		}
+		if (url.getProtocol().equals("https")) {
+			shockurl = new URL("https", shockurl.getAuthority(),
+					shockurl.getPort(), shockurl.getFile());
+		}
 		try {
 			baseurl = shockurl.toURI();
 		} catch (URISyntaxException use) {
@@ -84,7 +84,7 @@ public class BasicShockClient {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		BasicShockClient bsc = new BasicShockClient(new URL("https://kbase.us/services/shock-ap"));
+		BasicShockClient bsc = new BasicShockClient(new URL("https://kbase.us/services/shock-api"));
 		System.out.println(bsc.getShockUrl());
 		
 		
