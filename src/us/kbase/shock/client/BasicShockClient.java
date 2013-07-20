@@ -10,6 +10,9 @@ import java.util.Map;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
@@ -32,6 +35,7 @@ public class BasicShockClient {
 	private final String AUTH = "Authorization";
 	private final String OAUTH = "OAuth ";
 	private final String DOWNLOAD = "/?download";
+	private final String ATTRIBFILE = "attribs";
 	
 	
 	public BasicShockClient(URL url) throws IOException, 
@@ -124,6 +128,26 @@ public class BasicShockClient {
 		return EntityUtils.toString(response.getEntity());
 	}
 	
+	public ShockNode addNode(String attributes, String file, String filename)
+			throws IOException {
+		//TODO attributes as object
+		//TODO duplicate code
+		final HttpPost htp = new HttpPost(nodeurl);
+		if (token != null) {
+			htp.setHeader(AUTH, OAUTH + token);
+		}
+//		ByteArrayBody bab = new ByteArrayBody(file.getBytes(), filename);
+		final MultipartEntity mpe = new MultipartEntity();
+		mpe.addPart("upload", new ByteArrayBody(file.getBytes(), filename));
+		mpe.addPart("attributes", new ByteArrayBody(attributes.getBytes(), 
+				ATTRIBFILE));
+		htp.setEntity(mpe);
+		HttpResponse response = client.execute(htp);
+		System.out.println(response);
+		System.out.println(EntityUtils.toString(response.getEntity()));
+		return new ShockNode();
+	}
+	
 	//for known good uris ONLY
 	private URL uriToUrl(URI uri) {
 		try {
@@ -143,6 +167,8 @@ public class BasicShockClient {
 		
 		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
 		bsc2.getNode(new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a"));
+		
+		bsc.addNode("{\"foo\": \"bar2\"}", "some serious crap right here", "seriouscrapfile");
 		
 	}
 
