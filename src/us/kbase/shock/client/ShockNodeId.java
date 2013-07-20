@@ -8,4 +8,8 @@ public class ShockNodeId {
 		//TODO error checking
 		this.id = id;
 	}
+	
+	public String toString() {
+		return id;
+	}
 }
