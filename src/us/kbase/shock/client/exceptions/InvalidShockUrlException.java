@@ -1,6 +1,6 @@
 package us.kbase.shock.client.exceptions;
 
-public class InvalidShockUrlException extends Exception {
+public class InvalidShockUrlException extends ShockException {
 
 	private static final long serialVersionUID = 1L;
 	

@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
@@ -17,6 +18,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
@@ -30,18 +32,19 @@ public class BasicShockClient {
 	private final URI nodeurl;
 	private final HttpClient client = new DefaultHttpClient();
 	private final ObjectMapper mapper = new ObjectMapper();
-	private final AuthToken token;
+	private AuthToken token;
 	
 	private final String AUTH = "Authorization";
 	private final String OAUTH = "OAuth ";
 	private final String DOWNLOAD = "/?download";
 	private final String ATTRIBFILE = "attribs";
 	
-	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException {
 		this(url, null);
 	}
+	
+	//TODO checkforexpiredtoken - need to add isExpired() method to AuthToken
 	
 	@SuppressWarnings("unchecked")
 	public BasicShockClient(URL url, AuthToken token) throws IOException, 
@@ -49,6 +52,8 @@ public class BasicShockClient {
 
 		this.token = token;
 //		
+		mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+		
 		String turl = url.getProtocol() + "://" + url.getAuthority()
 				+ url.getPath();
 		if (turl.charAt(turl.length() - 1) != '/') {
@@ -84,11 +89,14 @@ public class BasicShockClient {
 		nodeurl = baseurl.resolve("node/");
 	}
 	
+	public void updateToken(AuthToken auth) {
+		this.token = auth;
+	}
+	
 	public URL getShockUrl() {
 		return uriToUrl(baseurl);
 	}
 	
-	@SuppressWarnings("unchecked")
 	public ShockNode getNode(ShockNodeId id) throws IOException {
 		//TODO check for 200, if not then what?
 		//TODO check for errors in general
@@ -100,13 +108,14 @@ public class BasicShockClient {
 		final HttpResponse response = client.execute(htg);
 		//TODO if 401 unauth'd
 		final String resp = EntityUtils.toString(response.getEntity());
-		Map<String, Object> shockresp;
+		ShockNodeResponse shockresp;
 		try {
-			shockresp = mapper.readValue(resp, Map.class);
+			shockresp = mapper.readValue(resp, ShockNodeResponse.class);
 		} catch (JsonParseException jpe) {
 			//TODO throw better error
 			throw new Error(jpe); //something's broken
 		}
+		System.out.println(response);
 		System.out.println(shockresp);
 		//TODO shocknode class		
 		return new ShockNode();
@@ -130,6 +139,11 @@ public class BasicShockClient {
 	
 	public ShockNode addNode(String attributes, String file, String filename)
 			throws IOException {
+		return addNode(attributes, file, filename, null);
+	}
+	
+	public ShockNode addNode(String attributes, String file, String filename,
+				AuthUser user) throws IOException {
 		//TODO attributes as object
 		//TODO duplicate code
 		final HttpPost htp = new HttpPost(nodeurl);
@@ -145,7 +159,28 @@ public class BasicShockClient {
 		HttpResponse response = client.execute(htp);
 		System.out.println(response);
 		System.out.println(EntityUtils.toString(response.getEntity()));
+		if (user != null) {
+			//TODO
+//			setNodeReadable(id, user);
+		}
 		return new ShockNode();
+	}
+	
+	public void deleteNode(ShockNodeId id) throws IOException {
+		//TODO errors, duplicate code
+		final URI targeturl = nodeurl.resolve(id.toString());
+		final HttpDelete htd = new HttpDelete(targeturl);
+		if (token != null) {
+			htd.setHeader(AUTH, OAUTH + token);
+		}
+		final HttpResponse response = client.execute(htd);
+		//TODO if 401 unauth'd
+		System.out.println(response);
+		System.out.println(EntityUtils.toString(response.getEntity()));
+	}
+	
+	public void setNodeReadable(ShockNodeId id, AuthUser user) {
+		//TODO
 	}
 	
 	//for known good uris ONLY
@@ -159,16 +194,23 @@ public class BasicShockClient {
 	
 	public static void main(String[] args) throws Exception {
 		AuthUser au = AuthService.login("x", "x");
+//		System.out.println(au.getToken());
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:7044"), au.getToken());
-		System.out.println(bsc.getShockUrl());
+//		System.out.println(bsc.getShockUrl());
 		ShockNodeId snid = new ShockNodeId("9c733533-be52-4592-b730-d426d1b51f2a");
+		System.out.println("***Get node " + snid + " from " + bsc.getShockUrl());
 		bsc.getNode(snid);
+		System.out.println("***Get file " + snid + " from " + bsc.getShockUrl());
 		System.out.println(bsc.getFileAsString(snid));
 		
 		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
-		bsc2.getNode(new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a"));
+		ShockNodeId snid2 = new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a");
+		System.out.println("***Get node " + snid2 + " from " + bsc2.getShockUrl());
+		bsc2.getNode(snid2);
 		
+		System.out.println("***Add node");
 		bsc.addNode("{\"foo\": \"bar2\"}", "some serious crap right here", "seriouscrapfile");
+		//TODO test deletenode
 		
 	}
 
