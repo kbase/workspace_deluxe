@@ -103,7 +103,7 @@ public class BasicShockClient {
 	
 	public ShockNode getNode(ShockNodeId id) throws IOException,
 			ShockHttpException {
-		final URI targeturl = nodeurl.resolve(id.toString());
+		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
 		final HttpResponse response = client.execute(htg);
@@ -129,7 +129,7 @@ public class BasicShockClient {
 	
 	public String getFileAsString(ShockNodeId id) throws IOException,
 			ShockHttpException {
-		final URI targeturl = nodeurl.resolve(id.toString() + DOWNLOAD);
+		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
 		final HttpResponse response = client.execute(htg);
@@ -202,7 +202,7 @@ public class BasicShockClient {
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
 			ShockHttpException {
-		final URI targeturl = nodeurl.resolve(id.toString());
+		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
 		authorize(htd);
 		final HttpResponse response = client.execute(htd);

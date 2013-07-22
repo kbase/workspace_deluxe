@@ -10,8 +10,13 @@ public class ShockNodeId {
 		UUID.fromString(id); //test valid uuid
 		this.id = id;
 	}
-	
-	public String toString() {
+		
+	public String getId() {
 		return id;
+	}
+
+	@Override
+	public String toString() {
+		return "ShockNodeId [id=" + id + "]";
 	}
 }

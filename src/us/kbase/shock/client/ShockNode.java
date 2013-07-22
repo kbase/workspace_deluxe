@@ -12,7 +12,7 @@ public class ShockNode {
 	private Map<String, Object> attributes;
 	private ShockFileInformation file;
 	private ShockNodeId id;
-	private String version;
+	private ShockVersionStamp version;
 	
 	public Map<String, Object> getAttributes() {
 		return attributes;
@@ -26,7 +26,7 @@ public class ShockNode {
 		return id;
 	}
 	
-	public String getVersion() {
+	public ShockVersionStamp getVersion() {
 		return version;
 	}
 	
