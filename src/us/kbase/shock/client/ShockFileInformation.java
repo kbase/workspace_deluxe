@@ -7,22 +7,21 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreProperties({"virtual", "virtual_parts"})
+@JsonIgnoreProperties({"virtual", "virtual_parts", "format"})
 public class ShockFileInformation {
 	
 	private ShockFileInformation(){}
 	
 	@JsonProperty("checksum")
 	private Map<String, String> checksum;
-	private String format;
 	private String name;
 	private int size;
 	
-	public String getFormat() {
-		return format;
-	}
-	
+	//will be empty string if no file
 	public String getName() {
+		if (name == "") {
+			return null;
+		}
 		return name;
 	}
 	
@@ -46,7 +45,8 @@ public class ShockFileInformation {
 
 	@Override
 	public String toString() {
-		return "ShockFileInformation [checksum=" + checksum + ", format="
-				+ format + ", name=" + name + ", size=" + size + "]";
+		return "ShockFileInformation [checksum=" + checksum + ", name=" +
+				getName() + ", size=" + size + "]";
 	}
+
 }

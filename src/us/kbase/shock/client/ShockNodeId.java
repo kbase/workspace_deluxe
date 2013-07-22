@@ -6,7 +6,7 @@ public class ShockNodeId {
 
 	public final String id;
 
-	public ShockNodeId(String id) {
+	public ShockNodeId(String id) throws IllegalArgumentException {
 		UUID.fromString(id); //test valid uuid
 		this.id = id;
 	}

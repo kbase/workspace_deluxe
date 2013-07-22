@@ -38,10 +38,10 @@ public class BasicShockClient {
 	private final ObjectMapper mapper = new ObjectMapper();
 	private AuthToken token;
 	
-	private final String AUTH = "Authorization";
-	private final String OAUTH = "OAuth ";
-	private final String DOWNLOAD = "/?download";
-	private final String ATTRIBFILE = "attribs";
+	private static final String AUTH = "Authorization";
+	private static final String OAUTH = "OAuth ";
+	private static final String DOWNLOAD = "/?download";
+	private static final String ATTRIBFILE = "attribs";
 	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException {
@@ -127,39 +127,76 @@ public class BasicShockClient {
 		}
 	}
 	
-	public String getFileAsString(ShockNodeId id) throws IOException {
+	public String getFileAsString(ShockNodeId id) throws IOException,
+			ShockHttpException {
 		final URI targeturl = nodeurl.resolve(id.toString() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
 		final HttpResponse response = client.execute(htg);
-		//TODO check for 200? if not then what?
-		//TODO check for errors in general
-		//TODO if 401 unauth'd
-		//TODO if >299 parse json and return error
-		System.out.println(response);
+		final int code = response.getStatusLine().getStatusCode();
+		if (code > 299) {
+			getShockNode(response); //trigger errors
+		}
 		return EntityUtils.toString(response.getEntity());
 	}
 	
-	public ShockNode addNode(Map<String, Object> attributes, String file, String filename)
-			throws IOException, ShockHttpException {
-		return addNode(attributes, file, filename, null);
+	public ShockNode addNode() throws IOException, ShockHttpException,
+			JsonProcessingException {
+		return _addNode(null, null, null);
+	}
+	
+	public ShockNode addNode(Map<String, Object> attributes) throws
+			IOException, ShockHttpException, JsonProcessingException {
+		if (attributes == null) {
+			throw new NullPointerException("attributes");
+		}
+		return _addNode(attributes, null, null);
+	}
+	
+	public ShockNode addNode(String file, String filename) throws IOException,
+			ShockHttpException, JsonProcessingException {
+		if (file == null) {
+			throw new NullPointerException("file");
+		}
+		if (filename == null) {
+			throw new NullPointerException("filename");
+		}
+		return _addNode(null, file, filename);
 	}
 	
 	public ShockNode addNode(Map<String, Object> attributes, String file,
-			String filename, AuthUser user) throws IOException,
+			String filename) throws IOException, ShockHttpException,
+			JsonProcessingException {
+		if (attributes == null) {
+			throw new NullPointerException("attributes");
+		}
+		if (file == null) {
+			throw new NullPointerException("file");
+		}
+		if (filename == null) {
+			throw new NullPointerException("filename");
+		}
+		return _addNode(attributes, file, filename);
+	}
+	
+	private ShockNode _addNode(Map<String, Object> attributes, String file,
+			String filename) throws IOException,
 			ShockHttpException, JsonProcessingException {
-		final byte[] attribs = mapper.writeValueAsBytes(attributes);
 		final HttpPost htp = new HttpPost(nodeurl);
 		authorize(htp);
-		final MultipartEntity mpe = new MultipartEntity();
-		mpe.addPart("upload", new ByteArrayBody(file.getBytes(), filename));
-		mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
-		htp.setEntity(mpe);
+		if (attributes != null && file != null) {
+			final MultipartEntity mpe = new MultipartEntity();
+			if (attributes != null) {
+				final byte[] attribs = mapper.writeValueAsBytes(attributes);
+				mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
+			}
+			if (file != null) {
+				mpe.addPart("upload", new ByteArrayBody(file.getBytes(), filename));
+			}
+			htp.setEntity(mpe);
+		}
 		HttpResponse response = client.execute(htp);
 		ShockNode sn = getShockNode(response);
-		if (user != null) {
-			setNodeReadable(sn.getId(), user);
-		}
 		return sn;
 	}
 	
@@ -170,11 +207,13 @@ public class BasicShockClient {
 		authorize(htd);
 		final HttpResponse response = client.execute(htd);
 		getShockNode(response); //triggers throwing errors
-//		System.out.println(response);
-//		System.out.println(EntityUtils.toString(response.getEntity()));
 	}
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) {
+		//TODO
+	}
+	
+	public void setNodeWorldReadable(ShockNode id) {
 		//TODO
 	}
 	
@@ -199,6 +238,13 @@ public class BasicShockClient {
 		System.out.println(bsc.getNode(node.getId()));
 		System.out.println("***Get file");
 		System.out.println(bsc.getFileAsString(node.getId()));
+		System.out.println("***Get node with no auth");
+		BasicShockClient bscNoAuth = new BasicShockClient(new URL("http://localhost:7044"));
+		try {
+			bscNoAuth.getNode(node.getId());
+		} catch (ShockHttpException she) {
+			System.out.println(she);
+		}
 		System.out.println("***delete node");
 		bsc.deleteNode(node.getId());
 		System.out.println("***get deleted node");
@@ -207,11 +253,17 @@ public class BasicShockClient {
 		} catch (ShockHttpException she) {
 			System.out.println(she);
 		}
-//		ShockNodeId snid = new ShockNodeId("9c733533-be52-4592-b730-d426d1b51f2a");
-//		System.out.println("***Get node " + snid + " from " + bsc.getShockUrl());
-//		System.out.println(bsc.getNode(snid));
-//		System.out.println("***Get file " + snid + " from " + bsc.getShockUrl());
-//		System.out.println(bsc.getFileAsString(snid));
+		
+		System.out.println("***Add empty node");
+		ShockNode node2 = bsc.addNode();
+		System.out.println("***Get non-existant file");
+		try {
+			bsc.getFileAsString(node2.getId());
+		} catch (ShockHttpException she) {
+			System.out.println(she);
+		}
+		ShockNode node2get = bsc.getNode(node2.getId());
+		System.out.println(bsc.getNode(node2get.getId()));
 		
 		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
 		ShockNodeId snid2 = new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a");
