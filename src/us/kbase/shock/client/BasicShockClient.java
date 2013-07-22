@@ -109,7 +109,7 @@ public class BasicShockClient {
 		return uriToUrl(baseurl);
 	}
 	
-	private ShockNode processStandardRequest(HttpRequestBase httpreq) throws
+	private ShockNode processShockNodeRequest(HttpRequestBase httpreq) throws
 			IOException, ShockHttpException, ExpiredTokenException {
 		authorize(httpreq);
 		HttpResponse response = client.execute(httpreq);
@@ -141,10 +141,7 @@ public class BasicShockClient {
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
-		return processStandardRequest(htg);
-//		authorize(htg);
-//		final HttpResponse response = client.execute(htg);
-//		return getShockNode(response);
+		return processShockNodeRequest(htg);
 	}
 	
 	public String getFileAsString(ShockNodeId id) throws IOException,
@@ -215,20 +212,14 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-//		authorize(htp);
-//		HttpResponse response = client.execute(htp);
-//		return getShockNode(response);
-		return processStandardRequest(htp);
+		return processShockNodeRequest(htp);
 	}
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
-//		authorize(htd);
-//		final HttpResponse response = client.execute(htd);
-//		getShockNode(response); //triggers throwing errors
-		processStandardRequest(htd); //triggers throwing errors
+		processShockNodeRequest(htd); //triggers throwing errors
 	}
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
@@ -238,8 +229,19 @@ public class BasicShockClient {
 		authorize(htp);
 		final HttpResponse response = client.execute(htp);
 		System.out.println(response);
-		System.out.println(EntityUtils.toString(response.getEntity()));
-		//TODO need acl object
+		final String resp = EntityUtils.toString(response.getEntity());
+		System.out.println(resp);
+		ShockACL acls = null;
+		try {
+			acls = mapper.readValue(resp, ShockACLResponse.class).getShockData();
+		} catch (JsonParseException jpe) {
+			throw new Error(jpe); //something's broken
+		}
+		System.out.println(acls);
+	}
+	
+	public void getACLs(ShockNode id) {
+		//TODO
 	}
 	
 	public void setNodeWorldReadable(ShockNode id) {

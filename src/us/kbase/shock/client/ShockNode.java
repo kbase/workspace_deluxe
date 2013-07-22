@@ -7,12 +7,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties({"relatives", "type", "indexes", "tags", "linkages"})
 public class ShockNode extends ShockData {
 
-	private ShockNode(){}
-	
 	private Map<String, Object> attributes;
 	private ShockFileInformation file;
 	private ShockNodeId id;
 	private ShockVersionStamp version;
+	
+	private ShockNode(){}
 	
 	public Map<String, Object> getAttributes() {
 		return attributes;
