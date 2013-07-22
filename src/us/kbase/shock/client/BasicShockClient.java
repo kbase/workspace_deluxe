@@ -109,18 +109,20 @@ public class BasicShockClient {
 		return uriToUrl(baseurl);
 	}
 	
-	private ShockNode processShockNodeRequest(HttpRequestBase httpreq) throws
+	private <T extends ShockResponse> ShockData
+			processRequest(HttpRequestBase httpreq, Class<T> clazz) throws
 			IOException, ShockHttpException, ExpiredTokenException {
 		authorize(httpreq);
 		HttpResponse response = client.execute(httpreq);
-		return getShockNode(response);
+		return getShockData(response, clazz);
 	}
 	
-	private ShockNode getShockNode(HttpResponse response) 
+	private <T extends ShockResponse> ShockData
+			getShockData(HttpResponse response, Class<T> clazz) 
 			throws IOException, ShockHttpException {
 		final String resp = EntityUtils.toString(response.getEntity());
 		try {
-			return mapper.readValue(resp, ShockNodeResponse.class).getShockData();
+			return mapper.readValue(resp, clazz).getShockData();
 		} catch (JsonParseException jpe) {
 			throw new Error(jpe); //something's broken
 		}
@@ -141,7 +143,7 @@ public class BasicShockClient {
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
-		return processShockNodeRequest(htg);
+		return (ShockNode)processRequest(htg, ShockNodeResponse.class);
 	}
 	
 	public String getFileAsString(ShockNodeId id) throws IOException,
@@ -152,7 +154,7 @@ public class BasicShockClient {
 		final HttpResponse response = client.execute(htg);
 		final int code = response.getStatusLine().getStatusCode();
 		if (code > 299) {
-			getShockNode(response); //trigger errors
+			getShockData(response, ShockNodeResponse.class); //trigger errors
 		}
 		return EntityUtils.toString(response.getEntity());
 	}
@@ -212,31 +214,32 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-		return processShockNodeRequest(htp);
+		return (ShockNode)processRequest(htp, ShockNodeResponse.class);
 	}
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
-		processShockNodeRequest(htd); //triggers throwing errors
+		processRequest(htd, ShockNodeResponse.class); //triggers throwing errors
 	}
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
 		IOException, ShockHttpException,ExpiredTokenException {
-		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ + "?users=" + user.getEmail());
+		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ +
+				"?users=" + user.getEmail());
 		final HttpPut htp = new HttpPut(targeturl);
-		authorize(htp);
-		final HttpResponse response = client.execute(htp);
-		System.out.println(response);
-		final String resp = EntityUtils.toString(response.getEntity());
-		System.out.println(resp);
-		ShockACL acls = null;
-		try {
-			acls = mapper.readValue(resp, ShockACLResponse.class).getShockData();
-		} catch (JsonParseException jpe) {
-			throw new Error(jpe); //something's broken
-		}
+//		authorize(htp);
+//		final HttpResponse response = client.execute(htp);
+//		System.out.println(response);
+//		final String resp = EntityUtils.toString(response.getEntity());
+//		System.out.println(resp);
+		ShockACL acls = (ShockACL)processRequest(htp, ShockACLResponse.class);
+//		try {
+//			acls = mapper.readValue(resp, ShockACLResponse.class).getShockData();
+//		} catch (JsonParseException jpe) {
+//			throw new Error(jpe); //something's broken
+//		}
 		System.out.println(acls);
 	}
 	
