@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
@@ -19,6 +20,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -100,21 +102,11 @@ public class BasicShockClient {
 	}
 	
 	public ShockNode getNode(ShockNodeId id) throws IOException,
-		ShockHttpException {
+			ShockHttpException {
 		final URI targeturl = nodeurl.resolve(id.toString());
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
-//		if (token != null) {
-//			htg.setHeader(AUTH, OAUTH + token);
-//		}
 		final HttpResponse response = client.execute(htg);
-//		final String resp = EntityUtils.toString(response.getEntity());
-//		ShockNodeResponse shockresp;
-//		try {
-//			shockresp = mapper.readValue(resp, ShockNodeResponse.class);
-//		} catch (JsonParseException jpe) {
-//			throw new Error(jpe); //something's broken
-//		}
 		return getShockNode(response);
 	}
 	
@@ -139,9 +131,6 @@ public class BasicShockClient {
 		final URI targeturl = nodeurl.resolve(id.toString() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
-//		if (token != null) {
-//			htg.setHeader(AUTH, OAUTH + token);
-//		}
 		final HttpResponse response = client.execute(htg);
 		//TODO check for 200? if not then what?
 		//TODO check for errors in general
@@ -151,46 +140,38 @@ public class BasicShockClient {
 		return EntityUtils.toString(response.getEntity());
 	}
 	
-	public ShockNode addNode(String attributes, String file, String filename)
+	public ShockNode addNode(Map<String, Object> attributes, String file, String filename)
 			throws IOException, ShockHttpException {
 		return addNode(attributes, file, filename, null);
 	}
 	
-	public ShockNode addNode(String attributes, String file, String filename,
-				AuthUser user) throws IOException, ShockHttpException {
-		//TODO attributes as object
+	public ShockNode addNode(Map<String, Object> attributes, String file,
+			String filename, AuthUser user) throws IOException,
+			ShockHttpException, JsonProcessingException {
+		final byte[] attribs = mapper.writeValueAsBytes(attributes);
 		final HttpPost htp = new HttpPost(nodeurl);
 		authorize(htp);
-//		if (token != null) {
-//			htp.setHeader(AUTH, OAUTH + token);
-//		}
 		final MultipartEntity mpe = new MultipartEntity();
 		mpe.addPart("upload", new ByteArrayBody(file.getBytes(), filename));
-		mpe.addPart("attributes", new ByteArrayBody(attributes.getBytes(), 
-				ATTRIBFILE));
+		mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
 		htp.setEntity(mpe);
 		HttpResponse response = client.execute(htp);
 		ShockNode sn = getShockNode(response);
-//		System.out.println(EntityUtils.toString(response.getEntity()));
 		if (user != null) {
 			setNodeReadable(sn.getId(), user);
 		}
-//		System.out.println(response);
 		return sn;
 	}
 	
-	public void deleteNode(ShockNodeId id) throws IOException {
-		//TODO errors, duplicate code
+	public void deleteNode(ShockNodeId id) throws IOException, 
+			ShockHttpException {
 		final URI targeturl = nodeurl.resolve(id.toString());
 		final HttpDelete htd = new HttpDelete(targeturl);
 		authorize(htd);
-//		if (token != null) {
-//			htd.setHeader(AUTH, OAUTH + token);
-//		}
 		final HttpResponse response = client.execute(htd);
-		//TODO if 401 unauth'd
-		System.out.println(response);
-		System.out.println(EntityUtils.toString(response.getEntity()));
+		getShockNode(response); //triggers throwing errors
+//		System.out.println(response);
+//		System.out.println(EntityUtils.toString(response.getEntity()));
 	}
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) {
@@ -208,23 +189,38 @@ public class BasicShockClient {
 	
 	public static void main(String[] args) throws Exception {
 		AuthUser au = AuthService.login("x", "x");
-//		System.out.println(au.getToken());
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:7044"), au.getToken());
-//		System.out.println(bsc.getShockUrl());
-		ShockNodeId snid = new ShockNodeId("9c733533-be52-4592-b730-d426d1b51f2a");
-		System.out.println("***Get node " + snid + " from " + bsc.getShockUrl());
-		System.out.println(bsc.getNode(snid));
-		System.out.println("***Get file " + snid + " from " + bsc.getShockUrl());
-		System.out.println(bsc.getFileAsString(snid));
+		System.out.println("***Add node");
+		Map<String, Object> attribs = new HashMap<String, Object>();
+		attribs.put("foo", "newbar");
+		ShockNode node = bsc.addNode(attribs, "some serious crap right here", "seriouscrapfile");
+		System.out.println(node);
+		System.out.println("***Get node");
+		System.out.println(bsc.getNode(node.getId()));
+		System.out.println("***Get file");
+		System.out.println(bsc.getFileAsString(node.getId()));
+		System.out.println("***delete node");
+		bsc.deleteNode(node.getId());
+		System.out.println("***get deleted node");
+		try {
+			System.out.println(bsc.getNode(node.getId()));
+		} catch (ShockHttpException she) {
+			System.out.println(she);
+		}
+//		ShockNodeId snid = new ShockNodeId("9c733533-be52-4592-b730-d426d1b51f2a");
+//		System.out.println("***Get node " + snid + " from " + bsc.getShockUrl());
+//		System.out.println(bsc.getNode(snid));
+//		System.out.println("***Get file " + snid + " from " + bsc.getShockUrl());
+//		System.out.println(bsc.getFileAsString(snid));
 		
 		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
 		ShockNodeId snid2 = new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a");
 		System.out.println("***Get node " + snid2 + " from " + bsc2.getShockUrl());
 		System.out.println(bsc2.getNode(snid2));
 		
-		System.out.println("***Add node");
-		bsc.addNode("{\"foo\": \"bar2\"}", "some serious crap right here", "seriouscrapfile");
-		//TODO test deletenode
+		//TODO test readable nodes
+		//TODO test errors
+		
 		
 	}
 
