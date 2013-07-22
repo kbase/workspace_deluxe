@@ -1,23 +1,20 @@
 package us.kbase.shock.client.exceptions;
 
-import java.util.List;
-
 public class ShockAuthorizationException extends ShockHttpException {
 
 	private static final long serialVersionUID = 1L;
-	public static final int AUTH_CODE = 401;
 	
-	public ShockAuthorizationException(List<String> errors) {
-		super(AUTH_CODE, errors);
+	public ShockAuthorizationException(int code) {
+		super(code);
 	}
-	public ShockAuthorizationException(List<String> errors, String message) {
-		super(AUTH_CODE, errors, message);
+	public ShockAuthorizationException(int code, String message) {
+		super(code, message);
 	}
-	public ShockAuthorizationException(List<String> errors, String message,
+	public ShockAuthorizationException(int code, String message,
 			Throwable cause) {
-		super(AUTH_CODE, errors, message, cause);
+		super(code, message, cause);
 	}
-	public ShockAuthorizationException(List<String> errors, Throwable cause) {
-		super(AUTH_CODE, errors, cause);
+	public ShockAuthorizationException(int code, Throwable cause) {
+		super(code, cause);
 	}
 }
