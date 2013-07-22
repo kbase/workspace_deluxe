@@ -45,16 +45,16 @@ public class BasicShockClient {
 	private static final String ATTRIBFILE = "attribs";
 	
 	public BasicShockClient(URL url) throws IOException, 
-			InvalidShockUrlException {
+			InvalidShockUrlException, ExpiredTokenException {
 		this(url, null);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public BasicShockClient(URL url, AuthToken token) throws IOException, 
-			InvalidShockUrlException{
+			InvalidShockUrlException, ExpiredTokenException {
 
-		this.token = token;
-//		
+		updateToken(token);
+
 		mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
 		
 		String turl = url.getProtocol() + "://" + url.getAuthority()
@@ -92,8 +92,15 @@ public class BasicShockClient {
 		nodeurl = baseurl.resolve("node/");
 	}
 	
-	public void updateToken(AuthToken auth) {
-		this.token = auth;
+	public void updateToken(AuthToken token) throws ExpiredTokenException {
+		if (token == null) {
+			this.token = null;
+			return;
+		}
+		if (token.isExpired()) {
+			throw new ExpiredTokenException(token.getTokenId());
+		}
+		this.token = token;
 	}
 	
 	public URL getShockUrl() {
@@ -124,7 +131,7 @@ public class BasicShockClient {
 		if (token != null) {
 			//TODO test when can get hands on expired token
 			if (token.isExpired()) {
-				throw new ExpiredTokenException();
+				throw new ExpiredTokenException(token.getTokenId());
 			}
 			httpreq.setHeader(AUTH, OAUTH + token);
 		}
@@ -268,6 +275,22 @@ public class BasicShockClient {
 		}
 		ShockNode node2get = bsc.getNode(node2.getId());
 		System.out.println(bsc.getNode(node2get.getId()));
+		
+//		System.out.println("***Test expired token***");
+		//TODO that token wasn't expired. Pfft.
+//		AuthToken expired = new AuthToken("");
+//		try {
+//			@SuppressWarnings("unused")
+//			BasicShockClient bscbad = new BasicShockClient(new URL("http://fake.com"), expired);
+//		} catch (ExpiredTokenException ete) {
+//			System.out.println(ete);
+//		}
+//		try {
+//			bsc.updateToken(expired);
+//		} catch (ExpiredTokenException ete) {
+//			System.out.println(ete);
+//		}
+		//TODO tests for tokens that expire while in the client
 		
 		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
 		ShockNodeId snid2 = new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a");
