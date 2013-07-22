@@ -43,4 +43,10 @@ public class ShockFileInformation {
 		}
 		return checksum.get(type);
 	}
+
+	@Override
+	public String toString() {
+		return "ShockFileInformation [checksum=" + checksum + ", format="
+				+ format + ", name=" + name + ", size=" + size + "]";
+	}
 }

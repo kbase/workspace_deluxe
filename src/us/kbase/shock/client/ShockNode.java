@@ -7,8 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties({"relatives", "type", "indexes", "tags", "linkages"})
 public class ShockNode {
 
-	//TODO make private
-	public ShockNode(){}
+	private ShockNode(){}
 	
 	private Map<String, Object> attributes;
 	private ShockFileInformation file;
@@ -29,5 +28,11 @@ public class ShockNode {
 	
 	public String getVersion() {
 		return version;
+	}
+	
+	@Override
+	public String toString() {
+		return "ShockNode [attributes=" + attributes + ", file=" + file
+				+ ", id=" + id + ", version=" + version + "]";
 	}
 }
