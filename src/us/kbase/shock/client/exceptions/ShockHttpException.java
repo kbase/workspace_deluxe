@@ -32,8 +32,8 @@ public class ShockHttpException extends ShockException {
 
 	@Override
 	public String toString() {
-		 String s = getClass().getName() + ": " + code;
-		 String message = getLocalizedMessage();
+		String s = getClass().getName() + ": " + code;
+		String message = getLocalizedMessage();
 		return message != null ? s + " " + message : s;
 	}
 }

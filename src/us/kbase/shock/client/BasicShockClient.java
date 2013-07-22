@@ -13,6 +13,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
@@ -43,6 +44,7 @@ public class BasicShockClient {
 	private static final String OAUTH = "OAuth ";
 	private static final String DOWNLOAD = "/?download";
 	private static final String ATTRIBFILE = "attribs";
+	private static final String ACL_READ = "/acl/read/";
 	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
@@ -107,12 +109,10 @@ public class BasicShockClient {
 		return uriToUrl(baseurl);
 	}
 	
-	public ShockNode getNode(ShockNodeId id) throws IOException,
-			ShockHttpException, ExpiredTokenException {
-		final URI targeturl = nodeurl.resolve(id.getId());
-		final HttpGet htg = new HttpGet(targeturl);
-		authorize(htg);
-		final HttpResponse response = client.execute(htg);
+	private ShockNode processStandardRequest(HttpRequestBase httpreq) throws
+			IOException, ShockHttpException, ExpiredTokenException {
+		authorize(httpreq);
+		HttpResponse response = client.execute(httpreq);
 		return getShockNode(response);
 	}
 	
@@ -120,14 +120,14 @@ public class BasicShockClient {
 			throws IOException, ShockHttpException {
 		final String resp = EntityUtils.toString(response.getEntity());
 		try {
-			return mapper.readValue(resp, ShockNodeResponse.class).getShockNode();
+			return mapper.readValue(resp, ShockNodeResponse.class).getShockData();
 		} catch (JsonParseException jpe) {
 			throw new Error(jpe); //something's broken
 		}
 	}
 	
 	private void authorize(HttpRequestBase httpreq) throws
-		ExpiredTokenException {
+			ExpiredTokenException {
 		if (token != null) {
 			//TODO test when can get hands on expired token
 			if (token.isExpired()) {
@@ -135,6 +135,16 @@ public class BasicShockClient {
 			}
 			httpreq.setHeader(AUTH, OAUTH + token);
 		}
+	}
+
+	public ShockNode getNode(ShockNodeId id) throws IOException,
+			ShockHttpException, ExpiredTokenException {
+		final URI targeturl = nodeurl.resolve(id.getId());
+		final HttpGet htg = new HttpGet(targeturl);
+		return processStandardRequest(htg);
+//		authorize(htg);
+//		final HttpResponse response = client.execute(htg);
+//		return getShockNode(response);
 	}
 	
 	public String getFileAsString(ShockNodeId id) throws IOException,
@@ -194,7 +204,6 @@ public class BasicShockClient {
 			String filename) throws IOException,
 			ShockHttpException, JsonProcessingException, ExpiredTokenException {
 		final HttpPost htp = new HttpPost(nodeurl);
-		authorize(htp);
 		if (attributes != null && file != null) {
 			final MultipartEntity mpe = new MultipartEntity();
 			if (attributes != null) {
@@ -206,22 +215,31 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-		HttpResponse response = client.execute(htp);
-		ShockNode sn = getShockNode(response);
-		return sn;
+//		authorize(htp);
+//		HttpResponse response = client.execute(htp);
+//		return getShockNode(response);
+		return processStandardRequest(htp);
 	}
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
-		authorize(htd);
-		final HttpResponse response = client.execute(htd);
-		getShockNode(response); //triggers throwing errors
+//		authorize(htd);
+//		final HttpResponse response = client.execute(htd);
+//		getShockNode(response); //triggers throwing errors
+		processStandardRequest(htd); //triggers throwing errors
 	}
 	
-	public void setNodeReadable(ShockNodeId id, AuthUser user) {
-		//TODO
+	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
+		IOException, ShockHttpException,ExpiredTokenException {
+		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ + "?users=" + user.getEmail());
+		final HttpPut htp = new HttpPut(targeturl);
+		authorize(htp);
+		final HttpResponse response = client.execute(htp);
+		System.out.println(response);
+		System.out.println(EntityUtils.toString(response.getEntity()));
+		//TODO need acl object
 	}
 	
 	public void setNodeWorldReadable(ShockNode id) {
@@ -239,6 +257,7 @@ public class BasicShockClient {
 	
 	public static void main(String[] args) throws Exception {
 		AuthUser au = AuthService.login("x", "x");
+//		System.out.println(au);
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:7044"), au.getToken());
 		System.out.println("***Add node");
 		Map<String, Object> attribs = new HashMap<String, Object>();
@@ -275,6 +294,11 @@ public class BasicShockClient {
 		}
 		ShockNode node2get = bsc.getNode(node2.getId());
 		System.out.println(bsc.getNode(node2get.getId()));
+		
+		System.out.println("***set node readable***");
+		AuthUser au2 = AuthService.login("kbasetest2", "@Suite525");
+		bsc.setNodeReadable(node2get.getId(), au2);
+		
 		
 //		System.out.println("***Test expired token***");
 		//TODO that token wasn't expired. Pfft.

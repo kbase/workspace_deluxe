@@ -5,7 +5,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties({"relatives", "type", "indexes", "tags", "linkages"})
-public class ShockNode {
+public class ShockNode extends ShockData {
 
 	private ShockNode(){}
 	
