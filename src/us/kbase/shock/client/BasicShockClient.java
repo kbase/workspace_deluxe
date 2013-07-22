@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 
@@ -47,8 +48,6 @@ public class BasicShockClient {
 			InvalidShockUrlException {
 		this(url, null);
 	}
-	
-	//TODO checkforexpiredtoken - need to add isExpired() method to AuthToken
 	
 	@SuppressWarnings("unchecked")
 	public BasicShockClient(URL url, AuthToken token) throws IOException, 
@@ -102,7 +101,7 @@ public class BasicShockClient {
 	}
 	
 	public ShockNode getNode(ShockNodeId id) throws IOException,
-			ShockHttpException {
+			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
@@ -120,15 +119,19 @@ public class BasicShockClient {
 		}
 	}
 	
-	private void authorize(HttpRequestBase httpreq) {
-		//TODO check if token is expired, if so throw error
+	private void authorize(HttpRequestBase httpreq) throws
+		ExpiredTokenException {
 		if (token != null) {
+			//TODO test when can get hands on expired token
+			if (token.isExpired()) {
+				throw new ExpiredTokenException();
+			}
 			httpreq.setHeader(AUTH, OAUTH + token);
 		}
 	}
 	
 	public String getFileAsString(ShockNodeId id) throws IOException,
-			ShockHttpException {
+			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
@@ -141,12 +144,13 @@ public class BasicShockClient {
 	}
 	
 	public ShockNode addNode() throws IOException, ShockHttpException,
-			JsonProcessingException {
+			JsonProcessingException, ExpiredTokenException {
 		return _addNode(null, null, null);
 	}
 	
 	public ShockNode addNode(Map<String, Object> attributes) throws
-			IOException, ShockHttpException, JsonProcessingException {
+			IOException, ShockHttpException, JsonProcessingException,
+			ExpiredTokenException {
 		if (attributes == null) {
 			throw new NullPointerException("attributes");
 		}
@@ -154,7 +158,7 @@ public class BasicShockClient {
 	}
 	
 	public ShockNode addNode(String file, String filename) throws IOException,
-			ShockHttpException, JsonProcessingException {
+			ShockHttpException, JsonProcessingException, ExpiredTokenException {
 		if (file == null) {
 			throw new NullPointerException("file");
 		}
@@ -166,7 +170,7 @@ public class BasicShockClient {
 	
 	public ShockNode addNode(Map<String, Object> attributes, String file,
 			String filename) throws IOException, ShockHttpException,
-			JsonProcessingException {
+			JsonProcessingException, ExpiredTokenException {
 		if (attributes == null) {
 			throw new NullPointerException("attributes");
 		}
@@ -181,7 +185,7 @@ public class BasicShockClient {
 	
 	private ShockNode _addNode(Map<String, Object> attributes, String file,
 			String filename) throws IOException,
-			ShockHttpException, JsonProcessingException {
+			ShockHttpException, JsonProcessingException, ExpiredTokenException {
 		final HttpPost htp = new HttpPost(nodeurl);
 		authorize(htp);
 		if (attributes != null && file != null) {
@@ -201,7 +205,7 @@ public class BasicShockClient {
 	}
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
-			ShockHttpException {
+			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
 		authorize(htd);
