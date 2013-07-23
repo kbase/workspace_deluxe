@@ -44,7 +44,6 @@ public class BasicShockClient {
 	private static final String OAUTH = "OAuth ";
 	private static final String DOWNLOAD = "/?download";
 	private static final String ATTRIBFILE = "attribs";
-	private static final String ACL_READ = "/acl/read/";
 	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
@@ -225,26 +224,23 @@ public class BasicShockClient {
 	}
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
-		IOException, ShockHttpException,ExpiredTokenException {
-		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ +
-				"?users=" + user.getEmail());
+			IOException, ShockHttpException,ExpiredTokenException {
+		final URI targeturl = nodeurl.resolve(id.getId() + 
+				new ShockACLType("read").acl + "?users=" + user.getEmail()); //TODO use userid when shock allows
 		final HttpPut htp = new HttpPut(targeturl);
-//		authorize(htp);
-//		final HttpResponse response = client.execute(htp);
-//		System.out.println(response);
-//		final String resp = EntityUtils.toString(response.getEntity());
-//		System.out.println(resp);
-		ShockACL acls = (ShockACL)processRequest(htp, ShockACLResponse.class);
-//		try {
-//			acls = mapper.readValue(resp, ShockACLResponse.class).getShockData();
-//		} catch (JsonParseException jpe) {
-//			throw new Error(jpe); //something's broken
-//		}
-		System.out.println(acls);
+		processRequest(htp, ShockACLResponse.class); //triggers throwing errors
 	}
 	
-	public void getACLs(ShockNode id) {
-		//TODO
+	public ShockACL getACLs(ShockNodeId id) throws IOException,
+			ShockHttpException, ExpiredTokenException {
+		return getACLs(id, new ShockACLType("all"));
+	}
+	
+	public ShockACL getACLs(ShockNodeId id, ShockACLType acl) 
+			throws IOException, ShockHttpException, ExpiredTokenException {
+		final URI targeturl = nodeurl.resolve(id.getId() + acl.acl);
+		final HttpGet htg = new HttpGet(targeturl);
+		return (ShockACL)processRequest(htg, ShockACLResponse.class);
 	}
 	
 	public void setNodeWorldReadable(ShockNode id) {
@@ -303,7 +299,17 @@ public class BasicShockClient {
 		System.out.println("***set node readable***");
 		AuthUser au2 = AuthService.login("kbasetest2", "@Suite525");
 		bsc.setNodeReadable(node2get.getId(), au2);
-		
+		System.out.println("***get all ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId()));
+		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("all")));
+		System.out.println("***get read ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("read")));
+		System.out.println("***get write ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("write")));
+		System.out.println("***get delete ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("delete")));
+		System.out.println("***get owner ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("owner")));
 		
 //		System.out.println("***Test expired token***");
 		//TODO that token wasn't expired. Pfft.
