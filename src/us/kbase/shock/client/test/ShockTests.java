@@ -15,6 +15,10 @@ public class ShockTests {
 	public static void setUpClass() {
 		String shockurl = System.getProperty("test.shock.url");
 		System.out.println(shockurl);
+		System.out.println(System.getProperty("test.user1"));
+		System.out.println(System.getProperty("test.pwd1"));
+		System.out.println(System.getProperty("test.user2"));
+		System.out.println(System.getProperty("test.pwd2"));
 		
 	}
 
