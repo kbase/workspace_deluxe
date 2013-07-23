@@ -5,9 +5,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
@@ -44,6 +47,7 @@ public class BasicShockClient {
 	private static final String OAUTH = "OAuth ";
 	private static final String DOWNLOAD = "/?download";
 	private static final String ATTRIBFILE = "attribs";
+	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
@@ -225,8 +229,8 @@ public class BasicShockClient {
 	
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
 			IOException, ShockHttpException,ExpiredTokenException {
-		final URI targeturl = nodeurl.resolve(id.getId() + 
-				new ShockACLType("read").acl + "?users=" + user.getEmail()); //TODO use userid when shock allows
+		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ.acl + 
+				"?users=" + user.getEmail()); //TODO use userid when shock allows
 		final HttpPut htp = new HttpPut(targeturl);
 		processRequest(htp, ShockACLResponse.class); //triggers throwing errors
 	}
@@ -243,8 +247,18 @@ public class BasicShockClient {
 		return (ShockACL)processRequest(htg, ShockACLResponse.class);
 	}
 	
-	public void setNodeWorldReadable(ShockNode id) {
-		//TODO
+	public void setNodeWorldReadable(ShockNodeId id) throws IOException,
+			ShockHttpException, ExpiredTokenException {
+		final List<ShockUserId> acls = getACLs(id, ACL_READ).getRead();
+		final List<String> userlist = new ArrayList<String>();
+		for (ShockUserId uid: acls) {
+			userlist.add(uid.getId());
+		}
+		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ.acl +
+				"?users=" + StringUtils.join(userlist, ","));
+		final HttpDelete htd = new HttpDelete(targeturl);
+		processRequest(htd, ShockACLResponse.class);
+		
 	}
 	
 	//for known good uris ONLY
@@ -310,6 +324,12 @@ public class BasicShockClient {
 		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("delete")));
 		System.out.println("***get owner ACLs***");
 		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("owner")));
+		System.out.println("***set world readable***");
+		bsc.setNodeWorldReadable(node2get.getId());
+		System.out.println("***get all ACLs***");
+		System.out.println(bsc.getACLs(node2get.getId()));
+		System.out.println("***read with no creds***");
+		System.out.println(bscNoAuth.getNode(node2get.getId()));
 		
 //		System.out.println("***Test expired token***");
 		//TODO that token wasn't expired. Pfft.
@@ -332,7 +352,6 @@ public class BasicShockClient {
 		System.out.println("***Get node " + snid2 + " from " + bsc2.getShockUrl());
 		System.out.println(bsc2.getNode(snid2));
 		
-		//TODO test readable nodes
 		//TODO test errors
 		
 		
