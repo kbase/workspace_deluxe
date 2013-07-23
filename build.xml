@@ -4,13 +4,6 @@
       Build file for the Workspace Service
   </description>
 
-  <!-- check command line properties -->
-  <!--<fail unless="test.shock.url" message="property test.shock.url not set."/>
-  <fail unless="test.user1" message="property test.user1 not set."/>
-  <fail unless="test.pwd1" message="property test.pwd1 not set."/>
-  <fail unless="test.user1" message="property test.user1 not set."/>
-  <fail unless="test.pwd2" message="property test.pwd2 not set."/>-->
-
   <!-- set global properties for this build -->
   <property name="package" value="workspace service"/>
   <property name="src"	location="src"/>
@@ -36,14 +29,6 @@
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" srcdir="${src}" includeantruntime="false" debug="true" classpathref="compile.classpath" />
-    <!-- Copy resource files-->
-    <!--<copy todir="${classes}">
-      <fileset dir="${src}">
-        <patternset>
-          <include name="**/*.properties"/>
-        </patternset>
-      </fileset>
-    </copy>-->
     <!-- Make main jar file-->
     <jar destfile="${dist}/${jar.file}" basedir="${classes}">
       <!--<manifest>
@@ -51,7 +36,7 @@
       </manifest>-->
     </jar>
     <!-- Remove uncompressed class files-->
-    <!--<delete dir="${classes}"/>-->
+    <delete dir="${classes}"/>
   </target>
 
   <path id="compile.classpath">
