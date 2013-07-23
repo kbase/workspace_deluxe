@@ -149,7 +149,7 @@ public class BasicShockClient {
 		return (ShockNode)processRequest(htg, ShockNodeResponse.class);
 	}
 	
-	public String getFileAsString(ShockNodeId id) throws IOException,
+	public byte[] getFile(ShockNodeId id) throws IOException,
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
@@ -159,7 +159,7 @@ public class BasicShockClient {
 		if (code > 299) {
 			getShockData(response, ShockNodeResponse.class); //trigger errors
 		}
-		return EntityUtils.toString(response.getEntity());
+		return EntityUtils.toByteArray(response.getEntity());
 	}
 	
 	public ShockNode addNode() throws IOException, ShockHttpException,
@@ -176,7 +176,7 @@ public class BasicShockClient {
 		return _addNode(attributes, null, null);
 	}
 	
-	public ShockNode addNode(String file, String filename) throws IOException,
+	public ShockNode addNode(byte[] file, String filename) throws IOException,
 			ShockHttpException, JsonProcessingException, ExpiredTokenException {
 		if (file == null) {
 			throw new NullPointerException("file");
@@ -187,7 +187,7 @@ public class BasicShockClient {
 		return _addNode(null, file, filename);
 	}
 	
-	public ShockNode addNode(Map<String, Object> attributes, String file,
+	public ShockNode addNode(Map<String, Object> attributes, byte[] file,
 			String filename) throws IOException, ShockHttpException,
 			JsonProcessingException, ExpiredTokenException {
 		if (attributes == null) {
@@ -202,9 +202,9 @@ public class BasicShockClient {
 		return _addNode(attributes, file, filename);
 	}
 	
-	private ShockNode _addNode(Map<String, Object> attributes, String file,
-			String filename) throws IOException,
-			ShockHttpException, JsonProcessingException, ExpiredTokenException {
+	private ShockNode _addNode(Map<String, Object> attributes, byte[] file,
+			String filename) throws IOException, ShockHttpException,
+			JsonProcessingException, ExpiredTokenException {
 		final HttpPost htp = new HttpPost(nodeurl);
 		if (attributes != null && file != null) {
 			final MultipartEntity mpe = new MultipartEntity();
@@ -213,7 +213,7 @@ public class BasicShockClient {
 				mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
 			}
 			if (file != null) {
-				mpe.addPart("upload", new ByteArrayBody(file.getBytes(), filename));
+				mpe.addPart("upload", new ByteArrayBody(file, filename));
 			}
 			htp.setEntity(mpe);
 		}
@@ -277,12 +277,12 @@ public class BasicShockClient {
 		System.out.println("***Add node");
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		attribs.put("foo", "newbar");
-		ShockNode node = bsc.addNode(attribs, "some serious crap right here", "seriouscrapfile");
+		ShockNode node = bsc.addNode(attribs, "some serious crap right here".getBytes(), "seriouscrapfile");
 		System.out.println(node);
 		System.out.println("***Get node");
 		System.out.println(bsc.getNode(node.getId()));
 		System.out.println("***Get file");
-		System.out.println(bsc.getFileAsString(node.getId()));
+		System.out.println(new String(bsc.getFile(node.getId())));
 		System.out.println("***Get node with no auth");
 		BasicShockClient bscNoAuth = new BasicShockClient(new URL("http://localhost:7044"));
 		try {
@@ -303,7 +303,7 @@ public class BasicShockClient {
 		ShockNode node2 = bsc.addNode();
 		System.out.println("***Get non-existant file");
 		try {
-			bsc.getFileAsString(node2.getId());
+			bsc.getFile(node2.getId());
 		} catch (ShockHttpException she) {
 			System.out.println(she);
 		}
