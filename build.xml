@@ -1,0 +1,145 @@
+<project name="Workspace Service" default="test" basedir=".">
+
+  <description>
+      Build file for the Workspace Service
+  </description>
+
+  <!-- check command line properties -->
+  <fail unless="test.shock.url" message="property test.shock.url not set."/>
+  <fail unless="test.user1" message="property test.user1 not set."/>
+  <fail unless="test.pwd1" message="property test.pwd1 not set."/>
+  <fail unless="test.user1" message="property test.user1 not set."/>
+  <fail unless="test.pwd2" message="property test.pwd2 not set."/>
+
+  <!-- set global properties for this build -->
+  <property name="package" value="workspace service"/>
+  <property name="src"	location="src"/>
+  <property name="lib"	location="lib"/>
+  <!--<property name="out.lib"	location="${DEPLOY_RUNTIME}/lib/gen_java_types"/>-->
+  <property name="dist"	location="dist"/>
+  <!--<property name="out.bin"	location="${TARGET}/bin"/>
+  <property name="out.jar"	location="${TARGET}/lib"/>-->
+  <property name="classes"	location="classes"/>
+  <!--<property name="test"	location="test"/>-->
+  <property name="jar.file"	value="WorkspaceService.jar"/>
+  <!--<property name="sh.file"	value="gen_java_types"/>
+  <property name="test.file"	value="test_gen_java_types.sh"/>-->
+
+  <target name="init">
+    <!-- Create the output directory structure-->
+    <mkdir dir="${classes}"/>
+    <mkdir dir="${dist}"/>
+    <!--<mkdir dir="${test}"/>
+    <mkdir dir="${out.lib}"/>-->
+  </target>
+	
+  <target name="compile" depends="init" description="compile the source">
+    <!-- Compile class files-->
+    <javac destdir="${classes}" srcdir="${src}" includeantruntime="false" debug="true" classpathref="compile.classpath" />
+    <!-- Copy resource files-->
+    <!--<copy todir="${classes}">
+      <fileset dir="${src}">
+        <patternset>
+          <include name="**/*.properties"/>
+        </patternset>
+      </fileset>
+    </copy>-->
+    <!-- Make main jar file-->
+    <jar destfile="${dist}/${jar.file}" basedir="${classes}">
+      <!--<manifest>
+        <attribute name="Main-Class" value="us.kbase.scripts.JavaTypeGenerator"/>
+      </manifest>-->
+    </jar>
+    <!-- Remove uncompressed class files-->
+    <!--<delete dir="${classes}"/>-->
+  </target>
+
+  <path id="compile.classpath">
+    <fileset dir="${lib}/">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="test.classpath">
+    <path refid="compile.classpath"/>
+    <fileset dir="${dist}/">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <!--<target name="compile_and_bin" depends="compile" description="compile and create shell file in dev_container/bin" >-->
+    <!-- Define list of lib-jar files-->
+    <!-- Define absolute path to main jar file-->
+    <!--<property name="jar.absolute.path" location="${dist}/${jar.file}"/>-->
+    <!-- Define classpath string with : delimiter from list of lib-jar files-->
+    <!--<pathconvert targetos="unix" property="lib.classpath" refid="compile.classpath"/>-->
+    <!-- Create main shell script-->
+    <!--<echo file="${dist}/${sh.file}">#!/bin/sh
+java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerator $@
+    </echo>
+    <chmod file="${dist}/${sh.file}" perm="a+x"/>-->
+    <!-- Copy main shell script into dev_container bin folder-->
+    <!--<copy todir="${out.bin}" flatten="true">
+      <fileset file="${dist}/${sh.file}"/>
+    </copy>
+    <chmod file="${out.bin}/${sh.file}" perm="a+x"/>
+  </target>-->
+
+  <target name="test" depends="compile" description="run tests">
+    <echo message="starting ${package} tests"/>
+    <junit haltonfailure="false">
+      <classpath refid="test.classpath"/>
+      <formatter type="plain" usefile="false" />
+      <sysproperty key="test.shock.url" value="${test.shock.url}"/>
+      <test name="us.kbase.shock.client.test.ShockTests"/>
+    </junit>
+      
+    <!-- Define absolute path to main jar file-->
+    <!--<property name="jar.absolute.path" location="${dist}/${jar.file}"/>-->
+    <!-- Define classpath string with : delimiter from list of lib-jar files-->
+    <!--<pathconvert targetos="unix" property="lib.classpath" refid="compile.classpath"/>-->
+    <!-- Create testing shell script-->
+    <!--<echo file="${test}/${test.file}">#!/bin/sh
+java -cp ${lib.classpath}:${jar.absolute.path} org.junit.runner.JUnitCore us.kbase.scripts.tests.MainTest
+    </echo>
+    <chmod file="${test}/${test.file}" perm="a+x"/>-->
+  </target>
+
+  <!--<target name="dist" depends="compile" description="generate the distribution" >-->
+    <!-- Copy necessary lib-jars into runtime lib subfolder-->
+    <!--<copy todir="${out.lib}" flatten="true">
+      <fileset dir="${lib}">
+        <include name="*.jar"/>
+      </fileset>
+    </copy>-->
+    <!-- Copy main jar file into deployment lib folder-->
+    <!--<copy todir="${out.jar}" flatten="true">
+      <fileset file="${dist}/${jar.file}"/>
+    </copy>-->
+    <!-- Define list of lib-jar files-->
+    <!-- Define absolute path to main jar file-->
+    <!--<property name="jar.absolute.path" location="${out.jar}/${jar.file}"/>-->
+    <!-- Define classpath string with : delimiter from list of lib-jar files-->
+    <!--<pathconvert targetos="unix" property="lib.classpath" refid="compile.classpath">
+      <map from="${lib}" to="${out.lib}"/>
+    </pathconvert>-->
+    <!-- Create main shell script-->
+    <!--<echo file="${dist}/${sh.file}">#!/bin/sh
+java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerator $@
+    </echo>
+    <chmod file="${dist}/${sh.file}" perm="a+x"/>-->
+    <!-- Copy main shell script into deployment bin folder-->
+    <!--<copy todir="${out.bin}" flatten="true">
+      <fileset file="${dist}/${sh.file}"/>
+    </copy>
+    <chmod file="${out.bin}/${sh.file}" perm="a+x"/>
+  </target>-->
+
+  <target name="clean" description="clean up" >
+    <!-- Clean up internal temporary files and folders-->
+    <delete dir="${classes}"/>
+    <delete dir="${dist}"/>
+    <!--<delete dir="${test}"/>-->
+  </target>
+</project>
+
