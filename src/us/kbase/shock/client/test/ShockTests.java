@@ -25,6 +25,7 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 
 public class ShockTests {
 	
@@ -60,13 +61,56 @@ public class ShockTests {
 		ShockNode snget = bsc1.getNode(sn.getId());
 		assertThat("get node != add Node output", sn.toString(), is(snget.toString()));
 		bsc1.deleteNode(sn.getId());
+		getDeletedNode(sn.getId());
+//		try {
+//			bsc1.getNode(sn.getId());
+//			fail("Able to retrieve deleted node");
+//		} catch (ShockHttpException she) {
+//			assertThat("Bad exception message", she.toString(),
+//					is("us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error"));
+//		}
+	}
+	
+	private void getDeletedNode(ShockNodeId id) throws Exception {
 		try {
-			bsc1.getNode(sn.getId());
+			bsc1.getNode(id);
 			fail("Able to retrieve deleted node");
 		} catch (ShockHttpException she) {
 			assertThat("Bad exception message", she.toString(),
 					is("us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error"));
 		}
+	}
+	
+	@Test
+	public void deleteByNode() throws Exception {
+		ShockNode sn = bsc1.addNode();
+		ShockNodeId id = sn.getId();
+		sn.delete();
+		getDeletedNode(id);
+		try {
+			sn.delete();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
+		try {
+			sn.getAttributes();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
+		try {
+			sn.getFile();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
+		try {
+			sn.getFileInformation();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
+		try {
+			sn.getId();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
+		try {
+			sn.getVersion();
+			fail("Method ran on deleted node");
+		} catch (ShockNodeDeletedException snde) {}
 	}
 	
 	private Map<String,Object> makeSomeAttribs() {
