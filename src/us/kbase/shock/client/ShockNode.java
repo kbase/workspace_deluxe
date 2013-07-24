@@ -1,6 +1,10 @@
 package us.kbase.shock.client;
 
+import java.io.IOException;
 import java.util.Map;
+
+import us.kbase.shock.client.exceptions.ExpiredTokenException;
+import us.kbase.shock.client.exceptions.ShockHttpException;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -11,14 +15,24 @@ public class ShockNode extends ShockData {
 	private ShockFileInformation file;
 	private ShockNodeId id;
 	private ShockVersionStamp version;
+	private BasicShockClient client;
 	
 	private ShockNode(){}
+	
+	void addClient(BasicShockClient client) {
+		this.client = client;
+	}
 	
 	public Map<String, Object> getAttributes() {
 		return attributes;
 	}
 	
-	public ShockFileInformation getFile() {
+	public byte[] getFile() throws ShockHttpException, IOException,
+			ExpiredTokenException {
+		return client.getFile(getId());
+	}
+	
+	public ShockFileInformation getFileInformation() {
 		return file;
 	}
 	

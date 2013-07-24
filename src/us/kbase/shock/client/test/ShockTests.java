@@ -97,23 +97,25 @@ public class ShockTests {
 		ShockNode sn = bsc1.addNode(content.getBytes(), name);
 		ShockNode snget = bsc1.getNode(sn.getId());
 		String filecon = new String(bsc1.getFile(sn.getId()));
-		Set<String> digestTypes = snget.getFile().getChecksumTypes();
+		String filefromnode = new String(snget.getFile());
+		Set<String> digestTypes = snget.getFileInformation().getChecksumTypes();
 		assertTrue(digestTypes.contains("md5"));
 		assertTrue(digestTypes.contains("sha1"));
 		assertThat("unequal md5", DigestUtils.md5Hex(content),
-				is(snget.getFile().getChecksum("md5")));
+				is(snget.getFileInformation().getChecksum("md5")));
 		assertThat("unequal sha1", DigestUtils.sha1Hex(content),
-				is(snget.getFile().getChecksum("sha1")));
+				is(snget.getFileInformation().getChecksum("sha1")));
 		try {
-			snget.getFile().getChecksum("this is not a checksum type");
+			snget.getFileInformation().getChecksum("this is not a checksum type");
 			fail("got checksum type that doesn't exist");
 		} catch (IllegalArgumentException iae) {
 			assertThat("exception string incorrect", iae.toString(),
 					is("java.lang.IllegalArgumentException: No such checksum type: this is not a checksum type"));
 		}
+		assertThat("file from node != file from client", filecon, is(filefromnode));
 		assertThat("file content unequal", content, is(filecon));
-		assertThat("file name unequal", name, is(snget.getFile().getName()));
-		assertThat("file size wrong", content.length(), is(snget.getFile().getSize()));
+		assertThat("file name unequal", name, is(snget.getFileInformation().getName()));
+		assertThat("file size wrong", content.length(), is(snget.getFileInformation().getSize()));
 		bsc1.deleteNode(sn.getId());
 	}
 	

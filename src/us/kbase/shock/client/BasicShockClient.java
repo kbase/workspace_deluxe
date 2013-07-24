@@ -49,6 +49,8 @@ public class BasicShockClient {
 	private static final String ATTRIBFILE = "attribs";
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
+	//TODO check for protected vs. default
+	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
 		this(url, null);
@@ -146,7 +148,9 @@ public class BasicShockClient {
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
-		return (ShockNode)processRequest(htg, ShockNodeResponse.class);
+		ShockNode sn = (ShockNode)processRequest(htg, ShockNodeResponse.class);
+		sn.addClient(this);
+		return sn;
 	}
 	
 	public byte[] getFile(ShockNodeId id) throws IOException,
@@ -217,7 +221,9 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-		return (ShockNode)processRequest(htp, ShockNodeResponse.class);
+		ShockNode sn = (ShockNode)processRequest(htp, ShockNodeResponse.class);
+		sn.addClient(this);
+		return sn;
 	}
 	
 	public void deleteNode(ShockNodeId id) throws IOException, 
