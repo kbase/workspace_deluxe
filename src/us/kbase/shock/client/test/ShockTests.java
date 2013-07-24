@@ -34,7 +34,7 @@ public class ShockTests {
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
 	private static BasicShockClient bscNoAuth;
-	
+
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		URL url = new URL(System.getProperty("test.shock.url"));
@@ -56,7 +56,8 @@ public class ShockTests {
 		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
 		assertThat("url is preserved", b.getShockUrl().toString(), is(url.toString()));
 		List<String> badURLs = Arrays.asList("ftp://thing.us/",
-			"http://google.com/", "http://kbase.us/services/idserver/");
+			"http://google.com/", "http://kbase.us/services/idserver/",
+			"http://kbase.us/services/shock-api/node/9u8093481-1758175-157-15/");
 		for (String burl: badURLs) {
 			try {
 				new BasicShockClient(new URL(burl));
@@ -66,6 +67,11 @@ public class ShockTests {
 		String newurl = "https://kbase.us/services/shock-api/";
 		BasicShockClient b2 = new BasicShockClient(new URL(newurl + "foo/"));
 		assertThat("https url not preserved", b2.getShockUrl().toString(), is(newurl));
+		String newurl2 = "https://kbase.us/services/shock-api";
+		BasicShockClient b3 = new BasicShockClient(new URL(newurl2));
+		assertThat("url w/o trailing slash fails", b3.getShockUrl().toString(),
+				is(newurl2 + "/"));
+		
 	}
 
 	@Test
