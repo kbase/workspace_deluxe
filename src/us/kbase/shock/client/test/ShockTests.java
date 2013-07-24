@@ -27,6 +27,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.ShockNoFileException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 
 public class ShockTests {
@@ -201,6 +202,18 @@ public class ShockTests {
 	}
 	
 	@Test
+	public void invalidFileRequest() throws Exception {
+		ShockNode sn = bsc1.addNode();
+		try {
+			sn.getFile();
+			fail("Got file from node w/o file");
+		} catch (ShockNoFileException snfe) {
+			assertThat("no file exc string incorrect", snfe.toString(), 
+					is("us.kbase.shock.client.exceptions.ShockNoFileException: 400 Node has no file"));
+		}
+	}
+	
+	@Test
 	public void getNodeNulls() throws Exception {
 		Map<String, Object> attribs = makeSomeAttribs("wuggawugga");
 		try {
@@ -240,6 +253,27 @@ public class ShockTests {
 			assertThat("npe message incorrect", npe.getMessage(), is("filename"));
 		}
 	}
+	
+	@Test
+	public void acls() throws Exception {
+		ShockACLType owner = new ShockACLType("owner");
+		ShockNode sn = bsc1.addNode();
+		assertTrue("acl access methods produce different acls",
+				sn.getACLs().equals(bsc1.getACLs(sn.getId())));
+		assertTrue("acl owner access methods produce different acls",
+				sn.getACLs(owner).equals(bsc1.getACLs(sn.getId(), owner)));
+		
+		List<ShockACLType> acls = Arrays.asList(new ShockACLType("all"),
+				new ShockACLType("read"), new ShockACLType("write"),
+				new ShockACLType("delete"));
+		for (ShockACLType acl: acls) {
+			assertTrue(String.format("%s subset of acls are different", acl.aclType),
+					sn.getACLs(acl).equals(bsc1.getACLs(sn.getId(), acl)));
+		}
+		
+		sn.delete();
+	}
+	
 	
 	@Test
 	public void testVersion() throws Exception {

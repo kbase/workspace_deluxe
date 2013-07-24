@@ -19,4 +19,10 @@ public class ShockId {
 	public String toString() {
 		return getClass().getName() + " [id=" + id + "]";
 	}
+	
+	public boolean equals(Object obj) {
+		if (this == obj) {return true;}
+		if (!(obj instanceof ShockUserId)) {return false;}
+		return id.equals(((ShockId)obj).id); 
+	}
 }

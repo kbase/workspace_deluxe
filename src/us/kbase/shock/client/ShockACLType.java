@@ -2,7 +2,7 @@ package us.kbase.shock.client;
 
 public class ShockACLType {
 
-	protected final String acl;
+	final String acl;
 	public final String aclType;
 	public static final String READ = "read";
 	public static final String WRITE = "write";
