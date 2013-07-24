@@ -55,8 +55,11 @@ public class ShockTests {
 		URL url = bsc1.getShockUrl();
 		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
 		assertThat("url is preserved", b.getShockUrl().toString(), is(url.toString()));
+		//Note using cdmi to test for cases where valid json is returned but
+		//the id field != Shock. However, sometimes the cdmi server doesn't 
+		//return an id, which I assume is a bug (see https://atlassian.kbase.us/browse/KBASE-200)
 		List<String> badURLs = Arrays.asList("ftp://thing.us/",
-			"http://google.com/", "http://kbase.us/services/idserver/",
+			"http://google.com/", "http://kbase.us/services/cdmi_api/",
 			"http://kbase.us/services/shock-api/node/9u8093481-1758175-157-15/");
 		for (String burl: badURLs) {
 			try {
@@ -126,10 +129,11 @@ public class ShockTests {
 		} catch (ShockNodeDeletedException snde) {}
 	}
 	
-	private Map<String,Object> makeSomeAttribs() {
+	private Map<String,Object> makeSomeAttribs(String astring) {
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		List<Object> l = new ArrayList<Object>();
 		l.add("alist");
+		l.add(astring);
 		Map<String, Object> inner = new HashMap<String, Object>();
 		inner.put("entity", "enigma");
 		l.add(inner);
@@ -139,12 +143,16 @@ public class ShockTests {
 	
 	@Test
 	public void getNodeWithAttribs() throws Exception {
-		Map<String, Object> attribs = makeSomeAttribs();
+		Map<String, Object> attribs = makeSomeAttribs("funkycoldmedina");
 		ShockNode sn = bsc1.addNode(attribs);
+		testAttribs(attribs, sn);
+		bsc1.deleteNode(sn.getId());
+	}
+	
+	private void testAttribs(Map<String, Object> attribs, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
 		assertThat("get node != add Node output", snget.toString(), is(sn.toString()));
 		assertThat("attribs altered", snget.getAttributes(), is(attribs));
-		bsc1.deleteNode(sn.getId());
 	}
 	
 	@Test
@@ -152,6 +160,11 @@ public class ShockTests {
 		String content = "Been shopping? No, I've been shopping";
 		String name = "apistonengine.recipe";
 		ShockNode sn = bsc1.addNode(content.getBytes(), name);
+		testFile(content, name, sn);
+		bsc1.deleteNode(sn.getId());
+	}
+	
+	private void testFile(String content, String name, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
 		String filecon = new String(bsc1.getFile(sn.getId()));
 		String filefromnode = new String(snget.getFile());
@@ -174,7 +187,58 @@ public class ShockTests {
 		assertThat("file content unequal", filecon, is(content));
 		assertThat("file name unequal", snget.getFileInformation().getName(), is(name));
 		assertThat("file size wrong", snget.getFileInformation().getSize(), is(content.length()));
-		bsc1.deleteNode(sn.getId());
+	}
+	
+	@Test
+	public void getNodeWithFileAndAttribs() throws Exception {
+		String content = "Like the downy growth on the upper lip of a mediterranean girl";
+		String name = "bydemagogueryImeandemagoguery";
+		Map<String, Object> attribs = makeSomeAttribs("castellaandlillete");
+		ShockNode sn = bsc1.addNode(attribs, content.getBytes(), name);
+		testFile(content, name, sn);
+		testAttribs(attribs, sn);
+		sn.delete();
+	}
+	
+	@Test
+	public void getNodeNulls() throws Exception {
+		Map<String, Object> attribs = makeSomeAttribs("wuggawugga");
+		try {
+			bsc1.addNode(null);
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("attributes"));
+		}
+		try {
+			bsc1.addNode(null, "foo");
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("file"));
+		}
+		try {
+			bsc1.addNode("foo".getBytes(), null);
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("filename"));
+		}
+		try {
+			bsc1.addNode(null, "foo".getBytes(), "foo");
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("attributes"));
+		}
+		try {
+			bsc1.addNode(attribs, null, "foo");
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("file"));
+		}
+		try {
+			bsc1.addNode(attribs, "foo".getBytes(), null);
+			fail("called addNode with null value");
+		} catch (NullPointerException npe) {
+			assertThat("npe message incorrect", npe.getMessage(), is("filename"));
+		}
 	}
 	
 	@Test
