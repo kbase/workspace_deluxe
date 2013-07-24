@@ -175,15 +175,21 @@ public class ShockTests {
 	public void testVersion() throws Exception {
 		ShockNode sn = bsc1.addNode();
 		sn.getVersion().getVersion(); //not much else to do here
-		try {
-			new ShockVersionStamp("thisisnotavalidmd5");
-			fail("Version stamp accepted invalid version string");
-		} catch (IllegalArgumentException iae) {
-			assertThat("Bad exception message", iae.toString(),
-					is("java.lang.IllegalArgumentException: version must be an md5 string"));
+		List<String> badMD5s = Arrays.asList("fe90c05e51aa22e53daec604c815962g3",
+				"e90c05e51aa22e53daec604c815962f", "e90c05e51aa-2e53daec604c815962f3",
+				"e90c05e51aa22e53daec604c815962f31");
+		for (String md5: badMD5s) {
+			try {
+				new ShockVersionStamp(md5);
+				fail("Version stamp accepted invalid version string");
+			} catch (IllegalArgumentException iae) {
+				assertThat("Bad exception message", iae.toString(),
+						is("java.lang.IllegalArgumentException: version must be an md5 string"));
+			}
 		}
-		
 		bsc1.deleteNode(sn.getId());
+		//will throw errors if doesn't accept md5
+		new ShockVersionStamp("e90c05e51aa22e53daec604c815962f3");
 	}
 	
 	public static void main(String[] args) throws Exception {
