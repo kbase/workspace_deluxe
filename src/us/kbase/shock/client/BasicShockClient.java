@@ -206,7 +206,7 @@ public class BasicShockClient {
 			String filename) throws IOException, ShockHttpException,
 			JsonProcessingException, ExpiredTokenException {
 		final HttpPost htp = new HttpPost(nodeurl);
-		if (attributes != null && file != null) {
+		if (attributes != null || file != null) {
 			final MultipartEntity mpe = new MultipartEntity();
 			if (attributes != null) {
 				final byte[] attribs = mapper.writeValueAsBytes(attributes);
