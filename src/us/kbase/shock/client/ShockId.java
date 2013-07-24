@@ -28,7 +28,7 @@ public class ShockId {
 	
 	public boolean equals(Object obj) {
 		if (this == obj) {return true;}
-		if (!(obj instanceof ShockUserId)) {return false;}
+		if (!(obj instanceof ShockId)) {return false;}
 		return id.equals(((ShockId)obj).id); 
 	}
 }

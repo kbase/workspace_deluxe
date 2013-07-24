@@ -40,6 +40,7 @@ public class ShockTests {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
+		System.out.println(System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing shock clients pointed at: " + url);
 		String u1 = System.getProperty("test.user1");
@@ -259,8 +260,12 @@ public class ShockTests {
 	@Test
 	public void ids() throws Exception {
 		//will throw exception if doesn't process good uuid
-		new ShockNodeId("cbf19927-1e04-456c-b2c3-812edd90fa68");
 		new ShockUserId("cbf19927-1e04-456c-b2c3-812edd90fa68");
+		ShockNodeId id1 = new ShockNodeId("cbf19927-1e04-456c-b2c3-812edd90fa68");
+		ShockNodeId id2 = new ShockNodeId("cbf19927-1e04-456c-b2c3-812edd90fa68");
+		assertTrue("id equality failed", id1.equals(id1));
+		assertTrue("id state failed", id1.equals(id2));
+		
 		
 		List<String> badUUIDs = Arrays.asList("cbf19927a1e04-456c-b2c3-812edd90fa68",
 				"cbf19927-1e04-456c1-b2c3-812edd90fa68", "acbf19927-1e04-456c-b2c3-812edd90fa68",
@@ -287,6 +292,13 @@ public class ShockTests {
 	
 	@Test
 	public void generalAcls() throws Exception {
+		try {
+			new ShockACLType("invalid type") ;
+			fail("invalid acl type accepted");
+		} catch (IllegalArgumentException iae) {
+			assertThat("wrong exception string for bad acl type", iae.toString(),
+					is("java.lang.IllegalArgumentException: invalid type is not a valid acl type"));
+		}
 		ShockACLType owner = new ShockACLType("owner");
 		ShockNode sn = bsc1.addNode();
 		assertTrue("acl access methods produce different acls",
