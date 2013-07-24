@@ -4,12 +4,12 @@ import java.util.regex.Pattern;
 
 public class ShockVersionStamp {
 	
-	private static final Pattern md5 = Pattern.compile("[\\da-f]{32}");
+	private static final Pattern MD5 = Pattern.compile("[\\da-f]{32}");
 
 	public final String version;
 
 	public ShockVersionStamp(String version) throws IllegalArgumentException {
-		if (!md5.matcher(version).matches()) {
+		if (!MD5.matcher(version).matches()) {
 			throw new IllegalArgumentException("version must be an md5 string");
 		}
 		this.version = version;

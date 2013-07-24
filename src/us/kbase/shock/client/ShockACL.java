@@ -17,14 +17,17 @@ public class ShockACL extends ShockData {
 	}
 
 	public List<ShockUserId> getRead() {
+		if (read == null) {return null;}
 		return new ArrayList<ShockUserId>(read);
 	}
 
 	public List<ShockUserId> getWrite() {
+		if (write == null) {return null;}
 		return new ArrayList<ShockUserId>(write);
 	}
 
 	public List<ShockUserId> getDelete() {
+		if (delete == null) {return null;}
 		return new ArrayList<ShockUserId>(delete);
 	}
 	

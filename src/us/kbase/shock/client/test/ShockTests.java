@@ -21,9 +21,11 @@ import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.shock.client.ShockUserId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -52,7 +54,7 @@ public class ShockTests {
 	}
 	
 	@Test
-	public void testShockUrl() throws Exception {
+	public void shockUrl() throws Exception {
 		URL url = bsc1.getShockUrl();
 		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
 		assertThat("url is preserved", b.getShockUrl().toString(), is(url.toString()));
@@ -255,7 +257,36 @@ public class ShockTests {
 	}
 	
 	@Test
-	public void acls() throws Exception {
+	public void ids() throws Exception {
+		//will throw exception if doesn't process good uuid
+		new ShockNodeId("cbf19927-1e04-456c-b2c3-812edd90fa68");
+		new ShockUserId("cbf19927-1e04-456c-b2c3-812edd90fa68");
+		
+		List<String> badUUIDs = Arrays.asList("cbf19927a1e04-456c-b2c3-812edd90fa68",
+				"cbf19927-1e04-456c1-b2c3-812edd90fa68", "acbf19927-1e04-456c-b2c3-812edd90fa68",
+				"cbf19927-1e04-456c-b2c3-812gdd90fa68");
+		for (String uuid: badUUIDs) {
+			try {
+				new ShockNodeId(uuid);
+				fail("Node id accepted invalid id string " + uuid);
+			} catch (IllegalArgumentException iae) {
+				assertThat("Bad exception message", iae.toString(),
+						is("java.lang.IllegalArgumentException: id must be a UUID hex string"));
+			}
+		}
+		for (String uuid: badUUIDs) {
+			try {
+				new ShockUserId(uuid);
+				fail("User id accepted invalid id string " + uuid);
+			} catch (IllegalArgumentException iae) {
+				assertThat("Bad exception message", iae.toString(),
+						is("java.lang.IllegalArgumentException: id must be a UUID hex string"));
+			}
+		}
+	}
+	
+	@Test
+	public void generalAcls() throws Exception {
 		ShockACLType owner = new ShockACLType("owner");
 		ShockNode sn = bsc1.addNode();
 		assertTrue("acl access methods produce different acls",
@@ -267,16 +298,27 @@ public class ShockTests {
 				new ShockACLType("read"), new ShockACLType("write"),
 				new ShockACLType("delete"));
 		for (ShockACLType acl: acls) {
+			ShockACL sacl = sn.getACLs(acl);
 			assertTrue(String.format("%s subset of acls are different", acl.aclType),
-					sn.getACLs(acl).equals(bsc1.getACLs(sn.getId(), acl)));
+					sacl.equals(bsc1.getACLs(sn.getId(), acl)));
+			checkListLengthIfNotNull(sacl.getRead(), 1);
+			checkListLengthIfNotNull(sacl.getWrite(), 1);
+			checkListLengthIfNotNull(sacl.getDelete(), 1);
 		}
-		
 		sn.delete();
+	}
+	
+	public void checkListLengthIfNotNull(@SuppressWarnings("rawtypes") List list,
+			int length) {
+		if (list != null) {
+			assertTrue(String.format("only %d user in new acl", length),
+					list.size() == length);
+		}
 	}
 	
 	
 	@Test
-	public void testVersion() throws Exception {
+	public void version() throws Exception {
 		ShockNode sn = bsc1.addNode();
 		sn.getVersion().getVersion(); //not much else to do here
 		List<String> badMD5s = Arrays.asList("fe90c05e51aa22e53daec604c815962g3",

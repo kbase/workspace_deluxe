@@ -1,13 +1,19 @@
 package us.kbase.shock.client;
 
-import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class ShockId {
+	
+	//8-4-4-4-12
+	private static final Pattern UUID =
+			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
 
 	public final String id;
 
 	public ShockId(String id) throws IllegalArgumentException {
-		UUID.fromString(id); //test valid uuid
+		if (!UUID.matcher(id).matches()) {
+			throw new IllegalArgumentException("id must be a UUID hex string");
+		}
 		this.id = id;
 	}
 		
