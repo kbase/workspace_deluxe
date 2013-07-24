@@ -50,13 +50,11 @@ public class ShockTests {
 		bscNoAuth = new BasicShockClient(url);
 	}
 	
-	//TODO reverse matchers, is is expected
-	
 	@Test
 	public void testShockUrl() throws Exception {
 		URL url = bsc1.getShockUrl();
 		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
-		assertThat("url is preserved", url.toString(), is(b.getShockUrl().toString()));
+		assertThat("url is preserved", b.getShockUrl().toString(), is(url.toString()));
 		List<String> badURLs = Arrays.asList("ftp://thing.us/",
 			"http://google.com/", "http://kbase.us/services/idserver/");
 		for (String burl: badURLs) {
@@ -67,14 +65,14 @@ public class ShockTests {
 		}
 		String newurl = "https://kbase.us/services/shock-api/";
 		BasicShockClient b2 = new BasicShockClient(new URL(newurl + "foo/"));
-		assertThat("https url not preserved", newurl, is(b2.getShockUrl().toString()));
+		assertThat("https url not preserved", b2.getShockUrl().toString(), is(newurl));
 	}
 
 	@Test
 	public void addGetDeleteNodeBasic() throws Exception {
 		ShockNode sn = bsc1.addNode();
 		ShockNode snget = bsc1.getNode(sn.getId());
-		assertThat("get node != add Node output", sn.toString(), is(snget.toString()));
+		assertThat("get node != add Node output", snget.toString(), is(sn.toString()));
 		bsc1.deleteNode(sn.getId());
 		getDeletedNode(sn.getId());
 	}
@@ -84,8 +82,9 @@ public class ShockTests {
 			bsc1.getNode(id);
 			fail("Able to retrieve deleted node");
 		} catch (ShockHttpException she) {
-			assertThat("Bad exception message", she.toString(),
-					is("us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error"));
+			assertThat("Bad exception message",
+					"us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error",
+					is(she.toString()));
 		}
 	}
 	
@@ -137,8 +136,8 @@ public class ShockTests {
 		Map<String, Object> attribs = makeSomeAttribs();
 		ShockNode sn = bsc1.addNode(attribs);
 		ShockNode snget = bsc1.getNode(sn.getId());
-		assertThat("get node != add Node output", sn.toString(), is(snget.toString()));
-		assertThat("attribs altered", attribs, is(snget.getAttributes()));
+		assertThat("get node != add Node output", snget.toString(), is(sn.toString()));
+		assertThat("attribs altered", snget.getAttributes(), is(attribs));
 		bsc1.deleteNode(sn.getId());
 	}
 	
@@ -153,21 +152,22 @@ public class ShockTests {
 		Set<String> digestTypes = snget.getFileInformation().getChecksumTypes();
 		assertTrue(digestTypes.contains("md5"));
 		assertTrue(digestTypes.contains("sha1"));
-		assertThat("unequal md5", DigestUtils.md5Hex(content),
-				is(snget.getFileInformation().getChecksum("md5")));
-		assertThat("unequal sha1", DigestUtils.sha1Hex(content),
-				is(snget.getFileInformation().getChecksum("sha1")));
+		assertThat("unequal md5", snget.getFileInformation().getChecksum("md5"),
+				is(DigestUtils.md5Hex(content)));
+		assertThat("unequal sha1", snget.getFileInformation().getChecksum("sha1"),
+				is(DigestUtils.sha1Hex(content)));
 		try {
 			snget.getFileInformation().getChecksum("this is not a checksum type");
 			fail("got checksum type that doesn't exist");
 		} catch (IllegalArgumentException iae) {
-			assertThat("exception string incorrect", iae.toString(),
-					is("java.lang.IllegalArgumentException: No such checksum type: this is not a checksum type"));
+			assertThat("exception string incorrect", 
+					"java.lang.IllegalArgumentException: No such checksum type: this is not a checksum type",
+					is(iae.toString()));
 		}
-		assertThat("file from node != file from client", filecon, is(filefromnode));
-		assertThat("file content unequal", content, is(filecon));
-		assertThat("file name unequal", name, is(snget.getFileInformation().getName()));
-		assertThat("file size wrong", content.length(), is(snget.getFileInformation().getSize()));
+		assertThat("file from node != file from client", filefromnode, is(filecon));
+		assertThat("file content unequal", filecon, is(content));
+		assertThat("file name unequal", snget.getFileInformation().getName(), is(name));
+		assertThat("file size wrong", snget.getFileInformation().getSize(), is(content.length()));
 		bsc1.deleteNode(sn.getId());
 	}
 	
