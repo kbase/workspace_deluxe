@@ -2,6 +2,7 @@ package us.kbase.shock.client.test;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockVersionStamp;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 
@@ -48,11 +50,24 @@ public class ShockTests {
 		bscNoAuth = new BasicShockClient(url);
 	}
 	
+	//TODO reverse matchers, is is expected
+	
 	@Test
 	public void testShockUrl() throws Exception {
 		URL url = bsc1.getShockUrl();
 		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
 		assertThat("url is preserved", url.toString(), is(b.getShockUrl().toString()));
+		List<String> badURLs = Arrays.asList("ftp://thing.us/",
+			"http://google.com/", "http://kbase.us/services/idserver/");
+		for (String burl: badURLs) {
+			try {
+				new BasicShockClient(new URL(burl));
+				fail("init'd client with bad url");
+			} catch (InvalidShockUrlException isu) {}
+		}
+		String newurl = "https://kbase.us/services/shock-api/";
+		BasicShockClient b2 = new BasicShockClient(new URL(newurl + "foo/"));
+		assertThat("https url not preserved", newurl, is(b2.getShockUrl().toString()));
 	}
 
 	@Test

@@ -82,6 +82,9 @@ public class BasicShockClient {
 		} catch (JsonParseException jpe) {
 			throw new InvalidShockUrlException(turl.toString());
 		}
+		if (!shockresp.containsKey("id")) {
+			throw new InvalidShockUrlException(turl.toString());
+		}
 		if (!shockresp.get("id").equals("Shock")) {
 			throw new InvalidShockUrlException(turl.toString());
 		}
