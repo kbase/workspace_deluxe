@@ -3,17 +3,20 @@ package us.kbase.shock.client;
 import java.io.IOException;
 import java.util.Map;
 
+import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties({"relatives", "type", "indexes", "tags", "linkages"})
 public class ShockNode extends ShockData {
 
 	private Map<String, Object> attributes;
+	@JsonProperty("file")
 	private ShockFileInformation file;
 	private ShockNodeId id;
 	private ShockVersionStamp version;
@@ -46,13 +49,37 @@ public class ShockNode extends ShockData {
 		deleted = true;
 	}
 	
-	//TODO add node specific commands here
+	@JsonIgnore
+	public ShockACL getACLs() throws ShockHttpException, IOException,
+			ExpiredTokenException, ShockNodeDeletedException {
+		return client.getACLs(getId());
+	}
 	
+	@JsonIgnore
+	public ShockACL getACLs(ShockACLType acl) throws ShockHttpException,
+			IOException, ExpiredTokenException, ShockNodeDeletedException {
+		return client.getACLs(getId(), acl);
+	}
+	
+	@JsonIgnore
+	public void setReadable(AuthUser user) throws ShockHttpException,
+			IOException, ExpiredTokenException, ShockNodeDeletedException {
+		client.setNodeReadable(getId(), user);
+	}
+	
+	@JsonIgnore
+	public void setWorldReadable() throws ShockHttpException,
+			IOException, ExpiredTokenException, ShockNodeDeletedException {
+		client.setNodeWorldReadable(getId());
+	}
+	
+	@JsonIgnore
 	public byte[] getFile() throws ShockHttpException, IOException,
 			ExpiredTokenException, ShockNodeDeletedException {
 		return client.getFile(getId());
 	}
 	
+	@JsonIgnore
 	public ShockFileInformation getFileInformation() throws 
 			ShockNodeDeletedException {
 		checkDeleted();

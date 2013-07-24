@@ -62,13 +62,6 @@ public class ShockTests {
 		assertThat("get node != add Node output", sn.toString(), is(snget.toString()));
 		bsc1.deleteNode(sn.getId());
 		getDeletedNode(sn.getId());
-//		try {
-//			bsc1.getNode(sn.getId());
-//			fail("Able to retrieve deleted node");
-//		} catch (ShockHttpException she) {
-//			assertThat("Bad exception message", she.toString(),
-//					is("us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error"));
-//		}
 	}
 	
 	private void getDeletedNode(ShockNodeId id) throws Exception {
