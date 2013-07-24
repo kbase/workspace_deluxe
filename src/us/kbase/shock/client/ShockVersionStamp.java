@@ -23,9 +23,4 @@ public class ShockVersionStamp {
 	public String toString() {
 		return "ShockVersionStamp [version=" + version + "]";
 	}
-
-	public static void main(String[] args) {
-		ShockVersionStamp s = new ShockVersionStamp("76a295479a82ddacee098be507bd31cf");
-		System.out.println(s.getVersion());
-	}
 }

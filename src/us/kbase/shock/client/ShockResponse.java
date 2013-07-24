@@ -27,13 +27,13 @@ public abstract class ShockResponse {
 	public abstract ShockData getShockData() throws ShockHttpException;
 	
 	protected void checkErrors() throws ShockHttpException {
-		if (error != null) {
+		if (hasError()) {
 			if (status == 401) {
-				throw new ShockAuthorizationException(status, getError());
+				throw new ShockAuthorizationException(getStatus(), getError());
 			} else if (status == 400 && getError().equals("Node has no file")) {
-				throw new ShockNoFileException(status, getError());
+				throw new ShockNoFileException(getStatus(), getError());
 			} else {
-				throw new ShockHttpException(status, getError());
+				throw new ShockHttpException(getStatus(), getError());
 			}
 		}
 	}

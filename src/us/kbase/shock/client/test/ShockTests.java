@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -19,6 +23,7 @@ import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 
 public class ShockTests {
@@ -41,6 +46,13 @@ public class ShockTests {
 		bsc2 = new BasicShockClient(url, t2);
 		bscNoAuth = new BasicShockClient(url);
 	}
+	
+	@Test
+	public void testShockUrl() throws Exception {
+		URL url = bsc1.getShockUrl();
+		BasicShockClient b = new BasicShockClient(url); //will choke if bad url
+		assertThat("url is preserved", url.toString(), is(b.getShockUrl().toString()));
+	}
 
 	@Test
 	public void addGetDeleteNodeBasic() throws Exception {
@@ -57,8 +69,7 @@ public class ShockTests {
 		}
 	}
 	
-	@Test
-	public void getNodeWithAttribs() throws Exception {
+	private Map<String,Object> makeSomeAttribs() {
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		List<Object> l = new ArrayList<Object>();
 		l.add("alist");
@@ -66,10 +77,59 @@ public class ShockTests {
 		inner.put("entity", "enigma");
 		l.add(inner);
 		attribs.put("foo", l);
+		return attribs;
+	}
+	
+	@Test
+	public void getNodeWithAttribs() throws Exception {
+		Map<String, Object> attribs = makeSomeAttribs();
 		ShockNode sn = bsc1.addNode(attribs);
 		ShockNode snget = bsc1.getNode(sn.getId());
 		assertThat("get node != add Node output", sn.toString(), is(snget.toString()));
 		assertThat("attribs altered", attribs, is(snget.getAttributes()));
+		bsc1.deleteNode(sn.getId());
+	}
+	
+	@Test
+	public void getNodeWithFile() throws Exception {
+		String content = "Been shopping? No, I've been shopping";
+		String name = "apistonengine.recipe";
+		ShockNode sn = bsc1.addNode(content.getBytes(), name);
+		ShockNode snget = bsc1.getNode(sn.getId());
+		String filecon = new String(bsc1.getFile(sn.getId()));
+		Set<String> digestTypes = snget.getFile().getChecksumTypes();
+		assertTrue(digestTypes.contains("md5"));
+		assertTrue(digestTypes.contains("sha1"));
+		assertThat("unequal md5", DigestUtils.md5Hex(content),
+				is(snget.getFile().getChecksum("md5")));
+		assertThat("unequal sha1", DigestUtils.sha1Hex(content),
+				is(snget.getFile().getChecksum("sha1")));
+		try {
+			snget.getFile().getChecksum("this is not a checksum type");
+			fail("got checksum type that doesn't exist");
+		} catch (IllegalArgumentException iae) {
+			assertThat("exception string incorrect", iae.toString(),
+					is("java.lang.IllegalArgumentException: No such checksum type: this is not a checksum type"));
+		}
+		assertThat("file content unequal", content, is(filecon));
+		assertThat("file name unequal", name, is(snget.getFile().getName()));
+		assertThat("file size wrong", content.length(), is(snget.getFile().getSize()));
+		bsc1.deleteNode(sn.getId());
+	}
+	
+	@Test
+	public void testVersion() throws Exception {
+		ShockNode sn = bsc1.addNode();
+		sn.getVersion().getVersion(); //not much else to do here
+		try {
+			new ShockVersionStamp("thisisnotavalidmd5");
+			fail("Version stamp accepted invalid version string");
+		} catch (IllegalArgumentException iae) {
+			assertThat("Bad exception message", iae.toString(),
+					is("java.lang.IllegalArgumentException: version must be an md5 string"));
+		}
+		
+		bsc1.deleteNode(sn.getId());
 	}
 	
 	public static void main(String[] args) throws Exception {
