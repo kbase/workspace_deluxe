@@ -39,7 +39,8 @@ public class ShockTests {
 	//TODO token expiry tests - set expired, expire after test - need globus support here
 	//TODO think of possible errors and test
 	// bad node string
-	//
+	// no email
+	// unvalidated email
 	
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;

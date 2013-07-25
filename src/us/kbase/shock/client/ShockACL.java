@@ -3,6 +3,13 @@ package us.kbase.shock.client;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents one or more of the access control lists (ACLs) for a shock
+ * object. This class is never instantiated manually.
+ * 
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ShockACL extends ShockData {
 
 	private ShockUserId owner;
@@ -12,25 +19,47 @@ public class ShockACL extends ShockData {
 	
 	private ShockACL(){}
 
+	/**
+	 * Get the user ID of the node's owner.
+	 * @return the owner ID.
+	 */
 	public ShockUserId getOwner() {
 		return owner;
 	}
 
+	/**
+	 * Get the list of user IDs that can read the node.
+	 * @return the list of IDs or <code>null</code> if the list was not 
+	 * included in the server response.
+	 */
 	public List<ShockUserId> getRead() {
 		if (read == null) {return null;}
 		return new ArrayList<ShockUserId>(read);
 	}
 
+	/**
+	 * Get the list of user IDs that can write to the node.
+	 * @return the list of IDs or <code>null</code> if the list was not 
+	 * included in the server response.
+	 */
 	public List<ShockUserId> getWrite() {
 		if (write == null) {return null;}
 		return new ArrayList<ShockUserId>(write);
 	}
 
+	/**
+	 * Get the list of user IDs that can delete the node.
+	 * @return the list of IDs or <code>null</code> if the list was not 
+	 * included in the server response.
+	 */
 	public List<ShockUserId> getDelete() {
 		if (delete == null) {return null;}
 		return new ArrayList<ShockUserId>(delete);
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		//this is repulsive. Rethink this later.
@@ -49,6 +78,9 @@ public class ShockACL extends ShockData {
 				((this.delete == null && acl.delete == null) || this.delete.equals(acl.delete));
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		return "ShockACL [owner=" + owner + ", read=" + read + ", write="

@@ -252,7 +252,7 @@ public class BasicShockClient {
 	
 	public ShockACL getACLs(ShockNodeId id) throws IOException,
 			ShockHttpException, ExpiredTokenException {
-		return getACLs(id, new ShockACLType("all"));
+		return getACLs(id, new ShockACLType());
 	}
 	
 	public ShockACL getACLs(ShockNodeId id, ShockACLType acl) 
