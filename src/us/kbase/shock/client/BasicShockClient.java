@@ -143,6 +143,16 @@ public class BasicShockClient {
 		}
 	}
 
+	/** Gets a node from the shock server. Note the class returned 
+	 * represents the shock node's state at the time getNode() was called
+	 * and does not update further.
+	 * @param id the ID of the shock node
+	 * @return a shock node object
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be fetched from shock
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public ShockNode getNode(ShockNodeId id) throws IOException,
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());

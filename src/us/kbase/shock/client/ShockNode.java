@@ -43,9 +43,19 @@ public class ShockNode extends ShockData {
 		return attributes;
 	}
 
+	/** Proxy for {@link BasicShockClient#deleteNode(ShockNodeId) deleteNode}. 
+	 * Deletes this node on the server. All methods will throw an
+	 * exception after this method is called.
+	 * @throws ShockHttpException if the shock server couldn't delete the node.
+	 * @throws IOException if an IO problem occurs
+	 * @throws ExpiredTokenException if the client's token has expired
+	 * @throws ShockNodeDeletedException if this method has already been 
+	 * called on this object
+	 */
 	public void delete() throws ShockHttpException, IOException,
 			ExpiredTokenException, ShockNodeDeletedException {
 		client.deleteNode(getId());
+		client = null; //remove ref to client
 		deleted = true;
 	}
 	

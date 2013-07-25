@@ -38,6 +38,8 @@ public class ShockTests {
 	
 	//TODO token expiry tests - set expired, expire after test - need globus support here
 	//TODO think of possible errors and test
+	// bad node string
+	//
 	
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
@@ -46,7 +48,7 @@ public class ShockTests {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		System.out.println(System.getProperty("java.runtime.version"));
+		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing shock clients pointed at: " + url);
 		String u1 = System.getProperty("test.user1");

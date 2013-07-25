@@ -52,6 +52,17 @@
     </fileset>
   </path>
 
+  <target name="javadoc">
+    <javadoc access="protected" author="true" classpathref="compile.classpath"
+      destdir="docs" nodeprecated="false" nodeprecatedlist="false"
+      noindex="false" nonavbar="false" notree="false"
+      packagenames="us.kbase.shock.client,us.kbase.shock.client.exceptions"
+      source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
+      <link href="http://download.oracle.com/javase/6/docs/api/"/>
+      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
+    </javadoc>
+  </target>
+
   <!--<target name="compile_and_bin" depends="compile" description="compile and create shell file in dev_container/bin" >-->
     <!-- Define list of lib-jar files-->
     <!-- Define absolute path to main jar file-->
