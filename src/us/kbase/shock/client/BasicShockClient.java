@@ -6,7 +6,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +27,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
@@ -276,92 +274,4 @@ public class BasicShockClient {
 			throw new Error(mue); //something is seriously fuxxored
 		}
 	}
-	
-	public static void main(String[] args) throws Exception {
-		AuthUser au = AuthService.login("x", "x");
-//		System.out.println(au);
-		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:7044"), au.getToken());
-		System.out.println("***Add node");
-		Map<String, Object> attribs = new HashMap<String, Object>();
-		attribs.put("foo", "newbar");
-		ShockNode node = bsc.addNode(attribs, "some serious crap right here".getBytes(), "seriouscrapfile");
-		System.out.println(node);
-		System.out.println("***Get node");
-		System.out.println(bsc.getNode(node.getId()));
-		System.out.println("***Get file");
-		System.out.println(new String(bsc.getFile(node.getId())));
-		System.out.println("***Get node with no auth");
-		BasicShockClient bscNoAuth = new BasicShockClient(new URL("http://localhost:7044"));
-		try {
-			bscNoAuth.getNode(node.getId());
-		} catch (ShockHttpException she) {
-			System.out.println(she);
-		}
-		System.out.println("***delete node");
-		bsc.deleteNode(node.getId());
-		System.out.println("***get deleted node");
-		try {
-			System.out.println(bsc.getNode(node.getId()));
-		} catch (ShockHttpException she) {
-			System.out.println(she);
-		}
-		
-		System.out.println("***Add empty node");
-		ShockNode node2 = bsc.addNode();
-		System.out.println("***Get non-existant file");
-		try {
-			bsc.getFile(node2.getId());
-		} catch (ShockHttpException she) {
-			System.out.println(she);
-		}
-		ShockNode node2get = bsc.getNode(node2.getId());
-		System.out.println(bsc.getNode(node2get.getId()));
-		
-		System.out.println("***set node readable***");
-		AuthUser au2 = AuthService.login("kbasetest2", "@Suite525");
-		bsc.setNodeReadable(node2get.getId(), au2);
-		System.out.println("***get all ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId()));
-		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("all")));
-		System.out.println("***get read ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("read")));
-		System.out.println("***get write ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("write")));
-		System.out.println("***get delete ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("delete")));
-		System.out.println("***get owner ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId(), new ShockACLType("owner")));
-		System.out.println("***set world readable***");
-		bsc.setNodeWorldReadable(node2get.getId());
-		System.out.println("***get all ACLs***");
-		System.out.println(bsc.getACLs(node2get.getId()));
-		System.out.println("***read with no creds***");
-		System.out.println(bscNoAuth.getNode(node2get.getId()));
-		
-//		System.out.println("***Test expired token***");
-		//TODO that token wasn't expired. Pfft.
-//		AuthToken expired = new AuthToken("");
-//		try {
-//			@SuppressWarnings("unused")
-//			BasicShockClient bscbad = new BasicShockClient(new URL("http://fake.com"), expired);
-//		} catch (ExpiredTokenException ete) {
-//			System.out.println(ete);
-//		}
-//		try {
-//			bsc.updateToken(expired);
-//		} catch (ExpiredTokenException ete) {
-//			System.out.println(ete);
-//		}
-		//TODO tests for tokens that expire while in the client
-		
-		BasicShockClient bsc2 = new BasicShockClient(new URL("http://kbase.us/services/shock-api"));
-		ShockNodeId snid2 = new ShockNodeId("9ae2658e-057f-4f89-81a1-a41c09c7313a");
-		System.out.println("***Get node " + snid2 + " from " + bsc2.getShockUrl());
-		System.out.println(bsc2.getNode(snid2));
-		
-		//TODO test errors
-		
-		
-	}
-
 }
