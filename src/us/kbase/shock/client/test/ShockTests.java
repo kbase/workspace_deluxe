@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -36,6 +35,8 @@ import us.kbase.shock.client.exceptions.ShockNoFileException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 
 public class ShockTests {
+	
+	//TODO token expiry tests - set expired, expire after test - need globus support here
 	
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
@@ -342,44 +343,116 @@ public class ShockTests {
 	
 	@Test
 	public void addAndReadAclViaNode() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+//		ShockNode sn = bsc1.addNode();
+//		String expected = 
+//				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+//		try {
+//			bsc2.getNode(sn.getId());
+//			fail("Node is readable with no permissions");
+//		} catch (ShockAuthorizationException aue) {
+//			assertThat("auth exception string is correct", aue.toString(),
+//					is(expected));
+//		}
+		sn.setReadable(otherguy);
+		checkAuthAndDelete(sn, bsc2, 2);
+//		sn = bsc1.getNode(sn.getId()); //version stamp changed
+//		ShockNode sn2 = bsc2.getNode(sn.getId());
+//		assertThat("different users see different nodes", sn.toString(),
+//				is(sn2.toString()));
+//		sn.delete();
+	}
+	
+	@Test
+	public void addAndReadAclViaClient() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+//		ShockNode sn = bsc1.addNode();
+//		String expected = 
+//				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+//		try {
+//			bsc2.getNode(sn.getId());
+//			fail("Node is readable with no permissions");
+//		} catch (ShockAuthorizationException aue) {
+//			assertThat("auth exception string is correct", aue.toString(),
+//					is(expected));
+//		}
+		bsc1.setNodeReadable(sn.getId(), otherguy);
+		checkAuthAndDelete(sn, bsc2, 2);
+//		sn = bsc1.getNode(sn.getId()); //version stamp changed
+//		ShockNode sn2 = bsc2.getNode(sn.getId());
+//		assertThat("different users see different nodes", sn.toString(),
+//				is(sn2.toString()));
+//		sn.delete();
+	}
+	
+	private ShockNode setUpNodeAndCheckAuth(BasicShockClient c) throws Exception{
 		ShockNode sn = bsc1.addNode();
 		String expected = 
 				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
 		try {
-			bsc2.getNode(sn.getId());
+			c.getNode(sn.getId());
 			fail("Node is readable with no permissions");
 		} catch (ShockAuthorizationException aue) {
 			assertThat("auth exception string is correct", aue.toString(),
 					is(expected));
 		}
-		sn.setReadable(otherguy);
+		return sn;
+	}
+	
+	private void checkAuthAndDelete(ShockNode sn, BasicShockClient c, int size)
+			throws Exception {
+		assertThat("Setting read perms failed", size, 
+				is(sn.getACLs(new ShockACLType("read")).getRead().size()));
 		sn = bsc1.getNode(sn.getId()); //version stamp changed
-		ShockNode sn2 = bsc2.getNode(sn.getId());
+		ShockNode sn2 = c.getNode(sn.getId());
 		assertThat("different users see different nodes", sn.toString(),
 				is(sn2.toString()));
 		sn.delete();
 	}
 	
 	@Test
-	public void addAndReadAclViaClient() throws Exception {
-		ShockNode sn = bsc1.addNode();
-		String expected = 
-				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
-		try {
-			bsc2.getNode(sn.getId());
-			fail("Node is readable with no permissions");
-		} catch (ShockAuthorizationException aue) {
-			assertThat("auth exception string is correct", aue.toString(),
-					is(expected));
-		}
-		bsc1.setNodeReadable(sn.getId(), otherguy);
-		sn = bsc1.getNode(sn.getId()); //version stamp changed
-		ShockNode sn2 = bsc2.getNode(sn.getId());
-		assertThat("different users see different nodes", sn.toString(),
-				is(sn2.toString()));
-		sn.delete();
+	public void addAndReadAclViaClientNoAuth() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+//		ShockNode sn = bsc1.addNode();
+//		String expected = 
+//				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+//		try {
+//			bscNoAuth.getNode(sn.getId());
+//			fail("Node is readable with no permissions");
+//		} catch (ShockAuthorizationException aue) {
+//			assertThat("auth exception string is correct", aue.toString(),
+//					is(expected));
+//		}
+		bsc1.setNodeWorldReadable(sn.getId());
+		checkAuthAndDelete(sn, bscNoAuth, 0);
+//		sn = bsc1.getNode(sn.getId()); //version stamp changed
+//		ShockNode sn2 = bscNoAuth.getNode(sn.getId());
+//		assertThat("different users see different nodes", sn.toString(),
+//				is(sn2.toString()));
+//		sn.delete();
 	}
 	
+	@Test
+	public void addAndReadAclViaNodeNoAuth() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+//		ShockNode sn = bsc1.addNode();
+//		String expected = 
+//				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+//		try {
+//			bsc2.getNode(sn.getId());
+//			fail("Node is readable with no permissions");
+//		} catch (ShockAuthorizationException aue) {
+//			assertThat("auth exception string is correct", aue.toString(),
+//					is(expected));
+//		}
+		sn.setWorldReadable();
+		checkAuthAndDelete(sn, bscNoAuth, 0);
+//		sn = bsc1.getNode(sn.getId()); //version stamp changed
+//		ShockNode sn2 = bsc2.getNode(sn.getId());
+//		assertThat("different users see different nodes", sn.toString(),
+//				is(sn2.toString()));
+//		sn.delete();
+	}
 	
 	@Test
 	public void version() throws Exception {
