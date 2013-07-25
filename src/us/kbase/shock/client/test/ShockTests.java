@@ -64,7 +64,7 @@ public class ShockTests {
 		bsc2 = new BasicShockClient(url, t2);
 		bscNoAuth = new BasicShockClient(url);
 	}
-	
+
 	@Test
 	public void shockUrl() throws Exception {
 		URL url = bsc1.getShockUrl();

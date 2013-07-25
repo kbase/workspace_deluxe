@@ -18,7 +18,7 @@
   <!--<property name="sh.file"	value="gen_java_types"/>
   <property name="test.file"	value="test_gen_java_types.sh"/>-->
 
-  <target name="init">
+  <target name="init" description="make directories">
     <!-- Create the output directory structure-->
     <mkdir dir="${classes}"/>
     <mkdir dir="${dist}"/>
@@ -52,7 +52,7 @@
     </fileset>
   </path>
 
-  <target name="javadoc">
+  <target name="javadoc" description="build javadocs">
     <javadoc access="protected" author="false" classpathref="compile.classpath"
       destdir="docs" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
@@ -87,6 +87,8 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd2" message="property test.pwd2 not set."/>
+    <fail unless="test.user.noemail" message="property test.user.noemail not set."/>
+    <fail unless="test.pwd.noemail" message="property test.pwd.noemail not set."/>
     <echo message="starting ${package} tests"/>
     <junit haltonfailure="false">
       <classpath refid="test.classpath"/>
@@ -96,6 +98,8 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
+      <sysproperty key="test.user.noemail" value="${test.user.noemail}"/>
+      <sysproperty key="test.pwd.noemail" value="${test.pwd.noemail}"/>
       <test name="us.kbase.shock.client.test.ShockTests"/>
     </junit>
       
