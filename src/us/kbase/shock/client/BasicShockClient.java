@@ -120,6 +120,11 @@ public class BasicShockClient {
 		nodeurl = baseurl.resolve("node/");
 	}
 	
+	/**
+	 * Replace the token this client presents to the shock server.
+	 * @param token the new token
+	 * @throws ExpiredTokenException if the <code>token</code> is expired.
+	 */
 	public void updateToken(AuthToken token) throws ExpiredTokenException {
 		if (token == null) {
 			this.token = null;
@@ -131,6 +136,10 @@ public class BasicShockClient {
 		this.token = token;
 	}
 	
+	/** 
+	 * Get the url of the shock server this client communicates with.
+	 * @return the shock url.
+	 */
 	public URL getShockUrl() {
 		return uriToUrl(baseurl);
 	}
@@ -165,13 +174,14 @@ public class BasicShockClient {
 		}
 	}
 
-	/** Gets a node from the shock server. Note the class returned 
+	/** 
+	 * Gets a node from the shock server. Note the object returned 
 	 * represents the shock node's state at the time getNode() was called
 	 * and does not update further.
-	 * @param id the ID of the shock node
-	 * @return a shock node object
+	 * @param id the ID of the shock node.
+	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
-	 * @throws ShockHttpException if the node could not be fetched from shock
+	 * @throws ShockHttpException if the node could not be fetched from shock.
 	 * @throws ExpiredTokenException if the client authorization token has
 	 * expired.
 	 */
@@ -184,6 +194,15 @@ public class BasicShockClient {
 		return sn;
 	}
 	
+	/**
+	 * Get a file from a shock node.
+	 * @param id the ID of the shock node.
+	 * @return the contents of the file.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the file could not be fetched from shock.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public byte[] getFile(ShockNodeId id) throws IOException,
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
@@ -197,11 +216,29 @@ public class BasicShockClient {
 		return EntityUtils.toByteArray(response.getEntity());
 	}
 	
+	/**
+	 * Creates an empty node on the shock server.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public ShockNode addNode() throws IOException, ShockHttpException,
-			JsonProcessingException, ExpiredTokenException {
+			ExpiredTokenException {
 		return _addNode(null, null, null);
 	}
 	
+	/**
+	 * Creates an node on the shock server with user-specified attributes.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws JsonProcessingException if the <code>attributes</code> could
+	 * not be serialized to JSON.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public ShockNode addNode(Map<String, Object> attributes) throws
 			IOException, ShockHttpException, JsonProcessingException,
 			ExpiredTokenException {
@@ -211,8 +248,16 @@ public class BasicShockClient {
 		return _addNode(attributes, null, null);
 	}
 	
+	/**
+	 * Creates a node on the shock server containing a file.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public ShockNode addNode(byte[] file, String filename) throws IOException,
-			ShockHttpException, JsonProcessingException, ExpiredTokenException {
+			ShockHttpException, ExpiredTokenException {
 		if (file == null) {
 			throw new NullPointerException("file");
 		}
@@ -222,6 +267,17 @@ public class BasicShockClient {
 		return _addNode(null, file, filename);
 	}
 	
+	/**
+	 * Creates an node on the shock server with user-specified attributes and 
+	 * a file.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws JsonProcessingException if the <code>attributes</code> could
+	 * not be serialized to JSON.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public ShockNode addNode(Map<String, Object> attributes, byte[] file,
 			String filename) throws IOException, ShockHttpException,
 			JsonProcessingException, ExpiredTokenException {
@@ -257,6 +313,14 @@ public class BasicShockClient {
 		return sn;
 	}
 	
+	/**
+	 * Deletes a node on the shock server.
+	 * @param id the node to delete.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be deleted.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public void deleteNode(ShockNodeId id) throws IOException, 
 			ShockHttpException, ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId());
@@ -264,6 +328,15 @@ public class BasicShockClient {
 		processRequest(htd, ShockNodeResponse.class); //triggers throwing errors
 	}
 	
+	/**
+	 * Adds a user to a shock node's read access control list (ACL).
+	 * @param id the node to modify.
+	 * @param user the user to be added to the read ACL.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node ACL could not be altered.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
 			IOException, ShockHttpException,ExpiredTokenException {
 		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ.acl + 
@@ -272,20 +345,17 @@ public class BasicShockClient {
 		processRequest(htp, ShockACLResponse.class); //triggers throwing errors
 	}
 	
-	public ShockACL getACLs(ShockNodeId id) throws IOException,
-			ShockHttpException, ExpiredTokenException {
-		return getACLs(id, new ShockACLType());
-	}
-	
-	public ShockACL getACLs(ShockNodeId id, ShockACLType acl) 
-			throws IOException, ShockHttpException, ExpiredTokenException {
-		final URI targeturl = nodeurl.resolve(id.getId() + acl.acl);
-		final HttpGet htg = new HttpGet(targeturl);
-		return (ShockACL)processRequest(htg, ShockACLResponse.class);
-	}
-	
+	/**
+	 * Makes a node world readable.
+	 * @param id the node to modify.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node read access control list could not be
+	 * altered.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
 	public void setNodeWorldReadable(ShockNodeId id) throws IOException,
-			ShockHttpException, ExpiredTokenException {
+	ShockHttpException, ExpiredTokenException {
 		final List<ShockUserId> acls = getACLs(id, ACL_READ).getRead();
 		final List<String> userlist = new ArrayList<String>();
 		for (ShockUserId uid: acls) {
@@ -296,6 +366,41 @@ public class BasicShockClient {
 		final HttpDelete htd = new HttpDelete(targeturl);
 		processRequest(htd, ShockACLResponse.class);
 		
+	}
+	
+	/**
+	 * Retrieves all the access control lists (ACLs) from the shock server for
+	 * a node.
+	 * @param id the node to query.
+	 * @return the ACLs for the node.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node's access control lists could not be
+	 * retrieved.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
+	public ShockACL getACLs(ShockNodeId id) throws IOException,
+			ShockHttpException, ExpiredTokenException {
+		return getACLs(id, new ShockACLType());
+	}
+	
+	/**
+	 * Retrieves a specific access control list (ACL) from the shock server for
+	 * a node.
+	 * @param id the node to query.
+	 * @param acl the type of ACL to retrieve.
+	 * @return the ACL for the node.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node's access control list could not be
+	 * retrieved.
+	 * @throws ExpiredTokenException if the client authorization token has
+	 * expired.
+	 */
+	public ShockACL getACLs(ShockNodeId id, ShockACLType acl) 
+			throws IOException, ShockHttpException, ExpiredTokenException {
+		final URI targeturl = nodeurl.resolve(id.getId() + acl.acl);
+		final HttpGet htg = new HttpGet(targeturl);
+		return (ShockACL)processRequest(htg, ShockACLResponse.class);
 	}
 	
 	//for known good uris ONLY
