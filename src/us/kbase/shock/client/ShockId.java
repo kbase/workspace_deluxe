@@ -8,7 +8,7 @@ public class ShockId {
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
 
-	public final String id;
+	private final String id;
 
 	public ShockId(String id) throws IllegalArgumentException {
 		if (!UUID.matcher(id).matches()) {

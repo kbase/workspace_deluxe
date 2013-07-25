@@ -6,7 +6,7 @@ public class ShockVersionStamp {
 	
 	private static final Pattern MD5 = Pattern.compile("[\\da-f]{32}");
 
-	public final String version;
+	private final String version;
 
 	public ShockVersionStamp(String version) throws IllegalArgumentException {
 		if (!MD5.matcher(version).matches()) {

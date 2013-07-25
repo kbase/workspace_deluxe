@@ -8,7 +8,7 @@ import us.kbase.shock.client.exceptions.ShockNoFileException;
 
 abstract class ShockResponse {
 	
-	protected ShockResponse(){}
+	ShockResponse(){}
 	
 	//per Jared, the error field will either be null or a list with one error
 	// string.

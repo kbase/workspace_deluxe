@@ -3,7 +3,7 @@ package us.kbase.shock.client;
 public class ShockACLType {
 
 	final String acl;
-	public final String aclType;
+	private final String aclType;
 	public static final String READ = "read";
 	public static final String WRITE = "write";
 	public static final String OWNER = "owner";
@@ -19,5 +19,9 @@ public class ShockACLType {
 			throw new IllegalArgumentException(type + " is not a valid acl type");
 		}
 		aclType = type;
+	}
+	
+	public String getType() {
+		return aclType;
 	}
 }

@@ -49,8 +49,6 @@ public class BasicShockClient {
 	private static final String ATTRIBFILE = "attribs";
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
-	//TODO check for protected vs. default
-	
 	public BasicShockClient(URL url) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
 		this(url, null);
