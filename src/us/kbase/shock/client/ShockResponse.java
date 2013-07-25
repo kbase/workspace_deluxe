@@ -6,13 +6,14 @@ import us.kbase.shock.client.exceptions.ShockAuthorizationException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNoFileException;
 
-public abstract class ShockResponse {
+abstract class ShockResponse {
 	
 	protected ShockResponse(){}
 	
 	//per Jared, the error field will either be null or a list with one error
 	// string.
 	private List<String> error;
+	@SuppressWarnings("unused")
 	private ShockData data;
 	private int status;
 	
@@ -42,9 +43,9 @@ public abstract class ShockResponse {
 		return status;
 	}
 
-	@Override
-	public String toString() {
-		return getClass().getName() + " [error=" + error.get(0) + 
-				", data=" + data + ", status=" + status + "]";
-	}
+//	@Override
+//	public String toString() {
+//		return getClass().getName() + " [error=" + error.get(0) + 
+//				", data=" + data + ", status=" + status + "]";
+//	}
 }

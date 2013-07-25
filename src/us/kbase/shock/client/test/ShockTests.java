@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -28,6 +30,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockUserId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
+import us.kbase.shock.client.exceptions.ShockAuthorizationException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNoFileException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
@@ -37,6 +40,7 @@ public class ShockTests {
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
 	private static BasicShockClient bscNoAuth;
+	private static AuthUser otherguy;
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -47,8 +51,9 @@ public class ShockTests {
 		String u2 = System.getProperty("test.user2");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
+		otherguy = AuthService.login(u2, p2);
 		AuthToken t1 = AuthService.login(u1, p1).getToken();
-		AuthToken t2 = AuthService.login(u2, p2).getToken();
+		AuthToken t2 = otherguy.getToken();
 		bsc1 = new BasicShockClient(url, t1);
 		bsc2 = new BasicShockClient(url, t2);
 		bscNoAuth = new BasicShockClient(url);
@@ -265,6 +270,7 @@ public class ShockTests {
 		ShockNodeId id2 = new ShockNodeId("cbf19927-1e04-456c-b2c3-812edd90fa68");
 		assertTrue("id equality failed", id1.equals(id1));
 		assertTrue("id state failed", id1.equals(id2));
+		assertFalse("non id equal to id", id1.equals(new ArrayList<Object>()));
 		
 		
 		List<String> badUUIDs = Arrays.asList("cbf19927a1e04-456c-b2c3-812edd90fa68",
@@ -303,8 +309,14 @@ public class ShockTests {
 		ShockNode sn = bsc1.addNode();
 		assertTrue("acl access methods produce different acls",
 				sn.getACLs().equals(bsc1.getACLs(sn.getId())));
+		ShockACL acl1 = sn.getACLs(owner);
+		ShockACL acl2 = bsc1.getACLs(sn.getId(), owner);
 		assertTrue("acl owner access methods produce different acls",
-				sn.getACLs(owner).equals(bsc1.getACLs(sn.getId(), owner)));
+				acl1.equals(acl2));
+		assertTrue("owners for same node are different",
+				acl1.getOwner().equals(acl1.getOwner()));
+		assertTrue("same acls aren't equal", acl1.equals(acl1));
+		assertFalse("acl equal to different type", acl1.equals(owner));
 		
 		List<ShockACLType> acls = Arrays.asList(new ShockACLType("all"),
 				new ShockACLType("read"), new ShockACLType("write"),
@@ -326,6 +338,46 @@ public class ShockTests {
 			assertTrue(String.format("only %d user in new acl", length),
 					list.size() == length);
 		}
+	}
+	
+	@Test
+	public void addAndReadAclViaNode() throws Exception {
+		ShockNode sn = bsc1.addNode();
+		String expected = 
+				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+		try {
+			bsc2.getNode(sn.getId());
+			fail("Node is readable with no permissions");
+		} catch (ShockAuthorizationException aue) {
+			assertThat("auth exception string is correct", aue.toString(),
+					is(expected));
+		}
+		sn.setReadable(otherguy);
+		sn = bsc1.getNode(sn.getId()); //version stamp changed
+		ShockNode sn2 = bsc2.getNode(sn.getId());
+		assertThat("different users see different nodes", sn.toString(),
+				is(sn2.toString()));
+		sn.delete();
+	}
+	
+	@Test
+	public void addAndReadAclViaClient() throws Exception {
+		ShockNode sn = bsc1.addNode();
+		String expected = 
+				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+		try {
+			bsc2.getNode(sn.getId());
+			fail("Node is readable with no permissions");
+		} catch (ShockAuthorizationException aue) {
+			assertThat("auth exception string is correct", aue.toString(),
+					is(expected));
+		}
+		bsc1.setNodeReadable(sn.getId(), otherguy);
+		sn = bsc1.getNode(sn.getId()); //version stamp changed
+		ShockNode sn2 = bsc2.getNode(sn.getId());
+		assertThat("different users see different nodes", sn.toString(),
+				is(sn2.toString()));
+		sn.delete();
 	}
 	
 	

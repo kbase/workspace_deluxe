@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import us.kbase.shock.client.exceptions.ShockHttpException;
 
-public class ShockNodeResponse extends ShockResponse {
+class ShockNodeResponse extends ShockResponse {
 	
 	private ShockNodeResponse(){}
 	
