@@ -1,6 +1,7 @@
 package us.kbase.shock.client.exceptions;
 
-/** Parent class for all Shock exceptions.
+/** 
+ * Parent class for all Shock exceptions.
  * @author gaprice@lbl.gov
  *
  */

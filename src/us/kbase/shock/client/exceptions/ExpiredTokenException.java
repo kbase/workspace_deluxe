@@ -1,6 +1,7 @@
 package us.kbase.shock.client.exceptions;
 
-/** Thrown when an authorization token is expired.
+/** 
+ * Thrown when an authorization token is expired.
  * @author gaprice@lbl.gov
  *
  */

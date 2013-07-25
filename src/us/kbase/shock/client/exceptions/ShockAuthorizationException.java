@@ -1,6 +1,7 @@
 package us.kbase.shock.client.exceptions;
 
-/** Thrown when the person represented by the client token does not have
+/** 
+ * Thrown when the person represented by the client token does not have
  * authorization for the requested action on the shock server.
  * @author gaprice@lbl.gov
  *

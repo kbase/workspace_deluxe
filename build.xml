@@ -53,7 +53,7 @@
   </path>
 
   <target name="javadoc">
-    <javadoc access="protected" author="true" classpathref="compile.classpath"
+    <javadoc access="protected" author="false" classpathref="compile.classpath"
       destdir="docs" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
       packagenames="us.kbase.shock.client,us.kbase.shock.client.exceptions"

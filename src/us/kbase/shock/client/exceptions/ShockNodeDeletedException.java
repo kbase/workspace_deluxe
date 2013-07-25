@@ -1,8 +1,10 @@
 package us.kbase.shock.client.exceptions;
 
-/** Thrown when a {@link us.kbase.shock.client.ShockNode ShockNode} has had the
- * {@link us.kbase.shock.client.ShockNode#delete() delete()} method called 
- * and a further method is called
+/**
+ * Thrown when a method is called on a 
+ * {@link us.kbase.shock.client.ShockNode ShockNode} on which the 
+ * {@link us.kbase.shock.client.ShockNode#delete() delete()} method was 
+ * previously called.
  * @author gaprice@lbl.gov
  *
  */

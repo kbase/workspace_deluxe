@@ -1,6 +1,7 @@
 package us.kbase.shock.client.exceptions;
 
-/** Thrown when the shock server responds with an error message.
+/** 
+ * Thrown when the shock server responds with an error message.
  * @author gaprice@lbl.gov
  *
  */
@@ -9,7 +10,8 @@ public class ShockHttpException extends ShockException {
 	private static final long serialVersionUID = 1L;
 	private final int code;
 	
-	/** Construct the exception with a http error code.
+	/** 
+	 * Construct the exception with a http error code.
 	 * @param code the http error code that shock passed back to the client.
 	 */
 	public ShockHttpException(int code) { 
@@ -17,7 +19,8 @@ public class ShockHttpException extends ShockException {
 		this.code = code;
 	}
 	
-	/** Construct the exception with a http error code and message
+	/** 
+	 * Construct the exception with a http error code and message.
 	 * @param code the http error code that shock passed back to the client.
 	 * @param message the error message reported by shock.
 	 */
@@ -26,8 +29,9 @@ public class ShockHttpException extends ShockException {
 		this.code = code;
 	}
 	
-	/** Construct the exception with a http error code, message, and root
-	 * cause exception
+	/** 
+	 * Construct the exception with a http error code, message, and root
+	 * cause exception.
 	 * @param code the http error code that shock passed back to the client.
 	 * @param message the error message reported by shock.
 	 * @param cause the exception that caused this exception. Rarely used.
@@ -39,6 +43,8 @@ public class ShockHttpException extends ShockException {
 	}
 	
 	/**
+	 * Construct the exception with a http error code and root
+	 * cause exception.
 	 * @param code the http error code that shock passed back to the client.
 	 * @param cause the exception that caused this exception. Rarely used.
 	 */
@@ -47,7 +53,8 @@ public class ShockHttpException extends ShockException {
 		this.code = code;
 	}
 	
-	/** Returns the shock http code.
+	/** 
+	 * Returns the shock http code.
 	 * @return the http error code that shock passed back to the client.
 	 */
 	public int getHttpCode() {

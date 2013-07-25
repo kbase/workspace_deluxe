@@ -324,7 +324,8 @@ public class ShockTests {
 		
 		List<ShockACLType> acls = Arrays.asList(new ShockACLType("all"),
 				new ShockACLType("read"), new ShockACLType("write"),
-				new ShockACLType("delete"));
+				new ShockACLType("delete"), new ShockACLType("all"),
+				new ShockACLType());
 		for (ShockACLType acl: acls) {
 			ShockACL sacl = sn.getACLs(acl);
 			assertTrue(String.format("%s subset of acls are different", acl.getType()),

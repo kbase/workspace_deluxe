@@ -1,6 +1,7 @@
 package us.kbase.shock.client.exceptions;
 
-/** Thrown on an attempt to get a file from a shock node that has no file
+/**
+ * Thrown on an attempt to get a file from a shock node that has no file.
  * @author gaprice@lbl.gov
  *
  */
