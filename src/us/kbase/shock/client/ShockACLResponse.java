@@ -14,7 +14,7 @@ class ShockACLResponse extends ShockResponse {
 	private ShockACL data;
 	
 	@JsonIgnore
-	public ShockACL getShockData() throws ShockHttpException {
+	ShockACL getShockData() throws ShockHttpException {
 		checkErrors();
 		return data;
 	}

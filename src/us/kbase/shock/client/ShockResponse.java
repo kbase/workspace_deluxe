@@ -25,7 +25,7 @@ abstract class ShockResponse {
 		return error != null;
 	}
 	
-	public abstract ShockData getShockData() throws ShockHttpException;
+	abstract ShockData getShockData() throws ShockHttpException;
 	
 	protected void checkErrors() throws ShockHttpException {
 		if (hasError()) {

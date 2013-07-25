@@ -1,6 +1,6 @@
 package us.kbase.shock.client.exceptions;
 
-/** Parent class for all Shock exceptions.
+/** Thrown when an authorization token is expired.
  * @author gaprice@lbl.gov
  *
  */

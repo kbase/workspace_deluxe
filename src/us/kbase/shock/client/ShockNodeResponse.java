@@ -14,7 +14,7 @@ class ShockNodeResponse extends ShockResponse {
 	private ShockNode data;
 	
 	@JsonIgnore
-	public ShockNode getShockData() throws ShockHttpException {
+	ShockNode getShockData() throws ShockHttpException {
 		checkErrors();
 		return data;
 	}
