@@ -32,6 +32,7 @@ import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 /**
  * A basic client for shock. Creating nodes, deleting nodes, getting a subset of node data,
@@ -336,9 +337,17 @@ public class BasicShockClient {
 	 * @throws ShockHttpException if the node ACL could not be altered.
 	 * @throws ExpiredTokenException if the client authorization token has
 	 * expired.
+	 * @throws UnvalidatedEmailException if the <code>user</code>'s email
+	 * address is unvalidated.
 	 */
 	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
-			IOException, ShockHttpException,ExpiredTokenException {
+			IOException, ShockHttpException,ExpiredTokenException,
+			UnvalidatedEmailException {
+		if (!user.isEmailValidated()) {
+			throw new UnvalidatedEmailException(String.format(
+					"User %s's email address is not validated",
+					user.getUserId()));
+		}
 		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ.acl + 
 				"?users=" + user.getEmail()); //TODO use userid when shock allows
 		final HttpPut htp = new HttpPut(targeturl);

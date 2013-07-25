@@ -33,19 +33,17 @@ import us.kbase.shock.client.exceptions.ShockAuthorizationException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNoFileException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
+import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 public class ShockTests {
 	
 	//TODO token expiry tests - set expired, expire after test - need globus support here
-	//TODO think of possible errors and test
-	// bad node string
-	// no email
-	// unvalidated email
 	
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
 	private static BasicShockClient bscNoAuth;
 	private static AuthUser otherguy;
+	private static AuthUser noverifiedemail;
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -56,6 +54,9 @@ public class ShockTests {
 		String u2 = System.getProperty("test.user2");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
+		String uno = System.getProperty("test.user.noemail");
+		String pno = System.getProperty("test.pwd.noemail");
+		noverifiedemail = AuthService.login(uno, pno);
 		otherguy = AuthService.login(u2, p2);
 		AuthToken t1 = AuthService.login(u1, p1).getToken();
 		AuthToken t2 = otherguy.getToken();
@@ -98,6 +99,18 @@ public class ShockTests {
 		assertThat("get node != add Node output", snget.toString(), is(sn.toString()));
 		bsc1.deleteNode(sn.getId());
 		getDeletedNode(sn.getId());
+	}
+	
+	@Test
+	public void getNodeBadId() throws Exception {
+		try {
+			bsc1.getNode(new ShockNodeId("00000000-0000-0000-0000-000000000000"));
+			fail("got node with bad id");
+		} catch (ShockHttpException she) {
+			assertThat("Bad exception message",
+					"us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error",
+					is(she.toString()));
+		}
 	}
 	
 	private void getDeletedNode(ShockNodeId id) throws Exception {
@@ -349,6 +362,13 @@ public class ShockTests {
 	@Test
 	public void addAndReadAclViaNode() throws Exception {
 		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+		try {
+			sn.setReadable(noverifiedemail);
+			fail("set a node readable using an unverified email");
+		} catch (UnvalidatedEmailException uee) {
+			assertThat("wrong exception string for unverified email", uee.toString(),
+					is("us.kbase.shock.client.exceptions.UnvalidatedEmailException: User noemail's email address is not validated"));
+		}
 		sn.setReadable(otherguy);
 		checkAuthAndDelete(sn, bsc2, 2);
 	}
@@ -356,8 +376,29 @@ public class ShockTests {
 	@Test
 	public void addAndReadAclViaClient() throws Exception {
 		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+		try {
+			bsc1.setNodeReadable(sn.getId(), noverifiedemail);
+			fail("set a node readable using an unverified email");
+		} catch (UnvalidatedEmailException uee) {
+			assertThat("wrong exception string for unverified email", uee.toString(),
+					is("us.kbase.shock.client.exceptions.UnvalidatedEmailException: User noemail's email address is not validated"));
+		}
 		bsc1.setNodeReadable(sn.getId(), otherguy);
 		checkAuthAndDelete(sn, bsc2, 2);
+	}
+	
+	@Test
+	public void addAndReadAclViaClientNoAuth() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+		bsc1.setNodeWorldReadable(sn.getId());
+		checkAuthAndDelete(sn, bscNoAuth, 0);
+	}
+	
+	@Test
+	public void addAndReadAclViaNodeNoAuth() throws Exception {
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+		sn.setWorldReadable();
+		checkAuthAndDelete(sn, bscNoAuth, 0);
 	}
 	
 	private ShockNode setUpNodeAndCheckAuth(BasicShockClient c) throws Exception{
@@ -383,20 +424,6 @@ public class ShockTests {
 		assertThat("different users see different nodes", sn.toString(),
 				is(sn2.toString()));
 		sn.delete();
-	}
-	
-	@Test
-	public void addAndReadAclViaClientNoAuth() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
-		bsc1.setNodeWorldReadable(sn.getId());
-		checkAuthAndDelete(sn, bscNoAuth, 0);
-	}
-	
-	@Test
-	public void addAndReadAclViaNodeNoAuth() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
-		sn.setWorldReadable();
-		checkAuthAndDelete(sn, bscNoAuth, 0);
 	}
 	
 	@Test

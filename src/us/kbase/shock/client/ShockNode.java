@@ -7,6 +7,7 @@ import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
+import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -127,10 +128,13 @@ public class ShockNode extends ShockData {
 	 * @throws ExpiredTokenException if the client's token has expired.
 	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
 	 * previously called.
+	 * @throws UnvalidatedEmailException if the <code>user</code>'s email
+	 * address is unvalidated.
 	 */
 	@JsonIgnore
 	public void setReadable(AuthUser user) throws ShockHttpException,
-			IOException, ExpiredTokenException, ShockNodeDeletedException {
+			IOException, ExpiredTokenException, ShockNodeDeletedException,
+			UnvalidatedEmailException {
 		client.setNodeReadable(getId(), user);
 	}
 	
