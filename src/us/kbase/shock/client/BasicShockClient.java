@@ -33,13 +33,20 @@ import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 
+/**
+ * A basic client for shock. Creating nodes, deleting nodes, getting a subset of node data,
+ * and altering read acls is currently supported.
+ * 
+ * @author gaprice@lbl.gov
+ *
+ */
 public class BasicShockClient {
 	
 	private final URI baseurl;
 	private final URI nodeurl;
 	private final HttpClient client = new DefaultHttpClient();
 	private final ObjectMapper mapper = new ObjectMapper();
-	private AuthToken token;
+	private AuthToken token = null;
 	
 	private static final String AUTH = "Authorization";
 	private static final String OAUTH = "OAuth ";
@@ -47,16 +54,31 @@ public class BasicShockClient {
 	private static final String ATTRIBFILE = "attribs";
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
-	public BasicShockClient(URL url) throws IOException, 
-			InvalidShockUrlException, ExpiredTokenException {
-		this(url, null);
-	}
-	
-	@SuppressWarnings("unchecked")
+	/**
+	 * Create a new shock client authorized to act as a shock user.
+	 * @param url the location of the shock server.
+	 * @param token the authorization token to present to shock.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws InvalidShockUrlException if the <code>url</code> does not reference
+	 * a shock server.
+	 * @throws ExpiredTokenException if the <code>token</code> is expired.
+	 */
 	public BasicShockClient(URL url, AuthToken token) throws IOException, 
 			InvalidShockUrlException, ExpiredTokenException {
-
+		this(url);
 		updateToken(token);
+	}
+	
+	/**
+	 * Create a new shock client.
+	 * @param url the location of the shock server.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws InvalidShockUrlException if the <code>url</code> does not reference
+	 * a shock server.
+	 */
+	@SuppressWarnings("unchecked")
+	public BasicShockClient(URL url) throws IOException, 
+			InvalidShockUrlException {
 
 		mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
 		
