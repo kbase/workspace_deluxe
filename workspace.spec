@@ -17,8 +17,9 @@ All binary data must be hex encoded prior to storage in a workspace.
 Attempting to send binary data via a workspace client will cause errors.
 
 */
-module workspace {
+module Workspace {
 	
-	/* A boolean. 0 = false, other = true.
+	/* A boolean. 0 = false, other = true. */
 	typedef int bool;
 
+	
