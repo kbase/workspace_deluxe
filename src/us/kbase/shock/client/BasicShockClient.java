@@ -379,7 +379,8 @@ public class BasicShockClient {
 	
 	/**
 	 * Retrieves all the access control lists (ACLs) from the shock server for
-	 * a node.
+	 * a node. Note the object returned represents the shock node's state at
+	 * the time getACLs() was called and does not update further.
 	 * @param id the node to query.
 	 * @return the ACLs for the node.
 	 * @throws IOException if an IO problem occurs.
@@ -395,7 +396,8 @@ public class BasicShockClient {
 	
 	/**
 	 * Retrieves a specific access control list (ACL) from the shock server for
-	 * a node.
+	 * a node. Note the object returned represents the shock node's state at
+	 * the time getACLs() was called and does not update further.
 	 * @param id the node to query.
 	 * @param acl the type of ACL to retrieve.
 	 * @return the ACL for the node.

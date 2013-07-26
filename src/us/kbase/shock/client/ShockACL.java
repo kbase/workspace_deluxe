@@ -5,7 +5,13 @@ import java.util.List;
 
 /**
  * Represents one or more of the access control lists (ACLs) for a shock
- * object. This class is never instantiated manually.
+ * object <b>at the time the ACL(s) were retrieved from shock</b>. 
+ * Later updates to the ACLs will not be reflected in the instance.
+ * To update the local representation of the ACLs
+ * {@link us.kbase.shock.client.BasicShockClient#getACLs(ShockNodeId)
+ * getACLs()} must be called again.</p>
+ *
+ * This class is never instantiated manually.
  * 
  * @author gaprice@lbl.gov
  *
