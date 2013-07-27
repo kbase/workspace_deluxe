@@ -57,8 +57,8 @@
       destdir="docs" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
       packagenames="us.kbase.shock.client,us.kbase.shock.client.exceptions"
-      source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
-      <link href="http://download.oracle.com/javase/6/docs/api/"/>
+      source="1.7" sourcepath="src" splitindex="true" use="true" version="true">
+      <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
     </javadoc>
   </target>
