@@ -7,6 +7,8 @@ import os
 import sys
 from configobj import ConfigObj
 from pymongo import MongoClient
+import urllib2
+import json
 
 try:  # py 2/3 compatibility
     input = raw_input  # @ReservedAssignment
@@ -28,6 +30,9 @@ MODB = MONGO + 'database'
 MOHOST = MONGO + 'host'
 MOUSER = MONGO + 'user'
 MOPWD = MONGO + 'pwd'
+
+SETTINGS = 'settings'
+SHOCKURL = 'shock_location'
 
 
 REQPARAMS = [MOHOST, MODB]
@@ -84,6 +89,24 @@ def getparams(params, cfg, dropall):
             cfg[key] = input("Please enter value for " + key + ": ")
 
 
+def setshockurlfromuser():
+    shockurl = input('Please enter the url of the shock server: ')
+    try:
+        r = urllib2.urlopen(shockurl).read()
+    except:
+        printerr("Couldn't contact the shock server at " + shockurl)
+    try:
+        j = json.loads(r)
+    except:
+        printerr(shockurl + ' is not a shock server root url')
+    if 'id' not in j or j['id'] != 'Shock':
+        printerr(shockurl + ' is not a shock server root url')
+    shockurl = j['url']
+    db[SETTINGS].update({}, {'$set': {SHOCKURL: shockurl}}, upsert=True)
+    shock = db[SETTINGS].find_one()
+    print('Successfully set shock location to ' + shock[SHOCKURL])
+
+
 if __name__ == '__main__':
     d, program = os.path.split(os.path.abspath(__file__))
     wd, setup = os.path.split(d)
@@ -137,10 +160,31 @@ if __name__ == '__main__':
             printerr('\nUnable to authenticate to database "' + wscfg[MODB] +
                      '"')
     print('Connected.')
-    print(db)
-    
-    
+    shock = None
+    if SETTINGS in db.collection_names():
+        shock = db[SETTINGS].find_one()
+    if shock != None:
+        shockurl = shock[SHOCKURL]
+        print('The database is already initialized with the shock server ' +
+              'at:\n' + shockurl)
+        print(
+'''You can change the shock url now, but if the workspace service has already
+saved objects it will put the workspace and shock in inconsistent states,
+all workspace objects will be irretrievable, and you will make a lot of people
+really really mad.''')
+        prompts = ['Do you want to change the shock url?',
+                   'Are you absolutely sure you know what you are ' +
+                   'doing?\nThe consequences are dire, dire!',
+                   'Seriously? You are about to royally jack ' +
+                   'things up if the workspace service\nhas ever ' +
+                   'saved an object.'
+                   ]
+        for n, q in enumerate(prompts):
+            if getinput(q, ('n', 'no'), {'y': 'yes'}) != 'y':
+                break
+            if n == len(prompts) - 1:
+                print('Ok, on your head be it.')
+                setshockurlfromuser()
+    else:
+        setshockurlfromuser()
     print(cfg)
-    
-            
-        
