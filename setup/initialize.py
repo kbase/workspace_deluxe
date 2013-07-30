@@ -124,7 +124,7 @@ if __name__ == '__main__':
         if CONFIGHEADER not in cfg:
             print('No {} section in config file {} - '.format(
                 CONFIGHEADER, cfgfile) + 'will be created.')
-            cfg[CONFIGHEADER] = None
+            cfg[CONFIGHEADER] = {}
         else:
             print('Current configuration:')
             printcfg(cfg, CONFIGHEADER)
