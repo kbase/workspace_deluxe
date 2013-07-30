@@ -86,7 +86,7 @@ def getinput(prompt, default=(), otheroptions={}, quitopt=False):
 def getparams(params, cfg, dropall):
     for key in params:
         if dropall or key not in cfg:
-            cfg[key] = input("Please enter value for " + key + ": ")
+            cfg[key] = input('Please enter value for ' + key + ': ')
 
 
 def setshockurlfromuser():
