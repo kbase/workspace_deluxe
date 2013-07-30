@@ -128,7 +128,7 @@ if __name__ == '__main__':
         else:
             print('Current configuration:')
             printcfg(cfg, CONFIGHEADER)
-            dropconfig = getinput('Keep this configuration?', ('y', 'keep'),
+            dropconfig = getinput('\nKeep this configuration?', ('y', 'keep'),
                                   {'n': 'discard'}) == 'n'
             if dropconfig:
                 print('Discarding current configuration.')
@@ -160,6 +160,8 @@ if __name__ == '__main__':
             printerr('\nUnable to authenticate to database "' + wscfg[MODB] +
                      '"')
     print('Connected.')
+    cfg.write()
+    print('Configuration saved.')
     shock = None
     if SETTINGS in db.collection_names():
         shock = db[SETTINGS].find_one()
@@ -187,4 +189,4 @@ really really mad.''')
                 setshockurlfromuser()
     else:
         setshockurlfromuser()
-    print(cfg)
+    print('\nConfiguration complete.')
