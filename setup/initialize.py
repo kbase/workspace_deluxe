@@ -217,13 +217,8 @@ if __name__ == '__main__':
     if SETTINGS in db.collection_names():
         settings = db[SETTINGS].find_one()
     if settings != None:
-#        shockurl = shock.get(SHOCKURL, None)
-#        shockuser = settings.get(SHOCKUSER, None)
-#        backend = settings.get(BACKEND, None)
         print('The database is already initialized with the parameters:')
         printDBsettings(settings)
-#        for s in [BACKEND, SHOCKURL, SHOCKUSER]:
-#            print(s + '=' + settings.get(s, None))
         print(
 '''\nYou can change the server configuration now, but if the workspaceservice
 has already saved objects it could put the workspace and the backend store
