@@ -10,8 +10,9 @@ import us.kbase.Tuple5;
 import us.kbase.auth.AuthUser;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.MongoDatabase;
-import us.kbase.workspace.database.exceptions.AuthorizationException;
+import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 
 //BEGIN_HEADER
 //END_HEADER
@@ -46,11 +47,14 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (IOException io) {
 			die("Couldn't connect to host " + host + ": " +
 					io.getLocalizedMessage());
-		} catch (AuthorizationException ae) {
+		} catch (DBAuthorizationException ae) {
 			die("Not authorized: " + ae.getLocalizedMessage());
 		} catch (InvalidHostException ihe) {
 			die(host + " is an invalid database host: "  +
 					ihe.getLocalizedMessage());
+		} catch (WorkspaceDBException uwde) {
+			die("The workspace database is invalid: " +
+					uwde.getLocalizedMessage());
 		}
 		return null; //shut up eclipse you bastard
 	}

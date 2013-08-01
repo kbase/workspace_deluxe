@@ -1,11 +1,13 @@
 package us.kbase.workspace.database.exceptions;
 
+import us.kbase.workspace.exceptions.WorkspaceException;
+
 /** 
  * Thrown when the host provided for a database is not valid.
  * @author gaprice@lbl.gov
  *
  */
-public class InvalidHostException extends Exception {
+public class InvalidHostException extends WorkspaceDBException {
 
 	private static final long serialVersionUID = 1L;
 	
