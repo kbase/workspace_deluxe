@@ -22,6 +22,11 @@ public class MongoDatabase implements Database {
 			throws UnknownHostException, IOException,
 			InvalidHostException {
 		workspace = getDB(host, database);
+		try {
+			workspace.getCollectionNames();
+		} catch (MongoException.Network men) {
+			throw (IOException)men.getCause();
+		}
 		validateDB();
 	}
 	
