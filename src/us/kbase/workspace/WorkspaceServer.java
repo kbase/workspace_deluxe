@@ -1,26 +1,26 @@
 package us.kbase.workspace;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple5;
 import us.kbase.auth.AuthUser;
+
+//BEGIN_HEADER
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.MongoDatabase;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
-
-//BEGIN_HEADER
 //END_HEADER
 
 public class WorkspaceServer extends JsonServerServlet {
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	//BEGIN_CLASS_HEADER
+    //BEGIN_CLASS_HEADER
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
@@ -66,8 +66,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
     //END_CLASS_HEADER
 
-	public WorkspaceServer() throws Exception {
-		//BEGIN_CONSTRUCTOR
+    public WorkspaceServer() throws Exception {
+        //BEGIN_CONSTRUCTOR
 		if (!config.containsKey(HOST)) {
 			die("Must provide param " + HOST + " in config file");
 		}
@@ -94,7 +94,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		System.out.println("Using connection parameters:\n" + params);
 		db = getDB(host, dbs, user, pwd);
-
         //END_CONSTRUCTOR
     }
 

@@ -17,13 +17,15 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * workspace_id workspace - ID of the workspace to be created
  * Optional:
  * permission globalread - 'r' to set workspace globally readable, default 'n'.
+ * string description - A free-text description of the workspace, 1000 characters max.
  * 
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "workspace",
-    "globalread"
+    "globalread",
+    "description"
 })
 public class CreateWorkspaceParams {
 
@@ -31,6 +33,8 @@ public class CreateWorkspaceParams {
     private String workspace;
     @JsonProperty("globalread")
     private String globalread;
+    @JsonProperty("description")
+    private String description;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -60,6 +64,21 @@ public class CreateWorkspaceParams {
 
     public CreateWorkspaceParams withGlobalread(String globalread) {
         this.globalread = globalread;
+        return this;
+    }
+
+    @JsonProperty("description")
+    public String getDescription() {
+        return description;
+    }
+
+    @JsonProperty("description")
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public CreateWorkspaceParams withDescription(String description) {
+        this.description = description;
         return this;
     }
 

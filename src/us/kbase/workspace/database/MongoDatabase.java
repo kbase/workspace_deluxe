@@ -82,10 +82,31 @@ public class MongoDatabase implements Database {
 			throw new CorruptWorkspaceDBException(
 					"More than one settings document exists");
 		}
+		//TODO if shock, check a few random nodes to make sure they match
+		//the internal representation, die otherwise
 	}
 
 	@Override
-	public WorkspaceMetadata createWorkspace(Workspace ws) {
+	public Workspace createWorkspace(String name) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Workspace createWorkspace(String name, String description) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Workspace createWorkspace(String name, boolean globalread) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Workspace createWorkspace(String name, boolean globalread,
+			String description) {
 		// TODO Auto-generated method stub
 		return null;
 	}
