@@ -1,7 +1,5 @@
 package us.kbase.workspace.database.exceptions;
 
-import us.kbase.workspace.exceptions.WorkspaceException;
-
 /** 
  * Thrown when authorization to a database is denied.
  * @author gaprice@lbl.gov

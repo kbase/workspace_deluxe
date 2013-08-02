@@ -1,7 +1,5 @@
 package us.kbase.workspace.database.exceptions;
 
-import us.kbase.workspace.exceptions.WorkspaceException;
-
 /** 
  * Thrown when the host provided for a database is not valid.
  * @author gaprice@lbl.gov
