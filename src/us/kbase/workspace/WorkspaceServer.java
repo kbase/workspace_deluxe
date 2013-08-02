@@ -24,6 +24,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
+	//required backend param:
+	private static final String BACKEND_SECRET = "backend-secret"; 
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
@@ -34,12 +36,13 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO when logging is released (check places that call this method)
 		System.out.println(log);
 	}
-	private Database getDB(String host, String dbs, String user, String pwd) {
+	private Database getDB(String host, String dbs, String secret, String user,
+			String pwd) {
 		try {
 			if (user != null) {
-				return new MongoDatabase(host, dbs, user, pwd);
+				return new MongoDatabase(host, dbs, secret, user, pwd);
 			} else {
-				return new MongoDatabase(host, dbs);
+				return new MongoDatabase(host, dbs, secret);
 			}
 		} catch (UnknownHostException uhe) {
 			die("Couldn't find host " + host + ": " +
@@ -76,6 +79,10 @@ public class WorkspaceServer extends JsonServerServlet {
 			die("Must provide param " + DB + " in config file");
 		}
 		String dbs = config.get(DB);
+		if (!config.containsKey(BACKEND_SECRET)) {
+			die("Must provide param " + BACKEND_SECRET + " in config file");
+		}
+		String secret = config.get(BACKEND_SECRET);
 		if (config.containsKey(USER) ^ config.containsKey(PWD)) {
 			die(String.format("Must provide both %s and %s ",
 					HOST, PWD) + "params in config file if authentication " + 
@@ -89,11 +96,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				params += s + "=" + config.get(s) + "\n";
 			}
 		}
+		params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
 		if (pwd != null) {
 			params += PWD + "=[redacted for your safety and comfort]\n";
 		}
 		System.out.println("Using connection parameters:\n" + params);
-		db = getDB(host, dbs, user, pwd);
+		db = getDB(host, dbs, secret, user, pwd);
         //END_CONSTRUCTOR
     }
 

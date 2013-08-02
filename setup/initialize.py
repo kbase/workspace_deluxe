@@ -37,7 +37,7 @@ SETTINGS = 'settings'
 SHOCKURL = 'shock_location'
 SHOCKUSER = 'shock_user'
 BACKEND = 'backend'
-BACKENDCREDS = 'backend_secret'
+BACKENDCREDS = 'backend-secret'
 SHOCK = 'shock'
 GFS = 'gridFS'
 
