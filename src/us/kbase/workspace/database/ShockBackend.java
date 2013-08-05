@@ -2,12 +2,19 @@ package us.kbase.workspace.database;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
+import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 
@@ -21,15 +28,8 @@ public class ShockBackend implements BlobStore {
 			DBAuthorizationException, WorkspaceBackendException {
 		this.user = user;
 		this.password = password;
-		AuthUser u = null;
 		try {
-			u = AuthService.login(user, password);
-		} catch (Exception e) { //TODO better granularity on errors
-			throw new DBAuthorizationException(
-					"Could not authenticate backend user " + user, e);
-		}
-		try {
-			client = new BasicShockClient(url, u.getToken());
+			client = new BasicShockClient(url, getToken());
 		} catch (InvalidShockUrlException isue) {
 			throw new WorkspaceBackendException(
 					"The shock url " + url + " is invalid", isue);
@@ -43,14 +43,72 @@ public class ShockBackend implements BlobStore {
 					ioe.getLocalizedMessage(), ioe);
 		}
 	}
-
-	@Override
-	public void saveBlob(TypeData td) {
-		// TODO Auto-generated method stub
+	
+	private AuthToken getToken() throws DBAuthorizationException {
+		AuthUser u = null;
+		try {
+			u = AuthService.login(user, password);
+		} catch (Exception e) { //TODO better granularity on errors
+			throw new DBAuthorizationException(
+					"Could not authenticate backend user " + user, e);
+		}
+		return u.getToken();
+	}
+	
+	private void checkAuth() throws DBAuthorizationException {
+		if(client.isTokenExpired()) {
+			try {
+				client.updateToken(getToken());
+			} catch (ExpiredTokenException ete) {
+				throw new RuntimeException(
+						"Auth service is handing out expired tokens", ete);
+			}
+		}
 	}
 
 	@Override
-	public String getBlob(TypeData td) {
+	public void saveBlob(TypeData td) throws DBAuthorizationException,
+			WorkspaceBackendException {
+		checkAuth();
+		String data = td.getData();
+		if(data == null) {
+			throw new RuntimeException("No data in typedata object");
+		}
+		WorkspaceType type = td.getType();
+		if(type == null) {
+			throw new RuntimeException("No type in typedata object");
+		}
+		Map<String, Object> attribs = new HashMap<>();
+		Map<String,Object> workattribs = new HashMap<>();
+		workattribs.put("typeowner", type.getOwner());
+		workattribs.put("module", type.getModule());
+		workattribs.put("type", type.getType());
+		workattribs.put("version", type.getVersion());
+		attribs.put("workspace", workattribs);
+		ShockNode sn = null;
+		try {
+			sn = client.addNode(attribs, data.getBytes(),
+				"workspace_" + td.getChsum());
+		} catch (ExpiredTokenException ete) {
+			//this should be impossible
+			throw new RuntimeException("Things are broke", ete);
+		} catch (JsonProcessingException jpe) {
+			//this should be impossible
+			throw new RuntimeException("Things are broke", jpe);
+		} catch (IOException ioe) {
+			throw new WorkspaceBackendException(
+					"Could not connect to the shock backend: " +
+					ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			throw new WorkspaceBackendException(
+					"Failed to create shock node", she);
+		}
+		td.addShockInformation(sn);
+	}
+
+	@Override
+	public String getBlob(TypeData td) throws DBAuthorizationException {
+		checkAuth();
 		// TODO Auto-generated method stub
 		return null;
 	}

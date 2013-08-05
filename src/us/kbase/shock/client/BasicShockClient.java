@@ -137,6 +137,19 @@ public class BasicShockClient {
 		this.token = token;
 	}
 	
+	/**
+	 * Check the token's validity.
+	 * @return <code>true</code> if the client has no auth token or the token
+	 * is expired, <code>false</code> otherwise.
+	 */
+	public boolean isTokenExpired() {
+		//TODO test when can get expired tokens.
+		if (token == null || token.isExpired()) {
+			return true;
+		}
+		return false;
+	}
+	
 	/** 
 	 * Get the url of the shock server this client communicates with.
 	 * @return the shock url.

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+import us.kbase.shock.client.ShockNode;
+import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class TypeData {
@@ -18,9 +21,9 @@ public class TypeData {
 	private String chsum;
 	private Map<String, Object> subdata;
 	private int size;
-	private String shocknode;
-	private String shockver;
-	private boolean gridfs;
+	private String shocknode = null;
+	private String shockver = null;
+	private boolean gridfs = false;
 	
 	
 	public TypeData(String data, WorkspaceType type, List<String> workspaces,
@@ -37,5 +40,42 @@ public class TypeData {
 		this.size = data.length();
 		this.chsum = DigestUtils.md5Hex(data);
 		
+	}
+
+	public String getData() {
+		return data;
+	}
+	
+	public WorkspaceType getType() {
+		return type;
+	}
+	
+	public String getChsum() {
+		return chsum;
+	}
+	
+	public String getShockNodeId() {
+		return shocknode;
+	}
+	
+	public String getShockVersion() {
+		return shockver;
+	}
+
+	public void addShockInformation(ShockNode sn) {
+		try {
+			shocknode = sn.getId().getId();
+			shockver = sn.getVersion().getVersion();
+		} catch (ShockNodeDeletedException snde) {
+			throw new RuntimeException("something is very broken", snde);
+		}
+	}
+
+	@Override
+	public String toString() {
+		return "TypeData [data=" + data + ", type=" + type + ", workspaces="
+				+ workspaces + ", chsum=" + chsum + ", subdata=" + subdata
+				+ ", size=" + size + ", shocknode=" + shocknode + ", shockver="
+				+ shockver + ", gridfs=" + gridfs + "]";
 	}
 }
