@@ -12,6 +12,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -107,16 +108,29 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws DBAuthorizationException {
+	public String getBlob(TypeData td) throws DBAuthorizationException,
+			WorkspaceBackendException {
 		checkAuth();
-		// TODO Auto-generated method stub
-		return null;
+		String ret = null;
+		try {
+			ret = new String(client.getFile(td.getShockNodeId()));
+		} catch (ExpiredTokenException ete) {
+			//this should be impossible
+			throw new RuntimeException("Things are broke", ete);
+		} catch (IOException ioe) {
+			throw new WorkspaceBackendException(
+					"Could not connect to the shock backend: " +
+					ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			throw new WorkspaceBackendException(
+					"Failed to create shock node", she);
+		}
+		return ret;
 	}
 
 	@Override
 	public String getExternalIdentifier(TypeData td) {
-		// TODO Auto-generated method stub
-		return null;
+		return td.getShockNodeId().getId();
 	}
 
 }

@@ -1,6 +1,8 @@
 package us.kbase.workspace.database.test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import org.junit.Test;
 
 import us.kbase.auth.AuthService;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.workspace.database.ShockBackend;
 import us.kbase.workspace.database.TypeData;
@@ -26,12 +29,13 @@ public class ShockBackendTest {
 	
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
+	private static final Pattern MD5 = Pattern.compile("[\\da-f]{32}");
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
-		System.out.println("Testing shock clients pointed at: " + url);
+		System.out.println("Testing workspace shock backend pointed at: " + url);
 		String u1 = System.getProperty("test.user1");
 		String p1 = System.getProperty("test.pwd1");
 		bsc = new BasicShockClient(url, AuthService.login(u1, p1).getToken());
@@ -39,20 +43,41 @@ public class ShockBackendTest {
 	}
 	
 	@Test
-	public void saveBlob() throws Exception {
-		WorkspaceType wt = new WorkspaceType("foo", "moduleA", "typeA", 0);
+	public void saveAndGetBlob() throws Exception {
+		String owner = "foo";
+		String mod = "moduleA";
+		String type = "typeA";
+		int ver = 0;
+		WorkspaceType wt = new WorkspaceType(owner, mod, type, ver);
 		List<String> workspaces = new ArrayList<>();
 		workspaces.add("workspace1");
 		workspaces.add("workspace2");
 		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
-		TypeData td = new TypeData("this is some data", wt, workspaces, subdata);
+		String data = "this is some data";
+		TypeData td = new TypeData(data, wt, workspaces, subdata);
 		sb.saveBlob(td);
-		System.out.println(td);
+		ShockNodeId id = td.getShockNodeId();
 		assertTrue("Got a valid shock id",
-				UUID.matcher(td.getShockNodeId()).matches());
+				UUID.matcher(id.getId()).matches());
 		assertTrue("Got a valid shock version",
-				UUID.matcher(td.getShockNodeId()).matches());
-		//TODO verify type saved correctly
-		bsc.deleteNode(new ShockNodeId(td.getShockNodeId()));
+				MD5.matcher(td.getShockVersion().getVersion()).matches());
+		assertThat("Ext id is the shock node", id.getId(),
+				is(sb.getExternalIdentifier(td)));
+		ShockNode sn = bsc.getNode(id);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> attribs = (Map<String, Object>)
+				sn.getAttributes().get("workspace");
+		assertThat("Type owner saved correctly", owner,
+				is(attribs.get("typeowner")));
+		assertThat("Type owner saved correctly", mod,
+				is(attribs.get("module")));
+		assertThat("Type owner saved correctly", type,
+				is(attribs.get("type")));
+		assertThat("Type owner saved correctly", ver,
+				is(attribs.get("version")));
+		TypeData faketd = new TypeData("foo", wt, workspaces, subdata);
+		faketd.addShockInformation(sn);
+		assertThat("Shock data returned correctly", data, is(sb.getBlob(faketd)));
+		bsc.deleteNode(td.getShockNodeId());
 	}
 }
