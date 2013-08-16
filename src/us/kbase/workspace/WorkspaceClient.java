@@ -33,7 +33,7 @@ public class WorkspaceClient {
     }
 
     public WorkspaceClient(String url, String token) throws
-        MalformedURLException, IOException, TokenFormatException {
+            MalformedURLException, IOException, TokenFormatException {
         caller = new JsonClientCaller(url, token);
     }
 

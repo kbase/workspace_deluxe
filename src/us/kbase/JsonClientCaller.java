@@ -67,7 +67,7 @@ public class JsonClientCaller {
 						throw new IllegalStateException("RPC method requires authentication but neither user nor token was set");
 				} else {
 					accessToken = user2token.get(user);
-					if (accessToken != null && !accessToken.isExpired()) {
+					if (accessToken != null && accessToken.isExpired()) {
 						user2token.remove(user);
 						accessToken = null;
 					}
