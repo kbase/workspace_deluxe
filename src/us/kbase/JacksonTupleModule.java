@@ -33,6 +33,7 @@ public class JacksonTupleModule extends SimpleModule {
 					JavaType type, BeanDescription beanDesc,
 					BeanProperty property) {
 				Class<?> rawClass = type.getRawClass();
+				//if ()
 				int tupleSizeIfTuple = getTupleSize(rawClass);
 				if (tupleSizeIfTuple > 0) {
 					return new TupleSerializer(tupleSizeIfTuple);
@@ -57,6 +58,8 @@ public class JacksonTupleModule extends SimpleModule {
 				return super.findBeanDeserializer(type, config, provider, beanDesc, property);
 			}
 		});
+		addSerializer(UObject.class, new UObjectSerializer());
+		addDeserializer(UObject.class, new UObjectDeserializer());
 	}
 	
 	private boolean isTuple(Class<?> rawClass) {
@@ -119,6 +122,33 @@ public class JacksonTupleModule extends SimpleModule {
 				}
 				p.nextToken();
 				return res;
+			} catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
+	}
+
+	public static class UObjectSerializer extends JsonSerializer<UObject> {		
+		
+		public void serialize(UObject value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+			try {
+				UObject obj = (UObject)value;
+				if (obj.isJsonNode()) {
+					jgen.writeTree(obj.asJsonNode());
+				} else {
+					jgen.writeObject(obj.getUserObject());
+				}
+			} catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
+	}	
+	
+	public static class UObjectDeserializer extends JsonDeserializer<UObject> {
+
+		public UObject deserialize(JsonParser p, DeserializationContext ctx) throws IOException, JsonProcessingException {
+			try {
+				return new UObject(p.readValueAsTree());
 			} catch (Exception ex) {
 				throw new IllegalStateException(ex);
 			}

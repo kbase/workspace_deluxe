@@ -17,6 +17,22 @@ import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 //END_HEADER
 
+/**
+ * <p>Original spec-file module name: Workspace</p>
+ * <pre>
+ * The workspace service at its core is a storage and retrieval system for 
+ * typed objects. Objects are organized by the user into one or more workspaces.
+ * Features:
+ * Versioning of objects
+ * Data provenenance
+ * Object to object references
+ * Workspace sharing
+ * TODO
+ * BINARY DATA:
+ * All binary data must be hex encoded prior to storage in a workspace. 
+ * Attempting to send binary data via a workspace client will cause errors.
+ * </pre>
+ */
 public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
 
@@ -105,12 +121,20 @@ public class WorkspaceServer extends JsonServerServlet {
         //END_CONSTRUCTOR
     }
 
+    /**
+     * <p>Original spec-file function name: create_workspace</p>
+     * <pre>
+     * Creates a new workspace.
+     * </pre>
+     * @param   params   Original type "create_workspace_params" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
+     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. workspace_id workspace - ID of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
+     */
     @JsonServerMethod(rpc = "Workspace.create_workspace")
     public Tuple5<String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthUser authPart) throws Exception {
-        Tuple5<String, String, String, String, String> ret = null;
+        Tuple5<String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
         //END create_workspace
-        return ret;
+        return returnVal;
     }
 
     public static void main(String[] args) throws Exception {

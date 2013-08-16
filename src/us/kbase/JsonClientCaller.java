@@ -158,6 +158,8 @@ public class JsonClientCaller {
 		g.writeObjectField("params", arg);
 		g.writeStringField("method", method);
 		g.writeStringField("version", "1.1");
+		String id = ("" + Math.random()).replace(".", "");
+		g.writeStringField("id", id);
 		g.writeEndObject();
 		g.close();
 
