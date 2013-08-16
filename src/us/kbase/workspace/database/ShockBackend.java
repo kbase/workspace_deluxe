@@ -10,10 +10,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
-import us.kbase.shock.client.ShockNodeId;
-import us.kbase.shock.client.exceptions.ExpiredTokenException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -34,7 +33,7 @@ public class ShockBackend implements BlobStore {
 		} catch (InvalidShockUrlException isue) {
 			throw new WorkspaceBackendException(
 					"The shock url " + url + " is invalid", isue);
-		} catch (ExpiredTokenException ete) {
+		} catch (TokenExpiredException ete) {
 			throw new WorkspaceBackendException( //uh... this should never happen
 					"The token retrieved from the auth service is already " +
 					"expired", ete);
@@ -60,7 +59,7 @@ public class ShockBackend implements BlobStore {
 		if(client.isTokenExpired()) {
 			try {
 				client.updateToken(getToken());
-			} catch (ExpiredTokenException ete) {
+			} catch (TokenExpiredException ete) {
 				throw new RuntimeException(
 						"Auth service is handing out expired tokens", ete);
 			}
@@ -90,7 +89,7 @@ public class ShockBackend implements BlobStore {
 		try {
 			sn = client.addNode(attribs, data.getBytes(),
 				"workspace_" + td.getChsum());
-		} catch (ExpiredTokenException ete) {
+		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
 		} catch (JsonProcessingException jpe) {
@@ -114,7 +113,7 @@ public class ShockBackend implements BlobStore {
 		String ret = null;
 		try {
 			ret = new String(client.getFile(td.getShockNodeId()));
-		} catch (ExpiredTokenException ete) {
+		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {

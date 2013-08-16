@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import us.kbase.auth.AuthUser;
-import us.kbase.shock.client.exceptions.ExpiredTokenException;
+import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
@@ -78,7 +78,7 @@ public class ShockNode extends ShockData {
 	 * called on this object.
 	 */
 	public void delete() throws ShockHttpException, IOException,
-			ExpiredTokenException, ShockNodeDeletedException {
+			TokenExpiredException, ShockNodeDeletedException {
 		client.deleteNode(getId());
 		client = null; //remove ref to client
 		deleted = true;
@@ -96,7 +96,7 @@ public class ShockNode extends ShockData {
 	 */
 	@JsonIgnore
 	public ShockACL getACLs() throws ShockHttpException, IOException,
-			ExpiredTokenException, ShockNodeDeletedException {
+			TokenExpiredException, ShockNodeDeletedException {
 		return client.getACLs(getId());
 	}
 	
@@ -108,13 +108,13 @@ public class ShockNode extends ShockData {
 	 * @return an ACL.
 	 * @throws ShockHttpException if the shock server cannot retrieve the ACL.
 	 * @throws IOException if an IO problem occurs.
-	 * @throws ExpiredTokenException if the client's token has expired.
+	 * @throws TokenExpiredException if the client's token has expired.
 	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
 	 * previously called.
 	 */
 	@JsonIgnore
 	public ShockACL getACLs(ShockACLType acl) throws ShockHttpException,
-			IOException, ExpiredTokenException, ShockNodeDeletedException {
+			IOException, TokenExpiredException, ShockNodeDeletedException {
 		return client.getACLs(getId(), acl);
 	}
 	
@@ -125,7 +125,7 @@ public class ShockNode extends ShockData {
 	 * @param user the user to which read permissions shall be granted.
 	 * @throws ShockHttpException if the read ACL could not be modified.
 	 * @throws IOException if an IO problem occurs.
-	 * @throws ExpiredTokenException if the client's token has expired.
+	 * @throws TokenExpiredException if the client's token has expired.
 	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
 	 * previously called.
 	 * @throws UnvalidatedEmailException if the <code>user</code>'s email
@@ -133,7 +133,7 @@ public class ShockNode extends ShockData {
 	 */
 	@JsonIgnore
 	public void setReadable(AuthUser user) throws ShockHttpException,
-			IOException, ExpiredTokenException, ShockNodeDeletedException,
+			IOException, TokenExpiredException, ShockNodeDeletedException,
 			UnvalidatedEmailException {
 		client.setNodeReadable(getId(), user);
 	}
@@ -145,13 +145,13 @@ public class ShockNode extends ShockData {
 	 * making the node world readable.
 	 * @throws ShockHttpException if the read ACL could not be modified.
 	 * @throws IOException if an IO problem occurs.
-	 * @throws ExpiredTokenException if the client's token has expired.
+	 * @throws TokenExpiredException if the client's token has expired.
 	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
 	 * previously called.
 	 */
 	@JsonIgnore
 	public void setWorldReadable() throws ShockHttpException,
-			IOException, ExpiredTokenException, ShockNodeDeletedException {
+			IOException, TokenExpiredException, ShockNodeDeletedException {
 		client.setNodeWorldReadable(getId());
 	}
 	
@@ -161,13 +161,13 @@ public class ShockNode extends ShockData {
 	 * @return the shock node's file.
 	 * @throws ShockHttpException if the file could not be retrieved from shock.
 	 * @throws IOException if an IO problem occurs.
-	 * @throws ExpiredTokenException if the client's token has expired.
+	 * @throws TokenExpiredException if the client's token has expired.
 	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
 	 * previously called.
 	 */
 	@JsonIgnore
 	public byte[] getFile() throws ShockHttpException, IOException,
-			ExpiredTokenException, ShockNodeDeletedException {
+			TokenExpiredException, ShockNodeDeletedException {
 		return client.getFile(getId());
 	}
 	
