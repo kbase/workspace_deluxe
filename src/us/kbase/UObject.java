@@ -49,6 +49,7 @@ public class UObject {
 			for (int i = 0; i < root.size(); i++)
 				ret.add(new UObject(root.get(i)));
 		} else {
+			@SuppressWarnings("unchecked")
 			List<Object> list = (List<Object>)userObj;
 			for (Object val : list)
 				ret.add(new UObject(val));
@@ -72,6 +73,7 @@ public class UObject {
 				ret.put(prop, new UObject(root.get(prop)));
 			}
 		} else {
+			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)userObj;
 			for (Map.Entry<String, Object> entry : map.entrySet())
 				ret.put(entry.getKey(), new UObject(entry.getValue()));
@@ -109,6 +111,7 @@ public class UObject {
 		return userObj == null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public <T> T asScalar() throws JsonProcessingException {
 		if (isJsonNode()) {
 			JsonNode root = asJsonNode();

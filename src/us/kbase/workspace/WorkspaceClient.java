@@ -7,6 +7,7 @@ import java.util.List;
 import org.codehaus.jackson.type.TypeReference;
 import us.kbase.JsonClientCaller;
 import us.kbase.Tuple5;
+import us.kbase.auth.TokenFormatException;
 
 /**
  * <p>Original spec-file module name: Workspace</p>
@@ -31,7 +32,8 @@ public class WorkspaceClient {
         caller = new JsonClientCaller(url);
     }
 
-    public WorkspaceClient(String url, String token) throws MalformedURLException, IOException {
+    public WorkspaceClient(String url, String token) throws
+        MalformedURLException, IOException, TokenFormatException {
         caller = new JsonClientCaller(url, token);
     }
 

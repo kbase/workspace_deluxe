@@ -2,6 +2,7 @@ package us.kbase;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.auth.TokenFormatException;
 
 import java.net.*;
 import java.io.*;
@@ -31,7 +32,8 @@ public class JsonClientCaller {
 		mapper = new ObjectMapper().withModule(new JacksonTupleModule());
 	}
 
-	public JsonClientCaller(String url, String accessToken) throws MalformedURLException, IOException {
+	public JsonClientCaller(String url, String accessToken) throws
+		MalformedURLException, IOException, TokenFormatException {
 		this(url);
 		this.accessToken = new AuthToken(accessToken);
 	}
@@ -65,7 +67,7 @@ public class JsonClientCaller {
 						throw new IllegalStateException("RPC method requires authentication but neither user nor token was set");
 				} else {
 					accessToken = user2token.get(user);
-					if (accessToken != null && !checkTokenExpirationDate(accessToken)) {
+					if (accessToken != null && !accessToken.isExpired()) {
 						user2token.remove(user);
 						accessToken = null;
 					}
@@ -91,10 +93,10 @@ public class JsonClientCaller {
 		return conn;
 	}
 
-	private static boolean checkTokenExpirationDate(AuthToken token) {
-		long expiry = token.getExpiry() * 1000;
-		return expiry > System.currentTimeMillis();
-	}
+//	private static boolean checkTokenExpirationDate(AuthToken token) {
+//		long expiry = token.getExpiry() * 1000;
+//		return expiry > System.currentTimeMillis();
+//	}
 	
 	public static AuthToken requestTokenFromKBase(String user, char[] password) throws Exception {
 		return AuthService.login(user, new String(password)).getToken();
