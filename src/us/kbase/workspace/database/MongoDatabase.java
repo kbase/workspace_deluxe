@@ -107,7 +107,6 @@ public class MongoDatabase implements Database {
 		}
 		if(wsSettings.isGridFSBackend()) {
 			BlobStore bs = new GridFSBackend(workspace);
-			//TODO set up and return gridFS backend
 			return bs;
 		}
 		if(wsSettings.isShockBackend()) {
@@ -121,7 +120,6 @@ public class MongoDatabase implements Database {
 			}
 			BlobStore bs = new ShockBackend(shockurl,
 					wsSettings.getShockUser(), backendSecret); 
-			//TODO set up and return shock backend
 			//TODO if shock, check a few random nodes to make sure they match
 			//the internal representation, die otherwise
 			return bs;

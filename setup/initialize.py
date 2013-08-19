@@ -167,7 +167,8 @@ if __name__ == '__main__':
         renamederr('This program has been moved from its standard location.')
     if program != FILENAME:
         renamederr('This program has been renamed.')
-    cfgfile = os.path.join(wd, CONFIGFILE)
+    lclcfg = sys.argv[1] if len(sys.argv) > 1 else CONFIGFILE
+    cfgfile = os.path.join(wd, lclcfg)
     if os.path.isdir(cfgfile):
         printerr(cfgfile + ' is a directory!')
     cfg = ConfigObj()
