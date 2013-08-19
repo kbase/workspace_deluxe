@@ -84,6 +84,8 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
 
   <target name="test" depends="compile" description="run tests">
     <fail unless="test.shock.url" message="property test.shock.url not set."/>
+    <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
+    <fail unless="test.mongo.db" message="property test.mongo.db not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
@@ -91,10 +93,20 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
     <fail unless="test.user.noemail" message="property test.user.noemail not set."/>
     <fail unless="test.pwd.noemail" message="property test.pwd.noemail not set."/>
     <echo message="starting ${package} tests"/>
+    <condition property="test.mongo.user" else="" >
+      <isset property="test.mongo.user" />
+    </condition>
+    <condition property="test.mongo.pwd" else="" >
+      <isset property="test.mongo.pwd" />
+    </condition>
     <junit haltonfailure="false">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
+      <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
+      <sysproperty key="test.mongo.db" value="${test.mongo.db}"/>
+      <sysproperty key="test.mongo.user" value="${test.mongo.user}"/>
+      <sysproperty key="test.mongo.pwd" value="${test.mongo.pwd}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
@@ -103,6 +115,7 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
       <sysproperty key="test.pwd.noemail" value="${test.pwd.noemail}"/>
       <test name="us.kbase.shock.client.test.ShockTests"/>
       <test name="us.kbase.workspace.database.test.ShockBackendTest"/>
+      <test name="us.kbase.workspace.database.test.GridFSBackendTest"/>
     </junit>
       
     <!-- Define absolute path to main jar file-->

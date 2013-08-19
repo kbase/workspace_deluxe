@@ -11,5 +11,8 @@ public interface BlobStore {
 	public String getBlob(TypeData td) throws DBAuthorizationException,
 		WorkspaceBackendException;
 	
+	public void removeBlob(TypeData td) throws DBAuthorizationException,
+		WorkspaceBackendException;
+	
 	public String getExternalIdentifier(TypeData td); 
 }

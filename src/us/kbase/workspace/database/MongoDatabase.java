@@ -67,7 +67,7 @@ public class MongoDatabase implements Database {
 	
 	private DB getDB(String host, String database) throws UnknownHostException, 
 			InvalidHostException {
-		//Don't print to stderr you idiots
+		//Don't print to stderr
 		Logger.getLogger("com.mongodb").setLevel(Level.OFF);
 		MongoClient m = null;
 		try {
@@ -98,6 +98,7 @@ public class MongoDatabase implements Database {
 						"Unable to unmarshal settings document", me);
 			}
 			ex = ex.getCause();
+			//I have no idea why I checked for a CWDBE here
 			if(ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
 				throw new CorruptWorkspaceDBException(
 						"Unable to unmarshal settings document", me);

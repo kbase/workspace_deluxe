@@ -3,6 +3,7 @@ package us.kbase.workspace.database.test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.workspace.database.ShockBackend;
 import us.kbase.workspace.database.TypeData;
 import us.kbase.workspace.database.WorkspaceType;
+import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 
 public class ShockBackendTest {
 	
@@ -69,15 +71,20 @@ public class ShockBackendTest {
 				sn.getAttributes().get("workspace");
 		assertThat("Type owner saved correctly", owner,
 				is(attribs.get("typeowner")));
-		assertThat("Type owner saved correctly", mod,
+		assertThat("Type module saved correctly", mod,
 				is(attribs.get("module")));
-		assertThat("Type owner saved correctly", type,
+		assertThat("Type type saved correctly", type,
 				is(attribs.get("type")));
-		assertThat("Type owner saved correctly", ver,
+		assertThat("Type version saved correctly", ver,
 				is(attribs.get("version")));
 		TypeData faketd = new TypeData("foo", wt, workspaces, subdata);
 		faketd.addShockInformation(sn);
 		assertThat("Shock data returned correctly", data, is(sb.getBlob(faketd)));
-		bsc.deleteNode(td.getShockNodeId());
+		sb.removeBlob(faketd);
+		try {
+			sb.removeBlob(faketd);
+			fail("Able to remove non-existent blob");
+		} catch (WorkspaceBackendException wbe) {}
+		//TODO better error handling when shock allows it
 	}
 }

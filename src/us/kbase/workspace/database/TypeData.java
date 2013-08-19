@@ -19,6 +19,8 @@ public class TypeData {
 	private String data = null;
 	@JsonIgnore
 	private WorkspaceType type = null;
+	
+	//these attributes are actually saved in mongo
 	private List<String> workspaces;
 	private String chsum;
 	private Map<String, Object> subdata;

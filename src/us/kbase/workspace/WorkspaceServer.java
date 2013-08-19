@@ -101,7 +101,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		String secret = config.get(BACKEND_SECRET);
 		if (config.containsKey(USER) ^ config.containsKey(PWD)) {
 			die(String.format("Must provide both %s and %s ",
-					HOST, PWD) + "params in config file if authentication " + 
+					USER, PWD) + "params in config file if authentication " + 
 					"is to be used");
 		}
 		String user = config.get(USER);

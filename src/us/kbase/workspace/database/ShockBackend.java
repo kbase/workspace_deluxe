@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
@@ -44,18 +45,24 @@ public class ShockBackend implements BlobStore {
 		}
 	}
 	
-	private AuthToken getToken() throws DBAuthorizationException {
+	private AuthToken getToken() throws DBAuthorizationException,
+			WorkspaceBackendException {
 		AuthUser u = null;
 		try {
 			u = AuthService.login(user, password);
-		} catch (Exception e) { //TODO better granularity on errors
+		} catch (AuthException ae) {
 			throw new DBAuthorizationException(
-					"Could not authenticate backend user " + user, e);
+					"Could not authenticate backend user " + user, ae);
+		} catch (IOException ioe) {
+			throw new WorkspaceBackendException(
+					"Could not connect to the shock backend: " +
+					ioe.getLocalizedMessage(), ioe);
 		}
 		return u.getToken();
 	}
 	
-	private void checkAuth() throws DBAuthorizationException {
+	private void checkAuth() throws DBAuthorizationException,
+			WorkspaceBackendException {
 		if(client.isTokenExpired()) {
 			try {
 				client.updateToken(getToken());
@@ -101,7 +108,8 @@ public class ShockBackend implements BlobStore {
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
 			throw new WorkspaceBackendException(
-					"Failed to create shock node", she);
+					"Failed to create shock node: " +
+					she.getLocalizedMessage(), she);
 		}
 		td.addShockInformation(sn);
 	}
@@ -128,8 +136,28 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
+	public void removeBlob(TypeData td) throws DBAuthorizationException,
+			WorkspaceBackendException {
+		checkAuth();
+		try {
+			client.deleteNode(td.getShockNodeId());
+		} catch (TokenExpiredException ete) {
+			//this should be impossible
+			throw new RuntimeException("Things are broke", ete);
+		} catch (IOException ioe) {
+			throw new WorkspaceBackendException(
+					"Could not connect to the shock backend: " +
+					ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			//No way to tell ATM if the node was never there or something else happened
+			throw new WorkspaceBackendException(
+					"Failed to delete shock node: " +
+					she.getLocalizedMessage(), she);
+		}
+	}
+
+	@Override
 	public String getExternalIdentifier(TypeData td) {
 		return td.getShockNodeId().getId();
 	}
-
 }
