@@ -3,6 +3,7 @@ package us.kbase.shock.client.test;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import org.junit.Test;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
@@ -36,8 +38,6 @@ import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 public class ShockTests {
-	
-	//TODO token expiry tests - set expired, expire after test - need globus support here
 	
 	private static BasicShockClient bsc1;
 	private static BasicShockClient bsc2;
@@ -64,6 +64,33 @@ public class ShockTests {
 		bsc2 = new BasicShockClient(url, t2);
 		bscNoAuth = new BasicShockClient(url);
 	}
+	
+	@Test
+	public void setExpiredToken() throws Exception {
+		AuthToken exptok = new AuthToken(otherguy.getTokenString(), 0);
+		try {
+			bsc2.updateToken(exptok);
+			fail("accepted expired token on update");
+		} catch (TokenExpiredException tee) {}
+	}
+	
+	@Test
+	public void setOldToken() throws Exception {
+		AuthToken orig = otherguy.getToken();
+		AuthToken exptok = new AuthToken(orig.toString(),
+				(new Date().getTime() - orig.getIssueDate().getTime())/1000 + 1);
+		bsc2.updateToken(exptok);
+		Thread.sleep(2000);
+		assertTrue("token is expired", bsc2.isTokenExpired());
+		try {
+			bsc2.addNode();
+			fail("Added node with expired token");
+		} catch (TokenExpiredException tee) {}
+		
+		bsc2.updateToken(orig); //restore to std state
+		assertFalse("token is now valid", bsc2.isTokenExpired());
+	}
+	
 
 	@Test
 	public void shockUrl() throws Exception {

@@ -143,7 +143,6 @@ public class BasicShockClient {
 	 * is expired, <code>false</code> otherwise.
 	 */
 	public boolean isTokenExpired() {
-		//TODO test when can get expired tokens.
 		if (token == null || token.isExpired()) {
 			return true;
 		}
@@ -180,7 +179,6 @@ public class BasicShockClient {
 	private void authorize(HttpRequestBase httpreq) throws
 			TokenExpiredException {
 		if (token != null) {
-			//TODO test when can get hands on expired token
 			if (token.isExpired()) {
 				throw new TokenExpiredException(token.getTokenId());
 			}
