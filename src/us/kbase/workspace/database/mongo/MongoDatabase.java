@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,6 +23,7 @@ import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
@@ -28,6 +32,7 @@ import com.mongodb.MongoException;
 public class MongoDatabase implements Database {
 
 	private static final String SETTINGS = "settings";
+	private static final String WORKSPACES = "workspaces";
 
 	private final DB workspace;
 	private final Jongo wsjongo;
@@ -151,12 +156,29 @@ public class MongoDatabase implements Database {
 	@Override
 	public Workspace createWorkspace(String user, String wsname,
 			boolean globalread, String description) {
+		//TODO workspace indexes and errors from inserting a dupe
+		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
+			throw new IllegalArgumentException(String.format(
+					"Workspace %s already exists", wsname));
+		}
 		final Integer count = (Integer) updateWScounter.as(DBObject.class).get("num");
-		System.out.println(count);
-		System.out.println(user);
-		System.out.println(wsname);
-		System.out.println(globalread);
-		System.out.println(description);
+		final DBObject ws = new BasicDBObject();
+		ws.put("owner", user);
+		ws.put("id", count);
+		ws.put("globalread", globalread);
+		@SuppressWarnings("rawtypes")
+		final List javashutup = new ArrayList();
+		ws.put("users", javashutup);
+		ws.put("name", wsname);
+		ws.put("deleted", null);
+		ws.put("numpointers", 0);
+		ws.put("description", description);
+		workspace.getCollection(WORKSPACES).insert(ws);
+//		System.out.println(count);
+//		System.out.println(user);
+//		System.out.println(wsname);
+//		System.out.println(globalread);
+//		System.out.println(description);
 		// TODO Auto-generated method stub
 		return null;
 	}
