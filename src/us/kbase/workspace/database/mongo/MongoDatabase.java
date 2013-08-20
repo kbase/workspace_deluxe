@@ -46,6 +46,7 @@ public class MongoDatabase implements Database {
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		ensureIndexes();
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret,
@@ -67,6 +68,11 @@ public class MongoDatabase implements Database {
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		ensureIndexes();
+	}
+	
+	private void ensureIndexes() {
+		
 	}
 	
 	private FindAndModify buildCounterQuery() {
