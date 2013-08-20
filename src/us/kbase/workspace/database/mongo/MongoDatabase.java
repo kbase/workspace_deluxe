@@ -5,8 +5,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,6 +40,18 @@ public class MongoDatabase implements Database {
 	private final Jongo wsjongo;
 	private final BlobStore blob;
 	private final FindAndModify updateWScounter;
+	
+	private static final Map<String, Map<List<String>, List<String>>> indexes;
+	static {
+		indexes = new HashMap<String, Map<List<String>, List<String>>>();
+		Map<List<String>, List<String>> ws = new HashMap<List<String>, List<String>>();
+		ws.put(Arrays.asList("owner"), Arrays.asList(""));
+		ws.put(Arrays.asList("id"), Arrays.asList("unique"));
+		ws.put(Arrays.asList("globalread"), Arrays.asList("sparse"));
+		ws.put(Arrays.asList("users"), Arrays.asList("")); //TODO this might need work
+		ws.put(Arrays.asList("name"), Arrays.asList("unique", "sparse"));
+		indexes.put(WORKSPACES, ws);
+	}
 
 	public MongoDatabase(String host, String database, String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
@@ -77,7 +91,21 @@ public class MongoDatabase implements Database {
 	}
 	
 	private void ensureIndexes() {
-		
+		for (String col: indexes.keySet()) {
+			for (List<String> idx: indexes.get(col).keySet()) {
+				DBObject index = new BasicDBObject();
+				DBObject opts = new BasicDBObject();
+				for (String field: idx) {
+					index.put(field, 1);
+				}
+				for (String option: indexes.get(col).get(idx)) {
+					if (!option.equals("")) {
+						opts.put(option, 1);
+					}
+				}
+				workspace.getCollection(col).ensureIndex(index, opts);
+			}
+		}
 	}
 	
 	private FindAndModify buildCounterQuery() {
@@ -156,7 +184,7 @@ public class MongoDatabase implements Database {
 	@Override
 	public Workspace createWorkspace(String user, String wsname,
 			boolean globalread, String description) {
-		//TODO workspace indexes and errors from inserting a dupe
+		//avoid incrementing the counter if we don't have to
 		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
 			throw new IllegalArgumentException(String.format(
 					"Workspace %s already exists", wsname));
@@ -173,13 +201,12 @@ public class MongoDatabase implements Database {
 		ws.put("deleted", null);
 		ws.put("numpointers", 0);
 		ws.put("description", description);
-		workspace.getCollection(WORKSPACES).insert(ws);
-//		System.out.println(count);
-//		System.out.println(user);
-//		System.out.println(wsname);
-//		System.out.println(globalread);
-//		System.out.println(description);
-		// TODO Auto-generated method stub
+		try {
+			workspace.getCollection(WORKSPACES).insert(ws);
+		} catch (MongoException.DuplicateKey mdk) {
+			throw new IllegalArgumentException(String.format(
+					"Workspace %s already exists", wsname));
+		}
 		return null;
 	}
 
