@@ -2,7 +2,6 @@ package us.kbase;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.TokenFormatException;
 
 import java.net.*;
 import java.io.*;
@@ -17,7 +16,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class JsonClientCaller {
 
-	private URL urlobj;
+	public final URL serviceUrl;
 	private ObjectMapper mapper;
 	private String user = null;
 	private char[] password = null;
@@ -27,18 +26,17 @@ public class JsonClientCaller {
 	
 	private static Map<String, AuthToken> user2token = Collections.synchronizedMap(new HashMap<String, AuthToken>());
 
-	public JsonClientCaller(String url) throws MalformedURLException {
-		this.urlobj = new URL(url);
+	public JsonClientCaller(URL url) {
+		serviceUrl = url;
 		mapper = new ObjectMapper().withModule(new JacksonTupleModule());
 	}
 
-	public JsonClientCaller(String url, String accessToken) throws
-		MalformedURLException, IOException, TokenFormatException {
+	public JsonClientCaller(URL url, AuthToken accessToken) {
 		this(url);
-		this.accessToken = new AuthToken(accessToken);
+		this.accessToken = accessToken;
 	}
 
-	public JsonClientCaller(String url, String user, String password) throws MalformedURLException {
+	public JsonClientCaller(URL url, String user, String password) {
 		this(url);
 		this.user = user;
 		this.password = password.toCharArray();
@@ -53,7 +51,7 @@ public class JsonClientCaller {
 	}
 	
 	private HttpURLConnection setupCall(boolean authRequired) throws Exception {
-		HttpURLConnection conn = (HttpURLConnection) urlobj.openConnection();
+		HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
 		conn.setDoOutput(true);
 		conn.setRequestMethod("POST");
 		if (authRequired || user != null || accessToken != null) {

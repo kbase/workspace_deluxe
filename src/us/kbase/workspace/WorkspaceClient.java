@@ -1,13 +1,13 @@
 package us.kbase.workspace;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import org.codehaus.jackson.type.TypeReference;
 import us.kbase.JsonClientCaller;
 import us.kbase.Tuple5;
-import us.kbase.auth.TokenFormatException;
+import us.kbase.auth.AuthToken;
 
 /**
  * <p>Original spec-file module name: Workspace</p>
@@ -27,18 +27,37 @@ import us.kbase.auth.TokenFormatException;
  */
 public class WorkspaceClient {
     private JsonClientCaller caller;
+    private static URL DEFAULT_URL = null;
+    static {
+        try {
+            DEFAULT_URL = new URL("ftp://foo.com");
+        } catch (MalformedURLException mue) {
+            throw new RuntimeException("Compile error in client - bad url compiled");
+        }
+    }
 
-    public WorkspaceClient(String url) throws MalformedURLException {
+    public WorkspaceClient() {
+       caller = new JsonClientCaller(DEFAULT_URL);
+    }
+
+    public WorkspaceClient(URL url) {
         caller = new JsonClientCaller(url);
     }
 
-    public WorkspaceClient(String url, String token) throws
-            MalformedURLException, IOException, TokenFormatException {
+    public WorkspaceClient(URL url, AuthToken token) {
         caller = new JsonClientCaller(url, token);
     }
 
-    public WorkspaceClient(String url, String user, String password) throws MalformedURLException {
+    public WorkspaceClient(URL url, String user, String password) {
         caller = new JsonClientCaller(url, user, password);
+    }
+
+    public WorkspaceClient(AuthToken token) {
+        caller = new JsonClientCaller(DEFAULT_URL, token);
+    }
+
+    public WorkspaceClient(String user, String password) {
+        caller = new JsonClientCaller(DEFAULT_URL, user, password);
     }
 
     public boolean isAuthAllowedForHttp() {
