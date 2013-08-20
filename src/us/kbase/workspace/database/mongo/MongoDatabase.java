@@ -1,4 +1,4 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -12,6 +12,7 @@ import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 
 import us.kbase.workspace.Workspace;
+import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;

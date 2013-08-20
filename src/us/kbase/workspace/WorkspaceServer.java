@@ -13,10 +13,10 @@ import java.util.Arrays;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.MongoDatabase;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.mongo.MongoDatabase;
 //END_HEADER
 
 /**

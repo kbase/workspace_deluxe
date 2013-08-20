@@ -19,10 +19,10 @@ import us.kbase.auth.AuthService;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
-import us.kbase.workspace.database.ShockBackend;
-import us.kbase.workspace.database.TypeData;
-import us.kbase.workspace.database.WorkspaceType;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
+import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.TypeData;
+import us.kbase.workspace.database.mongo.WorkspaceType;
 
 public class ShockBackendTest {
 	

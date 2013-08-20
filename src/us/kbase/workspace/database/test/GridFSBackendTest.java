@@ -15,10 +15,10 @@ import org.junit.Test;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
-import us.kbase.workspace.database.GridFSBackend;
-import us.kbase.workspace.database.TypeData;
-import us.kbase.workspace.database.WorkspaceType;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
+import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.TypeData;
+import us.kbase.workspace.database.mongo.WorkspaceType;
 
 public class GridFSBackendTest {
 	

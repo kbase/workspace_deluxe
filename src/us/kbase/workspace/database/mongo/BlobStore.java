@@ -1,4 +1,4 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.mongo;
 
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
