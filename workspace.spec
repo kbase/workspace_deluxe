@@ -57,7 +57,7 @@ module Workspace {
 		workspace_id workspace - ID of the workspace to be created
 		Optional:
 		permission globalread - 'r' to set workspace globally readable, default 'n'.
-		string description - A free-text description of the workspace, 1000 characters max.
+		string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
 	*/
 	typedef structure { 
 		workspace_id workspace;

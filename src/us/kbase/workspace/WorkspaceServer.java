@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.MongoDatabase;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -46,7 +48,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
-	private final Database db;
+	private final Workspaces ws;
 	
 	private void logger(String log) {
 		//TODO when logging is released (check places that call this method)
@@ -117,7 +119,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			params += PWD + "=[redacted for your safety and comfort]\n";
 		}
 		System.out.println("Using connection parameters:\n" + params);
-		db = getDB(host, dbs, secret, user, pwd);
+		Database db = getDB(host, dbs, secret, user, pwd);
+		System.out.println(String.format("Initialized %s backend", db.getBackendType()));
+		ws = new Workspaces(db);
         //END_CONSTRUCTOR
     }
 
@@ -133,6 +137,11 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple5<String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple5<String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
+		if (!params.getGlobalread().equals("r") && !params.getGlobalread().equals("n")) {
+			throw new IllegalArgumentException("globalread must be r or n");
+		}
+		ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
+				params.getGlobalread().equals("r"), params.getDescription());
         //END create_workspace
         return returnVal;
     }

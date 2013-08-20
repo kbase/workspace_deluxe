@@ -23,27 +23,26 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 
 public class MongoDatabase implements Database {
-	
+
 	private final DB workspace;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
-	
+
 	private static final String SETTINGS = "settings";
-	
+
 	public MongoDatabase(String host, String database, String backendSecret)
-			throws UnknownHostException, IOException,
-			InvalidHostException, WorkspaceDBException {
+			throws UnknownHostException, IOException, InvalidHostException,
+			WorkspaceDBException {
 		workspace = getDB(host, database);
 		try {
 			workspace.getCollectionNames();
 		} catch (MongoException.Network men) {
-			throw (IOException)men.getCause();
+			throw (IOException) men.getCause();
 		}
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
-		System.out.println(blob); //TODO Del
 	}
-	
+
 	public MongoDatabase(String host, String database, String backendSecret,
 			String user, String password) throws UnknownHostException,
 			IOException, DBAuthorizationException, InvalidHostException,
@@ -52,39 +51,39 @@ public class MongoDatabase implements Database {
 		try {
 			workspace.authenticate(user, password.toCharArray());
 		} catch (MongoException.Network men) {
-			throw (IOException)men.getCause();
+			throw (IOException) men.getCause();
 		}
 		try {
 			workspace.getCollectionNames();
 		} catch (MongoException me) {
-			throw new DBAuthorizationException("Not authorized for database " +
-					database, me);
+			throw new DBAuthorizationException("Not authorized for database "
+					+ database, me);
 		}
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
-		System.out.println(blob); //TODO Del
 	}
-	
-	private DB getDB(String host, String database) throws UnknownHostException, 
+
+	private DB getDB(String host, String database) throws UnknownHostException,
 			InvalidHostException {
-		//Don't print to stderr
+		// Don't print to stderr
 		Logger.getLogger("com.mongodb").setLevel(Level.OFF);
 		MongoClient m = null;
 		try {
 			m = new MongoClient(host);
 		} catch (NumberFormatException nfe) {
-			throw new InvalidHostException(host + " is not a valid mongodb host");
+			throw new InvalidHostException(host
+					+ " is not a valid mongodb host");
 		}
 		return m.getDB(database);
 	}
-	
+
 	private BlobStore setupDB(String backendSecret) throws WorkspaceDBException {
-		if(!workspace.collectionExists(SETTINGS)) {
+		if (!workspace.collectionExists(SETTINGS)) {
 			throw new UninitializedWorkspaceDBException(
 					"No settings collection exists");
 		}
 		MongoCollection settings = wsjongo.getCollection(SETTINGS);
-		if(settings.count() != 1) {
+		if (settings.count() != 1) {
 			throw new CorruptWorkspaceDBException(
 					"More than one settings document exists");
 		}
@@ -93,61 +92,50 @@ public class MongoDatabase implements Database {
 			wsSettings = settings.findOne().as(Settings.class);
 		} catch (MarshallingException me) {
 			Throwable ex = me.getCause();
-			if(ex == null) {
+			if (ex == null) {
 				throw new CorruptWorkspaceDBException(
 						"Unable to unmarshal settings document", me);
 			}
 			ex = ex.getCause();
-			//I have no idea why I checked for a CWDBE here
-			if(ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
+			if (ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
 				throw new CorruptWorkspaceDBException(
 						"Unable to unmarshal settings document", me);
 			}
 			throw (CorruptWorkspaceDBException) ex;
 		}
-		if(wsSettings.isGridFSBackend()) {
-			BlobStore bs = new GridFSBackend(workspace);
-			return bs;
+		if (wsSettings.isGridFSBackend()) {
+			return new GridFSBackend(workspace);
 		}
-		if(wsSettings.isShockBackend()) {
+		if (wsSettings.isShockBackend()) {
 			URL shockurl = null;
 			try {
 				shockurl = new URL(wsSettings.getShockUrl());
 			} catch (MalformedURLException mue) {
 				throw new CorruptWorkspaceDBException(
-						"Settings has bad shock url: " + 
-						wsSettings.getShockUrl(), mue);
+						"Settings has bad shock url: "
+								+ wsSettings.getShockUrl(), mue);
 			}
 			BlobStore bs = new ShockBackend(shockurl,
-					wsSettings.getShockUser(), backendSecret); 
-			//TODO if shock, check a few random nodes to make sure they match
-			//the internal representation, die otherwise
+					wsSettings.getShockUser(), backendSecret);
+			// TODO if shock, check a few random nodes to make sure they match
+			// the internal representation, die otherwise
 			return bs;
 		}
 		throw new RuntimeException("Something's real broke y'all");
 	}
 
 	@Override
-	public Workspace createWorkspace(String name) {
-		// TODO Auto-generated method stub
-		return null;
+	public String getBackendType() {
+		return blob.getStoreType();
 	}
 
 	@Override
-	public Workspace createWorkspace(String name, String description) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Workspace createWorkspace(String name, boolean globalread) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Workspace createWorkspace(String name, boolean globalread,
-			String description) {
+	public Workspace createWorkspace(String user, String wsname,
+			boolean globalread, String description) {
+		System.out.println(user);
+		System.out.println(wsname);
+		System.out.println(globalread);
+		System.out.println(description);
 		// TODO Auto-generated method stub
 		return null;
 	}

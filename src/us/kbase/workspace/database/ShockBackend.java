@@ -160,4 +160,9 @@ public class ShockBackend implements BlobStore {
 	public String getExternalIdentifier(TypeData td) {
 		return td.getShockNodeId().getId();
 	}
+
+	@Override
+	public String getStoreType() {
+		return "Shock";
+	}
 }

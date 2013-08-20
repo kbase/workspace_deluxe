@@ -161,7 +161,7 @@ public class BasicShockClient {
 			processRequest(HttpRequestBase httpreq, Class<T> clazz) throws
 			IOException, ShockHttpException, TokenExpiredException {
 		authorize(httpreq);
-		HttpResponse response = client.execute(httpreq);
+		final HttpResponse response = client.execute(httpreq);
 		return getShockData(response, clazz);
 	}
 	
@@ -201,7 +201,7 @@ public class BasicShockClient {
 			ShockHttpException, TokenExpiredException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
-		ShockNode sn = (ShockNode)processRequest(htg, ShockNodeResponse.class);
+		final ShockNode sn = (ShockNode)processRequest(htg, ShockNodeResponse.class);
 		sn.addClient(this);
 		return sn;
 	}

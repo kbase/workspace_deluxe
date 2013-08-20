@@ -22,7 +22,6 @@ public class GridFSBackend implements BlobStore {
 		gfs = new GridFS(mongodb);
 	}
 
-
 	/* (non-Javadoc)
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
@@ -64,6 +63,11 @@ public class GridFSBackend implements BlobStore {
 	@Override
 	public String getExternalIdentifier(TypeData td) {
 		return null;
+	}
+
+	@Override
+	public String getStoreType() {
+		return "GridFS";
 	}
 
 
