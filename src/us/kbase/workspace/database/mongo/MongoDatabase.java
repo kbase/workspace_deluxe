@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
@@ -20,16 +21,18 @@ import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 
 import com.mongodb.DB;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 
 public class MongoDatabase implements Database {
 
+	private static final String SETTINGS = "settings";
+
 	private final DB workspace;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
-
-	private static final String SETTINGS = "settings";
+	private final FindAndModify updateWScounter;
 
 	public MongoDatabase(String host, String database, String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
@@ -42,6 +45,7 @@ public class MongoDatabase implements Database {
 		}
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
+		updateWScounter = buildCounterQuery();
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret,
@@ -62,6 +66,14 @@ public class MongoDatabase implements Database {
 		}
 		wsjongo = new Jongo(workspace);
 		blob = setupDB(backendSecret);
+		updateWScounter = buildCounterQuery();
+	}
+	
+	private FindAndModify buildCounterQuery() {
+		return wsjongo.getCollection("workspaceCounter")
+				.findAndModify("{id: 'wscounter'}")
+				.upsert().returnNew().with("{$inc: {num: 1}}")
+				.projection("{num: 1, _id: 0}");
 	}
 
 	private DB getDB(String host, String database) throws UnknownHostException,
@@ -133,6 +145,8 @@ public class MongoDatabase implements Database {
 	@Override
 	public Workspace createWorkspace(String user, String wsname,
 			boolean globalread, String description) {
+		final Integer count = (Integer) updateWScounter.as(DBObject.class).get("num");
+		System.out.println(count);
 		System.out.println(user);
 		System.out.println(wsname);
 		System.out.println(globalread);
