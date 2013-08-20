@@ -1,5 +1,6 @@
 package us.kbase;
 
+import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
@@ -9,12 +10,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,32 +52,12 @@ public class JsonServerServlet extends HttpServlet {
 	public static final int LOG_LEVEL_DEBUG = SyslogConstants.LEVEL_DEBUG;
 	public static final int LOG_LEVEL_DEBUG2 = SyslogConstants.LEVEL_DEBUG + 1;
 	public static final int LOG_LEVEL_DEBUG3 = SyslogConstants.LEVEL_DEBUG + 2;
-	private static Map<String, AuthUser> token2user = Collections.synchronizedMap(new HashMap<String, AuthUser>());
 	private static ThreadLocal<SimpleDateFormat> sdf = new ThreadLocal<SimpleDateFormat>();
 	private static final boolean logDateTime = false;
 	final private static String KB_DEP = "KB_DEPLOYMENT_CONFIG";
 	final private static String KB_SERVNAME = "KB_SERVICE_NAME";
 	protected Map<String, String> config = new HashMap<String, String>();
-	
-	/*static {
-		org.apache.log4j.Logger root = org.apache.log4j.Logger.getRootLogger();
-		if (!root.getAllAppenders().hasMoreElements()) {
-			Properties logProp = new Properties();      
-			try {
-				logProp.setProperty("log4j.rootLogger", "info, out");
-				//logProp.setProperty("log4j.appender.out", "org.apache.log4j.ConsoleAppender");
-				logProp.setProperty("log4j.appender.out", "org.apache.log4j.net.SyslogAppender");
-				logProp.setProperty("log4j.appender.out.syslogHost", "localhost");
-				logProp.setProperty("log4j.appender.out.layout", "org.apache.log4j.PatternLayout");
-				logProp.setProperty("log4j.appender.out.layout.ConversionPattern", "%m%n");
-				logProp.setProperty("log4j.appender.out.Facility", "LOCAL1");
-				PropertyConfigurator.configure(logProp);
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}
-		}
-	}*/
-	
+		
 	public void startupServer(int port) throws Exception {
 		Server server = new Server(port);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
@@ -185,7 +168,7 @@ public class JsonServerServlet extends HttpServlet {
 		OutputStream output	= response.getOutputStream();
 		String id = null;
 		String rpcName = null;
-		AuthUser userProfile = null;
+		AuthToken userProfile = null;
 		try {
 			InputStream input = request.getInputStream();
 			JsonNode node;
@@ -209,18 +192,14 @@ public class JsonServerServlet extends HttpServlet {
 			}
 			int rpcArgCount = rpcMethod.getGenericParameterTypes().length;
 			Object[] methodValues = new Object[rpcArgCount];			
-			if (rpcArgCount > 0 && rpcMethod.getParameterTypes()[rpcArgCount - 1].equals(AuthUser.class)) {
+			if (rpcArgCount > 0 && rpcMethod.getParameterTypes()[rpcArgCount - 1].equals(AuthToken.class)) {
 				String token = request.getHeader("Authorization");
-				userProfile = token == null ? null : token2user.get(token);
-				if (userProfile == null) {
-					if (token != null || !rpcMethod.getAnnotation(JsonServerMethod.class).authOptional()) {
-						try {
-							userProfile = loadUserProfile(token);
-						} catch (Throwable ex) {
-							writeError(response, -32400, "Error during authorization check (" + ex.getMessage() + ")", id, output, userProfile, rpcName);
-							return;
-						}
-						token2user.put(token, userProfile);
+				if (token != null || !rpcMethod.getAnnotation(JsonServerMethod.class).authOptional()) {
+					try {
+						userProfile = validateToken(token);
+					} catch (Throwable ex) {
+						writeError(response, -32400, "Error during authorization check (" + ex.getMessage() + ")", id, output, userProfile, rpcName);
+						return;
 					}
 				}
 				rpcArgCount--;
@@ -244,7 +223,7 @@ public class JsonServerServlet extends HttpServlet {
 				methodValues[methodValues.length - 1] = userProfile;
 			Object result;
 			try {
-				String user = userProfile == null ? "-" : userProfile.getUserId();
+				String user = userProfile == null ? "-" : userProfile.getClientId();
 				logInfo("[" + user + "] [" + rpcName + "]: start method, id: " + id);
 				result = rpcMethod.invoke(this, methodValues);
 				logInfo("[" + user + "] [" + rpcName + "]: end method, id: " + id);
@@ -281,18 +260,25 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	private static String getCurrentMicro() {
-		//String ret = "" + System.nanoTime();
 		String ret = "" + System.currentTimeMillis() + "000000";
 		return ret.substring(0, ret.length() - 9) + "." + ret.substring(ret.length() - 9, ret.length() - 3);
 	}
 	
-	private static AuthUser loadUserProfile(String token) throws Exception {
+	private static AuthToken validateToken(String token) throws Exception {
 		if (token == null)
 			throw new IllegalStateException("Token is not defined in http request header");
-		return AuthService.getUserFromToken(new AuthToken(token));
+		AuthToken ret = new AuthToken(token);
+		if (!AuthService.validateToken(ret)) {
+			throw new IllegalStateException("Token was not validated");
+		}
+		return ret;
+	}
+
+	public static AuthUser getUserProfile(AuthToken token) throws KeyManagementException, UnsupportedEncodingException, NoSuchAlgorithmException, IOException, AuthException {
+		return AuthService.getUserFromToken(token);
 	}
 	
-	private void writeError(HttpServletResponse response, int code, String message, String id, OutputStream output, AuthUser userProfile, String method) {
+	private void writeError(HttpServletResponse response, int code, String message, String id, OutputStream output, AuthToken userProfile, String method) {
 		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		ObjectNode ret = mapper.createObjectNode();
 		ObjectNode error = mapper.createObjectNode();
@@ -308,7 +294,7 @@ public class JsonServerServlet extends HttpServlet {
 			mapper.writeValue(bais, ret);
 			bais.close();
 			byte[] bytes = bais.toByteArray();
-			String user = userProfile == null ? null : userProfile.getUserId();
+			String user = userProfile == null ? null : userProfile.getClientId();
 			String logMessage = "[" + (user == null ? "-" : user) + "] [" + (method == null ? "-" : method) + "]: " + new String(bytes);
 			logErr(logMessage);
 			output.write(bytes);

@@ -92,11 +92,6 @@ public class JsonClientCaller {
 		}
 		return conn;
 	}
-
-//	private static boolean checkTokenExpirationDate(AuthToken token) {
-//		long expiry = token.getExpiry() * 1000;
-//		return expiry > System.currentTimeMillis();
-//	}
 	
 	public static AuthToken requestTokenFromKBase(String user, char[] password) throws Exception {
 		return AuthService.login(user, new String(password)).getToken();

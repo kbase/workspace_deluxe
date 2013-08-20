@@ -3,7 +3,7 @@ package us.kbase.workspace;
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple5;
-import us.kbase.auth.AuthUser;
+import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
 import java.io.IOException;
@@ -130,7 +130,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * @return   Original type "workspace_metadata" (Meta data associated with a workspace. workspace_id workspace - ID of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
     @JsonServerMethod(rpc = "Workspace.create_workspace")
-    public Tuple5<String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthUser authPart) throws Exception {
+    public Tuple5<String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple5<String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
         //END create_workspace
