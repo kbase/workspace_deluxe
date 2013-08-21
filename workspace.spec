@@ -46,7 +46,7 @@ module Workspace {
 	
 	/* Meta data associated with a workspace.
 	
-		wd_id id - the numerical ID of the workspace.
+		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified
@@ -76,5 +76,23 @@ module Workspace {
 	*/
 	funcdef create_workspace(create_workspace_params params) returns
 		(workspace_metadata metadata) authentication required;
+		
+	/* Input parameters for the "get_workspace_description" function.
+		
+		One, and only one, of the following is required:
+		ws_id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace.
+	*/
+	
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+	} get_workspace_description_params;
+	
+	/* 
+		Get a workspace's description.
+	*/
+	funcdef get_workspace_description(get_workspace_description_params params)
+		returns (string description) authentication optional;
 	
 };

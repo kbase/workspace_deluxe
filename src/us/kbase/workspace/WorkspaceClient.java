@@ -53,13 +53,28 @@ public class WorkspaceClient {
      * Creates a new workspace.
      * </pre>
      * @param   params   Original type "create_workspace_params" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
-     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. wd_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified timestamp deleted - date when the workspace was last deleted or null permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
+     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified timestamp deleted - date when the workspace was last deleted or null permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
     public Tuple7<Integer, String, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws Exception {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple7<Integer, String, String, String, String, String, String>>> retType = new TypeReference<List<Tuple7<Integer, String, String, String, String, String, String>>>() {};
         List<Tuple7<Integer, String, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_workspace_description</p>
+     * <pre>
+     * Get a workspace's description.
+     * </pre>
+     * @param   params   Original type "get_workspace_description_params" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
+     */
+    public String getWorkspaceDescription(GetWorkspaceDescriptionParams params) throws Exception {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
+        List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false);
         return res.get(0);
     }
 }
