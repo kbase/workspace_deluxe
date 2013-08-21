@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 
 public class Workspaces {
 	
@@ -29,7 +30,6 @@ public class Workspaces {
 		if (user == null || wsname == null || description == null) {
 			throw new NullPointerException("no args can be null");
 		}
-		//TODO dealing with users
 		int delimcount = StringUtils.countMatches(wsname, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
 			throw new IllegalArgumentException(String.format(
@@ -43,14 +43,31 @@ public class Workspaces {
 						wsname, WS_NAME_DELIMITER));
 			}
 		}
+		checkWorkspaceName(wsname);
+		if(description.length() > MAX_WS_DESCRIPTION) {
+			description = description.substring(0, MAX_WS_DESCRIPTION);
+		}
+		return db.createWorkspace(user, wsname, globalread, description);
+	}
+	
+	public void checkWorkspaceName(String wsname) {
 		final Matcher m = VALID_WS_NAMES.matcher(wsname);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal character in workspace name %s: %s", wsname, m.group()));
 		}
-		if(description.length() > MAX_WS_DESCRIPTION) {
-			description = description.substring(0, MAX_WS_DESCRIPTION);
+	}
+	
+	public String getWorkspaceDescription(int workspaceid) throws NoSuchWorkspaceException {
+		if (workspaceid < 1) {
+			throw new IllegalArgumentException("Workspace ID must be > 0");
 		}
-		return db.createWorkspace(user, wsname, globalread, description);
+		return db.getWorkspaceDescription(workspaceid);
+		
+	}
+	
+	public String getWorkspaceDescription(String wsname) throws NoSuchWorkspaceException {
+		checkWorkspaceName(wsname);
+		return db.getWorkspaceDescription(wsname);
 	}
 }

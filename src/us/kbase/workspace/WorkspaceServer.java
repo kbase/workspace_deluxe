@@ -13,8 +13,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
+//import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.Permission;
@@ -54,6 +56,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
+	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
 	static {
@@ -188,7 +191,22 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.get_workspace_description", authOptional=true)
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
         String returnVal = null;
-        //BEGIN get_workspace_description
+		//BEGIN get_workspace_description
+		//TODO check auth
+		if (!(params.getWorkspace() == null ^ params.getId() == null)) {
+			throw new IllegalArgumentException("Must provide only one of workspace or id");
+		}
+		if (params.getId() != null) {
+			returnVal = ws.getWorkspaceDescription(params.getId());
+		} else {
+			Matcher m = KB_WS_ID.matcher(params.getWorkspace());
+			if (m.find()) {
+				returnVal = ws.getWorkspaceDescription(new Integer(m.group(1)).intValue());
+			} else {
+				returnVal = ws.getWorkspaceDescription(params.getWorkspace());
+				
+			}
+		}
         //END get_workspace_description
         return returnVal;
     }

@@ -24,6 +24,7 @@ import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 
@@ -215,4 +216,30 @@ public class MongoDatabase implements Database {
 				Permission.ADMIN, globalRead);
 	}
 
+	@Override
+	public String getWorkspaceDescription(int workspaceId) throws NoSuchWorkspaceException {
+		return getWorkspaceDescription(String.format("{id: %d}", workspaceId),
+				"id " + workspaceId);
+	}
+
+	@Override
+	public String getWorkspaceDescription(String workspaceName) throws
+			NoSuchWorkspaceException {
+		return getWorkspaceDescription(String.format("{name: \"%s\"}", workspaceName),
+				"name " + workspaceName);
+	}
+	
+	private String getWorkspaceDescription(String query, String err) throws
+			NoSuchWorkspaceException {
+		@SuppressWarnings("unchecked")
+		Map<String, String> result = (Map<String, String>)
+				wsjongo.getCollection(WORKSPACES).findOne(query)
+				.projection("{description: 1}").as(Map.class);
+		if (result == null) {
+			throw new NoSuchWorkspaceException(String.format(
+					"No workspace with %s exists", err));
+		}
+		return result.get("description");
+	}
+	
 }

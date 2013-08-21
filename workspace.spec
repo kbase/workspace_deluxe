@@ -81,7 +81,7 @@ module Workspace {
 		
 		One, and only one, of the following is required:
 		ws_id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
 	*/
 	
 	typedef structure {
