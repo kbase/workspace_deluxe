@@ -8,11 +8,17 @@ import us.kbase.auth.AuthToken;
 //BEGIN_HEADER
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
@@ -47,6 +53,17 @@ public class WorkspaceServer extends JsonServerServlet {
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
+	
+	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
+	static {
+		PERM_TO_API.put(Permission.NONE, "n");
+		PERM_TO_API.put(Permission.READ, "r");
+		PERM_TO_API.put(Permission.WRITE, "w");
+		PERM_TO_API.put(Permission.ADMIN, "a");
+		PERM_TO_API.put(false, "n"); // for globalread
+		PERM_TO_API.put(true, "r"); // for globalread
+	}
 	
 	private final Workspaces ws;
 	
@@ -84,6 +101,14 @@ public class WorkspaceServer extends JsonServerServlet {
 		System.err.println(error);
 		System.err.println("Terminating server.");
 		System.exit(1);
+	}
+	
+	private String formatDate(Date d) {
+		if (d == null) {
+			return null;
+		}
+		return DATE_FORMAT.format(d);
+		
 	}
     //END_CLASS_HEADER
 
@@ -140,8 +165,15 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (!params.getGlobalread().equals("r") && !params.getGlobalread().equals("n")) {
 			throw new IllegalArgumentException("globalread must be r or n");
 		}
-		ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
+		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				params.getGlobalread().equals("r"), params.getDescription());
+		System.out.println(meta);
+		returnVal = new Tuple7<Integer, String, String, String, String, String,
+				String>().withE1(meta.getId()).withE2(meta.getName())
+				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
+				.withE5(formatDate(meta.getDeletedDate()))
+				.withE6(PERM_TO_API.get(meta.getUserPermission())) 
+				.withE7(PERM_TO_API.get(meta.isGloballyReadable()));
         //END create_workspace
         return returnVal;
     }

@@ -18,8 +18,9 @@ import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 
-import us.kbase.workspace.Workspace;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
@@ -183,8 +184,8 @@ public class MongoDatabase implements Database {
 	}
 
 	@Override
-	public Workspace createWorkspace(String user, String wsname,
-			boolean globalread, String description) {
+	public WorkspaceMetaData createWorkspace(String user, String wsname,
+			boolean globalRead, String description) {
 		//avoid incrementing the counter if we don't have to
 		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
 			throw new IllegalArgumentException(String.format(
@@ -194,8 +195,9 @@ public class MongoDatabase implements Database {
 		final DBObject ws = new BasicDBObject();
 		ws.put("owner", user);
 		ws.put("id", count);
-		ws.put("globalread", globalread);
-		ws.put("moddate", new Date());
+		ws.put("globalread", globalRead);
+		Date moddate = new Date();
+		ws.put("moddate", moddate);
 		@SuppressWarnings("rawtypes")
 		final List javashutup = new ArrayList();
 		ws.put("users", javashutup);
@@ -209,7 +211,8 @@ public class MongoDatabase implements Database {
 			throw new IllegalArgumentException(String.format(
 					"Workspace %s already exists", wsname));
 		}
-		return null;
+		return new MongoWSMeta(count, wsname, user, moddate, null,
+				Permission.ADMIN, globalRead);
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.WorkspaceMetaData;
 
 public class Workspaces {
 	
@@ -23,7 +24,7 @@ public class Workspaces {
 		this.db = db;
 	}
 	
-	public Workspace createWorkspace(String user, String wsname,
+	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) {
 		if (user == null || wsname == null || description == null) {
 			throw new NullPointerException("no args can be null");
@@ -50,8 +51,6 @@ public class Workspaces {
 		if(description.length() > MAX_WS_DESCRIPTION) {
 			description = description.substring(0, MAX_WS_DESCRIPTION);
 		}
-		db.createWorkspace(user, wsname, globalread, description);
-		return null; //TODO return ws
+		return db.createWorkspace(user, wsname, globalread, description);
 	}
-
 }
