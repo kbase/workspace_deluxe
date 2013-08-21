@@ -77,4 +77,18 @@ public class WorkspaceClient {
         List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false);
         return res.get(0);
     }
+
+    /**
+     * <p>Original spec-file function name: set_permissions</p>
+     * <pre>
+     * Set permissions for a workspace.
+     * </pre>
+     * @param   params   Original type "set_permissions_params" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
+     */
+    public void setPermissions(SetPermissionsParams params) throws Exception {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true);
+    }
 }

@@ -191,7 +191,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.get_workspace_description", authOptional=true)
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
         String returnVal = null;
-		//BEGIN get_workspace_description
+        //BEGIN get_workspace_description
 		//TODO check auth
 		if (!(params.getWorkspace() == null ^ params.getId() == null)) {
 			throw new IllegalArgumentException("Must provide only one of workspace or id");
@@ -209,6 +209,19 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
         //END get_workspace_description
         return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: set_permissions</p>
+     * <pre>
+     * Set permissions for a workspace.
+     * </pre>
+     * @param   params   Original type "set_permissions_params" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
+     */
+    @JsonServerMethod(rpc = "Workspace.set_permissions")
+    public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
+        //BEGIN set_permissions
+        //END set_permissions
     }
 
     public static void main(String[] args) throws Exception {

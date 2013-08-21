@@ -83,7 +83,6 @@ module Workspace {
 		ws_id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
 	*/
-	
 	typedef structure {
 		ws_name workspace;
 		ws_id id;
@@ -95,4 +94,31 @@ module Workspace {
 	funcdef get_workspace_description(get_workspace_description_params params)
 		returns (string description) authentication optional;
 	
+	/* A permission linked with a user.
+		username user - the username
+		permission perm - the permission
+	*/
+	typedef structure {
+		username user;
+		permission perm;
+	} userperm;
+	
+	/* Input parameters for the "set_permissions" function.
+		One, and only one, of the following is required:
+		ws_id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+		Required arguments:
+		list<userperm> permissions - the permissions to assign to the workspace
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+		list<userperm> permissions;
+	} set_permissions_params;
+	
+	/* 
+		Set permissions for a workspace.
+	*/
+	funcdef set_permissions(set_permissions_params params) returns () authentication required;
+		
 };
