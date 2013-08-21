@@ -9,7 +9,7 @@ Versioning of objects
 Data provenenance
 Object to object references
 Workspace sharing
-TODO
+***Add stuff here***
 
 
 BINARY DATA:
@@ -22,10 +22,13 @@ module Workspace {
 	/* A boolean. 0 = false, other = true. */
 	typedef int boolean;
 	
-	/* A string used as an ID for a workspace.
+	/* The numerical ID of a workspace */
+	typedef int ws_id;
+	
+	/* A string used as a name for a workspace.
 		Any string consisting of alphanumeric characters and "_" is acceptable.
 	*/
-	typedef string workspace_id;
+	typedef string ws_name;
 	
 	/* Represents the permissions a user or users have to a workspace:
 		'a' - administrator. All operations allowed.
@@ -43,24 +46,27 @@ module Workspace {
 	
 	/* Meta data associated with a workspace.
 	
-		workspace_id workspace - ID of the workspace.
+		wd_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
-		timestamp moddate - date when the workspace was last modified.
+		timestamp moddate - date when the workspace was last modified
+		timestamp deleted - date when the workspace was last deleted or null
 		permission user_permission - permissions for the authenticated user of this workspace
 		permission globalread - whether this workspace is globally readable.
 			
 	*/
-	typedef tuple<workspace_id workspace, username owner, timestamp moddate, permission user_permission, permission globalread> workspace_metadata;
+	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
+		timestamp deleted, permission user_permission, permission globalread> workspace_metadata;
 
 	/* Input parameters for the "create_workspace" function.
 		Required:
-		workspace_id workspace - ID of the workspace to be created
+		ws_name workspace - name of the workspace to be created
 		Optional:
 		permission globalread - 'r' to set workspace globally readable, default 'n'.
 		string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
 	*/
 	typedef structure { 
-		workspace_id workspace;
+		ws_name workspace;
 		permission globalread;
 		string description;
 	} create_workspace_params;
@@ -68,6 +74,7 @@ module Workspace {
 	/*
 		Creates a new workspace.
 	*/
-	funcdef create_workspace(create_workspace_params params) returns (workspace_metadata metadata) authentication required;
+	funcdef create_workspace(create_workspace_params params) returns
+		(workspace_metadata metadata) authentication required;
 	
 };

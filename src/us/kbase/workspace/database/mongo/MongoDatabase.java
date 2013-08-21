@@ -6,6 +6,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -194,6 +195,7 @@ public class MongoDatabase implements Database {
 		ws.put("owner", user);
 		ws.put("id", count);
 		ws.put("globalread", globalread);
+		ws.put("moddate", new Date());
 		@SuppressWarnings("rawtypes")
 		final List javashutup = new ArrayList();
 		ws.put("users", javashutup);
