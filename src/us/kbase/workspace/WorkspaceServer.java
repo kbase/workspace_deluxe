@@ -113,6 +113,40 @@ public class WorkspaceServer extends JsonServerServlet {
 		return DATE_FORMAT.format(d);
 		
 	}
+	
+	private class WorkspaceIdentifier {
+		
+		public final Integer id;
+		public final String workspace;
+		
+		public WorkspaceIdentifier(Integer id, String workspace) {
+			this.id = id;
+			this.workspace = workspace;
+		}
+
+		@Override
+		public String toString() {
+			return "WorkspaceIdentifier [id=" + id + ", workspace=" + workspace
+					+ "]";
+		}
+	}
+	
+	private WorkspaceIdentifier processWorkspaceIdentifier(String workspace, Integer id) {
+		if (!(workspace == null ^ id == null)) {
+			throw new IllegalArgumentException("Must provide only one of workspace or id");
+		}
+		if (id != null) {
+			return new WorkspaceIdentifier(id, null);
+		} else {
+			Matcher m = KB_WS_ID.matcher(workspace);
+			if (m.find()) {
+				return new WorkspaceIdentifier(new Integer(m.group(1)), null);
+			} else {
+				return new WorkspaceIdentifier(null, workspace);
+				
+			}
+		}
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -170,7 +204,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				params.getGlobalread().equals("r"), params.getDescription());
-		System.out.println(meta);
 		returnVal = new Tuple7<Integer, String, String, String, String, String,
 				String>().withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
@@ -192,20 +225,13 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
-		//TODO check auth
-		if (!(params.getWorkspace() == null ^ params.getId() == null)) {
-			throw new IllegalArgumentException("Must provide only one of workspace or id");
-		}
-		if (params.getId() != null) {
-			returnVal = ws.getWorkspaceDescription(params.getId());
+		//TODO check auth, must be globally readable or user must have read perms
+		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		if (wsi.id != null) {
+			returnVal = ws.getWorkspaceDescription(wsi.id);
 		} else {
-			Matcher m = KB_WS_ID.matcher(params.getWorkspace());
-			if (m.find()) {
-				returnVal = ws.getWorkspaceDescription(new Integer(m.group(1)).intValue());
-			} else {
-				returnVal = ws.getWorkspaceDescription(params.getWorkspace());
-				
-			}
+			returnVal = ws.getWorkspaceDescription(wsi.workspace);
 		}
         //END get_workspace_description
         return returnVal;
@@ -221,7 +247,10 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-        //END set_permissions
+		//TODO check if users are valid
+		//TODO verify user is owner or has admin perms.
+		
+		//END set_permissions
     }
 
     public static void main(String[] args) throws Exception {
