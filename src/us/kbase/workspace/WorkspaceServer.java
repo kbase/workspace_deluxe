@@ -22,12 +22,13 @@ import java.util.regex.Pattern;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
 
 /**

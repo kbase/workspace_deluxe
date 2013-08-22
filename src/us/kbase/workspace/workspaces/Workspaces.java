@@ -1,4 +1,4 @@
-package us.kbase.workspace;
+package us.kbase.workspace.workspaces;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 
 public class Workspaces {

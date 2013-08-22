@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 public interface Database {
 

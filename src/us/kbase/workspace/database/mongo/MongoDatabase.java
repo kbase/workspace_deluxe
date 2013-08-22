@@ -19,14 +19,14 @@ import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

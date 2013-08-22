@@ -2,8 +2,8 @@ package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
 
-import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 public class MongoWSMeta implements WorkspaceMetaData {
 	

@@ -1,4 +1,4 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.workspaces;
 
 public enum Permission {
 	NONE (1),
