@@ -41,10 +41,15 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(TypeData td) {
+	public String getBlob(TypeData td) throws WorkspaceBackendException {
 		DBObject query = new BasicDBObject();
 		query.put("_id", td.getChsum());
 		GridFSDBFile out = gfs.findOne(query);
+		if (out == null) {
+			throw new WorkspaceBackendException(
+					"Attempt to retrieve non-existant blob with MD5 " + 
+					td.getChsum());
+		}
 		try {
 			return IOUtils.toString(out.getInputStream(), "UTF-8");
 		} catch (IOException ioe) {
