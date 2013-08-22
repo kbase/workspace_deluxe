@@ -3,15 +3,18 @@ package us.kbase.workspace;
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple7;
+import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,13 +62,21 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
+	private static final Map<String, Permission> API_TO_PERM = new HashMap<String, Permission>();
+	private static final String PERM_NONE = "n";
+	private static final String PERM_READ = "r";
+	private static final String PERM_WRITE = "w";
+	private static final String PERM_ADMIN = "a";
 	static {
-		PERM_TO_API.put(Permission.NONE, "n");
-		PERM_TO_API.put(Permission.READ, "r");
-		PERM_TO_API.put(Permission.WRITE, "w");
-		PERM_TO_API.put(Permission.ADMIN, "a");
-		PERM_TO_API.put(false, "n"); // for globalread
-		PERM_TO_API.put(true, "r"); // for globalread
+		API_TO_PERM.put(PERM_NONE, Permission.NONE);
+		API_TO_PERM.put(PERM_READ, Permission.READ);
+		API_TO_PERM.put(PERM_WRITE, Permission.WRITE);
+		API_TO_PERM.put(PERM_ADMIN, Permission.ADMIN);
+		for (String p: API_TO_PERM.keySet()) {
+			PERM_TO_API.put(API_TO_PERM.get(p), p);
+		}
+		PERM_TO_API.put(false, PERM_NONE); // for globalread
+		PERM_TO_API.put(true, PERM_READ); // for globalread
 	}
 	
 	private final Workspaces ws;
@@ -133,7 +144,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private WorkspaceIdentifier processWorkspaceIdentifier(String workspace, Integer id) {
 		if (!(workspace == null ^ id == null)) {
-			throw new IllegalArgumentException("Must provide only one of workspace or id");
+			throw new IllegalArgumentException("Must provide one and only one of workspace or id");
 		}
 		if (id != null) {
 			return new WorkspaceIdentifier(id, null);
@@ -199,11 +210,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple7<Integer, String, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple7<Integer, String, String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
-		if (!params.getGlobalread().equals("r") && !params.getGlobalread().equals("n")) {
-			throw new IllegalArgumentException("globalread must be r or n");
+		if (!params.getGlobalread().equals(PERM_READ) && !params.getGlobalread().equals(PERM_NONE)) {
+			throw new IllegalArgumentException(String.format(
+					"globalread must be %s or %s", PERM_NONE, PERM_READ));
 		}
 		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
-				params.getGlobalread().equals("r"), params.getDescription());
+				params.getGlobalread().equals(PERM_READ), params.getDescription());
 		returnVal = new Tuple7<Integer, String, String, String, String, String,
 				String>().withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
@@ -247,7 +259,34 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-		//TODO check if users are valid
+    	//TODO make some methods out of this
+		//TODO make wsi part of the api, just pass that in
+		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		Map<String, Permission> input = new HashMap<String, Permission>();
+		for (Userperm up: params.getPermissions()) {
+			if (up.getUser() == null) {
+				throw new IllegalArgumentException(
+						"The user parameter of a userperm object cannot be missing or null");
+			}
+			if (up.getPerm() == null) {
+				throw new IllegalArgumentException(
+						"The perm parameter of a userperm object cannot be missing or null");
+			}
+			if (!API_TO_PERM.containsKey(up.getPerm())) {
+				throw new IllegalArgumentException(
+						"Illegal permissions character: " + up.getPerm());
+			}
+			input.put(up.getUser(), API_TO_PERM.get(up.getPerm()));
+		}
+		Map<String, Boolean> userok = AuthService.isValidUserName(
+				new ArrayList<String>(input.keySet()), authPart);
+		for (String user: userok.keySet()) {
+			if (!userok.get(user)) {
+				throw new IllegalArgumentException(String.format(
+						"User %s is not a valid user", user));
+			}
+		}
 		//TODO verify user is owner or has admin perms.
 		
 		//END set_permissions

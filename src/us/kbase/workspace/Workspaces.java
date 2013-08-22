@@ -12,7 +12,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 public class Workspaces {
 	
 	private final static String WS_NAME_DELIMITER = ":";
-	private final static Pattern VALID_WS_NAMES = 
+	private final static Pattern INVALID_WS_NAMES = 
 			Pattern.compile("[^a-zA-Z0-9_" + WS_NAME_DELIMITER + "]");
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
@@ -51,7 +51,7 @@ public class Workspaces {
 	}
 	
 	public void checkWorkspaceName(String wsname) {
-		final Matcher m = VALID_WS_NAMES.matcher(wsname);
+		final Matcher m = INVALID_WS_NAMES.matcher(wsname);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal character in workspace name %s: %s", wsname, m.group()));
