@@ -1,4 +1,4 @@
-package us.kbase.workspace.database.test;
+package us.kbase.workspace.database.mongo.test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertTrue;
