@@ -12,7 +12,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
 /**
- * <p>Original spec-file type: create_workspace_params</p>
+ * <p>Original spec-file type: CreateWorkspaceParams</p>
  * <pre>
  * Input parameters for the "create_workspace" function.
  * Required:

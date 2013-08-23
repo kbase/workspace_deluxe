@@ -14,14 +14,15 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
 /**
- * <p>Original spec-file type: set_permissions_params</p>
+ * <p>Original spec-file type: SetPermissionsParams</p>
  * <pre>
  * Input parameters for the "set_permissions" function.
  * One, and only one, of the following is required:
- * ws_id - the numerical ID of the workspace.
+ * ws_id id - the numerical ID of the workspace.
  * ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
  * Required arguments:
- * list<userperm> permissions - the permissions to assign to the workspace
+ * permission new_permission - the permission to assign to the users
+ * list<username> users - the users whose permissions will be altered
  * </pre>
  * 
  */
@@ -30,7 +31,8 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonPropertyOrder({
     "workspace",
     "id",
-    "permissions"
+    "new_permission",
+    "users"
 })
 public class SetPermissionsParams {
 
@@ -38,8 +40,10 @@ public class SetPermissionsParams {
     private String workspace;
     @JsonProperty("id")
     private Integer id;
-    @JsonProperty("permissions")
-    private List<Userperm> permissions = new ArrayList<Userperm>();
+    @JsonProperty("new_permission")
+    private String newPermission;
+    @JsonProperty("users")
+    private List<String> users = new ArrayList<String>();
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -72,18 +76,33 @@ public class SetPermissionsParams {
         return this;
     }
 
-    @JsonProperty("permissions")
-    public List<Userperm> getPermissions() {
-        return permissions;
+    @JsonProperty("new_permission")
+    public String getNewPermission() {
+        return newPermission;
     }
 
-    @JsonProperty("permissions")
-    public void setPermissions(List<Userperm> permissions) {
-        this.permissions = permissions;
+    @JsonProperty("new_permission")
+    public void setNewPermission(String newPermission) {
+        this.newPermission = newPermission;
     }
 
-    public SetPermissionsParams withPermissions(List<Userperm> permissions) {
-        this.permissions = permissions;
+    public SetPermissionsParams withNewPermission(String newPermission) {
+        this.newPermission = newPermission;
+        return this;
+    }
+
+    @JsonProperty("users")
+    public List<String> getUsers() {
+        return users;
+    }
+
+    @JsonProperty("users")
+    public void setUsers(List<String> users) {
+        this.users = users;
+    }
+
+    public SetPermissionsParams withUsers(List<String> users) {
+        this.users = users;
         return this;
     }
 

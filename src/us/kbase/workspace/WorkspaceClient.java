@@ -1,5 +1,6 @@
 package us.kbase.workspace;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,18 @@ import us.kbase.auth.AuthToken;
  */
 public class WorkspaceClient {
     private JsonClientCaller caller;
+    private static URL DEFAULT_URL = null;
+    static {
+        try {
+            DEFAULT_URL = new URL("http://foo.com");
+        } catch (MalformedURLException mue) {
+            throw new RuntimeException("Compile error in client - bad url compiled");
+        }
+    }
+
+    public WorkspaceClient() {
+       caller = new JsonClientCaller(DEFAULT_URL);
+    }
 
     public WorkspaceClient(URL url) {
         caller = new JsonClientCaller(url);
@@ -37,6 +50,14 @@ public class WorkspaceClient {
 
     public WorkspaceClient(URL url, String user, String password) {
         caller = new JsonClientCaller(url, user, password);
+    }
+
+    public WorkspaceClient(AuthToken token) {
+        caller = new JsonClientCaller(DEFAULT_URL, token);
+    }
+
+    public WorkspaceClient(String user, String password) {
+        caller = new JsonClientCaller(DEFAULT_URL, user, password);
     }
 
     public boolean isAuthAllowedForHttp() {
@@ -52,7 +73,7 @@ public class WorkspaceClient {
      * <pre>
      * Creates a new workspace.
      * </pre>
-     * @param   params   Original type "create_workspace_params" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
+     * @param   params   Original type "CreateWorkspaceParams" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
      * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified timestamp deleted - date when the workspace was last deleted or null permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
     public Tuple7<Integer, String, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws Exception {
@@ -68,7 +89,7 @@ public class WorkspaceClient {
      * <pre>
      * Get a workspace's description.
      * </pre>
-     * @param   params   Original type "get_workspace_description_params" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
+     * @param   params   Original type "GetWorkspaceDescriptionParams" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
      */
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params) throws Exception {
         List<Object> args = new ArrayList<Object>();
@@ -83,7 +104,7 @@ public class WorkspaceClient {
      * <pre>
      * Set permissions for a workspace.
      * </pre>
-     * @param   params   Original type "set_permissions_params" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
+     * @param   params   Original type "SetPermissionsParams" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
      */
     public void setPermissions(SetPermissionsParams params) throws Exception {
         List<Object> args = new ArrayList<Object>();

@@ -12,7 +12,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
 /**
- * <p>Original spec-file type: get_workspace_description_params</p>
+ * <p>Original spec-file type: GetWorkspaceDescriptionParams</p>
  * <pre>
  * Input parameters for the "get_workspace_description" function.
  * One, and only one, of the following is required:

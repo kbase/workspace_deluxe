@@ -69,12 +69,12 @@ module Workspace {
 		ws_name workspace;
 		permission globalread;
 		string description;
-	} create_workspace_params;
+	} CreateWorkspaceParams;
 	
 	/*
 		Creates a new workspace.
 	*/
-	funcdef create_workspace(create_workspace_params params) returns
+	funcdef create_workspace(CreateWorkspaceParams params) returns
 		(workspace_metadata metadata) authentication required;
 		
 	/* Input parameters for the "get_workspace_description" function.
@@ -86,39 +86,32 @@ module Workspace {
 	typedef structure {
 		ws_name workspace;
 		ws_id id;
-	} get_workspace_description_params;
+	} GetWorkspaceDescriptionParams;
 	
 	/* 
 		Get a workspace's description.
 	*/
-	funcdef get_workspace_description(get_workspace_description_params params)
+	funcdef get_workspace_description(GetWorkspaceDescriptionParams params)
 		returns (string description) authentication optional;
-	
-	/* A permission linked with a user.
-		username user - the username
-		permission perm - the permission
-	*/
-	typedef structure {
-		username user;
-		permission perm;
-	} userperm;
 	
 	/* Input parameters for the "set_permissions" function.
 		One, and only one, of the following is required:
-		ws_id - the numerical ID of the workspace.
+		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
 		Required arguments:
-		list<userperm> permissions - the permissions to assign to the workspace
+		permission new_permission - the permission to assign to the users
+		list<username> users - the users whose permissions will be altered
 	*/
 	typedef structure {
 		ws_name workspace;
 		ws_id id;
-		list<userperm> permissions;
-	} set_permissions_params;
+		permission new_permission;
+		list<username> users;
+	} SetPermissionsParams;
 	
 	/* 
 		Set permissions for a workspace.
 	*/
-	funcdef set_permissions(set_permissions_params params) returns () authentication required;
+	funcdef set_permissions(SetPermissionsParams params) returns () authentication required;
 		
 };

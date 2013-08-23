@@ -3,7 +3,6 @@ package us.kbase.workspace;
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple7;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
@@ -18,6 +17,7 @@ import java.util.Map;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.auth.AuthService;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
@@ -178,7 +178,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Creates a new workspace.
      * </pre>
-     * @param   params   Original type "create_workspace_params" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
+     * @param   params   Original type "CreateWorkspaceParams" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
      * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified timestamp deleted - date when the workspace was last deleted or null permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
     @JsonServerMethod(rpc = "Workspace.create_workspace")
@@ -210,7 +210,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Get a workspace's description.
      * </pre>
-     * @param   params   Original type "get_workspace_description_params" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
+     * @param   params   Original type "GetWorkspaceDescriptionParams" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.get_workspace_description", authOptional=true)
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
@@ -229,7 +229,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Set permissions for a workspace.
      * </pre>
-     * @param   params   Original type "set_permissions_params" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
+     * @param   params   Original type "SetPermissionsParams" (see {@link us.kbase.workspace.SetPermissionsParams SetPermissionsParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
@@ -268,7 +268,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		//TODO verify user is owner or has admin perms.
 		
-		//END set_permissions
+        //END set_permissions
     }
 
     public static void main(String[] args) throws Exception {
