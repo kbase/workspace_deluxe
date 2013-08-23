@@ -1,5 +1,7 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.List;
+
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 
@@ -29,5 +31,12 @@ public class Workspaces {
 			throws NoSuchWorkspaceException {
 		return db.getWorkspaceDescription(workspace);
 		
+	}
+
+	public void setPermissions(String userName, WorkspaceIdentifier wsi,
+			List<String> users, Permission permission) throws
+			NoSuchWorkspaceException {
+		//TODO check permissions
+		db.setPermissions(wsi, users, permission);
 	}
 }

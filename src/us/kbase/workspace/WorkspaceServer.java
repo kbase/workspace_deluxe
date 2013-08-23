@@ -250,6 +250,9 @@ public class WorkspaceServer extends JsonServerServlet {
 						"User %s is not a valid user", user));
 			}
 		}
+		ws.setPermissions(authPart.getUserName(), wsi, params.getUsers(),
+				API_TO_PERM.get(params.getNewPermission()));
+				
 		//TODO verify user is owner or has admin perms.
 		
         //END set_permissions

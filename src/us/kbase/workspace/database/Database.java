@@ -1,6 +1,9 @@
 package us.kbase.workspace.database;
 
+import java.util.List;
+
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
@@ -10,7 +13,8 @@ public interface Database {
 			boolean globalread, String description);
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace)
 			throws NoSuchWorkspaceException;
-//	public String getWorkspaceDescription(String workspaceName) throws NoSuchWorkspaceException;
+	public void setPermissions(WorkspaceIdentifier workspace, List<String> users,
+			Permission perm) throws NoSuchWorkspaceException;
 
 	public String getBackendType(); 
 

@@ -39,34 +39,45 @@ public class MongoDatabase implements Database {
 
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
+	private static final String WS_ACLS = "workspaceACLs";
 
-	private final DB workspace;
+	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
 	private final FindAndModify updateWScounter;
 	
 	private static final Map<String, Map<List<String>, List<String>>> indexes;
 	static {
+		//hardcoded indexes
 		indexes = new HashMap<String, Map<List<String>, List<String>>>();
 		Map<List<String>, List<String>> ws = new HashMap<List<String>, List<String>>();
+		//find workspaces you own
 		ws.put(Arrays.asList("owner"), Arrays.asList(""));
+		//find workspaces by permanent id
 		ws.put(Arrays.asList("id"), Arrays.asList("unique"));
+		//find world readable workspaces
 		ws.put(Arrays.asList("globalread"), Arrays.asList("sparse"));
-		ws.put(Arrays.asList("users"), Arrays.asList("")); //TODO this might need work
+		//find workspaces by mutable name
 		ws.put(Arrays.asList("name"), Arrays.asList("unique", "sparse"));
 		indexes.put(WORKSPACES, ws);
+		Map<List<String>, List<String>> wsACL = new HashMap<List<String>, List<String>>();
+		//get a user's permission for a workspace, index covers queries
+		wsACL.put(Arrays.asList("id", "user", "perm"), Arrays.asList("unique"));
+		//find workspaces to which a user has some level of permission, index coves queries
+		wsACL.put(Arrays.asList("user", "perm", "id"), Arrays.asList(""));
+		indexes.put(WS_ACLS, wsACL);
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException {
-		workspace = getDB(host, database);
+		wsmongo = getDB(host, database);
 		try {
-			workspace.getCollectionNames();
+			wsmongo.getCollectionNames();
 		} catch (MongoException.Network men) {
 			throw (IOException) men.getCause();
 		}
-		wsjongo = new Jongo(workspace);
+		wsjongo = new Jongo(wsmongo);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
 		ensureIndexes();
@@ -76,19 +87,19 @@ public class MongoDatabase implements Database {
 			String user, String password) throws UnknownHostException,
 			IOException, DBAuthorizationException, InvalidHostException,
 			WorkspaceDBException {
-		workspace = getDB(host, database);
+		wsmongo = getDB(host, database);
 		try {
-			workspace.authenticate(user, password.toCharArray());
+			wsmongo.authenticate(user, password.toCharArray());
 		} catch (MongoException.Network men) {
 			throw (IOException) men.getCause();
 		}
 		try {
-			workspace.getCollectionNames();
+			wsmongo.getCollectionNames();
 		} catch (MongoException me) {
 			throw new DBAuthorizationException("Not authorized for database "
 					+ database, me);
 		}
-		wsjongo = new Jongo(workspace);
+		wsjongo = new Jongo(wsmongo);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
 		ensureIndexes();
@@ -107,7 +118,7 @@ public class MongoDatabase implements Database {
 						opts.put(option, 1);
 					}
 				}
-				workspace.getCollection(col).ensureIndex(index, opts);
+				wsmongo.getCollection(col).ensureIndex(index, opts);
 			}
 		}
 	}
@@ -134,7 +145,7 @@ public class MongoDatabase implements Database {
 	}
 
 	private BlobStore setupDB(String backendSecret) throws WorkspaceDBException {
-		if (!workspace.collectionExists(SETTINGS)) {
+		if (!wsmongo.collectionExists(SETTINGS)) {
 			throw new UninitializedWorkspaceDBException(
 					"No settings collection exists");
 		}
@@ -160,7 +171,7 @@ public class MongoDatabase implements Database {
 			throw (CorruptWorkspaceDBException) ex;
 		}
 		if (wsSettings.isGridFSBackend()) {
-			return new GridFSBackend(workspace);
+			return new GridFSBackend(wsmongo);
 		}
 		if (wsSettings.isShockBackend()) {
 			URL shockurl = null;
@@ -208,7 +219,7 @@ public class MongoDatabase implements Database {
 		ws.put("numpointers", 0);
 		ws.put("description", description);
 		try {
-			workspace.getCollection(WORKSPACES).insert(ws);
+			wsmongo.getCollection(WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
 			throw new IllegalArgumentException(String.format(
 					"Workspace %s already exists", wsname));
@@ -217,27 +228,86 @@ public class MongoDatabase implements Database {
 				Permission.ADMIN, globalRead);
 	}
 
+	private class QueryErr {
+		public String query;
+		public String err;
+	}
+	
+	private QueryErr setUpQuery(WorkspaceIdentifier wsi) {
+//		String err = null;
+//		String query = null;
+		QueryErr qe = new QueryErr();
+		if (wsi.getId() != null) {
+			qe.query = String.format("{id: %d}", wsi.getId());
+			qe.err = "id " + wsi.getId();
+		} else {
+			qe.query = String.format("{name: \"%s\"}", wsi.getName());
+			qe.err = "name " + wsi.getName();
+		}
+		return qe;
+	}
+
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
 			NoSuchWorkspaceException {
-		String err = null;
-		String query = null;
-		if (workspace.getId() != null) {
-			query = String.format("{id: %d}", workspace.getId());
-			err = "id " + workspace.getId();
-		} else {
-			query = String.format("{name: \"%s\"}", workspace.getName());
-			err = "name " + workspace.getName();
-		}
+//		String err = null;
+//		String query = null;
+//		if (workspace.getId() != null) {
+//			query = String.format("{id: %d}", workspace.getId());
+//			err = "id " + workspace.getId();
+//		} else {
+//			query = String.format("{name: \"%s\"}", workspace.getName());
+//			err = "name " + workspace.getName();
+//		}
+		QueryErr qe = setUpQuery(workspace);
 		@SuppressWarnings("unchecked")
 		Map<String, String> result = (Map<String, String>)
-				wsjongo.getCollection(WORKSPACES).findOne(query)
+				wsjongo.getCollection(WORKSPACES).findOne(qe.query)
 				.projection("{description: 1}").as(Map.class);
 		if (result == null) {
 			throw new NoSuchWorkspaceException(String.format(
-					"No workspace with %s exists", err));
+					"No workspace with %s exists", qe.err));
 		}
 		return result.get("description");
+	}
+	
+	private int getWorkspaceID(WorkspaceIdentifier wsi, boolean verify) throws
+			NoSuchWorkspaceException {
+		if (wsi.getId() != null) {
+			if (verify) {
+				QueryErr qe = setUpQuery(wsi);
+				if (wsjongo.getCollection(WORKSPACES).count(qe.query) == 0) {
+					throw new NoSuchWorkspaceException(String.format(
+							"No workspace with %s exists", qe.err));
+				}
+			}
+			return wsi.getId();
+		}
+		//TODO make simple query/projection method
+		QueryErr qe = setUpQuery(wsi);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> result = (Map<String, Object>)
+				wsjongo.getCollection(WORKSPACES).findOne(qe.query)
+				.projection("{id: 1}").as(Map.class);
+		if (result == null) {
+			throw new NoSuchWorkspaceException(String.format(
+					"No workspace with %s exists", qe.err));
+		}
+		return (Integer) result.get("id");
+	}
+
+	@Override
+	public void setPermissions(WorkspaceIdentifier workspace,
+			List<String> users, Permission perm) throws
+			NoSuchWorkspaceException {
+		int wsid = getWorkspaceID(workspace, true);
+		for (String user: users)
+			if (perm.equals(Permission.NONE)) {
+				wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);
+			} else {
+				wsjongo.getCollection(WS_ACLS).update("{id: #, user: #}", wsid, user)
+					.upsert().with("{$set: {perm: #}}", perm.getPermission());
+			}
 	}
 	
 }

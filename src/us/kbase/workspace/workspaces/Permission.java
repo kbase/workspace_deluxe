@@ -1,10 +1,10 @@
 package us.kbase.workspace.workspaces;
 
 public enum Permission {
-	NONE (1),
-	READ (2),
-	WRITE (3),
-	ADMIN (4);
+	NONE (0),
+	READ (1),
+	WRITE (2),
+	ADMIN (3);
 	
 	private final int permission;
 
@@ -14,5 +14,10 @@ public enum Permission {
 	
 	public int getPermission() {
 		return permission;
+	}
+	
+	public static void main(String[] args) {
+		System.out.println(Permission.NONE.equals(Permission.NONE));
+		System.out.println(Permission.NONE.equals(Permission.READ));
 	}
 }
