@@ -216,25 +216,9 @@ public class MongoDatabase implements Database {
 		return new MongoWSMeta(count, wsname, user, moddate, null,
 				Permission.ADMIN, globalRead);
 	}
-	
-	
 
-//	@Override
-//	public String getWorkspaceDescription(int workspaceId) throws NoSuchWorkspaceException {
-//		return getWorkspaceDescription(String.format("{id: %d}", workspaceId),
-//				"id " + workspaceId);
-//	}
-//
-//	@Override
-//	public String getWorkspaceDescription(String workspaceName) throws
-//			NoSuchWorkspaceException {
-//		return getWorkspaceDescription(String.format("{name: \"%s\"}", workspaceName),
-//				"name " + workspaceName);
-//	}
-	
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
-//	private String getWorkspaceDescription(String query, String err) throws
 			NoSuchWorkspaceException {
 		String err = null;
 		String query = null;

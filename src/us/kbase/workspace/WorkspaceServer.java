@@ -15,8 +15,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -61,7 +59,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
-//	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
 	private static final Map<String, Permission> API_TO_PERM = new HashMap<String, Permission>();
@@ -127,23 +124,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-//	private class WorkspaceIdentifier {
-//		
-//		public final Integer id;
-//		public final String workspace;
-//		
-//		public WorkspaceIdentifier(Integer id, String workspace) {
-//			this.id = id;
-//			this.workspace = workspace;
-//		}
-//
-//		@Override
-//		public String toString() {
-//			return "WorkspaceIdentifier [id=" + id + ", workspace=" + workspace
-//					+ "]";
-//		}
-//	}
-	
 	private WorkspaceIdentifier processWorkspaceIdentifier(String workspace, Integer id) {
 		if (!(workspace == null ^ id == null)) {
 			throw new IllegalArgumentException("Must provide one and only one of workspace or id");
@@ -151,16 +131,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (id != null) {
 			return KBWorkspaceIDFactory.create(id);
 		}
-//		} else {
 		return KBWorkspaceIDFactory.create(workspace);
-//			Matcher m = KB_WS_ID.matcher(workspace);
-//			if (m.find()) {
-//				return new WorkspaceIdentifier(new Integer(m.group(1)), null);
-//			} else {
-//				return new WorkspaceIdentifier(null, workspace);
-//				
-//			}
-//		}
 	}
     //END_CLASS_HEADER
 
@@ -249,11 +220,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		returnVal = ws.getWorkspaceDescription(wsi);
-//		if (wsi.id != null) {
-//			returnVal = ws.getWorkspaceDescription(wsi.id);
-//		} else {
-//			returnVal = ws.getWorkspaceDescription(wsi.workspace);
-//		}
         //END get_workspace_description
         return returnVal;
     }
@@ -269,7 +235,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
     	//TODO make some methods out of this
-		//TODO make wsi part of the api, just pass that in
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		System.out.println(wsi);
