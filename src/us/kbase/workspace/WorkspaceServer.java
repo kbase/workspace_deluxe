@@ -234,32 +234,16 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-    	//TODO make some methods out of this
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		System.out.println(wsi);
-		Map<String, Permission> input = new HashMap<String, Permission>();
-		for (Userperm up: params.getPermissions()) {
-			if (up.getUser() == null) {
-				throw new IllegalArgumentException(
-						"The user parameter of a userperm object cannot be missing or null");
-			}
-			if (up.getPerm() == null) {
-				throw new IllegalArgumentException(
-						"The perm parameter of a userperm object cannot be missing or null");
-			}
-			if (!API_TO_PERM.containsKey(up.getPerm())) {
-				throw new IllegalArgumentException(
-						"Illegal permissions character: " + up.getPerm());
-			}
-			input.put(up.getUser(), API_TO_PERM.get(up.getPerm()));
+		if (API_TO_PERM.get(params.getNewPermission()) == null) {
+			throw new IllegalArgumentException("Invalid permission: " + params.getNewPermission());
 		}
-		System.out.println(input);
-		if (input.size() == 0) {
-			throw new IllegalArgumentException("No permissions to update");
+		if (params.getUsers().size() == 0) {
+			throw new IllegalArgumentException("Must provide at least one user");
 		}
 		Map<String, Boolean> userok = AuthService.isValidUserName(
-				new ArrayList<String>(input.keySet()), authPart);
+				params.getUsers(), authPart);
 		for (String user: userok.keySet()) {
 			if (!userok.get(user)) {
 				throw new IllegalArgumentException(String.format(
