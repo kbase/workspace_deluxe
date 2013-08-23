@@ -26,47 +26,60 @@ public class Workspaces {
 	
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) {
-		if (user == null || wsname == null || description == null) {
-			throw new NullPointerException("no args can be null");
-		}
-		int delimcount = StringUtils.countMatches(wsname, WS_NAME_DELIMITER);
-		if (delimcount > 1) {
-			throw new IllegalArgumentException(String.format(
-					"Workspace name %s may only contain one %s delimiter",
-					wsname, WS_NAME_DELIMITER));
-		} else if (delimcount == 1) {
-			String[] user_ws = wsname.split(WS_NAME_DELIMITER);
-			if (!user_ws[0].equals(user)){
-				throw new IllegalArgumentException(String.format(
-						"Workspace name %s may only contain the user name prior to the %s delimiter",
-						wsname, WS_NAME_DELIMITER));
-			}
-		}
-		checkWorkspaceName(wsname);
-		if(description.length() > MAX_WS_DESCRIPTION) {
+//		if (description == null) {
+//			throw new NullPointerException("description cannot be null");
+//		}
+		new WorkspaceIdentifier(wsname, user); //check for errors
+//		if (user == null || wsname == null || description == null) {
+//			throw new NullPointerException("no args can be null");
+//		}
+//		int delimcount = StringUtils.countMatches(wsname, WS_NAME_DELIMITER);
+//		if (delimcount > 1) {
+//			throw new IllegalArgumentException(String.format(
+//					"Workspace name %s may only contain one %s delimiter",
+//					wsname, WS_NAME_DELIMITER));
+//		} else if (delimcount == 1) {
+//			String[] user_ws = wsname.split(WS_NAME_DELIMITER);
+//			if (!user_ws[0].equals(user)){
+//				throw new IllegalArgumentException(String.format(
+//						"Workspace name %s may only contain the user name prior to the %s delimiter",
+//						wsname, WS_NAME_DELIMITER));
+//			}
+//		}
+//		checkWorkspaceName(wsname);
+		if(description != null && description.length() > MAX_WS_DESCRIPTION) {
 			description = description.substring(0, MAX_WS_DESCRIPTION);
 		}
 		return db.createWorkspace(user, wsname, globalread, description);
 	}
 	
-	public void checkWorkspaceName(String wsname) {
-		final Matcher m = INVALID_WS_NAMES.matcher(wsname);
-		if (m.find()) {
-			throw new IllegalArgumentException(String.format(
-					"Illegal character in workspace name %s: %s", wsname, m.group()));
-		}
-	}
+//	public void checkWorkspaceName(String wsname) {
+//		final Matcher m = INVALID_WS_NAMES.matcher(wsname);
+//		if (m.find()) {
+//			throw new IllegalArgumentException(String.format(
+//					"Illegal character in workspace name %s: %s", wsname, m.group()));
+//		}
+//	}
 	
-	public String getWorkspaceDescription(int workspaceid) throws NoSuchWorkspaceException {
-		if (workspaceid < 1) {
-			throw new IllegalArgumentException("Workspace ID must be > 0");
-		}
-		return db.getWorkspaceDescription(workspaceid);
+	public String getWorkspaceDescription(WorkspaceIdentifier workspace)
+			throws NoSuchWorkspaceException {
+//		if (workspaceid < 1) {
+//			throw new IllegalArgumentException("Workspace ID must be > 0");
+//		}
+		return db.getWorkspaceDescription(workspace);
 		
 	}
 	
-	public String getWorkspaceDescription(String wsname) throws NoSuchWorkspaceException {
-		checkWorkspaceName(wsname);
-		return db.getWorkspaceDescription(wsname);
-	}
+//	public String getWorkspaceDescription(int workspaceid) throws NoSuchWorkspaceException {
+//		if (workspaceid < 1) {
+//			throw new IllegalArgumentException("Workspace ID must be > 0");
+//		}
+//		return db.getWorkspaceDescription(workspaceid);
+//		
+//	}
+//	
+//	public String getWorkspaceDescription(String wsname) throws NoSuchWorkspaceException {
+//		checkWorkspaceName(wsname);
+//		return db.getWorkspaceDescription(wsname);
+//	}
 }

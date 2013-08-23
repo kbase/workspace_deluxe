@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +25,9 @@ import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.kbase.KBWorkspaceIDFactory;
 import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
@@ -60,7 +61,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
-	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
+//	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
 	private static final Map<String, Permission> API_TO_PERM = new HashMap<String, Permission>();
@@ -126,38 +127,40 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-	private class WorkspaceIdentifier {
-		
-		public final Integer id;
-		public final String workspace;
-		
-		public WorkspaceIdentifier(Integer id, String workspace) {
-			this.id = id;
-			this.workspace = workspace;
-		}
-
-		@Override
-		public String toString() {
-			return "WorkspaceIdentifier [id=" + id + ", workspace=" + workspace
-					+ "]";
-		}
-	}
+//	private class WorkspaceIdentifier {
+//		
+//		public final Integer id;
+//		public final String workspace;
+//		
+//		public WorkspaceIdentifier(Integer id, String workspace) {
+//			this.id = id;
+//			this.workspace = workspace;
+//		}
+//
+//		@Override
+//		public String toString() {
+//			return "WorkspaceIdentifier [id=" + id + ", workspace=" + workspace
+//					+ "]";
+//		}
+//	}
 	
 	private WorkspaceIdentifier processWorkspaceIdentifier(String workspace, Integer id) {
 		if (!(workspace == null ^ id == null)) {
 			throw new IllegalArgumentException("Must provide one and only one of workspace or id");
 		}
 		if (id != null) {
-			return new WorkspaceIdentifier(id, null);
-		} else {
-			Matcher m = KB_WS_ID.matcher(workspace);
-			if (m.find()) {
-				return new WorkspaceIdentifier(new Integer(m.group(1)), null);
-			} else {
-				return new WorkspaceIdentifier(null, workspace);
-				
-			}
+			return KBWorkspaceIDFactory.create(id);
 		}
+//		} else {
+		return KBWorkspaceIDFactory.create(workspace);
+//			Matcher m = KB_WS_ID.matcher(workspace);
+//			if (m.find()) {
+//				return new WorkspaceIdentifier(new Integer(m.group(1)), null);
+//			} else {
+//				return new WorkspaceIdentifier(null, workspace);
+//				
+//			}
+//		}
 	}
     //END_CLASS_HEADER
 
@@ -211,12 +214,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple7<Integer, String, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple7<Integer, String, String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
-		if (!params.getGlobalread().equals(PERM_READ) && !params.getGlobalread().equals(PERM_NONE)) {
-			throw new IllegalArgumentException(String.format(
-					"globalread must be %s or %s", PERM_NONE, PERM_READ));
+		Permission p = Permission.NONE;
+		if (params.getGlobalread() != null) {
+			if (!params.getGlobalread().equals(PERM_READ) && !params.getGlobalread().equals(PERM_NONE)) {
+				throw new IllegalArgumentException(String.format(
+						"globalread must be %s or %s", PERM_NONE, PERM_READ));
+			}
+			p = API_TO_PERM.get(params.getGlobalread());
 		}
 		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
-				params.getGlobalread().equals(PERM_READ), params.getDescription());
+				p.equals(PERM_READ), params.getDescription());
 		returnVal = new Tuple7<Integer, String, String, String, String, String,
 				String>().withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
@@ -241,11 +248,12 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO check auth, must be globally readable or user must have read perms
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		if (wsi.id != null) {
-			returnVal = ws.getWorkspaceDescription(wsi.id);
-		} else {
-			returnVal = ws.getWorkspaceDescription(wsi.workspace);
-		}
+		returnVal = ws.getWorkspaceDescription(wsi);
+//		if (wsi.id != null) {
+//			returnVal = ws.getWorkspaceDescription(wsi.id);
+//		} else {
+//			returnVal = ws.getWorkspaceDescription(wsi.workspace);
+//		}
         //END get_workspace_description
         return returnVal;
     }
@@ -264,6 +272,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO make wsi part of the api, just pass that in
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
+		System.out.println(wsi);
 		Map<String, Permission> input = new HashMap<String, Permission>();
 		for (Userperm up: params.getPermissions()) {
 			if (up.getUser() == null) {
@@ -279,6 +288,10 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Illegal permissions character: " + up.getPerm());
 			}
 			input.put(up.getUser(), API_TO_PERM.get(up.getPerm()));
+		}
+		System.out.println(input);
+		if (input.size() == 0) {
+			throw new IllegalArgumentException("No permissions to update");
 		}
 		Map<String, Boolean> userok = AuthService.isValidUserName(
 				new ArrayList<String>(input.keySet()), authPart);
