@@ -219,7 +219,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO check auth, must be globally readable or user must have read perms
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		returnVal = ws.getWorkspaceDescription(wsi);
+		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wsi);
         //END get_workspace_description
         return returnVal;
     }

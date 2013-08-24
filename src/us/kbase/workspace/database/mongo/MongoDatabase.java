@@ -23,6 +23,7 @@ import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.workspaces.Permission;
@@ -198,10 +199,11 @@ public class MongoDatabase implements Database {
 
 	@Override
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
-			boolean globalRead, String description) {
+			boolean globalRead, String description) throws
+			PreExistingWorkspaceException {
 		//avoid incrementing the counter if we don't have to
 		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
-			throw new IllegalArgumentException(String.format(
+			throw new PreExistingWorkspaceException(String.format(
 					"Workspace %s already exists", wsname));
 		}
 		final Integer count = (Integer) updateWScounter.as(DBObject.class).get("num");
@@ -221,7 +223,7 @@ public class MongoDatabase implements Database {
 		try {
 			wsmongo.getCollection(WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
-			throw new IllegalArgumentException(String.format(
+			throw new PreExistingWorkspaceException(String.format(
 					"Workspace %s already exists", wsname));
 		}
 		return new MongoWSMeta(count, wsname, user, moddate, null,
@@ -248,6 +250,8 @@ public class MongoDatabase implements Database {
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
 			NoSuchWorkspaceException {
+		//TODO set up permissions method to return field of object or throw error if not a specific permissoin,
+		// use for this
 		final QueryErr qe = setUpQuery(workspace);
 		@SuppressWarnings("unchecked")
 		final Map<String, String> result = wsjongo.getCollection(WORKSPACES)
@@ -327,16 +331,6 @@ public class MongoDatabase implements Database {
 		if (user.equals(ws.get("owner"))) {
 			return Permission.ADMIN;
 		}
-//		if (workspace.getId() == null) {
-//			query = String.format("{name: \"%s\", owner: \"%s\"}", workspace.getName(), user);
-//		} else {
-//			query = String.format("{id: %d, owner: \"%s\"}", workspace.getId(), user);
-//		}
-//		Map<String, Boolean> res = wsjongo.getCollection(WORKSPACES).findOne(query)
-//				.projection("{globalread: 1, owner: 1}")
-//		if(wsjongo.getCollection(WORKSPACES).count(query) > 0) {
-//			return Permission.ADMIN;
-//		}
 		
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> res = wsjongo.getCollection(WS_ACLS)
