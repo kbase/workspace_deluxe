@@ -90,4 +90,11 @@ public class WorkspaceIdentifier {
 	public static void main(String[] args) {
 		System.out.println(new WorkspaceIdentifier("a:b", "a"));
 	}
+
+	public Object getIdentifierString() {
+		if (getId() == null) {
+			return getName();
+		}
+		return "" + getId();
+	}
 }

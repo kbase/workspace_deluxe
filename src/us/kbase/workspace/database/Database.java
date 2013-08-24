@@ -15,6 +15,8 @@ public interface Database {
 			throws NoSuchWorkspaceException;
 	public void setPermissions(WorkspaceIdentifier workspace, List<String> users,
 			Permission perm) throws NoSuchWorkspaceException;
+	public Permission getPermission(WorkspaceIdentifier workspace, String user)
+			throws NoSuchWorkspaceException;
 
 	public String getBackendType(); 
 

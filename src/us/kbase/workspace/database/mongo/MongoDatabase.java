@@ -234,9 +234,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	private QueryErr setUpQuery(WorkspaceIdentifier wsi) {
-//		String err = null;
-//		String query = null;
-		QueryErr qe = new QueryErr();
+		final QueryErr qe = new QueryErr();
 		if (wsi.getId() != null) {
 			qe.query = String.format("{id: %d}", wsi.getId());
 			qe.err = "id " + wsi.getId();
@@ -250,20 +248,10 @@ public class MongoDatabase implements Database {
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
 			NoSuchWorkspaceException {
-//		String err = null;
-//		String query = null;
-//		if (workspace.getId() != null) {
-//			query = String.format("{id: %d}", workspace.getId());
-//			err = "id " + workspace.getId();
-//		} else {
-//			query = String.format("{name: \"%s\"}", workspace.getName());
-//			err = "name " + workspace.getName();
-//		}
-		QueryErr qe = setUpQuery(workspace);
+		final QueryErr qe = setUpQuery(workspace);
 		@SuppressWarnings("unchecked")
-		Map<String, String> result = (Map<String, String>)
-				wsjongo.getCollection(WORKSPACES).findOne(qe.query)
-				.projection("{description: 1}").as(Map.class);
+		final Map<String, String> result = wsjongo.getCollection(WORKSPACES)
+				.findOne(qe.query).projection("{description: 1}").as(Map.class);
 		if (result == null) {
 			throw new NoSuchWorkspaceException(String.format(
 					"No workspace with %s exists", qe.err));
@@ -271,11 +259,16 @@ public class MongoDatabase implements Database {
 		return result.get("description");
 	}
 	
+	private int getWorkspaceID(WorkspaceIdentifier wsi) throws
+			NoSuchWorkspaceException {
+		return getWorkspaceID(wsi, false);
+	}
+	
 	private int getWorkspaceID(WorkspaceIdentifier wsi, boolean verify) throws
 			NoSuchWorkspaceException {
 		if (wsi.getId() != null) {
 			if (verify) {
-				QueryErr qe = setUpQuery(wsi);
+				final QueryErr qe = setUpQuery(wsi);
 				if (wsjongo.getCollection(WORKSPACES).count(qe.query) == 0) {
 					throw new NoSuchWorkspaceException(String.format(
 							"No workspace with %s exists", qe.err));
@@ -284,11 +277,10 @@ public class MongoDatabase implements Database {
 			return wsi.getId();
 		}
 		//TODO make simple query/projection method
-		QueryErr qe = setUpQuery(wsi);
+		final QueryErr qe = setUpQuery(wsi);
 		@SuppressWarnings("unchecked")
-		Map<String, Object> result = (Map<String, Object>)
-				wsjongo.getCollection(WORKSPACES).findOne(qe.query)
-				.projection("{id: 1}").as(Map.class);
+		final Map<String, Object> result = wsjongo.getCollection(WORKSPACES)
+				.findOne(qe.query).projection("{id: 1}").as(Map.class);
 		if (result == null) {
 			throw new NoSuchWorkspaceException(String.format(
 					"No workspace with %s exists", qe.err));
@@ -300,7 +292,7 @@ public class MongoDatabase implements Database {
 	public void setPermissions(WorkspaceIdentifier workspace,
 			List<String> users, Permission perm) throws
 			NoSuchWorkspaceException {
-		int wsid = getWorkspaceID(workspace, true);
+		final int wsid = getWorkspaceID(workspace, true);
 		for (String user: users)
 			if (perm.equals(Permission.NONE)) {
 				wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);
@@ -308,6 +300,52 @@ public class MongoDatabase implements Database {
 				wsjongo.getCollection(WS_ACLS).update("{id: #, user: #}", wsid, user)
 					.upsert().with("{$set: {perm: #}}", perm.getPermission());
 			}
+	}
+	
+	private Permission translatePermission(int perm) {
+		switch (perm) {
+			case 0: return Permission.NONE;
+			case 1: return Permission.READ;
+			case 2: return Permission.WRITE;
+			case 3: return Permission.ADMIN;
+			default: throw new IllegalArgumentException(
+					"No such permission level " + perm);
+		}
+	}
+
+	@Override
+	public Permission getPermission(WorkspaceIdentifier workspace, String user)
+			throws NoSuchWorkspaceException {
+		QueryErr qe = setUpQuery(workspace);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES).findOne(qe.query)
+				.projection("{globalread: 1, owner: 1}").as(Map.class);
+		if (ws == null) {
+			throw new NoSuchWorkspaceException(String.format(
+					"No workspace with %s exists", qe.err));
+		}
+		if (user.equals(ws.get("owner"))) {
+			return Permission.ADMIN;
+		}
+//		if (workspace.getId() == null) {
+//			query = String.format("{name: \"%s\", owner: \"%s\"}", workspace.getName(), user);
+//		} else {
+//			query = String.format("{id: %d, owner: \"%s\"}", workspace.getId(), user);
+//		}
+//		Map<String, Boolean> res = wsjongo.getCollection(WORKSPACES).findOne(query)
+//				.projection("{globalread: 1, owner: 1}")
+//		if(wsjongo.getCollection(WORKSPACES).count(query) > 0) {
+//			return Permission.ADMIN;
+//		}
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> res = wsjongo.getCollection(WS_ACLS)
+				.findOne("{id: #, user: #}", getWorkspaceID(workspace), user)
+				.projection("{perm: 1}").as(Map.class);
+		if(res == null) {
+			return (boolean) ws.get("globalread") ? Permission.READ : Permission.NONE; 
+		}
+		return translatePermission((int) res.get("perm"));
 	}
 	
 }

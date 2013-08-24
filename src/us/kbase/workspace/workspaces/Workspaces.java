@@ -4,6 +4,7 @@ import java.util.List;
 
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
@@ -35,8 +36,13 @@ public class Workspaces {
 
 	public void setPermissions(String userName, WorkspaceIdentifier wsi,
 			List<String> users, Permission permission) throws
-			NoSuchWorkspaceException {
-		//TODO check permissions
+			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+		System.out.println(db.getPermission(wsi,  userName));
+		if(db.getPermission(wsi, userName) != Permission.ADMIN) {
+			throw new WorkspaceAuthorizationException(String.format(
+					"User %s does not have permission to set permissions on workspace %s",
+					userName, wsi.getIdentifierString()));
+		}
 		db.setPermissions(wsi, users, permission);
 	}
 }
