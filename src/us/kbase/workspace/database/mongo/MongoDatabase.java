@@ -250,8 +250,6 @@ public class MongoDatabase implements Database {
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
 			NoSuchWorkspaceException {
-		//TODO set up permissions method to return field of object or throw error if not a specific permissoin,
-		// use for this
 		final QueryErr qe = setUpQuery(workspace);
 		@SuppressWarnings("unchecked")
 		final Map<String, String> result = wsjongo.getCollection(WORKSPACES)

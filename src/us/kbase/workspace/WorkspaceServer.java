@@ -9,7 +9,6 @@ import us.kbase.auth.AuthToken;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -216,7 +215,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
-		//TODO check auth, must be globally readable or user must have read perms
 		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wsi);
@@ -252,9 +250,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		ws.setPermissions(authPart.getUserName(), wsi, params.getUsers(),
 				API_TO_PERM.get(params.getNewPermission()));
-				
-		//TODO verify user is owner or has admin perms.
-		
         //END set_permissions
     }
 

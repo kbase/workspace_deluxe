@@ -14,7 +14,6 @@ public enum Permission {
 	
 	public int getPermission() {
 		return permission;
-		//TODO make non-enum permission class with compariable
 	}
 	
 	public static void main(String[] args) {
