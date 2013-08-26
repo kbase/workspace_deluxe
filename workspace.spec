@@ -44,19 +44,29 @@ module Workspace {
 	/* A time, e.g. 2012-12-17T23:24:06 */
 	typedef string timestamp;
 	
+	/* A workspace identifier.
+		Select a workspace by one, and only one, of the numerical id or name, where the
+		name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
+		ws_id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+	} WorkspaceIdentifier;
+	
 	/* Meta data associated with a workspace.
 	
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified
-		timestamp deleted - date when the workspace was last deleted or null
 		permission user_permission - permissions for the authenticated user of this workspace
 		permission globalread - whether this workspace is globally readable.
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		timestamp deleted, permission user_permission, permission globalread> workspace_metadata;
+		permission user_permission, permission globalread> workspace_metadata;
 
 	/* Input parameters for the "create_workspace" function.
 		Required:
@@ -77,21 +87,17 @@ module Workspace {
 	funcdef create_workspace(CreateWorkspaceParams params) returns
 		(workspace_metadata metadata) authentication required;
 		
-	/* Input parameters for the "get_workspace_description" function.
-		
-		One, and only one, of the following is required:
-		ws_id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+	/*
+		Get a workspace's metadata.
 	*/
-	typedef structure {
-		ws_name workspace;
-		ws_id id;
-	} GetWorkspaceDescriptionParams;
+	funcdef get_workspace_metadata(WorkspaceIdentifier wsi)
+		returns (workspace_metadata meta) authentication optional;
 	
 	/* 
+	
 		Get a workspace's description.
 	*/
-	funcdef get_workspace_description(GetWorkspaceDescriptionParams params)
+	funcdef get_workspace_description(WorkspaceIdentifier wsi)
 		returns (string description) authentication optional;
 	
 	/* Input parameters for the "set_permissions" function.
@@ -114,20 +120,10 @@ module Workspace {
 	*/
 	funcdef set_permissions(SetPermissionsParams params) returns () authentication required;
 	
-	/* Input parameters for the "set_permissions" function.
-		One, and only one, of the following is required:
-		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
-	*/
-	typedef structure {
-		ws_name workspace;
-		ws_id id;
-	} GetPermissionsParams;
-	
 	/* 
 		Get permissions for a workspace.
 	*/
-	funcdef get_permissions(GetPermissionsParams params) returns
+	funcdef get_permissions(WorkspaceIdentifier wsi) returns
 		(mapping<username, permission> perms) authentication required;
 		
 };

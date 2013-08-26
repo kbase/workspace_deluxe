@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -235,6 +234,7 @@ public class MongoDatabase implements Database {
 		} catch (NoSuchWorkspaceException nswe) {
 			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
 		}
+		//TODO remove deleted from metadata
 		return new MongoWSMeta(count, wsname, user, moddate, null,
 				Permission.ADMIN, globalRead);
 	}
@@ -274,7 +274,7 @@ public class MongoDatabase implements Database {
 			NoSuchWorkspaceException {
 		return getWorkspaceID(wsi, false);
 	}
-	
+	//TODO change these methods to verify by default
 	private int getWorkspaceID(WorkspaceIdentifier wsi, boolean verify) throws
 			NoSuchWorkspaceException {
 		if (wsi.getId() != null) {
@@ -374,6 +374,8 @@ public class MongoDatabase implements Database {
 		return translatePermission(perm);
 	}
 
+	//TODO make common methods for queries, general clean up
+	
 	@Override
 	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
 			String user) throws NoSuchWorkspaceException {

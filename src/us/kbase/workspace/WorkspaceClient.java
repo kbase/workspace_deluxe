@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import org.codehaus.jackson.type.TypeReference;
 import us.kbase.JsonClientCaller;
-import us.kbase.Tuple7;
+import us.kbase.Tuple6;
 import us.kbase.auth.AuthToken;
 
 /**
@@ -75,13 +75,29 @@ public class WorkspaceClient {
      * Creates a new workspace.
      * </pre>
      * @param   params   Original type "CreateWorkspaceParams" (see {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams} for details)
-     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified timestamp deleted - date when the workspace was last deleted or null permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
+     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
-    public Tuple7<Integer, String, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws Exception {
+    public Tuple6<Integer, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws Exception {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<Tuple7<Integer, String, String, String, String, String, String>>> retType = new TypeReference<List<Tuple7<Integer, String, String, String, String, String, String>>>() {};
-        List<Tuple7<Integer, String, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
+        TypeReference<List<Tuple6<Integer, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Integer, String, String, String, String, String>>>() {};
+        List<Tuple6<Integer, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_workspace_metadata</p>
+     * <pre>
+     * Get a workspace's metadata.
+     * </pre>
+     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
+     */
+    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentifier wsi) throws Exception {
+        List<Object> args = new ArrayList<Object>();
+        args.add(wsi);
+        TypeReference<List<Tuple6<Integer, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Integer, String, String, String, String, String>>>() {};
+        List<Tuple6<Integer, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.get_workspace_metadata", args, retType, true, false);
         return res.get(0);
     }
 
@@ -90,11 +106,11 @@ public class WorkspaceClient {
      * <pre>
      * Get a workspace's description.
      * </pre>
-     * @param   params   Original type "GetWorkspaceDescriptionParams" (see {@link us.kbase.workspace.GetWorkspaceDescriptionParams GetWorkspaceDescriptionParams} for details)
+     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
      */
-    public String getWorkspaceDescription(GetWorkspaceDescriptionParams params) throws Exception {
+    public String getWorkspaceDescription(WorkspaceIdentifier wsi) throws Exception {
         List<Object> args = new ArrayList<Object>();
-        args.add(params);
+        args.add(wsi);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
         List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false);
         return res.get(0);
@@ -119,11 +135,11 @@ public class WorkspaceClient {
      * <pre>
      * Get permissions for a workspace.
      * </pre>
-     * @param   params   Original type "GetPermissionsParams" (see {@link us.kbase.workspace.GetPermissionsParams GetPermissionsParams} for details)
+     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
      */
-    public Map<String,String> getPermissions(GetPermissionsParams params) throws Exception {
+    public Map<String,String> getPermissions(WorkspaceIdentifier wsi) throws Exception {
         List<Object> args = new ArrayList<Object>();
-        args.add(params);
+        args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
         List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, true);
         return res.get(0);
