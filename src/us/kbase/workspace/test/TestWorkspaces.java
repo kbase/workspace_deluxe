@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
@@ -20,7 +21,9 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
+import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.Workspaces;
 
 import com.mongodb.BasicDBObject;
@@ -138,9 +141,41 @@ public class TestWorkspaces {
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
 	}
 	
+	private void checkMeta(WorkspaceMetaData meta, String owner, String name,
+			Permission perm, boolean globalread, int id, Date moddate) {
+		checkMeta(meta, owner, name, perm, globalread);
+		assertThat("ws id correct", meta.getId(), is(id));
+		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
+	}
+	
+	private void checkMeta(WorkspaceMetaData meta, String owner, String name,
+			Permission perm, boolean globalread) {
+		assertThat("ws owner correct", meta.getOwner(), is(owner));
+		assertThat("ws name correct", meta.getName(), is(name));
+		assertThat("ws permissions correct", meta.getUserPermission(), is(perm));
+		assertThat("ws global read correct", meta.isGloballyReadable(), is(globalread));
+	}
+	
 	@Test
-	public void testCreateWorkspaceAndGetMeta() {
-//		ws.createWorkspace("auser", "foo", globalread, description)
+	public void testCreateWorkspaceAndGetMeta() throws PreExistingWorkspaceException,
+			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+		WorkspaceMetaData meta = ws.createWorkspace("auser", "foo", false, "eeswaffertheen");
+		checkMeta(meta, "auser", "foo", Permission.OWNER, false);
+		int id = meta.getId();
+		Date moddate = meta.getModDate();
+		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier(id), "auser");
+		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
+		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier("foo"), "auser");
+		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
+		
+		meta = ws.createWorkspace("anotherfnuser", "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
+		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true);
+		id = meta.getId();
+		moddate = meta.getModDate();
+		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier(id), "anotherfnuser");
+		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
+		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier("anotherfnuser:MrT"), "anotherfnuser");
+		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
 	}
 	
 	@Test

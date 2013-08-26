@@ -221,7 +221,7 @@ public class MongoDatabase implements Database {
 		ws.put("deleted", null);
 		ws.put("numpointers", 0);
 		ws.put("description", description);
-		try {
+		try { //this is almost impossible to test and will probably almost never happen
 			wsmongo.getCollection(WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
 			throw new PreExistingWorkspaceException(String.format(
@@ -232,10 +232,10 @@ public class MongoDatabase implements Database {
 			if (globalRead) {
 				setPermissions(count, Arrays.asList(ALL_USERS), Permission.READ, false);
 			}
-		} catch (NoSuchWorkspaceException nswe) {
+		} catch (NoSuchWorkspaceException nswe) { //should never happen
 			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
 		}
-		return new MongoWSMeta(count, wsname, user, moddate, Permission.ADMIN,
+		return new MongoWSMeta(count, wsname, user, moddate, Permission.OWNER,
 				globalRead);
 	}
 
