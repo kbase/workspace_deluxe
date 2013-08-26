@@ -217,9 +217,6 @@ public class MongoDatabase implements Database {
 		ws.put("globalread", globalRead);
 		Date moddate = new Date();
 		ws.put("moddate", moddate);
-//		@SuppressWarnings("rawtypes")
-//		final List javashutup = new ArrayList();
-//		ws.put("users", javashutup);
 		ws.put("name", wsname);
 		ws.put("deleted", null);
 		ws.put("numpointers", 0);
@@ -361,41 +358,46 @@ public class MongoDatabase implements Database {
 		if (ALL_USERS.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
-//		QueryErr qe = setUpQuery(workspace);
-//		@SuppressWarnings("unchecked")
-//		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES).findOne(qe.query)
-//				.projection("{globalread: 1, owner: 1}").as(Map.class);
-//		if (ws == null) {
-//			throw new NoSuchWorkspaceException(String.format(
-//					"No workspace with %s exists", qe.err));
-//		}
-//		if (user.equals(ws.get("owner"))) {
-//			return Permission.ADMIN;
-//		}
-		System.out.println("get perm mongo");
 		@SuppressWarnings("rawtypes")
-//		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-//				.find("{id: #, {$or: [{user: #}, {user: #}]}}",
-//						getWorkspaceID(workspace), user, ALL_USERS)
-//				.projection("{perm: 1}").as(Map.class);
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-		.find("{id: #, $or: [{user: #}, {user: #}]}",
-				getWorkspaceID(workspace), user, ALL_USERS)//, user, ALL_USERS)
-				.as(Map.class);
+				.find("{id: #, $or: [{user: #}, {user: #}]}",
+						getWorkspaceID(workspace, true), user, ALL_USERS)
+				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
 		for (@SuppressWarnings("rawtypes") Map m : res) {
 			System.out.println(m);
 			final int newperm = (int) m.get("perm");
-			System.out.println(newperm);
 			if (perm < newperm){
 				perm = newperm;
 			}
 		}
 		return translatePermission(perm);
-//		if(res == null) {
-//			return (boolean) ws.get("globalread") ? Permission.READ : Permission.NONE; 
-//		}
-//		return translatePermission((int) res.get("perm"));
 	}
-	
+
+	@Override
+	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
+			String user) throws NoSuchWorkspaceException {
+		int wsid = getWorkspaceID(wsi, true);
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> acl = (Map<String, Object>) wsjongo.getCollection(WS_ACLS)
+				.findOne("{id: #, user: #}", wsid, user)
+				.projection("{perm: 1}").as(Map.class);
+		final Map<String, Permission> ret = new HashMap<String, Permission>();
+		if (acl == null) {
+			return ret;
+		}
+		if (Permission.ADMIN.getPermission() > (int) acl.get("perm")) {
+			ret.put(user, translatePermission((int) acl.get("perm")));
+		} else {
+			@SuppressWarnings("rawtypes")
+			final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
+					.find("{id: #}", wsid)
+					.projection("{perm: 1, user: 1}").as(Map.class);
+			for (@SuppressWarnings("rawtypes") Map m: acls) {
+				ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
+			}
+		}
+		return ret;
+		
+	}
 }

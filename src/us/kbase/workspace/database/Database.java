@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import java.util.List;
+import java.util.Map;
 
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -19,6 +20,8 @@ public interface Database {
 	public Permission getPermission(WorkspaceIdentifier workspace, String user)
 			throws NoSuchWorkspaceException;
 
-	public String getBackendType(); 
+	public String getBackendType();
+	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
+			String userName) throws NoSuchWorkspaceException; 
 
 }

@@ -141,22 +141,22 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (!config.containsKey(HOST)) {
 			die("Must provide param " + HOST + " in config file");
 		}
-		String host = config.get(HOST);
+		final String host = config.get(HOST);
 		if (!config.containsKey(DB)) {
 			die("Must provide param " + DB + " in config file");
 		}
-		String dbs = config.get(DB);
+		final String dbs = config.get(DB);
 		if (!config.containsKey(BACKEND_SECRET)) {
 			die("Must provide param " + BACKEND_SECRET + " in config file");
 		}
-		String secret = config.get(BACKEND_SECRET);
+		final String secret = config.get(BACKEND_SECRET);
 		if (config.containsKey(USER) ^ config.containsKey(PWD)) {
 			die(String.format("Must provide both %s and %s ",
 					USER, PWD) + "params in config file if authentication " + 
 					"is to be used");
 		}
-		String user = config.get(USER);
-		String pwd = config.get(PWD);
+		final String user = config.get(USER);
+		final String pwd = config.get(PWD);
 		String params = "";
 		for (String s: Arrays.asList(HOST, DB, USER)) {
 			if (config.containsKey(s)) {
@@ -168,7 +168,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			params += PWD + "=[redacted for your safety and comfort]\n";
 		}
 		System.out.println("Using connection parameters:\n" + params);
-		Database db = getDB(host, dbs, secret, user, pwd);
+		final Database db = getDB(host, dbs, secret, user, pwd);
 		System.out.println(String.format("Initialized %s backend", db.getBackendType()));
 		ws = new Workspaces(db);
         //END_CONSTRUCTOR
@@ -194,7 +194,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			p = API_TO_PERM.get(params.getGlobalread());
 		}
-		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
+		final WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				p.equals(Permission.READ), params.getDescription());
 		returnVal = new Tuple7<Integer, String, String, String, String, String,
 				String>().withE1(meta.getId()).withE2(meta.getName())
@@ -217,7 +217,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(GetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
-		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wsi);
         //END get_workspace_description
@@ -234,7 +234,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-		WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		if (API_TO_PERM.get(params.getNewPermission()) == null) {
 			throw new IllegalArgumentException("Invalid permission: " + params.getNewPermission());
@@ -242,7 +242,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
-		Map<String, Boolean> userok = AuthService.isValidUserName(
+		final Map<String, Boolean> userok = AuthService.isValidUserName(
 				params.getUsers(), authPart);
 		for (String user: userok.keySet()) {
 			if (!userok.get(user)) {
@@ -266,6 +266,13 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(GetPermissionsParams params, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
+		returnVal = new HashMap<String, String>(); 
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		final Map<String, Permission> acls = ws.getPermissions(wsi, authPart.getUserName());
+		for (String acl: acls.keySet()) {
+			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));
+		}
         //END get_permissions
         return returnVal;
     }

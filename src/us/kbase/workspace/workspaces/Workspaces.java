@@ -1,6 +1,7 @@
 package us.kbase.workspace.workspaces;
 
 import java.util.List;
+import java.util.Map;
 
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -32,10 +33,7 @@ public class Workspaces {
 	
 	public String getWorkspaceDescription(String userName, WorkspaceIdentifier workspace)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException {
-		Permission p = db.getPermission(workspace, userName);
-		System.out.println(p);
-		System.out.println(Permission.READ.compareTo(p));
-		if(Permission.READ.compareTo(p) > 0 ) {
+		if(Permission.READ.compareTo(db.getPermission(workspace, userName)) > 0 ) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
 					userName, workspace.getIdentifierString()));
@@ -52,5 +50,10 @@ public class Workspaces {
 					userName, wsi.getIdentifierString()));
 		}
 		db.setPermissions(wsi, users, permission);
+	}
+
+	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
+			String userName) throws NoSuchWorkspaceException {
+		return db.getPermissions(wsi, userName);
 	}
 }
