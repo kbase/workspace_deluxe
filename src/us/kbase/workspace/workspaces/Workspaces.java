@@ -11,6 +11,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspaces {
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
+	private static final String ALL_USERS = "*";
 	
 	private final Database db;
 	
@@ -19,6 +20,7 @@ public class Workspaces {
 			throw new NullPointerException("db");
 		}
 		this.db = db;
+		db.setAllUsersSymbol(ALL_USERS);
 	}
 	
 	public WorkspaceMetaData createWorkspace(String user, String wsname,

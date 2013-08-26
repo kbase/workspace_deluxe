@@ -40,7 +40,8 @@ public class MongoDatabase implements Database {
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
 	private static final String WS_ACLS = "workspaceACLs";
-	private static final String ALL_USERS = "*";
+	private String allUsers = "*";
+	
 
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -202,7 +203,7 @@ public class MongoDatabase implements Database {
 			boolean globalRead, String description) throws
 			PreExistingWorkspaceException {
 		//TODO checkuser fn
-		if (ALL_USERS.equals(user)) {
+		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		//avoid incrementing the counter if we don't have to
@@ -230,7 +231,7 @@ public class MongoDatabase implements Database {
 		try {
 			setPermissions(count, Arrays.asList(user), Permission.OWNER, false);
 			if (globalRead) {
-				setPermissions(count, Arrays.asList(ALL_USERS), Permission.READ, false);
+				setPermissions(count, Arrays.asList(allUsers), Permission.READ, false);
 			}
 		} catch (NoSuchWorkspaceException nswe) { //should never happen
 			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
@@ -311,7 +312,7 @@ public class MongoDatabase implements Database {
 			List<String> users, Permission perm) throws
 			NoSuchWorkspaceException {
 		for (String user: users) {
-			if (ALL_USERS.equals(user)) {
+			if (allUsers.equals(user)) {
 				throw new IllegalArgumentException("Illegal user name: " + user);
 			}
 		}
@@ -349,13 +350,13 @@ public class MongoDatabase implements Database {
 	@Override
 	public Permission getPermission(WorkspaceIdentifier workspace, String user)
 			throws NoSuchWorkspaceException {
-		if (ALL_USERS.equals(user)) {
+		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
-						getWorkspaceID(workspace, true), user, ALL_USERS)
+						getWorkspaceID(workspace, true), user, allUsers)
 				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
 		for (@SuppressWarnings("rawtypes") Map m: res) {
@@ -373,13 +374,13 @@ public class MongoDatabase implements Database {
 	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
 			WorkspaceIdentifier workspace, String user) throws NoSuchWorkspaceException {
-		if (ALL_USERS.equals(user)) {
+		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
-						getWorkspaceID(workspace, true), user, ALL_USERS)
+						getWorkspaceID(workspace, true), user, allUsers)
 				.projection("{user: 1, perm: 1}").as(Map.class);
 		Map<String, Permission> ret = new HashMap<String, Permission>();
 		for (@SuppressWarnings("rawtypes") Map m: res) {
@@ -396,7 +397,7 @@ public class MongoDatabase implements Database {
 	@Override
 	public Map<String, Permission> getAllPermissions(WorkspaceIdentifier wsi,
 			String user) throws NoSuchWorkspaceException {
-		if (ALL_USERS.equals(user)) {
+		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 //		int wsid = getWorkspaceID(wsi, true);
@@ -440,12 +441,12 @@ public class MongoDatabase implements Database {
 		//TODO use getUserAndGlobalPermissions
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
-						ws.get("id"), user, ALL_USERS)
+						ws.get("id"), user, allUsers)
 				.projection("{user: 1, perm: 1}").as(Map.class);
 		boolean globalread = false;
 		Permission p = Permission.NONE;
 		for (@SuppressWarnings("rawtypes") Map m: res) {
-			if (m.get("user").equals(ALL_USERS)) {
+			if (m.get("user").equals(allUsers)) {
 				globalread = true;
 			} else if (m.get("user").equals(user)) {
 				p = translatePermission((int) m.get("perm"));
@@ -454,5 +455,10 @@ public class MongoDatabase implements Database {
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				(String) ws.get("owner"), (Date) ws.get("moddate"),
 				p, globalread);
+	}
+
+	@Override
+	public void setAllUsersSymbol(String allUsers) {
+		this.allUsers = allUsers;
 	}
 }

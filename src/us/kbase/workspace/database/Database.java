@@ -35,4 +35,6 @@ public interface Database {
 	public String getWorkspaceDescription(WorkspaceIdentifier workspace)
 			throws NoSuchWorkspaceException;
 
+	public void setAllUsersSymbol(String allUsers);
+
 }

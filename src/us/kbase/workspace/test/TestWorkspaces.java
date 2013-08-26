@@ -1,6 +1,7 @@
 package us.kbase.workspace.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -135,10 +138,13 @@ public class TestWorkspaces {
 			NoSuchWorkspaceException, WorkspaceAuthorizationException {
 		ws.createWorkspace("auser", "lt", false, LONG_TEXT);
 		ws.createWorkspace("auser", "ltp", false, LONG_TEXT_PART);
+		ws.createWorkspace("auser", "ltn", false, null);
 		String desc = ws.getWorkspaceDescription("auser", new WorkspaceIdentifier("lt"));
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
 		desc = ws.getWorkspaceDescription("auser", new WorkspaceIdentifier("ltp"));
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
+		desc = ws.getWorkspaceDescription("auser", new WorkspaceIdentifier("ltn"));
+		assertNull("Workspace description incorrect", desc);
 	}
 	
 	private void checkMeta(WorkspaceMetaData meta, String owner, String name,
@@ -248,5 +254,40 @@ public class TestWorkspaces {
 						is(testdata.get(2)));
 			}
 		}
+	}
+	
+	@Test
+	public void preExistingWorkspace() throws Exception {
+		ws.createWorkspace("a", "preexist", false, null);
+		try {
+			ws.createWorkspace("b", "preexist", false, null);
+			fail("able to create same workspace twice");
+		} catch (PreExistingWorkspaceException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("Workspace preexist already exists"));
+		}
+	}
+	
+	@Test
+	public void createWorkspaceWithIllegalUser() throws Exception {
+		try {
+			ws.createWorkspace("*", "foo", false, null);
+			fail("able to create workspace with illegal character in username");
+		} catch (IllegalArgumentException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("Illegal user name: *"));
+		}
+	}
+	
+	public void permissions() throws PreExistingWorkspaceException, NoSuchWorkspaceException {
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("preexist");
+		ws.createWorkspace("a", "perms", false, null);
+		Map<String, Permission> expect = new HashMap<String, Permission>();
+		expect.put("a", Permission.OWNER);
+		assertThat("ws has correct perms for owner", ws.getPermissions(wsi, "a"), is(expect));
+		expect.clear();
+		expect.put("b", Permission.NONE);
+		assertThat("ws has correct perms for random user", ws.getPermissions(wsi, "b"), is(expect));
+//		ws.createWorkspace
 	}
 }
