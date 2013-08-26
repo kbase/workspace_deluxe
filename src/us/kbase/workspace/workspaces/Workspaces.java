@@ -21,6 +21,7 @@ public class Workspaces {
 		this.db = db;
 	}
 	
+	//TODO consistent auth checking
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException {
@@ -31,29 +32,40 @@ public class Workspaces {
 		return db.createWorkspace(user, wsname, globalread, description);
 	}
 	
-	public String getWorkspaceDescription(String userName, WorkspaceIdentifier workspace)
+	public String getWorkspaceDescription(String user, WorkspaceIdentifier workspace)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException {
-		if(Permission.READ.compareTo(db.getPermission(workspace, userName)) > 0 ) {
+		if(Permission.READ.compareTo(db.getPermission(workspace, user)) > 0 ) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
-					userName, workspace.getIdentifierString()));
+					user, workspace.getIdentifierString()));
 		}
 		return db.getWorkspaceDescription(workspace);
 	}
 
-	public void setPermissions(String userName, WorkspaceIdentifier wsi,
+	public void setPermissions(String user, WorkspaceIdentifier wsi,
 			List<String> users, Permission permission) throws
 			NoSuchWorkspaceException, WorkspaceAuthorizationException {
-		if(Permission.ADMIN.compareTo(db.getPermission(wsi, userName)) > 0) {
+		if(Permission.ADMIN.compareTo(db.getPermission(wsi, user)) > 0) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to set permissions on workspace %s",
-					userName, wsi.getIdentifierString()));
+					user, wsi.getIdentifierString()));
 		}
 		db.setPermissions(wsi, users, permission);
 	}
 
 	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
-			String userName) throws NoSuchWorkspaceException {
-		return db.getPermissions(wsi, userName);
+			String user) throws NoSuchWorkspaceException {
+		return db.getPermissions(wsi, user);
+	}
+
+	public WorkspaceMetaData getWorkspaceMetaData(WorkspaceIdentifier wksp,
+				String user) throws WorkspaceAuthorizationException,
+				NoSuchWorkspaceException {
+		if(Permission.READ.compareTo(db.getPermission(wksp, user)) > 0) {
+			throw new WorkspaceAuthorizationException(String.format(
+					"User %s does not have permission to read workspace %s",
+					user, wksp.getIdentifierString()));
+		}
+		return db.getWorkspaceMetadata(wksp, user);
 	}
 }

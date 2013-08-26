@@ -22,6 +22,8 @@ public interface Database {
 
 	public String getBackendType();
 	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
-			String userName) throws NoSuchWorkspaceException; 
+			String userName) throws NoSuchWorkspaceException;
+	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceIdentifier wksp,
+			String user) throws NoSuchWorkspaceException; 
 
 }

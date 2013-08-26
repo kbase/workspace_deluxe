@@ -80,12 +80,12 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspaces ws;
 	
-	private void logger(String log) {
+	private void logger(final String log) {
 		//TODO when logging is released (check places that call this method)
 		System.out.println(log);
 	}
-	private Database getDB(String host, String dbs, String secret, String user,
-			String pwd) {
+	private Database getDB(final String host, final String dbs, final String secret,
+			final String user, final String pwd) {
 		try {
 			if (user != null) {
 				return new MongoDatabase(host, dbs, secret, user, pwd);
@@ -110,13 +110,13 @@ public class WorkspaceServer extends JsonServerServlet {
 		return null; //shut up eclipse you bastard
 	}
 	
-	private void die(String error) {
+	private void die(final String error) {
 		System.err.println(error);
 		System.err.println("Terminating server.");
 		System.exit(1);
 	}
 	
-	private String formatDate(Date d) {
+	private String formatDate(final Date d) {
 		if (d == null) {
 			return null;
 		}
@@ -124,7 +124,11 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-	private WorkspaceIdentifier processWorkspaceIdentifier(String workspace, Integer id) {
+	private WorkspaceIdentifier processWorkspaceIdentifier(final WorkspaceIdentity wsi) {
+		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
+	}
+	
+	private WorkspaceIdentifier processWorkspaceIdentifier(final String workspace, final Integer id) {
 		if (!(workspace == null ^ id == null)) {
 			throw new IllegalArgumentException("Must provide one and only one of workspace or id");
 		}
@@ -216,6 +220,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
+		//TODO deal with null auth
+		//TODO get metadata
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(wksp, authPart.getUserName());
+		returnVal = new Tuple6<Integer, String, String, String, String, String>()
+				.withE1(meta.getId()).withE2(meta.getName())
+				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
+				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
+				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
+		//TODO tests for all this junk
         //END get_workspace_metadata
         return returnVal;
     }
@@ -231,10 +245,9 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				params.getWorkspace(), params.getId());
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		//TODO deal with null auth
-		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wsi);
+		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wksp);
         //END get_workspace_description
         return returnVal;
     }
@@ -282,10 +295,9 @@ public class WorkspaceServer extends JsonServerServlet {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
 		returnVal = new HashMap<String, String>(); 
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				params.getWorkspace(), params.getId());
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		//TODO deal with null auth
-		final Map<String, Permission> acls = ws.getPermissions(wsi, authPart.getUserName());
+		final Map<String, Permission> acls = ws.getPermissions(wksp, authPart.getUserName());
 		for (String acl: acls.keySet()) {
 			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));
 		}

@@ -235,8 +235,8 @@ public class MongoDatabase implements Database {
 			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
 		}
 		//TODO remove deleted from metadata
-		return new MongoWSMeta(count, wsname, user, moddate, null,
-				Permission.ADMIN, globalRead);
+		return new MongoWSMeta(count, wsname, user, moddate, Permission.ADMIN,
+				globalRead);
 	}
 
 	private class QueryErr {
@@ -365,7 +365,6 @@ public class MongoDatabase implements Database {
 				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
 		for (@SuppressWarnings("rawtypes") Map m : res) {
-			System.out.println(m);
 			final int newperm = (int) m.get("perm");
 			if (perm < newperm){
 				perm = newperm;
@@ -401,5 +400,37 @@ public class MongoDatabase implements Database {
 		}
 		return ret;
 		
+	}
+
+	@Override
+	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceIdentifier wksp,
+			String user) throws NoSuchWorkspaceException {
+		QueryErr qe = setUpQuery(wksp);
+		@SuppressWarnings("unchecked")
+		//TODO use common method for getting workspace fields
+		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
+				.findOne(qe.query).projection("{id: 1, name: 1, owner: 1, moddate: 1}")
+				.as(Map.class);
+		if (ws == null) {
+			throw new NoSuchWorkspaceException(String.format(
+					"No workspace with %s exists", qe.err));
+		}
+		@SuppressWarnings("rawtypes")
+		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+				.find("{id: #, $or: [{user: #}, {user: #}]}",
+						ws.get("id"), user, ALL_USERS)
+				.projection("{user: 1, perm: 1}").as(Map.class);
+		boolean globalread = false;
+		Permission p = Permission.NONE;
+		for (@SuppressWarnings("rawtypes") Map m: res) {
+			if (m.get("user").equals(ALL_USERS)) {
+				globalread = true;
+			} else if (m.get("user").equals(user)) {
+				p = translatePermission((int) m.get("perm"));
+			}
+		}
+		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
+				(String) ws.get("owner"), (Date) ws.get("moddate"),
+				p, globalread);
 	}
 }
