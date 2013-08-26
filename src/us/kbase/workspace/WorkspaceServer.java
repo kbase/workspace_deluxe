@@ -1,5 +1,6 @@
 package us.kbase.workspace;
 
+import java.util.Map;
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple7;
@@ -252,6 +253,21 @@ public class WorkspaceServer extends JsonServerServlet {
 		ws.setPermissions(authPart.getUserName(), wsi, params.getUsers(),
 				API_TO_PERM.get(params.getNewPermission()));
         //END set_permissions
+    }
+
+    /**
+     * <p>Original spec-file function name: get_permissions</p>
+     * <pre>
+     * Get permissions for a workspace.
+     * </pre>
+     * @param   params   Original type "GetPermissionsParams" (see {@link us.kbase.workspace.GetPermissionsParams GetPermissionsParams} for details)
+     */
+    @JsonServerMethod(rpc = "Workspace.get_permissions")
+    public Map<String,String> getPermissions(GetPermissionsParams params, AuthToken authPart) throws Exception {
+        Map<String,String> returnVal = null;
+        //BEGIN get_permissions
+        //END get_permissions
+        return returnVal;
     }
 
     public static void main(String[] args) throws Exception {

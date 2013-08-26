@@ -4,6 +4,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.codehaus.jackson.type.TypeReference;
 import us.kbase.JsonClientCaller;
 import us.kbase.Tuple7;
@@ -111,5 +112,20 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_permissions</p>
+     * <pre>
+     * Get permissions for a workspace.
+     * </pre>
+     * @param   params   Original type "GetPermissionsParams" (see {@link us.kbase.workspace.GetPermissionsParams GetPermissionsParams} for details)
+     */
+    public Map<String,String> getPermissions(GetPermissionsParams params) throws Exception {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, true);
+        return res.get(0);
     }
 }

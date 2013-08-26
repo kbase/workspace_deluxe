@@ -113,5 +113,21 @@ module Workspace {
 		Set permissions for a workspace.
 	*/
 	funcdef set_permissions(SetPermissionsParams params) returns () authentication required;
+	
+	/* Input parameters for the "set_permissions" function.
+		One, and only one, of the following is required:
+		ws_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+	} GetPermissionsParams;
+	
+	/* 
+		Get permissions for a workspace.
+	*/
+	funcdef get_permissions(GetPermissionsParams params) returns
+		(mapping<username, permission> perms) authentication required;
 		
 };
