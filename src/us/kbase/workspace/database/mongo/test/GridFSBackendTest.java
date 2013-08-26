@@ -60,7 +60,7 @@ public class GridFSBackendTest {
 		if (user != null) {
 			mdb.authenticate(user, pwd.toCharArray());
 		}
-		gfsb = new GridFSBackend(new MongoClient(host).getDB(db));
+		gfsb = new GridFSBackend(mdb);
 	}
 	
 	@Test
