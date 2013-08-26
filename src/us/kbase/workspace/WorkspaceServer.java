@@ -195,12 +195,11 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				p.equals(Permission.READ), params.getDescription());
-		returnVal = new Tuple7<Integer, String, String, String, String, String,
-				String>().withE1(meta.getId()).withE2(meta.getName())
+		returnVal = new Tuple6<Integer, String, String, String, String, String>()
+				.withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
-				.withE5(formatDate(meta.getDeletedDate()))
-				.withE6(PERM_TO_API.get(meta.getUserPermission())) 
-				.withE7(PERM_TO_API.get(meta.isGloballyReadable()));
+				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
+				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
         //END create_workspace
         return returnVal;
     }
@@ -210,11 +209,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Get a workspace's metadata.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
     @JsonServerMethod(rpc = "Workspace.get_workspace_metadata", authOptional=true)
-    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentifier wsi, AuthToken authPart) throws Exception {
+    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
         //END get_workspace_metadata
@@ -226,10 +225,10 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Get a workspace's description.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
     @JsonServerMethod(rpc = "Workspace.get_workspace_description", authOptional=true)
-    public String getWorkspaceDescription(WorkspaceIdentifier wsi, AuthToken authPart) throws Exception {
+    public String getWorkspaceDescription(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
@@ -276,10 +275,10 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Get permissions for a workspace.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
     @JsonServerMethod(rpc = "Workspace.get_permissions")
-    public Map<String,String> getPermissions(WorkspaceIdentifier wsi, AuthToken authPart) throws Exception {
+    public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
 		returnVal = new HashMap<String, String>(); 

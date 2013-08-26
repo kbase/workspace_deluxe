@@ -90,10 +90,10 @@ public class WorkspaceClient {
      * <pre>
      * Get a workspace's metadata.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      * @return   Original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified permission user_permission - permissions for the authenticated user of this workspace permission globalread - whether this workspace is globally readable.)
      */
-    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentifier wsi) throws Exception {
+    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi) throws Exception {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Tuple6<Integer, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Integer, String, String, String, String, String>>>() {};
@@ -106,9 +106,9 @@ public class WorkspaceClient {
      * <pre>
      * Get a workspace's description.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
-    public String getWorkspaceDescription(WorkspaceIdentifier wsi) throws Exception {
+    public String getWorkspaceDescription(WorkspaceIdentity wsi) throws Exception {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
@@ -135,9 +135,9 @@ public class WorkspaceClient {
      * <pre>
      * Get permissions for a workspace.
      * </pre>
-     * @param   wsi   Original type "WorkspaceIdentifier" (see {@link us.kbase.workspace.WorkspaceIdentifier WorkspaceIdentifier} for details)
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
-    public Map<String,String> getPermissions(WorkspaceIdentifier wsi) throws Exception {
+    public Map<String,String> getPermissions(WorkspaceIdentity wsi) throws Exception {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};

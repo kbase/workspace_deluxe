@@ -53,7 +53,7 @@ module Workspace {
 	typedef structure {
 		ws_name workspace;
 		ws_id id;
-	} WorkspaceIdentifier;
+	} WorkspaceIdentity;
 	
 	/* Meta data associated with a workspace.
 	
@@ -90,14 +90,14 @@ module Workspace {
 	/*
 		Get a workspace's metadata.
 	*/
-	funcdef get_workspace_metadata(WorkspaceIdentifier wsi)
+	funcdef get_workspace_metadata(WorkspaceIdentity wsi)
 		returns (workspace_metadata meta) authentication optional;
 	
 	/* 
 	
 		Get a workspace's description.
 	*/
-	funcdef get_workspace_description(WorkspaceIdentifier wsi)
+	funcdef get_workspace_description(WorkspaceIdentity wsi)
 		returns (string description) authentication optional;
 	
 	/* Input parameters for the "set_permissions" function.
@@ -123,7 +123,7 @@ module Workspace {
 	/* 
 		Get permissions for a workspace.
 	*/
-	funcdef get_permissions(WorkspaceIdentifier wsi) returns
+	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms) authentication required;
 		
 };
