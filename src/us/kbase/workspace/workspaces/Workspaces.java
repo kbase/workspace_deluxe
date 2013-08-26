@@ -21,7 +21,6 @@ public class Workspaces {
 		this.db = db;
 	}
 	
-	//TODO consistent auth checking
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException {
@@ -55,7 +54,11 @@ public class Workspaces {
 
 	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
 			String user) throws NoSuchWorkspaceException {
-		return db.getPermissions(wsi, user);
+		Map<String, Permission> perms = db.getUserAndGlobalPermission(wsi, user);
+		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
+			return perms;
+		}
+		return db.getAllPermissions(wsi, user);
 	}
 
 	public WorkspaceMetaData getWorkspaceMetaData(WorkspaceIdentifier wksp,

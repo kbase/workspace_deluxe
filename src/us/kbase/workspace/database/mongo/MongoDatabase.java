@@ -201,6 +201,7 @@ public class MongoDatabase implements Database {
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalRead, String description) throws
 			PreExistingWorkspaceException {
+		//TODO checkuser fn
 		if (ALL_USERS.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
@@ -234,7 +235,6 @@ public class MongoDatabase implements Database {
 		} catch (NoSuchWorkspaceException nswe) {
 			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
 		}
-		//TODO remove deleted from metadata
 		return new MongoWSMeta(count, wsname, user, moddate, Permission.ADMIN,
 				globalRead);
 	}
@@ -270,11 +270,6 @@ public class MongoDatabase implements Database {
 		return result.get("description");
 	}
 	
-	private int getWorkspaceID(WorkspaceIdentifier wsi) throws
-			NoSuchWorkspaceException {
-		return getWorkspaceID(wsi, false);
-	}
-	//TODO change these methods to verify by default
 	private int getWorkspaceID(WorkspaceIdentifier wsi, boolean verify) throws
 			NoSuchWorkspaceException {
 		if (wsi.getId() != null) {
@@ -325,7 +320,6 @@ public class MongoDatabase implements Database {
 	
 	private void setPermissions(int wsid, List<String> users, Permission perm,
 			boolean checkowner) throws NoSuchWorkspaceException {
-		//TODO have workspaces pass permission level required for op, db checks it
 		String owner = checkowner ? getOwner(wsid) : "";
 		for (String user: users) {
 			if (owner.equals(user)) {
@@ -364,7 +358,7 @@ public class MongoDatabase implements Database {
 						getWorkspaceID(workspace, true), user, ALL_USERS)
 				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
-		for (@SuppressWarnings("rawtypes") Map m : res) {
+		for (@SuppressWarnings("rawtypes") Map m: res) {
 			final int newperm = (int) m.get("perm");
 			if (perm < newperm){
 				perm = newperm;
@@ -372,32 +366,59 @@ public class MongoDatabase implements Database {
 		}
 		return translatePermission(perm);
 	}
+	
+	//TODO use consistent variable names in interface
+	
+	//TODO merge common code with above
+	@Override
+	public Map<String, Permission> getUserAndGlobalPermission(
+			WorkspaceIdentifier workspace, String user) throws NoSuchWorkspaceException {
+		if (ALL_USERS.equals(user)) {
+			throw new IllegalArgumentException("Illegal user name: " + user);
+		}
+		@SuppressWarnings("rawtypes")
+		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+				.find("{id: #, $or: [{user: #}, {user: #}]}",
+						getWorkspaceID(workspace, true), user, ALL_USERS)
+				.projection("{user: 1, perm: 1}").as(Map.class);
+		Map<String, Permission> ret = new HashMap<String, Permission>();
+		for (@SuppressWarnings("rawtypes") Map m: res) {
+			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
+		}
+		if (!ret.containsKey(user)) {
+			ret.put(user, Permission.NONE);
+		}
+		return ret;
+	}
 
 	//TODO make common methods for queries, general clean up
 	
 	@Override
-	public Map<String, Permission> getPermissions(WorkspaceIdentifier wsi,
+	public Map<String, Permission> getAllPermissions(WorkspaceIdentifier wsi,
 			String user) throws NoSuchWorkspaceException {
-		int wsid = getWorkspaceID(wsi, true);
-		@SuppressWarnings("unchecked")
-		final Map<String, Object> acl = (Map<String, Object>) wsjongo.getCollection(WS_ACLS)
-				.findOne("{id: #, user: #}", wsid, user)
-				.projection("{perm: 1}").as(Map.class);
+		if (ALL_USERS.equals(user)) {
+			throw new IllegalArgumentException("Illegal user name: " + user);
+		}
+//		int wsid = getWorkspaceID(wsi, true);
+//		@SuppressWarnings("unchecked")
+//		final Map<String, Object> acl = (Map<String, Object>) wsjongo.getCollection(WS_ACLS)
+//				.findOne("{id: #, user: #}", wsid, user)
+//				.projection("{perm: 1}").as(Map.class);
 		final Map<String, Permission> ret = new HashMap<String, Permission>();
-		if (acl == null) {
-			return ret;
+//		if (acl == null) {
+//			return ret;
+//		}
+//		if (Permission.ADMIN.getPermission() > (int) acl.get("perm")) {
+//			ret.put(user, translatePermission((int) acl.get("perm")));
+//		} else {
+		@SuppressWarnings("rawtypes")
+		final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
+				.find("{id: #}", getWorkspaceID(wsi, true))
+				.projection("{perm: 1, user: 1}").as(Map.class);
+		for (@SuppressWarnings("rawtypes") Map m: acls) {
+			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
 		}
-		if (Permission.ADMIN.getPermission() > (int) acl.get("perm")) {
-			ret.put(user, translatePermission((int) acl.get("perm")));
-		} else {
-			@SuppressWarnings("rawtypes")
-			final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
-					.find("{id: #}", wsid)
-					.projection("{perm: 1, user: 1}").as(Map.class);
-			for (@SuppressWarnings("rawtypes") Map m: acls) {
-				ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
-			}
-		}
+//		}
 		return ret;
 		
 	}
@@ -416,6 +437,7 @@ public class MongoDatabase implements Database {
 					"No workspace with %s exists", qe.err));
 		}
 		@SuppressWarnings("rawtypes")
+		//TODO use getUserAndGlobalPermissions
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
 						ws.get("id"), user, ALL_USERS)

@@ -221,9 +221,9 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
 		//TODO deal with null auth
-		//TODO get metadata
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(wksp, authPart.getUserName());
+		//TODO WMD to Tuple6 method
 		returnVal = new Tuple6<Integer, String, String, String, String, String>()
 				.withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
