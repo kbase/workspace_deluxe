@@ -1,11 +1,18 @@
 package us.kbase.workspace.test;
 
 import static org.junit.Assert.assertTrue;
-import org.junit.BeforeClass;
+
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.workspaces.Workspaces;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -13,14 +20,25 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 //TODO test vs. auth'd mongo
+@RunWith(Parameterized.class)
 public class TestWorkspaces {
 
 	public static final String M_USER = "test.mongo.user";
 	public static final String M_PWD = "test.mongo.pwd";
-	public static Database[] TEST_DATABASES = new Database[2];
+	public static Workspaces[] TEST_WORKSPACES = new Workspaces[2];
+
+	@Parameters
+	public static Collection<Object[]> generateData() throws Exception {
+		setUpWorkspaces();
+		return Arrays.asList(new Object[][] {
+				{TEST_WORKSPACES[0]},
+				{TEST_WORKSPACES[1]}
+		});
+	}
 	
-	@BeforeClass
-	public static void setUpClass() throws Exception {
+	public final Workspaces ws;
+	
+	public static void setUpWorkspaces() throws Exception {
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		String host = System.getProperty("test.mongo.host");
 		String db1 = System.getProperty("test.mongo.db");
@@ -58,13 +76,14 @@ public class TestWorkspaces {
 		mdb.getCollection("settings").remove(dbo);
 		dbo.put("backend", "gridFS");
 		mdb.getCollection("settings").insert(dbo);
-		Database db = new MongoDatabase(host, db1, shockpwd, mUser, mPwd);
+		Database db = null;
 		if (mUser != null) {
-			TEST_DATABASES[0] = new MongoDatabase(host, db1, shockpwd, mUser, mPwd);
+			db = new MongoDatabase(host, db1, shockpwd, mUser, mPwd);
 		} else {
-			TEST_DATABASES[0] = new MongoDatabase(host, db1, shockpwd);
+			db = new MongoDatabase(host, db1, shockpwd);
 		}
-		assertTrue("GridFS backend setup failed", TEST_DATABASES[0].getBackendType().equals("GridFS"));
+		TEST_WORKSPACES[0] = new Workspaces(db);
+		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
 		
 		//Set up shock backend database
 		mdb = new MongoClient(host).getDB(db2);
@@ -78,13 +97,21 @@ public class TestWorkspaces {
 		dbo.put("shock_location", shockurl);
 		mdb.getCollection("settings").insert(dbo);
 		if (mUser != null) {
-			TEST_DATABASES[1] = new MongoDatabase(host, db2, shockpwd, mUser, mPwd);
+			db = new MongoDatabase(host, db2, shockpwd, mUser, mPwd);
 		} else {
-			TEST_DATABASES[1] = new MongoDatabase(host, db2, shockpwd);
+			db = new MongoDatabase(host, db2, shockpwd);
 		}
-		assertTrue("Shock backend setup failed", TEST_DATABASES[1].getBackendType().equals("Shock"));
+		TEST_WORKSPACES[1] = new Workspaces(db);
+		assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
 	}
 	
+	public TestWorkspaces(Workspaces ws) {
+		this.ws = ws;
+	}
+	
+	
 	@Test
-	public void fatDumbAndHappy() {}
+	public void fatDumbAndHappy() {
+		System.out.println(ws.getBackendType());
+	}
 }

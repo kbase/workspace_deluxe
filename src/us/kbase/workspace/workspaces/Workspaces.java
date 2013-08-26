@@ -71,4 +71,8 @@ public class Workspaces {
 		}
 		return db.getWorkspaceMetadata(wksp, user);
 	}
+	
+	public String getBackendType() {
+		return db.getBackendType();
+	}
 }
