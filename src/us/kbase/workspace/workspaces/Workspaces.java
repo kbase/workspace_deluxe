@@ -32,13 +32,15 @@ public class Workspaces {
 	
 	public String getWorkspaceDescription(String userName, WorkspaceIdentifier workspace)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException {
-		if(Permission.READ.compareTo(db.getPermission(workspace, userName)) > 0 ) {
+		Permission p = db.getPermission(workspace, userName);
+		System.out.println(p);
+		System.out.println(Permission.READ.compareTo(p));
+		if(Permission.READ.compareTo(p) > 0 ) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
 					userName, workspace.getIdentifierString()));
 		}
 		return db.getWorkspaceDescription(workspace);
-		
 	}
 
 	public void setPermissions(String userName, WorkspaceIdentifier wsi,

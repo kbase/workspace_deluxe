@@ -4,7 +4,8 @@ public enum Permission {
 	NONE (0),
 	READ (1),
 	WRITE (2),
-	ADMIN (3);
+	ADMIN (3),
+	OWNER (4);
 	
 	private final int permission;
 

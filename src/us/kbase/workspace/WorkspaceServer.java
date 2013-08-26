@@ -75,6 +75,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		PERM_TO_API.put(false, PERM_NONE); // for globalread
 		PERM_TO_API.put(true, PERM_READ); // for globalread
+		PERM_TO_API.put(Permission.OWNER, PERM_ADMIN);
 	}
 	
 	private final Workspaces ws;
@@ -193,7 +194,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			p = API_TO_PERM.get(params.getGlobalread());
 		}
 		WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
-				p.equals(PERM_READ), params.getDescription());
+				p.equals(Permission.READ), params.getDescription());
 		returnVal = new Tuple7<Integer, String, String, String, String, String,
 				String>().withE1(meta.getId()).withE2(meta.getName())
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))

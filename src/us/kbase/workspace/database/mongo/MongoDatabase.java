@@ -41,6 +41,7 @@ public class MongoDatabase implements Database {
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
 	private static final String WS_ACLS = "workspaceACLs";
+	private static final String ALL_USERS = "*";
 
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -201,6 +202,9 @@ public class MongoDatabase implements Database {
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalRead, String description) throws
 			PreExistingWorkspaceException {
+		if (ALL_USERS.equals(user)) {
+			throw new IllegalArgumentException("Illegal user name: " + user);
+		}
 		//avoid incrementing the counter if we don't have to
 		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
 			throw new PreExistingWorkspaceException(String.format(
@@ -213,9 +217,9 @@ public class MongoDatabase implements Database {
 		ws.put("globalread", globalRead);
 		Date moddate = new Date();
 		ws.put("moddate", moddate);
-		@SuppressWarnings("rawtypes")
-		final List javashutup = new ArrayList();
-		ws.put("users", javashutup);
+//		@SuppressWarnings("rawtypes")
+//		final List javashutup = new ArrayList();
+//		ws.put("users", javashutup);
 		ws.put("name", wsname);
 		ws.put("deleted", null);
 		ws.put("numpointers", 0);
@@ -225,6 +229,14 @@ public class MongoDatabase implements Database {
 		} catch (MongoException.DuplicateKey mdk) {
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace %s already exists", wsname));
+		}
+		try {
+			setPermissions(count, Arrays.asList(user), Permission.OWNER, false);
+			if (globalRead) {
+				setPermissions(count, Arrays.asList(ALL_USERS), Permission.READ, false);
+			}
+		} catch (NoSuchWorkspaceException nswe) {
+			throw new RuntimeException("just created a workspace that doesn't exist", nswe);
 		}
 		return new MongoWSMeta(count, wsname, user, moddate, null,
 				Permission.ADMIN, globalRead);
@@ -290,18 +302,45 @@ public class MongoDatabase implements Database {
 		return (Integer) result.get("id");
 	}
 
+	private String getOwner(int wsid) throws NoSuchWorkspaceException {
+		//TODO make generalized query method
+		@SuppressWarnings("unchecked")
+		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
+				.findOne("{id: #}", wsid).projection("{owner: 1}").as(Map.class);
+		if (ws == null) {
+			throw new NoSuchWorkspaceException(String.format(
+					"No workspace with id %s exists", wsid));
+		}
+		return (String) ws.get("owner");
+	}
+	
 	@Override
 	public void setPermissions(WorkspaceIdentifier workspace,
 			List<String> users, Permission perm) throws
 			NoSuchWorkspaceException {
-		final int wsid = getWorkspaceID(workspace, true);
-		for (String user: users)
+		for (String user: users) {
+			if (ALL_USERS.equals(user)) {
+				throw new IllegalArgumentException("Illegal user name: " + user);
+			}
+		}
+		setPermissions(getWorkspaceID(workspace, true), users, perm, true);
+	}
+	
+	private void setPermissions(int wsid, List<String> users, Permission perm,
+			boolean checkowner) throws NoSuchWorkspaceException {
+		//TODO have workspaces pass permission level required for op, db checks it
+		String owner = checkowner ? getOwner(wsid) : "";
+		for (String user: users) {
+			if (owner.equals(user)) {
+				return; // can't change owner permissions
+			}
 			if (perm.equals(Permission.NONE)) {
 				wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);
 			} else {
 				wsjongo.getCollection(WS_ACLS).update("{id: #, user: #}", wsid, user)
 					.upsert().with("{$set: {perm: #}}", perm.getPermission());
 			}
+		}
 	}
 	
 	private Permission translatePermission(int perm) {
@@ -310,6 +349,7 @@ public class MongoDatabase implements Database {
 			case 1: return Permission.READ;
 			case 2: return Permission.WRITE;
 			case 3: return Permission.ADMIN;
+			case 4: return Permission.OWNER;
 			default: throw new IllegalArgumentException(
 					"No such permission level " + perm);
 		}
@@ -318,26 +358,44 @@ public class MongoDatabase implements Database {
 	@Override
 	public Permission getPermission(WorkspaceIdentifier workspace, String user)
 			throws NoSuchWorkspaceException {
-		QueryErr qe = setUpQuery(workspace);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES).findOne(qe.query)
-				.projection("{globalread: 1, owner: 1}").as(Map.class);
-		if (ws == null) {
-			throw new NoSuchWorkspaceException(String.format(
-					"No workspace with %s exists", qe.err));
+		if (ALL_USERS.equals(user)) {
+			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
-		if (user.equals(ws.get("owner"))) {
-			return Permission.ADMIN;
+//		QueryErr qe = setUpQuery(workspace);
+//		@SuppressWarnings("unchecked")
+//		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES).findOne(qe.query)
+//				.projection("{globalread: 1, owner: 1}").as(Map.class);
+//		if (ws == null) {
+//			throw new NoSuchWorkspaceException(String.format(
+//					"No workspace with %s exists", qe.err));
+//		}
+//		if (user.equals(ws.get("owner"))) {
+//			return Permission.ADMIN;
+//		}
+		System.out.println("get perm mongo");
+		@SuppressWarnings("rawtypes")
+//		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+//				.find("{id: #, {$or: [{user: #}, {user: #}]}}",
+//						getWorkspaceID(workspace), user, ALL_USERS)
+//				.projection("{perm: 1}").as(Map.class);
+		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+		.find("{id: #, $or: [{user: #}, {user: #}]}",
+				getWorkspaceID(workspace), user, ALL_USERS)//, user, ALL_USERS)
+				.as(Map.class);
+		int perm = 0;
+		for (@SuppressWarnings("rawtypes") Map m : res) {
+			System.out.println(m);
+			final int newperm = (int) m.get("perm");
+			System.out.println(newperm);
+			if (perm < newperm){
+				perm = newperm;
+			}
 		}
-		
-		@SuppressWarnings("unchecked")
-		final Map<String, Object> res = wsjongo.getCollection(WS_ACLS)
-				.findOne("{id: #, user: #}", getWorkspaceID(workspace), user)
-				.projection("{perm: 1}").as(Map.class);
-		if(res == null) {
-			return (boolean) ws.get("globalread") ? Permission.READ : Permission.NONE; 
-		}
-		return translatePermission((int) res.get("perm"));
+		return translatePermission(perm);
+//		if(res == null) {
+//			return (boolean) ws.get("globalread") ? Permission.READ : Permission.NONE; 
+//		}
+//		return translatePermission((int) res.get("perm"));
 	}
 	
 }
