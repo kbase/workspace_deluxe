@@ -119,6 +119,7 @@ java -cp ${lib.classpath}:${jar.absolute.path} us.kbase.scripts.JavaTypeGenerato
       <test name="us.kbase.workspace.database.mongo.test.ShockBackendTest"/>
       <test name="us.kbase.workspace.database.mongo.test.GridFSBackendTest"/>
       <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
+      <test name="us.kbase.workspace.test.JSONRPCLayerTest"/>
     </junit>
       
     <!-- Define absolute path to main jar file-->
