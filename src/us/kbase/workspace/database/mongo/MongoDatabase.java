@@ -324,7 +324,7 @@ public class MongoDatabase implements Database {
 		String owner = checkowner ? getOwner(wsid) : "";
 		for (String user: users) {
 			if (owner.equals(user)) {
-				return; // can't change owner permissions
+				continue; // can't change owner permissions
 			}
 			if (perm.equals(Permission.NONE)) {
 				wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);

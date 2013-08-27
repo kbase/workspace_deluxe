@@ -46,6 +46,9 @@ public class Workspaces {
 	public void setPermissions(String user, WorkspaceIdentifier wsi,
 			List<String> users, Permission permission) throws
 			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+		if (Permission.OWNER.compareTo(permission) <= 0) {
+			throw new IllegalArgumentException("Cannot set owner permission");
+		}
 		if(Permission.ADMIN.compareTo(db.getPermission(wsi, user)) > 0) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to set permissions on workspace %s",

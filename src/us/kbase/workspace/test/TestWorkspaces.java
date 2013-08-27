@@ -93,6 +93,7 @@ public class TestWorkspaces {
 		mdb.getCollection("settings").remove(dbo);
 		mdb.getCollection("workspaces").remove(dbo);
 		mdb.getCollection("workspaceACLs").remove(dbo);
+		mdb.getCollection("workspaceCounter").remove(dbo);
 		dbo.put("backend", "gridFS");
 		mdb.getCollection("settings").insert(dbo);
 		Database db = null;
@@ -113,6 +114,7 @@ public class TestWorkspaces {
 		mdb.getCollection("settings").remove(dbo);
 		mdb.getCollection("workspaces").remove(dbo);
 		mdb.getCollection("workspaceACLs").remove(dbo);
+		mdb.getCollection("workspaceCounter").remove(dbo);
 		dbo.put("backend", "shock");
 		dbo.put("shock_user", shockuser);
 		dbo.put("shock_location", shockurl);
@@ -191,6 +193,8 @@ public class TestWorkspaces {
 		//test a few funny chars in the ws name
 		userWS.add(Arrays.asList("afaeaafe", "afe_aff*afea",
 				"Illegal character in workspace name afe_aff*afea: *"));
+		userWS.add(Arrays.asList("afaeaafe", "afe_aff-afea",
+				"Illegal character in workspace name afe_aff-afea: -"));
 		userWS.add(Arrays.asList("afaeaafe", "afeaff/af*ea",
 				"Illegal character in workspace name afeaff/af*ea: /"));
 		userWS.add(Arrays.asList("afaeaafe", "af?eaff*afea",
@@ -279,15 +283,97 @@ public class TestWorkspaces {
 		}
 	}
 	
-	public void permissions() throws PreExistingWorkspaceException, NoSuchWorkspaceException {
-		WorkspaceIdentifier wsi = new WorkspaceIdentifier("preexist");
-		ws.createWorkspace("a", "perms", false, null);
+	@Test
+	public void permissions() throws PreExistingWorkspaceException, NoSuchWorkspaceException,
+			WorkspaceAuthorizationException {
+		//setup
+		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
+		ws.createWorkspace("a", "perms_noglobal", false, null);
+		WorkspaceIdentifier wsiGL = new WorkspaceIdentifier("perms_global");
+		ws.createWorkspace("a", "perms_global", true, null);
 		Map<String, Permission> expect = new HashMap<String, Permission>();
+		//try some illegal ops
+		try {
+			ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c", "*"), Permission.READ);
+			fail("was able to set permissions with illegal username");
+		} catch (IllegalArgumentException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("Illegal user name: *"));
+		}
+		try {
+			ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c"), Permission.OWNER);
+			fail("was able to set owner permissions");
+		} catch (IllegalArgumentException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("Cannot set owner permission"));
+		}
+		try {
+			ws.setPermissions("b", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
+			fail("was able to set permissions with unauth'd username");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+		}
+		//check basic permissions for new private and public workspaces
 		expect.put("a", Permission.OWNER);
-		assertThat("ws has correct perms for owner", ws.getPermissions(wsi, "a"), is(expect));
+		assertThat("ws has correct perms for owner", ws.getPermissions(wsiNG, "a"), is(expect));
+		expect.put("*", Permission.READ);
+		assertThat("ws has correct perms for owner", ws.getPermissions(wsiGL, "a"), is(expect));
 		expect.clear();
 		expect.put("b", Permission.NONE);
-		assertThat("ws has correct perms for random user", ws.getPermissions(wsi, "b"), is(expect));
-//		ws.createWorkspace
+		assertThat("ws has correct perms for random user", ws.getPermissions(wsiNG, "b"), is(expect));
+		expect.put("*", Permission.READ);
+		assertThat("ws has correct perms for random user", ws.getPermissions(wsiGL, "b"), is(expect));
+		//test read permissions
+		ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
+		expect.clear();
+		expect.put("a", Permission.OWNER);
+		expect.put("b", Permission.READ);
+		expect.put("c", Permission.READ);
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		expect.clear();
+		expect.put("b", Permission.READ);
+		assertThat("no permission leakage", ws.getPermissions(wsiNG, "b"), is(expect));
+		try {
+			ws.setPermissions("b", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
+			fail("was able to set permissions with unauth'd username");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+		}
+		//test write permissions
+		ws.setPermissions("a", wsiNG, Arrays.asList("b"), Permission.WRITE);
+		expect.put("a", Permission.OWNER);
+		expect.put("b", Permission.WRITE);
+		expect.put("c", Permission.READ);
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		expect.clear();
+		expect.put("b", Permission.WRITE);
+		assertThat("no permission leakage", ws.getPermissions(wsiNG, "b"), is(expect));
+		try {
+			ws.setPermissions("b", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
+			fail("was able to set permissions with unauth'd username");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+		}
+		//test admin permissions
+		ws.setPermissions("a", wsiNG, Arrays.asList("b"), Permission.ADMIN);
+		expect.put("a", Permission.OWNER);
+		expect.put("b", Permission.ADMIN);
+		expect.put("c", Permission.READ);
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("admin can see all perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		ws.setPermissions("b", wsiNG, Arrays.asList("a", "c"), Permission.WRITE);
+		expect.put("c", Permission.WRITE);
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("admin can correctly set perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		//test remove permissions
+		ws.setPermissions("b", wsiNG, Arrays.asList("a", "c"), Permission.NONE);
+		expect.remove("c");
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("admin can't overwrite owner perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		
+		
 	}
 }
