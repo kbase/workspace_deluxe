@@ -49,7 +49,6 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
 
     //BEGIN_CLASS_HEADER
-	//TODO client tests
 	//TODO java doc - really low priority, sorry
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -231,7 +230,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
 				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
 				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
-		//TODO tests for all this junk
         //END get_workspace_metadata
         return returnVal;
     }

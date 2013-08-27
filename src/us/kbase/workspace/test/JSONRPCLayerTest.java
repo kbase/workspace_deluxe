@@ -9,7 +9,9 @@ import static us.kbase.workspace.test.RegexMatcher.matches;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.ini4j.Ini;
@@ -25,6 +27,7 @@ import com.mongodb.MongoClient;
 
 import us.kbase.Tuple6;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -205,6 +208,7 @@ public class JSONRPCLayerTest {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("gl_fail").withGlobalread("w"));
 			fail("call succeeded w/ illegal global read param");
+			//TODO more explict exception when avail
 		} catch (Exception e) {
 			//TODO needs fixing once error handling in java is figured out
 			assertThat("correct exception message", e.getLocalizedMessage(),
@@ -214,6 +218,7 @@ public class JSONRPCLayerTest {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("gl_fail").withGlobalread("a"));
 			fail("call succeeded w/ illegal global read param");
+			//TODO more explict exception when avail
 		} catch (Exception e) {
 			//TODO needs fixing once error handling in java is figured out
 			assertThat("correct exception message", e.getLocalizedMessage(),
@@ -223,6 +228,7 @@ public class JSONRPCLayerTest {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("gl_fail").withGlobalread("b"));
 			fail("call succeeded w/ illegal global read param");
+			//TODO more explict exception when avail
 		} catch (Exception e) {
 			//TODO needs fixing once error handling in java is figured out
 			assertThat("correct exception message", e.getLocalizedMessage(),
@@ -241,4 +247,70 @@ public class JSONRPCLayerTest {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	public void setBadPermissions() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("badperms"));
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("badperms")
+					.withUsers(Arrays.asList(USER2)));
+			fail("able to set null permission");
+			//TODO more explicit exception when avail
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.set_permissions \\(us.kbase.workspace.WorkspaceServer:\\d+ - Invalid permission: null\\)\\}"));
+		
+		}
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("badperms")
+					.withNewPermission("f").withUsers(Arrays.asList(USER2)));
+			fail("able to set illegal permission");
+			//TODO more explicit exception when avail
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.set_permissions \\(us.kbase.workspace.WorkspaceServer:\\d+ - Invalid permission: f\\)\\}"));
+		
+		}
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("badperms")
+					.withNewPermission("r").withUsers(new ArrayList<String>()));
+			fail("able to set permission with no useres");
+			//TODO more explicit exception when avail
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.set_permissions \\(us.kbase.workspace.WorkspaceServer:\\d+ - Must provide at least one user\\)\\}"));
+		}
+		
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("badperms")
+					.withNewPermission("r").withUsers(Arrays.asList(USER2, "thisisnotarealusersihopeotherwisethistestwillfailandthatdbeabadthing")));
+			fail("able to set  permission with bad user");
+			//TODO more explicit exception when avail
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.set_permissions \\(us.kbase.workspace.WorkspaceServer:\\d+ - User thisisnotarealusersihopeotherwisethistestwillfailandthatdbeabadthing is not a valid user\\)\\}"));
+		}
+		Map<String, String> expected = new HashMap<String, String>();
+		expected.put(USER1, "a");
+		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
+		assertThat("Bad permissions were added to a workspace", perms, is(expected));
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void badIdent() {
+		try {
+			CLIENT1.getPermissions(new WorkspaceIdentity());
+			fail("got non-existant workspace");
+			//TODO more explicit exception when avail
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.get_permissions \\(us.kbase.workspace.WorkspaceServer:\\d+ - Must provide one and only one of workspace or id\\)\\}"));
+		}
+	}
 }

@@ -18,7 +18,7 @@ public class RegexMatcher extends BaseMatcher{
 	}
 
 	public void describeTo(Description description){
-		description.appendText("matches regex=");
+		description.appendText("matches regex=" + regex);
 	}
 
 	public static RegexMatcher matches(String regex){
