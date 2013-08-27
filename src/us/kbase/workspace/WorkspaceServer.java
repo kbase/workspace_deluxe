@@ -49,6 +49,8 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
 
     //BEGIN_CLASS_HEADER
+	//TODO client tests
+	//TODO java doc - really low priority, sorry
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
