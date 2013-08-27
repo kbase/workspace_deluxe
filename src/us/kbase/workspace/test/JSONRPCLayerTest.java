@@ -1,14 +1,15 @@
 package us.kbase.workspace.test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import static us.kbase.workspace.test.RegexMatcher.matches;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.ini4j.Ini;
@@ -27,7 +28,6 @@ import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -43,16 +43,19 @@ public class JSONRPCLayerTest {
 	public static final String M_PWD = "test.mongo.pwd";
 	public static File INI_FILE;
 	
-	private static WorkspaceServer server = null;
-	private static ServerThread sthread = null;
-	private static WorkspaceClient client1 = null;
-	private static WorkspaceClient client2 = null;
+	private static WorkspaceServer SERVER = null;
+	private static ServerThread SERV_THREAD = null;
+	private static WorkspaceClient CLIENT1 = null;
+	private static String USER1 = null;
+	private static WorkspaceClient CLIENT2 = null;
+	private static String USER2 = null;
+	private static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	private static class ServerThread extends Thread {
 		
 		public void run() {
 			try {
-				server.startupServer(20000);
+				SERVER.startupServer(20000);
 			} catch (InterruptedException ie) {
 				System.out.println("I'm melting! I'm melting!");
 			} catch (Exception e) {
@@ -66,18 +69,18 @@ public class JSONRPCLayerTest {
 	@SuppressWarnings("unchecked")
 	public static Map<String, String> getenv() throws NoSuchFieldException,
 			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unomdifiable = System.getenv();
-		Class<?> cu = unomdifiable.getClass();
+		Map<String, String> unmodifiable = System.getenv();
+		Class<?> cu = unmodifiable.getClass();
 		Field m = cu.getDeclaredField("m");
 		m.setAccessible(true);
-		return (Map<String, String>) m.get(unomdifiable);
+		return (Map<String, String>) m.get(unmodifiable);
 	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		//TODO deal with all this common code
-		String u1 = System.getProperty("test.user1");
-		String u2 = System.getProperty("test.user2");
+		USER1 = System.getProperty("test.user1");
+		USER2 = System.getProperty("test.user2");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
 		String host = System.getProperty("test.mongo.host");
@@ -136,9 +139,9 @@ public class JSONRPCLayerTest {
 		
 
 		//TODO add method to use automatic port
-		server = new WorkspaceServer();
-		sthread = new ServerThread();
-		sthread.start();
+		SERVER = new WorkspaceServer();
+		SERV_THREAD = new ServerThread();
+		SERV_THREAD.start();
 		//TODO poll server to see if it's up - need access to Server instance
 		System.out.println("Main thread waiting 20 s for server to start up");
 //		while(!server.jettyServerStarted) {
@@ -148,32 +151,94 @@ public class JSONRPCLayerTest {
 		Thread.sleep(20000);
 		System.out.println("Started test server on port " + 20000);
 		System.out.println("Starting tests");
-		client1 = new WorkspaceClient(new URL("http://localhost:20000"), u1, p1);
-		client2 = new WorkspaceClient(new URL("http://localhost:20000"), u2, p2);
-		client1.setAuthAllowedForHttp(true);
-		client2.setAuthAllowedForHttp(true);
+		CLIENT1 = new WorkspaceClient(new URL("http://localhost:20000"), USER1, p1);
+		CLIENT2 = new WorkspaceClient(new URL("http://localhost:20000"), USER2, p2);
+		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:20000"));
+		CLIENT1.setAuthAllowedForHttp(true);
+		CLIENT2.setAuthAllowedForHttp(true);
+		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
 	}
 	
 	@AfterClass
 	public static void tearDownClass() {
 		System.out.println("Killing server");
 		//TODO shutdown server by using shutdown method - need access to Server instance
-		sthread.interrupt();
+		SERV_THREAD.interrupt();
 		System.out.println("Done");
 	}
 	
 	@Test
-	public void createWSandgetMetaData() throws Exception {
+	public void createWSandCheck() throws Exception {
 		Tuple6<Integer, String, String, String, String, String> meta =
-				client1.createWorkspace(new CreateWorkspaceParams()
+				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
 		Tuple6<Integer, String, String, String, String, String> metaget =
-				client1.getWorkspaceMetadata(new WorkspaceIdentity()
+				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity()
 						.withWorkspace("foo"));
 		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
-		
+		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
+		for (Tuple6<Integer, String, String, String, String, String> m:
+				Arrays.asList(meta, metaget)) {
+			assertThat("ws name correct", m.getE2(), is("foo"));
+			assertThat("user name correct", m.getE3(), is(USER1));
+			assertThat("permission correct", m.getE5(), is("a"));
+			assertThat("global read correct", m.getE6(), is("r"));
+		}
+		assertThat("description correct", CLIENT1.getWorkspaceDescription(
+				new WorkspaceIdentity().withWorkspace("foo")), is("boogabooga"));
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void createWSBadGlobal() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+			.withWorkspace("gl1")); //should work fine w/o globalread
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+		.withWorkspace("gl2").withGlobalread("n")); //should work fine w/o globalread
+		assertThat("globalread correct", CLIENT1.getWorkspaceMetadata(
+				new WorkspaceIdentity().withWorkspace("gl1")).getE6(), is("n"));
+		assertThat("globalread correct", CLIENT1.getWorkspaceMetadata(
+				new WorkspaceIdentity().withWorkspace("gl2")).getE6(), is("n"));
+		try {
+			CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("gl_fail").withGlobalread("w"));
+			fail("call succeeded w/ illegal global read param");
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.create_workspace \\(us.kbase.workspace.WorkspaceServer:\\d+ - globalread must be n or r\\)\\}"));
+		}
+		try {
+			CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("gl_fail").withGlobalread("a"));
+			fail("call succeeded w/ illegal global read param");
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.create_workspace \\(us.kbase.workspace.WorkspaceServer:\\d+ - globalread must be n or r\\)\\}"));
+		}
+		try {
+			CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("gl_fail").withGlobalread("b"));
+			fail("call succeeded w/ illegal global read param");
+		} catch (Exception e) {
+			//TODO needs fixing once error handling in java is figured out
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					matches("JSONRPC error received: \\{name=JSONRPCError, code=-32500, message=Error while executing method Workspace.create_workspace \\(us.kbase.workspace.WorkspaceServer:\\d+ - globalread must be n or r\\)\\}"));
+		}
+	}
+	
+	@Test
+	public void createWSNoAuth() throws Exception {
+		try {
+			CLIENT_NO_AUTH.createWorkspace(new CreateWorkspaceParams().withWorkspace("noauth"));
+			fail("created workspace without auth");
+		} catch (IllegalStateException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("RPC method requires authentication but neither user nor token was set"));
+		}
 	}
 
 }
