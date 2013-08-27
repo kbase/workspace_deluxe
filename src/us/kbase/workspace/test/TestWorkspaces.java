@@ -147,6 +147,22 @@ public class TestWorkspaces {
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
 		desc = ws.getWorkspaceDescription("auser", new WorkspaceIdentifier("ltn"));
 		assertNull("Workspace description incorrect", desc);
+		
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lt");
+		try {
+			ws.getWorkspaceDescription("b", wsi);
+			fail("Got ws desc w/o read perms");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("exception message ok", e.getLocalizedMessage(),
+					is("User b does not have permission to read workspace lt"));
+		}
+		for (Permission p: Permission.values()) {
+			if (p.compareTo(Permission.NONE) <= 0 || p.compareTo(Permission.OWNER) >= 0) {
+				continue;
+			}
+			ws.setPermissions("auser", wsi, Arrays.asList("b"), p);
+			ws.getWorkspaceDescription("b", wsi); //will fail if perms are wrong
+		}
 	}
 	
 	private void checkMeta(WorkspaceMetaData meta, String owner, String name,
@@ -170,11 +186,28 @@ public class TestWorkspaces {
 		WorkspaceMetaData meta = ws.createWorkspace("auser", "foo", false, "eeswaffertheen");
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false);
 		int id = meta.getId();
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
 		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier(id), "auser");
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
 		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier("foo"), "auser");
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
+		
+		try {
+			ws.getWorkspaceMetaData(wsi, "b");
+			fail("Got metadata w/o read perms");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("exception message ok", e.getLocalizedMessage(),
+					is("User b does not have permission to read workspace " + id));
+		}
+		for (Permission p: Permission.values()) {
+			if (p.compareTo(Permission.NONE) <= 0 || p.compareTo(Permission.OWNER) >= 0) {
+				continue;
+			}
+			ws.setPermissions("auser", wsi, Arrays.asList("b"), p);
+			ws.getWorkspaceMetaData(wsi, "b"); //will fail if perms are wrong
+		}
+		
 		
 		meta = ws.createWorkspace("anotherfnuser", "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
 		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true);
