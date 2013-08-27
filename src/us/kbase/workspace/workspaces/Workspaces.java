@@ -23,6 +23,8 @@ public class Workspaces {
 		db.setAllUsersSymbol(ALL_USERS);
 	}
 	
+	//TODO use consistent variable names and order in interface
+	
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException {

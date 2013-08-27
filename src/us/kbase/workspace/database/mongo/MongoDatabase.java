@@ -42,7 +42,8 @@ public class MongoDatabase implements Database {
 	private static final String WS_ACLS = "workspaceACLs";
 	private String allUsers = "*";
 	
-
+	//TODO make getMongo static method that returns the same instance of mongoClient
+	//TODO check autoreconnect
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
@@ -354,6 +355,7 @@ public class MongoDatabase implements Database {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
+		//TODO use $in instead of $or
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
 						getWorkspaceID(workspace, true), user, allUsers)
@@ -368,7 +370,7 @@ public class MongoDatabase implements Database {
 		return translatePermission(perm);
 	}
 	
-	//TODO use consistent variable names in interface
+	//TODO use consistent variable names and order in interface
 	
 	//TODO merge common code with above
 	@Override
@@ -378,6 +380,7 @@ public class MongoDatabase implements Database {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
+		//TODO use $in instead of $or
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
 						getWorkspaceID(workspace, true), user, allUsers)
@@ -439,6 +442,7 @@ public class MongoDatabase implements Database {
 		}
 		@SuppressWarnings("rawtypes")
 		//TODO use getUserAndGlobalPermissions
+		//TODO use $in instead of $or
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, $or: [{user: #}, {user: #}]}",
 						ws.get("id"), user, allUsers)
