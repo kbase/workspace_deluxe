@@ -141,6 +141,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
+        super("Workspace");
         //BEGIN_CONSTRUCTOR
 		if (!config.containsKey(HOST)) {
 			die("Must provide param " + HOST + " in config file");

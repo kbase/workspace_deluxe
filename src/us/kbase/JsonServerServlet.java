@@ -16,9 +16,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,27 +34,23 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.ini4j.Ini;
-import org.productivity.java.syslog4j.Syslog;
-import org.productivity.java.syslog4j.SyslogConstants;
-import org.productivity.java.syslog4j.SyslogIF;
 
 public class JsonServerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final String APP_JSON = "application/json";
 	private ObjectMapper mapper;
 	private Map<String, Method> rpcCache;
-	private SyslogIF log;
-	private int maxLogLevel = LOG_LEVEL_INFO;
-	public static final int LOG_LEVEL_ERR = SyslogConstants.LEVEL_ERROR;
-	public static final int LOG_LEVEL_INFO = SyslogConstants.LEVEL_INFO;
-	public static final int LOG_LEVEL_DEBUG = SyslogConstants.LEVEL_DEBUG;
-	public static final int LOG_LEVEL_DEBUG2 = SyslogConstants.LEVEL_DEBUG + 1;
-	public static final int LOG_LEVEL_DEBUG3 = SyslogConstants.LEVEL_DEBUG + 2;
-	private static ThreadLocal<SimpleDateFormat> sdf = new ThreadLocal<SimpleDateFormat>();
-	private static final boolean logDateTime = false;
+	public static final int LOG_LEVEL_ERR = JsonServerSyslog.LOG_LEVEL_ERR;
+	public static final int LOG_LEVEL_INFO = JsonServerSyslog.LOG_LEVEL_INFO;
+	public static final int LOG_LEVEL_DEBUG = JsonServerSyslog.LOG_LEVEL_DEBUG;
+	public static final int LOG_LEVEL_DEBUG2 = JsonServerSyslog.LOG_LEVEL_DEBUG + 1;
+	public static final int LOG_LEVEL_DEBUG3 = JsonServerSyslog.LOG_LEVEL_DEBUG + 2;
+	private JsonServerSyslog sysLogger;
+	private JsonServerSyslog userLogger;
 	final private static String KB_DEP = "KB_DEPLOYMENT_CONFIG";
 	final private static String KB_SERVNAME = "KB_SERVICE_NAME";
 	protected Map<String, String> config = new HashMap<String, String>();
+	private static ThreadLocal<RpcInfo> rpcInfo = new ThreadLocal<RpcInfo>();
 		
 	public void startupServer(int port) throws Exception {
 		Server server = new Server(port);
@@ -68,10 +62,7 @@ public class JsonServerServlet extends HttpServlet {
         server.join();
 	}
 	
-	public JsonServerServlet() {
-		//this.log = Logger.getLogger(this.getClass());
-		this.log = Syslog.getInstance("unix_syslog");
-		this.log.getConfig().setFacility(SyslogConstants.FACILITY_LOCAL1);
+	public JsonServerServlet(String specServiceName) {
 		this.mapper = new ObjectMapper().withModule(new JacksonTupleModule());
 		this.rpcCache = new HashMap<String, Method>();
 		for (Method m : getClass().getMethods()) {
@@ -81,92 +72,85 @@ public class JsonServerServlet extends HttpServlet {
 			}
 		}
 		
-		//read the config file
-		String file = System.getenv(KB_DEP);
-		if (file == null) {
-			return;
+		String serviceName = System.getenv(KB_SERVNAME);
+		if (serviceName == null) {
+			serviceName = specServiceName;
+			if (serviceName.contains(":"))
+				serviceName = serviceName.substring(0, serviceName.indexOf(':')).trim();
 		}
+		String file = System.getenv(KB_DEP);
+		sysLogger = new JsonServerSyslog(serviceName, file);
+		userLogger = new JsonServerSyslog(sysLogger);
+		//read the config file
+		if (file == null) 
+			return;
 		File deploy = new File(file);
 		Ini ini = null;
 		try {
 			ini = new Ini(deploy);
 		} catch (IOException ioe) {
-			this.logErr("There was an IO Error reading the deploy file "
+			sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), "There was an IO Error reading the deploy file "
 							+ deploy + ". Traceback:\n" + ioe);
 			return;
 		}
-		String name = System.getenv(KB_SERVNAME);
-		if (name == null) {
-			this.logErr("Deploy config file " + deploy + " exists but no " + 
-							KB_SERVNAME + " is provided in the environment");
-			return;
-		}
-		config = ini.get(name);
+		config = ini.get(serviceName);
 		if (config == null) {
 			config = new HashMap<String, String>();
-			this.logErr("The configuration file " + deploy + 
-							" has no section " + name);
+			sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), "The configuration file " + deploy + 
+							" has no section " + serviceName);
 		}
-		
-	}
-	
-	private void log(int level, String message) {
-		if (level > maxLogLevel)
-			return;
-		if (level > LOG_LEVEL_DEBUG)
-			level = LOG_LEVEL_DEBUG;
-		String levelText = level == LOG_LEVEL_ERR ? "ERR" : (level == LOG_LEVEL_INFO ? "INFO" : "DEBUG");
-		message = "[" + this.getClass().getSimpleName() + "] [" + levelText + "] [" + getCurrentMicro() + "] " + message;
-		if (logDateTime)
-			message = getDateFormat().format(new Date()) + " " + message;
-		log.log(level, message);
-		log.flush();
 	}
 
 	public void logErr(String message) {
-		log(LOG_LEVEL_ERR, message);
+		userLogger.log(LOG_LEVEL_ERR, findCaller(), message);
 	}
 	
 	public void logInfo(String message) {
-		log(LOG_LEVEL_INFO, message);
+		userLogger.log(LOG_LEVEL_INFO, findCaller(), message);
 	}
 	
 	public void logDebug(String message) {
-		log(LOG_LEVEL_DEBUG, message);
+		userLogger.log(LOG_LEVEL_DEBUG, findCaller(), message);
 	}
 	
 	public void logDebug(String message, int debugLevelFrom1to3) {
 		if (debugLevelFrom1to3 < 1 || debugLevelFrom1to3 > 3)
 			throw new IllegalStateException("Wrong debug log level, it should be between 1 and 3");
-		log(LOG_LEVEL_DEBUG + (debugLevelFrom1to3 - 1), message);
+		userLogger.log(LOG_LEVEL_DEBUG + (debugLevelFrom1to3 - 1), findCaller(), message);
 	}
 
+	public static String findCaller() {
+		StackTraceElement[] st = Thread.currentThread().getStackTrace();
+		return st[3].getClassName();
+	}
+	
 	public int getLogLevel() {
-		return maxLogLevel;
+		return userLogger.getLogLevel();
 	}
 	
 	public void setLogLevel(int level) {
-		maxLogLevel = level;
+		userLogger.setLogLevel(level);
 	}
 	
 	public void clearLogLevel() {
-		maxLogLevel = LOG_LEVEL_INFO;
+		userLogger.clearLogLevel();
 	}
 	
 	public boolean isLogDebugEnabled() {
-		return maxLogLevel >= LOG_LEVEL_DEBUG;
+		return userLogger.getLogLevel() >= LOG_LEVEL_DEBUG;
 	}
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setContentType(APP_JSON);
 		OutputStream output	= response.getOutputStream();
-		writeError(response, -32300, "HTTP GET not allowed.", null, output, null, null);
+		getCurrentRpcInfo().reset();
+		writeError(response, -32300, "HTTP GET not allowed.", output);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setContentType(APP_JSON);
 		OutputStream output	= response.getOutputStream();
-		String id = null;
+		RpcInfo info = getCurrentRpcInfo().reset();
 		String rpcName = null;
 		AuthToken userProfile = null;
 		try {
@@ -175,19 +159,26 @@ public class JsonServerServlet extends HttpServlet {
 			try {
 				node = mapper.readTree(new UnclosableInputStream(input));
 			} catch (Exception ex) {
-				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", null, output, null, null);
+				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", output);
 				return;
 			}
 			JsonNode idNode = node.get("id");
 			try {
-				id = idNode == null || node.isNull() ? null : idNode.asText();
+				info.id = idNode == null || node.isNull() ? null : idNode.asText();
 			} catch (Exception ex) {}
 			JsonNode methodNode = node.get("method");
 			ArrayNode paramsNode = (ArrayNode)node.get("params");
 			rpcName = (methodNode!=null && !methodNode.isNull()) ? methodNode.asText() : null;
+			if (rpcName.contains(".")) {
+				int pos = rpcName.indexOf('.');
+				info.module = rpcName.substring(0, pos);
+				info.method = rpcName.substring(pos + 1);
+			} else {
+				info.method = rpcName;
+			}
 			Method rpcMethod = rpcCache.get(rpcName);
 			if (rpcMethod == null) {
-				writeError(response, -32601, "Can not find method [" + rpcName + "] in server class " + getClass().getName(), id, output, null, rpcName);
+				writeError(response, -32601, "Can not find method [" + rpcName + "] in server class " + getClass().getName(), output);
 				return;
 			}
 			int rpcArgCount = rpcMethod.getGenericParameterTypes().length;
@@ -197,15 +188,17 @@ public class JsonServerServlet extends HttpServlet {
 				if (token != null || !rpcMethod.getAnnotation(JsonServerMethod.class).authOptional()) {
 					try {
 						userProfile = validateToken(token);
+						if (userProfile != null)
+							info.user = userProfile.getClientId();
 					} catch (Throwable ex) {
-						writeError(response, -32400, "Error during authorization check (" + ex.getMessage() + ")", id, output, userProfile, rpcName);
+						writeError(response, -32400, "Error during authorization check (" + ex.getMessage() + ")", output);
 						return;
 					}
 				}
 				rpcArgCount--;
 			}
 			if (paramsNode.size() != rpcArgCount) {
-				writeError(response, -32602, "Wrong parameter count for method " + rpcName, null, output, userProfile, rpcName);
+				writeError(response, -32602, "Wrong parameter count for method " + rpcName, output);
 				return;
 			}
 			for (int typePos = 0; typePos < paramsNode.size(); typePos++) {
@@ -215,7 +208,7 @@ public class JsonServerServlet extends HttpServlet {
 				try {
 					methodValues[typePos] = mapper.readValue(jsonData, paramJavaType);
 				} catch (Exception ex) {
-					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", id, output, userProfile, rpcName);	
+					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", output);	
 					return;
 				}
 			}
@@ -223,17 +216,16 @@ public class JsonServerServlet extends HttpServlet {
 				methodValues[methodValues.length - 1] = userProfile;
 			Object result;
 			try {
-				String user = userProfile == null ? "-" : userProfile.getClientId();
-				logInfo("[" + user + "] [" + rpcName + "]: start method, id: " + id);
+				sysLogger.log(LOG_LEVEL_INFO, getClass().getName(), "start method");
 				result = rpcMethod.invoke(this, methodValues);
-				logInfo("[" + user + "] [" + rpcName + "]: end method, id: " + id);
+				sysLogger.log(LOG_LEVEL_INFO, getClass().getName(), "end method");
 			} catch (Throwable ex) {
 				if (ex instanceof InvocationTargetException && ex.getCause() != null) {
 					ex = ex.getCause();
 				}
 				StackTraceElement errPoint = ex.getStackTrace()[0];
 				writeError(response, -32500, "Error while executing method " + rpcName + " (" + errPoint.getClassName() + ":" + 
-				errPoint.getLineNumber() + " - " + ex.getMessage() + ")", id, output, userProfile, rpcName);	
+				errPoint.getLineNumber() + " - " + ex.getMessage() + ")", output);	
 				return;
 			}
 			boolean isTuple = rpcMethod.getAnnotation(JsonServerMethod.class).tuple();
@@ -246,22 +238,17 @@ public class JsonServerServlet extends HttpServlet {
 			mapper.writeValue(new UnclosableOutputStream(output), ret);
 			output.flush();
 		} catch (Exception ex) {
-			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", id, output, userProfile, rpcName);	
+			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", output);	
 		}
-	}
-
-	private static SimpleDateFormat getDateFormat() {
-		SimpleDateFormat ret = sdf.get();
-		if (ret == null) {
-			ret = new SimpleDateFormat("MMM d HH:mm:ss");
-			sdf.set(ret);
-		}
-		return ret;
 	}
 	
-	private static String getCurrentMicro() {
-		String ret = "" + System.currentTimeMillis() + "000000";
-		return ret.substring(0, ret.length() - 9) + "." + ret.substring(ret.length() - 9, ret.length() - 3);
+	public static RpcInfo getCurrentRpcInfo() {
+		RpcInfo ret = rpcInfo.get();
+		if (ret == null) {
+			ret = new RpcInfo();
+			rpcInfo.set(ret);
+		}
+		return ret;
 	}
 	
 	private static AuthToken validateToken(String token) throws Exception {
@@ -278,7 +265,7 @@ public class JsonServerServlet extends HttpServlet {
 		return AuthService.getUserFromToken(token);
 	}
 	
-	private void writeError(HttpServletResponse response, int code, String message, String id, OutputStream output, AuthToken userProfile, String method) {
+	private void writeError(HttpServletResponse response, int code, String message, OutputStream output) {
 		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		ObjectNode ret = mapper.createObjectNode();
 		ObjectNode error = mapper.createObjectNode();
@@ -287,6 +274,7 @@ public class JsonServerServlet extends HttpServlet {
 		error.put("message", message);
 		ret.put("version", "1.1");
 		ret.put("error", error);
+		String id = getCurrentRpcInfo().getId();
 		if (id != null)
 			ret.put("id", id);
 		try {
@@ -294,9 +282,8 @@ public class JsonServerServlet extends HttpServlet {
 			mapper.writeValue(bais, ret);
 			bais.close();
 			byte[] bytes = bais.toByteArray();
-			String user = userProfile == null ? null : userProfile.getClientId();
-			String logMessage = "[" + (user == null ? "-" : user) + "] [" + (method == null ? "-" : method) + "]: " + new String(bytes);
-			logErr(logMessage);
+			String logMessage = new String(bytes);
+			sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), logMessage);
 			output.write(bytes);
 			output.flush();
 		} catch (Exception e) {
@@ -419,6 +406,37 @@ public class JsonServerServlet extends HttpServlet {
 			if (isClosed)
 				return;
 			inner.write(b, off, len);
+		}
+	}
+	
+	public static class RpcInfo {
+		private String id;
+		private String module;
+		private String method;
+		private String user;
+		
+		private RpcInfo reset() {
+			id = null;
+			module = null;
+			method = null;
+			user = null;
+			return this;
+		}
+		
+		public String getId() {
+			return id;
+		}
+		
+		public String getModule() {
+			return module;
+		}
+		
+		public String getMethod() {
+			return method;
+		}
+		
+		public String getUser() {
+			return user;
 		}
 	}
 }
