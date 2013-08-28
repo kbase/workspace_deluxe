@@ -47,7 +47,6 @@ public class JSONRPCLayerTest {
 	public static File INI_FILE;
 	
 	private static WorkspaceServer SERVER = null;
-	private static ServerThread SERV_THREAD = null;
 	private static WorkspaceClient CLIENT1 = null;
 	private static String USER1 = null;
 	private static WorkspaceClient CLIENT2 = null;
@@ -58,9 +57,7 @@ public class JSONRPCLayerTest {
 		
 		public void run() {
 			try {
-				SERVER.startupServer(20000);
-			} catch (InterruptedException ie) {
-				System.out.println("I'm melting! I'm melting!");
+				SERVER.startupServer();
 			} catch (Exception e) {
 				System.err.println("Can't start server:");
 				e.printStackTrace();
@@ -141,21 +138,17 @@ public class JSONRPCLayerTest {
 		env.put("KB_SERVICE_NAME", "Workspace");
 		
 
-		//TODO add method to use automatic port
 		SERVER = new WorkspaceServer();
-		SERV_THREAD = new ServerThread();
-		SERV_THREAD.start();
-		//TODO poll server to see if it's up - need access to Server instance
-		System.out.println("Main thread waiting 20 s for server to start up");
-//		while(!server.jettyServerStarted) {
-//			System.out.println(1);
-//			Thread.sleep(1000);
-//		}
-		Thread.sleep(20000);
-		System.out.println("Started test server on port " + 20000);
+		new ServerThread().start();
+		System.out.println("Main thread waiting for server to start up");
+		while(SERVER.getServerPort() == null) {
+			Thread.sleep(1000);
+		}
+		int port = SERVER.getServerPort();
+		System.out.println("Started test server on port " + port);
 		System.out.println("Starting tests");
-		CLIENT1 = new WorkspaceClient(new URL("http://localhost:20000"), USER1, p1);
-		CLIENT2 = new WorkspaceClient(new URL("http://localhost:20000"), USER2, p2);
+		CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+		CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:20000"));
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
@@ -163,10 +156,9 @@ public class JSONRPCLayerTest {
 	}
 	
 	@AfterClass
-	public static void tearDownClass() {
-		System.out.println("Killing server");
-		//TODO shutdown server by using shutdown method - need access to Server instance
-		SERV_THREAD.interrupt();
+	public static void tearDownClass() throws Exception {
+		System.out.print("Killing server... ");
+		SERVER.stopServer();
 		System.out.println("Done");
 	}
 	

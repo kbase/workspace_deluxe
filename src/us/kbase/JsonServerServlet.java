@@ -51,15 +51,52 @@ public class JsonServerServlet extends HttpServlet {
 	final private static String KB_SERVNAME = "KB_SERVICE_NAME";
 	protected Map<String, String> config = new HashMap<String, String>();
 	private static ThreadLocal<RpcInfo> rpcInfo = new ThreadLocal<RpcInfo>();
+	private Server jettyServer = null;
+	private Integer jettyPort = null;
 		
+	/**
+	 * Starts a test jetty server on an OS-determined port. Blocks until the
+	 * server is terminated.
+	 * @throws Exception if the server couldn't be started.
+	 */
+	public void startupServer() throws Exception {
+		startupServer(0);
+	}
+	
+	/**
+	 * Starts a test jetty server. Blocks until the
+	 * server is terminated.
+	 * @param port the port to which the server will connect.
+	 * @throws Exception if the server couldn't be started.
+	 */
 	public void startupServer(int port) throws Exception {
-		Server server = new Server(port);
+		jettyServer = new Server(port);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
-        server.setHandler(context);
-        context.addServlet(new ServletHolder(this),"/*");
-        server.start();
-        server.join();
+		context.setContextPath("/");
+		jettyServer.setHandler(context);
+		context.addServlet(new ServletHolder(this),"/*");
+		jettyServer.start();
+		jettyPort = jettyServer.getConnectors()[0].getLocalPort();
+		jettyServer.join();
+	}
+	
+	/**
+	 * Get the jetty test server port. Returns null if the server is not running or starting up.
+	 * @return the port
+	 */
+	public Integer getServerPort() {
+		return jettyPort;
+	}
+	
+	/**
+	 * Stops the test jetty server.
+	 * @throws Exception if there was an error stopping the server.
+	 */
+	public void stopServer() throws Exception {
+		jettyServer.stop();
+		jettyServer = null;
+		jettyPort = null;
+		
 	}
 	
 	public JsonServerServlet(String specServiceName) {
