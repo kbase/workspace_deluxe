@@ -44,6 +44,7 @@ public class MongoDatabase implements Database {
 	
 	//TODO make getMongo static method that returns the same instance of mongoClient
 	//TODO check autoreconnect
+	//TODO catch all mongo exceptions and rethrow
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;

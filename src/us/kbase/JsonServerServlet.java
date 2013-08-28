@@ -10,6 +10,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -228,7 +230,7 @@ public class JsonServerServlet extends HttpServlet {
 						if (userProfile != null)
 							info.user = userProfile.getClientId();
 					} catch (Throwable ex) {
-						writeError(response, -32400, "Error during authorization check (" + ex.getMessage() + ")", output);
+						writeError(response, -32400, "Token validation failed: " + ex.getMessage(), output);
 						return;
 					}
 				}
@@ -260,9 +262,7 @@ public class JsonServerServlet extends HttpServlet {
 				if (ex instanceof InvocationTargetException && ex.getCause() != null) {
 					ex = ex.getCause();
 				}
-				StackTraceElement errPoint = ex.getStackTrace()[0];
-				writeError(response, -32500, "Error while executing method " + rpcName + " (" + errPoint.getClassName() + ":" + 
-				errPoint.getLineNumber() + " - " + ex.getMessage() + ")", output);	
+				writeError(response, -32500, ex, output);
 				return;
 			}
 			boolean isTuple = rpcMethod.getAnnotation(JsonServerMethod.class).tuple();
@@ -303,12 +303,23 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	private void writeError(HttpServletResponse response, int code, String message, OutputStream output) {
+		writeError(response, code, message, null, output);
+	}
+	
+	private void writeError(HttpServletResponse response, int code, Throwable ex, OutputStream output) {
+		StringWriter sw = new StringWriter();
+		ex.printStackTrace(new PrintWriter(sw));
+		writeError(response, code, ex.getLocalizedMessage(), sw.toString(), output);
+	}
+	
+	private void writeError(HttpServletResponse response, int code, String message, String data, OutputStream output) {
 		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		ObjectNode ret = mapper.createObjectNode();
 		ObjectNode error = mapper.createObjectNode();
 		error.put("name", "JSONRPCError");
 		error.put("code", code);
 		error.put("message", message);
+		error.put("data", data);
 		ret.put("version", "1.1");
 		ret.put("error", error);
 		String id = getCurrentRpcInfo().getId();
