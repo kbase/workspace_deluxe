@@ -55,6 +55,7 @@ public class JsonServerServlet extends HttpServlet {
 	private static ThreadLocal<RpcInfo> rpcInfo = new ThreadLocal<RpcInfo>();
 	private Server jettyServer = null;
 	private Integer jettyPort = null;
+	private boolean startupFailed = false;
 		
 	/**
 	 * Starts a test jetty server on an OS-determined port. Blocks until the
@@ -99,6 +100,10 @@ public class JsonServerServlet extends HttpServlet {
 		jettyServer = null;
 		jettyPort = null;
 		
+	}
+	
+	public void startupFailed() {
+		this.startupFailed = true;
 	}
 	
 	public JsonServerServlet(String specServiceName) {
@@ -183,6 +188,10 @@ public class JsonServerServlet extends HttpServlet {
 		response.setContentType(APP_JSON);
 		OutputStream output	= response.getOutputStream();
 		getCurrentRpcInfo().reset();
+		if (startupFailed) {
+			writeError(response, -32603, "The server did not start up properly. Please check the log files for the cause.", output);
+			return;
+		}
 		writeError(response, -32300, "HTTP GET not allowed.", output);
 	}
 
@@ -235,6 +244,10 @@ public class JsonServerServlet extends HttpServlet {
 					}
 				}
 				rpcArgCount--;
+			}
+			if (startupFailed) {
+				writeError(response, -32603, "The server did not start up properly. Please check the log files for the cause.", output);
+				return;
 			}
 			if (paramsNode.size() != rpcArgCount) {
 				writeError(response, -32602, "Wrong parameter count for method " + rpcName, output);
@@ -319,7 +332,7 @@ public class JsonServerServlet extends HttpServlet {
 		error.put("name", "JSONRPCError");
 		error.put("code", code);
 		error.put("message", message);
-		error.put("data", data);
+		error.put("error", data);
 		ret.put("version", "1.1");
 		ret.put("error", error);
 		String id = getCurrentRpcInfo().getId();

@@ -82,10 +82,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspaces ws;
 	
-	private void logger(final String log) {
-		//TODO when logging is released (check places that call this method)
-		System.out.println(log);
-	}
 	private Database getDB(final String host, final String dbs, final String secret,
 			final String user, final String pwd) {
 		try {
@@ -95,27 +91,27 @@ public class WorkspaceServer extends JsonServerServlet {
 				return new MongoDatabase(host, dbs, secret);
 			}
 		} catch (UnknownHostException uhe) {
-			die("Couldn't find host " + host + ": " +
+			fail("Couldn't find mongo host " + host + ": " +
 					uhe.getLocalizedMessage());
 		} catch (IOException io) {
-			die("Couldn't connect to host " + host + ": " +
+			fail("Couldn't connect to mongo host " + host + ": " +
 					io.getLocalizedMessage());
 		} catch (DBAuthorizationException ae) {
-			die("Not authorized: " + ae.getLocalizedMessage());
+			fail("Not authorized: " + ae.getLocalizedMessage());
 		} catch (InvalidHostException ihe) {
-			die(host + " is an invalid database host: "  +
+			fail(host + " is an invalid database host: "  +
 					ihe.getLocalizedMessage());
 		} catch (WorkspaceDBException uwde) {
-			die("The workspace database is invalid: " +
+			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
 		}
-		return null; //shut up eclipse you bastard
+		return null;
 	}
 	
-	private void die(final String error) {
+	private void fail(final String error) {
+		logErr(error);
 		System.err.println(error);
-		System.err.println("Terminating server.");
-		System.exit(1);
+		startupFailed();
 	}
 	
 	private String formatDate(final Date d) {
@@ -144,39 +140,56 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
+		boolean failed = false;
 		if (!config.containsKey(HOST)) {
-			die("Must provide param " + HOST + " in config file");
+			fail("Must provide param " + HOST + " in config file");
+			failed = true;
 		}
 		final String host = config.get(HOST);
 		if (!config.containsKey(DB)) {
-			die("Must provide param " + DB + " in config file");
+			fail("Must provide param " + DB + " in config file");
+			failed = true;
 		}
 		final String dbs = config.get(DB);
 		if (!config.containsKey(BACKEND_SECRET)) {
-			die("Must provide param " + BACKEND_SECRET + " in config file");
+			failed = true;
+			fail("Must provide param " + BACKEND_SECRET + " in config file");
 		}
 		final String secret = config.get(BACKEND_SECRET);
 		if (config.containsKey(USER) ^ config.containsKey(PWD)) {
-			die(String.format("Must provide both %s and %s ",
+			fail(String.format("Must provide both %s and %s ",
 					USER, PWD) + "params in config file if authentication " + 
 					"is to be used");
+			failed = true;
 		}
-		final String user = config.get(USER);
-		final String pwd = config.get(PWD);
-		String params = "";
-		for (String s: Arrays.asList(HOST, DB, USER)) {
-			if (config.containsKey(s)) {
-				params += s + "=" + config.get(s) + "\n";
+		if (failed) {
+			fail("Server startup failed - all calls will error out.");
+			ws = null;
+		} else {
+			final String user = config.get(USER);
+			final String pwd = config.get(PWD);
+			String params = "";
+			for (String s: Arrays.asList(HOST, DB, USER)) {
+				if (config.containsKey(s)) {
+					params += s + "=" + config.get(s) + "\n";
+				}
+			}
+			params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
+			if (pwd != null) {
+				params += PWD + "=[redacted for your safety and comfort]\n";
+			}
+			System.out.println("Using connection parameters:\n" + params);
+			logInfo("Using connection parameters:\n" + params);
+			final Database db = getDB(host, dbs, secret, user, pwd);
+			if (db == null) {
+				fail("Server startup failed - all calls will error out.");
+				ws = null;
+			} else {
+				System.out.println(String.format("Initialized %s backend", db.getBackendType()));
+				logInfo(String.format("Initialized %s backend", db.getBackendType()));
+				ws = new Workspaces(db);
 			}
 		}
-		params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
-		if (pwd != null) {
-			params += PWD + "=[redacted for your safety and comfort]\n";
-		}
-		System.out.println("Using connection parameters:\n" + params);
-		final Database db = getDB(host, dbs, secret, user, pwd);
-		System.out.println(String.format("Initialized %s backend", db.getBackendType()));
-		ws = new Workspaces(db);
         //END_CONSTRUCTOR
     }
 
