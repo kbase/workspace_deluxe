@@ -19,8 +19,28 @@
   <!--<property name="sh.file" value="gen_java_types"/>
   <property name="test.file" value="test_gen_java_types.sh"/>-->
 
-  <fileset dir="${lib}/" id="libfiles">
-    <include name="*.jar"/>
+  <fileset dir="../jars/lib/jars/" id="libfiles">
+    <include name="apache_commons/commons-codec-1.8.jar"/>
+    <include name="apache_commons/commons-io-2.4.jar"/>
+    <include name="apache_commons/commons-lang3-3.1.jar"/>
+    <include name="apache_commons/commons-logging-1.1.1.jar"/>
+    <include name="apache_commons/http/httpclient-4.2.5.jar"/>
+    <include name="apache_commons/http/httpcore-4.2.4.jar"/>
+    <include name="apache_commons/http/httpmime-4.2.5.jar"/>
+    <include name="bson4jackson/bson4jackson-2.1.0.jar"/>
+    <include name="ini4j/ini4j-0.5.2.jar"/>
+    <include name="jackson/jackson-all-1.9.11.jar"/>
+    <include name="jackson/jackson-annotations-2.1.4.jar"/>
+    <include name="jackson/jackson-core-2.1.4.jar"/>
+    <include name="jackson/jackson-databind-2.1.4.jar"/>
+    <include name="jetty/jetty-all-7.0.0.jar"/>
+    <include name="jna/jna-3.4.0.jar"/>
+    <include name="jongo/jongo-0.4.jar"/>
+    <include name="junit/junit-4.9.jar"/>
+    <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
+    <include name="mongo/mongo-java-driver-2.11.2.jar"/>
+    <include name="servlet/servlet-api-2.5.jar"/>
+    <include name="syslog4j/syslog4j-0.9.46.jar"/>
   </fileset>
 
   <target name="init" description="make directories">
