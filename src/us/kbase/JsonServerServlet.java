@@ -116,13 +116,15 @@ public class JsonServerServlet extends HttpServlet {
 			}
 		}
 		
-		String serviceName = System.getenv(KB_SERVNAME);
+		String serviceName = System.getProperty(KB_SERVNAME) == null ?
+				System.getenv(KB_SERVNAME) : System.getProperty(KB_SERVNAME);
 		if (serviceName == null) {
 			serviceName = specServiceName;
 			if (serviceName.contains(":"))
 				serviceName = serviceName.substring(0, serviceName.indexOf(':')).trim();
 		}
-		String file = System.getenv(KB_DEP);
+		String file = System.getProperty(KB_DEP) == null ?
+				System.getenv(KB_DEP) : System.getProperty(KB_DEP);
 		sysLogger = new JsonServerSyslog(serviceName, file);
 		userLogger = new JsonServerSyslog(sysLogger);
 		//read the config file
