@@ -1,9 +1,15 @@
 Repo for phase 2 workspace service development
 
-WARNING: DO NOT RUN TESTS ON A PRODUCTION DATABASE! THE TEST SCRIPTS WILL
+*WARNING*: DO NOT RUN TESTS ON A PRODUCTION DATABASE! THE TEST SCRIPTS WILL
   WIPE THE DB.
 Running tests on a production Shock instance should be safe, but to be
   cautious run the tests on a standalone instance.
+
+COMPILATION REQUIREMENTS:
+typecomp dev-prototypes branch
+java_type_generator dev branch
+
+For now, all compiled files are checked in.
 
 SETUP
 

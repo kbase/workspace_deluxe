@@ -19,9 +19,11 @@ build-libs:
 	@# at some point make dependent on compile - checked in for now.
 	$(ANT) compile
 	
-build-docs:
+build-docs: build-libs
 	-rm -r docs 
 	$(ANT) javadoc
+	pod2html --infile=lib/Bio/KBase/$(SERVICE_NAME)/Client.pm --outfile=docs/$(SERVICE_NAME).html
+	rm -f pod2htmd.tmp
 
 compile: compile-typespec compile-java
 
@@ -40,9 +42,7 @@ compile-typespec:
 		--js javascript/$(SERVICE_NAME)/Client \
 		--url http://kbase.us/services/$(SERVICE_NAME)/ \
 		$(SERVICE_NAME).spec lib
-	-rm lib/$(SERVICE_NAME_CAPS)Server.pm
-	-rm lib/$(SERVICE_NAME_CAPS)Impl.pm
-	-rm lib/$(SERVICE_NAME_CAPS)Server.py
-	-rm lib/$(SERVICE_NAME_CAPS)Impl.py
+	-rm lib/$(SERVICE_NAME_CAPS)Server.p?
+	-rm lib/$(SERVICE_NAME_CAPS)Impl.p?
 
 
