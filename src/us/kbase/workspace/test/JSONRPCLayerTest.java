@@ -257,7 +257,6 @@ public class JSONRPCLayerTest {
 					.withNewPermission("r").withUsers(new ArrayList<String>()));
 			fail("able to set permission with no useres");
 		} catch (ServerException e) {
-			//TODO needs fixing once error handling in java is figured out
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Must provide at least one user"));
 		}
@@ -285,7 +284,6 @@ public class JSONRPCLayerTest {
 			CLIENT1.getPermissions(new WorkspaceIdentity());
 			fail("got non-existant workspace");
 		} catch (ServerException e) {
-			//TODO needs fixing once error handling in java is figured out
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Must provide one and only one of workspace or id"));
 		}

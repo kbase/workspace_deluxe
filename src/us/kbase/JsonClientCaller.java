@@ -187,9 +187,11 @@ public class JsonClientCaller {
 		JsonNode node = mapper.readTree(new UnclosableInputStream(istream));
 		if (node.has("error")) {
 			Map<String, String> ret_error = mapper.readValue(node.get("error"), new TypeReference<Map<String, String>>(){});
+			
+			String data = ret_error.get("data") == null ? ret_error.get("error") : ret_error.get("data");
 			throw new ServerException(ret_error.get("message"),
 					new Integer(ret_error.get("code")), ret_error.get("name"),
-					ret_error.get("data"));
+					data);
 		}
 		RET res = null;
 		if (node.has("result"))
