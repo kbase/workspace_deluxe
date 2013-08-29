@@ -16,6 +16,7 @@
   <!--<property name="test" location="test"/>-->
   <property name="jar.file" value="WorkspaceService.jar"/>
   <property name="war.file" value="WorkspaceService.war"/>
+  <property name="war.dir" value="war"/>
   <!--<property name="sh.file" value="gen_java_types"/>
   <property name="test.file" value="test_gen_java_types.sh"/>-->
 
@@ -61,12 +62,17 @@
         <attribute name="Main-Class" value="us.kbase.scripts.JavaTypeGenerator"/>
       </manifest>-->
     </jar>
-    <war destfile="dist/${war.file}" webxml="war/web.xml">
+    <mkdir dir="${war.dir}/lib"/>
+    <copy todir="${war.dir}/lib/" flatten="true">
+      <fileset refid="libfiles"/>
+    </copy>
+    <war destfile="dist/${war.file}" webxml="${war.dir}/web.xml">
       <classes dir="${classes}"/>
-      <lib refid="libfiles"/>
+      <lib dir="${war.dir}/lib/"/>
     </war>
-    <!-- Remove uncompressed class files-->
+    <!-- Remove uncompressed class files and libs-->
     <delete dir="${classes}"/>
+    <delete dir="${war.dir}/lib"/>
   </target>
 
   <path id="compile.classpath">
