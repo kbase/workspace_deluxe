@@ -6,17 +6,22 @@
 
   <!-- set global properties for this build -->
   <property name="package" value="workspace service"/>
-  <property name="src"	location="src"/>
-  <property name="lib"	location="lib"/>
+  <property name="src" location="src"/>
+  <property name="lib" location="lib"/>
   <!--<property name="out.lib"	location="${DEPLOY_RUNTIME}/lib/gen_java_types"/>-->
-  <property name="dist"	location="dist"/>
-  <!--<property name="out.bin"	location="${TARGET}/bin"/>
-  <property name="out.jar"	location="${TARGET}/lib"/>-->
-  <property name="classes"	location="classes"/>
-  <!--<property name="test"	location="test"/>-->
-  <property name="jar.file"	value="WorkspaceService.jar"/>
-  <!--<property name="sh.file"	value="gen_java_types"/>
-  <property name="test.file"	value="test_gen_java_types.sh"/>-->
+  <property name="dist" location="dist"/>
+  <!--<property name="out.bin" location="${TARGET}/bin"/>
+  <property name="out.jar" location="${TARGET}/lib"/>-->
+  <property name="classes" location="classes"/>
+  <!--<property name="test" location="test"/>-->
+  <property name="jar.file" value="WorkspaceService.jar"/>
+  <property name="war.file" value="WorkspaceService.war"/>
+  <!--<property name="sh.file" value="gen_java_types"/>
+  <property name="test.file" value="test_gen_java_types.sh"/>-->
+
+  <fileset dir="${lib}/" id="libfiles">
+    <include name="*.jar"/>
+  </fileset>
 
   <target name="init" description="make directories">
     <!-- Create the output directory structure-->
@@ -36,14 +41,16 @@
         <attribute name="Main-Class" value="us.kbase.scripts.JavaTypeGenerator"/>
       </manifest>-->
     </jar>
+    <war destfile="dist/${war.file}" webxml="war/web.xml">
+      <classes dir="${classes}"/>
+      <lib refid="libfiles"/>
+    </war>
     <!-- Remove uncompressed class files-->
     <delete dir="${classes}"/>
   </target>
 
   <path id="compile.classpath">
-    <fileset dir="${lib}/">
-      <include name="*.jar"/>
-    </fileset>
+    <fileset refid="libfiles"/>
   </path>
 
   <path id="test.classpath">
