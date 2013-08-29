@@ -56,4 +56,14 @@ if [ $? -eq 0 ]; then
     $asadmin undeploy app-${TARGET_PORT}
 fi
 
+if [ "$KB_DEPLOYMENT_CONFIG" ]; then
+    echo "Setting global glassfish property KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG"
+    $asadmin create-system-properties KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG
+fi
+
+if [ "$KB_SERVICE_NAME" ]; then
+    echo "Setting global glassfish property KB_SERVICE_NAME=$KB_SERVICE_NAME"
+    $asadmin create-system-properties KB_SERVICE_NAME=$KB_SERVICE_NAME
+fi
+
 $asadmin deploy --virtualservers server-${TARGET_PORT} --contextroot / --name app-${TARGET_PORT} ${SOURCE_PATH}
