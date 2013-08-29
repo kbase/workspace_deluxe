@@ -88,12 +88,20 @@
 
   <target name="javadoc" description="build javadocs">
     <javadoc access="protected" author="false" classpathref="compile.classpath"
-      destdir="docs" nodeprecated="false" nodeprecatedlist="false"
+      destdir="docs/javadoc" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
-      packagenames="us.kbase.shock.client,us.kbase.shock.client.exceptions"
-      source="1.7" sourcepath="src" splitindex="true" use="true" version="true">
+      source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
+      <fileset dir="src/us/kbase/workspace" defaultexcludes="yes">
+        <include name="WorkspaceClient.java"/>
+        <include name="WorkspaceIdentity.java"/>
+        <include name="*Params.java"/>
+      </fileset>
+      <fileset dir="src/us/kbase" defaultexcludes="yes">
+        <include name="Tuple*.java"/>
+        <include name="*Exception.java"/>
+      </fileset>
     </javadoc>
   </target>
 
