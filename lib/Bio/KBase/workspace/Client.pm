@@ -676,7 +676,7 @@ an int
 
 =item Description
 
-The numerical ID of a workspace
+The unique, permanent numerical ID of a workspace.
 
 
 =item Definition
@@ -740,10 +740,11 @@ a string
 =item Description
 
 Represents the permissions a user or users have to a workspace:
-'a' - administrator. All operations allowed.
-'w' - read/write.
-'r' - read.
-'n' - no permissions.
+
+        'a' - administrator. All operations allowed.
+        'w' - read/write.
+        'r' - read.
+        'n' - no permissions.
 
 
 =item Definition
@@ -805,7 +806,7 @@ a string
 
 =item Description
 
-A time, e.g. 2012-12-17T23:24:06
+A time, e.g. 2012-12-17T23:24:06.
 
 
 =item Definition
@@ -837,10 +838,11 @@ a string
 =item Description
 
 A workspace identifier.
-Select a workspace by one, and only one, of the numerical id or name, where the
-name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
-ws_id - the numerical ID of the workspace.
-ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+
+                Select a workspace by one, and only one, of the numerical id or name, where the
+                name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
+                ws_id - the numerical ID of the workspace.
+                ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
 
 
 =item Definition
@@ -882,8 +884,8 @@ Meta data associated with a workspace.
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
-        timestamp moddate - date when the workspace was last modified
-        permission user_permission - permissions for the authenticated user of this workspace
+        timestamp moddate - date when the workspace was last modified.
+        permission user_permission - permissions for the authenticated user of this workspace.
         permission globalread - whether this workspace is globally readable.
 
 
@@ -930,11 +932,12 @@ a reference to a list containing 6 items:
 =item Description
 
 Input parameters for the "create_workspace" function.
-Required:
-ws_name workspace - name of the workspace to be created
-Optional:
-permission globalread - 'r' to set workspace globally readable, default 'n'.
-string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
+
+        Required:
+        ws_name workspace - name of the workspace to be created.
+        Optional:
+        permission globalread - 'r' to set workspace globally readable, default 'n'.
+        string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
 
 
 =item Definition
@@ -974,12 +977,13 @@ description has a value which is a string
 =item Description
 
 Input parameters for the "set_permissions" function.
-One, and only one, of the following is required:
-ws_id id - the numerical ID of the workspace.
-ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
-Required arguments:
-permission new_permission - the permission to assign to the users
-list<username> users - the users whose permissions will be altered
+
+        One, and only one, of the following is required:
+        ws_id id - the numerical ID of the workspace.
+        ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+        Required arguments:
+        permission new_permission - the permission to assign to the users.
+        list<username> users - the users whose permissions will be altered.
 
 
 =item Definition

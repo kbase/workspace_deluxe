@@ -1,6 +1,8 @@
 SERVICE_PORT = 7068
 SERVICE = workspace
 SERVICE_CAPS = Workspace
+CLIENT_JAR = WorkspaceClient.jar
+WAR = WorkspaceService.war
 
 TOP_DIR = ../..
 
@@ -18,7 +20,8 @@ ANT = ant
 default: build-libs build-docs
 
 build-libs:
-	@# at some point make dependent on compile - checked in for now.
+	ls $(TOP_DIR)
+	@#TODO at some point make dependent on compile - checked in for now.
 	$(ANT) compile
 	
 build-docs: build-libs
@@ -40,7 +43,7 @@ compile-typespec:
 	mkdir -p lib/javascript/$(SERVICE)
 	compile_typespec \
 		--client Bio::KBase::$(SERVICE)::Client \
-		--py biokbase/$(SERVICE)/client \
+		--py biokbase.$(SERVICE).client \
 		--js javascript/$(SERVICE)/Client \
 		--url http://kbase.us/services/$(SERVICE)/ \
 		$(SERVICE).spec lib
@@ -53,6 +56,9 @@ deploy: deploy-client deploy-service
 deploy-client: deploy-client-libs deploy-docs deploy-scripts
 
 deploy-client-libs:
+	mkdir -p $(TARGET)/lib/
+	cp dist/client/$(CLIENT_JAR) $(TARGET)/lib/
+	cp -rv lib/* $(TARGET)/lib/
 
 deploy-docs:
 	mkdir -p $(SERVICE_DIR)/webroot
@@ -63,9 +69,24 @@ deploy-scripts:
 
 deploy-service: deploy-service-libs deploy-service-scripts
 
+deploy-service-libs:
+	mkdir -p $(SERVICE_DIR)
+	cp dist/$(WAR) $(SERVICE_DIR)
+	
+deploy-service-scripts:
+	@#TODO
+	
+
 undeploy:
+	-rm -rf $(SERVICE_DIR)
+	-rm -rfv $(TARGET)/lib/Bio/KBase/$(SERVICE)
+	-rm -rfv $(TARGET)/lib/biokbase/$(SERVICE)
+	-rm -rfv $(TARGET)/lib/javascript/$(SERVICE) 
+	-rm -rfv $(TARGET)/lib/$(CLIENT_JAR)
 
 clean:
-	rm -rf docs
+	-rm -rf docs
+	-rm -rf dist
+	@#TODO remove lib once files are generated on the fly
 
 
