@@ -17,7 +17,8 @@ SETUP
 2) If using a shock backend or running tests, shock must be up and running.
 3) Run administration/initialize.py and follow the instructions
 4) make
-5) make test
-	TODO more instructions on how to set up make test
+5) if you want to run tests:
+5a) fill in the the test.cfg config file in ./test
+5b) make test
 6) make deploy
 7) /kb/deployment/services/Workspace/start_service
