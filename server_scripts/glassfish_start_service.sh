@@ -67,3 +67,8 @@ if [ "$KB_SERVICE_NAME" ]; then
 fi
 
 $asadmin deploy --virtualservers server-${TARGET_PORT} --contextroot / --name app-${TARGET_PORT} ${SOURCE_PATH}
+
+curl -s localhost:${TARGET_PORT} | grep 32603 > /dev/null
+if [ $? -eq 0 ]; then
+	echo "The server failed to start up successfully and is running in protected mode. Please check the system and glassfish logs."
+fi

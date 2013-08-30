@@ -4,6 +4,8 @@ SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 
+THREADPOOL_SIZE = 20
+
 TOP_DIR =  $(shell python -c "import os.path as p; print p.abspath('../..')")
 
 TOP_DIR_NAME = $(shell basename $(TOP_DIR))
@@ -52,7 +54,9 @@ compile-typespec:
 		$(SERVICE).spec lib
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
-	
+
+test:
+	@#TODO
 	
 deploy: deploy-client deploy-service
 
@@ -77,8 +81,11 @@ deploy-service-libs:
 	cp dist/$(WAR) $(SERVICE_DIR)
 	
 deploy-service-scripts:
-	@#TODO
-	
+	cp server_scripts/* $(SERVICE_DIR)
+	echo "./glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" > $(SERVICE_DIR)/start_service
+	chmod +x $(SERVICE_DIR)/start_service
+	echo "./glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
+	chmod +x $(SERVICE_DIR)/stop_service
 
 undeploy:
 	-rm -rf $(SERVICE_DIR)
@@ -91,5 +98,3 @@ clean:
 	-rm -rf docs
 	-rm -rf dist
 	@#TODO remove lib once files are generated on the fly
-
-
