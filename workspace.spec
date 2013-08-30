@@ -22,7 +22,7 @@ module Workspace {
 	/* A boolean. 0 = false, other = true. */
 	typedef int boolean;
 	
-	/* The numerical ID of a workspace */
+	/* The unique, permanent numerical ID of a workspace. */
 	typedef int ws_id;
 	
 	/* A string used as a name for a workspace.
@@ -31,6 +31,7 @@ module Workspace {
 	typedef string ws_name;
 	
 	/* Represents the permissions a user or users have to a workspace:
+	
 		'a' - administrator. All operations allowed.
 		'w' - read/write.
 		'r' - read.
@@ -41,14 +42,16 @@ module Workspace {
 	/* Login name of a KBase user account. */
 	typedef string username;
 	
-	/* A time, e.g. 2012-12-17T23:24:06 */
+	/* A time, e.g. 2012-12-17T23:24:06. */
 	typedef string timestamp;
 	
 	/* A workspace identifier.
+
 		Select a workspace by one, and only one, of the numerical id or name, where the
 		name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
 		ws_id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+		
 	*/
 	typedef structure {
 		ws_name workspace;
@@ -60,8 +63,8 @@ module Workspace {
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
-		timestamp moddate - date when the workspace was last modified
-		permission user_permission - permissions for the authenticated user of this workspace
+		timestamp moddate - date when the workspace was last modified.
+		permission user_permission - permissions for the authenticated user of this workspace.
 		permission globalread - whether this workspace is globally readable.
 			
 	*/
@@ -69,8 +72,9 @@ module Workspace {
 		permission user_permission, permission globalread> workspace_metadata;
 
 	/* Input parameters for the "create_workspace" function.
+	
 		Required:
-		ws_name workspace - name of the workspace to be created
+		ws_name workspace - name of the workspace to be created.
 		Optional:
 		permission globalread - 'r' to set workspace globally readable, default 'n'.
 		string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
@@ -94,19 +98,19 @@ module Workspace {
 		returns (workspace_metadata meta) authentication optional;
 	
 	/* 
-	
 		Get a workspace's description.
 	*/
 	funcdef get_workspace_description(WorkspaceIdentity wsi)
 		returns (string description) authentication optional;
 	
 	/* Input parameters for the "set_permissions" function.
+	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
 		Required arguments:
-		permission new_permission - the permission to assign to the users
-		list<username> users - the users whose permissions will be altered
+		permission new_permission - the permission to assign to the users.
+		list<username> users - the users whose permissions will be altered.
 	*/
 	typedef structure {
 		ws_name workspace;

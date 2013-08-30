@@ -16,6 +16,7 @@
   <!--<property name="test" location="test"/>-->
   <property name="jar.file" value="WorkspaceService.jar"/>
   <property name="war.file" value="WorkspaceService.war"/>
+  <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
   <!--<property name="sh.file" value="gen_java_types"/>
   <property name="test.file" value="test_gen_java_types.sh"/>-->
@@ -43,6 +44,35 @@
     <include name="servlet/servlet-api-2.5.jar"/>
     <include name="syslog4j/syslog4j-0.9.46.jar"/>
   </fileset>
+	
+	
+  <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
+      <include name="workspace/WorkspaceClient.java"/>
+      <include name="workspace/WorkspaceIdentity.java"/>
+      <include name="workspace/*Params.java"/>
+      <include name="Tuple*.java"/>
+      <include name="*Exception.java"/>
+  </fileset>
+
+  <fileset id="client-comp-files" dir="${src}/us/kbase" defaultexcludes="yes">
+    <include name="JsonClientCaller.java"/>
+  </fileset>
+	
+  <union id="client-files">
+    <resources refid="client-jdoc-files" />
+    <resources refid="client-comp-files" />
+  </union>
+
+  <path id="compile.classpath">
+    <fileset refid="libfiles"/>
+  </path>
+
+  <path id="test.classpath">
+    <path refid="compile.classpath"/>
+    <fileset dir="${dist}/">
+      <include name="${jar.file}"/>
+    </fileset>
+  </path>
 
   <target name="init" description="make directories">
     <!-- Create the output directory structure-->
@@ -51,7 +81,7 @@
     <!--<mkdir dir="${test}"/>
     <mkdir dir="${out.lib}"/>-->
   </target>
-	
+
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" srcdir="${src}" includeantruntime="false"
@@ -62,11 +92,16 @@
         <attribute name="Main-Class" value="us.kbase.scripts.JavaTypeGenerator"/>
       </manifest>-->
     </jar>
+    <!-- make the client jar-->
+    <jar destfile="${dist}/client/${clientjar.file}">
+      <union refid="client-files"/>
+    </jar>
+    <!-- make the war file for the server-->
     <mkdir dir="${war.dir}/lib"/>
     <copy todir="${war.dir}/lib/" flatten="true">
       <fileset refid="libfiles"/>
     </copy>
-    <war destfile="dist/${war.file}" webxml="${war.dir}/web.xml">
+    <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
       <classes dir="${classes}"/>
       <lib dir="${war.dir}/lib/"/>
     </war>
@@ -75,17 +110,6 @@
     <delete dir="${war.dir}/lib"/>
   </target>
 
-  <path id="compile.classpath">
-    <fileset refid="libfiles"/>
-  </path>
-
-  <path id="test.classpath">
-    <path refid="compile.classpath"/>
-    <fileset dir="${dist}/">
-      <include name="*.jar"/>
-    </fileset>
-  </path>
-
   <target name="javadoc" description="build javadocs">
     <javadoc access="protected" author="false" classpathref="compile.classpath"
       destdir="docs/javadoc" nodeprecated="false" nodeprecatedlist="false"
@@ -93,15 +117,16 @@
       source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
-      <fileset dir="src/us/kbase/workspace" defaultexcludes="yes">
+      <fileset refid="client-jdoc-files"/>
+      <!--<fileset dir="${src}/us/kbase/workspace" defaultexcludes="yes">
         <include name="WorkspaceClient.java"/>
         <include name="WorkspaceIdentity.java"/>
         <include name="*Params.java"/>
       </fileset>
-      <fileset dir="src/us/kbase" defaultexcludes="yes">
+      <fileset dir="${src}/us/kbase" defaultexcludes="yes">
         <include name="Tuple*.java"/>
         <include name="*Exception.java"/>
-      </fileset>
+      </fileset>-->
     </javadoc>
   </target>
 
