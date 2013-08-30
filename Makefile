@@ -56,7 +56,7 @@ deploy-client-libs:
 
 deploy-docs:
 	mkdir -p $(SERVICE_DIR)/webroot
-	cp docs/*.html $(SERVICE_DIR)/webroot/.
+	cp  -r docs/* $(SERVICE_DIR)/webroot/.
 
 deploy-scripts:
 	@echo no scripts to deploy

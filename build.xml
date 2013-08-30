@@ -54,14 +54,16 @@
       <include name="*Exception.java"/>
   </fileset>
 
-  <fileset id="client-comp-files" dir="${src}/us/kbase" defaultexcludes="yes">
-    <include name="JsonClientCaller.java"/>
+  <fileset id="client-class-files" dir="${classes}" defaultexcludes="yes">
+    <include name="us/kbase/workspace/WorkspaceClient*.class"/>
+    <include name="us/kbase/workspace/WorkspaceIdentity*.class"/>
+    <include name="us/kbase/workspace/*Params*.class"/>
+    <include name="us/kbase/Tuple*.class"/>
+    <include name="us/kbase/*Exception*.class"/>
+    <include name="us/kbase/JsonClientCaller*.class"/>
+    <include name="us/kbase/JacksonTupleModule*.class"/>
+    <include name="us/kbase/UObject*.class"/>
   </fileset>
-	
-  <union id="client-files">
-    <resources refid="client-jdoc-files" />
-    <resources refid="client-comp-files" />
-  </union>
 
   <path id="compile.classpath">
     <fileset refid="libfiles"/>
@@ -94,7 +96,7 @@
     </jar>
     <!-- make the client jar-->
     <jar destfile="${dist}/client/${clientjar.file}">
-      <union refid="client-files"/>
+      <fileset refid="client-class-files"/>
     </jar>
     <!-- make the war file for the server-->
     <mkdir dir="${war.dir}/lib"/>
