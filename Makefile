@@ -4,9 +4,13 @@ SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 
-TOP_DIR = ../..
+TOP_DIR =  $(shell python -c "import os.path as p; print p.abspath('../..')")
 
-#include $(TOP_DIR)/tools/Makefile.common
+TOP_DIR_NAME = $(shell basename $(TOP_DIR))
+
+ifeq ($(TOP_DIR_NAME), dev_container)
+include $(TOP_DIR)/tools/Makefile.common
+endif
 
 DEPLOY_RUNTIME ?= /kb/runtime
 TARGET ?= /kb/deployment
@@ -20,7 +24,6 @@ ANT = ant
 default: build-libs build-docs
 
 build-libs:
-	ls $(TOP_DIR)
 	@#TODO at some point make dependent on compile - checked in for now.
 	$(ANT) compile
 	
