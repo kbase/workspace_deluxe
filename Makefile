@@ -60,7 +60,8 @@ test: test-client test-service test-scripts
 test-client: test-service
 
 test-service:
-	@#TODO
+	test/cfg_to_runner.py $(TESTCFG)
+	test/run_tests.sh
 
 test-scripts:
 	@echo "no scripts to test"

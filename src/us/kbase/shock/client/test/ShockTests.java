@@ -68,6 +68,7 @@ public class ShockTests {
 	@Test
 	public void setExpiredToken() throws Exception {
 		AuthToken exptok = new AuthToken(otherguy.getTokenString(), 0);
+		Thread.sleep(5000); //account for a little clockskew
 		try {
 			bsc2.updateToken(exptok);
 			fail("accepted expired token on update");

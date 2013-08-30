@@ -78,6 +78,7 @@ public class JSONRPCLayerTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		//TODO deal with all this common code
+		//TODO catch exceptions and print nice errors
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
 		String p1 = System.getProperty("test.pwd1");

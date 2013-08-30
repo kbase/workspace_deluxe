@@ -23,7 +23,7 @@ CONFIGFILE = 'deploy.cfg'
 CONFIGHEADER = 'Workspace'
 
 MODULEDIR = 'workspace_deluxe'
-SETUPDIR = 'setup'
+SETUPDIR = 'administration'
 FILENAME = 'initialize.py'
 
 MONGO = 'mongodb-'
