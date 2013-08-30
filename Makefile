@@ -55,8 +55,16 @@ compile-typespec:
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
 
-test:
+test: test-client test-service test-scripts
+	
+test-client: test-service
+
+test-service:
 	@#TODO
+
+test-scripts:
+	@echo "no scripts to test"
+
 	
 deploy: deploy-client deploy-service
 

@@ -15,7 +15,7 @@ SETUP
 
 1) A mongodb instance must be up and running.
 2) If using a shock backend or running tests, shock must be up and running.
-3) Run setup/initialize.py and follow the instructions
+3) Run administration/initialize.py and follow the instructions
 4) make
 5) make test
 	TODO more instructions on how to set up make test
