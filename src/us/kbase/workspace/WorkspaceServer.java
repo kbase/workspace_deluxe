@@ -80,6 +80,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		PERM_TO_API.put(Permission.OWNER, PERM_ADMIN);
 	}
 	
+	private static Map<String, String> wsConfig = null;
+	
 	private final Workspaces ws;
 	
 	private Database getDB(final String host, final String dbs, final String secret,
@@ -140,23 +142,30 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
+		//assign config once per jvm, otherwise you could wind up with
+		//different threads talking to different mongo instances
+		//E.g. first thread's config applies to all threads.
+		if (wsConfig == null) {
+			wsConfig = new HashMap<String, String>();
+			wsConfig.putAll(super.config);
+		}
 		boolean failed = false;
-		if (!config.containsKey(HOST)) {
+		if (!wsConfig.containsKey(HOST)) {
 			fail("Must provide param " + HOST + " in config file");
 			failed = true;
 		}
-		final String host = config.get(HOST);
-		if (!config.containsKey(DB)) {
+		final String host = wsConfig.get(HOST);
+		if (!wsConfig.containsKey(DB)) {
 			fail("Must provide param " + DB + " in config file");
 			failed = true;
 		}
-		final String dbs = config.get(DB);
-		if (!config.containsKey(BACKEND_SECRET)) {
+		final String dbs = wsConfig.get(DB);
+		if (!wsConfig.containsKey(BACKEND_SECRET)) {
 			failed = true;
 			fail("Must provide param " + BACKEND_SECRET + " in config file");
 		}
-		final String secret = config.get(BACKEND_SECRET);
-		if (config.containsKey(USER) ^ config.containsKey(PWD)) {
+		final String secret = wsConfig.get(BACKEND_SECRET);
+		if (wsConfig.containsKey(USER) ^ wsConfig.containsKey(PWD)) {
 			fail(String.format("Must provide both %s and %s ",
 					USER, PWD) + "params in config file if authentication " + 
 					"is to be used");
@@ -166,12 +175,12 @@ public class WorkspaceServer extends JsonServerServlet {
 			fail("Server startup failed - all calls will error out.");
 			ws = null;
 		} else {
-			final String user = config.get(USER);
-			final String pwd = config.get(PWD);
+			final String user = wsConfig.get(USER);
+			final String pwd = wsConfig.get(PWD);
 			String params = "";
 			for (String s: Arrays.asList(HOST, DB, USER)) {
-				if (config.containsKey(s)) {
-					params += s + "=" + config.get(s) + "\n";
+				if (wsConfig.containsKey(s)) {
+					params += s + "=" + wsConfig.get(s) + "\n";
 				}
 			}
 			params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
