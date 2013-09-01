@@ -14,7 +14,7 @@ For now, all compiled files are checked in.
 SETUP
 
 1) A mongodb instance must be up and running.
-2) If using a shock backend or running tests, shock must be up and running.
+2) If using Shock as a backend or running tests, Shock must be up and running.
 3) Run administration/initialize.py and follow the instructions
 4) make
 5) if you want to run tests:

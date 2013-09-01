@@ -389,7 +389,7 @@ public class ShockTests {
 	
 	@Test
 	public void addAndReadAclViaNode() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+		ShockNode sn = setUpNodeAndCheckAuth(bsc2, true);
 		try {
 			sn.setReadable(noverifiedemail);
 			fail("set a node readable using an unverified email");
@@ -403,7 +403,7 @@ public class ShockTests {
 	
 	@Test
 	public void addAndReadAclViaClient() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bsc2);
+		ShockNode sn = setUpNodeAndCheckAuth(bsc2, true);
 		try {
 			bsc1.setNodeReadable(sn.getId(), noverifiedemail);
 			fail("set a node readable using an unverified email");
@@ -417,22 +417,29 @@ public class ShockTests {
 	
 	@Test
 	public void addAndReadAclViaClientNoAuth() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth, false);
 		bsc1.setNodeWorldReadable(sn.getId());
 		checkAuthAndDelete(sn, bscNoAuth, 0);
 	}
 	
 	@Test
 	public void addAndReadAclViaNodeNoAuth() throws Exception {
-		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth);
+		ShockNode sn = setUpNodeAndCheckAuth(bscNoAuth, false);
 		sn.setWorldReadable();
 		checkAuthAndDelete(sn, bscNoAuth, 0);
 	}
 	
-	private ShockNode setUpNodeAndCheckAuth(BasicShockClient c) throws Exception{
+	private ShockNode setUpNodeAndCheckAuth(BasicShockClient c, boolean auth)
+			throws Exception{
 		ShockNode sn = bsc1.addNode();
 		String expected = 
-				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 Unauthorized";
+				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 ";
+		if (auth) {
+			expected += "Unauthorized";
+		} else {
+			//if Authorization.read = false, then you get a No Auth error
+			expected += "Unauthorized"; //"No Authorization";
+		}
 		try {
 			c.getNode(sn.getId());
 			fail("Node is readable with no permissions");
