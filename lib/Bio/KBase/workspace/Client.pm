@@ -52,7 +52,6 @@ sub new
 	url => $url,
     };
 
-    #
     # This module requires authentication.
     #
     # We create an auth token, passing through the arguments that we were (hopefully) given.
@@ -60,11 +59,12 @@ sub new
     {
 	my $token = Bio::KBase::AuthToken->new(@args);
 	
-	if (!$token->error_message)
+	if ($token->error_message)
 	{
-	    $self->{token} = $token->token;
-	    $self->{client}->{token} = $token->token;
+	    die "Authentication failed: " . $token->error_message;
 	}
+	$self->{token} = $token->token;
+	$self->{client}->{token} = $token->token;
     }
 
     my $ua = $self->{client}->ua;	 
@@ -89,21 +89,21 @@ sub new
 =begin html
 
 <pre>
-$params is a Workspace.CreateWorkspaceParams
-$metadata is a Workspace.workspace_metadata
+$params is a CreateWorkspaceParams
+$metadata is a workspace_metadata
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	globalread has a value which is a Workspace.permission
+	workspace has a value which is a ws_name
+	globalread has a value which is a permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	0: (id) a ws_id
+	1: (workspace) a ws_name
+	2: (owner) a username
+	3: (moddate) a timestamp
+	4: (user_permission) a permission
+	5: (globalread) a permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -114,21 +114,21 @@ timestamp is a string
 
 =begin text
 
-$params is a Workspace.CreateWorkspaceParams
-$metadata is a Workspace.workspace_metadata
+$params is a CreateWorkspaceParams
+$metadata is a workspace_metadata
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	globalread has a value which is a Workspace.permission
+	workspace has a value which is a ws_name
+	globalread has a value which is a permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	0: (id) a ws_id
+	1: (workspace) a ws_name
+	2: (owner) a username
+	3: (moddate) a timestamp
+	4: (user_permission) a permission
+	5: (globalread) a permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -174,8 +174,9 @@ sub create_workspace
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
+					       code => $result->content->{error}->{code},
 					       method_name => 'create_workspace',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -201,20 +202,20 @@ sub create_workspace
 =begin html
 
 <pre>
-$wsi is a Workspace.WorkspaceIdentity
-$meta is a Workspace.workspace_metadata
+$wsi is a WorkspaceIdentity
+$meta is a workspace_metadata
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	0: (id) a ws_id
+	1: (workspace) a ws_name
+	2: (owner) a username
+	3: (moddate) a timestamp
+	4: (user_permission) a permission
+	5: (globalread) a permission
 username is a string
 timestamp is a string
 permission is a string
@@ -225,20 +226,20 @@ permission is a string
 
 =begin text
 
-$wsi is a Workspace.WorkspaceIdentity
-$meta is a Workspace.workspace_metadata
+$wsi is a WorkspaceIdentity
+$meta is a workspace_metadata
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	0: (id) a ws_id
+	1: (workspace) a ws_name
+	2: (owner) a username
+	3: (moddate) a timestamp
+	4: (user_permission) a permission
+	5: (globalread) a permission
 username is a string
 timestamp is a string
 permission is a string
@@ -284,8 +285,9 @@ sub get_workspace_metadata
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
+					       code => $result->content->{error}->{code},
 					       method_name => 'get_workspace_metadata',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -311,11 +313,11 @@ sub get_workspace_metadata
 =begin html
 
 <pre>
-$wsi is a Workspace.WorkspaceIdentity
+$wsi is a WorkspaceIdentity
 $description is a string
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 
@@ -325,11 +327,11 @@ ws_id is an int
 
 =begin text
 
-$wsi is a Workspace.WorkspaceIdentity
+$wsi is a WorkspaceIdentity
 $description is a string
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 
@@ -374,8 +376,9 @@ sub get_workspace_description
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
+					       code => $result->content->{error}->{code},
 					       method_name => 'get_workspace_description',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -401,12 +404,12 @@ sub get_workspace_description
 =begin html
 
 <pre>
-$params is a Workspace.SetPermissionsParams
+$params is a SetPermissionsParams
 SetPermissionsParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
-	new_permission has a value which is a Workspace.permission
-	users has a value which is a reference to a list where each element is a Workspace.username
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
+	new_permission has a value which is a permission
+	users has a value which is a reference to a list where each element is a username
 ws_name is a string
 ws_id is an int
 permission is a string
@@ -418,12 +421,12 @@ username is a string
 
 =begin text
 
-$params is a Workspace.SetPermissionsParams
+$params is a SetPermissionsParams
 SetPermissionsParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
-	new_permission has a value which is a Workspace.permission
-	users has a value which is a reference to a list where each element is a Workspace.username
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
+	new_permission has a value which is a permission
+	users has a value which is a reference to a list where each element is a username
 ws_name is a string
 ws_id is an int
 permission is a string
@@ -470,8 +473,9 @@ sub set_permissions
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
+					       code => $result->content->{error}->{code},
 					       method_name => 'set_permissions',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return;
@@ -497,11 +501,11 @@ sub set_permissions
 =begin html
 
 <pre>
-$wsi is a Workspace.WorkspaceIdentity
-$perms is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+$wsi is a WorkspaceIdentity
+$perms is a reference to a hash where the key is a username and the value is a permission
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 username is a string
@@ -513,11 +517,11 @@ permission is a string
 
 =begin text
 
-$wsi is a Workspace.WorkspaceIdentity
-$perms is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+$wsi is a WorkspaceIdentity
+$perms is a reference to a hash where the key is a username and the value is a permission
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+	workspace has a value which is a ws_name
+	id has a value which is a ws_id
 ws_name is a string
 ws_id is an int
 username is a string
@@ -564,8 +568,9 @@ sub get_permissions
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
+					       code => $result->content->{error}->{code},
 					       method_name => 'get_permissions',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -851,8 +856,8 @@ A workspace identifier.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-id has a value which is a Workspace.ws_id
+workspace has a value which is a ws_name
+id has a value which is a ws_id
 
 </pre>
 
@@ -861,8 +866,8 @@ id has a value which is a Workspace.ws_id
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-id has a value which is a Workspace.ws_id
+workspace has a value which is a ws_name
+id has a value which is a ws_id
 
 
 =end text
@@ -895,12 +900,12 @@ Meta data associated with a workspace.
 
 <pre>
 a reference to a list containing 6 items:
-0: (id) a Workspace.ws_id
-1: (workspace) a Workspace.ws_name
-2: (owner) a Workspace.username
-3: (moddate) a Workspace.timestamp
-4: (user_permission) a Workspace.permission
-5: (globalread) a Workspace.permission
+0: (id) a ws_id
+1: (workspace) a ws_name
+2: (owner) a username
+3: (moddate) a timestamp
+4: (user_permission) a permission
+5: (globalread) a permission
 
 </pre>
 
@@ -909,12 +914,12 @@ a reference to a list containing 6 items:
 =begin text
 
 a reference to a list containing 6 items:
-0: (id) a Workspace.ws_id
-1: (workspace) a Workspace.ws_name
-2: (owner) a Workspace.username
-3: (moddate) a Workspace.timestamp
-4: (user_permission) a Workspace.permission
-5: (globalread) a Workspace.permission
+0: (id) a ws_id
+1: (workspace) a ws_name
+2: (owner) a username
+3: (moddate) a timestamp
+4: (user_permission) a permission
+5: (globalread) a permission
 
 
 =end text
@@ -946,8 +951,8 @@ Input parameters for the "create_workspace" function.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-globalread has a value which is a Workspace.permission
+workspace has a value which is a ws_name
+globalread has a value which is a permission
 description has a value which is a string
 
 </pre>
@@ -957,8 +962,8 @@ description has a value which is a string
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-globalread has a value which is a Workspace.permission
+workspace has a value which is a ws_name
+globalread has a value which is a permission
 description has a value which is a string
 
 
@@ -992,10 +997,10 @@ Input parameters for the "set_permissions" function.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-id has a value which is a Workspace.ws_id
-new_permission has a value which is a Workspace.permission
-users has a value which is a reference to a list where each element is a Workspace.username
+workspace has a value which is a ws_name
+id has a value which is a ws_id
+new_permission has a value which is a permission
+users has a value which is a reference to a list where each element is a username
 
 </pre>
 
@@ -1004,10 +1009,10 @@ users has a value which is a reference to a list where each element is a Workspa
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a Workspace.ws_name
-id has a value which is a Workspace.ws_id
-new_permission has a value which is a Workspace.permission
-users has a value which is a reference to a list where each element is a Workspace.username
+workspace has a value which is a ws_name
+id has a value which is a ws_id
+new_permission has a value which is a permission
+users has a value which is a reference to a list where each element is a username
 
 
 =end text

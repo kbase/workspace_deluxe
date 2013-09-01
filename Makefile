@@ -1,4 +1,4 @@
-SERVICE_PORT = 7068
+SERVICE_PORT = 7058
 SERVICE = workspace
 SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
@@ -91,9 +91,9 @@ deploy-service-libs:
 	
 deploy-service-scripts:
 	cp server_scripts/* $(SERVICE_DIR)
-	echo "./glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" > $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" > $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
-	echo "./glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
+	echo "$(SERVICE_DIR)/glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service
 
 undeploy:
