@@ -199,15 +199,18 @@ public class MongoDatabase implements Database {
 	public String getBackendType() {
 		return blob.getStoreType();
 	}
+	
+	private void checkUser(String user) {
+		if (allUsers.equals(user)) {
+			throw new IllegalArgumentException("Illegal user name: " + user);
+		}
+	}
 
 	@Override
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalRead, String description) throws
 			PreExistingWorkspaceException {
-		//TODO checkuser fn
-		if (allUsers.equals(user)) {
-			throw new IllegalArgumentException("Illegal user name: " + user);
-		}
+		checkUser(user);
 		//avoid incrementing the counter if we don't have to
 		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
 			throw new PreExistingWorkspaceException(String.format(
@@ -314,9 +317,7 @@ public class MongoDatabase implements Database {
 			List<String> users, Permission perm) throws
 			NoSuchWorkspaceException {
 		for (String user: users) {
-			if (allUsers.equals(user)) {
-				throw new IllegalArgumentException("Illegal user name: " + user);
-			}
+			checkUser(user);
 		}
 		setPermissions(getWorkspaceID(wsi, true), users, perm, true);
 	}
@@ -352,9 +353,7 @@ public class MongoDatabase implements Database {
 	@Override
 	public Permission getPermission(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException {
-		if (allUsers.equals(user)) {
-			throw new IllegalArgumentException("Illegal user name: " + user);
-		}
+		checkUser(user);
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, user: {$in: [#, #]}}",
@@ -374,9 +373,7 @@ public class MongoDatabase implements Database {
 	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
 			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
-		if (allUsers.equals(user)) {
-			throw new IllegalArgumentException("Illegal user name: " + user);
-		}
+		checkUser(user);
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, user: {$in: [#, #]}}",
