@@ -303,7 +303,7 @@ public class MongoDatabase implements Database {
 	private String getOwner(int wsid) throws NoSuchWorkspaceException {
 		//TODO make generalized query method
 		@SuppressWarnings("unchecked")
-		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
+		final Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
 				.findOne("{id: #}", wsid).projection("{owner: 1}").as(Map.class);
 		if (ws == null) {
 			throw new NoSuchWorkspaceException(String.format(
@@ -324,7 +324,7 @@ public class MongoDatabase implements Database {
 	
 	private void setPermissions(int wsid, List<String> users, Permission perm,
 			boolean checkowner) throws NoSuchWorkspaceException {
-		String owner = checkowner ? getOwner(wsid) : "";
+		final String owner = checkowner ? getOwner(wsid) : "";
 		for (String user: users) {
 			if (owner.equals(user)) {
 				continue; // can't change owner permissions
@@ -354,22 +354,17 @@ public class MongoDatabase implements Database {
 	public Permission getPermission(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException {
 		checkUser(user);
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #, user: {$in: [#, #]}}",
-						getWorkspaceID(wsi, true), user, allUsers)
-				.projection("{perm: 1}").as(Map.class);
-		int perm = 0;
-		for (@SuppressWarnings("rawtypes") Map m: res) {
-			final int newperm = (int) m.get("perm");
-			if (perm < newperm){
-				perm = newperm;
-			}
+		final Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
+		Permission perm = Permission.NONE;
+		if (res.containsKey(allUsers)) {
+			perm = res.get(allUsers); //if allUsers is in the DB it's always read
 		}
-		return translatePermission(perm);
+		if (res.containsKey(user) && !res.get(user).equals(Permission.NONE)) {
+			perm = res.get(user);
+		}
+		return perm;
 	}
 	
-	//TODO merge common code with above
 	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
 			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
@@ -379,7 +374,7 @@ public class MongoDatabase implements Database {
 				.find("{id: #, user: {$in: [#, #]}}",
 						getWorkspaceID(wsi, true), user, allUsers)
 				.projection("{user: 1, perm: 1}").as(Map.class);
-		Map<String, Permission> ret = new HashMap<String, Permission>();
+		final Map<String, Permission> ret = new HashMap<String, Permission>();
 		for (@SuppressWarnings("rawtypes") Map m: res) {
 			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
 		}
@@ -413,14 +408,14 @@ public class MongoDatabase implements Database {
 		QueryErr qe = setUpQuery(wsi);
 		@SuppressWarnings("unchecked")
 		//TODO use common method for getting workspace fields
-		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
+		final Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
 				.findOne(qe.query).projection("{id: 1, name: 1, owner: 1, moddate: 1}")
 				.as(Map.class);
 		if (ws == null) {
 			throw new NoSuchWorkspaceException(String.format(
 					"No workspace with %s exists", qe.err));
 		}
-		Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
+		final Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				(String) ws.get("owner"), (Date) ws.get("moddate"),
 				res.get(user), res.containsKey(allUsers));
