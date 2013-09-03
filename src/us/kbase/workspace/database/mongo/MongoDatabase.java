@@ -336,6 +336,31 @@ public class MongoDatabase implements Database {
 					"No such permission level " + perm);
 		}
 	}
+	
+	private Map<String, Permission> queryPermissions(WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException {
+		return queryPermissions(wsi, null);
+	}
+	
+	private Map<String, Permission> queryPermissions(WorkspaceIdentifier wsi,
+			List<String> users) throws NoSuchWorkspaceException {
+		final DBObject query = new BasicDBObject();
+		query.put("id", getWorkspaceID(wsi, true));
+		if (users != null && users.size() > 0) {
+			final DBObject usersdb = new BasicDBObject();
+			usersdb.put("$in", users);
+			query.put("user", usersdb);
+		}
+		@SuppressWarnings("rawtypes")
+		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+				.find(query.toString()).projection("{user: 1, perm: 1}")
+				.as(Map.class);
+		final Map<String, Permission> ret = new HashMap<String, Permission>();
+		for (@SuppressWarnings("rawtypes") Map m: res) {
+			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
+		}
+		return ret;
+	}
 
 	@Override
 	public Permission getPermission(String user, WorkspaceIdentifier wsi)
@@ -356,37 +381,18 @@ public class MongoDatabase implements Database {
 	public Map<String, Permission> getUserAndGlobalPermission(
 			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
 		checkUser(user);
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #, user: {$in: [#, #]}}",
-						getWorkspaceID(wsi, true), user, allUsers)
-				.projection("{user: 1, perm: 1}").as(Map.class);
-		final Map<String, Permission> ret = new HashMap<String, Permission>();
-		for (@SuppressWarnings("rawtypes") Map m: res) {
-			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
-		}
+		final Map<String, Permission> ret = queryPermissions(wsi, Arrays.asList(
+				user, allUsers));
 		if (!ret.containsKey(user)) {
 			ret.put(user, Permission.NONE);
 		}
 		return ret;
 	}
 
-	//TODO make common methods for perm queries, general clean up
-	
 	@Override
 	public Map<String, Permission> getAllPermissions(
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
-		final Map<String, Permission> ret = new HashMap<String, Permission>();
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #}", getWorkspaceID(wsi, true))
-				.projection("{perm: 1, user: 1}").as(Map.class);
-		for (@SuppressWarnings("rawtypes") Map m: acls) {
-			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
-		}
-//		}
-		return ret;
-		
+		return queryPermissions(wsi);
 	}
 
 	@Override
