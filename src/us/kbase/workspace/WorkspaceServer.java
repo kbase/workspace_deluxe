@@ -247,7 +247,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_metadata
 		//TODO deal with null auth
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(wksp, authPart.getUserName());
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(authPart.getUserName(), wksp);
 		//TODO WMD to Tuple6 method
 		returnVal = new Tuple6<Integer, String, String, String, String, String>()
 				.withE1(meta.getId()).withE2(meta.getName())
@@ -321,7 +321,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		//TODO deal with null auth
-		final Map<String, Permission> acls = ws.getPermissions(wksp, authPart.getUserName());
+		final Map<String, Permission> acls = ws.getPermissions(authPart.getUserName(), wksp);
 		for (String acl: acls.keySet()) {
 			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));
 		}

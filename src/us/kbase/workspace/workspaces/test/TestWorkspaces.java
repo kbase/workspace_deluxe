@@ -188,13 +188,13 @@ public class TestWorkspaces {
 		int id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
-		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier(id), "auser");
+		meta = ws.getWorkspaceMetaData("auser", new WorkspaceIdentifier(id));
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
-		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier("foo"), "auser");
+		meta = ws.getWorkspaceMetaData("auser", new WorkspaceIdentifier("foo"));
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false, id, moddate);
 		
 		try {
-			ws.getWorkspaceMetaData(wsi, "b");
+			ws.getWorkspaceMetaData("b", wsi);
 			fail("Got metadata w/o read perms");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message ok", e.getLocalizedMessage(),
@@ -205,7 +205,7 @@ public class TestWorkspaces {
 				continue;
 			}
 			ws.setPermissions("auser", wsi, Arrays.asList("b"), p);
-			ws.getWorkspaceMetaData(wsi, "b"); //will fail if perms are wrong
+			ws.getWorkspaceMetaData("b", wsi); //will fail if perms are wrong
 		}
 		
 		
@@ -213,9 +213,9 @@ public class TestWorkspaces {
 		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true);
 		id = meta.getId();
 		moddate = meta.getModDate();
-		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier(id), "anotherfnuser");
+		meta = ws.getWorkspaceMetaData("anotherfnuser", new WorkspaceIdentifier(id));
 		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
-		meta = ws.getWorkspaceMetaData(new WorkspaceIdentifier("anotherfnuser:MrT"), "anotherfnuser");
+		meta = ws.getWorkspaceMetaData("anotherfnuser", new WorkspaceIdentifier("anotherfnuser:MrT"));
 		checkMeta(meta, "anotherfnuser", "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
 	}
 	
@@ -349,24 +349,24 @@ public class TestWorkspaces {
 		}
 		//check basic permissions for new private and public workspaces
 		expect.put("a", Permission.OWNER);
-		assertThat("ws has correct perms for owner", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("ws has correct perms for owner", ws.getPermissions("a", wsiNG), is(expect));
 		expect.put("*", Permission.READ);
-		assertThat("ws has correct perms for owner", ws.getPermissions(wsiGL, "a"), is(expect));
+		assertThat("ws has correct perms for owner", ws.getPermissions("a", wsiGL), is(expect));
 		expect.clear();
 		expect.put("b", Permission.NONE);
-		assertThat("ws has correct perms for random user", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("ws has correct perms for random user", ws.getPermissions("b", wsiNG), is(expect));
 		expect.put("*", Permission.READ);
-		assertThat("ws has correct perms for random user", ws.getPermissions(wsiGL, "b"), is(expect));
+		assertThat("ws has correct perms for random user", ws.getPermissions("b", wsiGL), is(expect));
 		//test read permissions
 		ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
 		expect.clear();
 		expect.put("a", Permission.OWNER);
 		expect.put("b", Permission.READ);
 		expect.put("c", Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions("a", wsiNG), is(expect));
 		expect.clear();
 		expect.put("b", Permission.READ);
-		assertThat("no permission leakage", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("no permission leakage", ws.getPermissions("b", wsiNG), is(expect));
 		try {
 			ws.setPermissions("b", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
 			fail("was able to set permissions with unauth'd username");
@@ -379,10 +379,10 @@ public class TestWorkspaces {
 		expect.put("a", Permission.OWNER);
 		expect.put("b", Permission.WRITE);
 		expect.put("c", Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions("a", wsiNG), is(expect));
 		expect.clear();
 		expect.put("b", Permission.WRITE);
-		assertThat("no permission leakage", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("no permission leakage", ws.getPermissions("b", wsiNG), is(expect));
 		try {
 			ws.setPermissions("b", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
 			fail("was able to set permissions with unauth'd username");
@@ -395,17 +395,17 @@ public class TestWorkspaces {
 		expect.put("a", Permission.OWNER);
 		expect.put("b", Permission.ADMIN);
 		expect.put("c", Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
-		assertThat("admin can see all perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions("a", wsiNG), is(expect));
+		assertThat("admin can see all perms", ws.getPermissions("b", wsiNG), is(expect));
 		ws.setPermissions("b", wsiNG, Arrays.asList("a", "c"), Permission.WRITE);
 		expect.put("c", Permission.WRITE);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
-		assertThat("admin can correctly set perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions("a", wsiNG), is(expect));
+		assertThat("admin can correctly set perms", ws.getPermissions("b", wsiNG), is(expect));
 		//test remove permissions
 		ws.setPermissions("b", wsiNG, Arrays.asList("a", "c"), Permission.NONE);
 		expect.remove("c");
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(wsiNG, "a"), is(expect));
-		assertThat("admin can't overwrite owner perms", ws.getPermissions(wsiNG, "b"), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions("a", wsiNG), is(expect));
+		assertThat("admin can't overwrite owner perms", ws.getPermissions("b", wsiNG), is(expect));
 		
 		
 	}
