@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
+import us.kbase.JsonClientException;
 import us.kbase.ServerException;
 import us.kbase.Tuple6;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -47,6 +49,7 @@ public class JSONRPCLayerTest {
 	
 	private static WorkspaceServer SERVER = null;
 	private static WorkspaceClient CLIENT1 = null;
+	private static String USERNOEMAIL = null;
 	private static String USER1 = null;
 	private static WorkspaceClient CLIENT2 = null;
 	private static String USER2 = null;
@@ -81,6 +84,7 @@ public class JSONRPCLayerTest {
 		//TODO catch exceptions and print nice errors
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
+		USERNOEMAIL = System.getProperty("test.user.noemail");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
 		String host = System.getProperty("test.mongo.host");
@@ -277,7 +281,43 @@ public class JSONRPCLayerTest {
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
 	}
 	
-	//TODO test all perms levels
+	@Test
+	public void permissions() throws IOException, JsonClientException {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permspriv")
+				.withDescription("foo"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permsglob")
+				.withGlobalread("r").withDescription("bar"));
+		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob")); //should work, global read
+		try {
+			CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv"));
+			fail("Able to get ws desc without read perms");
+		} catch (ServerException e) {
+			assertThat("Correct excp message", e.getLocalizedMessage(),
+					is("User kbasetest2 does not have permission to read workspace permspriv"));
+		}
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
+		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv")); //should work, now readable
+		//TODO test write permissions
+		try {
+			CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+					.withNewPermission("a").withUsers(Arrays.asList(USER1)));
+		} catch (ServerException e) {
+			assertThat("Correct excp message", e.getLocalizedMessage(),
+					is("User kbasetest2 does not have permission to set permissions on workspace permspriv"));
+		}
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+				.withNewPermission("a").withUsers(Arrays.asList(USER2)));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+				.withNewPermission("w").withUsers(Arrays.asList(USERNOEMAIL))); //should work
+		Map<String, String> expected = new HashMap<String, String>();
+		expected.put(USER1, "a");
+		expected.put(USER2, "a");
+		expected.put(USERNOEMAIL, "w");
+		Map<String, String> perms = CLIENT2.getPermissions(new WorkspaceIdentity()
+			.withWorkspace("permspriv"));
+		assertThat("Permissions set correctly", perms, is(expected));
+	}
 	
 	@Test
 	public void badIdent() throws Exception {
