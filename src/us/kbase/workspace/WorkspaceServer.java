@@ -137,6 +137,15 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		return KBWorkspaceIDFactory.create(workspace);
 	}
+	
+	private Tuple6<Integer, String, String, String, String, String> wsMetaToTuple (
+			WorkspaceMetaData meta) {
+		return new Tuple6<Integer, String, String, String, String, String>()
+				.withE1(meta.getId()).withE2(meta.getName())
+				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
+				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
+				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -224,11 +233,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				p.equals(Permission.READ), params.getDescription());
-		returnVal = new Tuple6<Integer, String, String, String, String, String>()
-				.withE1(meta.getId()).withE2(meta.getName())
-				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
-				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
-				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
+		returnVal = wsMetaToTuple(meta);
         //END create_workspace
         return returnVal;
     }
@@ -248,12 +253,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO deal with null auth
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(authPart.getUserName(), wksp);
-		//TODO WMD to Tuple6 method
-		returnVal = new Tuple6<Integer, String, String, String, String, String>()
-				.withE1(meta.getId()).withE2(meta.getName())
-				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
-				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
-				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
+		returnVal = wsMetaToTuple(meta);
         //END get_workspace_metadata
         return returnVal;
     }
