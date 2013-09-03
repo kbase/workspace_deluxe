@@ -43,8 +43,8 @@ public class MongoDatabase implements Database {
 	private static final String WS_ACLS = "workspaceACLs";
 	private String allUsers = "*";
 	
-	//TODO make getMongo static method that returns the same instance of mongoClient
 	//TODO catch all mongo exceptions and rethrow
+	private static MongoClient mongoClient = null;
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
@@ -136,18 +136,20 @@ public class MongoDatabase implements Database {
 
 	private DB getDB(String host, String database) throws UnknownHostException,
 			InvalidHostException {
-		// Don't print to stderr
-		Logger.getLogger("com.mongodb").setLevel(Level.OFF);
-		final MongoClientOptions opts = MongoClientOptions.builder()
-				.autoConnectRetry(true).build();
-		MongoClient m = null;
-		try {
-			m = new MongoClient(host, opts);
-		} catch (NumberFormatException nfe) {
-			throw new InvalidHostException(host
-					+ " is not a valid mongodb host");
+		//Only make one instance of MongoClient per JVM per mongo docs
+		if (mongoClient == null) {
+			// Don't print to stderr
+			Logger.getLogger("com.mongodb").setLevel(Level.OFF);
+			final MongoClientOptions opts = MongoClientOptions.builder()
+					.autoConnectRetry(true).build();
+			try {
+				mongoClient = new MongoClient(host, opts);
+			} catch (NumberFormatException nfe) {
+				throw new InvalidHostException(host
+						+ " is not a valid mongodb host");
+			}
 		}
-		return m.getDB(database);
+		return mongoClient.getDB(database);
 	}
 
 	private BlobStore setupDB(String backendSecret) throws WorkspaceDBException {
