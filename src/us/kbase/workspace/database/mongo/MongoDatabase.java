@@ -24,6 +24,7 @@ import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
@@ -43,7 +44,6 @@ public class MongoDatabase implements Database {
 	private static final String WS_ACLS = "workspaceACLs";
 	private String allUsers = "*";
 	
-	//TODO catch all mongo exceptions and rethrow
 	private static MongoClient mongoClient = null;
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -213,14 +213,25 @@ public class MongoDatabase implements Database {
 	@Override
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalRead, String description) throws
-			PreExistingWorkspaceException {
+			PreExistingWorkspaceException, WorkspaceCommunicationException {
 		checkUser(user);
 		//avoid incrementing the counter if we don't have to
-		if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
-			throw new PreExistingWorkspaceException(String.format(
-					"Workspace %s already exists", wsname));
+		try {
+			if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
+				throw new PreExistingWorkspaceException(String.format(
+						"Workspace %s already exists", wsname));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
 		}
-		final Integer count = (Integer) updateWScounter.as(DBObject.class).get("num");
+		Integer count; 
+		try {
+			count = (Integer) updateWScounter.as(DBObject.class).get("num");
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
 		final DBObject ws = new BasicDBObject();
 		ws.put("owner", user);
 		ws.put("id", count);
@@ -236,6 +247,9 @@ public class MongoDatabase implements Database {
 		} catch (MongoException.DuplicateKey mdk) {
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace %s already exists", wsname));
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
 		}
 		try {
 			setPermissions(count, Arrays.asList(user), Permission.OWNER, false);
@@ -250,7 +264,8 @@ public class MongoDatabase implements Database {
 	}
 
 	private Map<String, Object> queryWorkspace(WorkspaceIdentifier wsi,
-			List<String> fields) throws NoSuchWorkspaceException {
+			List<String> fields) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		if (wsi.getId() != null) {
 			return queryWorkspace(wsi.getId(), fields);
 		}
@@ -258,26 +273,35 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<String, Object> queryWorkspace(String wsname, List<String> fields)
-			throws NoSuchWorkspaceException {
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		return queryWorkspace(String.format("{name: \"%s\"}", wsname),
 				"name " + wsname, fields);
 	}
 	
 	private Map<String, Object> queryWorkspace(int wsid, List<String> fields)
-			throws NoSuchWorkspaceException {
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		return queryWorkspace(String.format("{id: %d}", wsid), "id " + wsid,
 				fields);
 	}
 		
 	private Map<String, Object> queryWorkspace(String query, String error,
-			List<String> fields) throws NoSuchWorkspaceException {
+			List<String> fields) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		for (String field: fields) {
 			projection.put(field, 1);
 		}
-		@SuppressWarnings("unchecked")
-		final Map<String, Object> result = wsjongo.getCollection(WORKSPACES)
-				.findOne(query).projection(projection.toString()).as(Map.class);
+		Map<String, Object> result;
+		try {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> res = wsjongo.getCollection(WORKSPACES)
+					.findOne(query).projection(projection.toString())
+					.as(Map.class);
+			result = res;
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
 		if (result == null) {
 			throw new NoSuchWorkspaceException(String.format(
 					"No workspace with %s exists", error));
@@ -287,26 +311,28 @@ public class MongoDatabase implements Database {
 
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier wsi) throws
-			NoSuchWorkspaceException {
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		return (String) queryWorkspace(wsi, Arrays.asList("description"))
 				.get("description");
 	}
 	
 	private int getWorkspaceID(WorkspaceIdentifier wsi, boolean verify) throws
-			NoSuchWorkspaceException {
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		if (!verify && wsi.getId() != null) {
 			return wsi.getId();
 		}
 		return (int) queryWorkspace(wsi, Arrays.asList("id")).get("id");
 	}
 
-	private String getOwner(int wsid) throws NoSuchWorkspaceException {
+	private String getOwner(int wsid) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		return (String) queryWorkspace(wsid, Arrays.asList("owner")).get("owner");
 	}
 	
 	@Override
 	public void setPermissions(WorkspaceIdentifier wsi, List<String> users,
-			Permission perm) throws NoSuchWorkspaceException {
+			Permission perm) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		for (String user: users) {
 			checkUser(user);
 		}
@@ -314,17 +340,23 @@ public class MongoDatabase implements Database {
 	}
 	
 	private void setPermissions(int wsid, List<String> users, Permission perm,
-			boolean checkowner) throws NoSuchWorkspaceException {
+			boolean checkowner) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		final String owner = checkowner ? getOwner(wsid) : "";
 		for (String user: users) {
 			if (owner.equals(user)) {
 				continue; // can't change owner permissions
 			}
-			if (perm.equals(Permission.NONE)) {
-				wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);
-			} else {
-				wsjongo.getCollection(WS_ACLS).update("{id: #, user: #}", wsid, user)
-					.upsert().with("{$set: {perm: #}}", perm.getPermission());
+			try {
+				if (perm.equals(Permission.NONE)) {
+					wsjongo.getCollection(WS_ACLS).remove("{id: #, user: #}", wsid, user);
+				} else {
+					wsjongo.getCollection(WS_ACLS).update("{id: #, user: #}", wsid, user)
+						.upsert().with("{$set: {perm: #}}", perm.getPermission());
+				}
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
 			}
 		}
 	}
@@ -342,12 +374,13 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<String, Permission> queryPermissions(WorkspaceIdentifier wsi)
-			throws NoSuchWorkspaceException {
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		return queryPermissions(wsi, null);
 	}
 	
 	private Map<String, Permission> queryPermissions(WorkspaceIdentifier wsi,
-			List<String> users) throws NoSuchWorkspaceException {
+			List<String> users) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		final DBObject query = new BasicDBObject();
 		query.put("id", getWorkspaceID(wsi, true));
 		if (users != null && users.size() > 0) {
@@ -356,9 +389,17 @@ public class MongoDatabase implements Database {
 			query.put("user", usersdb);
 		}
 		@SuppressWarnings("rawtypes")
-		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find(query.toString()).projection("{user: 1, perm: 1}")
-				.as(Map.class);
+		final Iterable<Map> res;
+		try {
+			@SuppressWarnings("rawtypes")
+			final Iterable<Map> result = wsjongo.getCollection(WS_ACLS)
+					.find(query.toString()).projection("{user: 1, perm: 1}")
+					.as(Map.class);
+			res = result;
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
 		final Map<String, Permission> ret = new HashMap<String, Permission>();
 		for (@SuppressWarnings("rawtypes") Map m: res) {
 			ret.put((String) m.get("user"), translatePermission((int) m.get("perm")));
@@ -368,7 +409,7 @@ public class MongoDatabase implements Database {
 
 	@Override
 	public Permission getPermission(String user, WorkspaceIdentifier wsi)
-			throws NoSuchWorkspaceException {
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		checkUser(user);
 		final Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
 		Permission perm = Permission.NONE;
@@ -383,7 +424,8 @@ public class MongoDatabase implements Database {
 	
 	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
-			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
+			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		checkUser(user);
 		final Map<String, Permission> ret = queryPermissions(wsi, Arrays.asList(
 				user, allUsers));
@@ -395,13 +437,15 @@ public class MongoDatabase implements Database {
 
 	@Override
 	public Map<String, Permission> getAllPermissions(
-			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		return queryPermissions(wsi);
 	}
 
 	@Override
 	public WorkspaceMetaData getWorkspaceMetadata(String user,
-			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
 		final Map<String, Object> ws = queryWorkspace(wsi, Arrays.asList(
 				"id", "name", "owner", "moddate"));
 		final Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);

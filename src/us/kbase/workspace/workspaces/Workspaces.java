@@ -6,6 +6,7 @@ import java.util.Map;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
@@ -25,7 +26,7 @@ public class Workspaces {
 	
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) throws
-			PreExistingWorkspaceException {
+			PreExistingWorkspaceException, WorkspaceCommunicationException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
 		if(description != null && description.length() > MAX_WS_DESCRIPTION) {
 			description = description.substring(0, MAX_WS_DESCRIPTION);
@@ -34,7 +35,8 @@ public class Workspaces {
 	}
 	
 	public String getWorkspaceDescription(String user, WorkspaceIdentifier wsi)
-			throws NoSuchWorkspaceException, WorkspaceAuthorizationException {
+			throws NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			WorkspaceCommunicationException {
 		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0 ) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
@@ -45,7 +47,8 @@ public class Workspaces {
 
 	public void setPermissions(String user, WorkspaceIdentifier wsi,
 			List<String> users, Permission permission) throws
-			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+			NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			WorkspaceCommunicationException {
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
@@ -58,7 +61,8 @@ public class Workspaces {
 	}
 
 	public Map<String, Permission> getPermissions(String user,
-				WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
+				WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+				WorkspaceCommunicationException {
 		Map<String, Permission> perms = db.getUserAndGlobalPermission(user, wsi);
 		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
 			return perms;
@@ -68,7 +72,7 @@ public class Workspaces {
 
 	public WorkspaceMetaData getWorkspaceMetaData(String user,
 				WorkspaceIdentifier wsi) throws WorkspaceAuthorizationException,
-				NoSuchWorkspaceException {
+				NoSuchWorkspaceException, WorkspaceCommunicationException {
 		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",

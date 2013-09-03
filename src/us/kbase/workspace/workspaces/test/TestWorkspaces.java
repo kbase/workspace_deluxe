@@ -20,7 +20,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
@@ -136,8 +135,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void testWorkspaceDescription() throws PreExistingWorkspaceException,
-			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+	public void testWorkspaceDescription() throws Exception {
 		ws.createWorkspace("auser", "lt", false, LONG_TEXT);
 		ws.createWorkspace("auser", "ltp", false, LONG_TEXT_PART);
 		ws.createWorkspace("auser", "ltn", false, null);
@@ -181,8 +179,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void testCreateWorkspaceAndGetMeta() throws PreExistingWorkspaceException,
-			NoSuchWorkspaceException, WorkspaceAuthorizationException {
+	public void testCreateWorkspaceAndGetMeta() throws Exception {
 		WorkspaceMetaData meta = ws.createWorkspace("auser", "foo", false, "eeswaffertheen");
 		checkMeta(meta, "auser", "foo", Permission.OWNER, false);
 		int id = meta.getId();
@@ -221,7 +218,7 @@ public class TestWorkspaces {
 	
 	@Test
 	public void testCreateWorkspaceAndWorkspaceIdentifierWithBadInput()
-			throws PreExistingWorkspaceException {
+			throws Exception {
 		List<List<String>> userWS = new ArrayList<List<String>>();
 		//test a few funny chars in the ws name
 		userWS.add(Arrays.asList("afaeaafe", "afe_aff*afea",
@@ -317,8 +314,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void permissions() throws PreExistingWorkspaceException, NoSuchWorkspaceException,
-			WorkspaceAuthorizationException {
+	public void permissions() throws Exception {
 		//setup
 		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
 		ws.createWorkspace("a", "perms_noglobal", false, null);
