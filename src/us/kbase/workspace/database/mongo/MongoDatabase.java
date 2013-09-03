@@ -356,9 +356,8 @@ public class MongoDatabase implements Database {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
-		//TODO use $in instead of $or
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #, $or: [{user: #}, {user: #}]}",
+				.find("{id: #, user: {$in: [#, #]}}",
 						getWorkspaceID(workspace, true), user, allUsers)
 				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
@@ -381,9 +380,8 @@ public class MongoDatabase implements Database {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
-		//TODO use $in instead of $or
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #, $or: [{user: #}, {user: #}]}",
+				.find("{id: #, user: {$in: [#, #]}}",
 						getWorkspaceID(workspace, true), user, allUsers)
 				.projection("{user: 1, perm: 1}").as(Map.class);
 		Map<String, Permission> ret = new HashMap<String, Permission>();
@@ -404,18 +402,7 @@ public class MongoDatabase implements Database {
 		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
-//		int wsid = getWorkspaceID(wsi, true);
-//		@SuppressWarnings("unchecked")
-//		final Map<String, Object> acl = (Map<String, Object>) wsjongo.getCollection(WS_ACLS)
-//				.findOne("{id: #, user: #}", wsid, user)
-//				.projection("{perm: 1}").as(Map.class);
 		final Map<String, Permission> ret = new HashMap<String, Permission>();
-//		if (acl == null) {
-//			return ret;
-//		}
-//		if (Permission.ADMIN.getPermission() > (int) acl.get("perm")) {
-//			ret.put(user, translatePermission((int) acl.get("perm")));
-//		} else {
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #}", getWorkspaceID(wsi, true))
@@ -442,24 +429,23 @@ public class MongoDatabase implements Database {
 					"No workspace with %s exists", qe.err));
 		}
 		@SuppressWarnings("rawtypes")
-		//TODO use getUserAndGlobalPermissions
-		//TODO use $in instead of $or
-		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-				.find("{id: #, $or: [{user: #}, {user: #}]}",
-						ws.get("id"), user, allUsers)
-				.projection("{user: 1, perm: 1}").as(Map.class);
-		boolean globalread = false;
-		Permission p = Permission.NONE;
-		for (@SuppressWarnings("rawtypes") Map m: res) {
-			if (m.get("user").equals(allUsers)) {
-				globalread = true;
-			} else if (m.get("user").equals(user)) {
-				p = translatePermission((int) m.get("perm"));
-			}
-		}
+//		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
+//				.find("{id: #, user: {$in: [#, #]}}",
+//						ws.get("id"), user, allUsers)
+//				.projection("{user: 1, perm: 1}").as(Map.class);
+		Map<String, Permission> res = getUserAndGlobalPermission(wksp, user);
+//		boolean globalread = false;
+//		Permission p = Permission.NONE;
+//		for (@SuppressWarnings("rawtypes") Map m: res) {
+//			if (m.get("user").equals(allUsers)) {
+//				globalread = true;
+//			} else if (m.get("user").equals(user)) {
+//				p = translatePermission((int) m.get("perm"));
+//			}
+//		}
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				(String) ws.get("owner"), (Date) ws.get("moddate"),
-				p, globalread);
+				res.get(user), res.containsKey(allUsers));
 	}
 
 	@Override

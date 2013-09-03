@@ -298,7 +298,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
 		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv")); //should work, now readable
-		//TODO test write permissions
+		//TODO WAIT for more methods: test write permissions
 		try {
 			CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 					.withNewPermission("a").withUsers(Arrays.asList(USER1)));

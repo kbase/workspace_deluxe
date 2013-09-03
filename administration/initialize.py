@@ -100,7 +100,7 @@ def printDBsettings(settings):
         print(s + '=' + str(settings.get(s, None)))
 
 
-# TODO replace this with the py auth lib when it's ready
+# TODO WAIT replace this with the py auth lib when it's ready
 def _get_token(user_id, password,
         auth_svc='https://nexus.api.globusonline.org/goauth/token?' +
             'grant_type=client_credentials'):
