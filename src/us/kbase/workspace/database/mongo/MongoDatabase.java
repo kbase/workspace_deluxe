@@ -33,6 +33,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoException;
 
 public class MongoDatabase implements Database {
@@ -43,7 +44,6 @@ public class MongoDatabase implements Database {
 	private String allUsers = "*";
 	
 	//TODO make getMongo static method that returns the same instance of mongoClient
-	//TODO check autoreconnect
 	//TODO catch all mongo exceptions and rethrow
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -138,9 +138,11 @@ public class MongoDatabase implements Database {
 			InvalidHostException {
 		// Don't print to stderr
 		Logger.getLogger("com.mongodb").setLevel(Level.OFF);
+		final MongoClientOptions opts = MongoClientOptions.builder()
+				.autoConnectRetry(true).build();
 		MongoClient m = null;
 		try {
-			m = new MongoClient(host);
+			m = new MongoClient(host, opts);
 		} catch (NumberFormatException nfe) {
 			throw new InvalidHostException(host
 					+ " is not a valid mongodb host");
