@@ -12,7 +12,7 @@ ANT = 'ant'
 
 CONFIG_OPTS = ['test.shock.url',
                'test.mongo.host',
-               'test.mongo.db',
+               'test.mongo.db1',
                'test.mongo.db2',
                'test.mongo.user',
                'test.mongo.pwd',

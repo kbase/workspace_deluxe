@@ -32,7 +32,7 @@ public class GridFSBackendTest {
 	public static void setUpClass() throws Exception {
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		String host = System.getProperty("test.mongo.host");
-		String db = System.getProperty("test.mongo.db");
+		String db = System.getProperty("test.mongo.db1");
 		String user = System.getProperty(USER);
 		String pwd = System.getProperty(PWD);
 		if (user.equals("")) {

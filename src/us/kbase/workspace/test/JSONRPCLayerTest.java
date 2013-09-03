@@ -88,7 +88,7 @@ public class JSONRPCLayerTest {
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
 		String host = System.getProperty("test.mongo.host");
-		String db = System.getProperty("test.mongo.db");
+		String db = System.getProperty("test.mongo.db1");
 		String mUser = System.getProperty(M_USER);
 		String mPwd = System.getProperty(M_PWD);
 

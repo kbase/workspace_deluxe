@@ -57,7 +57,7 @@ public class TestWorkspaces {
 	public static void setUpWorkspaces() throws Exception {
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		String host = System.getProperty("test.mongo.host");
-		String db1 = System.getProperty("test.mongo.db");
+		String db1 = System.getProperty("test.mongo.db1");
 		String db2 = System.getProperty("test.mongo.db2");
 		String mUser = System.getProperty(M_USER);
 		String mPwd = System.getProperty(M_PWD);

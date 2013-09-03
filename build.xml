@@ -114,7 +114,7 @@
   <target name="test" depends="compile" description="run tests">
     <fail unless="test.shock.url" message="property test.shock.url not set."/>
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
-    <fail unless="test.mongo.db" message="property test.mongo.db not set."/>
+    <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
     <fail unless="test.mongo.db2" message="property test.mongo.db2 not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
@@ -134,7 +134,7 @@
       <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
-      <sysproperty key="test.mongo.db" value="${test.mongo.db}"/>
+      <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
       <sysproperty key="test.mongo.db2" value="${test.mongo.db2}"/>
       <sysproperty key="test.mongo.user" value="${test.mongo.user}"/>
       <sysproperty key="test.mongo.pwd" value="${test.mongo.pwd}"/>
