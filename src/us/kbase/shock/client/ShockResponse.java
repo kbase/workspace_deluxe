@@ -34,7 +34,7 @@ abstract class ShockResponse {
 			} else if (status == 400 && getError().equals("Node has no file")) {
 				throw new ShockNoFileException(getStatus(), getError());
 			} else {
-				//TODO WAIT when available, throw appropriate error for missing node
+				//TODO WAIT DEP when available, throw appropriate error for missing node
 				throw new ShockHttpException(getStatus(), getError());
 			}
 		}

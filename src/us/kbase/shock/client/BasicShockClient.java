@@ -360,7 +360,7 @@ public class BasicShockClient {
 					user.getUserId()));
 		}
 		final URI targeturl = nodeurl.resolve(id.getId() + ACL_READ.acl + 
-				"?users=" + user.getEmail()); //TODO WAIT use userid when shock allows
+				"?users=" + user.getEmail()); //TODO WAIT DEP use userid when shock allows
 		final HttpPut htp = new HttpPut(targeturl);
 		processRequest(htp, ShockACLResponse.class); //triggers throwing errors
 	}
