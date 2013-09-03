@@ -13,26 +13,25 @@ public interface Database {
 
 	public String getBackendType();
 
-	public WorkspaceMetaData createWorkspace(String owner, String name,
+	public WorkspaceMetaData createWorkspace(String owner, String wsname,
 			boolean globalread, String description) throws PreExistingWorkspaceException;
 	
-	
-	public void setPermissions(WorkspaceIdentifier workspace, List<String> users,
+	public void setPermissions(WorkspaceIdentifier wsi, List<String> users,
 			Permission perm) throws NoSuchWorkspaceException;
 	
-	public Permission getPermission(WorkspaceIdentifier workspace, String user)
+	public Permission getPermission(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException;
 
-	Map<String, Permission> getUserAndGlobalPermission(
-			WorkspaceIdentifier workspace, String user) throws NoSuchWorkspaceException;
+	Map<String, Permission> getUserAndGlobalPermission(String user,
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException;
 	
-	public Map<String, Permission> getAllPermissions(WorkspaceIdentifier wsi,
-			String user) throws NoSuchWorkspaceException;
+	public Map<String, Permission> getAllPermissions(
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException;
 
-	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceIdentifier wksp,
-			String user) throws NoSuchWorkspaceException;
+	public WorkspaceMetaData getWorkspaceMetadata(String user,
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException;
 
-	public String getWorkspaceDescription(WorkspaceIdentifier workspace)
+	public String getWorkspaceDescription(WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException;
 
 	public void setAllUsersSymbol(String allUsers);

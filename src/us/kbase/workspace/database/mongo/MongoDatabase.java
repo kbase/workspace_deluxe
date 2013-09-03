@@ -260,9 +260,9 @@ public class MongoDatabase implements Database {
 	}
 
 	@Override
-	public String getWorkspaceDescription(WorkspaceIdentifier workspace) throws
+	public String getWorkspaceDescription(WorkspaceIdentifier wsi) throws
 			NoSuchWorkspaceException {
-		final QueryErr qe = setUpQuery(workspace);
+		final QueryErr qe = setUpQuery(wsi);
 		@SuppressWarnings("unchecked")
 		final Map<String, String> result = wsjongo.getCollection(WORKSPACES)
 				.findOne(qe.query).projection("{description: 1}").as(Map.class);
@@ -310,7 +310,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	@Override
-	public void setPermissions(WorkspaceIdentifier workspace,
+	public void setPermissions(WorkspaceIdentifier wsi,
 			List<String> users, Permission perm) throws
 			NoSuchWorkspaceException {
 		for (String user: users) {
@@ -318,7 +318,7 @@ public class MongoDatabase implements Database {
 				throw new IllegalArgumentException("Illegal user name: " + user);
 			}
 		}
-		setPermissions(getWorkspaceID(workspace, true), users, perm, true);
+		setPermissions(getWorkspaceID(wsi, true), users, perm, true);
 	}
 	
 	private void setPermissions(int wsid, List<String> users, Permission perm,
@@ -350,7 +350,7 @@ public class MongoDatabase implements Database {
 	}
 
 	@Override
-	public Permission getPermission(WorkspaceIdentifier workspace, String user)
+	public Permission getPermission(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException {
 		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
@@ -358,7 +358,7 @@ public class MongoDatabase implements Database {
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, user: {$in: [#, #]}}",
-						getWorkspaceID(workspace, true), user, allUsers)
+						getWorkspaceID(wsi, true), user, allUsers)
 				.projection("{perm: 1}").as(Map.class);
 		int perm = 0;
 		for (@SuppressWarnings("rawtypes") Map m: res) {
@@ -370,19 +370,17 @@ public class MongoDatabase implements Database {
 		return translatePermission(perm);
 	}
 	
-	//TODO use consistent variable names and order in interface
-	
 	//TODO merge common code with above
 	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
-			WorkspaceIdentifier workspace, String user) throws NoSuchWorkspaceException {
+			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
 		if (allUsers.equals(user)) {
 			throw new IllegalArgumentException("Illegal user name: " + user);
 		}
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
 				.find("{id: #, user: {$in: [#, #]}}",
-						getWorkspaceID(workspace, true), user, allUsers)
+						getWorkspaceID(wsi, true), user, allUsers)
 				.projection("{user: 1, perm: 1}").as(Map.class);
 		Map<String, Permission> ret = new HashMap<String, Permission>();
 		for (@SuppressWarnings("rawtypes") Map m: res) {
@@ -397,11 +395,8 @@ public class MongoDatabase implements Database {
 	//TODO make common methods for queries, general clean up
 	
 	@Override
-	public Map<String, Permission> getAllPermissions(WorkspaceIdentifier wsi,
-			String user) throws NoSuchWorkspaceException {
-		if (allUsers.equals(user)) {
-			throw new IllegalArgumentException("Illegal user name: " + user);
-		}
+	public Map<String, Permission> getAllPermissions(
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
 		final Map<String, Permission> ret = new HashMap<String, Permission>();
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> acls = wsjongo.getCollection(WS_ACLS)
@@ -416,9 +411,9 @@ public class MongoDatabase implements Database {
 	}
 
 	@Override
-	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceIdentifier wksp,
-			String user) throws NoSuchWorkspaceException {
-		QueryErr qe = setUpQuery(wksp);
+	public WorkspaceMetaData getWorkspaceMetadata(String user,
+			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
+		QueryErr qe = setUpQuery(wsi);
 		@SuppressWarnings("unchecked")
 		//TODO use common method for getting workspace fields
 		Map<String, Object> ws = wsjongo.getCollection(WORKSPACES)
@@ -428,21 +423,7 @@ public class MongoDatabase implements Database {
 			throw new NoSuchWorkspaceException(String.format(
 					"No workspace with %s exists", qe.err));
 		}
-		@SuppressWarnings("rawtypes")
-//		final Iterable<Map> res = wsjongo.getCollection(WS_ACLS)
-//				.find("{id: #, user: {$in: [#, #]}}",
-//						ws.get("id"), user, allUsers)
-//				.projection("{user: 1, perm: 1}").as(Map.class);
-		Map<String, Permission> res = getUserAndGlobalPermission(wksp, user);
-//		boolean globalread = false;
-//		Permission p = Permission.NONE;
-//		for (@SuppressWarnings("rawtypes") Map m: res) {
-//			if (m.get("user").equals(allUsers)) {
-//				globalread = true;
-//			} else if (m.get("user").equals(user)) {
-//				p = translatePermission((int) m.get("perm"));
-//			}
-//		}
+		Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				(String) ws.get("owner"), (Date) ws.get("moddate"),
 				res.get(user), res.containsKey(allUsers));

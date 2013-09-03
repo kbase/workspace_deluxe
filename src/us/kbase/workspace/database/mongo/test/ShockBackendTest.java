@@ -85,6 +85,6 @@ public class ShockBackendTest {
 			sb.removeBlob(faketd);
 			fail("Able to remove non-existent blob");
 		} catch (WorkspaceBackendException wbe) {}
-		//TODO better error handling when shock allows it
+		//TODO WAIT better error handling when shock allows it
 	}
 }

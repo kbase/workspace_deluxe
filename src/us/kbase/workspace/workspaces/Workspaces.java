@@ -35,7 +35,7 @@ public class Workspaces {
 	
 	public String getWorkspaceDescription(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException {
-		if(Permission.READ.compareTo(db.getPermission(wsi, user)) > 0 ) {
+		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0 ) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
 					user, wsi.getIdentifierString()));
@@ -49,7 +49,7 @@ public class Workspaces {
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
-		if(Permission.ADMIN.compareTo(db.getPermission(wsi, user)) > 0) {
+		if(Permission.ADMIN.compareTo(db.getPermission(user, wsi)) > 0) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to set permissions on workspace %s",
 					user, wsi.getIdentifierString()));
@@ -59,22 +59,22 @@ public class Workspaces {
 
 	public Map<String, Permission> getPermissions(String user,
 				WorkspaceIdentifier wsi) throws NoSuchWorkspaceException {
-		Map<String, Permission> perms = db.getUserAndGlobalPermission(wsi, user);
+		Map<String, Permission> perms = db.getUserAndGlobalPermission(user, wsi);
 		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
 			return perms;
 		}
-		return db.getAllPermissions(wsi, user);
+		return db.getAllPermissions(wsi);
 	}
 
 	public WorkspaceMetaData getWorkspaceMetaData(String user,
 				WorkspaceIdentifier wsi) throws WorkspaceAuthorizationException,
 				NoSuchWorkspaceException {
-		if(Permission.READ.compareTo(db.getPermission(wsi, user)) > 0) {
+		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0) {
 			throw new WorkspaceAuthorizationException(String.format(
 					"User %s does not have permission to read workspace %s",
 					user, wsi.getIdentifierString()));
 		}
-		return db.getWorkspaceMetadata(wsi, user);
+		return db.getWorkspaceMetadata(user, wsi);
 	}
 	
 	public String getBackendType() {
