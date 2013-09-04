@@ -52,6 +52,15 @@ module Workspace {
 	*/
 	typedef string type_id;
 	
+	/* A type version.
+		Specifies the type by the format [major].[minor] where 'major' is the
+		major (e.g. backward incompatible) version of the type as an integer
+		and 'minor' is the minor (e.g. backwards compatible) version of the
+		type as an integer. If the minor version is ommitted it is assumed to
+		be zero.
+	*/
+	typedef string type_ver;
+	
 	/* A workspace identifier.
 
 		Select a workspace by one, and only one, of the numerical id or name,
@@ -135,7 +144,7 @@ module Workspace {
 		obj_id objid - the numerical id of the object.
 		obj_name object - the name of the object.
 		type_id type - the type of the object.
-		int type_ver - the version of the type.
+		type_ver tver - the version of the type.
 		timestamp create_date - the creation date of the object.
 		int version - the version of the object.
 		username created_by - the user that created the object.
@@ -144,7 +153,7 @@ module Workspace {
 		mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
 			metadata about the object.
 	*/
-	typedef tuple<obj_id objid, obj_name object, type_id type, int type_ver,
+	typedef tuple<obj_id objid, obj_name object, type_id type, type_ver tver,
 		timestamp create_date, int version, username created_by, ws_id wsid,
 		string chsum, mapping<string, UnspecifiedObject> metadata> object_metadata;
 	
@@ -275,7 +284,7 @@ module Workspace {
 		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
 			metadata for the object, not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
-		int type_ver - the major version of the type. If the version is not
+		type_ver tver - the version of the type. If the version is not
 			provided the latest version will be assumed.
 	
 	*/
@@ -284,7 +293,7 @@ module Workspace {
 		mapping<string, UnspecifiedObject> metadata;
 		list<ProvenanceAction> provenance;
 		type_id type;
-		int type_ver;
+		type_ver tver;
 		mapping<string, UnspecifiedObject> data;
 	} ObjectSaveData;
 	

@@ -26,7 +26,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
  *                 metadata for the object, not to exceed 16kb.
  *         list<ProvenanceAction> provenance - provenance data for the object.
- *         int type_ver - the major version of the type. If the version is not
+ *         type_ver tver - the version of the type. If the version is not
  *                 provided the latest version will be assumed.
  * </pre>
  * 
@@ -38,7 +38,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
     "metadata",
     "provenance",
     "type",
-    "type_ver",
+    "tver",
     "data"
 })
 public class ObjectSaveData {
@@ -51,8 +51,8 @@ public class ObjectSaveData {
     private List<ProvenanceAction> provenance = new ArrayList<ProvenanceAction>();
     @JsonProperty("type")
     private java.lang.String type;
-    @JsonProperty("type_ver")
-    private Integer typeVer;
+    @JsonProperty("tver")
+    private java.lang.String tver;
     @JsonProperty("data")
     private Map<String, us.kbase.UObject> data;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -117,18 +117,18 @@ public class ObjectSaveData {
         return this;
     }
 
-    @JsonProperty("type_ver")
-    public Integer getTypeVer() {
-        return typeVer;
+    @JsonProperty("tver")
+    public java.lang.String getTver() {
+        return tver;
     }
 
-    @JsonProperty("type_ver")
-    public void setTypeVer(Integer typeVer) {
-        this.typeVer = typeVer;
+    @JsonProperty("tver")
+    public void setTver(java.lang.String tver) {
+        this.tver = tver;
     }
 
-    public ObjectSaveData withTypeVer(Integer typeVer) {
-        this.typeVer = typeVer;
+    public ObjectSaveData withTver(java.lang.String tver) {
+        this.tver = tver;
         return this;
     }
 

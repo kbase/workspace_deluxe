@@ -344,8 +344,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.save_objects")
-    public List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
-        List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>> returnVal = null;
+    public List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> returnVal = null;
         //BEGIN save_objects
         //END save_objects
         return returnVal;
