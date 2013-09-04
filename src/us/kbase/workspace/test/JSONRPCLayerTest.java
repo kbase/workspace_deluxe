@@ -19,11 +19,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-
 import us.kbase.JsonClientException;
 import us.kbase.ServerException;
 import us.kbase.Tuple6;
@@ -42,10 +37,6 @@ import us.kbase.workspace.WorkspaceServer;
  * tests all backends and {@link us.kbase.workspace.database.Database} implementations.
  */
 public class JSONRPCLayerTest {
-	
-	public static final String M_USER = "test.mongo.user";
-	public static final String M_PWD = "test.mongo.pwd";
-	public static File INI_FILE;
 	
 	private static WorkspaceServer SERVER = null;
 	private static WorkspaceClient CLIENT1 = null;
@@ -80,67 +71,31 @@ public class JSONRPCLayerTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		//TODO deal with all this common code
 		//TODO catch exceptions and print nice errors
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
 		USERNOEMAIL = System.getProperty("test.user.noemail");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
-		String host = System.getProperty("test.mongo.host");
-		String db = System.getProperty("test.mongo.db1");
-		String mUser = System.getProperty(M_USER);
-		String mPwd = System.getProperty(M_PWD);
-
-		if (mUser.equals("")) {
-			mUser = null;
-		}
-		if (mPwd.equals("")) {
-			mPwd = null;
-		}
-		if (mUser == null ^ mPwd == null) {
-			System.err.println(String.format("Must provide both %s and %s ",
-					M_USER, M_PWD) + "params for testing if authentication " + 
-					"is to be used");
-			System.exit(1);
-		}
-		System.out.print("Mongo auth params are user: " + mUser + " pwd: ");
-		if (mPwd != null && mPwd.length() > 0) {
-			System.out.println("[redacted]");
-		} else {
-			System.out.println(mPwd);
-		}
-		//Set up mongo backend database
-		DB mdb = new MongoClient(host).getDB(db);
-		if (mUser != null) {
-			mdb.authenticate(mUser, mPwd.toCharArray());
-		}
-		DBObject dbo = new BasicDBObject();
-		mdb.getCollection("settings").remove(dbo);
-		mdb.getCollection("workspaces").remove(dbo);
-		mdb.getCollection("workspaceACLs").remove(dbo);
-		mdb.getCollection("workspaceCounter").remove(dbo);
-		dbo.put("backend", "gridFS");
-		mdb.getCollection("settings").insert(dbo);
+		Common.destroyAndSetupDB(1, "gridFS", null);
 		
 		//write the server config file:
-		INI_FILE = File.createTempFile("test", ".cfg", new File("./"));
-		INI_FILE.deleteOnExit();
-		System.out.println("Created temporary config file: " + INI_FILE.getAbsolutePath());
+		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
+		iniFile.deleteOnExit();
+		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", host);
-		ws.add("mongodb-database", db);
-		ws.add("mongodb-user", mUser);
-		ws.add("mongodb-pwd", mPwd);
+		ws.add("mongodb-host", Common.getHost());
+		ws.add("mongodb-database", Common.getDB1());
+		ws.add("mongodb-user", Common.getMongoUser());
+		ws.add("mongodb-pwd", Common.getMongoPwd());
 		ws.add("backend-secret", "");
-		ini.store(INI_FILE);
+		ini.store(iniFile);
 		
 		//set up env
 		Map<String, String> env = getenv();
-		env.put("KB_DEPLOYMENT_CONFIG", INI_FILE.getAbsolutePath());
+		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
-		
 
 		SERVER = new WorkspaceServer();
 		new ServerThread().start();
@@ -153,7 +108,7 @@ public class JSONRPCLayerTest {
 		System.out.println("Starting tests");
 		CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
 		CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
-		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:20000"));
+		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
 		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
