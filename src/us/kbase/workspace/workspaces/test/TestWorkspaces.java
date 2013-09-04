@@ -100,7 +100,7 @@ public class TestWorkspaces {
 			fail("Got ws desc w/o read perms");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message ok", e.getLocalizedMessage(),
-					is("User b does not have permission to read workspace lt"));
+					is("User b may not read workspace lt"));
 		}
 		for (Permission p: Permission.values()) {
 			if (p.compareTo(Permission.NONE) <= 0 || p.compareTo(Permission.OWNER) >= 0) {
@@ -143,7 +143,7 @@ public class TestWorkspaces {
 			fail("Got metadata w/o read perms");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message ok", e.getLocalizedMessage(),
-					is("User b does not have permission to read workspace " + id));
+					is("User b may not read workspace " + id));
 		}
 		for (Permission p: Permission.values()) {
 			if (p.compareTo(Permission.NONE) <= 0 || p.compareTo(Permission.OWNER) >= 0) {
@@ -304,7 +304,7 @@ public class TestWorkspaces {
 			fail("was able to set permissions with unauth'd username");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+					is("User b may not set permissions on workspace perms_noglobal"));
 		}
 		//check basic permissions for new private and public workspaces
 		expect.put("a", Permission.OWNER);
@@ -335,7 +335,7 @@ public class TestWorkspaces {
 			fail("was able to set permissions with unauth'd username");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+					is("User b may not set permissions on workspace perms_noglobal"));
 		}
 		//test write permissions
 		ws.setPermissions("a", wsiNG, Arrays.asList("b"), Permission.WRITE);
@@ -351,7 +351,7 @@ public class TestWorkspaces {
 			fail("was able to set permissions with unauth'd username");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b does not have permission to set permissions on workspace perms_noglobal"));
+					is("User b may not set permissions on workspace perms_noglobal"));
 		}
 		//test admin permissions
 		ws.setPermissions("a", wsiNG, Arrays.asList("b"), Permission.ADMIN);

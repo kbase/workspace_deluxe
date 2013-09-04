@@ -268,7 +268,7 @@ public class JSONRPCLayerTest {
 			fail("Able to get ws desc without read perms");
 		} catch (ServerException e) {
 			assertThat("Correct excp message", e.getLocalizedMessage(),
-					is("User kbasetest2 does not have permission to read workspace permspriv"));
+					is("User kbasetest2 may not read workspace permspriv"));
 		}
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
@@ -279,7 +279,7 @@ public class JSONRPCLayerTest {
 					.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		} catch (ServerException e) {
 			assertThat("Correct excp message", e.getLocalizedMessage(),
-					is("User kbasetest2 does not have permission to set permissions on workspace permspriv"));
+					is("User kbasetest2 may not set permissions on workspace permspriv"));
 		}
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("a").withUsers(Arrays.asList(USER2)));

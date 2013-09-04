@@ -24,6 +24,17 @@ public class Workspaces {
 		db.setAllUsersSymbol(ALL_USERS);
 	}
 	
+	private void checkPerms(String user, WorkspaceIdentifier wsi,
+			Permission perm, String error) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if(perm.compareTo(db.getPermission(user, wsi)) > 0) {
+			final String err = user == null ? "Anonymous users may not %s workspace %s" :
+				"User " + user + " may not %s workspace %s";
+			throw new WorkspaceAuthorizationException(String.format(
+					err, error, wsi.getIdentifierString()));
+		}
+	}
+	
 	public WorkspaceMetaData createWorkspace(String user, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException {
@@ -34,16 +45,10 @@ public class Workspaces {
 		return db.createWorkspace(user, wsname, globalread, description);
 	}
 	
-	//TODO general permission checking
 	public String getWorkspaceDescription(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0 ) {
-			final String err = user == null ? "Anonymous users may not read workspace %s" :
-				"User " + user + " does not have permission to read workspace %s";
-			throw new WorkspaceAuthorizationException(String.format(
-					err, wsi.getIdentifierString()));
-		}
+		checkPerms(user, wsi, Permission.READ, "read");
 		return db.getWorkspaceDescription(wsi);
 	}
 
@@ -54,17 +59,16 @@ public class Workspaces {
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
-		if(Permission.ADMIN.compareTo(db.getPermission(user, wsi)) > 0) {
-			throw new WorkspaceAuthorizationException(String.format(
-					"User %s does not have permission to set permissions on workspace %s",
-					user, wsi.getIdentifierString()));
-		}
+		checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
 		db.setPermissions(wsi, users, permission);
 	}
 
 	public Map<String, Permission> getPermissions(String user,
 				WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 				WorkspaceCommunicationException {
+		if (user == null) {
+			throw new NullPointerException("user");
+		}
 		Map<String, Permission> perms = db.getUserAndGlobalPermission(user, wsi);
 		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
 			return perms;
@@ -75,12 +79,7 @@ public class Workspaces {
 	public WorkspaceMetaData getWorkspaceMetaData(String user,
 				WorkspaceIdentifier wsi) throws WorkspaceAuthorizationException,
 				NoSuchWorkspaceException, WorkspaceCommunicationException {
-		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0) {
-			final String err = user == null ? "Anonymous users may not read workspace %s" :
-				"User " + user + " does not have permission to read workspace %s";
-			throw new WorkspaceAuthorizationException(String.format(
-					err, wsi.getIdentifierString()));
-		}
+		checkPerms(user, wsi, Permission.READ, "read");
 		return db.getWorkspaceMetadata(user, wsi);
 	}
 	
