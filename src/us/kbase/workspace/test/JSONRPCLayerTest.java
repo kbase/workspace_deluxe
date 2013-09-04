@@ -71,7 +71,7 @@ public class JSONRPCLayerTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		//TODO catch exceptions and print nice errors
+		//TODO catch exceptions and print nice errors - next deploy
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
 		USERNOEMAIL = System.getProperty("test.user.noemail");
@@ -242,7 +242,27 @@ public class JSONRPCLayerTest {
 				.withDescription("foo"));
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permsglob")
 				.withGlobalread("r").withDescription("bar"));
-		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob")); //should work, global read
+		//should work, global read
+		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob"));
+		CLIENT_NO_AUTH.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob"));
+		CLIENT_NO_AUTH.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace("permsglob"));
+		
+		try {
+			CLIENT_NO_AUTH.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv"));
+			fail("able to read workspace desc with no auth");
+		} catch (ServerException e) {
+			assertThat("exception message corrent", e.getLocalizedMessage(),
+					is("Anonymous users may not read workspace permspriv"));
+		}
+		
+		try {
+			CLIENT_NO_AUTH.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace("permspriv"));
+			fail("able to read workspace desc with no auth");
+		} catch (ServerException e) {
+			assertThat("exception message corrent", e.getLocalizedMessage(),
+					is("Anonymous users may not read workspace permspriv"));
+		}
+		
 		try {
 			CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv"));
 			fail("Able to get ws desc without read perms");

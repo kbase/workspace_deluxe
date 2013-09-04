@@ -267,9 +267,24 @@ public class TestWorkspaces {
 		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
 		ws.createWorkspace("a", "perms_noglobal", false, null);
 		WorkspaceIdentifier wsiGL = new WorkspaceIdentifier("perms_global");
-		ws.createWorkspace("a", "perms_global", true, null);
+		ws.createWorkspace("a", "perms_global", true, "globaldesc");
 		Map<String, Permission> expect = new HashMap<String, Permission>();
+		
 		//try some illegal ops
+		try {
+			ws.getWorkspaceDescription(null, wsiNG);
+			fail("Able to get private workspace description with no user name");
+		} catch (Exception e) {
+			assertThat("Correct exception message", e.getLocalizedMessage(),
+					is("Anonymous users may not read workspace perms_noglobal"));
+		}
+		try {
+			ws.getWorkspaceMetaData(null, wsiNG);
+			fail("Able to get private workspace metadata with no user name");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("Correct exception message", e.getLocalizedMessage(),
+					is("Anonymous users may not read workspace perms_noglobal"));
+		}
 		try {
 			ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c", "*"), Permission.READ);
 			fail("was able to set permissions with illegal username");
@@ -302,6 +317,10 @@ public class TestWorkspaces {
 		expect.put("*", Permission.READ);
 		assertThat("ws has correct perms for random user", ws.getPermissions("b", wsiGL), is(expect));
 		//test read permissions
+		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
+				is("globaldesc"));
+		WorkspaceMetaData meta= ws.getWorkspaceMetaData(null, wsiGL);
+		checkMeta(meta, "a", "perms_global", Permission.NONE, true);
 		ws.setPermissions("a", wsiNG, Arrays.asList("a", "b", "c"), Permission.READ);
 		expect.clear();
 		expect.put("a", Permission.OWNER);

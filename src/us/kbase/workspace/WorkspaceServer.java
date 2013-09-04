@@ -146,6 +146,13 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
 				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
 	}
+	
+	private String getUserName(AuthToken token) {
+		if (token == null) {
+			return null;
+		}
+		return token.getUserName();
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -250,9 +257,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
-		//TODO deal with null auth
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(authPart.getUserName(), wksp);
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUserName(authPart), wksp);
 		returnVal = wsMetaToTuple(meta);
         //END get_workspace_metadata
         return returnVal;
@@ -270,8 +276,7 @@ public class WorkspaceServer extends JsonServerServlet {
         String returnVal = null;
         //BEGIN get_workspace_description
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		//TODO deal with null auth
-		returnVal = ws.getWorkspaceDescription(authPart.getUserName(), wksp);
+		returnVal = ws.getWorkspaceDescription(getUserName(authPart), wksp);
         //END get_workspace_description
         return returnVal;
     }
@@ -320,7 +325,6 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_permissions
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		//TODO deal with null auth
 		final Map<String, Permission> acls = ws.getPermissions(authPart.getUserName(), wksp);
 		for (String acl: acls.keySet()) {
 			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));

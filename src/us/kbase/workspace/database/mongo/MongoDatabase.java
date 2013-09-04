@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -426,9 +427,13 @@ public class MongoDatabase implements Database {
 	public Map<String, Permission> getUserAndGlobalPermission(
 			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		checkUser(user);
-		final Map<String, Permission> ret = queryPermissions(wsi, Arrays.asList(
-				user, allUsers));
+		final List<String> users = new ArrayList<String>();
+		users.add(allUsers);
+		if (user != null) {
+			checkUser(user);
+			users.add(user);
+		}
+		final Map<String, Permission> ret = queryPermissions(wsi, users);
 		if (!ret.containsKey(user)) {
 			ret.put(user, Permission.NONE);
 		}

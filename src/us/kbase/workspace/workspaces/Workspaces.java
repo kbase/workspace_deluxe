@@ -34,13 +34,15 @@ public class Workspaces {
 		return db.createWorkspace(user, wsname, globalread, description);
 	}
 	
+	//TODO general permission checking
 	public String getWorkspaceDescription(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
 		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0 ) {
+			final String err = user == null ? "Anonymous users may not read workspace %s" :
+				"User " + user + " does not have permission to read workspace %s";
 			throw new WorkspaceAuthorizationException(String.format(
-					"User %s does not have permission to read workspace %s",
-					user, wsi.getIdentifierString()));
+					err, wsi.getIdentifierString()));
 		}
 		return db.getWorkspaceDescription(wsi);
 	}
@@ -74,9 +76,10 @@ public class Workspaces {
 				WorkspaceIdentifier wsi) throws WorkspaceAuthorizationException,
 				NoSuchWorkspaceException, WorkspaceCommunicationException {
 		if(Permission.READ.compareTo(db.getPermission(user, wsi)) > 0) {
+			final String err = user == null ? "Anonymous users may not read workspace %s" :
+				"User " + user + " does not have permission to read workspace %s";
 			throw new WorkspaceAuthorizationException(String.format(
-					"User %s does not have permission to read workspace %s",
-					user, wsi.getIdentifierString()));
+					err, wsi.getIdentifierString()));
 		}
 		return db.getWorkspaceMetadata(user, wsi);
 	}
