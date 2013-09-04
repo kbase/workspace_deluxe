@@ -21,8 +21,10 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         type_id type - the type of the object.
  *         mapping<string, UnspecifiedObject> data - the object data.
  *         Optional parameters:
- *         obj_name name - the name of the object. If no name is provided the name
+ *         One of an object name or id. If no name or id is provided the name
  *                 will be set to the object id as a string.
+ *         obj_name name - the name of the object.
+ *         obj_id objid - the id of the object to save over.
  *         mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
  *                 metadata for the object, not to exceed 16kb.
  *         list<ProvenanceAction> provenance - provenance data for the object.
@@ -35,6 +37,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "name",
+    "objid",
     "metadata",
     "provenance",
     "type",
@@ -45,6 +48,8 @@ public class ObjectSaveData {
 
     @JsonProperty("name")
     private java.lang.String name;
+    @JsonProperty("objid")
+    private Integer objid;
     @JsonProperty("metadata")
     private Map<String, us.kbase.UObject> metadata;
     @JsonProperty("provenance")
@@ -69,6 +74,21 @@ public class ObjectSaveData {
 
     public ObjectSaveData withName(java.lang.String name) {
         this.name = name;
+        return this;
+    }
+
+    @JsonProperty("objid")
+    public Integer getObjid() {
+        return objid;
+    }
+
+    @JsonProperty("objid")
+    public void setObjid(Integer objid) {
+        this.objid = objid;
+    }
+
+    public ObjectSaveData withObjid(Integer objid) {
+        this.objid = objid;
         return this;
     }
 

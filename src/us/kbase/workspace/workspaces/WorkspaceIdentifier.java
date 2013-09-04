@@ -31,7 +31,7 @@ public class WorkspaceIdentifier {
 	
 	public WorkspaceIdentifier(int id) {
 		if (id < 1) {
-			throw new IllegalArgumentException("id must be > 0");
+			throw new IllegalArgumentException("Workspace id must be > 0");
 		}
 		this.id = id;
 		this.wsname = null;
@@ -43,7 +43,7 @@ public class WorkspaceIdentifier {
 
 	public static void checkWorkspaceName(String name, String user) {
 		if (name == null || name.length() == 0) {
-			throw new IllegalArgumentException("name cannot be null and must have at least one character");
+			throw new IllegalArgumentException("A workspace name cannot be null and must have at least one character");
 		}
 		int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
