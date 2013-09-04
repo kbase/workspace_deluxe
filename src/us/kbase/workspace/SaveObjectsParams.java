@@ -1,7 +1,9 @@
 
 package us.kbase.workspace;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Generated;
 import org.codehaus.jackson.annotate.JsonAnyGetter;
@@ -12,15 +14,15 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
 /**
- * <p>Original spec-file type: WorkspaceIdentity</p>
+ * <p>Original spec-file type: SaveObjectsParams</p>
  * <pre>
- * A workspace identifier.
- *                 Select a workspace by one, and only one, of the numerical id or name,
- *                         where the
- *                 name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
- *                 ws_id id - the numerical ID of the workspace.
- *                 ws_name workspace - name of the workspace or the workspace ID in KBase
- *                         format, e.g. kb|ws.78.
+ * Input parameters for the "save_objects" function.
+ *         One, and only one, of the following is required:
+ *         ws_id id - the numerical ID of the workspace.
+ *         ws_name workspace - name of the workspace or the workspace ID in KBase
+ *                 format, e.g. kb|ws.78.
+ *         Required arguments:
+ *         list<ObjectSaveData> objects - the objects to save.
  * </pre>
  * 
  */
@@ -28,14 +30,20 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "workspace",
-    "id"
+    "id",
+    "name",
+    "objects"
 })
-public class WorkspaceIdentity {
+public class SaveObjectsParams {
 
     @JsonProperty("workspace")
     private String workspace;
     @JsonProperty("id")
     private Integer id;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("objects")
+    private List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -48,7 +56,7 @@ public class WorkspaceIdentity {
         this.workspace = workspace;
     }
 
-    public WorkspaceIdentity withWorkspace(String workspace) {
+    public SaveObjectsParams withWorkspace(String workspace) {
         this.workspace = workspace;
         return this;
     }
@@ -63,8 +71,38 @@ public class WorkspaceIdentity {
         this.id = id;
     }
 
-    public WorkspaceIdentity withId(Integer id) {
+    public SaveObjectsParams withId(Integer id) {
         this.id = id;
+        return this;
+    }
+
+    @JsonProperty("name")
+    public String getName() {
+        return name;
+    }
+
+    @JsonProperty("name")
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public SaveObjectsParams withName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    @JsonProperty("objects")
+    public List<ObjectSaveData> getObjects() {
+        return objects;
+    }
+
+    @JsonProperty("objects")
+    public void setObjects(List<ObjectSaveData> objects) {
+        this.objects = objects;
+    }
+
+    public SaveObjectsParams withObjects(List<ObjectSaveData> objects) {
+        this.objects = objects;
         return this;
     }
 

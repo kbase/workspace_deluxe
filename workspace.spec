@@ -45,12 +45,21 @@ module Workspace {
 	/* A time, e.g. 2012-12-17T23:24:06. */
 	typedef string timestamp;
 	
+	/* A type id.
+		References a type via the format [module].[typename] where the module
+		is the module name of the typespec containing the type and the typename
+		is the name assigned by a typedef statement.
+	*/
+	typedef string type_id;
+	
 	/* A workspace identifier.
 
-		Select a workspace by one, and only one, of the numerical id or name, where the
+		Select a workspace by one, and only one, of the numerical id or name,
+			where the
 		name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
-		ws_id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+		ws_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
 		
 	*/
 	typedef structure {
@@ -64,20 +73,142 @@ module Workspace {
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified.
-		permission user_permission - permissions for the authenticated user of this workspace.
+		permission user_permission - permissions for the authenticated user of
+			this workspace.
 		permission globalread - whether this workspace is globally readable.
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
 		permission user_permission, permission globalread> workspace_metadata;
+		
+	/* The unique, permanent numerical ID of an object. */
+	typedef int obj_id;
+	
+	/* A string used as a name for an object.
+		Any string consisting of alphanumeric characters and the characters
+			|._- is acceptable.
+	*/
+	typedef string obj_name;
+	
+	/* A string that uniquely identifies an object in the workspace service.
+	
+		There are several ways to uniquely identify an object in one string:
+		"[ws_id].[obj_id].[version]" - for example, "23.567.2" would identify the
+		second version of an object with id 567 in a workspace with id 23.
+		"[ws_name]/[obj_name]/[version]" - for example,
+		"MyFirstWorkspace/MyFirstObject/3" would identify the third version of
+		an object called MyFirstObject in the workspace called MyFirstWorkspace.
+		"kb|ws.[ws_id].obj.[obj_id].ver.[version]" - for example, 
+		"kb|ws.23.obj.567.ver.2" would identify the same object as in the first
+		example.
+		In all cases, if the version number is omitted, the latest version of the
+		object is assumed.
+	*/
+	typedef string obj_ref;
+	
+	/* An object identifier.
+		
+		Select an object by either:
+			One, and only one, of the numerical id or name of the workspace,
+			where the name can also be a KBase ID including the numerical id,
+			e.g. kb|ws.35.
+				ws_id wsid - the numerical ID of the workspace.
+				ws_name workspace - name of the workspace or the workspace ID
+					in KBase format, e.g. kb|ws.78.
+			AND 
+			One, and only one, of the numerical id or name of the object.
+				obj_id objid- the numerical ID of the object.
+				obj_name object - name of the object.
+		OR an object reference string:
+			obj_ref ref - an object reference string.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id wsid;
+		obj_name object;
+		obj_id objid;
+		obj_ref ref;
+	} ObjectIdentity;
+	
+	/* Metadata about an object.
+	
+		obj_id objid - the numerical id of the object.
+		obj_name object - the name of the object.
+		type_id type - the type of the object.
+		int type_ver - the version of the type.
+		timestamp create_date - the creation date of the object.
+		int version - the version of the object.
+		username created_by - the user that created the object.
+		ws_id wsid - the workspace containing the object.
+		string chsum - the md5 checksum of the object.
+		mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
+			metadata about the object.
+	*/
+	typedef tuple<obj_id objid, obj_name object, type_id type, int type_ver,
+		timestamp create_date, int version, username created_by, ws_id wsid,
+		string chsum, mapping<string, UnspecifiedObject> metadata> object_metadata;
+	
+	/* A provenance action.
+	
+		A provenance action is an action taken while transforming one data
+		object to another. There may be several provenance actions taken in
+		series. An action is typically running a script, running an api
+		command, etc. All of the following are optional, but more information
+		provided equates to better data provenance.
+		
+		string service - the name of the service that performed this action.
+		int service_ver - the version of the service that performed this action.
+		string method - the method of the service that performed this action.
+		list<string> method_params - the parameters of the method that 
+			performed this action. Pointers to an object rather than the objects
+			themselves should be listed here.
+		string script - the name of the script that performed this action.
+		int script_ver - the version of the script that performed this action.
+		string script_command_line - the command line provided to the script
+			that performed this action.
+		list<ObjectIdentifier> input_ws_objects - the workspace objects that
+			were used as input to this action. This list may overlap with the
+			method_params list.
+		list<string> intermediate_incoming - if the previous action produced 
+			output that 1) was not stored in a referrable way, and 2) is
+			used as input for this action, provide it with an arbitrary and
+			unique ID here, in the order of the input arguments to this action.
+			These IDs can be used in the method_params argument.
+		list<string> intermediate_outgoing - if this action produced output
+			that 1) was not stored in a referrable way, and 2) is
+			used as input for the next action, provide it with an arbitrary and
+			unique ID here, in the order of the output values from this action.
+			These IDs can be used in the intermediate_incoming argument in the
+			next action.
+		string description - a free text description of this action, limited to
+			1000 characters. Longer descriptions will be silently truncated.
+	*/
+	typedef structure {
+		string service;
+		int service_ver;
+		string method;
+		list<string> method_params;
+		string script;
+		int script_ver;
+		string script_command_line;
+		string description;
+		list<ObjectIdentity> input_ws_objects;
+		list<string> intermediate_incoming;
+		list<string> intermediate_outgoing;
+		string description;
+	} ProvenanceAction;
+
 
 	/* Input parameters for the "create_workspace" function.
 	
-		Required:
+		Required arguments:
 		ws_name workspace - name of the workspace to be created.
-		Optional:
-		permission globalread - 'r' to set workspace globally readable, default 'n'.
-		string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
+		Optional arguments:
+		permission globalread - 'r' to set workspace globally readable,
+			default 'n'.
+		string description - A free-text description of the workspace, 1000
+			characters max. Longer strings will be mercilessly and brutally
+				truncated.
 	*/
 	typedef structure { 
 		ws_name workspace;
@@ -107,7 +238,8 @@ module Workspace {
 	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
 		Required arguments:
 		permission new_permission - the permission to assign to the users.
 		list<username> users - the users whose permissions will be altered.
@@ -122,12 +254,58 @@ module Workspace {
 	/* 
 		Set permissions for a workspace.
 	*/
-	funcdef set_permissions(SetPermissionsParams params) returns () authentication required;
+	funcdef set_permissions(SetPermissionsParams params) returns ()
+		authentication required;
+		
 	
 	/* 
 		Get permissions for a workspace.
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms) authentication required;
+	
+	/* An object and associated data required for saving.
+	
+		Required parameters:
+		type_id type - the type of the object.
+		mapping<string, UnspecifiedObject> data - the object data.
+		Optional parameters:
+		obj_name name - the name of the object. If no name is provided the name
+			will be set to the object id as a string.
+		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
+			metadata for the object, not to exceed 16kb.
+		list<ProvenanceAction> provenance - provenance data for the object.
+		int type_ver - the major version of the type. If the version is not
+			provided the latest version will be assumed.
+	
+	*/
+	typedef structure {
+		obj_name name;
+		mapping<string, UnspecifiedObject> metadata;
+		list<ProvenanceAction> provenance;
+		type_id type;
+		int type_ver;
+		mapping<string, UnspecifiedObject> data;
+	} ObjectSaveData;
+	
+	/* Input parameters for the "save_objects" function.
+	
+		One, and only one, of the following is required:
+		ws_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
+		Required arguments:
+		list<ObjectSaveData> objects - the objects to save.
 		
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+		obj_name name;
+		list<ObjectSaveData> objects;
+	} SaveObjectsParams;
+	
+	/* Save objects to the workspace */
+	funcdef save_objects(SaveObjectsParams params) returns (list<object_metadata> meta)
+		authentication required;
 };

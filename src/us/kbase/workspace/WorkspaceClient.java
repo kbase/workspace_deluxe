@@ -9,7 +9,9 @@ import java.util.Map;
 import org.codehaus.jackson.type.TypeReference;
 import us.kbase.JsonClientCaller;
 import us.kbase.JsonClientException;
+import us.kbase.Tuple10;
 import us.kbase.Tuple6;
+import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 /**
@@ -154,6 +156,23 @@ public class WorkspaceClient {
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
         List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: save_objects</p>
+     * <pre>
+     * Save objects to the workspace
+     * </pre>
+     * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>>>>() {};
+        List<List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
 }

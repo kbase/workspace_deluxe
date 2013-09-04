@@ -102,10 +102,6 @@ public class Common {
 		}
 	}
 	
-//		String shockurl = System.getProperty("test.shock.url");
-//		String shockuser = System.getProperty("test.user.noemail");
-//		String shockpwd = System.getProperty("test.pwd.noemail");
-	
 	//run this method first, lots of error checking
 	public static DB destroyAndSetupDB(int num, String type, String shockuser)
 			throws InvalidHostException, UnknownHostException, TestException {

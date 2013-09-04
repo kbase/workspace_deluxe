@@ -1,9 +1,12 @@
 package us.kbase.workspace;
 
+import java.util.List;
 import java.util.Map;
 import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
+import us.kbase.Tuple10;
 import us.kbase.Tuple6;
+import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
@@ -330,6 +333,21 @@ public class WorkspaceServer extends JsonServerServlet {
 			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));
 		}
         //END get_permissions
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: save_objects</p>
+     * <pre>
+     * Save objects to the workspace
+     * </pre>
+     * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
+     */
+    @JsonServerMethod(rpc = "Workspace.save_objects")
+    public List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple10<Integer, String, String, Integer, String, Integer, String, Integer, String, Map<String,UObject>>> returnVal = null;
+        //BEGIN save_objects
+        //END save_objects
         return returnVal;
     }
 
