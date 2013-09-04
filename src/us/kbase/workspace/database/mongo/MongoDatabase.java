@@ -27,9 +27,11 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.WorkspaceObject;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -462,5 +464,13 @@ public class MongoDatabase implements Database {
 	@Override
 	public void setAllUsersSymbol(String allUsers) {
 		this.allUsers = allUsers;
+	}
+
+	@Override
+	public ObjectMetaData saveObjects(String user, WorkspaceIdentifier wsi,
+			List<WorkspaceObject> objects) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

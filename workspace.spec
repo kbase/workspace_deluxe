@@ -279,8 +279,10 @@ module Workspace {
 		type_id type - the type of the object.
 		mapping<string, UnspecifiedObject> data - the object data.
 		Optional parameters:
-		obj_name name - the name of the object. If no name is provided the name
+		One of an object name or id. If no name or id is provided the name
 			will be set to the object id as a string.
+		obj_name name - the name of the object.
+		obj_id objid - the id of the object to save over.
 		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
 			metadata for the object, not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
@@ -290,6 +292,7 @@ module Workspace {
 	*/
 	typedef structure {
 		obj_name name;
+		obj_id objid;
 		mapping<string, UnspecifiedObject> metadata;
 		list<ProvenanceAction> provenance;
 		type_id type;

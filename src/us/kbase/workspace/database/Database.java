@@ -8,10 +8,9 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
-import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.WorkspaceObject;
 
 public interface Database {
 
@@ -43,10 +42,12 @@ public interface Database {
 	public String getWorkspaceDescription(WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
-	public ObjectMetaData saveObject(String user, WorkspaceIdentifier wsi,
-			String name, Map<String, Object> data, TypeId type,
-			Map<String, Object> userMeta,  Provenance provenance);
-			
+	public ObjectMetaData saveObjects(String user, WorkspaceIdentifier wsi,
+			List<WorkspaceObject> objects) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException;
+//			String name, Map<String, Object> data, TypeId type,
+//			Map<String, Object> userMeta,  Provenance provenance) throws
+//			NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	public void setAllUsersSymbol(String allUsers);
 
