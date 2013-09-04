@@ -107,7 +107,7 @@ public class Common {
 //		String shockpwd = System.getProperty("test.pwd.noemail");
 	
 	//run this method first, lots of error checking
-	public static void destroyAndSetupDB(int num, String type, String shockuser)
+	public static DB destroyAndSetupDB(int num, String type, String shockuser)
 			throws InvalidHostException, UnknownHostException, TestException {
 		buildMongo();
 		String dbname = num == 1 ? DB1 : DB2;
@@ -137,5 +137,6 @@ public class Common {
 			dbo.put("shock_location", getShockUrl());
 		}
 		mdb.getCollection("settings").insert(dbo);
+		return mdb;
 	}
 }

@@ -14,13 +14,11 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
-
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.WorkspaceType;
+import us.kbase.workspace.test.Common;
 
 public class GridFSBackendTest {
 	
@@ -30,37 +28,7 @@ public class GridFSBackendTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		System.out.println("Java: " + System.getProperty("java.runtime.version"));
-		String host = System.getProperty("test.mongo.host");
-		String db = System.getProperty("test.mongo.db1");
-		String user = System.getProperty(USER);
-		String pwd = System.getProperty(PWD);
-		if (user.equals("")) {
-			user = null;
-		}
-		if (pwd.equals("")) {
-			pwd = null;
-		}
-		if (user == null ^ pwd == null) {
-			System.err.println(String.format("Must provide both %s and %s ",
-					USER, PWD) + "params for testing if authentication " + 
-					"is to be used");
-			System.exit(1);
-		}
-		
-		System.out.println("Testing workspace GridFS backend at: " + host +
-				", DB: " + db);
-		System.out.print("Auth params are user: " + user + " pwd: ");
-		if (pwd != null && pwd.length() > 0) {
-			System.out.println("[redacted]");
-		} else {
-			System.out.println(pwd);
-		}
-		DB mdb = new MongoClient(host).getDB(db);
-		if (user != null) {
-			mdb.authenticate(user, pwd.toCharArray());
-		}
-		gfsb = new GridFSBackend(mdb);
+		gfsb = new GridFSBackend(Common.destroyAndSetupDB(1, "gridFS", null));
 	}
 	
 	@Test
