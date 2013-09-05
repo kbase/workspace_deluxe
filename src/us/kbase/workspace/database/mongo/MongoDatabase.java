@@ -20,6 +20,7 @@ import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 
+import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -506,9 +507,8 @@ public class MongoDatabase implements Database {
 		if (!names.isEmpty()) {
 			final DBObject query = new BasicDBObject();
 			query.put("workspace", workspaceId);
-			query.put("id", workspaceId);
 			final DBObject namesdb = new BasicDBObject();
-			namesdb.put("$in", names.values());
+			namesdb.put("$in", names.keySet());
 			query.put("name", namesdb);
 			System.out.println(query);
 			@SuppressWarnings("rawtypes")
@@ -554,51 +554,87 @@ public class MongoDatabase implements Database {
 	}
 	
 	// save object over preexisting object
-	private ObjectMetaData saveObject(int wsid, int objectid, WorkspaceObject obj) {
-		System.out.println("save prexisting obj called");
+	private ObjectMetaData saveObject(final String user, final int wsid,
+			final int objectid, final WorkspaceObject obj)
+			throws WorkspaceCommunicationException {
+		System.out.println("****save prexisting obj called****");
 		System.out.println(wsid);
 		System.out.println(objectid);
 		System.out.println(obj);
+		//TODO save data
+		//TODO save datainstance
+		final int ver;
+		try {
+			ver = (int) wsjongo.getCollection(WORKSPACE_PTRS)
+					.findAndModify("{workspace: #, id: #}", wsid, objectid)
+					.returnNew().with("{$inc: {version: 1}}")
+					.projection("{version: 1, _id: 0}").as(DBObject.class)
+					.get("version");
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		final DBObject query = new BasicDBObject();
+		query.put("workspace", wsid);
+		query.put("id", objectid);
+		final DBObject pointer = new BasicDBObject();
+		pointer.put("version", ver);
+		pointer.put("createdby", user);
+		pointer.put("meta", obj.getUserMeta());
+		pointer.put("createDate", new Date());
+		pointer.put("reffedBy", new ArrayList<Object>());
+		pointer.put("objectId", null); //TODO add objectID
+		pointer.put("revert", null);
+		final DBObject versions = new BasicDBObject();
+		versions.put("versions", pointer);
+		final DBObject update = new BasicDBObject();
+		update.put("$push", versions);
+		wsmongo.getCollection(WORKSPACE_PTRS).update(query, update);
+		
 		//TODO save object with preexisting name/id
 		return null;
 	}
 	
 	//save brand new object
-	private ObjectMetaData saveObject(int wsid, int objectid, String name,
-			WorkspaceObject obj) throws WorkspaceCommunicationException {
-		System.out.println("save new obj called");
+	private ObjectMetaData saveObject(final String user, final int wsid,
+			final int objectid, final String name, final WorkspaceObject obj)
+			throws WorkspaceCommunicationException {
+		System.out.println("****save new obj called****");
 		System.out.println(wsid);
 		System.out.println(objectid);
 		System.out.println(name);
 		System.out.println(obj);
-		DBObject dbo = new BasicDBObject();
+		//TODO if name is null, create one
+		final DBObject dbo = new BasicDBObject();
 		dbo.put("workspace", wsid);
 		dbo.put("id", objectid);
 		dbo.put("version", 0);
 		dbo.put("name", name);
 		dbo.put("deleted", null);
 		dbo.put("hidden", false);
+		dbo.put("versions", new ArrayList<Object>());
 		try {
 			wsmongo.getCollection(WORKSPACE_PTRS).insert(dbo);
 		} catch (MongoException.DuplicateKey dk) {
-			//ok, someone must've just this second created a new object with
-			//the same name - this should be a rare event
+			//ok, someone must've just this second added this name to an object
+			//this should be a rare event
 			//TODO deal with rare event here
 			System.out.println(dk);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		saveObject(wsid, objectid, obj);
+		saveObject(user, wsid, objectid, obj);
 		//TODO save new object with name, if name null assign name
 		//TODO return metadata
 		return null;
 	}
 	
 	@Override
-	public List<ObjectMetaData> saveObjects(String user, 
-			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException, NoSuchObjectException {
+	public List<ObjectMetaData> saveObjects(final String user, 
+			final WorkspaceObjectCollection objects) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException,
+			NoSuchObjectException {
 		//this method must maintain the order of the objects
 		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier(), true);
 		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
@@ -624,11 +660,12 @@ public class MongoDatabase implements Database {
 				}
 			}
 		}
+		//TODO check meta size < 16Kb
 		//TODO make sure all object and provenance references exist and aren't deleted
 		//TODO check types and get subdata
 		int lastid;
 			try {
-				lastid= (int) wsjongo.getCollection(WORKSPACES)
+				lastid = (int) wsjongo.getCollection(WORKSPACES)
 						.findAndModify("{id: #}", wsid)
 						.returnNew().with("{$inc: {numpointers: #}}", newobjects)
 						.projection("{numpointers: 1, _id: 0}").as(DBObject.class)
@@ -637,18 +674,18 @@ public class MongoDatabase implements Database {
 				throw new WorkspaceCommunicationException(
 						"There was a problem communicating with the database", me);
 			}
-		int newid = lastid - newobjects;
+		int newid = lastid - newobjects + 1;
 		//todo get counts and numbers
 		for (final WorkspaceObject o: objects) {
 			ObjectIdentifier oi = o.getObjectIdentifier();
 			if (oi == null) {
-				ret.add(saveObject(wsid, newid++, null, o));
+				ret.add(saveObject(user, wsid, newid++, null, o));
 			} else if (oi.getId() != null) {
-				ret.add(saveObject(wsid, oi.getId(), o));
+				ret.add(saveObject(user, wsid, oi.getId(), o));
 			} else if (objIDs.get(oi) != null) {
-				ret.add(saveObject(wsid, objIDs.get(oi), o));
+				ret.add(saveObject(user, wsid, objIDs.get(oi), o));
 			} else {
-				ret.add(saveObject(wsid, newid++, oi.getName(), o));
+				ret.add(saveObject(user, wsid, newid++, oi.getName(), o));
 			}
 		}
 		return ret;

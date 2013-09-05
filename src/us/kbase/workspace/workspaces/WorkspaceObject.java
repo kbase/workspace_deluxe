@@ -10,9 +10,10 @@ public class WorkspaceObject {
 	private final TypeId type;
 	private final Map<String, Object> userMeta;
 	private final Provenance provenance;
+	private final boolean hidden;
 	
 	public WorkspaceObject(ObjectIdentifier id, Map<String, Object> data, TypeId type,
-			Map<String, Object> userMeta,  Provenance provenance) {
+			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
@@ -22,10 +23,11 @@ public class WorkspaceObject {
 		this.type = type;
 		this.userMeta = userMeta;
 		this.provenance = provenance;
+		this.hidden = hidden;
 	}
 	
 	public WorkspaceObject(WorkspaceIdentifier wsid, Map<String, Object> data, TypeId type,
-			Map<String, Object> userMeta,  Provenance provenance) {
+			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
 		if (wsid == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither wsid, data nor type may be null");
 		}
@@ -35,6 +37,7 @@ public class WorkspaceObject {
 		this.type = type;
 		this.userMeta = userMeta;
 		this.provenance = provenance;
+		this.hidden = hidden;
 	}
 
 	public ObjectIdentifier getObjectIdentifier() {
@@ -63,10 +66,14 @@ public class WorkspaceObject {
 		return provenance;
 	}
 
+	public boolean isHidden() {
+		return hidden;
+	}
+
 	@Override
 	public String toString() {
 		return "WorkspaceObject [id=" + id + ", wsid=" + wsid + ", data="
 				+ data + ", type=" + type + ", userMeta=" + userMeta
-				+ ", provenance=" + provenance + "]";
+				+ ", provenance=" + provenance + ", hidden=" + hidden + "]";
 	}
 }

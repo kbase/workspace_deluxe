@@ -17,7 +17,7 @@ public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
 	}
 	
 	public void addObject(WorkspaceObject object) {
-		if (object.getObjectIdentifier().getWorkspaceIdentifier() != wsi) {
+		if (!wsi.equals(object.getObjectIdentifier().getWorkspaceIdentifier())) {
 			throw new IllegalArgumentException(
 					"All objects in the collection must have the same WorkspaceIdentifier");
 		}
@@ -39,6 +39,12 @@ public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
 	
 	public int size() {
 		return objects.size();
+	}
+
+	@Override
+	public String toString() {
+		return "WorkspaceObjectCollection [wsi=" + wsi + ", objects=" + objects
+				+ "]";
 	}
 
 }

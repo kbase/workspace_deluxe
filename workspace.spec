@@ -316,7 +316,6 @@ module Workspace {
 	typedef structure {
 		ws_name workspace;
 		ws_id id;
-		obj_name name;
 		list<ObjectSaveData> objects;
 	} SaveObjectsParams;
 	

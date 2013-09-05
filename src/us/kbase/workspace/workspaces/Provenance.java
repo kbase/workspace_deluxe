@@ -44,7 +44,7 @@ public class Provenance {
 		return new ArrayList<ProvenanceAction>(actions);
 	}
 	
-	public class ProvenanceAction {
+	public static class ProvenanceAction {
 		
 		//TODO remainder of provenance items
 		//TODO verify workspace objects exist

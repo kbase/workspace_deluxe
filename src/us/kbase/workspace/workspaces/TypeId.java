@@ -58,4 +58,11 @@ public class TypeId {
 		return minorVersion;
 	}
 
+	@Override
+	public String toString() {
+		return "TypeId [module=" + module + ", name=" + name
+				+ ", majorVersion=" + majorVersion + ", minorVersion="
+				+ minorVersion + "]";
+	}
+
 }

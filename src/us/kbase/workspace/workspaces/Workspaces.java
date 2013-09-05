@@ -1,12 +1,19 @@
 package us.kbase.workspace.workspaces;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.exceptions.InvalidHostException;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
@@ -85,5 +92,36 @@ public class Workspaces {
 	
 	public String getBackendType() {
 		return db.getBackendType();
+	}
+	
+	public List<ObjectMetaData> saveObjects(String user,
+			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException,
+			NoSuchObjectException {
+		checkPerms(user, objects.getWorkspaceIdentifier(), Permission.WRITE,
+				"write");
+		return db.saveObjects(user, objects);
+	}
+	
+	public static void main(String[] args) throws Exception {
+		Database db = new MongoDatabase("localhost", "ws_tester_db1", "foo");
+		Workspaces w = new Workspaces(db);
+		WorkspaceObjectCollection woc = new WorkspaceObjectCollection(new WorkspaceIdentifier("permspriv"));
+//		System.out.println(woc);
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> meta = new HashMap<String, Object>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		meta.put("metastuff", moredata);
+		Provenance p = new Provenance("kbasetest2");
+		TypeId t = new TypeId("SomeModule", "AType", 0, 1);
+		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
+		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj"), data, t, meta, p, false);
+//		System.out.println(wo);
+		woc.addObject(wo);
+		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj3"), data, t, meta, p, false));
+		w.saveObjects("kbasetest2", woc);
 	}
 }
