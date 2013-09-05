@@ -555,14 +555,43 @@ public class MongoDatabase implements Database {
 	
 	// save object over preexisting object
 	private ObjectMetaData saveObject(int wsid, int objectid, WorkspaceObject obj) {
+		System.out.println("save prexisting obj called");
+		System.out.println(wsid);
+		System.out.println(objectid);
+		System.out.println(obj);
 		//TODO save object with preexisting name/id
 		return null;
 	}
 	
 	//save brand new object
 	private ObjectMetaData saveObject(int wsid, int objectid, String name,
-			WorkspaceObject obj) {
+			WorkspaceObject obj) throws WorkspaceCommunicationException {
+		System.out.println("save new obj called");
+		System.out.println(wsid);
+		System.out.println(objectid);
+		System.out.println(name);
+		System.out.println(obj);
+		DBObject dbo = new BasicDBObject();
+		dbo.put("workspace", wsid);
+		dbo.put("id", objectid);
+		dbo.put("version", 0);
+		dbo.put("name", name);
+		dbo.put("deleted", null);
+		dbo.put("hidden", false);
+		try {
+			wsmongo.getCollection(WORKSPACE_PTRS).insert(dbo);
+		} catch (MongoException.DuplicateKey dk) {
+			//ok, someone must've just this second created a new object with
+			//the same name - this should be a rare event
+			//TODO deal with rare event here
+			System.out.println(dk);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		saveObject(wsid, objectid, obj);
 		//TODO save new object with name, if name null assign name
+		//TODO return metadata
 		return null;
 	}
 	
@@ -595,6 +624,8 @@ public class MongoDatabase implements Database {
 				}
 			}
 		}
+		//TODO make sure all object and provenance references exist and aren't deleted
+		//TODO check types and get subdata
 		int lastid;
 			try {
 				lastid= (int) wsjongo.getCollection(WORKSPACES)

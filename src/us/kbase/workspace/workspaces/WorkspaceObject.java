@@ -62,4 +62,11 @@ public class WorkspaceObject {
 	public Provenance getProvenance() {
 		return provenance;
 	}
+
+	@Override
+	public String toString() {
+		return "WorkspaceObject [id=" + id + ", wsid=" + wsid + ", data="
+				+ data + ", type=" + type + ", userMeta=" + userMeta
+				+ ", provenance=" + provenance + "]";
+	}
 }

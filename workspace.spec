@@ -288,16 +288,19 @@ module Workspace {
 		list<ProvenanceAction> provenance - provenance data for the object.
 		type_ver tver - the version of the type. If the version is not
 			provided the latest version will be assumed.
+		boolean hidden - true if this object should not be listed when listing
+			workspace objects.
 	
 	*/
 	typedef structure {
+		type_id type;
+		mapping<string, UnspecifiedObject> data;
 		obj_name name;
 		obj_id objid;
 		mapping<string, UnspecifiedObject> metadata;
 		list<ProvenanceAction> provenance;
-		type_id type;
 		type_ver tver;
-		mapping<string, UnspecifiedObject> data;
+		boolean hidden
 	} ObjectSaveData;
 	
 	/* Input parameters for the "save_objects" function.
