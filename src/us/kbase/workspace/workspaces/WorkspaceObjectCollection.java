@@ -17,7 +17,7 @@ public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
 	}
 	
 	public void addObject(WorkspaceObject object) {
-		if (!wsi.equals(object.getObjectIdentifier().getWorkspaceIdentifier())) {
+		if (!wsi.equals(object.getWorkspaceIdentifier())) {
 			throw new IllegalArgumentException(
 					"All objects in the collection must have the same WorkspaceIdentifier");
 		}

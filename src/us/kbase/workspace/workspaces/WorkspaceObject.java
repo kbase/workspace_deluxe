@@ -44,7 +44,7 @@ public class WorkspaceObject {
 		return id;
 	}
 
-	public WorkspaceIdentifier getWsid() {
+	public WorkspaceIdentifier getWorkspaceIdentifier() {
 		return wsid;
 	}
 

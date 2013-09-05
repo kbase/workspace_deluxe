@@ -89,7 +89,7 @@ public class MongoDatabase implements Database {
 		//find object by workspace id & object id
 		wsPtr.put(Arrays.asList("workspace", "id"), Arrays.asList("unique"));
 		//find objects by legacy UUID
-		wsPtr.put(Arrays.asList("legacyUUID"), Arrays.asList("unique", "sparse"));
+		wsPtr.put(Arrays.asList("versions.legacyUUID"), Arrays.asList("unique", "sparse"));
 		//determine whether a particular object references this object
 		wsPtr.put(Arrays.asList("versions.reffedBy"), Arrays.asList(""));
 		indexes.put(WORKSPACE_PTRS, wsPtr);
@@ -553,13 +553,13 @@ public class MongoDatabase implements Database {
 		return goodIds;
 	}
 	
-	// save object over preexisting object
+	// save object in preexisting object container
 	private ObjectMetaData saveObject(final String user, final int wsid,
 			final int objectid, final WorkspaceObject obj)
 			throws WorkspaceCommunicationException {
 		System.out.println("****save prexisting obj called****");
-		System.out.println(wsid);
-		System.out.println(objectid);
+		System.out.println("wsid " + wsid);
+		System.out.println("objectid " + objectid);
 		System.out.println(obj);
 		//TODO save data
 		//TODO save datainstance
@@ -595,21 +595,80 @@ public class MongoDatabase implements Database {
 		return null;
 	}
 	
-	//save brand new object
+	//TODO make all projections not include _id unless specified
+	
+	private String getUniqueName(final int wsid, final int objectid) throws
+			WorkspaceCommunicationException {
+		System.out.println("***get unique name called ***");
+		System.out.println("wsid " + wsid);
+		System.out.println("objectid " + objectid);
+		@SuppressWarnings("rawtypes")
+		Iterable<Map> ids;
+		try {
+			ids = wsjongo.getCollection(WORKSPACE_PTRS)
+					.find("{workspace: #, name: {$regex: '^#'}}", wsid, objectid)
+					.projection("{name: 1, _id: 0}").as(Map.class);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+//		System.out.println(ids);
+		boolean exact = false;
+		final Set<Integer> suffixes = new HashSet<Integer>();
+		for (@SuppressWarnings("rawtypes") Map m: ids) {
+			
+			final String[] id = ((String) m.get("name")).split("-");
+			System.out.println("*** checking matching id***");
+			System.out.println(m);
+			System.out.println(Arrays.toString(id));
+			System.out.println(id.length);
+			if (id.length == 2) {
+				try {
+					suffixes.add(Integer.parseInt(id[1]));
+				} catch (NumberFormatException e) {
+					// do nothing
+				}
+			} else if (id.length == 1) {
+				try {
+					exact = exact || objectid == Integer.parseInt(id[0]);
+				} catch (NumberFormatException e) {
+					// do nothing
+				}
+			}
+		}
+		System.out.println("exact " + exact);
+		System.out.println(suffixes);
+		if (!exact) {
+			return "" + objectid;
+		}
+		int counter = 1;
+		while (suffixes.contains(counter)) {
+			counter++;
+		}
+		return objectid + "-" + counter;
+	}
+	
+	//save brand new object - create container
 	private ObjectMetaData saveObject(final String user, final int wsid,
 			final int objectid, final String name, final WorkspaceObject obj)
 			throws WorkspaceCommunicationException {
 		System.out.println("****save new obj called****");
-		System.out.println(wsid);
-		System.out.println(objectid);
-		System.out.println(name);
+		System.out.println("wsid " + wsid);
+		System.out.println("objectid " + objectid);
+		System.out.println("name " + name);
 		System.out.println(obj);
+		String newName = name;
+		if (name == null) {
+			System.out.println("Getting name from null");
+			newName = getUniqueName(wsid, objectid);
+		}
+		System.out.println("newname " + newName);
 		//TODO if name is null, create one
 		final DBObject dbo = new BasicDBObject();
 		dbo.put("workspace", wsid);
 		dbo.put("id", objectid);
 		dbo.put("version", 0);
-		dbo.put("name", name);
+		dbo.put("name", newName);
 		dbo.put("deleted", null);
 		dbo.put("hidden", false);
 		dbo.put("versions", new ArrayList<Object>());
@@ -619,7 +678,10 @@ public class MongoDatabase implements Database {
 			//ok, someone must've just this second added this name to an object
 			//this should be a rare event
 			//TODO deal with rare event here
-			System.out.println(dk);
+			//TODO if name was null, just call this method again
+			//TODO if name not null, just save with object id?
+			throw dk;
+//			System.out.println(dk);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);

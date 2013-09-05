@@ -280,7 +280,8 @@ module Workspace {
 		mapping<string, UnspecifiedObject> data - the object data.
 		Optional parameters:
 		One of an object name or id. If no name or id is provided the name
-			will be set to the object id as a string.
+			will be set to the object id as a string, possibly with -\d+
+			appended if the object id already exists as a name.
 		obj_name name - the name of the object.
 		obj_id objid - the id of the object to save over.
 		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied

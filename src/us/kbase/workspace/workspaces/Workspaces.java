@@ -99,7 +99,7 @@ public class Workspaces {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
 		checkPerms(user, objects.getWorkspaceIdentifier(), Permission.WRITE,
-				"write");
+				"write to");
 		return db.saveObjects(user, objects);
 	}
 	
@@ -117,11 +117,12 @@ public class Workspaces {
 		Provenance p = new Provenance("kbasetest2");
 		TypeId t = new TypeId("SomeModule", "AType", 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
-		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj"), data, t, meta, p, false);
+		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/32-1"), data, t, meta, p, false);
 //		System.out.println(wo);
 		woc.addObject(wo);
-		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
-		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj3"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/32-2"), data, t, meta, p, false));
+//		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceObject(new WorkspaceIdentifier("permspriv"), data, t, meta, p, false));
 		w.saveObjects("kbasetest2", woc);
 	}
 }
