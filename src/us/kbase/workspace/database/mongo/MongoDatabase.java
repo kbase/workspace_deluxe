@@ -1,5 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,8 +20,11 @@ import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.runners.Enclosed;
 
-import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -31,9 +35,13 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.Provenance;
+import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceObject;
@@ -46,6 +54,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoException;
 
+@RunWith(Enclosed.class)
 public class MongoDatabase implements Database {
 
 	//TODO handle deleting workspaces - changes most methods
@@ -487,7 +496,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<ObjectIdentifier, Integer> getObjectIDs(int workspaceId,
-			Set<ObjectIdentifier> objects, boolean verify) throws
+			Set<ObjectIdentifier> objects) throws
 			WorkspaceCommunicationException {
 		final Map<String, ObjectIdentifier> names
 				= new HashMap<String, ObjectIdentifier>();
@@ -530,9 +539,8 @@ public class MongoDatabase implements Database {
 		if (!ids.isEmpty()) {
 			final DBObject query = new BasicDBObject();
 			query.put("workspace", workspaceId);
-			query.put("id", workspaceId);
 			final DBObject idsdb = new BasicDBObject();
-			idsdb.put("$in", ids.values());
+			idsdb.put("$in", ids.keySet());
 			query.put("id", idsdb);
 			System.out.println(query);
 			@SuppressWarnings("rawtypes")
@@ -577,6 +585,7 @@ public class MongoDatabase implements Database {
 		final DBObject query = new BasicDBObject();
 		query.put("workspace", wsid);
 		query.put("id", objectid);
+		
 		final DBObject pointer = new BasicDBObject();
 		pointer.put("version", ver);
 		pointer.put("createdby", user);
@@ -589,16 +598,22 @@ public class MongoDatabase implements Database {
 		versions.put("versions", pointer);
 		final DBObject update = new BasicDBObject();
 		update.put("$push", versions);
-		wsmongo.getCollection(WORKSPACE_PTRS).update(query, update);
 		
-		//TODO save object with preexisting name/id
+		try {
+			wsmongo.getCollection(WORKSPACE_PTRS).update(query, update);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		
+		//TODO return metadata
 		return null;
 	}
 	
 	//TODO make all projections not include _id unless specified
 	
-	private String getUniqueName(final int wsid, final int objectid) throws
-			WorkspaceCommunicationException {
+	private String getUniqueNameForObject(final int wsid, final int objectid)
+			throws WorkspaceCommunicationException {
 		System.out.println("***get unique name called ***");
 		System.out.println("wsid " + wsid);
 		System.out.println("objectid " + objectid);
@@ -660,10 +675,9 @@ public class MongoDatabase implements Database {
 		String newName = name;
 		if (name == null) {
 			System.out.println("Getting name from null");
-			newName = getUniqueName(wsid, objectid);
+			newName = getUniqueNameForObject(wsid, objectid);
 		}
 		System.out.println("newname " + newName);
-		//TODO if name is null, create one
 		final DBObject dbo = new BasicDBObject();
 		dbo.put("workspace", wsid);
 		dbo.put("id", objectid);
@@ -676,20 +690,26 @@ public class MongoDatabase implements Database {
 			wsmongo.getCollection(WORKSPACE_PTRS).insert(dbo);
 		} catch (MongoException.DuplicateKey dk) {
 			//ok, someone must've just this second added this name to an object
+			//asshole
 			//this should be a rare event
-			//TODO deal with rare event here
-			//TODO if name was null, just call this method again
-			//TODO if name not null, just save with object id?
-			throw dk;
-//			System.out.println(dk);
+			if (name == null) {
+				//not much chance of this happening again, let's just recurse
+				return saveObject(user, wsid, objectid, name, obj);
+			}
+			final ObjectIdentifier o = obj.getObjectIdentifier();
+			final Map<ObjectIdentifier, Integer> objID = getObjectIDs(wsid,
+					new HashSet<ObjectIdentifier>(Arrays.asList(o)));
+			System.out.println(objID);
+			if (objID.isEmpty()) {
+				//oh ffs, deleted again, recurse
+				return saveObject(user, wsid, objectid, name, obj);
+			}
+			return saveObject(user, wsid, objID.get(o), obj);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		saveObject(user, wsid, objectid, obj);
-		//TODO save new object with name, if name null assign name
-		//TODO return metadata
-		return null;
+		return saveObject(user, wsid, objectid, obj);
 	}
 	
 	@Override
@@ -710,8 +730,7 @@ public class MongoDatabase implements Database {
 				newobjects++;
 			}
 		}
-		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, names,
-				true);
+		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, names);
 		for (ObjectIdentifier o: names) {
 			if (!objIDs.containsKey(o)) {
 				if (o.getId() != null) {
@@ -752,4 +771,46 @@ public class MongoDatabase implements Database {
 		}
 		return ret;
 	}
+	
+	
+	public static class TestMongoInternals {
+		
+		//screwy tests for methods that can't be tested in a black box manner
+	
+		private static MongoDatabase testdb;
+		
+		@BeforeClass
+		public static void setUpClass() throws Exception {
+			Common.destroyAndSetupDB(1, "gridFS", "foo");
+			String host = Common.getHost();
+			String db1 = Common.getDB1();
+			String mUser = Common.getMongoUser();
+			String mPwd = Common.getMongoPwd();
+			if (mUser == null || mUser == "") {
+				testdb = new MongoDatabase(host, db1, "foo");
+			} else {
+				testdb = new MongoDatabase(host, db1, "foo", mUser, mPwd);
+			}
+		}
+		
+		@Test
+		public void createPointer() throws Exception {
+			testdb.createWorkspace("u", "ws", false, null);
+			Map<String, Object> data = new HashMap<String, Object>();
+			Map<String, Object> meta = new HashMap<String, Object>();
+			Map<String, Object> moredata = new HashMap<String, Object>();
+			moredata.put("foo", "bar");
+			data.put("fubar", moredata);
+			meta.put("metastuff", moredata);
+			Provenance p = new Provenance("kbasetest2");
+			TypeId t = new TypeId("SomeModule", "AType", 0, 1);
+			WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+			WorkspaceObject wo = new WorkspaceObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
+			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);
+			wco.addObject(wo);
+			testdb.saveObjects("u", wco);
+			testdb.saveObject("u", 1, 3, "testobj", wo); //TODO check meta is as expected, objid should == 1
+		}
+	}
+	
 }

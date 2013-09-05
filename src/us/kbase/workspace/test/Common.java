@@ -24,7 +24,8 @@ public class Common {
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 	public static final List<String> COLLECTIONS = Arrays.asList(
-			"settings", "workspaces", "workspaceACLs", "workspaceCounter");
+			"settings", "workspaces", "workspaceACLs", "workspaceCounter",
+			"workspacePointers");
 			
 	private static MongoClient mongoClient = null;
 	
@@ -72,10 +73,10 @@ public class Common {
 		String host = getHost();
 		String mUser = getMongoUser();
 		String mPwd = getMongoPwd();
-		if (mUser.equals("")) {
+		if (mUser == null || mUser.equals("")) {
 			mUser = null;
 		}
-		if (mPwd.equals("")) {
+		if (mPwd == null || mPwd.equals("")) {
 			mPwd = null;
 		}
 		if (mUser == null ^ mPwd == null) {
