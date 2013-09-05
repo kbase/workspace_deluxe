@@ -31,7 +31,6 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonPropertyOrder({
     "workspace",
     "id",
-    "name",
     "objects"
 })
 public class SaveObjectsParams {
@@ -40,8 +39,6 @@ public class SaveObjectsParams {
     private String workspace;
     @JsonProperty("id")
     private Integer id;
-    @JsonProperty("name")
-    private String name;
     @JsonProperty("objects")
     private List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -73,21 +70,6 @@ public class SaveObjectsParams {
 
     public SaveObjectsParams withId(Integer id) {
         this.id = id;
-        return this;
-    }
-
-    @JsonProperty("name")
-    public String getName() {
-        return name;
-    }
-
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public SaveObjectsParams withName(String name) {
-        this.name = name;
         return this;
     }
 
