@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -553,38 +552,74 @@ public class MongoDatabase implements Database {
 		}
 		return goodIds;
 	}
-
+	
+	// save object over preexisting object
+	private ObjectMetaData saveObject(int wsid, int objectid, WorkspaceObject obj) {
+		//TODO save object with preexisting name/id
+		return null;
+	}
+	
+	//save brand new object
+	private ObjectMetaData saveObject(int wsid, int objectid, String name,
+			WorkspaceObject obj) {
+		//TODO save new object with name, if name null assign name
+		return null;
+	}
+	
 	@Override
 	public List<ObjectMetaData> saveObjects(String user, 
 			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException, NoSuchObjectException {
 		//this method must maintain the order of the objects
 		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier(), true);
-		final Set<ObjectIdentifier> ids = new HashSet<ObjectIdentifier>();
-		final Set<ObjectIdentifier> noids = new HashSet<ObjectIdentifier>();
+		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
+		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
+		
+		int newobjects = 0;
 		for (final WorkspaceObject o: objects) {
 			if (o.getObjectIdentifier() != null) {
-				ids.add(o.getObjectIdentifier());
+				names.add(o.getObjectIdentifier());
 			} else {
-				noids.add(o.getObjectIdentifier());
+				newobjects++;
 			}
 		}
-		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, ids, true);
-		Iterator<ObjectIdentifier> iter = ids.iterator();
-		while (iter.hasNext()) {
-//		for (ObjectIdentifier o: ids) {
-			ObjectIdentifier o = iter.next();
-			if (!objIDs.containsKey(o) && o.getId() != null) {
-				throw new NoSuchObjectException("There is no object with id " + o.getId());
+		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, names,
+				true);
+		for (ObjectIdentifier o: names) {
+			if (!objIDs.containsKey(o)) {
+				if (o.getId() != null) {
+					throw new NoSuchObjectException(
+							"There is no object with id " + o.getId());
+				} else {
+					newobjects++;
+				}
 			}
-			iter.remove();
 		}
-		
-		
-		
-		//TODO if no object name is provided, use the id number as the name
-		
-		// TODO Auto-generated method stub
-		return null;
+		int lastid;
+			try {
+				lastid= (int) wsjongo.getCollection(WORKSPACES)
+						.findAndModify("{id: #}", wsid)
+						.returnNew().with("{$inc: {numpointers: #}}", newobjects)
+						.projection("{numpointers: 1, _id: 0}").as(DBObject.class)
+						.get("numpointers");
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+		int newid = lastid - newobjects;
+		//todo get counts and numbers
+		for (final WorkspaceObject o: objects) {
+			ObjectIdentifier oi = o.getObjectIdentifier();
+			if (oi == null) {
+				ret.add(saveObject(wsid, newid++, null, o));
+			} else if (oi.getId() != null) {
+				ret.add(saveObject(wsid, oi.getId(), o));
+			} else if (objIDs.get(oi) != null) {
+				ret.add(saveObject(wsid, objIDs.get(oi), o));
+			} else {
+				ret.add(saveObject(wsid, newid++, oi.getName(), o));
+			}
+		}
+		return ret;
 	}
 }
