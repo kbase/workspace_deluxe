@@ -300,7 +300,7 @@ module Workspace {
 		mapping<string, UnspecifiedObject> metadata;
 		list<ProvenanceAction> provenance;
 		type_ver tver;
-		boolean hidden
+		boolean hidden;
 	} ObjectSaveData;
 	
 	/* Input parameters for the "save_objects" function.

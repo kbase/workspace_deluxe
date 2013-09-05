@@ -30,22 +30,29 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         list<ProvenanceAction> provenance - provenance data for the object.
  *         type_ver tver - the version of the type. If the version is not
  *                 provided the latest version will be assumed.
+ *         boolean hidden - true if this object should not be listed when listing
+ *                 workspace objects.
  * </pre>
  * 
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
+    "type",
+    "data",
     "name",
     "objid",
     "metadata",
     "provenance",
-    "type",
     "tver",
-    "data"
+    "hidden"
 })
 public class ObjectSaveData {
 
+    @JsonProperty("type")
+    private java.lang.String type;
+    @JsonProperty("data")
+    private Map<String, us.kbase.UObject> data;
     @JsonProperty("name")
     private java.lang.String name;
     @JsonProperty("objid")
@@ -54,13 +61,41 @@ public class ObjectSaveData {
     private Map<String, us.kbase.UObject> metadata;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance = new ArrayList<ProvenanceAction>();
-    @JsonProperty("type")
-    private java.lang.String type;
     @JsonProperty("tver")
     private java.lang.String tver;
-    @JsonProperty("data")
-    private Map<String, us.kbase.UObject> data;
+    @JsonProperty("hidden")
+    private Integer hidden;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
+
+    @JsonProperty("type")
+    public java.lang.String getType() {
+        return type;
+    }
+
+    @JsonProperty("type")
+    public void setType(java.lang.String type) {
+        this.type = type;
+    }
+
+    public ObjectSaveData withType(java.lang.String type) {
+        this.type = type;
+        return this;
+    }
+
+    @JsonProperty("data")
+    public Map<String, us.kbase.UObject> getData() {
+        return data;
+    }
+
+    @JsonProperty("data")
+    public void setData(Map<String, us.kbase.UObject> data) {
+        this.data = data;
+    }
+
+    public ObjectSaveData withData(Map<String, us.kbase.UObject> data) {
+        this.data = data;
+        return this;
+    }
 
     @JsonProperty("name")
     public java.lang.String getName() {
@@ -122,21 +157,6 @@ public class ObjectSaveData {
         return this;
     }
 
-    @JsonProperty("type")
-    public java.lang.String getType() {
-        return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(java.lang.String type) {
-        this.type = type;
-    }
-
-    public ObjectSaveData withType(java.lang.String type) {
-        this.type = type;
-        return this;
-    }
-
     @JsonProperty("tver")
     public java.lang.String getTver() {
         return tver;
@@ -152,18 +172,18 @@ public class ObjectSaveData {
         return this;
     }
 
-    @JsonProperty("data")
-    public Map<String, us.kbase.UObject> getData() {
-        return data;
+    @JsonProperty("hidden")
+    public Integer getHidden() {
+        return hidden;
     }
 
-    @JsonProperty("data")
-    public void setData(Map<String, us.kbase.UObject> data) {
-        this.data = data;
+    @JsonProperty("hidden")
+    public void setHidden(Integer hidden) {
+        this.hidden = hidden;
     }
 
-    public ObjectSaveData withData(Map<String, us.kbase.UObject> data) {
-        this.data = data;
+    public ObjectSaveData withHidden(Integer hidden) {
+        this.hidden = hidden;
         return this;
     }
 
