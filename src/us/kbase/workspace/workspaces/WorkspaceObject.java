@@ -1,32 +1,48 @@
 package us.kbase.workspace.workspaces;
 
-import static us.kbase.workspace.util.Util.checkString;
-
 import java.util.Map;
 
 public class WorkspaceObject {
 	
-	private final String name;
+	private final ObjectIdentifier id;
+	private final WorkspaceIdentifier wsid;
 	private final Map<String, Object> data;
 	private final TypeId type;
 	private final Map<String, Object> userMeta;
 	private final Provenance provenance;
 	
-	public WorkspaceObject(String name, Map<String, Object> data, TypeId type,
+	public WorkspaceObject(ObjectIdentifier id, Map<String, Object> data, TypeId type,
 			Map<String, Object> userMeta,  Provenance provenance) {
-		checkString(name, "name");
-		if (data == null || type == null) {
-			throw new IllegalArgumentException("Neither data nor type may be null");
+		if (id == null || data == null || type == null) {
+			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
-		this.name = name;
+		this.id = id;
+		this.wsid = id.getWorkspaceIdentifier();
+		this.data = data;
+		this.type = type;
+		this.userMeta = userMeta;
+		this.provenance = provenance;
+	}
+	
+	public WorkspaceObject(WorkspaceIdentifier wsid, Map<String, Object> data, TypeId type,
+			Map<String, Object> userMeta,  Provenance provenance) {
+		if (wsid == null || data == null || type == null) {
+			throw new IllegalArgumentException("Neither wsid, data nor type may be null");
+		}
+		this.id = null;
+		this.wsid = wsid;
 		this.data = data;
 		this.type = type;
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 	}
 
-	public String getName() {
-		return name;
+	public ObjectIdentifier getObjectIdentifier() {
+		return id;
+	}
+
+	public WorkspaceIdentifier getWsid() {
+		return wsid;
 	}
 
 	//mutable!

@@ -87,8 +87,35 @@ public class WorkspaceIdentifier {
 				+ "]";
 	}
 	
-	public static void main(String[] args) {
-		System.out.println(new WorkspaceIdentifier("a:b", "a"));
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((wsname == null) ? 0 : wsname.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		WorkspaceIdentifier other = (WorkspaceIdentifier) obj;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (wsname == null) {
+			if (other.wsname != null)
+				return false;
+		} else if (!wsname.equals(other.wsname))
+			return false;
+		return true;
 	}
 
 	public Object getIdentifierString() {
@@ -96,5 +123,10 @@ public class WorkspaceIdentifier {
 			return getName();
 		}
 		return "" + getId();
+		
+	}
+
+	public static void main(String[] args) {
+		System.out.println(new WorkspaceIdentifier("a:b", "a"));
 	}
 }

@@ -52,7 +52,6 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
 
     //BEGIN_CLASS_HEADER
-    //TODO if no object name is provided, use the id number as the name
 	//TODO java doc - really low priority, sorry
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";

@@ -8,8 +8,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,16 +25,19 @@ import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceObject;
+import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -42,9 +48,13 @@ import com.mongodb.MongoException;
 
 public class MongoDatabase implements Database {
 
+	//TODO handle deleting workspaces - changes most methods
+	//TODO handle hidden and deleted objects - changes most methods
+	
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
 	private static final String WS_ACLS = "workspaceACLs";
+	private static final String WORKSPACE_PTRS = "workspacePointers";
 	private String allUsers = "*";
 	
 	private static MongoClient mongoClient = null;
@@ -73,6 +83,16 @@ public class MongoDatabase implements Database {
 		//find workspaces to which a user has some level of permission, index coves queries
 		wsACL.put(Arrays.asList("user", "perm", "id"), Arrays.asList(""));
 		indexes.put(WS_ACLS, wsACL);
+		Map<List<String>, List<String>> wsPtr = new HashMap<List<String>, List<String>>();
+		//find objects by workspace id & name
+		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique", "sparse"));
+		//find object by workspace id & object id
+		wsPtr.put(Arrays.asList("workspace", "id"), Arrays.asList("unique"));
+		//find objects by legacy UUID
+		wsPtr.put(Arrays.asList("legacyUUID"), Arrays.asList("unique", "sparse"));
+		//determine whether a particular object references this object
+		wsPtr.put(Arrays.asList("versions.reffedBy"), Arrays.asList(""));
+		indexes.put(WORKSPACE_PTRS, wsPtr);
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret)
@@ -465,11 +485,105 @@ public class MongoDatabase implements Database {
 	public void setAllUsersSymbol(String allUsers) {
 		this.allUsers = allUsers;
 	}
+	
+	private Map<ObjectIdentifier, Integer> getObjectIDs(int workspaceId,
+			Set<ObjectIdentifier> objects, boolean verify) throws
+			WorkspaceCommunicationException {
+		final Map<String, ObjectIdentifier> names
+				= new HashMap<String, ObjectIdentifier>();
+		final Map<Integer, ObjectIdentifier> ids
+				= new HashMap<Integer, ObjectIdentifier>();
+		final Map<ObjectIdentifier, Integer> goodIds =
+				new HashMap<ObjectIdentifier, Integer>();
+		for (final ObjectIdentifier o: objects) {
+			if (o.getId() == null) {
+				names.put(o.getName(), o);
+			} else {
+				ids.put(o.getId(), o);
+			}
+		}
+		// could try doing an or later, probably doesn't matter
+		// could also try and unify all this mostly duplicate code
+		if (!names.isEmpty()) {
+			final DBObject query = new BasicDBObject();
+			query.put("workspace", workspaceId);
+			query.put("id", workspaceId);
+			final DBObject namesdb = new BasicDBObject();
+			namesdb.put("$in", names.values());
+			query.put("name", namesdb);
+			System.out.println(query);
+			@SuppressWarnings("rawtypes")
+			Iterable<Map> res; 
+			try {
+				res = wsjongo.getCollection(WORKSPACE_PTRS)
+						.find(query.toString()).projection("{id: 1, name: 1}")
+						.as(Map.class);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			for (@SuppressWarnings("rawtypes") Map m: res) {
+				final String name = (String) m.get("name");
+				final Integer id = (Integer) m.get("id");
+				goodIds.put(names.get(name), id);
+			}
+		}
+		if (!ids.isEmpty()) {
+			final DBObject query = new BasicDBObject();
+			query.put("workspace", workspaceId);
+			query.put("id", workspaceId);
+			final DBObject idsdb = new BasicDBObject();
+			idsdb.put("$in", ids.values());
+			query.put("id", idsdb);
+			System.out.println(query);
+			@SuppressWarnings("rawtypes")
+			Iterable<Map> res; 
+			try {
+				res = wsjongo.getCollection(WORKSPACE_PTRS)
+						.find(query.toString()).projection("{id: 1}")
+						.as(Map.class);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			for (@SuppressWarnings("rawtypes") Map m: res) {
+				final Integer id = (Integer) m.get("id");
+				goodIds.put(ids.get(id), id);
+			}
+		}
+		return goodIds;
+	}
 
 	@Override
-	public ObjectMetaData saveObjects(String user, WorkspaceIdentifier wsi,
-			List<WorkspaceObject> objects) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
+	public List<ObjectMetaData> saveObjects(String user, 
+			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException, NoSuchObjectException {
+		//this method must maintain the order of the objects
+		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier(), true);
+		final Set<ObjectIdentifier> ids = new HashSet<ObjectIdentifier>();
+		final Set<ObjectIdentifier> noids = new HashSet<ObjectIdentifier>();
+		for (final WorkspaceObject o: objects) {
+			if (o.getObjectIdentifier() != null) {
+				ids.add(o.getObjectIdentifier());
+			} else {
+				noids.add(o.getObjectIdentifier());
+			}
+		}
+		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, ids, true);
+		Iterator<ObjectIdentifier> iter = ids.iterator();
+		while (iter.hasNext()) {
+//		for (ObjectIdentifier o: ids) {
+			ObjectIdentifier o = iter.next();
+			if (!objIDs.containsKey(o) && o.getId() != null) {
+				throw new NoSuchObjectException("There is no object with id " + o.getId());
+			}
+			iter.remove();
+		}
+		
+		
+		
+		//TODO if no object name is provided, use the id number as the name
+		
 		// TODO Auto-generated method stub
 		return null;
 	}
