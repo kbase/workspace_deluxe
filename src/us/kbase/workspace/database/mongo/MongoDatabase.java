@@ -18,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections.map.MultiValueMap;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -502,15 +503,30 @@ public class MongoDatabase implements Database {
 		this.allUsers = allUsers;
 	}
 	
-	private Map<ObjectIdentifier, Integer> getObjectIDs(int workspaceId,
+	private static class ObjID {
+		public String name;
+		public int id;
+		
+		public ObjID(String name, int id) {
+			this.name = name;
+			this.id = id;
+		}
+
+		@Override
+		public String toString() {
+			return "ObjID [name=" + name + ", id=" + id + "]";
+		}
+	}
+	
+	private Map<ObjectIdentifier, ObjID> getObjectIDs(int workspaceId,
 			Set<ObjectIdentifier> objects) throws
 			WorkspaceCommunicationException {
 		final Map<String, ObjectIdentifier> names
 				= new HashMap<String, ObjectIdentifier>();
 		final Map<Integer, ObjectIdentifier> ids
 				= new HashMap<Integer, ObjectIdentifier>();
-		final Map<ObjectIdentifier, Integer> goodIds =
-				new HashMap<ObjectIdentifier, Integer>();
+		final Map<ObjectIdentifier, ObjID> goodIds =
+				new HashMap<ObjectIdentifier, ObjID>();
 		for (final ObjectIdentifier o: objects) {
 			if (o.getId() == null) {
 				names.put(o.getName(), o);
@@ -531,16 +547,18 @@ public class MongoDatabase implements Database {
 			Iterable<Map> res; 
 			try {
 				res = wsjongo.getCollection(WORKSPACE_PTRS)
-						.find(query.toString()).projection("{id: 1, name: 1}")
+						.find(query.toString())
+						.projection("{id: 1, name: 1, _id: 0}")
 						.as(Map.class);
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
 						"There was a problem communicating with the database", me);
 			}
 			for (@SuppressWarnings("rawtypes") Map m: res) {
+				System.out.println(m);
 				final String name = (String) m.get("name");
 				final Integer id = (Integer) m.get("id");
-				goodIds.put(names.get(name), id);
+				goodIds.put(names.get(name), new ObjID(name, id));
 			}
 		}
 		if (!ids.isEmpty()) {
@@ -554,15 +572,17 @@ public class MongoDatabase implements Database {
 			Iterable<Map> res; 
 			try {
 				res = wsjongo.getCollection(WORKSPACE_PTRS)
-						.find(query.toString()).projection("{id: 1}")
+						.find(query.toString())
+						.projection("{id: 1, name: 1, _id: 0}")
 						.as(Map.class);
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
 						"There was a problem communicating with the database", me);
 			}
 			for (@SuppressWarnings("rawtypes") Map m: res) {
+				final String name = (String) m.get("name");
 				final Integer id = (Integer) m.get("id");
-				goodIds.put(ids.get(id), id);
+				goodIds.put(ids.get(id), new ObjID(name, id));
 			}
 		}
 		return goodIds;
@@ -618,7 +638,7 @@ public class MongoDatabase implements Database {
 		}
 		
 		//TODO return metadata
-		return new MongoObjectMeta(objectid, name, pkg.wo.getType(), created,
+		return new MongoObjectMeta(objectid, pkg.name, pkg.wo.getType(), created,
 				ver, user, wsid, pkg.chksum, pkg.wo.getUserMeta());
 	}
 	
@@ -678,9 +698,10 @@ public class MongoDatabase implements Database {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ObjectMetaData saveObject(final String user, final int wsid,
+	private ObjectMetaData createPointerAndSaveObject(final String user, final int wsid,
 			final int objectid, final String name, final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
+		//TODO the saveObject methods need some serious cleaning up - 1 is for creating container, 1 is for objects
 		System.out.println("****save new obj called****");
 		System.out.println("wsid " + wsid);
 		System.out.println("objectid " + objectid);
@@ -690,6 +711,7 @@ public class MongoDatabase implements Database {
 		if (name == null) {
 			System.out.println("Getting name from null");
 			newName = getUniqueNameForObject(wsid, objectid);
+			pkg.name = newName;
 		}
 		System.out.println("newname " + newName);
 		final DBObject dbo = new BasicDBObject();
@@ -709,19 +731,20 @@ public class MongoDatabase implements Database {
 			//ok, someone must've just this second added this name to an object
 			//asshole
 			//this should be a rare event
+			//TODO is this a name or id clash? if the latter, something is broken
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
-				return saveObject(user, wsid, objectid, name, pkg);
+				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
 			}
 			final ObjectIdentifier o = pkg.wo.getObjectIdentifier();
-			final Map<ObjectIdentifier, Integer> objID = getObjectIDs(wsid,
+			final Map<ObjectIdentifier, ObjID> objID = getObjectIDs(wsid,
 					new HashSet<ObjectIdentifier>(Arrays.asList(o)));
 			System.out.println(objID);
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
-				return saveObject(user, wsid, objectid, name, pkg);
+				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
 			}
-			return saveObject(user, wsid, objID.get(o), pkg);
+			return saveObject(user, wsid, objID.get(o).id, pkg);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -791,6 +814,7 @@ public class MongoDatabase implements Database {
 						"Unable to serialize data for object %s",
 						objerrid), jpe);
 			}
+			//TODO do this *after* rewrites
 			p.size = p.json.length();
 			p.chksum = DigestUtils.md5Hex(p.json);
 			objcount++;
@@ -810,29 +834,45 @@ public class MongoDatabase implements Database {
 			NoSuchObjectException {
 		//this method must maintain the order of the objects
 		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier(), true);
-		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
+//		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
 		
-		List<ObjectSavePackage> packages = createObjectSavePackages(objects);
+		final List<ObjectSavePackage> packages = createObjectSavePackages(objects);
+		final Map<ObjectIdentifier, List<ObjectSavePackage>> idToPkg =
+				new HashMap<ObjectIdentifier, List<ObjectSavePackage>>();
 		int newobjects = 0;
 		for (final ObjectSavePackage p: packages) {
-			if (p.wo.getObjectIdentifier() != null) {
-				names.add(p.wo.getObjectIdentifier());
+			final ObjectIdentifier o = p.wo.getObjectIdentifier();
+			if (o != null) {
+//				names.add(p.wo.getObjectIdentifier());
+				if (idToPkg.get(o) == null) {
+					idToPkg.put(o, new ArrayList<ObjectSavePackage>());
+				}
+				idToPkg.get(o).add(p);
 			} else {
 				newobjects++;
 			}
 		}
-		final Map<ObjectIdentifier, Integer> objIDs = getObjectIDs(wsid, names);
-		for (ObjectIdentifier o: names) {
+		final Map<ObjectIdentifier, ObjID> objIDs = getObjectIDs(wsid, idToPkg.keySet());
+		for (ObjectIdentifier o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				if (o.getId() != null) {
 					throw new NoSuchObjectException(
 							"There is no object with id " + o.getId());
 				} else {
+					for (ObjectSavePackage pkg: idToPkg.get(o)) {
+						pkg.name = o.getName();
+					}
 					newobjects++;
 				}
+			} else {
+				for (ObjectSavePackage pkg: idToPkg.get(o)) {
+					pkg.name = objIDs.get(o).name;
+				}
 			}
+//			System.out.println(o);
+//			System.out.println(idToPkg.get(o));
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
@@ -853,14 +893,14 @@ public class MongoDatabase implements Database {
 		for (final ObjectSavePackage p: packages) {
 			ObjectIdentifier oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(saveObject(user, wsid, newid++, null, p));
+				ret.add(createPointerAndSaveObject(user, wsid, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObject(user, wsid, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObject(user, wsid, objIDs.get(oi), p));
+				ret.add(saveObject(user, wsid, objIDs.get(oi).id, p));
 			} else {//new name, need to generate new id
 				//TODO bug if multiple same names without ids - need to use first id from meta
-				ret.add(saveObject(user, wsid, newid++, oi.getName(), p));
+				ret.add(createPointerAndSaveObject(user, wsid, newid++, oi.getName(), p));
 			}
 		}
 		return ret;
@@ -905,7 +945,7 @@ public class MongoDatabase implements Database {
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
 			testdb.saveObjects("u", wco);
-			testdb.saveObject("u", 1, 3, "testobj", pkg); //TODO check meta is as expected, objid should == 1
+			testdb.createPointerAndSaveObject("u", 1, 3, "testobj", pkg); //TODO check meta is as expected, objid should == 1
 		}
 	}
 	
