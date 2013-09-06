@@ -18,7 +18,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections.map.MultiValueMap;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -876,6 +875,7 @@ public class MongoDatabase implements Database {
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
+		saveData(packages);
 		int lastid;
 			try {
 				lastid = (int) wsjongo.getCollection(WORKSPACES)
@@ -899,21 +899,35 @@ public class MongoDatabase implements Database {
 				ret.add(saveObject(user, wsid, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
 				ret.add(saveObject(user, wsid, objIDs.get(oi).id, p));
+			} else if (seenNames.containsKey(oi.getName())) {
+				//we've already generated an id for this name
+				ret.add(saveObject(user, wsid, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				//TODO bug if multiple same names without ids - need to use first id from meta
-				if (seenNames.containsKey(oi.getName())) {
-					ret.add(saveObject(user, wsid, seenNames.get(oi.getName()), p));
-				} else {
-					ObjectMetaData m = createPointerAndSaveObject(user, wsid,
-							newid++, oi.getName(), p);
-					ret.add(m);
-					seenNames.put(oi.getName(), m.getObjectId());
-				}
+				ObjectMetaData m = createPointerAndSaveObject(user, wsid,
+						newid++, oi.getName(), p);
+				ret.add(m);
+				seenNames.put(oi.getName(), m.getObjectId());
 			}
 		}
 		return ret;
 	}
 	
+	private void saveData(List<ObjectSavePackage> data) {
+		Map<TypeId, List<ObjectSavePackage>> pkgByType =
+				new HashMap<TypeId, List<ObjectSavePackage>>();
+		for (ObjectSavePackage pkg: data) {
+			if (pkgByType.get(pkg.wo.getType()) == null) {
+				pkgByType.put(pkg.wo.getType(), new ArrayList<ObjectSavePackage>());
+			}
+			
+		}
+		
+	}
+	
+	private String typeToCollectionName(TypeId type) {
+		return "type_" + type.getModule() + "." + type.getName() + "_" +
+				type.getMajorVersion() + "." + type.getMinorVersion();
+	}
 	
 	public static class TestMongoInternals {
 		

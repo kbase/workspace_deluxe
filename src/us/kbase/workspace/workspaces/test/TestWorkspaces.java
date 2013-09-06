@@ -179,9 +179,9 @@ public class TestWorkspaces {
 				"Illegal character in workspace name af?eaff*afea: ?"));
 		//check missing ws name
 		userWS.add(Arrays.asList("afaeaafe", null,
-				"name cannot be null and must have at least one character"));
+				"A workspace name cannot be null and must have at least one character"));
 		userWS.add(Arrays.asList("afaeaafe", "",
-				"name cannot be null and must have at least one character"));
+				"A workspace name cannot be null and must have at least one character"));
 		//check missing user and/or workspace name in compound name
 		userWS.add(Arrays.asList("afaeaafe", ":",
 				"Workspace name missing from :"));

@@ -32,6 +32,7 @@ build-libs:
 build-docs: build-libs
 	-rm -r docs 
 	$(ANT) javadoc
+	@echo "**Expect two warnings for javadoc build, that's normal**"
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
 	rm -f pod2htmd.tmp
 
@@ -58,6 +59,7 @@ compile-typespec:
 test: test-client test-service test-scripts
 	
 test-client: test-service
+	$(ANT) test_client_import
 
 test-service:
 	test/cfg_to_runner.py $(TESTCFG)

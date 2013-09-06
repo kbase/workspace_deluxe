@@ -13,7 +13,7 @@ import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class TypeData {
-	//TODO
+	//TODO TypeData
 	
 	@JsonIgnore
 	private String data = null;

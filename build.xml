@@ -9,13 +9,15 @@
   <property name="src" location="src"/>
   <property name="lib" location="lib"/>
   <property name="dist" location="dist"/>
+  <property name="test" location="test"/>
+  <property name="jardir" location="../jars/lib/jars/"/>
   <property name="classes" location="classes"/>
   <property name="jar.file" value="WorkspaceService.jar"/>
   <property name="war.file" value="WorkspaceService.war"/>
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
 
-  <fileset dir="../jars/lib/jars/" id="libfiles">
+  <fileset dir="${jardir}" id="libfiles">
     <include name="apache_commons/commons-codec-1.8.jar"/>
     <include name="apache_commons/commons-io-2.4.jar"/>
     <include name="apache_commons/commons-lang3-3.1.jar"/>
@@ -25,49 +27,53 @@
     <include name="apache_commons/http/httpmime-4.2.5.jar"/>
     <include name="bson4jackson/bson4jackson-2.1.0.jar"/>
     <include name="ini4j/ini4j-0.5.2.jar"/>
-    <include name="jackson/jackson-all-1.9.11.jar"/>
     <include name="jackson/jackson-annotations-2.1.4.jar"/>
     <include name="jackson/jackson-core-2.1.4.jar"/>
     <include name="jackson/jackson-databind-2.1.4.jar"/>
     <include name="jetty/jetty-all-7.0.0.jar"/>
     <include name="jna/jna-3.4.0.jar"/>
     <include name="jongo/jongo-0.4.jar"/>
-    <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
     <include name="mongo/mongo-java-driver-2.11.2.jar"/>
     <include name="servlet/servlet-api-2.5.jar"/>
     <include name="syslog4j/syslog4j-0.9.46.jar"/>
   </fileset>
 	
+  <fileset dir="${jardir}" id="commonlib">
+    <include name="jackson/jackson-all-1.9.11.jar"/>
+    <include name="junit/junit-4.9.jar"/>
+    <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
+  </fileset>
 	
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
-      <include name="workspace/WorkspaceClient.java"/>
-      <include name="workspace/WorkspaceIdentity.java"/>
-      <include name="workspace/*Params.java"/>
-      <include name="Tuple*.java"/>
-      <include name="*Exception.java"/>
+      <include name="workspace/*.java"/>
+      <exclude name="workspace/WorkspaceServer.java"/>
+      <include name="*.java"/>
+      <exclude name="JsonServer*"/>
+      <exclude name="JacksonTupleModule.java"/>
+      <exclude name="JsonClientCaller.java"/>
   </fileset>
 
   <fileset id="client-class-files" dir="${classes}" defaultexcludes="yes">
-    <include name="us/kbase/workspace/WorkspaceClient*.class"/>
-    <include name="us/kbase/workspace/WorkspaceIdentity*.class"/>
-    <include name="us/kbase/workspace/*Params*.class"/>
-    <include name="us/kbase/Tuple*.class"/>
-    <include name="us/kbase/*Exception*.class"/>
-    <include name="us/kbase/JsonClientCaller*.class"/>
-    <include name="us/kbase/JacksonTupleModule*.class"/>
-    <include name="us/kbase/UObject*.class"/>
+    <include name="us/kbase/workspace/*.class"/>
+    <exclude name="us/kbase/workspace/WorkspaceServer.class"/>
+    <include name="us/kbase/*.class"/>
+    <exclude name="us/kbase/JsonServer*"/>
   </fileset>
 
   <path id="compile.classpath">
     <fileset refid="libfiles"/>
+    <fileset refid="commonlib"/>
+  </path>
+
+  <path id="test.client.import.classpath">
+    <fileset refid="commonlib"/>
+    <fileset file="${dist}/client/${clientjar.file}"/>
+    <pathelement path="${test}"/>
   </path>
 
   <path id="test.classpath">
     <path refid="compile.classpath"/>
-    <fileset dir="${dist}/">
-      <include name="${jar.file}"/>
-    </fileset>
+    <fileset file="${dist}/${jar.file}"/>
   </path>
 
   <target name="init" description="make directories">
@@ -107,6 +113,7 @@
       source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
+      <link href="http://jackson.codehaus.org/1.9.9/javadoc/"/>
       <fileset refid="client-jdoc-files"/>
     </javadoc>
   </target>
@@ -151,6 +158,17 @@
       <test name="us.kbase.workspace.test.JSONRPCLayerTest"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
+  </target>
+	
+  <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
+    <echo message="${toString:test.client.import.classpath}"/>
+    <javac destdir="${test}" srcdir="${test}" includeantruntime="false"
+          debug="true" classpathref="test.client.import.classpath" />
+    <junit>
+      <classpath refid="test.client.import.classpath"/>
+      <formatter type="plain" usefile="false" />
+      <test name="TestClientImport"/>
+    </junit>
   </target>
 
   <target name="clean" description="clean up" >
