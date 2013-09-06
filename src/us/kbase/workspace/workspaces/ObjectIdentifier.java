@@ -85,6 +85,14 @@ public class ObjectIdentifier {
 	public Integer getVersion() {
 		return version;
 	}
+	
+	public String getIdentifierString() {
+		if (getId() == null) {
+			return getName();
+		}
+		return "" + getId();
+		
+	}
 
 	public static ObjectIdentifier parseObjectReference(String reference) {
 		checkString(reference, "reference");

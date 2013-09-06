@@ -118,7 +118,7 @@ public class WorkspaceIdentifier {
 		return true;
 	}
 
-	public Object getIdentifierString() {
+	public String getIdentifierString() {
 		if (getId() == null) {
 			return getName();
 		}

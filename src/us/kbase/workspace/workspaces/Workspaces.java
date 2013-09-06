@@ -2,6 +2,7 @@ package us.kbase.workspace.workspaces;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +107,8 @@ public class Workspaces {
 	public static void main(String[] args) throws Exception {
 		Database db = new MongoDatabase("localhost", "ws_tester_db1", "foo");
 		Workspaces w = new Workspaces(db);
+//		db.createWorkspace("kbasetest", "permspriv", false, "foo");
+//		db.setPermissions(new WorkspaceIdentifier("permspriv"), Arrays.asList("kbasetest2"), Permission.WRITE);
 		WorkspaceObjectCollection woc = new WorkspaceObjectCollection(new WorkspaceIdentifier("permspriv"));
 //		System.out.println(woc);
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -117,10 +120,11 @@ public class Workspaces {
 		Provenance p = new Provenance("kbasetest2");
 		TypeId t = new TypeId("SomeModule", "AType", 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
-		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/32-1"), data, t, meta, p, false);
+		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/18-1"), data, t, meta, p, false);
 //		System.out.println(wo);
 		woc.addObject(wo);
-		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/32-2"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/18-1"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/18-2"), data, t, meta, p, false));
 //		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
 		woc.addObject(new WorkspaceObject(new WorkspaceIdentifier("permspriv"), data, t, meta, p, false));
 		w.saveObjects("kbasetest2", woc);
