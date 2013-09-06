@@ -890,6 +890,7 @@ public class MongoDatabase implements Database {
 		//TODO batch updates when everything known to be ok
 		int newid = lastid - newobjects + 1;
 		//todo get counts and numbers
+		Map<String, Integer> seenNames = new HashMap<String, Integer>();
 		for (final ObjectSavePackage p: packages) {
 			ObjectIdentifier oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
@@ -900,7 +901,14 @@ public class MongoDatabase implements Database {
 				ret.add(saveObject(user, wsid, objIDs.get(oi).id, p));
 			} else {//new name, need to generate new id
 				//TODO bug if multiple same names without ids - need to use first id from meta
-				ret.add(createPointerAndSaveObject(user, wsid, newid++, oi.getName(), p));
+				if (seenNames.containsKey(oi.getName())) {
+					ret.add(saveObject(user, wsid, seenNames.get(oi.getName()), p));
+				} else {
+					ObjectMetaData m = createPointerAndSaveObject(user, wsid,
+							newid++, oi.getName(), p);
+					ret.add(m);
+					seenNames.put(oi.getName(), m.getObjectId());
+				}
 			}
 		}
 		return ret;
