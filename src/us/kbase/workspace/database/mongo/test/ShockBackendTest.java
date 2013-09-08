@@ -22,7 +22,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
-import us.kbase.workspace.database.mongo.WorkspaceType;
+import us.kbase.workspace.workspaces.TypeId;
 
 public class ShockBackendTest {
 	
@@ -46,11 +46,11 @@ public class ShockBackendTest {
 	
 	@Test
 	public void saveAndGetBlob() throws Exception {
-		String owner = "foo";
 		String mod = "moduleA";
 		String type = "typeA";
-		int ver = 0;
-		WorkspaceType wt = new WorkspaceType(owner, mod, type, ver);
+		int majorver = 0;
+		int minorver = 1;
+		TypeId wt = new TypeId(mod, type, majorver, minorver);
 		List<String> workspaces = new ArrayList<>();
 		workspaces.add("workspace1");
 		workspaces.add("workspace2");
@@ -69,14 +69,14 @@ public class ShockBackendTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> attribs = (Map<String, Object>)
 				sn.getAttributes().get("workspace");
-		assertThat("Type owner saved correctly", owner,
-				is(attribs.get("typeowner")));
 		assertThat("Type module saved correctly", mod,
 				is(attribs.get("module")));
 		assertThat("Type type saved correctly", type,
 				is(attribs.get("type")));
-		assertThat("Type version saved correctly", ver,
-				is(attribs.get("version")));
+		assertThat("Type major version saved correctly", majorver,
+				is(attribs.get("major-version")));
+		assertThat("Type minor version saved correctly", minorver,
+				is(attribs.get("minor-version")));
 		TypeData faketd = new TypeData("foo", wt, workspaces, subdata);
 		faketd.addShockInformation(sn);
 		assertThat("Shock data returned correctly", data, is(sb.getBlob(faketd)));

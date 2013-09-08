@@ -17,8 +17,8 @@ import org.junit.Test;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.TypeData;
-import us.kbase.workspace.database.mongo.WorkspaceType;
 import us.kbase.workspace.test.Common;
+import us.kbase.workspace.workspaces.TypeId;
 
 public class GridFSBackendTest {
 	
@@ -33,7 +33,7 @@ public class GridFSBackendTest {
 	
 	@Test
 	public void saveAndGetBlob() throws Exception {
-		WorkspaceType wt = new WorkspaceType("foo", "foo", "foo", 0);
+		TypeId wt = new TypeId("foo", "foo", 1, 0);
 		List<String> workspaces = new ArrayList<String>();
 		workspaces.add("workspace1");
 		workspaces.add("workspace2");
@@ -42,7 +42,7 @@ public class GridFSBackendTest {
 		TypeData td = new TypeData(data, wt, workspaces, subdata);
 		gfsb.saveBlob(td);
 		//have to use the same data to get same md5
-		wt = new WorkspaceType("foo1", "foo1", "foo1", 1);
+		wt = new TypeId("foo1", "foo1", 2, 1);
 		TypeData tdr = new TypeData(data, wt, new ArrayList<String>(), subdata);
 		String returned = gfsb.getBlob(tdr);
 		assertEquals("Didn't get same data back from store", returned, data);
@@ -56,7 +56,7 @@ public class GridFSBackendTest {
 	
 	@Test
 	public void getNonExistantBlob() throws Exception {
-		WorkspaceType wt = new WorkspaceType("foo", "foo", "foo", 0);
+		TypeId wt = new TypeId("foo", "foo", 1, 0);
 		String data = "this is non-existant data";
 		TypeData td = new TypeData(data, wt, new ArrayList<String>(), new HashMap<String, Object>());
 		try {
@@ -70,7 +70,7 @@ public class GridFSBackendTest {
 	
 	@Test
 	public void removeNonExistantBlob() throws Exception {
-		WorkspaceType wt = new WorkspaceType("foo", "foo", "foo", 0);
+		TypeId wt = new TypeId("foo", "foo", 1, 0);
 		String data = "this is also non-existant data";
 		TypeData td = new TypeData(data, wt, new ArrayList<String>(), new HashMap<String, Object>());
 		gfsb.removeBlob(td); //should silently not remove anything

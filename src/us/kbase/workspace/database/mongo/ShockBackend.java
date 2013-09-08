@@ -18,6 +18,7 @@ import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
+import us.kbase.workspace.workspaces.TypeId;
 
 public class ShockBackend implements BlobStore {
 	
@@ -81,16 +82,16 @@ public class ShockBackend implements BlobStore {
 		if(data == null) {
 			throw new RuntimeException("No data in typedata object");
 		}
-		WorkspaceType type = td.getType();
+		TypeId type = td.getType();
 		if(type == null) {
 			throw new RuntimeException("No type in typedata object");
 		}
 		Map<String, Object> attribs = new HashMap<>();
 		Map<String,Object> workattribs = new HashMap<>();
-		workattribs.put("typeowner", type.getOwner());
 		workattribs.put("module", type.getModule());
-		workattribs.put("type", type.getType());
-		workattribs.put("version", type.getVersion());
+		workattribs.put("type", type.getName());
+		workattribs.put("major-version", type.getMajorVersion());
+		workattribs.put("minor-version", type.getMinorVersion());
 		attribs.put("workspace", workattribs);
 		ShockNode sn = null;
 		try {
