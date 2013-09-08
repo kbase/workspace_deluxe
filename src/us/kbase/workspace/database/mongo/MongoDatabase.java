@@ -50,6 +50,7 @@ import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceObject;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
+import us.kbase.workspace.workspaces.WorkspaceType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -924,11 +925,6 @@ public class MongoDatabase implements Database {
 		
 	}
 	
-	private String typeToCollectionName(TypeId type) {
-		return "type_" + type.getModule() + "." + type.getName() + "_" +
-				type.getMajorVersion() + "." + type.getMinorVersion();
-	}
-	
 	public static class TestMongoInternals {
 		
 		//screwy tests for methods that can't be tested in a black box manner
@@ -959,7 +955,7 @@ public class MongoDatabase implements Database {
 			data.put("fubar", moredata);
 			meta.put("metastuff", moredata);
 			Provenance p = new Provenance("kbasetest2");
-			TypeId t = new TypeId("SomeModule", "AType", 0, 1);
+			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 			WorkspaceObject wo = new WorkspaceObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
 			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);

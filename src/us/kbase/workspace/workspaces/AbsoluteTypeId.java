@@ -2,15 +2,18 @@ package us.kbase.workspace.workspaces;
 
 public class AbsoluteTypeId extends TypeId{
 
-	public AbsoluteTypeId(String module, String name, int majorVersion, int minorVersion) {
-		super(module, name, majorVersion, minorVersion);
+	public AbsoluteTypeId(WorkspaceType type, int majorVersion, int minorVersion) {
+		super(type, majorVersion, minorVersion);
 	}
 	
 	@Override
 	public String toString() {
-		return "AbsoluteTypeId [module=" + module + ", name=" + name
-				+ ", majorVersion=" + majorVersion + ", minorVersion="
-				+ minorVersion + "]";
+		return "AbsoluteTypeId [type=" + type + ", majorVersion=" +
+				majorVersion + ", minorVersion=" + minorVersion + "]";
 	}
-
+	
+	public String getTypeString() {
+		return type.getModule() + "." + type.getName() + "_" + majorVersion +
+				"." + minorVersion;
+	}
 }

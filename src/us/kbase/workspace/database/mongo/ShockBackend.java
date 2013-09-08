@@ -88,8 +88,8 @@ public class ShockBackend implements BlobStore {
 		}
 		Map<String, Object> attribs = new HashMap<>();
 		Map<String,Object> workattribs = new HashMap<>();
-		workattribs.put("module", type.getModule());
-		workattribs.put("type", type.getName());
+		workattribs.put("module", type.getType().getModule());
+		workattribs.put("type", type.getType().getName());
 		workattribs.put("major-version", type.getMajorVersion());
 		workattribs.put("minor-version", type.getMinorVersion());
 		attribs.put("workspace", workattribs);

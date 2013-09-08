@@ -113,7 +113,7 @@ public class Workspaces {
 		data.put("fubar", moredata);
 		meta.put("metastuff", moredata);
 		Provenance p = new Provenance("kbasetest2");
-		TypeId t = new TypeId("SomeModule", "AType", 0, 1);
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/29-1"), data, t, meta, p, false);
 //		System.out.println(wo);
