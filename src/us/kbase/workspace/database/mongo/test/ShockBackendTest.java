@@ -22,7 +22,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
-import us.kbase.workspace.workspaces.TypeId;
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 
 public class ShockBackendTest {
 	
@@ -50,7 +50,7 @@ public class ShockBackendTest {
 		String type = "typeA";
 		int majorver = 0;
 		int minorver = 1;
-		TypeId wt = new TypeId(mod, type, majorver, minorver);
+		AbsoluteTypeId wt = new AbsoluteTypeId(mod, type, majorver, minorver);
 		List<String> workspaces = new ArrayList<>();
 		workspaces.add("workspace1");
 		workspaces.add("workspace2");

@@ -1,19 +1,14 @@
 package us.kbase.workspace.workspaces;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 

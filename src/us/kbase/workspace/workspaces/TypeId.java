@@ -4,10 +4,10 @@ import static us.kbase.workspace.util.Util.checkString;
 
 public class TypeId {
 	
-	private final String module;
-	private final String name;
-	private final Integer majorVersion;
-	private final Integer minorVersion;
+	final String module;
+	final String name;
+	final Integer majorVersion;
+	final Integer minorVersion;
 
 	public TypeId(String module, String name, int majorVersion, int minorVersion) {
 		checkString(module, "module");
@@ -56,6 +56,51 @@ public class TypeId {
 	
 	public int getMinorVersion() {
 		return minorVersion;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((majorVersion == null) ? 0 : majorVersion.hashCode());
+		result = prime * result
+				+ ((minorVersion == null) ? 0 : minorVersion.hashCode());
+		result = prime * result + ((module == null) ? 0 : module.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TypeId other = (TypeId) obj;
+		if (majorVersion == null) {
+			if (other.majorVersion != null)
+				return false;
+		} else if (!majorVersion.equals(other.majorVersion))
+			return false;
+		if (minorVersion == null) {
+			if (other.minorVersion != null)
+				return false;
+		} else if (!minorVersion.equals(other.minorVersion))
+			return false;
+		if (module == null) {
+			if (other.module != null)
+				return false;
+		} else if (!module.equals(other.module))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		return true;
 	}
 
 	@Override

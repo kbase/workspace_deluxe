@@ -9,6 +9,7 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.TypeId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -19,7 +20,7 @@ public class TypeData {
 	@JsonIgnore
 	private String data = null;
 	@JsonIgnore
-	private TypeId type = null;
+	private AbsoluteTypeId type = null;
 	
 	//these attributes are actually saved in mongo
 	private List<String> workspaces;
@@ -31,7 +32,7 @@ public class TypeData {
 	private boolean gridfs = false;
 	
 	
-	public TypeData(String data, TypeId type, List<String> workspaces,
+	public TypeData(String data, AbsoluteTypeId type, List<String> workspaces,
 			Map<String,Object> subdata) {
 		if (data == null || type == null || workspaces == null ||
 				subdata == null) {
