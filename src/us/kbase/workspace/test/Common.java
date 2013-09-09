@@ -25,7 +25,8 @@ public class Common {
 	public static final String SHOCK = "shock";
 	public static final List<String> COLLECTIONS = Arrays.asList(
 			"settings", "workspaces", "workspaceACLs", "workspaceCounter",
-			"workspacePointers");
+			"workspacePointers", "shockData");
+	//TODO destroy all type collections
 			
 	private static MongoClient mongoClient = null;
 	
@@ -121,6 +122,11 @@ public class Common {
 		DBObject dbo = new BasicDBObject();
 		for (String c: COLLECTIONS) {
 			mdb.getCollection(c).remove(dbo);
+		}
+		for (String c: mdb.getCollectionNames()) {
+			if (c.startsWith("type-")) {
+				mdb.getCollection(c).drop();
+			}
 		}
 		if (type == GRIDFS) {
 			dbo.put("backend", GRIDFS);

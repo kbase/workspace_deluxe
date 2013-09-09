@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
 
-import us.kbase.workspace.database.mongo.exceptions.DuplicateBlobException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.mongodb.BasicDBObject;
@@ -27,34 +27,45 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(TypeData td) throws DuplicateBlobException {
+	public void saveBlob(TypeData td) throws BlobStoreCommunicationException {
 		if(td.getData() == null) {
 			throw new RuntimeException("No data in typedata object");
 		}
-		td.setGridFS();
+//		td.setGridFS();
 		GridFSInputFile gif = gfs.createFile(td.getData().getBytes());
 		gif.setId(td.getChksum());
 		gif.setFilename(td.getChksum());
 		try {
 			gif.save();
 		} catch (MongoException.DuplicateKey dk) {
-			throw new DuplicateBlobException(
-					"Attempt to add a duplicate blob with id " + td.getChksum());
+			// already here, done
+//			throw new DuplicateBlobException(
+//					"Attempt to add a duplicate blob with id " + td.getChksum());
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not write to the mongo database", me);
 		}
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws NoSuchBlobException {
-		if (!td.isGridFSBlob()) {
-			throw new IllegalStateException(
-					"This data is not stored in gridFS");
-		}
+	public String getBlob(TypeData td) throws NoSuchBlobException,
+			BlobStoreCommunicationException {
+//		if (!td.isGridFSBlob()) {
+//			throw new IllegalStateException(
+//					"This data is not stored in gridFS");
+//		}
 		DBObject query = new BasicDBObject();
 		query.put("_id", td.getChksum());
-		GridFSDBFile out = gfs.findOne(query);
+		GridFSDBFile out;
+		try {
+			out = gfs.findOne(query);
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not write to the mongo database", me);
+		}
 		if (out == null) {
 			throw new NoSuchBlobException(
-					"Attempt to retrieve non-existant blob with MD5 " + 
+					"Attempt to retrieve non-existant blob with chksum " + 
 					td.getChksum());
 		}
 		try {
@@ -66,14 +77,19 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public void removeBlob(TypeData td) {
-		if (!td.isGridFSBlob()) {
-			throw new IllegalStateException(
-					"This data is not stored in gridFS");
-		}
+	public void removeBlob(TypeData td) throws BlobStoreCommunicationException {
+//		if (!td.isGridFSBlob()) {
+//			throw new IllegalStateException(
+//					"This data is not stored in gridFS");
+//		}
 		DBObject query = new BasicDBObject();
 		query.put("_id", td.getChksum());
-		gfs.remove(query);
+		try {
+			gfs.remove(query);
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not write to the mongo database", me);
+		}
 	}
 
 	@Override

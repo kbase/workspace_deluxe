@@ -5,8 +5,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -14,23 +12,43 @@ import us.kbase.auth.AuthUser;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.workspaces.TypeId;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 
 public class ShockBackend implements BlobStore {
 	
 	private String user;
 	private String password;
 	private BasicShockClient client;
+	private DBCollection mongoCol;
 	
-	//TODO make shockBE have its own mongo collection that stores chksum->shock node mapping, make typedata backend agnostic
+	private static final String CHKSUM = "chksum";
+	private static final String NODE = "node";
+	private static final String VER = "ver";
 	
-	public ShockBackend(URL url, String user, String password) throws
-			BlobStoreAuthorizationException, BlobStoreException {
+	public ShockBackend(DBCollection collection, URL url, String user,
+			String password) throws BlobStoreAuthorizationException,
+			BlobStoreException {
+		if (collection == null) {
+			throw new NullPointerException("Collection cannot be null");
+		}
+		this.mongoCol = collection;
+		final DBObject dbo = new BasicDBObject();
+		dbo.put(CHKSUM, 1);
+		mongoCol.ensureIndex(dbo);
 		this.user = user;
 		this.password = password;
 		try {
@@ -80,6 +98,12 @@ public class ShockBackend implements BlobStore {
 	@Override
 	public void saveBlob(TypeData td) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
+		try {
+			getNode(td);
+			return; //already saved
+		} catch (NoSuchBlobException nb) {
+			//go ahead, need to save
+		}
 		checkAuth();
 		String data = td.getData();
 		if(data == null) {
@@ -89,17 +113,16 @@ public class ShockBackend implements BlobStore {
 		if(type == null) {
 			throw new RuntimeException("No type in typedata object");
 		}
-		Map<String, Object> attribs = new HashMap<>();
-		Map<String,Object> workattribs = new HashMap<>();
-		workattribs.put("module", type.getType().getModule());
-		workattribs.put("type", type.getType().getName());
-		workattribs.put("major-version", type.getMajorVersion());
-		workattribs.put("minor-version", type.getMinorVersion());
-		attribs.put("workspace", workattribs);
+//		Map<String, Object> attribs = new HashMap<>();
+//		Map<String,Object> workattribs = new HashMap<>();
+//		workattribs.put("module", type.getType().getModule());
+//		workattribs.put("type", type.getType().getName());
+//		workattribs.put("major-version", type.getMajorVersion());
+//		workattribs.put("minor-version", type.getMinorVersion());
+//		attribs.put("workspace", workattribs);
 		ShockNode sn = null;
 		try {
-			sn = client.addNode(attribs, data.getBytes(),
-				"workspace_" + td.getChksum());
+			sn = client.addNode(data.getBytes(), "workspace_" + td.getChksum());
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -115,16 +138,52 @@ public class ShockBackend implements BlobStore {
 					"Failed to create shock node: " +
 					she.getLocalizedMessage(), she);
 		}
-		td.addShockInformation(sn);
+		final DBObject dbo = new BasicDBObject();
+		dbo.put(CHKSUM, td.getChksum());
+		try {
+			dbo.put(NODE, sn.getId().getId());
+			dbo.put(VER, sn.getVersion().getVersion());
+		} catch (ShockNodeDeletedException d) {
+			throw new RuntimeException("Shock is returning deleted nodes");
+		}
+		final DBObject query = new BasicDBObject();
+		query.put(CHKSUM, td.getChksum());
+		try {
+			mongoCol.update(query, dbo, true, false);
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not write to the mongo database", me);
+		}
+//		td.addShockInformation(sn);
+	}
+	
+	private String getNode(TypeData td) throws
+			BlobStoreCommunicationException, NoSuchBlobException {
+		final DBObject query = new BasicDBObject();
+		query.put(CHKSUM, td.getChksum());
+		DBObject ret;
+		try {
+			ret = mongoCol.findOne(query);
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not read from the mongo database", me);
+		}
+		if (ret == null) {
+			throw new NoSuchBlobException("No blob saved with chksum "
+					+ td.getChksum());
+		}
+		return (String) ret.get(NODE);
 	}
 
 	@Override
 	public String getBlob(TypeData td) throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
+			BlobStoreCommunicationException, NoSuchBlobException {
 		checkAuth();
+		final String node = getNode(td);
+		
 		String ret = null;
 		try {
-			ret = new String(client.getFile(td.getShockNodeId()));
+			ret = new String(client.getFile(new ShockNodeId(node)));
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -143,8 +202,15 @@ public class ShockBackend implements BlobStore {
 	public void removeBlob(TypeData td) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		checkAuth();
+		String node;
 		try {
-			client.deleteNode(td.getShockNodeId());
+			node = getNode(td);
+		} catch (NoSuchBlobException nb) {
+			return; //already gone
+		}
+		
+		try {
+			client.deleteNode(new ShockNodeId(node));
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -158,11 +224,15 @@ public class ShockBackend implements BlobStore {
 					"Failed to delete shock node: " +
 					she.getLocalizedMessage(), she);
 		}
+		final DBObject query = new BasicDBObject();
+		query.put(CHKSUM, td.getChksum());
+		mongoCol.remove(query);
 	}
 
 	@Override
-	public String getExternalIdentifier(TypeData td) {
-		return td.getShockNodeId().getId();
+	public String getExternalIdentifier(TypeData td) throws
+			BlobStoreCommunicationException, NoSuchBlobException {
+		return getNode(td);
 	}
 
 	@Override

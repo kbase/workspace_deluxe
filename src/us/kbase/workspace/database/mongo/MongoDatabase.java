@@ -41,7 +41,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
-import us.kbase.workspace.database.mongo.exceptions.DuplicateBlobException;
 import us.kbase.workspace.test.Common;
 import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
@@ -78,6 +77,7 @@ public class MongoDatabase implements Database {
 	private static final String WORKSPACES = "workspaces";
 	private static final String WS_ACLS = "workspaceACLs";
 	private static final String WORKSPACE_PTRS = "workspacePointers";
+	private static final String SHOCK_COLLECTION = "shockData";
 	private static final int MAX_USER_META_SIZE = 16000;
 	private String allUsers = "*";
 	
@@ -259,8 +259,8 @@ public class MongoDatabase implements Database {
 			}
 			BlobStore bs;
 			try {
-				bs = new ShockBackend(shockurl,
-						wsSettings.getShockUser(), backendSecret);
+				bs = new ShockBackend(wsmongo.getCollection(SHOCK_COLLECTION),
+						shockurl, wsSettings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
 						"Not authorized to access the blob store database", e);
@@ -1055,9 +1055,6 @@ public class MongoDatabase implements Database {
 					throw new WorkspaceCommunicationException(
 							"Authorization error communicating with the backend storage system",
 							e);
-				} catch (DuplicateBlobException e) {
-					System.out.println("****duplicate blob*****");
-					//just got put there, we're good
 				}
 			}
 			try {

@@ -43,10 +43,10 @@ public class GridFSBackendTest {
 		String returned = gfsb.getBlob(tdr);
 		assertEquals("Didn't get same data back from store", returned, data);
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdr) == null);
-		try {
-			gfsb.saveBlob(td);
-			fail("Able to save same document twice");
-		} catch (BlobStoreException wbe) {}
+//		try {
+		gfsb.saveBlob(td); //should be able to save the same thing twice with no error
+//			fail("Able to save same document twice");
+//		} catch (BlobStoreException wbe) {}
 		gfsb.removeBlob(tdr);
 	}
 	
@@ -60,7 +60,7 @@ public class GridFSBackendTest {
 			fail("getblob should throw exception");
 		} catch (BlobStoreException wbe) {
 			assertThat("wrong exception message from failed getblob",
-					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with MD5 99e25aec48da90bd349b114451314286"));
+					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with chksum 99e25aec48da90bd349b114451314286"));
 		}
 	}
 	
