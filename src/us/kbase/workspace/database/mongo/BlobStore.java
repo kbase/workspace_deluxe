@@ -6,16 +6,16 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public interface BlobStore {
 	
-	public void saveBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public void saveBlob(MD5 md5, String data) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	
-	public String getBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public String getBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
-	public void removeBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	
-	public String getExternalIdentifier(TypeData td) throws
+	public String getExternalIdentifier(MD5 md5) throws
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
 	public String getStoreType();

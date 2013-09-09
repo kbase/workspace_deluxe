@@ -161,7 +161,6 @@
   </target>
 	
   <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
-    <echo message="${toString:test.client.import.classpath}"/>
     <javac destdir="${test}" srcdir="${test}" includeantruntime="false"
           debug="true" classpathref="test.client.import.classpath" />
     <junit>

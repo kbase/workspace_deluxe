@@ -27,14 +27,14 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(TypeData td) throws BlobStoreCommunicationException {
-		if(td.getData() == null) {
-			throw new RuntimeException("No data in typedata object");
+	public void saveBlob(MD5 md5, String data) throws BlobStoreCommunicationException {
+		if(data == null || md5 == null) {
+			throw new IllegalArgumentException("Arguments cannot be null");
 		}
 //		td.setGridFS();
-		GridFSInputFile gif = gfs.createFile(td.getData().getBytes());
-		gif.setId(td.getChksum());
-		gif.setFilename(td.getChksum());
+		GridFSInputFile gif = gfs.createFile(data.getBytes());
+		gif.setId(md5.getMD5());
+		gif.setFilename(md5.getMD5());
 		try {
 			gif.save();
 		} catch (MongoException.DuplicateKey dk) {
@@ -48,14 +48,14 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws NoSuchBlobException,
+	public String getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
 //		if (!td.isGridFSBlob()) {
 //			throw new IllegalStateException(
 //					"This data is not stored in gridFS");
 //		}
 		DBObject query = new BasicDBObject();
-		query.put("_id", td.getChksum());
+		query.put("_id", md5.getMD5());
 		GridFSDBFile out;
 		try {
 			out = gfs.findOne(query);
@@ -66,7 +66,7 @@ public class GridFSBackend implements BlobStore {
 		if (out == null) {
 			throw new NoSuchBlobException(
 					"Attempt to retrieve non-existant blob with chksum " + 
-					td.getChksum());
+							md5.getMD5());
 		}
 		try {
 			return IOUtils.toString(out.getInputStream(), "UTF-8");
@@ -77,13 +77,13 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public void removeBlob(TypeData td) throws BlobStoreCommunicationException {
+	public void removeBlob(MD5 md5) throws BlobStoreCommunicationException {
 //		if (!td.isGridFSBlob()) {
 //			throw new IllegalStateException(
 //					"This data is not stored in gridFS");
 //		}
 		DBObject query = new BasicDBObject();
-		query.put("_id", td.getChksum());
+		query.put("_id", md5.getMD5());
 		try {
 			gfs.remove(query);
 		} catch (MongoException me) {
@@ -93,7 +93,7 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public String getExternalIdentifier(TypeData td) {
+	public String getExternalIdentifier(MD5 md5) {
 		return null;
 	}
 

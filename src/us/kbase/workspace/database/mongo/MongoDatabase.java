@@ -999,7 +999,7 @@ public class MongoDatabase implements Database {
 			pkgByType.get(p.type).add(p);
 		}
 		for (AbsoluteTypeId type: pkgByType.keySet()) {
-			ensureTypeIndexes(type);
+			ensureTypeIndexes(type); //TODO do this on adding type and on startup
 			String col = getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
@@ -1033,11 +1033,12 @@ public class MongoDatabase implements Database {
 			
 			//TODO what happens if a piece of data is deleted after pulling the existing chksums? pull workspaces field, if empty do an upsert just in case
 			final List<TypeData> newdata = new ArrayList<TypeData>();
-			for (TypeData td: chksum.values()) {
-				if (existChksum.contains(td.getChksum())) {
+			for (String md5: chksum.keySet()) {
+//			for (TypeData td: chksum.values()) {
+				if (existChksum.contains(md5)) {
 					try {
 						wsjongo.getCollection(col)
-								.update("{chksum: #}", td.getChksum())
+								.update("{chksum: #}", md5)
 								.with("{$addToSet: {workspaces: #}}", workspaceid);
 					} catch (MongoException me) {
 						throw new WorkspaceCommunicationException(
@@ -1045,9 +1046,11 @@ public class MongoDatabase implements Database {
 					}
 					return;
 				}
-				newdata.add(td);
+				newdata.add(chksum.get(md5));
 				try {
-					blob.saveBlob(td);
+					//this is kind of stupid, but no matter how you slice it you have
+					//to calc md5s before you save the data
+					blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(
 							e.getLocalizedMessage(), e);

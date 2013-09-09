@@ -96,23 +96,22 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public void saveBlob(MD5 md5, String data) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
+		if(data == null) {
+			throw new IllegalArgumentException("data cannot be null");
+		}
 		try {
-			getNode(td);
+			getNode(md5);
 			return; //already saved
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
 		checkAuth();
-		String data = td.getData();
-		if(data == null) {
-			throw new RuntimeException("No data in typedata object");
-		}
-		TypeId type = td.getType();
-		if(type == null) {
-			throw new RuntimeException("No type in typedata object");
-		}
+//		TypeId type = td.getType();
+//		if(type == null) {
+//			throw new RuntimeException("No type in typedata object");
+//		}
 //		Map<String, Object> attribs = new HashMap<>();
 //		Map<String,Object> workattribs = new HashMap<>();
 //		workattribs.put("module", type.getType().getModule());
@@ -122,7 +121,7 @@ public class ShockBackend implements BlobStore {
 //		attribs.put("workspace", workattribs);
 		ShockNode sn = null;
 		try {
-			sn = client.addNode(data.getBytes(), "workspace_" + td.getChksum());
+			sn = client.addNode(data.getBytes(), "workspace_" + md5.getMD5());
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -139,7 +138,7 @@ public class ShockBackend implements BlobStore {
 					she.getLocalizedMessage(), she);
 		}
 		final DBObject dbo = new BasicDBObject();
-		dbo.put(CHKSUM, td.getChksum());
+		dbo.put(CHKSUM, md5.getMD5());
 		try {
 			dbo.put(NODE, sn.getId().getId());
 			dbo.put(VER, sn.getVersion().getVersion());
@@ -147,7 +146,7 @@ public class ShockBackend implements BlobStore {
 			throw new RuntimeException("Shock is returning deleted nodes");
 		}
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, td.getChksum());
+		query.put(CHKSUM, md5.getMD5());
 		try {
 			mongoCol.update(query, dbo, true, false);
 		} catch (MongoException me) {
@@ -157,10 +156,10 @@ public class ShockBackend implements BlobStore {
 //		td.addShockInformation(sn);
 	}
 	
-	private String getNode(TypeData td) throws
+	private String getNode(MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, td.getChksum());
+		query.put(CHKSUM, md5.getMD5());
 		DBObject ret;
 		try {
 			ret = mongoCol.findOne(query);
@@ -170,16 +169,16 @@ public class ShockBackend implements BlobStore {
 		}
 		if (ret == null) {
 			throw new NoSuchBlobException("No blob saved with chksum "
-					+ td.getChksum());
+					+ md5.getMD5());
 		}
 		return (String) ret.get(NODE);
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public String getBlob(MD5 md5) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException, NoSuchBlobException {
 		checkAuth();
-		final String node = getNode(td);
+		final String node = getNode(md5);
 		
 		String ret = null;
 		try {
@@ -199,12 +198,12 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void removeBlob(TypeData td) throws BlobStoreAuthorizationException,
+	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		checkAuth();
 		String node;
 		try {
-			node = getNode(td);
+			node = getNode(md5);
 		} catch (NoSuchBlobException nb) {
 			return; //already gone
 		}
@@ -225,14 +224,14 @@ public class ShockBackend implements BlobStore {
 					she.getLocalizedMessage(), she);
 		}
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, td.getChksum());
+		query.put(CHKSUM, md5.getMD5());
 		mongoCol.remove(query);
 	}
 
 	@Override
-	public String getExternalIdentifier(TypeData td) throws
+	public String getExternalIdentifier(MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
-		return getNode(td);
+		return getNode(md5);
 	}
 
 	@Override

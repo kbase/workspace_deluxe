@@ -19,6 +19,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -58,14 +59,15 @@ public class ShockBackendTest {
 		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
 		String data = "this is some data";
 		TypeData td = new TypeData(data, wt, 3, subdata);
-		sb.saveBlob(td);
-		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(td));
+		MD5 tdmd = new MD5(td.getChksum());
+		sb.saveBlob(tdmd, td.getData());
+		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(tdmd));
 		assertTrue("Got a valid shock id",
 				UUID.matcher(id.getId()).matches());
 //		assertTrue("Got a valid shock version",
 //				MD5.matcher(td.getShockVersion().getVersion()).matches());
 		assertThat("Ext id is the shock node", id.getId(),
-				is(sb.getExternalIdentifier(td)));
+				is(sb.getExternalIdentifier(tdmd)));
 //		ShockNode sn = bsc.getNode(id);
 //		@SuppressWarnings("unchecked")
 //		Map<String, Object> attribs = (Map<String, Object>)
@@ -79,11 +81,12 @@ public class ShockBackendTest {
 //		assertThat("Type minor version saved correctly", minorver,
 //				is(attribs.get("minor-version")));
 		TypeData faketd = new TypeData(data, wt, 3, subdata); //use same data to get same chksum
+		MD5 tdfakemd = new MD5(faketd.getChksum());
 //		faketd.addShockInformation(sn);
-		assertThat("Shock data returned correctly", data, is(sb.getBlob(faketd)));
-		sb.removeBlob(faketd);
+		assertThat("Shock data returned correctly", data, is(sb.getBlob(tdfakemd)));
+		sb.removeBlob(tdfakemd);
 		try {
-			sb.getBlob(faketd);
+			sb.getBlob(tdfakemd);
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
@@ -91,7 +94,7 @@ public class ShockBackendTest {
 		}
 		TypeData badtd = new TypeData("nosuchdata", wt, 3, subdata);
 		try {
-			sb.getBlob(badtd);
+			sb.getBlob(new MD5(badtd.getChksum()));
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
