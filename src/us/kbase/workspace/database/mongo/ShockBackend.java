@@ -27,6 +27,8 @@ public class ShockBackend implements BlobStore {
 	private String password;
 	private BasicShockClient client;
 	
+	//TODO make shockBE have its own mongo collection that stores chksum->shock node mapping, make typedata backend agnostic
+	
 	public ShockBackend(URL url, String user, String password) throws
 			BlobStoreAuthorizationException, BlobStoreException {
 		this.user = user;

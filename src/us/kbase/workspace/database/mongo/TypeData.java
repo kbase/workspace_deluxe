@@ -16,11 +16,11 @@ import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.TypeId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
 public class TypeData {
-	//TODO TypeData
 	
 	@JsonIgnore
 	private String data = null;
@@ -30,15 +30,16 @@ public class TypeData {
 	//these attributes are actually saved in mongo
 	private List<Integer> workspaces;
 	private String chksum;
+	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private int size;
 	private ShockNodeId shocknodeid = null;
 	private ShockVersionStamp shockver = null;
 	private boolean gridfs = false;
 	
-	
 	public TypeData(String data, AbsoluteTypeId type, int firstWorkspace,
 			Map<String,Object> subdata) {
+		//TODO might be better to generate subdata here
 		checkString(data, "data");
 		if (type == null) {
 			throw new NullPointerException("type may not be null");
@@ -88,10 +89,12 @@ public class TypeData {
 		return shockver;
 	}
 	
+	@JsonIgnore
 	public boolean isShockBlob() {
 		return shocknodeid != null;
 	}
 	
+	@JsonIgnore
 	public boolean isGridFSBlob() {
 		return gridfs;
 	}
@@ -108,7 +111,7 @@ public class TypeData {
 	public void addShockInformation(ShockNode sn) {
 		if (isGridFSBlob() || isShockBlob()) {
 			throw new IllegalStateException(
-					"The backend data for this data has already been set");
+					"The backend type for this data has already been set");
 		}
 		try {
 			shocknodeid = sn.getId();

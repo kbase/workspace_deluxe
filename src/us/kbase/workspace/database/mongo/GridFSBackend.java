@@ -31,6 +31,7 @@ public class GridFSBackend implements BlobStore {
 		if(td.getData() == null) {
 			throw new RuntimeException("No data in typedata object");
 		}
+		td.setGridFS();
 		GridFSInputFile gif = gfs.createFile(td.getData().getBytes());
 		gif.setId(td.getChksum());
 		gif.setFilename(td.getChksum());
@@ -40,7 +41,6 @@ public class GridFSBackend implements BlobStore {
 			throw new DuplicateBlobException(
 					"Attempt to add a duplicate blob with id " + td.getChksum());
 		}
-		td.setGridFS();
 	}
 
 	@Override

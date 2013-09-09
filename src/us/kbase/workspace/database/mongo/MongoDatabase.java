@@ -188,7 +188,7 @@ public class MongoDatabase implements Database {
 		unique.put("unique", 1);
 		wsmongo.getCollection(col).ensureIndex(chksum, unique);
 		final DBObject workspaces = new BasicDBObject();
-		workspaces.put("workspaces", true);
+		workspaces.put("workspaces", 1);
 		wsmongo.getCollection(col).ensureIndex(workspaces);
 		typeIndexEnsured.put(type, true);
 	}
@@ -650,6 +650,7 @@ public class MongoDatabase implements Database {
 		query.put("id", objectid);
 		
 		final DBObject pointer = new BasicDBObject();
+		//TODO save type data
 		pointer.put("version", ver);
 		pointer.put("createdby", user);
 		pointer.put("chksum", pkg.td.getChksum());
@@ -996,15 +997,20 @@ public class MongoDatabase implements Database {
 		for (AbsoluteTypeId type: pkgByType.keySet()) {
 			ensureTypeIndexes(type);
 			String col = getTypeCollection(type);
-			final List<String> chksum = new ArrayList<String>();
+			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
 				//TODO might make more sense to create this way back and store in the save object
-				p.td = new TypeData(p.json, type, workspaceid, p.subdata);
-				chksum.add(p.td.getChksum());
+				TypeData td = new TypeData(p.json, type, workspaceid, p.subdata);
+				if (!chksum.containsKey(td.getChksum())) {
+					p.td = td;
+					chksum.put(p.td.getChksum(), p.td);
+				} else {
+					p.td = chksum.get(td.getChksum());
+				}
 			}
 			final DBObject query = new BasicDBObject();
 			final DBObject inchk = new BasicDBObject();
-			inchk.put("$in", chksum);
+			inchk.put("$in", new ArrayList<String>(chksum.keySet()));
 			query.put("chksum", inchk);
 			final DBObject proj = new BasicDBObject();
 			proj.put("chksum", 1);
@@ -1023,11 +1029,11 @@ public class MongoDatabase implements Database {
 			
 			//TODO what happens if a piece of data is deleted after pulling the existing chksums? pull workspaces field, if empty do an upsert just in case
 			final List<TypeData> newdata = new ArrayList<TypeData>();
-			for (ObjectSavePackage p: pkgByType.get(type)) {
-				if (existChksum.contains(p.td.getChksum())) {
+			for (TypeData td: chksum.values()) {
+				if (existChksum.contains(td.getChksum())) {
 					try {
 						wsjongo.getCollection(col)
-								.update("{chksum: #}", p.td.getChksum())
+								.update("{chksum: #}", td.getChksum())
 								.with("{$addToSet: {workspaces: #}}", workspaceid);
 					} catch (MongoException me) {
 						throw new WorkspaceCommunicationException(
@@ -1035,9 +1041,9 @@ public class MongoDatabase implements Database {
 					}
 					return;
 				}
-				newdata.add(p.td);
+				newdata.add(td);
 				try {
-					blob.saveBlob(p.td);
+					blob.saveBlob(td);
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(
 							e.getLocalizedMessage(), e);
@@ -1046,12 +1052,15 @@ public class MongoDatabase implements Database {
 							"Authorization error communicating with the backend storage system",
 							e);
 				} catch (DuplicateBlobException e) {
+					System.out.println("****duplicate blob*****");
 					//just got put there, we're good
 				}
 			}
 			try {
 				wsjongo.getCollection(col).insert((Object[]) newdata.toArray(
 						new TypeData[newdata.size()]));
+				System.out.println("***bulk insertion***");
+				System.out.println(newdata);
 			} catch (MongoException.DuplicateKey dk) {
 				//dammit, someone just inserted this data
 				//we'll have to go one by one doing upserts
@@ -1069,7 +1078,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	private String getTypeCollection(AbsoluteTypeId type) {
-		return "type_" + type.getTypeString();
+		return "type-" + type.getTypeString();
 	}
 	
 	public static class TestMongoInternals {

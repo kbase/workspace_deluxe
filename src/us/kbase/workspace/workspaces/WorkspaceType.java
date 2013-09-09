@@ -2,16 +2,32 @@ package us.kbase.workspace.workspaces;
 
 import static us.kbase.workspace.util.Util.checkString;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class WorkspaceType {
+	
+	private final static Pattern INVALID_TYPE_NAMES = 
+			Pattern.compile("[^\\w]");
 	
 	private final String module;
 	private final String name;
 	
 	public WorkspaceType(String module, String name) {
 		checkString(module, "module");
+		checkTypeName(module);
 		checkString(name, "name");
+		checkTypeName(name);
 		this.module = module;
 		this.name = name;
+	}
+	
+	private void checkTypeName(String name) {
+		final Matcher m = INVALID_TYPE_NAMES.matcher(name);
+		if (m.find()) {
+			throw new IllegalArgumentException(String.format(
+					"Illegal character in type name %s: %s", name, m.group()));
+		}
 	}
 	
 	public String getModule() {
