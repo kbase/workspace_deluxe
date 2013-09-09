@@ -43,11 +43,11 @@ public class TypeId {
 		return type;
 	}
 	
-	public int getMajorVersion() {
+	public Integer getMajorVersion() {
 		return majorVersion;
 	}
 	
-	public int getMinorVersion() {
+	public Integer getMinorVersion() {
 		return minorVersion;
 	}
 

@@ -1,5 +1,8 @@
 package us.kbase.workspace.database.mongo;
 
+import static us.kbase.workspace.util.Util.checkString;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +26,7 @@ public class TypeData {
 	private AbsoluteTypeId type = null;
 	
 	//these attributes are actually saved in mongo
-	private List<String> workspaces;
+	private List<Integer> workspaces;
 	private String chsum;
 	private Map<String, Object> subdata;
 	private int size;
@@ -32,16 +35,19 @@ public class TypeData {
 	private boolean gridfs = false;
 	
 	
-	public TypeData(String data, AbsoluteTypeId type, List<String> workspaces,
+	public TypeData(String data, AbsoluteTypeId type, int firstWorkspace,
 			Map<String,Object> subdata) {
-		if (data == null || type == null || workspaces == null ||
-				subdata == null) {
-			throw new NullPointerException("No null arguments allowed for " +
-					"TypeData constructor");
+		checkString(data, "data");
+		if (type == null) {
+			throw new NullPointerException("type may not be null");
+		}
+		if (firstWorkspace < 1) {
+			throw new IllegalArgumentException("firstWorkspace must be > 0");
 		}
 		this.data = data;
 		this.type = type;
-		this.workspaces = workspaces;
+		this.workspaces = new ArrayList<Integer>();
+		this.workspaces.add(firstWorkspace);
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chsum = DigestUtils.md5Hex(data);

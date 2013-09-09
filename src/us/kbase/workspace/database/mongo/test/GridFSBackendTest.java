@@ -6,17 +6,15 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.TypeData;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.Common;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.WorkspaceType;
@@ -35,23 +33,20 @@ public class GridFSBackendTest {
 	@Test
 	public void saveAndGetBlob() throws Exception {
 		AbsoluteTypeId wt = new AbsoluteTypeId(new WorkspaceType("foo", "foo"), 1, 0);
-		List<String> workspaces = new ArrayList<String>();
-		workspaces.add("workspace1");
-		workspaces.add("workspace2");
 		Map<String, Object> subdata = new HashMap<String, Object>(); //subdata not used here
 		String data = "this is some data";
-		TypeData td = new TypeData(data, wt, workspaces, subdata);
+		TypeData td = new TypeData(data, wt, 3, subdata);
 		gfsb.saveBlob(td);
 		//have to use the same data to get same md5
 		wt = new AbsoluteTypeId(new WorkspaceType("foo1", "foo1"), 2, 1);
-		TypeData tdr = new TypeData(data, wt, new ArrayList<String>(), subdata);
+		TypeData tdr = new TypeData(data, wt, 3, subdata);
 		String returned = gfsb.getBlob(tdr);
 		assertEquals("Didn't get same data back from store", returned, data);
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdr) == null);
 		try {
 			gfsb.saveBlob(td);
 			fail("Able to save same document twice");
-		} catch (WorkspaceBackendException wbe) {}
+		} catch (BlobStoreException wbe) {}
 		gfsb.removeBlob(tdr);
 	}
 	
@@ -59,11 +54,11 @@ public class GridFSBackendTest {
 	public void getNonExistantBlob() throws Exception {
 		AbsoluteTypeId wt = new AbsoluteTypeId(new WorkspaceType("foo", "foo"), 1, 0);
 		String data = "this is non-existant data";
-		TypeData td = new TypeData(data, wt, new ArrayList<String>(), new HashMap<String, Object>());
+		TypeData td = new TypeData(data, wt, 3, new HashMap<String, Object>());
 		try {
 			gfsb.getBlob(td);
 			fail("getblob should throw exception");
-		} catch (WorkspaceBackendException wbe) {
+		} catch (BlobStoreException wbe) {
 			assertThat("wrong exception message from failed getblob",
 					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with MD5 99e25aec48da90bd349b114451314286"));
 		}
@@ -73,7 +68,7 @@ public class GridFSBackendTest {
 	public void removeNonExistantBlob() throws Exception {
 		AbsoluteTypeId wt = new AbsoluteTypeId(new WorkspaceType("foo", "foo"), 1, 0);
 		String data = "this is also non-existant data";
-		TypeData td = new TypeData(data, wt, new ArrayList<String>(), new HashMap<String, Object>());
+		TypeData td = new TypeData(data, wt, 3, new HashMap<String, Object>());
 		gfsb.removeBlob(td); //should silently not remove anything
 	}
 }

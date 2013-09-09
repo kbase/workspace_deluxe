@@ -27,10 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
-import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -38,8 +37,14 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.database.mongo.exceptions.DuplicateBlobException;
 import us.kbase.workspace.test.Common;
 import us.kbase.workspace.test.TestException;
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
@@ -230,8 +235,18 @@ public class MongoDatabase implements Database {
 						"Settings has bad shock url: "
 								+ wsSettings.getShockUrl(), mue);
 			}
-			BlobStore bs = new ShockBackend(shockurl,
-					wsSettings.getShockUser(), backendSecret);
+			BlobStore bs;
+			try {
+				bs = new ShockBackend(shockurl,
+						wsSettings.getShockUser(), backendSecret);
+			} catch (BlobStoreAuthorizationException e) {
+				throw new DBAuthorizationException(
+						"Not authorized to access the blob store database", e);
+			} catch (BlobStoreException e) {
+				throw new WorkspaceDBInitializationException(
+						"The database could not be initialized: " +
+						e.getLocalizedMessage(), e);
+			}
 			// TODO if shock, check a few random nodes to make sure they match
 			// the internal representation, die otherwise
 			return bs;
@@ -616,6 +631,7 @@ public class MongoDatabase implements Database {
 		final DBObject pointer = new BasicDBObject();
 		pointer.put("version", ver);
 		pointer.put("createdby", user);
+		pointer.put("chksum", pkg.chksum);
 		pointer.put("meta", pkg.wo.getUserMeta());
 		final Date created = new Date();
 		pointer.put("createDate", created);
@@ -758,13 +774,14 @@ public class MongoDatabase implements Database {
 		public String json;
 		public String chksum;
 		public Map<String, Object> subdata = null;
-		public int size;
+//		public int size;
+		public AbsoluteTypeId type;
 		
 		@Override
 		public String toString() {
-			return "ObjectSavePackage [wo=" + wo + ", json=" + json
-					+ ", chksum=" + chksum + ", subdata=" + subdata + ", size="
-					+ size + "]";
+			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", json="
+					+ json + ", chksum=" + chksum + ", subdata=" + subdata
+					+ ", type=" + type + "]";
 		}
 		
 	}
@@ -777,6 +794,12 @@ public class MongoDatabase implements Database {
 	
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
+	private static String getObjectErrorId(ObjectIdentifier oi, int objcount) {
+		String objErrId = "#" + objcount;
+		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+		return objErrId;
+	}
+	
 	private List<ObjectSavePackage> createObjectSavePackages(
 			WorkspaceObjectCollection objects) {
 		//this method must maintain the order of the objects
@@ -787,8 +810,7 @@ public class MongoDatabase implements Database {
 			types.add(wo.getType());
 			final ObjectIdentifier oi = wo.getObjectIdentifier();
 			final ObjectSavePackage p = new ObjectSavePackage();
-			String objerrid = "#" + objcount;
-			objerrid += oi == null ? "" : ", " + oi.getIdentifierString();
+			final String objErrId = getObjectErrorId(oi, objcount);
 			final String objerrpunc = oi == null ? "" : ",";
 			ret.add(p);
 			p.wo = wo;
@@ -799,31 +821,56 @@ public class MongoDatabase implements Database {
 				} catch (JsonProcessingException jpe) {
 					throw new IllegalArgumentException(String.format(
 							"Unable to serialize metadata for object %s",
-							objerrid), jpe);
+							objErrId), jpe);
 				}
 				if (meta.length() > MAX_USER_META_SIZE) {
 					throw new IllegalArgumentException(String.format(
 							"Metadata for object %s is > %s bytes",
-							objerrid + objerrpunc, MAX_USER_META_SIZE));
+							objErrId + objerrpunc, MAX_USER_META_SIZE));
 				}
 			}
-			try {
-				p.json = mapper.writeValueAsString(wo.getData());
-			} catch (JsonProcessingException jpe) {
-				throw new IllegalArgumentException(String.format(
-						"Unable to serialize data for object %s",
-						objerrid), jpe);
-			}
-			//TODO do this *after* rewrites
-			p.size = p.json.length();
-			p.chksum = DigestUtils.md5Hex(p.json);
 			objcount++;
 		}
 		Map<TypeId, TypeSchema> schemas = getTypes(types);
-		//TODO check types 
-		//TODO get subdata
-		//TODO change subdata disallowed chars - html encode (%)
+		objcount = 1;
+		for (ObjectSavePackage pkg: ret) {
+			ObjectIdentifier oi = pkg.wo.getObjectIdentifier();
+			final String objErrId = getObjectErrorId(oi, objcount);
+//			final String objerrpunc = oi == null ? "" : ",";
+			String json;
+			try {
+				//TODO sort keys
+				json = mapper.writeValueAsString(pkg.wo.getData());
+			} catch (JsonProcessingException jpe) {
+				throw new IllegalArgumentException(String.format(
+						"Unable to serialize data for object %s",
+						objErrId), jpe);
+			}
+			//TODO check type for json vs schema, transform to absolute type, below is temp
+			final TypeId t = pkg.wo.getType();
+			pkg.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
+					t.getMinorVersion() == null ? 0 : t.getMinorVersion());
+			//TODO get references 
+			//TODO get subdata (later)?
+			//TODO check subdata size
+			//TODO temporary saving of json - remove when rewritten with new refs below
+			pkg.json = json;
+			objcount++;
+		}
+		//TODO map all references to real references, error if not found
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
+		for (ObjectSavePackage pkg: ret) {
+			//TODO rewrite data with new references
+			//TODO -or- get subdata after rewrite?
+			//TODO check subdata size
+			//TODO change subdata disallowed chars - html encode (%)
+			//TODO 
+			//TODO when safe, add references to references collection
+			
+			//TODO do this *after* rewrites
+//			pkg.size = pkg.json.length();
+//			pkg.chksum = DigestUtils.md5Hex(pkg.json);
+		}
 		return ret;
 	}
 	
@@ -876,7 +923,7 @@ public class MongoDatabase implements Database {
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
-		saveData(packages);
+		saveData(wsid, packages);
 		int lastid;
 			try {
 				lastid = (int) wsjongo.getCollection(WORKSPACES)
@@ -913,16 +960,44 @@ public class MongoDatabase implements Database {
 		return ret;
 	}
 	
-	private void saveData(List<ObjectSavePackage> data) {
-		Map<TypeId, List<ObjectSavePackage>> pkgByType =
-				new HashMap<TypeId, List<ObjectSavePackage>>();
+	private void saveData(int workspaceid, List<ObjectSavePackage> data) throws
+			WorkspaceCommunicationException {
+		Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
+				new HashMap<AbsoluteTypeId, List<ObjectSavePackage>>();
 		for (ObjectSavePackage pkg: data) {
-			if (pkgByType.get(pkg.wo.getType()) == null) {
-				pkgByType.put(pkg.wo.getType(), new ArrayList<ObjectSavePackage>());
+			if (pkgByType.get(pkg.type) == null) {
+				pkgByType.put(pkg.type, new ArrayList<ObjectSavePackage>());
 			}
+			pkgByType.get(pkg.type).add(pkg);
+		}
+		for (AbsoluteTypeId type: pkgByType.keySet()) {
+			TypeData[] td = new TypeData[pkgByType.get(type).size()];
+			for (int i = 0; i < td.length; i++) {
+				ObjectSavePackage p = pkgByType.get(type).get(i);
+				td[i] = new TypeData(p.json, p.type, workspaceid, p.subdata);
+				p.chksum = td[i].getChsum();
+			}
+			//TODO check md5s don't exist
+			for (int i = 0; i < td.length; i++) {
+				try {
+					blob.saveBlob(td[i]);
+				} catch (BlobStoreCommunicationException e) {
+					throw new WorkspaceCommunicationException(
+							e.getLocalizedMessage(), e);
+				} catch (BlobStoreAuthorizationException e) {
+					throw new WorkspaceCommunicationException(
+							"Authorization error communicating with the backend storage system",
+							e);
+				} catch (DuplicateBlobException e) {
+					//already there, we're good
+				}
+			}
+			//TODO save tds as batch, if md5 already exists add this workspace to the list
+			//TODO if batch save fails, one by one
+			
 			
 		}
-		
+		//TODO save provenance as batch and add prov id to pkgs
 	}
 	
 	public static class TestMongoInternals {

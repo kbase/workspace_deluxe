@@ -6,9 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -19,9 +17,9 @@ import us.kbase.auth.AuthService;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
-import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
@@ -52,12 +50,9 @@ public class ShockBackendTest {
 		int majorver = 0;
 		int minorver = 1;
 		AbsoluteTypeId wt = new AbsoluteTypeId(new WorkspaceType(mod, type), majorver, minorver);
-		List<String> workspaces = new ArrayList<>();
-		workspaces.add("workspace1");
-		workspaces.add("workspace2");
 		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
 		String data = "this is some data";
-		TypeData td = new TypeData(data, wt, workspaces, subdata);
+		TypeData td = new TypeData(data, wt, 3, subdata);
 		sb.saveBlob(td);
 		ShockNodeId id = td.getShockNodeId();
 		assertTrue("Got a valid shock id",
@@ -78,14 +73,14 @@ public class ShockBackendTest {
 				is(attribs.get("major-version")));
 		assertThat("Type minor version saved correctly", minorver,
 				is(attribs.get("minor-version")));
-		TypeData faketd = new TypeData("foo", wt, workspaces, subdata);
+		TypeData faketd = new TypeData("foo", wt, 3, subdata);
 		faketd.addShockInformation(sn);
 		assertThat("Shock data returned correctly", data, is(sb.getBlob(faketd)));
 		sb.removeBlob(faketd);
 		try {
 			sb.removeBlob(faketd);
 			fail("Able to remove non-existent blob");
-		} catch (WorkspaceBackendException wbe) {}
+		} catch (BlobStoreException wbe) {}
 		//TODO WAIT DEP better error handling when shock allows it
 	}
 }

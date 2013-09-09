@@ -4,7 +4,8 @@ import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
 
-import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
+import us.kbase.workspace.database.mongo.exceptions.DuplicateBlobException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -26,27 +27,28 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(TypeData td) throws WorkspaceBackendException {
+	public void saveBlob(TypeData td) throws DuplicateBlobException {
 		if(td.getData() == null) {
 			throw new RuntimeException("No data in typedata object");
 		}
 		GridFSInputFile gif = gfs.createFile(td.getData().getBytes());
 		gif.setId(td.getChsum());
+		gif.setFilename(td.getChsum());
 		try {
 			gif.save();
 		} catch (MongoException.DuplicateKey dk) {
-			throw new WorkspaceBackendException(
-					"Attempt to add a duplicate file with id " + td.getChsum());
+			throw new DuplicateBlobException(
+					"Attempt to add a duplicate blob with id " + td.getChsum());
 		}
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws WorkspaceBackendException {
+	public String getBlob(TypeData td) throws NoSuchBlobException {
 		DBObject query = new BasicDBObject();
 		query.put("_id", td.getChsum());
 		GridFSDBFile out = gfs.findOne(query);
 		if (out == null) {
-			throw new WorkspaceBackendException(
+			throw new NoSuchBlobException(
 					"Attempt to retrieve non-existant blob with MD5 " + 
 					td.getChsum());
 		}

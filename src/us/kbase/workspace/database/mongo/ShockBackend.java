@@ -16,8 +16,9 @@ import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
-import us.kbase.workspace.database.exceptions.DBAuthorizationException;
-import us.kbase.workspace.database.exceptions.WorkspaceBackendException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.workspaces.TypeId;
 
 public class ShockBackend implements BlobStore {
@@ -27,43 +28,43 @@ public class ShockBackend implements BlobStore {
 	private BasicShockClient client;
 	
 	public ShockBackend(URL url, String user, String password) throws
-			DBAuthorizationException, WorkspaceBackendException {
+			BlobStoreAuthorizationException, BlobStoreException {
 		this.user = user;
 		this.password = password;
 		try {
 			client = new BasicShockClient(url, getToken());
 		} catch (InvalidShockUrlException isue) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreException(
 					"The shock url " + url + " is invalid", isue);
 		} catch (TokenExpiredException ete) {
-			throw new WorkspaceBackendException( //uh... this should never happen
+			throw new BlobStoreException( //uh... this should never happen
 					"The token retrieved from the auth service is already " +
 					"expired", ete);
 		} catch (IOException ioe) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
 	}
 	
-	private AuthToken getToken() throws DBAuthorizationException,
-			WorkspaceBackendException {
+	private AuthToken getToken() throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
 		AuthUser u = null;
 		try {
 			u = AuthService.login(user, password);
 		} catch (AuthException ae) {
-			throw new DBAuthorizationException(
+			throw new BlobStoreAuthorizationException(
 					"Could not authenticate backend user " + user, ae);
 		} catch (IOException ioe) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
 		return u.getToken();
 	}
 	
-	private void checkAuth() throws DBAuthorizationException,
-			WorkspaceBackendException {
+	private void checkAuth() throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
 		if(client.isTokenExpired()) {
 			try {
 				client.updateToken(getToken());
@@ -75,8 +76,8 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(TypeData td) throws DBAuthorizationException,
-			WorkspaceBackendException {
+	public void saveBlob(TypeData td) throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
 		checkAuth();
 		String data = td.getData();
 		if(data == null) {
@@ -104,11 +105,11 @@ public class ShockBackend implements BlobStore {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", jpe);
 		} catch (IOException ioe) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Failed to create shock node: " +
 					she.getLocalizedMessage(), she);
 		}
@@ -116,8 +117,8 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(TypeData td) throws DBAuthorizationException,
-			WorkspaceBackendException {
+	public String getBlob(TypeData td) throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
 		checkAuth();
 		String ret = null;
 		try {
@@ -126,19 +127,19 @@ public class ShockBackend implements BlobStore {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
-			throw new WorkspaceBackendException(
-					"Failed to create shock node", she);
+			throw new BlobStoreCommunicationException(
+					"Failed to retrieve shock node", she);
 		}
 		return ret;
 	}
 
 	@Override
-	public void removeBlob(TypeData td) throws DBAuthorizationException,
-			WorkspaceBackendException {
+	public void removeBlob(TypeData td) throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
 		checkAuth();
 		try {
 			client.deleteNode(td.getShockNodeId());
@@ -146,12 +147,12 @@ public class ShockBackend implements BlobStore {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
 			//No way to tell ATM if the node was never there or something else happened
-			throw new WorkspaceBackendException(
+			throw new BlobStoreCommunicationException(
 					"Failed to delete shock node: " +
 					she.getLocalizedMessage(), she);
 		}
