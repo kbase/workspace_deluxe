@@ -59,6 +59,7 @@ import us.kbase.workspace.workspaces.WorkspaceType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -815,7 +816,11 @@ public class MongoDatabase implements Database {
 		return ret;
 	}
 	
-	private static final ObjectMapper mapper = new ObjectMapper();
+	private static final ObjectMapper defaultMapper = new ObjectMapper();
+	private static final ObjectMapper sortedMapper = new ObjectMapper();
+	static {
+		sortedMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+	}
 	
 	private static String getObjectErrorId(ObjectIdentifier oi, int objcount) {
 		String objErrId = "#" + objcount;
@@ -840,7 +845,7 @@ public class MongoDatabase implements Database {
 			if (wo.getUserMeta() != null) {
 				String meta;
 				try {
-					meta = mapper.writeValueAsString(wo.getUserMeta());
+					meta = defaultMapper.writeValueAsString(wo.getUserMeta());
 				} catch (JsonProcessingException jpe) {
 					throw new IllegalArgumentException(String.format(
 							"Unable to serialize metadata for object %s",
@@ -862,8 +867,7 @@ public class MongoDatabase implements Database {
 //			final String objerrpunc = oi == null ? "" : ",";
 			String json;
 			try {
-				//TODO sort keys
-				json = mapper.writeValueAsString(pkg.wo.getData());
+				json = sortedMapper.writeValueAsString(pkg.wo.getData());
 			} catch (JsonProcessingException jpe) {
 				throw new IllegalArgumentException(String.format(
 						"Unable to serialize data for object %s",
@@ -872,7 +876,7 @@ public class MongoDatabase implements Database {
 			//TODO check type for json vs schema, transform to absolute type, below is temp
 			final TypeId t = pkg.wo.getType();
 			pkg.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
-					t.getMinorVersion() == null ? 0 : t.getMinorVersion());
+					t.getMinorVersion() == null ? 0 : t.getMinorVersion()); //TODO could make this a bit cleaner
 			//TODO get references 
 			//TODO get subdata (later)?
 			//TODO check subdata size
@@ -887,7 +891,6 @@ public class MongoDatabase implements Database {
 			//TODO -or- get subdata after rewrite?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
-			//TODO 
 			//TODO when safe, add references to references collection
 			
 			//TODO do this *after* rewrites
@@ -983,6 +986,7 @@ public class MongoDatabase implements Database {
 		return ret;
 	}
 	
+	//TODO test the paths
 	private void saveData(final int workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
