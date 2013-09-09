@@ -61,6 +61,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -85,6 +86,9 @@ public class MongoDatabase implements Database {
 	private final BlobStore blob;
 	private final FindAndModify updateWScounter;
 	
+	private final Map<AbsoluteTypeId, Boolean> typeIndexEnsured = 
+			new HashMap<AbsoluteTypeId, Boolean>();
+	
 	private static final Map<String, Map<List<String>, List<String>>> indexes;
 	static {
 		//hardcoded indexes
@@ -94,17 +98,17 @@ public class MongoDatabase implements Database {
 		ws.put(Arrays.asList("owner"), Arrays.asList(""));
 		//find workspaces by permanent id
 		ws.put(Arrays.asList("id"), Arrays.asList("unique"));
-		//find world readable workspaces
-		ws.put(Arrays.asList("globalread"), Arrays.asList("sparse"));
 		//find workspaces by mutable name
 		ws.put(Arrays.asList("name"), Arrays.asList("unique", "sparse"));
 		indexes.put(WORKSPACES, ws);
+		
 		Map<List<String>, List<String>> wsACL = new HashMap<List<String>, List<String>>();
 		//get a user's permission for a workspace, index covers queries
 		wsACL.put(Arrays.asList("id", "user", "perm"), Arrays.asList("unique"));
 		//find workspaces to which a user has some level of permission, index coves queries
 		wsACL.put(Arrays.asList("user", "perm", "id"), Arrays.asList(""));
 		indexes.put(WS_ACLS, wsACL);
+		
 		Map<List<String>, List<String>> wsPtr = new HashMap<List<String>, List<String>>();
 		//find objects by workspace id & name
 		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique", "sparse"));
@@ -113,7 +117,8 @@ public class MongoDatabase implements Database {
 		//find objects by legacy UUID
 		wsPtr.put(Arrays.asList("versions.legacyUUID"), Arrays.asList("unique", "sparse"));
 		//determine whether a particular object references this object
-		wsPtr.put(Arrays.asList("versions.reffedBy"), Arrays.asList(""));
+		wsPtr.put(Arrays.asList("versions.reffedBy"), Arrays.asList("")); //TODO this might be a bad idea
+		//TODO deletion and creation dates for search?
 		indexes.put(WORKSPACE_PTRS, wsPtr);
 	}
 
@@ -157,8 +162,8 @@ public class MongoDatabase implements Database {
 	private void ensureIndexes() {
 		for (String col: indexes.keySet()) {
 			for (List<String> idx: indexes.get(col).keySet()) {
-				DBObject index = new BasicDBObject();
-				DBObject opts = new BasicDBObject();
+				final DBObject index = new BasicDBObject();
+				final DBObject opts = new BasicDBObject();
 				for (String field: idx) {
 					index.put(field, 1);
 				}
@@ -170,6 +175,22 @@ public class MongoDatabase implements Database {
 				wsmongo.getCollection(col).ensureIndex(index, opts);
 			}
 		}
+	}
+	
+	private void ensureTypeIndexes(AbsoluteTypeId type) {
+		if (typeIndexEnsured.containsKey(type)) {
+			return;
+		}
+		String col = getTypeCollection(type);
+		final DBObject chksum = new BasicDBObject();
+		chksum.put("chksum", 1);
+		final DBObject unique = new BasicDBObject();
+		unique.put("unique", 1);
+		wsmongo.getCollection(col).ensureIndex(chksum, unique);
+		final DBObject workspaces = new BasicDBObject();
+		workspaces.put("workspaces", true);
+		wsmongo.getCollection(col).ensureIndex(workspaces);
+		typeIndexEnsured.put(type, true);
 	}
 	
 	private FindAndModify buildCounterQuery() {
@@ -631,7 +652,7 @@ public class MongoDatabase implements Database {
 		final DBObject pointer = new BasicDBObject();
 		pointer.put("version", ver);
 		pointer.put("createdby", user);
-		pointer.put("chksum", pkg.chksum);
+		pointer.put("chksum", pkg.td.getChksum());
 		pointer.put("meta", pkg.wo.getUserMeta());
 		final Date created = new Date();
 		pointer.put("createDate", created);
@@ -655,7 +676,7 @@ public class MongoDatabase implements Database {
 		
 		//TODO return metadata
 		return new MongoObjectMeta(objectid, pkg.name, pkg.wo.getType(), created,
-				ver, user, wsid, pkg.chksum, pkg.wo.getUserMeta());
+				ver, user, wsid, pkg.td.getChksum(), pkg.wo.getUserMeta());
 	}
 	
 	//TODO make all projections not include _id unless specified
@@ -772,16 +793,17 @@ public class MongoDatabase implements Database {
 		public WorkspaceObject wo;
 		public String name;
 		public String json;
-		public String chksum;
+//		public String chksum;
 		public Map<String, Object> subdata = null;
 //		public int size;
 		public AbsoluteTypeId type;
+		public TypeData td;
 		
 		@Override
 		public String toString() {
 			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", json="
-					+ json + ", chksum=" + chksum + ", subdata=" + subdata
-					+ ", type=" + type + "]";
+					+ json +  ", subdata=" + subdata
+					+ ", type=" + type + ", td=" + td + "]";
 		}
 		
 	}
@@ -960,27 +982,62 @@ public class MongoDatabase implements Database {
 		return ret;
 	}
 	
-	private void saveData(int workspaceid, List<ObjectSavePackage> data) throws
+	private void saveData(final int workspaceid,
+			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
-		Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
+		final Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
 				new HashMap<AbsoluteTypeId, List<ObjectSavePackage>>();
-		for (ObjectSavePackage pkg: data) {
-			if (pkgByType.get(pkg.type) == null) {
-				pkgByType.put(pkg.type, new ArrayList<ObjectSavePackage>());
+		for (ObjectSavePackage p: data) {
+			if (pkgByType.get(p.type) == null) {
+				pkgByType.put(p.type, new ArrayList<ObjectSavePackage>());
 			}
-			pkgByType.get(pkg.type).add(pkg);
+			pkgByType.get(p.type).add(p);
 		}
 		for (AbsoluteTypeId type: pkgByType.keySet()) {
-			TypeData[] td = new TypeData[pkgByType.get(type).size()];
-			for (int i = 0; i < td.length; i++) {
-				ObjectSavePackage p = pkgByType.get(type).get(i);
-				td[i] = new TypeData(p.json, p.type, workspaceid, p.subdata);
-				p.chksum = td[i].getChsum();
+			ensureTypeIndexes(type);
+			String col = getTypeCollection(type);
+			final List<String> chksum = new ArrayList<String>();
+			for (ObjectSavePackage p: pkgByType.get(type)) {
+				//TODO might make more sense to create this way back and store in the save object
+				p.td = new TypeData(p.json, type, workspaceid, p.subdata);
+				chksum.add(p.td.getChksum());
 			}
-			//TODO check md5s don't exist
-			for (int i = 0; i < td.length; i++) {
+			final DBObject query = new BasicDBObject();
+			final DBObject inchk = new BasicDBObject();
+			inchk.put("$in", chksum);
+			query.put("chksum", inchk);
+			final DBObject proj = new BasicDBObject();
+			proj.put("chksum", 1);
+			proj.put("_id", 0);
+			DBCursor res;
+			try {
+				res = wsmongo.getCollection(col).find(query, proj);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			final Set<String> existChksum = new HashSet<String>();
+			for (DBObject dbo: res) {
+				existChksum.add((String)dbo.get("chksum"));
+			}
+			
+			//TODO what happens if a piece of data is deleted after pulling the existing chksums? pull workspaces field, if empty do an upsert just in case
+			final List<TypeData> newdata = new ArrayList<TypeData>();
+			for (ObjectSavePackage p: pkgByType.get(type)) {
+				if (existChksum.contains(p.td.getChksum())) {
+					try {
+						wsjongo.getCollection(col)
+								.update("{chksum: #}", p.td.getChksum())
+								.with("{$addToSet: {workspaces: #}}", workspaceid);
+					} catch (MongoException me) {
+						throw new WorkspaceCommunicationException(
+								"There was a problem communicating with the database", me);
+					}
+					return;
+				}
+				newdata.add(p.td);
 				try {
-					blob.saveBlob(td[i]);
+					blob.saveBlob(p.td);
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(
 							e.getLocalizedMessage(), e);
@@ -989,15 +1046,30 @@ public class MongoDatabase implements Database {
 							"Authorization error communicating with the backend storage system",
 							e);
 				} catch (DuplicateBlobException e) {
-					//already there, we're good
+					//just got put there, we're good
 				}
 			}
-			//TODO save tds as batch, if md5 already exists add this workspace to the list
-			//TODO if batch save fails, one by one
-			
-			
+			try {
+				wsjongo.getCollection(col).insert((Object[]) newdata.toArray(
+						new TypeData[newdata.size()]));
+			} catch (MongoException.DuplicateKey dk) {
+				//dammit, someone just inserted this data
+				//we'll have to go one by one doing upserts
+				for (TypeData td: newdata) {
+					final DBObject ckquery = new BasicDBObject();
+					query.put("chksum", td.getChksum());
+					wsmongo.getCollection(col).update(ckquery, td.getSafeUpdate(), true, false);
+				}
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
 		}
 		//TODO save provenance as batch and add prov id to pkgs
+	}
+	
+	private String getTypeCollection(AbsoluteTypeId type) {
+		return "type_" + type.getTypeString();
 	}
 	
 	public static class TestMongoInternals {

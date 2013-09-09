@@ -97,7 +97,7 @@ public class ShockBackend implements BlobStore {
 		ShockNode sn = null;
 		try {
 			sn = client.addNode(attribs, data.getBytes(),
-				"workspace_" + td.getChsum());
+				"workspace_" + td.getChksum());
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);

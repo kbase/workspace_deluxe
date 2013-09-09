@@ -32,25 +32,30 @@ public class GridFSBackend implements BlobStore {
 			throw new RuntimeException("No data in typedata object");
 		}
 		GridFSInputFile gif = gfs.createFile(td.getData().getBytes());
-		gif.setId(td.getChsum());
-		gif.setFilename(td.getChsum());
+		gif.setId(td.getChksum());
+		gif.setFilename(td.getChksum());
 		try {
 			gif.save();
 		} catch (MongoException.DuplicateKey dk) {
 			throw new DuplicateBlobException(
-					"Attempt to add a duplicate blob with id " + td.getChsum());
+					"Attempt to add a duplicate blob with id " + td.getChksum());
 		}
+		td.setGridFS();
 	}
 
 	@Override
 	public String getBlob(TypeData td) throws NoSuchBlobException {
+		if (!td.isGridFSBlob()) {
+			throw new IllegalStateException(
+					"This data is not stored in gridFS");
+		}
 		DBObject query = new BasicDBObject();
-		query.put("_id", td.getChsum());
+		query.put("_id", td.getChksum());
 		GridFSDBFile out = gfs.findOne(query);
 		if (out == null) {
 			throw new NoSuchBlobException(
 					"Attempt to retrieve non-existant blob with MD5 " + 
-					td.getChsum());
+					td.getChksum());
 		}
 		try {
 			return IOUtils.toString(out.getInputStream(), "UTF-8");
@@ -62,8 +67,12 @@ public class GridFSBackend implements BlobStore {
 
 	@Override
 	public void removeBlob(TypeData td) {
+		if (!td.isGridFSBlob()) {
+			throw new IllegalStateException(
+					"This data is not stored in gridFS");
+		}
 		DBObject query = new BasicDBObject();
-		query.put("_id", td.getChsum());
+		query.put("_id", td.getChksum());
 		gfs.remove(query);
 	}
 
