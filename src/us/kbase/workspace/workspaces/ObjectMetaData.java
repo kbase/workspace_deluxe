@@ -7,7 +7,8 @@ public interface ObjectMetaData {
 	
 	public int getObjectId();
 	public String getObjectName();
-	public TypeId getTypeId();
+	public String getTypeString();
+	public int getSize();
 	public Date getCreatedDate();
 	public int getVersion();
 	public String getCreator();

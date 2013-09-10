@@ -13,7 +13,7 @@ public class AbsoluteTypeId extends TypeId{
 	}
 	
 	public String getTypeString() {
-		return type.getModule() + "/" + type.getName() + "-" + majorVersion +
+		return type.getModule() + "." + type.getName() + "-" + majorVersion +
 				"." + minorVersion;
 	}
 }

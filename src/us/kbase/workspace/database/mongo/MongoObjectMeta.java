@@ -3,35 +3,35 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 import java.util.Map;
 
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.ObjectMetaData;
-import us.kbase.workspace.workspaces.TypeId;
 
 public class MongoObjectMeta implements ObjectMetaData {
 	
 	final private int id;
 	final private String name;
-	final private TypeId type;
+	final private String type;
 	final private Date createdDate;
 	final private int version;
 	final private String creator;
 	final private int workspaceId;
 	final private String chksum;
 	final private Map<String, Object> userMeta;
+	final private int size;
 	
-	public MongoObjectMeta(int id, String name, AbsoluteTypeId type, Date createdDate,
+	public MongoObjectMeta(int id, String name, String typeString, Date createdDate,
 			int version, String creator, int workspaceid, String chksum,
-			Map<String, Object> userMeta) {
+			Map<String, Object> userMeta, int size) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
-		this.type = type;
+		this.type = typeString;
 		this.createdDate = createdDate;
 		this.version = version;
 		this.creator = creator;
 		this.workspaceId = workspaceid;
 		this.chksum = chksum;
 		this.userMeta = userMeta;
+		this.size = size;
 		
 	}
 
@@ -46,7 +46,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	}
 
 	@Override
-	public TypeId getTypeId() {
+	public String getTypeString() {
 		return type;
 	}
 
@@ -79,6 +79,11 @@ public class MongoObjectMeta implements ObjectMetaData {
 	@Override
 	public Map<String, Object> getUserMetaData() {
 		return userMeta;
+	}
+	
+	@Override
+	public int getSize() {
+		return size;
 	}
 
 	@Override

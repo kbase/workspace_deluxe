@@ -2,7 +2,7 @@ package us.kbase.workspace.workspaces;
 
 import java.util.Map;
 
-public class WorkspaceObject {
+public class WorkspaceSaveObject {
 	
 	private final ObjectIdentifier id;
 	private final WorkspaceIdentifier wsid;
@@ -12,7 +12,7 @@ public class WorkspaceObject {
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceObject(ObjectIdentifier id, Map<String, Object> data, TypeId type,
+	public WorkspaceSaveObject(ObjectIdentifier id, Map<String, Object> data, TypeId type,
 			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
@@ -26,7 +26,7 @@ public class WorkspaceObject {
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceObject(WorkspaceIdentifier wsid, Map<String, Object> data, TypeId type,
+	public WorkspaceSaveObject(WorkspaceIdentifier wsid, Map<String, Object> data, TypeId type,
 			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
 		if (wsid == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither wsid, data nor type may be null");

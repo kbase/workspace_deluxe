@@ -53,12 +53,18 @@ module Workspace {
 	typedef string type_id;
 	
 	/* A type version.
-		Specifies the type by the format [major].[minor] where 'major' is the
-		major (e.g. backward incompatible) version of the type as an integer
-		and 'minor' is the minor (e.g. backwards compatible) version of the
-		type as an integer.
+		Specifies the type version by the format [major].[minor] where 'major'
+		is the major (e.g. backward incompatible) version of the type as an
+		integer and 'minor' is the minor (e.g. backwards compatible) version
+		of the type as an integer.
 	*/
 	typedef string type_ver;
+	
+	/* A type string.
+		Specifies the type and its version in a single string in the format
+		[module].[typename]-[major].[minor]. See type_id and type_ver.
+	*/
+	typedef string type_string;
 	
 	/* A workspace identifier.
 
@@ -142,13 +148,13 @@ module Workspace {
 	
 		obj_id objid - the numerical id of the object.
 		obj_name object - the name of the object.
-		type_id type - the type of the object.
-		type_ver tver - the version of the type.
+		type_string type - the type of the object.
 		timestamp create_date - the creation date of the object.
 		int version - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
+		int size - the size of the object in bytes.
 		mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
 			metadata about the object.
 	*/
@@ -164,19 +170,24 @@ module Workspace {
 		command, etc. All of the following are optional, but more information
 		provided equates to better data provenance.
 		
+		timestamp time - the time the action was started.
 		string service - the name of the service that performed this action.
 		int service_ver - the version of the service that performed this action.
 		string method - the method of the service that performed this action.
-		list<string> method_params - the parameters of the method that 
-			performed this action. Pointers to an object rather than the objects
-			themselves should be listed here.
+		list<UnspecifiedObject> method_params - the parameters of the method
+			that performed this action. If the object is a workspace object,
+			put the object id in the input_ws_object list and refer to it here
+			by the %N syntax described below.
 		string script - the name of the script that performed this action.
 		int script_ver - the version of the script that performed this action.
 		string script_command_line - the command line provided to the script
-			that performed this action.
+			that performed this action. If workspace objects were provided in
+			the command line, put the object id in the input_ws_object list
+			and refer to it here by the %N syntax described below.
 		list<ObjectIdentifier> input_ws_objects - the workspace objects that
-			were used as input to this action. This list may overlap with the
-			method_params list.
+			were used as input to this action. Refer to these objects
+			elsewhere in the action via the syntax %N, where N is the index
+			of the object in this list.
 		list<string> intermediate_incoming - if the previous action produced 
 			output that 1) was not stored in a referrable way, and 2) is
 			used as input for this action, provide it with an arbitrary and
@@ -286,8 +297,8 @@ module Workspace {
 		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
 			metadata for the object, not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
-		type_ver tver - the version of the type. If the version is not
-			provided the latest version will be assumed.
+		type_ver tver - the version of the type. If the version or minor
+			version is not provided the latest version will be assumed.
 		boolean hidden - true if this object should not be listed when listing
 			workspace objects.
 	

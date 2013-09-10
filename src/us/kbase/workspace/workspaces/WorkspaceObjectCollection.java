@@ -4,10 +4,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
+public class WorkspaceObjectCollection implements Iterable<WorkspaceSaveObject> {
 	
 	private final WorkspaceIdentifier wsi;
-	private final List<WorkspaceObject> objects = new LinkedList<WorkspaceObject>();
+	private final List<WorkspaceSaveObject> objects = new LinkedList<WorkspaceSaveObject>();
 	
 	public WorkspaceObjectCollection(WorkspaceIdentifier wsi) {
 		if (wsi == null) {
@@ -16,7 +16,7 @@ public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
 		this.wsi = wsi;
 	}
 	
-	public void addObject(WorkspaceObject object) {
+	public void addObject(WorkspaceSaveObject object) {
 		if (!wsi.equals(object.getWorkspaceIdentifier())) {
 			throw new IllegalArgumentException(
 					"All objects in the collection must have the same WorkspaceIdentifier");
@@ -28,13 +28,13 @@ public class WorkspaceObjectCollection implements Iterable<WorkspaceObject> {
 		return wsi;
 	}
 
-	public Iterator<WorkspaceObject> iterateObjects() {
-		return new LinkedList<WorkspaceObject>(objects).iterator();
+	public Iterator<WorkspaceSaveObject> iterateObjects() {
+		return new LinkedList<WorkspaceSaveObject>(objects).iterator();
 	}
 
 	@Override
-	public Iterator<WorkspaceObject> iterator() {
-		return new LinkedList<WorkspaceObject>(objects).iterator();
+	public Iterator<WorkspaceSaveObject> iterator() {
+		return new LinkedList<WorkspaceSaveObject>(objects).iterator();
 	}
 	
 	public int size() {

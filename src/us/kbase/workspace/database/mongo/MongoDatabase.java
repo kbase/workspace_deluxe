@@ -52,7 +52,7 @@ import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.TypeSchema;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
-import us.kbase.workspace.workspaces.WorkspaceObject;
+import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
@@ -613,58 +613,8 @@ public class MongoDatabase implements Database {
 			}
 		}
 		// could try doing an or later, probably doesn't matter
-		// could also try and unify all this mostly duplicate code
 		validateOrTranslateObjectIDs(workspaceID, names, goodIds);
 		validateOrTranslateObjectIDs(workspaceID, ids, goodIds);
-//		if (!names.isEmpty()) {
-//			final DBObject query = new BasicDBObject();
-//			query.put("workspace", workspaceId);
-//			final DBObject namesdb = new BasicDBObject();
-//			namesdb.put("$in", names.keySet());
-//			query.put("name", namesdb);
-//			System.out.println(query);
-//			@SuppressWarnings("rawtypes")
-//			Iterable<Map> res; 
-//			try {
-//				res = wsjongo.getCollection(WORKSPACE_PTRS)
-//						.find(query.toString())
-//						.projection("{id: 1, name: 1, _id: 0}")
-//						.as(Map.class);
-//			} catch (MongoException me) {
-//				throw new WorkspaceCommunicationException(
-//						"There was a problem communicating with the database", me);
-//			}
-//			for (@SuppressWarnings("rawtypes") Map m: res) {
-//				System.out.println(m);
-//				final String name = (String) m.get("name");
-//				final Integer id = (Integer) m.get("id");
-//				goodIds.put(names.get(name), new ObjID(name, id));
-//			}
-//		}
-//		if (!ids.isEmpty()) {
-//			final DBObject query = new BasicDBObject();
-//			query.put("workspace", workspaceId);
-//			final DBObject idsdb = new BasicDBObject();
-//			idsdb.put("$in", ids.keySet());
-//			query.put("id", idsdb);
-//			System.out.println(query);
-//			@SuppressWarnings("rawtypes")
-//			Iterable<Map> res; 
-//			try {
-//				res = wsjongo.getCollection(WORKSPACE_PTRS)
-//						.find(query.toString())
-//						.projection("{id: 1, name: 1, _id: 0}")
-//						.as(Map.class);
-//			} catch (MongoException me) {
-//				throw new WorkspaceCommunicationException(
-//						"There was a problem communicating with the database", me);
-//			}
-//			for (@SuppressWarnings("rawtypes") Map m: res) {
-//				final String name = (String) m.get("name");
-//				final Integer id = (Integer) m.get("id");
-//				goodIds.put(ids.get(id), new ObjID(name, id));
-//			}
-//		}
 		return goodIds;
 	}
 	
@@ -701,7 +651,8 @@ public class MongoDatabase implements Database {
 		pointer.put("createDate", created);
 		pointer.put("reffedBy", new ArrayList<Object>()); //TODO this might be a really bad idea
 		pointer.put("objectId", null); //TODO add objectID
-		//TODO add typeId
+		pointer.put("type", pkg.td.getType().getTypeString());
+		pointer.put("size", pkg.td.getSize());
 		pointer.put("revert", null);
 		final DBObject versions = new BasicDBObject();
 		versions.put("versions", pointer);
@@ -717,8 +668,9 @@ public class MongoDatabase implements Database {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return new MongoObjectMeta(objectid, pkg.name, pkg.td.getType(), created,
-				ver, user, wsid, pkg.td.getChksum(), pkg.wo.getUserMeta());
+		return new MongoObjectMeta(objectid, pkg.name,
+				pkg.td.getType().getTypeString(), created, ver, user, wsid,
+				pkg.td.getChksum(), pkg.wo.getUserMeta(), pkg.td.getSize());
 	}
 	
 	//TODO make all projections not include _id unless specified
@@ -832,7 +784,7 @@ public class MongoDatabase implements Database {
 	
 	private static class ObjectSavePackage {
 		
-		public WorkspaceObject wo;
+		public WorkspaceSaveObject wo;
 		public String name;
 //		public String json;
 //		public Map<String, Object> subdata = null;
@@ -877,7 +829,7 @@ public class MongoDatabase implements Database {
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
 		final Set<TypeId> types = new HashSet<TypeId>();
 		int objcount = 1;
-		for (WorkspaceObject wo: objects) {
+		for (WorkspaceSaveObject wo: objects) {
 			types.add(wo.getType());
 			final ObjectIdentifier oi = wo.getObjectIdentifier();
 			final ObjectSavePackage p = new ObjectSavePackage();
@@ -1163,7 +1115,7 @@ public class MongoDatabase implements Database {
 			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
-			WorkspaceObject wo = new WorkspaceObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
+			WorkspaceSaveObject wo = new WorkspaceSaveObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
 			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);
 			wco.addObject(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();

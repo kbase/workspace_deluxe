@@ -116,13 +116,13 @@ public class Workspaces {
 		Provenance p = new Provenance("kbasetest2");
 		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
-		WorkspaceObject wo = new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/29-1"), data, t, meta, p, false);
+		WorkspaceSaveObject wo = new WorkspaceSaveObject(ObjectIdentifier.parseObjectReference("permspriv/29-1"), data, t, meta, p, false);
 //		System.out.println(wo);
 		woc.addObject(wo);
-		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/29-1"), data, t, meta, p, false));
-		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/29-2"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceSaveObject(ObjectIdentifier.parseObjectReference("permspriv/29-1"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceSaveObject(ObjectIdentifier.parseObjectReference("permspriv/29-2"), data, t, meta, p, false));
 //		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
-		woc.addObject(new WorkspaceObject(new WorkspaceIdentifier("permspriv"), data, t, meta, p, false));
+		woc.addObject(new WorkspaceSaveObject(new WorkspaceIdentifier("permspriv"), data, t, meta, p, false));
 		List<ObjectMetaData> objmeta = w.saveObjects("kbasetest2", woc);
 		System.out.println("\n***** results****");
 		System.out.println(objmeta);

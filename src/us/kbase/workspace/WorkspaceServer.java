@@ -26,9 +26,16 @@ import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.KBWorkspaceIDFactory;
+import us.kbase.workspace.workspaces.ObjectIdentifier;
+import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.Provenance;
+import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.WorkspaceSaveObject;
+import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
+import us.kbase.workspace.workspaces.WorkspaceType;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
 
@@ -61,6 +68,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
+	
+	private static final String TYPE_SEP = ".";
+	private static final String VER_SEP = ".";
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
@@ -123,7 +133,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			return null;
 		}
 		return DATE_FORMAT.format(d);
-		
 	}
 	
 	private WorkspaceIdentifier processWorkspaceIdentifier(final WorkspaceIdentity wsi) {
@@ -140,6 +149,81 @@ public class WorkspaceServer extends JsonServerServlet {
 		return KBWorkspaceIDFactory.create(workspace);
 	}
 	
+	private ObjectIdentifier processObjectIdentifier(final WorkspaceIdentifier wsi,
+			final String name, final Integer id) {
+		if (name == null && id == null) {
+			return null;
+		}
+		if (!(name == null ^ id == null)) {
+			throw new IllegalArgumentException(String.format(
+					"Must provide one and only one of an object name or id: %s/%s",
+					name, id));
+		}
+		if (name != null) {
+			return new ObjectIdentifier(wsi, name);
+		}
+		return new ObjectIdentifier(wsi, id);
+	}
+	
+	private TypeId processTypeId(final String type, final String ver,
+			final String errprefix) {
+		if (type == null) {
+			throw new IllegalArgumentException(errprefix + " has no type");
+		}
+		final String[] t = type.split(TYPE_SEP);
+		if (t.length != 2) {
+			throw new IllegalArgumentException(errprefix + String.format(
+					" type %s could not be split into a module and name",
+					type));
+		}
+		final WorkspaceType wt = new WorkspaceType(t[0], t[1]);
+		if (ver == null) {
+			return new TypeId(wt);
+		}
+		final String[] v = ver.split(VER_SEP);
+		if (v.length == 1) {
+			try {
+				return new TypeId(wt, Integer.parseInt(v[0]));
+			} catch (NumberFormatException ne) {
+				throwTypeVerException(errprefix, ver);
+			}
+		}
+		if (v.length == 2) {
+			try {
+				return new TypeId(wt, Integer.parseInt(v[0]),
+						Integer.parseInt(v[1]));
+			} catch (NumberFormatException ne) {
+				throwTypeVerException(errprefix, ver);
+			}
+		}
+		throwTypeVerException(errprefix, ver);
+		return null; //shut up java
+	}
+	
+	private void throwTypeVerException(final String errprefix, final String ver) {
+		throw new IllegalArgumentException(errprefix + String.format(
+				" type version string %s could not be parsed to a version",
+				ver));
+	}
+	
+	private Provenance processProvenance(String user,
+			List<ProvenanceAction> actions) {
+		
+		Provenance p = new Provenance(user);
+		if (actions == null) {
+			return p;
+		}
+		for (ProvenanceAction a: actions) {
+			Provenance.ProvenanceAction pa = new Provenance.ProvenanceAction();
+			if (a.getService() != null) {
+				pa = pa.withServiceName(a.getService());
+			}
+			//TODO remainder of provenance actions
+		}
+		
+		return p;
+	}
+	
 	private Tuple6<Integer, String, String, String, String, String> wsMetaToTuple (
 			WorkspaceMetaData meta) {
 		return new Tuple6<Integer, String, String, String, String, String>()
@@ -149,11 +233,25 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
 	}
 	
+	private List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> objMetaToTuple (
+			List<ObjectMetaData> meta) {
+		//TODO objmeta to tuple
+		return null;
+	}
+	
 	private String getUserName(AuthToken token) {
 		if (token == null) {
 			return null;
 		}
 		return token.getUserName();
+	}
+	
+	private Map<String, Object> removeUObj(Map<String, UObject> map) {
+		Map<String, Object> ret = new HashMap<String, Object>();
+		for (String s: map.keySet()) {
+			ret.put(s, map.get(s).getUserObject());
+		}
+		return ret;
 	}
     //END_CLASS_HEADER
 
@@ -346,6 +444,35 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> returnVal = null;
         //BEGIN save_objects
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
+		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
+		int count = 1;
+		for (ObjectSaveData d: params.getObjects()) {
+			final ObjectIdentifier oi = processObjectIdentifier(wsi, d.getName(), d.getObjid());
+			String errprefix = "Object ";
+			if (oi == null) {
+				errprefix += count;
+			} else {
+				errprefix += count + ", " + oi.getIdentifierString() + ",";
+			}
+			if (d.getData() == null) {
+				throw new IllegalArgumentException(errprefix + " has no data");
+			}
+			final TypeId t = processTypeId(d.getType(), d.getTver(), errprefix);
+			final Provenance p = processProvenance(authPart.getUserName(), d.getProvenance());
+			if (oi == null) {
+				woc.addObject(new WorkspaceSaveObject(wsi, removeUObj(d.getData()), t,
+						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+			} else {
+				woc.addObject(new WorkspaceSaveObject(oi, removeUObj(d.getData()), t,
+						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+			}
+			count++;
+		}
+		
+		
+		List<ObjectMetaData> meta = ws.saveObjects(authPart.getUserName(), woc); 
+		returnVal = objMetaToTuple(meta);
         //END save_objects
         return returnVal;
     }
