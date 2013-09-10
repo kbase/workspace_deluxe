@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 import java.util.Map;
 
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.TypeId;
 
@@ -18,7 +19,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String chksum;
 	final private Map<String, Object> userMeta;
 	
-	public MongoObjectMeta(int id, String name, TypeId type, Date createdDate,
+	public MongoObjectMeta(int id, String name, AbsoluteTypeId type, Date createdDate,
 			int version, String creator, int workspaceid, String chksum,
 			Map<String, Object> userMeta) {
 		//no error checking for now, add if needed

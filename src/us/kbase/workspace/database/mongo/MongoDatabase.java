@@ -1,5 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -17,7 +19,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -42,7 +43,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.Common;
-import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
@@ -674,7 +674,7 @@ public class MongoDatabase implements Database {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return new MongoObjectMeta(objectid, pkg.name, pkg.wo.getType(), created,
+		return new MongoObjectMeta(objectid, pkg.name, pkg.td.getType(), created,
 				ver, user, wsid, pkg.td.getChksum(), pkg.wo.getUserMeta());
 	}
 	
@@ -788,20 +788,26 @@ public class MongoDatabase implements Database {
 	}
 	
 	private static class ObjectSavePackage {
+		
 		public WorkspaceObject wo;
 		public String name;
-		public String json;
-		public Map<String, Object> subdata = null;
-		public AbsoluteTypeId type;
+//		public String json;
+//		public Map<String, Object> subdata = null;
+//		public AbsoluteTypeId type;
 		public TypeData td;
+		
+//		@Override
+//		public String toString() {
+//			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", json="
+//					+ json +  ", subdata=" + subdata
+//					+ ", type=" + type + ", td=" + td + "]";
+//		}
 		
 		@Override
 		public String toString() {
-			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", json="
-					+ json +  ", subdata=" + subdata
-					+ ", type=" + type + ", td=" + td + "]";
+			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", td="
+					+ td + "]";
 		}
-		
 	}
 	
 	private Map<TypeId, TypeSchema> getTypes(Set<TypeId> types) {
@@ -822,10 +828,10 @@ public class MongoDatabase implements Database {
 		return objErrId;
 	}
 	
-	private List<ObjectSavePackage> createObjectSavePackages(
+	private List<ObjectSavePackage> createObjectSavePackages(int workspaceid,
 			WorkspaceObjectCollection objects) {
 		//this method must maintain the order of the objects
-		List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
+		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
 		final Set<TypeId> types = new HashSet<TypeId>();
 		int objcount = 1;
 		for (WorkspaceObject wo: objects) {
@@ -853,10 +859,17 @@ public class MongoDatabase implements Database {
 			}
 			objcount++;
 		}
-		Map<TypeId, TypeSchema> schemas = getTypes(types);
+		final Map<TypeId, TypeSchema> schemas = getTypes(types);
+		class TypeDataStore {
+			public String data;
+			public AbsoluteTypeId type;
+		}
 		objcount = 1;
+		final Map<ObjectSavePackage, TypeDataStore> pkgData = 
+				new HashMap<ObjectSavePackage, TypeDataStore>();
 		for (ObjectSavePackage pkg: ret) {
-			ObjectIdentifier oi = pkg.wo.getObjectIdentifier();
+			final TypeDataStore tds = new TypeDataStore();
+			final ObjectIdentifier oi = pkg.wo.getObjectIdentifier();
 			final String objErrId = getObjectErrorId(oi, objcount);
 //			final String objerrpunc = oi == null ? "" : ",";
 			String json;
@@ -869,23 +882,30 @@ public class MongoDatabase implements Database {
 			}
 			//TODO check type for json vs schema, transform to absolute type, below is temp
 			final TypeId t = pkg.wo.getType();
-			pkg.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
+			tds.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
 					t.getMinorVersion() == null ? 0 : t.getMinorVersion()); //TODO could make this a bit cleaner
 			//TODO get references 
 			//TODO get subdata (later)?
 			//TODO check subdata size
 			//TODO temporary saving of json - remove when rewritten with new refs below
-			pkg.json = json;
+			tds.data = json;
+			pkgData.put(pkg, tds);
 			objcount++;
 		}
 		//TODO map all references to real references, error if not found
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
+		
 		for (ObjectSavePackage pkg: ret) {
+			final TypeDataStore tds = pkgData.get(pkg);
 			//TODO rewrite data with new references
 			//TODO -or- get subdata after rewrite?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
+			//could save time by making type->data->TypeData map and reusing
+			//already calced TDs, but hardly seems worth it - unlikely event
+			
+			pkg.td = new TypeData(tds.data, tds.type, workspaceid, null); //TODO add subdata
 		}
 		return ret;
 	}
@@ -901,7 +921,8 @@ public class MongoDatabase implements Database {
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
 		
-		final List<ObjectSavePackage> packages = createObjectSavePackages(objects);
+		final List<ObjectSavePackage> packages = createObjectSavePackages(wsid,
+				objects);
 		final Map<ObjectIdentifier, List<ObjectSavePackage>> idToPkg =
 				new HashMap<ObjectIdentifier, List<ObjectSavePackage>>();
 		int newobjects = 0;
@@ -983,24 +1004,25 @@ public class MongoDatabase implements Database {
 		final Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
 				new HashMap<AbsoluteTypeId, List<ObjectSavePackage>>();
 		for (ObjectSavePackage p: data) {
-			if (pkgByType.get(p.type) == null) {
-				pkgByType.put(p.type, new ArrayList<ObjectSavePackage>());
+			if (pkgByType.get(p.td.getType()) == null) {
+				pkgByType.put(p.td.getType(), new ArrayList<ObjectSavePackage>());
 			}
-			pkgByType.get(p.type).add(p);
+			pkgByType.get(p.td.getType()).add(p);
 		}
 		for (AbsoluteTypeId type: pkgByType.keySet()) {
 			ensureTypeIndexes(type); //TODO do this on adding type and on startup
 			String col = getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
-				//TODO might make more sense to create this way back and store in the save object
-				TypeData td = new TypeData(p.json, type, workspaceid, p.subdata);
-				if (!chksum.containsKey(td.getChksum())) {
-					p.td = td;
-					chksum.put(p.td.getChksum(), p.td);
-				} else {
-					p.td = chksum.get(td.getChksum());
-				}
+//				TypeData td = new TypeData(p.json, type, workspaceid, p.td.subdata);
+//				TypeData td = p.td;
+				chksum.put(p.td.getChksum(), p.td);
+//				if (!chksum.containsKey(p.td.getChksum())) {
+//					p.td = td;
+//					chksum.put(p.td.getChksum(), p.td);
+//				} else {
+//					p.td = chksum.get(td.getChksum());
+//				}
 			}
 			final DBObject query = new BasicDBObject();
 			final DBObject inchk = new BasicDBObject();
@@ -1106,14 +1128,17 @@ public class MongoDatabase implements Database {
 			meta.put("metastuff", moredata);
 			Provenance p = new Provenance("kbasetest2");
 			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 			WorkspaceObject wo = new WorkspaceObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
 			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);
 			wco.addObject(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
+			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, 1, meta);
 			testdb.saveObjects("u", wco);
-			testdb.createPointerAndSaveObject("u", 1, 3, "testobj", pkg); //TODO check meta is as expected, objid should == 1
+			ObjectMetaData md = testdb.createPointerAndSaveObject("u", 1, 3, "testobj", pkg);
+			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
 		}
 	}
 	

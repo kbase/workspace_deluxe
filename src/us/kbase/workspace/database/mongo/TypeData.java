@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
-import us.kbase.workspace.workspaces.TypeId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -54,7 +53,7 @@ public class TypeData {
 		return data;
 	}
 	
-	public TypeId getType() {
+	public AbsoluteTypeId getType() {
 		return type;
 	}
 	

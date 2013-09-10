@@ -56,8 +56,7 @@ module Workspace {
 		Specifies the type by the format [major].[minor] where 'major' is the
 		major (e.g. backward incompatible) version of the type as an integer
 		and 'minor' is the minor (e.g. backwards compatible) version of the
-		type as an integer. If the minor version is ommitted it is assumed to
-		be zero.
+		type as an integer.
 	*/
 	typedef string type_ver;
 	
