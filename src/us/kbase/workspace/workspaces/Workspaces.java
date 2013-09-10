@@ -103,8 +103,8 @@ public class Workspaces {
 	public static void main(String[] args) throws Exception {
 		Database db = new MongoDatabase("localhost", "ws_tester_db1", "foo");
 		Workspaces w = new Workspaces(db);
-		db.createWorkspace("kbasetest", "permspriv", false, "foo");
-		db.setPermissions(new WorkspaceIdentifier("permspriv"), Arrays.asList("kbasetest2"), Permission.WRITE);
+//		db.createWorkspace("kbasetest", "permspriv", false, "foo");
+//		db.setPermissions(new WorkspaceIdentifier("permspriv"), Arrays.asList("kbasetest2"), Permission.WRITE);
 		WorkspaceObjectCollection woc = new WorkspaceObjectCollection(new WorkspaceIdentifier("permspriv"));
 //		System.out.println(woc);
 		Map<String, Object> data = new HashMap<String, Object>();

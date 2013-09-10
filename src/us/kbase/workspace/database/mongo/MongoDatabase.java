@@ -555,7 +555,48 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private Map<ObjectIdentifier, ObjID> getObjectIDs(int workspaceId,
+	// T must be String or Integer
+	private <T> void validateOrTranslateObjectIDs(int workspaceID,
+			Map<T, ObjectIdentifier> objects,
+			Map<ObjectIdentifier, ObjID> validatedIDs) throws 
+			WorkspaceCommunicationException {
+		if (objects.isEmpty()) {
+			return;
+		}
+		
+		//this is kind of lame... but C&Ping the code with minor changes is pretty lame too
+		boolean string = objects.keySet().iterator().next() instanceof String;
+		boolean integer = objects.keySet().iterator().next() instanceof Integer;
+		if (!string && !integer) {
+			throw new IllegalArgumentException("Only takes strings or integers");
+		}
+		
+		final DBObject query = new BasicDBObject();
+		query.put("workspace", workspaceID);
+		final DBObject identifiers = new BasicDBObject();
+		identifiers.put("$in", objects.keySet());
+		query.put(string ? "name" : "id", identifiers);
+		System.out.println(query);
+		@SuppressWarnings("rawtypes")
+		Iterable<Map> res; 
+		try {
+			res = wsjongo.getCollection(WORKSPACE_PTRS)
+					.find(query.toString())
+					.projection("{id: 1, name: 1, _id: 0}")
+					.as(Map.class);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		for (@SuppressWarnings("rawtypes") Map m: res) {
+			System.out.println(m);
+			final String name = (String) m.get("name");
+			final Integer id = (Integer) m.get("id");
+			validatedIDs.put(objects.get(string ? name : id), new ObjID(name, id));
+		}
+	}
+	
+	private Map<ObjectIdentifier, ObjID> getObjectIDs(int workspaceID,
 			Set<ObjectIdentifier> objects) throws
 			WorkspaceCommunicationException {
 		final Map<String, ObjectIdentifier> names
@@ -573,55 +614,57 @@ public class MongoDatabase implements Database {
 		}
 		// could try doing an or later, probably doesn't matter
 		// could also try and unify all this mostly duplicate code
-		if (!names.isEmpty()) {
-			final DBObject query = new BasicDBObject();
-			query.put("workspace", workspaceId);
-			final DBObject namesdb = new BasicDBObject();
-			namesdb.put("$in", names.keySet());
-			query.put("name", namesdb);
-			System.out.println(query);
-			@SuppressWarnings("rawtypes")
-			Iterable<Map> res; 
-			try {
-				res = wsjongo.getCollection(WORKSPACE_PTRS)
-						.find(query.toString())
-						.projection("{id: 1, name: 1, _id: 0}")
-						.as(Map.class);
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
-			}
-			for (@SuppressWarnings("rawtypes") Map m: res) {
-				System.out.println(m);
-				final String name = (String) m.get("name");
-				final Integer id = (Integer) m.get("id");
-				goodIds.put(names.get(name), new ObjID(name, id));
-			}
-		}
-		if (!ids.isEmpty()) {
-			final DBObject query = new BasicDBObject();
-			query.put("workspace", workspaceId);
-			final DBObject idsdb = new BasicDBObject();
-			idsdb.put("$in", ids.keySet());
-			query.put("id", idsdb);
-			System.out.println(query);
-			@SuppressWarnings("rawtypes")
-			Iterable<Map> res; 
-			try {
-				res = wsjongo.getCollection(WORKSPACE_PTRS)
-						.find(query.toString())
-						.projection("{id: 1, name: 1, _id: 0}")
-						.as(Map.class);
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
-			}
-			for (@SuppressWarnings("rawtypes") Map m: res) {
-				final String name = (String) m.get("name");
-				final Integer id = (Integer) m.get("id");
-				goodIds.put(ids.get(id), new ObjID(name, id));
-			}
-		}
+		validateOrTranslateObjectIDs(workspaceID, names, goodIds);
+		validateOrTranslateObjectIDs(workspaceID, ids, goodIds);
+//		if (!names.isEmpty()) {
+//			final DBObject query = new BasicDBObject();
+//			query.put("workspace", workspaceId);
+//			final DBObject namesdb = new BasicDBObject();
+//			namesdb.put("$in", names.keySet());
+//			query.put("name", namesdb);
+//			System.out.println(query);
+//			@SuppressWarnings("rawtypes")
+//			Iterable<Map> res; 
+//			try {
+//				res = wsjongo.getCollection(WORKSPACE_PTRS)
+//						.find(query.toString())
+//						.projection("{id: 1, name: 1, _id: 0}")
+//						.as(Map.class);
+//			} catch (MongoException me) {
+//				throw new WorkspaceCommunicationException(
+//						"There was a problem communicating with the database", me);
+//			}
+//			for (@SuppressWarnings("rawtypes") Map m: res) {
+//				System.out.println(m);
+//				final String name = (String) m.get("name");
+//				final Integer id = (Integer) m.get("id");
+//				goodIds.put(names.get(name), new ObjID(name, id));
+//			}
+//		}
+//		if (!ids.isEmpty()) {
+//			final DBObject query = new BasicDBObject();
+//			query.put("workspace", workspaceId);
+//			final DBObject idsdb = new BasicDBObject();
+//			idsdb.put("$in", ids.keySet());
+//			query.put("id", idsdb);
+//			System.out.println(query);
+//			@SuppressWarnings("rawtypes")
+//			Iterable<Map> res; 
+//			try {
+//				res = wsjongo.getCollection(WORKSPACE_PTRS)
+//						.find(query.toString())
+//						.projection("{id: 1, name: 1, _id: 0}")
+//						.as(Map.class);
+//			} catch (MongoException me) {
+//				throw new WorkspaceCommunicationException(
+//						"There was a problem communicating with the database", me);
+//			}
+//			for (@SuppressWarnings("rawtypes") Map m: res) {
+//				final String name = (String) m.get("name");
+//				final Integer id = (Integer) m.get("id");
+//				goodIds.put(ids.get(id), new ObjID(name, id));
+//			}
+//		}
 		return goodIds;
 	}
 	
@@ -633,7 +676,7 @@ public class MongoDatabase implements Database {
 		System.out.println("wsid " + wsid);
 		System.out.println("objectid " + objectid);
 		System.out.println(pkg);
-		//TODO save datainstance
+		//TODO save datainstance/provenance
 		final int ver;
 		try {
 			ver = (int) wsjongo.getCollection(WORKSPACE_PTRS)
@@ -904,7 +947,6 @@ public class MongoDatabase implements Database {
 			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			
 			pkg.td = new TypeData(tds.data, tds.type, workspaceid, null); //TODO add subdata
 		}
 		return ret;
@@ -1014,15 +1056,7 @@ public class MongoDatabase implements Database {
 			String col = getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
-//				TypeData td = new TypeData(p.json, type, workspaceid, p.td.subdata);
-//				TypeData td = p.td;
 				chksum.put(p.td.getChksum(), p.td);
-//				if (!chksum.containsKey(p.td.getChksum())) {
-//					p.td = td;
-//					chksum.put(p.td.getChksum(), p.td);
-//				} else {
-//					p.td = chksum.get(td.getChksum());
-//				}
 			}
 			final DBObject query = new BasicDBObject();
 			final DBObject inchk = new BasicDBObject();
@@ -1046,7 +1080,6 @@ public class MongoDatabase implements Database {
 			//TODO what happens if a piece of data is deleted after pulling the existing chksums? pull workspaces field, if empty do an upsert just in case
 			final List<TypeData> newdata = new ArrayList<TypeData>();
 			for (String md5: chksum.keySet()) {
-//			for (TypeData td: chksum.values()) {
 				if (existChksum.contains(md5)) {
 					try {
 						wsjongo.getCollection(col)
