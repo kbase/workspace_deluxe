@@ -168,11 +168,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>>() {};
+        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
 }

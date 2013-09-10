@@ -144,7 +144,7 @@ module Workspace {
 		obj_ref ref;
 	} ObjectIdentity;
 	
-	/* Metadata about an object.
+	/* Metadata associated with an object.
 	
 		obj_id objid - the numerical id of the object.
 		obj_name object - the name of the object.
@@ -157,10 +157,12 @@ module Workspace {
 		int size - the size of the object in bytes.
 		mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
 			metadata about the object.
+
 	*/
-	typedef tuple<obj_id objid, obj_name object, type_id type, type_ver tver,
-		timestamp create_date, int version, username created_by, ws_id wsid,
-		string chsum, mapping<string, UnspecifiedObject> metadata> object_metadata;
+	typedef tuple<obj_id objid, obj_name object, type_string type,
+		timestamp create_date, int version, username created_by,
+		ws_id wsid, string chsum, int size,
+		mapping<string, UnspecifiedObject> metadata> object_metadata;
 	
 	/* A provenance action.
 	
@@ -203,10 +205,11 @@ module Workspace {
 			1000 characters. Longer descriptions will be silently truncated.
 	*/
 	typedef structure {
+		timestamp time;
 		string service;
 		int service_ver;
 		string method;
-		list<string> method_params;
+		list<UnspecifiedObject> method_params;
 		string script;
 		int script_ver;
 		string script_command_line;

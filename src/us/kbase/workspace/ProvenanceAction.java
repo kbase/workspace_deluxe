@@ -11,6 +11,7 @@ import org.codehaus.jackson.annotate.JsonAnySetter;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
+import us.kbase.UObject;
 
 
 /**
@@ -23,19 +24,24 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         command, etc. All of the following are optional, but more information
  *         provided equates to better data provenance.
  *         
+ *         timestamp time - the time the action was started.
  *         string service - the name of the service that performed this action.
  *         int service_ver - the version of the service that performed this action.
  *         string method - the method of the service that performed this action.
- *         list<string> method_params - the parameters of the method that 
- *                 performed this action. Pointers to an object rather than the objects
- *                 themselves should be listed here.
+ *         list<UnspecifiedObject> method_params - the parameters of the method
+ *                 that performed this action. If the object is a workspace object,
+ *                 put the object id in the input_ws_object list and refer to it here
+ *                 by the %N syntax described below.
  *         string script - the name of the script that performed this action.
  *         int script_ver - the version of the script that performed this action.
  *         string script_command_line - the command line provided to the script
- *                 that performed this action.
+ *                 that performed this action. If workspace objects were provided in
+ *                 the command line, put the object id in the input_ws_object list
+ *                 and refer to it here by the %N syntax described below.
  *         list<ObjectIdentifier> input_ws_objects - the workspace objects that
- *                 were used as input to this action. This list may overlap with the
- *                 method_params list.
+ *                 were used as input to this action. Refer to these objects
+ *                 elsewhere in the action via the syntax %N, where N is the index
+ *                 of the object in this list.
  *         list<string> intermediate_incoming - if the previous action produced 
  *                 output that 1) was not stored in a referrable way, and 2) is
  *                 used as input for this action, provide it with an arbitrary and
@@ -55,6 +61,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
+    "time",
     "service",
     "service_ver",
     "method",
@@ -69,6 +76,8 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 })
 public class ProvenanceAction {
 
+    @JsonProperty("time")
+    private String time;
     @JsonProperty("service")
     private String service;
     @JsonProperty("service_ver")
@@ -76,7 +85,7 @@ public class ProvenanceAction {
     @JsonProperty("method")
     private String method;
     @JsonProperty("method_params")
-    private List<String> methodParams = new ArrayList<String>();
+    private List<UObject> methodParams = new ArrayList<UObject>();
     @JsonProperty("script")
     private String script;
     @JsonProperty("script_ver")
@@ -92,6 +101,21 @@ public class ProvenanceAction {
     @JsonProperty("intermediate_outgoing")
     private List<String> intermediateOutgoing = new ArrayList<String>();
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+    @JsonProperty("time")
+    public String getTime() {
+        return time;
+    }
+
+    @JsonProperty("time")
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public ProvenanceAction withTime(String time) {
+        this.time = time;
+        return this;
+    }
 
     @JsonProperty("service")
     public String getService() {
@@ -139,16 +163,16 @@ public class ProvenanceAction {
     }
 
     @JsonProperty("method_params")
-    public List<String> getMethodParams() {
+    public List<UObject> getMethodParams() {
         return methodParams;
     }
 
     @JsonProperty("method_params")
-    public void setMethodParams(List<String> methodParams) {
+    public void setMethodParams(List<UObject> methodParams) {
         this.methodParams = methodParams;
     }
 
-    public ProvenanceAction withMethodParams(List<String> methodParams) {
+    public ProvenanceAction withMethodParams(List<UObject> methodParams) {
         this.methodParams = methodParams;
         return this;
     }
