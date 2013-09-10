@@ -8,10 +8,6 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import us.kbase.shock.client.ShockNode;
-import us.kbase.shock.client.ShockNodeId;
-import us.kbase.shock.client.ShockVersionStamp;
-import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.TypeId;
 
@@ -33,9 +29,6 @@ public class TypeData {
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private int size;
-//	private ShockNodeId shocknodeid = null;
-//	private ShockVersionStamp shockver = null;
-//	private boolean gridfs = false;
 	
 	public TypeData(String data, AbsoluteTypeId type, int firstWorkspace,
 			Map<String,Object> subdata) {
@@ -73,60 +66,8 @@ public class TypeData {
 		return size;
 	}
 	
-//	public ShockNodeId getShockNodeId() {
-//		if (!isShockBlob()) {
-//			throw new IllegalStateException(
-//					"This data has not been set as shock backended data");
-//		}
-//		return shocknodeid;
-//	}
-//	
-//	public ShockVersionStamp getShockVersion() {
-//		if (!isShockBlob()) {
-//			throw new IllegalStateException(
-//					"This data has not been set as shock backended data");
-//		}
-//		return shockver;
-//	}
-//	
-//	@JsonIgnore
-//	public boolean isShockBlob() {
-//		return shocknodeid != null;
-//	}
-//	
-//	@JsonIgnore
-//	public boolean isGridFSBlob() {
-//		return gridfs;
-//	}
-//	
-//	public void setGridFS() {
-//		if (isGridFSBlob() || isShockBlob()) {
-//			throw new IllegalStateException(
-//					"The backend type for this data has already been set");
-//		}
-//		gridfs = true;
-//		
-//	}
-//	
-//	public void addShockInformation(ShockNode sn) {
-//		if (isGridFSBlob() || isShockBlob()) {
-//			throw new IllegalStateException(
-//					"The backend type for this data has already been set");
-//		}
-//		try {
-//			shocknodeid = sn.getId();
-//			shockver = sn.getVersion();
-//		} catch (ShockNodeDeletedException snde) {
-//			throw new RuntimeException("something is very broken", snde);
-//		}
-//	}
-	
 	//subdata is mutable!
 	public DBObject getSafeUpdate() {
-//		if (!(isGridFSBlob() || isShockBlob())) {
-//			throw new IllegalStateException(
-//					"Cannot update without blob type set");
-//		}
 		final String soi = "$setOnInsert";
 		final DBObject dbo = new BasicDBObject();
 		final DBObject wsids = new BasicDBObject();
@@ -143,18 +84,6 @@ public class TypeData {
 		final DBObject size = new BasicDBObject();
 		size.put("size", getSize());
 		dbo.put(soi, size);
-//		if (isGridFSBlob()) {
-//			final DBObject gfs = new BasicDBObject();
-//			gfs.put("gridfs", isGridFSBlob());
-//			dbo.put(soi, gfs);
-//		} else {
-//			final DBObject sn = new BasicDBObject();
-//			sn.put("shocknode", getShockNodeId());
-//			dbo.put(soi, sn);
-//			final DBObject sv = new BasicDBObject();
-//			sv.put("shockver", getShockVersion());
-//			dbo.put(soi, sv);
-//		}
 		return dbo;
 	}
 
@@ -162,7 +91,6 @@ public class TypeData {
 	public String toString() {
 		return "TypeData [data=" + data + ", type=" + type + ", workspaces="
 				+ workspaces + ", chksum=" + chksum + ", subdata=" + subdata
-				+ ", size=" + size + "]"; //+ ", shocknode=" + shocknodeid + ", shockver="
-				//+ shockver + ", gridfs=" + gridfs + "]";
+				+ ", size=" + size + "]";
 	}
 }

@@ -46,10 +46,7 @@ public class GridFSBackendTest {
 		String returned = gfsb.getBlob(tdmdr);
 		assertEquals("Didn't get same data back from store", returned, data);
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdmdr) == null);
-//		try {
 		gfsb.saveBlob(tdmd, td.getData()); //should be able to save the same thing twice with no error
-//			fail("Able to save same document twice");
-//		} catch (BlobStoreException wbe) {}
 		gfsb.removeBlob(tdmdr);
 	}
 	

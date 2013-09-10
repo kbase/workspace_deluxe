@@ -633,7 +633,6 @@ public class MongoDatabase implements Database {
 		System.out.println("wsid " + wsid);
 		System.out.println("objectid " + objectid);
 		System.out.println(pkg);
-		//TODO save data
 		//TODO save datainstance
 		final int ver;
 		try {
@@ -651,7 +650,6 @@ public class MongoDatabase implements Database {
 		query.put("id", objectid);
 		
 		final DBObject pointer = new BasicDBObject();
-		//TODO save type data
 		pointer.put("version", ver);
 		pointer.put("createdby", user);
 		pointer.put("chksum", pkg.td.getChksum());
@@ -660,6 +658,7 @@ public class MongoDatabase implements Database {
 		pointer.put("createDate", created);
 		pointer.put("reffedBy", new ArrayList<Object>()); //TODO this might be a really bad idea
 		pointer.put("objectId", null); //TODO add objectID
+		//TODO add typeId
 		pointer.put("revert", null);
 		final DBObject versions = new BasicDBObject();
 		versions.put("versions", pointer);
@@ -675,8 +674,6 @@ public class MongoDatabase implements Database {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		
-		//TODO return metadata
 		return new MongoObjectMeta(objectid, pkg.name, pkg.wo.getType(), created,
 				ver, user, wsid, pkg.td.getChksum(), pkg.wo.getUserMeta());
 	}
@@ -740,7 +737,6 @@ public class MongoDatabase implements Database {
 	private ObjectMetaData createPointerAndSaveObject(final String user, final int wsid,
 			final int objectid, final String name, final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
-		//TODO the saveObject methods need some serious cleaning up - 1 is for creating container, 1 is for objects
 		System.out.println("****save new obj called****");
 		System.out.println("wsid " + wsid);
 		System.out.println("objectid " + objectid);
@@ -795,9 +791,7 @@ public class MongoDatabase implements Database {
 		public WorkspaceObject wo;
 		public String name;
 		public String json;
-//		public String chksum;
 		public Map<String, Object> subdata = null;
-//		public int size;
 		public AbsoluteTypeId type;
 		public TypeData td;
 		
@@ -892,10 +886,6 @@ public class MongoDatabase implements Database {
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
-			
-			//TODO do this *after* rewrites
-//			pkg.size = pkg.json.length();
-//			pkg.chksum = DigestUtils.md5Hex(pkg.json);
 		}
 		return ret;
 	}

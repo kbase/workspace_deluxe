@@ -26,7 +26,6 @@ public class Common {
 	public static final List<String> COLLECTIONS = Arrays.asList(
 			"settings", "workspaces", "workspaceACLs", "workspaceCounter",
 			"workspacePointers", "shockData");
-	//TODO destroy all type collections
 			
 	private static MongoClient mongoClient = null;
 	

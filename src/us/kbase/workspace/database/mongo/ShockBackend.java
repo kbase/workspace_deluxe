@@ -2,8 +2,6 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -20,7 +18,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.workspaces.TypeId;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mongodb.BasicDBObject;
@@ -108,17 +105,6 @@ public class ShockBackend implements BlobStore {
 			//go ahead, need to save
 		}
 		checkAuth();
-//		TypeId type = td.getType();
-//		if(type == null) {
-//			throw new RuntimeException("No type in typedata object");
-//		}
-//		Map<String, Object> attribs = new HashMap<>();
-//		Map<String,Object> workattribs = new HashMap<>();
-//		workattribs.put("module", type.getType().getModule());
-//		workattribs.put("type", type.getType().getName());
-//		workattribs.put("major-version", type.getMajorVersion());
-//		workattribs.put("minor-version", type.getMinorVersion());
-//		attribs.put("workspace", workattribs);
 		ShockNode sn = null;
 		try {
 			sn = client.addNode(data.getBytes(), "workspace_" + md5.getMD5());
@@ -153,7 +139,6 @@ public class ShockBackend implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
 		}
-//		td.addShockInformation(sn);
 	}
 	
 	private String getNode(MD5 md5) throws

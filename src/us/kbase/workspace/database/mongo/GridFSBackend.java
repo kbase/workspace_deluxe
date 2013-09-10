@@ -39,8 +39,6 @@ public class GridFSBackend implements BlobStore {
 			gif.save();
 		} catch (MongoException.DuplicateKey dk) {
 			// already here, done
-//			throw new DuplicateBlobException(
-//					"Attempt to add a duplicate blob with id " + td.getChksum());
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
@@ -50,10 +48,6 @@ public class GridFSBackend implements BlobStore {
 	@Override
 	public String getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
-//		if (!td.isGridFSBlob()) {
-//			throw new IllegalStateException(
-//					"This data is not stored in gridFS");
-//		}
 		DBObject query = new BasicDBObject();
 		query.put("_id", md5.getMD5());
 		GridFSDBFile out;
@@ -78,10 +72,6 @@ public class GridFSBackend implements BlobStore {
 
 	@Override
 	public void removeBlob(MD5 md5) throws BlobStoreCommunicationException {
-//		if (!td.isGridFSBlob()) {
-//			throw new IllegalStateException(
-//					"This data is not stored in gridFS");
-//		}
 		DBObject query = new BasicDBObject();
 		query.put("_id", md5.getMD5());
 		try {
