@@ -53,13 +53,13 @@ public class ObjectSaveData {
     @JsonProperty("type")
     private java.lang.String type;
     @JsonProperty("data")
-    private Map<String, Object> data;
+    private Map<String, us.kbase.UObject> data;
     @JsonProperty("name")
     private java.lang.String name;
     @JsonProperty("objid")
     private Integer objid;
     @JsonProperty("metadata")
-    private Map<String, Object> metadata;
+    private Map<String, us.kbase.UObject> metadata;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance = new ArrayList<ProvenanceAction>();
     @JsonProperty("tver")
@@ -84,16 +84,16 @@ public class ObjectSaveData {
     }
 
     @JsonProperty("data")
-    public Map<String, Object> getData() {
+    public Map<String, us.kbase.UObject> getData() {
         return data;
     }
 
     @JsonProperty("data")
-    public void setData(Map<String, Object> data) {
+    public void setData(Map<String, us.kbase.UObject> data) {
         this.data = data;
     }
 
-    public ObjectSaveData withData(Map<String, Object> data) {
+    public ObjectSaveData withData(Map<String, us.kbase.UObject> data) {
         this.data = data;
         return this;
     }
@@ -129,16 +129,16 @@ public class ObjectSaveData {
     }
 
     @JsonProperty("metadata")
-    public Map<String, Object> getMetadata() {
+    public Map<String, us.kbase.UObject> getMetadata() {
         return metadata;
     }
 
     @JsonProperty("metadata")
-    public void setMetadata(Map<String, Object> metadata) {
+    public void setMetadata(Map<String, us.kbase.UObject> metadata) {
         this.metadata = metadata;
     }
 
-    public ObjectSaveData withMetadata(Map<String, Object> metadata) {
+    public ObjectSaveData withMetadata(Map<String, us.kbase.UObject> metadata) {
         this.metadata = metadata;
         return this;
     }
