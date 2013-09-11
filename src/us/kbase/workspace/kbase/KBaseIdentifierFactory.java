@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 
-public class KBWorkspaceIDFactory {
+public class KBaseIdentifierFactory {
 	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
 	

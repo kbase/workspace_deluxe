@@ -29,7 +29,7 @@ import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
-import us.kbase.workspace.kbase.KBWorkspaceIDFactory;
+import us.kbase.workspace.kbase.KBaseIdentifierFactory;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
@@ -151,9 +151,9 @@ public class WorkspaceServer extends JsonServerServlet {
 					workspace, id));
 		}
 		if (id != null) {
-			return KBWorkspaceIDFactory.create(id);
+			return KBaseIdentifierFactory.create(id);
 		}
-		return KBWorkspaceIDFactory.create(workspace);
+		return KBaseIdentifierFactory.create(workspace);
 	}
 	
 	private ObjectIdentifier processObjectIdentifier(final ObjectIdentity oi) {
