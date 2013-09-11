@@ -490,7 +490,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
-     * Save objects to the workspace
+     * Save objects to the workspace.
      * </pre>
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
@@ -542,6 +542,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
+     * Get objects from the workspace.
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.get_objects")
@@ -550,6 +551,20 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_objects
 		//TODO get_objects
         //END get_objects
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object_metadata</p>
+     * <pre>
+     * Get object metadata from the workspace.
+     * </pre>
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object_metadata")
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> getObjectMetadata(List<ObjectIdentity> objects) throws Exception {
+        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> returnVal = null;
+        //BEGIN get_object_metadata
+        //END get_object_metadata
         return returnVal;
     }
 

@@ -162,7 +162,7 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
-     * Save objects to the workspace
+     * Save objects to the workspace.
      * </pre>
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      * @throws IOException if an IO exception occurs
@@ -179,6 +179,7 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
+     * Get objects from the workspace.
      * </pre>
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
@@ -188,6 +189,22 @@ public class WorkspaceClient {
         args.add(objects);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
         List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object_metadata</p>
+     * <pre>
+     * Get object metadata from the workspace.
+     * </pre>
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objects);
+        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>>() {};
+        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
     }
 }

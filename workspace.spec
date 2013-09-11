@@ -341,7 +341,9 @@ module Workspace {
 		list<ObjectSaveData> objects;
 	} SaveObjectsParams;
 	
-	/* Save objects to the workspace */
+	/* 
+		Save objects to the workspace.
+	*/
 	funcdef save_objects(SaveObjectsParams params) returns (list<object_metadata> meta)
 		authentication required;
 	
@@ -356,5 +358,13 @@ module Workspace {
 		object_metadata meta;
 	} ObjectData;
 	
+	/* 
+		Get objects from the workspace.
+	*/
 	funcdef get_objects(list<ObjectIdentity> objects) returns (list<ObjectData> data);
+	
+	/* 
+		Get object metadata from the workspace.
+	*/
+	funcdef get_object_metadata(list<ObjectIdentity> objects) returns (list<object_metadata> data);
 };
