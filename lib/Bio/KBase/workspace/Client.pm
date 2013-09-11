@@ -631,7 +631,9 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	wsid has a value which is a Workspace.ws_id
 	object has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ver is an int
 obj_ref is a string
 type_ver is a string
 boolean is an int
@@ -695,7 +697,9 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	wsid has a value which is a Workspace.ws_id
 	object has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ver is an int
 obj_ref is a string
 type_ver is a string
 boolean is an int
@@ -770,6 +774,146 @@ sub save_objects
 
 
 
+=head2 get_objects
+
+  $data = $obj->get_objects($objects)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectData
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	object has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	meta has a value which is a Workspace.object_metadata
+object_metadata is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (object) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+type_string is a string
+timestamp is a string
+username is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectData
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	object has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	meta has a value which is a Workspace.object_metadata
+object_metadata is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (object) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+type_string is a string
+timestamp is a string
+username is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+sub get_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_objects (received $n, expecting 1)");
+    }
+    {
+	my($objects) = @args;
+
+	my @_bad_arguments;
+        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_objects',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_objects',
+				       );
+    }
+}
+
+
+
 sub version {
     my ($self) = @_;
     my $result = $self->{client}->call($self->{url}, {
@@ -781,16 +925,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'save_objects',
+                method_name => 'get_objects',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method save_objects",
+            error => "Error invoking method get_objects",
             status_line => $self->{client}->status_line,
-            method_name => 'save_objects',
+            method_name => 'get_objects',
         );
     }
 }
@@ -1282,6 +1426,38 @@ a string
 
 
 
+=head2 obj_ver
+
+=over 4
+
+
+
+=item Description
+
+An object version.
+The version of the object, starting at 1.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+an int
+</pre>
+
+=end html
+
+=begin text
+
+an int
+
+=end text
+
+=back
+
+
+
 =head2 obj_ref
 
 =over 4
@@ -1346,6 +1522,8 @@ Select an object by either:
         One, and only one, of the numerical id or name of the object.
                 obj_id objid- the numerical ID of the object.
                 obj_name object - name of the object.
+        OPTIONALLY
+                obj_ver ver - the version of the object.
 OR an object reference string:
         obj_ref ref - an object reference string.
 
@@ -1360,6 +1538,7 @@ workspace has a value which is a Workspace.ws_name
 wsid has a value which is a Workspace.ws_id
 object has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
+ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
 
 </pre>
@@ -1373,6 +1552,7 @@ workspace has a value which is a Workspace.ws_name
 wsid has a value which is a Workspace.ws_id
 object has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
+ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
 
 
@@ -1396,7 +1576,7 @@ Metadata associated with an object.
         obj_name object - the name of the object.
         type_string type - the type of the object.
         timestamp create_date - the creation date of the object.
-        int version - the version of the object.
+        obj_ver ver - the version of the object.
         username created_by - the user that created the object.
         ws_id wsid - the workspace containing the object.
         string chsum - the md5 checksum of the object.
@@ -1745,6 +1925,46 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 id has a value which is a Workspace.ws_id
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectData
+
+=over 4
+
+
+
+=item Description
+
+The data and metadata for an object.
+
+        mapping<String, UnspecifiedObject> data - the object's data.
+        object_metadata meta - metadata about the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+meta has a value which is a Workspace.object_metadata
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+meta has a value which is a Workspace.object_metadata
 
 
 =end text

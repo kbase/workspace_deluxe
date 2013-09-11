@@ -26,6 +26,8 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         One, and only one, of the numerical id or name of the object.
  *                 obj_id objid- the numerical ID of the object.
  *                 obj_name object - name of the object.
+ *         OPTIONALLY
+ *                 obj_ver ver - the version of the object.
  * OR an object reference string:
  *         obj_ref ref - an object reference string.
  * </pre>
@@ -38,6 +40,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
     "wsid",
     "object",
     "objid",
+    "ver",
     "ref"
 })
 public class ObjectIdentity {
@@ -50,6 +53,8 @@ public class ObjectIdentity {
     private String object;
     @JsonProperty("objid")
     private Integer objid;
+    @JsonProperty("ver")
+    private Integer ver;
     @JsonProperty("ref")
     private String ref;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -111,6 +116,21 @@ public class ObjectIdentity {
 
     public ObjectIdentity withObjid(Integer objid) {
         this.objid = objid;
+        return this;
+    }
+
+    @JsonProperty("ver")
+    public Integer getVer() {
+        return ver;
+    }
+
+    @JsonProperty("ver")
+    public void setVer(Integer ver) {
+        this.ver = ver;
+    }
+
+    public ObjectIdentity withVer(Integer ver) {
+        this.ver = ver;
         return this;
     }
 

@@ -104,6 +104,11 @@ module Workspace {
 	*/
 	typedef string obj_name;
 	
+	/* An object version.
+		The version of the object, starting at 1.
+	*/
+	typedef int obj_ver;
+	
 	/* A string that uniquely identifies an object in the workspace service.
 	
 		There are several ways to uniquely identify an object in one string:
@@ -133,6 +138,8 @@ module Workspace {
 			One, and only one, of the numerical id or name of the object.
 				obj_id objid- the numerical ID of the object.
 				obj_name object - name of the object.
+			OPTIONALLY
+				obj_ver ver - the version of the object.
 		OR an object reference string:
 			obj_ref ref - an object reference string.
 	*/
@@ -141,6 +148,7 @@ module Workspace {
 		ws_id wsid;
 		obj_name object;
 		obj_id objid;
+		obj_ver ver;
 		obj_ref ref;
 	} ObjectIdentity;
 	
@@ -150,7 +158,7 @@ module Workspace {
 		obj_name object - the name of the object.
 		type_string type - the type of the object.
 		timestamp create_date - the creation date of the object.
-		int version - the version of the object.
+		obj_ver ver - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
@@ -336,4 +344,17 @@ module Workspace {
 	/* Save objects to the workspace */
 	funcdef save_objects(SaveObjectsParams params) returns (list<object_metadata> meta)
 		authentication required;
+	
+	/* The data and metadata for an object.
+	
+		mapping<String, UnspecifiedObject> data - the object's data.
+		object_metadata meta - metadata about the object.
+		
+	*/
+	typedef structure {
+		mapping<string, UnspecifiedObject> data;
+		object_metadata meta;
+	} ObjectData;
+	
+	funcdef get_objects(list<ObjectIdentity> objects) returns (list<ObjectData> data);
 };

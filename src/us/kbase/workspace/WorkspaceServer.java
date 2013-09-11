@@ -527,10 +527,23 @@ public class WorkspaceServer extends JsonServerServlet {
 			count++;
 		}
 		
-		//TODO error if additional args
 		List<ObjectMetaData> meta = ws.saveObjects(authPart.getUserName(), woc); 
 		returnVal = objMetaToTuple(meta);
         //END save_objects
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_objects</p>
+     * <pre>
+     * </pre>
+     */
+    @JsonServerMethod(rpc = "Workspace.get_objects")
+    public List<ObjectData> getObjects(List<ObjectIdentity> objects) throws Exception {
+        List<ObjectData> returnVal = null;
+        //BEGIN get_objects
+		//TODO get_objects
+        //END get_objects
         return returnVal;
     }
 

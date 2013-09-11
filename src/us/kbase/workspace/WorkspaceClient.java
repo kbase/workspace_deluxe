@@ -175,4 +175,19 @@ public class WorkspaceClient {
         List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
+
+    /**
+     * <p>Original spec-file function name: get_objects</p>
+     * <pre>
+     * </pre>
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<ObjectData> getObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objects);
+        TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false);
+        return res.get(0);
+    }
 }
