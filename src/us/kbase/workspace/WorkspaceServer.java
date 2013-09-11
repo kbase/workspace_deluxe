@@ -6,7 +6,6 @@ import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
-import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
@@ -17,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+
+import org.apache.commons.lang3.StringUtils;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -215,6 +216,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			return p;
 		}
 		for (ProvenanceAction a: actions) {
+			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			Provenance.ProvenanceAction pa = new Provenance.ProvenanceAction();
 			if (a.getService() != null) {
 				pa = pa.withServiceName(a.getService());
@@ -261,6 +263,17 @@ public class WorkspaceServer extends JsonServerServlet {
 		return ret;
 	}
 	
+	private void checkAddlArgs(Map<String, Object> addlargs,
+			@SuppressWarnings("rawtypes") Class clazz) {
+		if (addlargs.isEmpty()) {
+			return;
+		}
+		throw new IllegalArgumentException(String.format(
+				"Unexpected arguments in %s: %s",
+				clazz.getName().substring(clazz.getName().lastIndexOf(".") + 1),
+				StringUtils.join(addlargs.keySet(), " ")));
+	}
+	
 	private String getUserName(AuthToken token) {
 		if (token == null) {
 			return null;
@@ -276,13 +289,13 @@ public class WorkspaceServer extends JsonServerServlet {
 //		return ret;
 //	}
 	
-	private Map<String, UObject> addUObj(Map<String, Object> map) {
-		Map<String, UObject> ret = new HashMap<String, UObject>();
-		for (String s: map.keySet()) {
-			ret.put(s, new UObject(map.get(s)));
-		}
-		return ret;
-	}
+//	private Map<String, UObject> addUObj(Map<String, Object> map) {
+//		Map<String, UObject> ret = new HashMap<String, UObject>();
+//		for (String s: map.keySet()) {
+//			ret.put(s, new UObject(map.get(s)));
+//		}
+//		return ret;
+//	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -360,6 +373,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple6<Integer, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN create_workspace
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		Permission p = Permission.NONE;
 		if (params.getGlobalread() != null) {
 			if (!params.getGlobalread().equals(PERM_READ) && !params.getGlobalread().equals(PERM_NONE)) {
@@ -387,6 +401,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
+		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUserName(authPart), wksp);
 		returnVal = wsMetaToTuple(meta);
@@ -405,6 +420,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
+		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		returnVal = ws.getWorkspaceDescription(getUserName(authPart), wksp);
         //END get_workspace_description
@@ -421,6 +437,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		if (API_TO_PERM.get(params.getNewPermission()) == null) {
@@ -453,6 +470,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
+		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final Map<String, Permission> acls = ws.getPermissions(authPart.getUserName(), wksp);
@@ -474,10 +492,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,Object>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,Object>>> returnVal = null;
         //BEGIN save_objects
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
 		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		int count = 1;
 		for (ObjectSaveData d: params.getObjects()) {
+			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
 			final ObjectIdentifier oi = processObjectIdentifier(wsi, d.getName(), d.getObjid());
 			String errprefix = "Object ";
 			if (oi == null) {
