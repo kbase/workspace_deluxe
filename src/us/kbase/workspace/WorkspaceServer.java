@@ -10,16 +10,17 @@ import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
+import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
+import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
+import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
-
-import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.JsonProcessingException;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -29,6 +30,7 @@ import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseIdentifierFactory;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
@@ -73,29 +75,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
-	private static final String TYPE_SEP = "\\."; //regex
-	private static final String VER_SEP = "\\."; //regex
-	
-	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
-	private static final Map<String, Permission> API_TO_PERM = new HashMap<String, Permission>();
-	private static final String PERM_NONE = "n";
-	private static final String PERM_READ = "r";
-	private static final String PERM_WRITE = "w";
-	private static final String PERM_ADMIN = "a";
-	static {
-		API_TO_PERM.put(PERM_NONE, Permission.NONE);
-		API_TO_PERM.put(PERM_READ, Permission.READ);
-		API_TO_PERM.put(PERM_WRITE, Permission.WRITE);
-		API_TO_PERM.put(PERM_ADMIN, Permission.ADMIN);
-		for (String p: API_TO_PERM.keySet()) {
-			PERM_TO_API.put(API_TO_PERM.get(p), p);
-		}
-		PERM_TO_API.put(false, PERM_NONE); // for globalread
-		PERM_TO_API.put(true, PERM_READ); // for globalread
-		PERM_TO_API.put(Permission.OWNER, PERM_ADMIN);
-	}
-	
 	private static Map<String, String> wsConfig = null;
 	
 	private final Workspaces ws;
@@ -130,213 +109,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		logErr(error);
 		System.err.println(error);
 		startupFailed();
-	}
-	
-	private String formatDate(final Date d) {
-		if (d == null) {
-			return null;
-		}
-		return DATE_FORMAT.format(d);
-	}
-	
-	private WorkspaceIdentifier processWorkspaceIdentifier(final WorkspaceIdentity wsi) {
-		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
-		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
-	}
-	
-	private WorkspaceIdentifier processWorkspaceIdentifier(final String workspace, final Integer id) {
-		if (!(workspace == null ^ id == null)) {
-			throw new IllegalArgumentException(String.format(
-					"Must provide one and only one of workspace or id: %s %s",
-					workspace, id));
-		}
-		if (id != null) {
-			return KBaseIdentifierFactory.create(id);
-		}
-		return KBaseIdentifierFactory.create(workspace);
-	}
-	
-	private ObjectIdentifier processObjectIdentifier(final ObjectIdentity oi) {
-		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
-		if (oi.getRef() != null) {
-			if (oi.getWorkspace() != null || oi.getWsid() != null 
-					|| oi.getName() != null || oi.getObjid() != null ||
-					oi.getVer() != null) {
-				final List<Object> err = new ArrayList<Object>(4);
-				if (oi.getWorkspace() != null) {
-					err.add(oi.getWorkspace());
-				}
-				if (oi.getWsid() != null) {
-					err.add(oi.getWsid());
-				}
-				if (oi.getName() != null) {
-					err.add(oi.getName());
-				}
-				if (oi.getObjid() != null) {
-					err.add(oi.getObjid());
-				}
-				if (oi.getVer() != null) {
-					err.add(oi.getVer());
-				}
-				throw new IllegalArgumentException(String.format(
-						"Object reference %s provided; cannot provide any other means of identifying an object: %s",
-						oi.getRef(), StringUtils.join(err, " ")));
-			}
-			//TODO process ref
-		}
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				oi.getWorkspace(), oi.getWsid());
-		return processObjectIdentifier(wsi, oi.getName(), oi.getObjid());
-	}
-	
-	private ObjectIdentifier processObjectIdentifier(final WorkspaceIdentifier wsi,
-			final String name, final Integer id) {
-		if (name == null && id == null) {
-			return null;
-		}
-		if (!(name == null ^ id == null)) {
-			throw new IllegalArgumentException(String.format(
-					"Must provide one and only one of an object name or id: %s/%s",
-					name, id));
-		}
-		if (name != null) {
-			return new ObjectIdentifier(wsi, name);
-		}
-		return new ObjectIdentifier(wsi, id);
-	}
-	
-	private TypeId processTypeId(final String type, final String ver,
-			final String errprefix) {
-		if (type == null) {
-			throw new IllegalArgumentException(errprefix + " has no type");
-		}
-		final String[] t = type.split(TYPE_SEP);
-		if (t.length != 2) {
-			throw new IllegalArgumentException(errprefix + String.format(
-					" type %s could not be split into a module and name",
-					type));
-		}
-		final WorkspaceType wt = new WorkspaceType(t[0], t[1]);
-		if (ver == null) {
-			return new TypeId(wt);
-		}
-		final String[] v = ver.split(VER_SEP);
-		if (v.length == 1) {
-			try {
-				return new TypeId(wt, Integer.parseInt(v[0]));
-			} catch (NumberFormatException ne) {
-				throwTypeVerException(errprefix, ver);
-			}
-		}
-		if (v.length == 2) {
-			try {
-				return new TypeId(wt, Integer.parseInt(v[0]),
-						Integer.parseInt(v[1]));
-			} catch (NumberFormatException ne) {
-				throwTypeVerException(errprefix, ver);
-			}
-		}
-		throwTypeVerException(errprefix, ver);
-		return null; //shut up java
-	}
-	
-	private void throwTypeVerException(final String errprefix, final String ver) {
-		throw new IllegalArgumentException(errprefix + String.format(
-				" type version string %s could not be parsed to a version",
-				ver));
-	}
-	
-	private Provenance processProvenance(String user,
-			List<ProvenanceAction> actions) {
-		
-		Provenance p = new Provenance(user);
-		if (actions == null) {
-			return p;
-		}
-		for (ProvenanceAction a: actions) {
-			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			Provenance.ProvenanceAction pa = new Provenance.ProvenanceAction();
-			if (a.getService() != null) {
-				pa = pa.withServiceName(a.getService());
-			}
-			//TODO remainder of provenance actions
-		}
-		
-		return p;
-	}
-	
-	private Tuple6<Integer, String, String, String, String, String> wsMetaToTuple (
-			WorkspaceMetaData meta) {
-		return new Tuple6<Integer, String, String, String, String, String>()
-				.withE1(meta.getId()).withE2(meta.getName())
-				.withE3(meta.getOwner()).withE4(formatDate(meta.getModDate()))
-				.withE5(PERM_TO_API.get(meta.getUserPermission())) 
-				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
-	}
-	
-	private List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, UObject>>>
-			objMetaToTuple (List<ObjectMetaData> meta) {
-		
-		//oh the humanity
-		final List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, UObject>>> ret = 
-			new ArrayList<Tuple10<Integer, String, String, String, Integer,
-			String, Integer, String, Integer, Map<String, UObject>>>();
-		
-		for (ObjectMetaData m: meta) {
-			ret.add(new Tuple10<Integer, String, String, String, Integer,
-					String, Integer, String, Integer, Map<String, UObject>>()
-					.withE1(m.getObjectId())
-					.withE2(m.getObjectName())
-					.withE3(m.getTypeString())
-					.withE4(formatDate(m.getCreatedDate()))
-					.withE5(m.getVersion())
-					.withE6(m.getCreator())
-					.withE7(m.getWorkspaceId())
-					.withE8(m.getCheckSum())
-					.withE9(m.getSize())
-					.withE10(convertToUObj(m.getUserMetaData())));
-		}
-		return ret;
-	}
-	
-	private void checkAddlArgs(Map<String, Object> addlargs,
-			@SuppressWarnings("rawtypes") Class clazz) {
-		if (addlargs.isEmpty()) {
-			return;
-		}
-		throw new IllegalArgumentException(String.format(
-				"Unexpected arguments in %s: %s",
-				clazz.getName().substring(clazz.getName().lastIndexOf(".") + 1),
-				StringUtils.join(addlargs.keySet(), " ")));
-	}
-	
-	private String getUserName(AuthToken token) {
-		if (token == null) {
-			return null;
-		}
-		return token.getUserName();
-	}
-	
-	private Map<String, Object> parseUObj(Map<String, UObject> map) {
-		Map<String, Object> ret = new HashMap<String, Object>();
-		try {
-			for (String s: map.keySet()) {
-				ret.put(s, map.get(s).asInstance());
-			}
-		} catch (JsonProcessingException jpe) {
-			throw new RuntimeException("Something is very broken", jpe);
-		}
-		return ret;
-	}
-	
-	private Map<String, UObject> convertToUObj(Map<String, Object> map) {
-		Map<String, UObject> ret = new HashMap<String, UObject>();
-		for (String s: map.keySet()) {
-			ret.put(s, new UObject(map.get(s)));
-		}
-		return ret;
 	}
     //END_CLASS_HEADER
 
@@ -422,11 +194,11 @@ public class WorkspaceServer extends JsonServerServlet {
 				throw new IllegalArgumentException(String.format(
 						"globalread must be %s or %s", PERM_NONE, PERM_READ));
 			}
-			p = API_TO_PERM.get(params.getGlobalread());
+			p = translatePermission(params.getGlobalread());
 		}
 		final WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
 				p.equals(Permission.READ), params.getDescription());
-		returnVal = wsMetaToTuple(meta);
+		returnVal = ArgUtils.wsMetaToTuple(meta);
         //END create_workspace
         return returnVal;
     }
@@ -445,8 +217,8 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_metadata
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUserName(authPart), wksp);
-		returnVal = wsMetaToTuple(meta);
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(ArgUtils.getUserName(authPart), wksp);
+		returnVal = ArgUtils.wsMetaToTuple(meta);
         //END get_workspace_metadata
         return returnVal;
     }
@@ -464,7 +236,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_description
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = ws.getWorkspaceDescription(getUserName(authPart), wksp);
+		returnVal = ws.getWorkspaceDescription(ArgUtils.getUserName(authPart), wksp);
         //END get_workspace_description
         return returnVal;
     }
@@ -482,7 +254,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		if (API_TO_PERM.get(params.getNewPermission()) == null) {
+		if (translatePermission(params.getNewPermission()) == null) {
 			throw new IllegalArgumentException("Invalid permission: " + params.getNewPermission());
 		}
 		if (params.getUsers().size() == 0) {
@@ -497,7 +269,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 		}
 		ws.setPermissions(authPart.getUserName(), wsi, params.getUsers(),
-				API_TO_PERM.get(params.getNewPermission()));
+				translatePermission(params.getNewPermission()));
         //END set_permissions
     }
 
@@ -517,7 +289,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final Map<String, Permission> acls = ws.getPermissions(authPart.getUserName(), wksp);
 		for (String acl: acls.keySet()) {
-			returnVal.put(acl, PERM_TO_API.get(acls.get(acl)));
+			returnVal.put(acl, translatePermission(acls.get(acl)));
 		}
         //END get_permissions
         return returnVal;
@@ -550,15 +322,15 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (d.getData() == null) {
 				throw new IllegalArgumentException(errprefix + " has no data");
 			}
-			final TypeId t = processTypeId(d.getType(), d.getTver(), errprefix);
-			final Provenance p = processProvenance(authPart.getUserName(), d.getProvenance());
+			final TypeId t = KBaseIdentifierFactory.processTypeId(d.getType(), d.getTver(), errprefix);
+			final Provenance p = ArgUtils.processProvenance(authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
-				woc.addObject(new WorkspaceSaveObject(wsi, parseUObj(d.getData()), t,
-						parseUObj(d.getMetadata()), p, hidden));
+				woc.addObject(new WorkspaceSaveObject(wsi, ArgUtils.parseUObj(d.getData()), t,
+						ArgUtils.parseUObj(d.getMetadata()), p, hidden));
 			} else {
-				woc.addObject(new WorkspaceSaveObject(oi, parseUObj(d.getData()), t,
-						parseUObj(d.getMetadata()), p, hidden));
+				woc.addObject(new WorkspaceSaveObject(oi, ArgUtils.parseUObj(d.getData()), t,
+						ArgUtils.parseUObj(d.getMetadata()), p, hidden));
 			}
 //				woc.addObject(new WorkspaceSaveObject(wsi, d.getData(), t,
 //						d.getMetadata(), p, hidden));
@@ -570,7 +342,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		
 		List<ObjectMetaData> meta = ws.saveObjects(authPart.getUserName(), woc); 
-		returnVal = objMetaToTuple(meta);
+		returnVal = ArgUtils.objMetaToTuple(meta);
         //END save_objects
         return returnVal;
     }

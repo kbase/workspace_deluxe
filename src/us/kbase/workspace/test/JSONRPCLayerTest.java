@@ -116,9 +116,11 @@ public class JSONRPCLayerTest {
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		System.out.print("Killing server... ");
-		SERVER.stopServer();
-		System.out.println("Done");
+		if (SERVER != null) {
+			System.out.print("Killing server... ");
+			SERVER.stopServer();
+			System.out.println("Done");
+		}
 	}
 	
 	@Test
@@ -200,7 +202,7 @@ public class JSONRPCLayerTest {
 			fail("able to set null permission");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Invalid permission: null"));
+					is("No such permission: null"));
 		
 		}
 		try {
@@ -209,7 +211,7 @@ public class JSONRPCLayerTest {
 			fail("able to set illegal permission");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Invalid permission: f"));
+					is("No such permission: f"));
 		
 		}
 		try {
@@ -301,7 +303,7 @@ public class JSONRPCLayerTest {
 			fail("got non-existant workspace");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Must provide one and only one of workspace or id"));
+					is("Must provide one and only one of workspace (was: null) or id (was: null)"));
 		}
 	}
 }

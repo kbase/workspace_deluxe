@@ -1,5 +1,6 @@
 package us.kbase.shock.client.test;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,8 +61,13 @@ public class ShockTests {
 		otherguy = AuthService.login(u2, p2);
 		AuthToken t1 = AuthService.login(u1, p1).getToken();
 		AuthToken t2 = otherguy.getToken();
-		bsc1 = new BasicShockClient(url, t1);
-		bsc2 = new BasicShockClient(url, t2);
+		try {
+			bsc1 = new BasicShockClient(url, t1);
+			bsc2 = new BasicShockClient(url, t2);
+		} catch (IOException ioe) {
+			throw new ShockTestException("Couldn't set up shock client: " +
+					ioe.getLocalizedMessage());
+		}
 		bscNoAuth = new BasicShockClient(url);
 	}
 	

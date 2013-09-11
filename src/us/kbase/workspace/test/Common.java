@@ -4,6 +4,8 @@ package us.kbase.workspace.test;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import us.kbase.workspace.database.exceptions.InvalidHostException;
 
@@ -12,6 +14,7 @@ import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoException;
 
 public class Common {
 	
@@ -92,6 +95,7 @@ public class Common {
 			System.out.println(mPwd);
 		}
 		if (mongoClient == null) {
+			Logger.getLogger("com.mongodb").setLevel(Level.OFF);
 			final MongoClientOptions opts = MongoClientOptions.builder()
 					.autoConnectRetry(true).build();
 			try {
@@ -101,6 +105,7 @@ public class Common {
 						+ " is not a valid mongodb host");
 			}
 		}
+		System.out.println("Created static mongo client pointed at: " + host);
 	}
 	
 	//run this method first, lots of error checking
@@ -114,10 +119,18 @@ public class Common {
 		}
 		String mUser = getMongoUser();
 		String mPwd = getMongoPwd();
-		DB mdb = mongoClient.getDB(db);
-		if (mUser != null) {
-			mdb.authenticate(mUser, mPwd.toCharArray());
+		DB mdb;
+		try {
+			mdb = mongoClient.getDB(db);
+			if (mUser != null) {
+				mdb.authenticate(mUser, mPwd.toCharArray());
+			}
+		} catch (MongoException.Network men) {
+			throw new TestException("Error connecting to mongodb test instance: "
+					+ men.getCause().getLocalizedMessage());
 		}
+		System.out.print(String.format("Destroying mongo database %s at %s...",
+				db, getHost()));
 		DBObject dbo = new BasicDBObject();
 		for (String c: COLLECTIONS) {
 			mdb.getCollection(c).remove(dbo);
@@ -127,6 +140,7 @@ public class Common {
 				mdb.getCollection(c).drop();
 			}
 		}
+		System.out.println(" buhbye.");
 		if (type == GRIDFS) {
 			dbo.put("backend", GRIDFS);
 		}
@@ -139,6 +153,7 @@ public class Common {
 			dbo.put("shock_location", getShockUrl());
 		}
 		mdb.getCollection("settings").insert(dbo);
+		System.out.println(String.format("Configured new %s backend.", type));
 		return mdb;
 	}
 }

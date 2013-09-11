@@ -36,7 +36,6 @@ public class ShockBackendTest {
 		String u1 = System.getProperty("test.user1");
 		String p1 = System.getProperty("test.pwd1");
 		final DB mongo = Common.destroyAndSetupDB(1, "shock", u1);
-		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		sb = new ShockBackend(mongo.getCollection("shockData"), url, u1, p1);
