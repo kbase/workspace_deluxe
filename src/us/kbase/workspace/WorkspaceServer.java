@@ -140,17 +140,53 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 	private WorkspaceIdentifier processWorkspaceIdentifier(final WorkspaceIdentity wsi) {
+		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
 	}
 	
 	private WorkspaceIdentifier processWorkspaceIdentifier(final String workspace, final Integer id) {
 		if (!(workspace == null ^ id == null)) {
-			throw new IllegalArgumentException("Must provide one and only one of workspace or id");
+			throw new IllegalArgumentException(String.format(
+					"Must provide one and only one of workspace or id: %s %s",
+					workspace, id));
 		}
 		if (id != null) {
 			return KBWorkspaceIDFactory.create(id);
 		}
 		return KBWorkspaceIDFactory.create(workspace);
+	}
+	
+	private ObjectIdentifier processObjectIdentifier(final ObjectIdentity oi) {
+		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
+		if (oi.getRef() != null) {
+			if (oi.getWorkspace() != null || oi.getWsid() != null 
+					|| oi.getName() != null || oi.getObjid() != null ||
+					oi.getVer() != null) {
+				final List<Object> err = new ArrayList<Object>(4);
+				if (oi.getWorkspace() != null) {
+					err.add(oi.getWorkspace());
+				}
+				if (oi.getWsid() != null) {
+					err.add(oi.getWsid());
+				}
+				if (oi.getName() != null) {
+					err.add(oi.getName());
+				}
+				if (oi.getObjid() != null) {
+					err.add(oi.getObjid());
+				}
+				if (oi.getVer() != null) {
+					err.add(oi.getVer());
+				}
+				throw new IllegalArgumentException(String.format(
+						"Object reference %s provided; cannot provide any other means of identifying an object: %s",
+						oi.getRef(), StringUtils.join(err, " ")));
+			}
+			//TODO process ref
+		}
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				oi.getWorkspace(), oi.getWsid());
+		return processObjectIdentifier(wsi, oi.getName(), oi.getObjid());
 	}
 	
 	private ObjectIdentifier processObjectIdentifier(final WorkspaceIdentifier wsi,
@@ -564,6 +600,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> getObjectMetadata(List<ObjectIdentity> objects) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> returnVal = null;
         //BEGIN get_object_metadata
+		//TODO get_object_metadata
         //END get_object_metadata
         return returnVal;
     }

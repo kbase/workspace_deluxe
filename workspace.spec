@@ -137,7 +137,7 @@ module Workspace {
 			AND 
 			One, and only one, of the numerical id or name of the object.
 				obj_id objid- the numerical ID of the object.
-				obj_name object - name of the object.
+				obj_name name - name of the object.
 			OPTIONALLY
 				obj_ver ver - the version of the object.
 		OR an object reference string:
@@ -146,7 +146,7 @@ module Workspace {
 	typedef structure {
 		ws_name workspace;
 		ws_id wsid;
-		obj_name object;
+		obj_name name;
 		obj_id objid;
 		obj_ver ver;
 		obj_ref ref;
@@ -155,7 +155,7 @@ module Workspace {
 	/* Metadata associated with an object.
 	
 		obj_id objid - the numerical id of the object.
-		obj_name object - the name of the object.
+		obj_name name - the name of the object.
 		type_string type - the type of the object.
 		timestamp create_date - the creation date of the object.
 		obj_ver ver - the version of the object.
@@ -167,7 +167,7 @@ module Workspace {
 			metadata about the object.
 
 	*/
-	typedef tuple<obj_id objid, obj_name object, type_string type,
+	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
 		ws_id wsid, string chsum, int size,
 		mapping<string, UnspecifiedObject> metadata> object_metadata;

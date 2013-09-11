@@ -25,7 +25,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         AND 
  *         One, and only one, of the numerical id or name of the object.
  *                 obj_id objid- the numerical ID of the object.
- *                 obj_name object - name of the object.
+ *                 obj_name name - name of the object.
  *         OPTIONALLY
  *                 obj_ver ver - the version of the object.
  * OR an object reference string:
@@ -38,7 +38,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonPropertyOrder({
     "workspace",
     "wsid",
-    "object",
+    "name",
     "objid",
     "ver",
     "ref"
@@ -49,8 +49,8 @@ public class ObjectIdentity {
     private String workspace;
     @JsonProperty("wsid")
     private Integer wsid;
-    @JsonProperty("object")
-    private String object;
+    @JsonProperty("name")
+    private String name;
     @JsonProperty("objid")
     private Integer objid;
     @JsonProperty("ver")
@@ -89,18 +89,18 @@ public class ObjectIdentity {
         return this;
     }
 
-    @JsonProperty("object")
-    public String getObject() {
-        return object;
+    @JsonProperty("name")
+    public String getName() {
+        return name;
     }
 
-    @JsonProperty("object")
-    public void setObject(String object) {
-        this.object = object;
+    @JsonProperty("name")
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public ObjectIdentity withObject(String object) {
-        this.object = object;
+    public ObjectIdentity withName(String name) {
+        this.name = name;
         return this;
     }
 
