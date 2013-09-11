@@ -163,14 +163,14 @@ module Workspace {
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
-		mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
-			metadata about the object.
+		UnspecifiedObject metadata - arbitrary user-supplied metadata about
+			the object.
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
-		ws_id wsid, string chsum, int size,
-		mapping<string, UnspecifiedObject> metadata> object_metadata;
+		ws_id wsid, string chsum, int size, UnspecifiedObject metadata>
+		object_metadata;
 	
 	/* A provenance action.
 	
@@ -298,14 +298,14 @@ module Workspace {
 	
 		Required parameters:
 		type_id type - the type of the object.
-		mapping<string, UnspecifiedObject> data - the object data.
+		UnspecifiedObject data - the object data.
 		Optional parameters:
 		One of an object name or id. If no name or id is provided the name
 			will be set to the object id as a string, possibly with -\d+
 			appended if the object id already exists as a name.
 		obj_name name - the name of the object.
 		obj_id objid - the id of the object to save over.
-		mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
+		UnspecifiedObject metadata - arbitrary user-supplied
 			metadata for the object, not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
 		type_ver tver - the version of the type. If the version or minor
@@ -316,10 +316,10 @@ module Workspace {
 	*/
 	typedef structure {
 		type_id type;
-		mapping<string, UnspecifiedObject> data;
+		UnspecifiedObject data;
 		obj_name name;
 		obj_id objid;
-		mapping<string, UnspecifiedObject> metadata;
+		UnspecifiedObject metadata;
 		list<ProvenanceAction> provenance;
 		type_ver tver;
 		boolean hidden;
@@ -349,12 +349,12 @@ module Workspace {
 	
 	/* The data and metadata for an object.
 	
-		mapping<String, UnspecifiedObject> data - the object's data.
+		UnspecifiedObject data - the object's data.
 		object_metadata meta - metadata about the object.
 		
 	*/
 	typedef structure {
-		mapping<string, UnspecifiedObject> data;
+		UnspecifiedObject data;
 		object_metadata meta;
 	} ObjectData;
 	

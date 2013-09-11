@@ -1,19 +1,17 @@
 package us.kbase.workspace.workspaces;
 
-import java.util.Map;
-
 public class WorkspaceSaveObject {
 	
 	private final ObjectIdentifier id;
 	private final WorkspaceIdentifier wsid;
-	private final Map<String, Object> data;
+	private final Object data;
 	private final TypeId type;
-	private final Map<String, Object> userMeta;
+	private final Object userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceSaveObject(ObjectIdentifier id, Map<String, Object> data, TypeId type,
-			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
+	public WorkspaceSaveObject(ObjectIdentifier id, Object data, TypeId type,
+			Object userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
@@ -26,8 +24,8 @@ public class WorkspaceSaveObject {
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceSaveObject(WorkspaceIdentifier wsid, Map<String, Object> data, TypeId type,
-			Map<String, Object> userMeta,  Provenance provenance, boolean hidden) {
+	public WorkspaceSaveObject(WorkspaceIdentifier wsid, Object data, TypeId type,
+			Object userMeta,  Provenance provenance, boolean hidden) {
 		if (wsid == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither wsid, data nor type may be null");
 		}
@@ -49,7 +47,7 @@ public class WorkspaceSaveObject {
 	}
 
 	//mutable!
-	public Map<String, Object> getData() {
+	public Object getData() {
 		return data;
 	}
 
@@ -58,7 +56,7 @@ public class WorkspaceSaveObject {
 	}
 
 	//mutable!
-	public Map<String, Object> getUserMeta() {
+	public Object getUserMeta() {
 		return userMeta;
 	}
 

@@ -42,7 +42,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
-import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
@@ -1092,11 +1092,11 @@ public class MongoDatabase implements Database {
 		
 		@BeforeClass
 		public static void setUpClass() throws Exception {
-			Common.destroyAndSetupDB(1, "gridFS", "foo");
-			String host = Common.getHost();
-			String db1 = Common.getDB1();
-			String mUser = Common.getMongoUser();
-			String mPwd = Common.getMongoPwd();
+			WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", "foo");
+			String host = WorkspaceTestCommon.getHost();
+			String db1 = WorkspaceTestCommon.getDB1();
+			String mUser = WorkspaceTestCommon.getMongoUser();
+			String mPwd = WorkspaceTestCommon.getMongoPwd();
 			if (mUser == null || mUser == "") {
 				testdb = new MongoDatabase(host, db1, "foo");
 			} else {

@@ -16,7 +16,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoException;
 
-public class Common {
+public class WorkspaceTestCommon {
 	
 	public static final String DB1 = "test.mongo.db1";
 	public static final String DB2 = "test.mongo.db2";

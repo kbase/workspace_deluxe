@@ -16,7 +16,7 @@ import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
-import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
@@ -28,7 +28,7 @@ public class GridFSBackendTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		gfsb = new GridFSBackend(Common.destroyAndSetupDB(1, "gridFS", null));
+		gfsb = new GridFSBackend(WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null));
 	}
 	
 	@Test

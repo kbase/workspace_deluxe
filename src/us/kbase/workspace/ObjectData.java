@@ -16,7 +16,7 @@ import us.kbase.Tuple10;
  * <p>Original spec-file type: ObjectData</p>
  * <pre>
  * The data and metadata for an object.
- *         mapping<String, UnspecifiedObject> data - the object's data.
+ *         UnspecifiedObject data - the object's data.
  *         object_metadata meta - metadata about the object.
  * </pre>
  * 
@@ -30,37 +30,37 @@ import us.kbase.Tuple10;
 public class ObjectData {
 
     @JsonProperty("data")
-    private Map<String, us.kbase.UObject> data;
+    private us.kbase.UObject data;
     @JsonProperty("meta")
-    private Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, us.kbase.UObject>> meta;
+    private Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
-    public Map<String, us.kbase.UObject> getData() {
+    public us.kbase.UObject getData() {
         return data;
     }
 
     @JsonProperty("data")
-    public void setData(Map<String, us.kbase.UObject> data) {
+    public void setData(us.kbase.UObject data) {
         this.data = data;
     }
 
-    public ObjectData withData(Map<String, us.kbase.UObject> data) {
+    public ObjectData withData(us.kbase.UObject data) {
         this.data = data;
         return this;
     }
 
     @JsonProperty("meta")
-    public Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, us.kbase.UObject>> getMeta() {
+    public Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> getMeta() {
         return meta;
     }
 
     @JsonProperty("meta")
-    public void setMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, us.kbase.UObject>> meta) {
+    public void setMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta) {
         this.meta = meta;
     }
 
-    public ObjectData withMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, us.kbase.UObject>> meta) {
+    public ObjectData withMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta) {
         this.meta = meta;
         return this;
     }

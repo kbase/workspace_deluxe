@@ -302,8 +302,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.save_objects")
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
-        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> returnVal = null;
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> returnVal = null;
         //BEGIN save_objects
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
@@ -325,11 +325,11 @@ public class WorkspaceServer extends JsonServerServlet {
 			final Provenance p = ArgUtils.processProvenance(authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
-				woc.addObject(new WorkspaceSaveObject(wsi, ArgUtils.parseUObj(d.getData()), t,
-						ArgUtils.parseUObj(d.getMetadata()), p, hidden));
+				woc.addObject(new WorkspaceSaveObject(wsi, d.getData().asInstance(), t,
+						d.getMetadata().asInstance(), p, hidden));
 			} else {
-				woc.addObject(new WorkspaceSaveObject(oi, ArgUtils.parseUObj(d.getData()), t,
-						ArgUtils.parseUObj(d.getMetadata()), p, hidden));
+				woc.addObject(new WorkspaceSaveObject(oi, d.getData().asInstance(), t,
+						d.getMetadata().asInstance(), p, hidden));
 			}
 			count++;
 		}
@@ -362,8 +362,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.get_object_metadata")
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> getObjectMetadata(List<ObjectIdentity> objects) throws Exception {
-        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> returnVal = null;
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects) throws Exception {
+        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> returnVal = null;
         //BEGIN get_object_metadata
 		//TODO get_object_metadata
         //END get_object_metadata

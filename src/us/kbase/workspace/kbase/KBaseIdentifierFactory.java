@@ -17,6 +17,9 @@ import us.kbase.workspace.workspaces.WorkspaceType;
 public class KBaseIdentifierFactory {
 	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
+	
+	private static final String NAME_SEP = "/";
+	private static final String ID_SEP = ".";
 	private static final String TYPE_SEP = "\\."; //regex
 	private static final String VER_SEP = "\\."; //regex
 	
@@ -75,6 +78,14 @@ public class KBaseIdentifierFactory {
 				throw new IllegalArgumentException(String.format(
 						"Object reference %s provided; cannot provide any other means of identifying an object: %s",
 						oi.getRef(), StringUtils.join(err, " ")));
+			}
+			final String ref = oi.getRef();
+			if (ref.contains(NAME_SEP)) { //it's a name based id
+				final String[] r = ref.split(NAME_SEP);
+				if (r.length == 2) {
+					return new ObjectIdentifier(
+							new WorkspaceIdentifier(r[0]),r[1]);
+				}
 			}
 			//TODO process ref
 		}

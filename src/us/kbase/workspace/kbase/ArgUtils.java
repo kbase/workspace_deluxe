@@ -76,18 +76,18 @@ public class ArgUtils {
 	}
 	
 	public static List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, UObject>>>
+			Integer, String, Integer, UObject>>
 			objMetaToTuple (List<ObjectMetaData> meta) {
 		
 		//oh the humanity
 		final List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, UObject>>> ret = 
+			Integer, String, Integer, UObject>> ret = 
 			new ArrayList<Tuple10<Integer, String, String, String, Integer,
-			String, Integer, String, Integer, Map<String, UObject>>>();
+			String, Integer, String, Integer, UObject>>();
 		
 		for (ObjectMetaData m: meta) {
 			ret.add(new Tuple10<Integer, String, String, String, Integer,
-					String, Integer, String, Integer, Map<String, UObject>>()
+					String, Integer, String, Integer, UObject>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
@@ -97,7 +97,7 @@ public class ArgUtils {
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())
 					.withE9(m.getSize())
-					.withE10(convertToUObj(m.getUserMetaData())));
+					.withE10(new UObject(m.getUserMetaData())));
 		}
 		return ret;
 	}
@@ -109,25 +109,4 @@ public class ArgUtils {
 		}
 		return token.getUserName();
 	}
-	
-	public static Map<String, Object> parseUObj(Map<String, UObject> map) {
-		Map<String, Object> ret = new HashMap<String, Object>();
-		try {
-			for (String s: map.keySet()) {
-				ret.put(s, map.get(s).asInstance());
-			}
-		} catch (JsonProcessingException jpe) {
-			throw new RuntimeException("Something is very broken", jpe);
-		}
-		return ret;
-	}
-	
-	public static Map<String, UObject> convertToUObj(Map<String, Object> map) {
-		Map<String, UObject> ret = new HashMap<String, UObject>();
-		for (String s: map.keySet()) {
-			ret.put(s, new UObject(map.get(s)));
-		}
-		return ret;
-	}
-
 }

@@ -23,7 +23,7 @@ import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
@@ -51,13 +51,13 @@ public class TestWorkspaces {
 	public static void setUpWorkspaces() throws Exception {
 		String shockuser = System.getProperty("test.user.noemail");
 		String shockpwd = System.getProperty("test.pwd.noemail");
-		Common.destroyAndSetupDB(1, "gridFS", null);
-		Common.destroyAndSetupDB(2, "shock", shockuser);
-		String host = Common.getHost();
-		String mUser = Common.getMongoUser();
-		String mPwd = Common.getMongoPwd();
-		String db1 = Common.getDB1();
-		String db2 = Common.getDB2();
+		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
+		WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
+		String host = WorkspaceTestCommon.getHost();
+		String mUser = WorkspaceTestCommon.getMongoUser();
+		String mPwd = WorkspaceTestCommon.getMongoPwd();
+		String db1 = WorkspaceTestCommon.getDB1();
+		String db2 = WorkspaceTestCommon.getDB2();
 		
 		Database gfs = null;
 		Database shock = null;

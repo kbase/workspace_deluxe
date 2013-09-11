@@ -27,7 +27,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -78,7 +78,7 @@ public class JSONRPCLayerTest {
 		USERNOEMAIL = System.getProperty("test.user.noemail");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
-		Common.destroyAndSetupDB(1, "gridFS", null);
+		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
@@ -86,10 +86,10 @@ public class JSONRPCLayerTest {
 		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", Common.getHost());
-		ws.add("mongodb-database", Common.getDB1());
-		ws.add("mongodb-user", Common.getMongoUser());
-		ws.add("mongodb-pwd", Common.getMongoPwd());
+		ws.add("mongodb-host", WorkspaceTestCommon.getHost());
+		ws.add("mongodb-database", WorkspaceTestCommon.getDB1());
+		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
+		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
 		ws.add("backend-secret", "");
 		ini.store(iniFile);
 		

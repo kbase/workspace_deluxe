@@ -168,11 +168,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>>() {};
+        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
 
@@ -200,11 +200,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objects);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
+        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>>() {};
+        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
     }
 }

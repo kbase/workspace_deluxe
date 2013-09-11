@@ -20,7 +20,7 @@ import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.test.Common;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
@@ -35,7 +35,7 @@ public class ShockBackendTest {
 	public static void setUpClass() throws Exception {
 		String u1 = System.getProperty("test.user1");
 		String p1 = System.getProperty("test.pwd1");
-		final DB mongo = Common.destroyAndSetupDB(1, "shock", u1);
+		final DB mongo = WorkspaceTestCommon.destroyAndSetupDB(1, "shock", u1);
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		sb = new ShockBackend(mongo.getCollection("shockData"), url, u1, p1);
