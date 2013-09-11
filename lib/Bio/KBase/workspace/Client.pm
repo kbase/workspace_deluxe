@@ -52,6 +52,7 @@ sub new
 	url => $url,
     };
 
+    #
     # This module requires authentication.
     #
     # We create an auth token, passing through the arguments that we were (hopefully) given.
@@ -59,12 +60,11 @@ sub new
     {
 	my $token = Bio::KBase::AuthToken->new(@args);
 	
-	if ($token->error_message)
+	if (!$token->error_message)
 	{
-	    die "Authentication failed: " . $token->error_message;
+	    $self->{token} = $token->token;
+	    $self->{client}->{token} = $token->token;
 	}
-	$self->{token} = $token->token;
-	$self->{client}->{token} = $token->token;
     }
 
     my $ua = $self->{client}->ua;	 
@@ -89,21 +89,21 @@ sub new
 =begin html
 
 <pre>
-$params is a CreateWorkspaceParams
-$metadata is a workspace_metadata
+$params is a Workspace.CreateWorkspaceParams
+$metadata is a Workspace.workspace_metadata
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	globalread has a value which is a permission
+	workspace has a value which is a Workspace.ws_name
+	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a ws_id
-	1: (workspace) a ws_name
-	2: (owner) a username
-	3: (moddate) a timestamp
-	4: (user_permission) a permission
-	5: (globalread) a permission
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -114,21 +114,21 @@ timestamp is a string
 
 =begin text
 
-$params is a CreateWorkspaceParams
-$metadata is a workspace_metadata
+$params is a Workspace.CreateWorkspaceParams
+$metadata is a Workspace.workspace_metadata
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	globalread has a value which is a permission
+	workspace has a value which is a Workspace.ws_name
+	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a ws_id
-	1: (workspace) a ws_name
-	2: (owner) a username
-	3: (moddate) a timestamp
-	4: (user_permission) a permission
-	5: (globalread) a permission
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -174,9 +174,8 @@ sub create_workspace
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{error}->{code},
+					       code => $result->content->{code},
 					       method_name => 'create_workspace',
-					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -202,20 +201,20 @@ sub create_workspace
 =begin html
 
 <pre>
-$wsi is a WorkspaceIdentity
-$meta is a workspace_metadata
+$wsi is a Workspace.WorkspaceIdentity
+$meta is a Workspace.workspace_metadata
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a ws_id
-	1: (workspace) a ws_name
-	2: (owner) a username
-	3: (moddate) a timestamp
-	4: (user_permission) a permission
-	5: (globalread) a permission
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
 username is a string
 timestamp is a string
 permission is a string
@@ -226,20 +225,20 @@ permission is a string
 
 =begin text
 
-$wsi is a WorkspaceIdentity
-$meta is a workspace_metadata
+$wsi is a Workspace.WorkspaceIdentity
+$meta is a Workspace.workspace_metadata
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 workspace_metadata is a reference to a list containing 6 items:
-	0: (id) a ws_id
-	1: (workspace) a ws_name
-	2: (owner) a username
-	3: (moddate) a timestamp
-	4: (user_permission) a permission
-	5: (globalread) a permission
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
 username is a string
 timestamp is a string
 permission is a string
@@ -285,9 +284,8 @@ sub get_workspace_metadata
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{error}->{code},
+					       code => $result->content->{code},
 					       method_name => 'get_workspace_metadata',
-					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -313,11 +311,11 @@ sub get_workspace_metadata
 =begin html
 
 <pre>
-$wsi is a WorkspaceIdentity
+$wsi is a Workspace.WorkspaceIdentity
 $description is a string
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 
@@ -327,11 +325,11 @@ ws_id is an int
 
 =begin text
 
-$wsi is a WorkspaceIdentity
+$wsi is a Workspace.WorkspaceIdentity
 $description is a string
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 
@@ -376,9 +374,8 @@ sub get_workspace_description
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{error}->{code},
+					       code => $result->content->{code},
 					       method_name => 'get_workspace_description',
-					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -404,12 +401,12 @@ sub get_workspace_description
 =begin html
 
 <pre>
-$params is a SetPermissionsParams
+$params is a Workspace.SetPermissionsParams
 SetPermissionsParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
-	new_permission has a value which is a permission
-	users has a value which is a reference to a list where each element is a username
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	new_permission has a value which is a Workspace.permission
+	users has a value which is a reference to a list where each element is a Workspace.username
 ws_name is a string
 ws_id is an int
 permission is a string
@@ -421,12 +418,12 @@ username is a string
 
 =begin text
 
-$params is a SetPermissionsParams
+$params is a Workspace.SetPermissionsParams
 SetPermissionsParams is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
-	new_permission has a value which is a permission
-	users has a value which is a reference to a list where each element is a username
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	new_permission has a value which is a Workspace.permission
+	users has a value which is a reference to a list where each element is a Workspace.username
 ws_name is a string
 ws_id is an int
 permission is a string
@@ -473,9 +470,8 @@ sub set_permissions
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{error}->{code},
+					       code => $result->content->{code},
 					       method_name => 'set_permissions',
-					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return;
@@ -501,11 +497,11 @@ sub set_permissions
 =begin html
 
 <pre>
-$wsi is a WorkspaceIdentity
-$perms is a reference to a hash where the key is a username and the value is a permission
+$wsi is a Workspace.WorkspaceIdentity
+$perms is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 username is a string
@@ -517,11 +513,11 @@ permission is a string
 
 =begin text
 
-$wsi is a WorkspaceIdentity
-$perms is a reference to a hash where the key is a username and the value is a permission
+$wsi is a Workspace.WorkspaceIdentity
+$perms is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a ws_name
-	id has a value which is a ws_id
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 username is a string
@@ -568,9 +564,8 @@ sub get_permissions
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{error}->{code},
+					       code => $result->content->{code},
 					       method_name => 'get_permissions',
-					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
@@ -579,6 +574,196 @@ sub get_permissions
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_permissions",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_permissions',
+				       );
+    }
+}
+
+
+
+=head2 save_objects
+
+  $meta = $obj->save_objects($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.SaveObjectsParams
+$meta is a reference to a list where each element is a Workspace.object_metadata
+SaveObjectsParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
+ws_name is a string
+ws_id is an int
+ObjectSaveData is a reference to a hash where the following keys are defined:
+	type has a value which is a Workspace.type_id
+	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	tver has a value which is a Workspace.type_ver
+	hidden has a value which is a Workspace.boolean
+type_id is a string
+obj_name is a string
+obj_id is an int
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is an int
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is an int
+	script_command_line has a value which is a string
+	description has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+timestamp is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	object has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
+type_ver is a string
+boolean is an int
+object_metadata is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (object) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+type_string is a string
+username is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.SaveObjectsParams
+$meta is a reference to a list where each element is a Workspace.object_metadata
+SaveObjectsParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
+ws_name is a string
+ws_id is an int
+ObjectSaveData is a reference to a hash where the following keys are defined:
+	type has a value which is a Workspace.type_id
+	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	tver has a value which is a Workspace.type_ver
+	hidden has a value which is a Workspace.boolean
+type_id is a string
+obj_name is a string
+obj_id is an int
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is an int
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is an int
+	script_command_line has a value which is a string
+	description has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+timestamp is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	object has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
+type_ver is a string
+boolean is an int
+object_metadata is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (object) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+type_string is a string
+username is a string
+
+
+=end text
+
+=item Description
+
+Save objects to the workspace
+
+=back
+
+=cut
+
+sub save_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function save_objects (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to save_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'save_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.save_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'save_objects',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method save_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'save_objects',
 				       );
     }
 }
@@ -596,16 +781,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'get_permissions',
+                method_name => 'save_objects',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method get_permissions",
+            error => "Error invoking method save_objects",
             status_line => $self->{client}->status_line,
-            method_name => 'get_permissions',
+            method_name => 'save_objects',
         );
     }
 }
@@ -834,6 +1019,108 @@ a string
 
 
 
+=head2 type_id
+
+=over 4
+
+
+
+=item Description
+
+A type id.
+References a type via the format [module].[typename] where the module
+is the module name of the typespec containing the type and the typename
+is the name assigned by a typedef statement.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 type_ver
+
+=over 4
+
+
+
+=item Description
+
+A type version.
+Specifies the type version by the format [major].[minor] where 'major'
+is the major (e.g. backward incompatible) version of the type as an
+integer and 'minor' is the minor (e.g. backwards compatible) version
+of the type as an integer.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 type_string
+
+=over 4
+
+
+
+=item Description
+
+A type string.
+Specifies the type and its version in a single string in the format
+[module].[typename]-[major].[minor]. See type_id and type_ver.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 WorkspaceIdentity
 
 =over 4
@@ -844,10 +1131,12 @@ a string
 
 A workspace identifier.
 
-                Select a workspace by one, and only one, of the numerical id or name, where the
+                Select a workspace by one, and only one, of the numerical id or name,
+                        where the
                 name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
-                ws_id - the numerical ID of the workspace.
-                ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - name of the workspace or the workspace ID in KBase
+                        format, e.g. kb|ws.78.
 
 
 =item Definition
@@ -856,8 +1145,8 @@ A workspace identifier.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-id has a value which is a ws_id
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
 
 </pre>
 
@@ -866,8 +1155,8 @@ id has a value which is a ws_id
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-id has a value which is a ws_id
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
 
 
 =end text
@@ -890,7 +1179,8 @@ Meta data associated with a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
-        permission user_permission - permissions for the authenticated user of this workspace.
+        permission user_permission - permissions for the authenticated user of
+                this workspace.
         permission globalread - whether this workspace is globally readable.
 
 
@@ -900,12 +1190,12 @@ Meta data associated with a workspace.
 
 <pre>
 a reference to a list containing 6 items:
-0: (id) a ws_id
-1: (workspace) a ws_name
-2: (owner) a username
-3: (moddate) a timestamp
-4: (user_permission) a permission
-5: (globalread) a permission
+0: (id) a Workspace.ws_id
+1: (workspace) a Workspace.ws_name
+2: (owner) a Workspace.username
+3: (moddate) a Workspace.timestamp
+4: (user_permission) a Workspace.permission
+5: (globalread) a Workspace.permission
 
 </pre>
 
@@ -914,12 +1204,338 @@ a reference to a list containing 6 items:
 =begin text
 
 a reference to a list containing 6 items:
-0: (id) a ws_id
-1: (workspace) a ws_name
-2: (owner) a username
-3: (moddate) a timestamp
-4: (user_permission) a permission
-5: (globalread) a permission
+0: (id) a Workspace.ws_id
+1: (workspace) a Workspace.ws_name
+2: (owner) a Workspace.username
+3: (moddate) a Workspace.timestamp
+4: (user_permission) a Workspace.permission
+5: (globalread) a Workspace.permission
+
+
+=end text
+
+=back
+
+
+
+=head2 obj_id
+
+=over 4
+
+
+
+=item Description
+
+The unique, permanent numerical ID of an object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+an int
+</pre>
+
+=end html
+
+=begin text
+
+an int
+
+=end text
+
+=back
+
+
+
+=head2 obj_name
+
+=over 4
+
+
+
+=item Description
+
+A string used as a name for an object.
+Any string consisting of alphanumeric characters and the characters
+        |._- is acceptable.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 obj_ref
+
+=over 4
+
+
+
+=item Description
+
+A string that uniquely identifies an object in the workspace service.
+
+        There are several ways to uniquely identify an object in one string:
+        "[ws_id].[obj_id].[version]" - for example, "23.567.2" would identify the
+        second version of an object with id 567 in a workspace with id 23.
+        "[ws_name]/[obj_name]/[version]" - for example,
+        "MyFirstWorkspace/MyFirstObject/3" would identify the third version of
+        an object called MyFirstObject in the workspace called MyFirstWorkspace.
+        "kb|ws.[ws_id].obj.[obj_id].ver.[version]" - for example, 
+        "kb|ws.23.obj.567.ver.2" would identify the same object as in the first
+        example.
+        In all cases, if the version number is omitted, the latest version of the
+        object is assumed.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 ObjectIdentity
+
+=over 4
+
+
+
+=item Description
+
+An object identifier.
+
+Select an object by either:
+        One, and only one, of the numerical id or name of the workspace,
+        where the name can also be a KBase ID including the numerical id,
+        e.g. kb|ws.35.
+                ws_id wsid - the numerical ID of the workspace.
+                ws_name workspace - name of the workspace or the workspace ID
+                        in KBase format, e.g. kb|ws.78.
+        AND 
+        One, and only one, of the numerical id or name of the object.
+                obj_id objid- the numerical ID of the object.
+                obj_name object - name of the object.
+OR an object reference string:
+        obj_ref ref - an object reference string.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+wsid has a value which is a Workspace.ws_id
+object has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+ref has a value which is a Workspace.obj_ref
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+wsid has a value which is a Workspace.ws_id
+object has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+ref has a value which is a Workspace.obj_ref
+
+
+=end text
+
+=back
+
+
+
+=head2 object_metadata
+
+=over 4
+
+
+
+=item Description
+
+Metadata associated with an object.
+
+        obj_id objid - the numerical id of the object.
+        obj_name object - the name of the object.
+        type_string type - the type of the object.
+        timestamp create_date - the creation date of the object.
+        int version - the version of the object.
+        username created_by - the user that created the object.
+        ws_id wsid - the workspace containing the object.
+        string chsum - the md5 checksum of the object.
+        int size - the size of the object in bytes.
+        mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
+                metadata about the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a list containing 10 items:
+0: (objid) a Workspace.obj_id
+1: (object) a Workspace.obj_name
+2: (type) a Workspace.type_string
+3: (create_date) a Workspace.timestamp
+4: (version) an int
+5: (created_by) a Workspace.username
+6: (wsid) a Workspace.ws_id
+7: (chsum) a string
+8: (size) an int
+9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a list containing 10 items:
+0: (objid) a Workspace.obj_id
+1: (object) a Workspace.obj_name
+2: (type) a Workspace.type_string
+3: (create_date) a Workspace.timestamp
+4: (version) an int
+5: (created_by) a Workspace.username
+6: (wsid) a Workspace.ws_id
+7: (chsum) a string
+8: (size) an int
+9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+
+
+=end text
+
+=back
+
+
+
+=head2 ProvenanceAction
+
+=over 4
+
+
+
+=item Description
+
+A provenance action.
+
+        A provenance action is an action taken while transforming one data
+        object to another. There may be several provenance actions taken in
+        series. An action is typically running a script, running an api
+        command, etc. All of the following are optional, but more information
+        provided equates to better data provenance.
+        
+        timestamp time - the time the action was started.
+        string service - the name of the service that performed this action.
+        int service_ver - the version of the service that performed this action.
+        string method - the method of the service that performed this action.
+        list<UnspecifiedObject> method_params - the parameters of the method
+                that performed this action. If the object is a workspace object,
+                put the object id in the input_ws_object list and refer to it here
+                by the %N syntax described below.
+        string script - the name of the script that performed this action.
+        int script_ver - the version of the script that performed this action.
+        string script_command_line - the command line provided to the script
+                that performed this action. If workspace objects were provided in
+                the command line, put the object id in the input_ws_object list
+                and refer to it here by the %N syntax described below.
+        list<ObjectIdentifier> input_ws_objects - the workspace objects that
+                were used as input to this action. Refer to these objects
+                elsewhere in the action via the syntax %N, where N is the index
+                of the object in this list.
+        list<string> intermediate_incoming - if the previous action produced 
+                output that 1) was not stored in a referrable way, and 2) is
+                used as input for this action, provide it with an arbitrary and
+                unique ID here, in the order of the input arguments to this action.
+                These IDs can be used in the method_params argument.
+        list<string> intermediate_outgoing - if this action produced output
+                that 1) was not stored in a referrable way, and 2) is
+                used as input for the next action, provide it with an arbitrary and
+                unique ID here, in the order of the output values from this action.
+                These IDs can be used in the intermediate_incoming argument in the
+                next action.
+        string description - a free text description of this action, limited to
+                1000 characters. Longer descriptions will be silently truncated.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+time has a value which is a Workspace.timestamp
+service has a value which is a string
+service_ver has a value which is an int
+method has a value which is a string
+method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+script has a value which is a string
+script_ver has a value which is an int
+script_command_line has a value which is a string
+description has a value which is a string
+input_ws_objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+intermediate_incoming has a value which is a reference to a list where each element is a string
+intermediate_outgoing has a value which is a reference to a list where each element is a string
+description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+time has a value which is a Workspace.timestamp
+service has a value which is a string
+service_ver has a value which is an int
+method has a value which is a string
+method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+script has a value which is a string
+script_ver has a value which is an int
+script_command_line has a value which is a string
+description has a value which is a string
+input_ws_objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+intermediate_incoming has a value which is a reference to a list where each element is a string
+intermediate_outgoing has a value which is a reference to a list where each element is a string
+description has a value which is a string
 
 
 =end text
@@ -938,11 +1554,14 @@ a reference to a list containing 6 items:
 
 Input parameters for the "create_workspace" function.
 
-        Required:
+        Required arguments:
         ws_name workspace - name of the workspace to be created.
-        Optional:
-        permission globalread - 'r' to set workspace globally readable, default 'n'.
-        string description - A free-text description of the workspace, 1000 characters max. Longer strings will be mercilessly and brutally truncated.
+        Optional arguments:
+        permission globalread - 'r' to set workspace globally readable,
+                default 'n'.
+        string description - A free-text description of the workspace, 1000
+                characters max. Longer strings will be mercilessly and brutally
+                        truncated.
 
 
 =item Definition
@@ -951,8 +1570,8 @@ Input parameters for the "create_workspace" function.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-globalread has a value which is a permission
+workspace has a value which is a Workspace.ws_name
+globalread has a value which is a Workspace.permission
 description has a value which is a string
 
 </pre>
@@ -962,8 +1581,8 @@ description has a value which is a string
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-globalread has a value which is a permission
+workspace has a value which is a Workspace.ws_name
+globalread has a value which is a Workspace.permission
 description has a value which is a string
 
 
@@ -985,7 +1604,8 @@ Input parameters for the "set_permissions" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase format, e.g. kb|ws.78.
+        ws_name workspace - name of the workspace or the workspace ID in KBase
+                format, e.g. kb|ws.78.
         Required arguments:
         permission new_permission - the permission to assign to the users.
         list<username> users - the users whose permissions will be altered.
@@ -997,10 +1617,10 @@ Input parameters for the "set_permissions" function.
 
 <pre>
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-id has a value which is a ws_id
-new_permission has a value which is a permission
-users has a value which is a reference to a list where each element is a username
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+new_permission has a value which is a Workspace.permission
+users has a value which is a reference to a list where each element is a Workspace.username
 
 </pre>
 
@@ -1009,10 +1629,122 @@ users has a value which is a reference to a list where each element is a usernam
 =begin text
 
 a reference to a hash where the following keys are defined:
-workspace has a value which is a ws_name
-id has a value which is a ws_id
-new_permission has a value which is a permission
-users has a value which is a reference to a list where each element is a username
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+new_permission has a value which is a Workspace.permission
+users has a value which is a reference to a list where each element is a Workspace.username
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectSaveData
+
+=over 4
+
+
+
+=item Description
+
+An object and associated data required for saving.
+
+        Required parameters:
+        type_id type - the type of the object.
+        mapping<string, UnspecifiedObject> data - the object data.
+        Optional parameters:
+        One of an object name or id. If no name or id is provided the name
+                will be set to the object id as a string, possibly with -\d+
+                appended if the object id already exists as a name.
+        obj_name name - the name of the object.
+        obj_id objid - the id of the object to save over.
+        mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
+                metadata for the object, not to exceed 16kb.
+        list<ProvenanceAction> provenance - provenance data for the object.
+        type_ver tver - the version of the type. If the version or minor
+                version is not provided the latest version will be assumed.
+        boolean hidden - true if this object should not be listed when listing
+                workspace objects.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+type has a value which is a Workspace.type_id
+data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+name has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+tver has a value which is a Workspace.type_ver
+hidden has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+type has a value which is a Workspace.type_id
+data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+name has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+tver has a value which is a Workspace.type_ver
+hidden has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 SaveObjectsParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "save_objects" function.
+
+        One, and only one, of the following is required:
+        ws_id id - the numerical ID of the workspace.
+        ws_name workspace - name of the workspace or the workspace ID in KBase
+                format, e.g. kb|ws.78.
+        Required arguments:
+        list<ObjectSaveData> objects - the objects to save.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
 
 
 =end text

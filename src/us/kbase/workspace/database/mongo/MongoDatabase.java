@@ -523,6 +523,8 @@ public class MongoDatabase implements Database {
 		return queryPermissions(wsi);
 	}
 
+	//TODO get rid of globalread in workspace doc
+	
 	@Override
 	public WorkspaceMetaData getWorkspaceMetadata(String user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
@@ -750,7 +752,7 @@ public class MongoDatabase implements Database {
 		dbo.put("version", 0);
 		dbo.put("name", newName);
 		dbo.put("deleted", null);
-		dbo.put("hidden", false);
+		dbo.put("hidden", false); //TODO hidden, also set hidden when not creating pointer from scratch
 		dbo.put("versions", new ArrayList<Object>());
 		try {
 			//maybe could speed things up with batch inserts but dealing with

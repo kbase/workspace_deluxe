@@ -13,6 +13,7 @@ import us.kbase.auth.AuthToken;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,8 +70,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	
-	private static final String TYPE_SEP = ".";
-	private static final String VER_SEP = ".";
+	private static final String TYPE_SEP = "\\."; //regex
+	private static final String VER_SEP = "\\."; //regex
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();
@@ -233,10 +234,31 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withE6(PERM_TO_API.get(meta.isGloballyReadable()));
 	}
 	
-	private List<Tuple10<Integer, String, String, String, String, Integer, String, Integer, String, Map<String,UObject>>> objMetaToTuple (
-			List<ObjectMetaData> meta) {
-		//TODO objmeta to tuple
-		return null;
+	private List<Tuple10<Integer, String, String, String, Integer, String,
+			Integer, String, Integer, Map<String, Object>>>
+			objMetaToTuple (List<ObjectMetaData> meta) {
+		
+		//oh the humanity
+		final List<Tuple10<Integer, String, String, String, Integer, String,
+			Integer, String, Integer, Map<String, Object>>> ret = 
+			new ArrayList<Tuple10<Integer, String, String, String, Integer,
+			String, Integer, String, Integer, Map<String, Object>>>();
+		
+		for (ObjectMetaData m: meta) {
+			ret.add(new Tuple10<Integer, String, String, String, Integer,
+					String, Integer, String, Integer, Map<String, Object>>()
+					.withE1(m.getObjectId())
+					.withE2(m.getObjectName())
+					.withE3(m.getTypeString())
+					.withE4(formatDate(m.getCreatedDate()))
+					.withE5(m.getVersion())
+					.withE6(m.getCreator())
+					.withE7(m.getWorkspaceId())
+					.withE8(m.getCheckSum())
+					.withE9(m.getSize())
+					.withE10(m.getUserMetaData()));
+		}
+		return ret;
 	}
 	
 	private String getUserName(AuthToken token) {
@@ -246,10 +268,18 @@ public class WorkspaceServer extends JsonServerServlet {
 		return token.getUserName();
 	}
 	
-	private Map<String, Object> removeUObj(Map<String, UObject> map) {
-		Map<String, Object> ret = new HashMap<String, Object>();
+//	private Map<String, Object> removeUObj(Map<String, UObject> map) {
+//		Map<String, Object> ret = new HashMap<String, Object>();
+//		for (String s: map.keySet()) {
+//			ret.put(s, map.get(s).getUserObject());
+//		}
+//		return ret;
+//	}
+	
+	private Map<String, UObject> addUObj(Map<String, Object> map) {
+		Map<String, UObject> ret = new HashMap<String, UObject>();
 		for (String s: map.keySet()) {
-			ret.put(s, map.get(s).getUserObject());
+			ret.put(s, new UObject(map.get(s)));
 		}
 		return ret;
 	}
@@ -441,8 +471,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.save_objects")
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
-        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,UObject>>> returnVal = null;
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,Object>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,Object>>> returnVal = null;
         //BEGIN save_objects
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
 		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
@@ -460,17 +490,24 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			final TypeId t = processTypeId(d.getType(), d.getTver(), errprefix);
 			final Provenance p = processProvenance(authPart.getUserName(), d.getProvenance());
+			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
-				woc.addObject(new WorkspaceSaveObject(wsi, removeUObj(d.getData()), t,
-						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+//				woc.addObject(new WorkspaceSaveObject(wsi, removeUObj(d.getData()), t,
+//						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+//			} else {
+//				woc.addObject(new WorkspaceSaveObject(oi, removeUObj(d.getData()), t,
+//						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+//			}
+				woc.addObject(new WorkspaceSaveObject(wsi, d.getData(), t,
+						d.getMetadata(), p, hidden));
 			} else {
-				woc.addObject(new WorkspaceSaveObject(oi, removeUObj(d.getData()), t,
-						removeUObj(d.getMetadata()), p, d.getHidden() != 0));
+				woc.addObject(new WorkspaceSaveObject(oi, d.getData(), t,
+						d.getMetadata(), p, hidden));
 			}
 			count++;
 		}
 		
-		
+		//TODO error if additional args
 		List<ObjectMetaData> meta = ws.saveObjects(authPart.getUserName(), woc); 
 		returnVal = objMetaToTuple(meta);
         //END save_objects
