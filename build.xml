@@ -155,7 +155,7 @@
       <test name="us.kbase.workspace.database.mongo.test.ShockBackendTest"/>
       <test name="us.kbase.workspace.database.mongo.test.GridFSBackendTest"/>
       <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
-      <test name="us.kbase.workspace.test.JSONRPCLayerTest"/>
+      <test name="us.kbase.workspace.kbase.test.JSONRPCLayerTest"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>

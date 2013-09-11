@@ -41,7 +41,6 @@ import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
-import us.kbase.workspace.workspaces.WorkspaceType;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
 
@@ -332,12 +331,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				woc.addObject(new WorkspaceSaveObject(oi, ArgUtils.parseUObj(d.getData()), t,
 						ArgUtils.parseUObj(d.getMetadata()), p, hidden));
 			}
-//				woc.addObject(new WorkspaceSaveObject(wsi, d.getData(), t,
-//						d.getMetadata(), p, hidden));
-//			} else {
-//				woc.addObject(new WorkspaceSaveObject(oi, d.getData(), t,
-//						d.getMetadata(), p, hidden));
-//			}
 			count++;
 		}
 		

@@ -1,4 +1,4 @@
-package us.kbase.workspace.test;
+package us.kbase.workspace.kbase.test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -27,6 +27,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.test.Common;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between

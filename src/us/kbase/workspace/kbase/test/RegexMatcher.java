@@ -1,4 +1,4 @@
-package us.kbase.workspace.test;
+package us.kbase.workspace.kbase.test;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
