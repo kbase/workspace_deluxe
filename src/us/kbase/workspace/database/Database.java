@@ -27,6 +27,10 @@ public interface Database {
 	
 	public Permission getPermission(String user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+	
+	public Map<WorkspaceIdentifier, Permission> getPermissions(String user,
+			List<WorkspaceIdentifier> wsis)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	Map<String, Permission> getUserAndGlobalPermission(String user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,

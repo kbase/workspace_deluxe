@@ -1,5 +1,6 @@
 package us.kbase.workspace;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import us.kbase.JsonServerMethod;
@@ -359,6 +360,11 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
+		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
+		for (ObjectIdentity oi: objects) {
+			loi.add(processObjectIdentifier(oi));
+		}
+		ws.getObjects(loi);
 		//TODO get_objects
         //END get_objects
         return returnVal;

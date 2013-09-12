@@ -100,6 +100,11 @@ public class Workspaces {
 		return db.saveObjects(user, objects);
 	}
 	
+	public void getObjects(List<ObjectIdentifier> loi) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	public static void main(String[] args) throws Exception {
 		Database db = new MongoDatabase("localhost", "ws_tester_db1", "foo");
 		Workspaces w = new Workspaces(db);
@@ -127,4 +132,5 @@ public class Workspaces {
 		System.out.println("\n***** results****");
 		System.out.println(objmeta);
 	}
+
 }

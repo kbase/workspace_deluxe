@@ -500,6 +500,14 @@ public class MongoDatabase implements Database {
 	}
 	
 	@Override
+	public Map<WorkspaceIdentifier, Permission> getPermissions(String user,
+			List<WorkspaceIdentifier> wsis) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public Map<String, Permission> getUserAndGlobalPermission(
 			String user, WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
@@ -1129,5 +1137,4 @@ public class MongoDatabase implements Database {
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
 		}
 	}
-	
 }
