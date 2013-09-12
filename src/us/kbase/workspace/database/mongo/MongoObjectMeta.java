@@ -14,12 +14,11 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String creator;
 	final private int workspaceId;
 	final private String chksum;
-	final private Object userMeta;
 	final private int size;
 	
 	public MongoObjectMeta(int id, String name, String typeString, Date createdDate,
 			int version, String creator, int workspaceid, String chksum,
-			Object userMeta, int size) {
+			int size) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
@@ -29,7 +28,6 @@ public class MongoObjectMeta implements ObjectMetaData {
 		this.creator = creator;
 		this.workspaceId = workspaceid;
 		this.chksum = chksum;
-		this.userMeta = userMeta;
 		this.size = size;
 		
 	}
@@ -74,11 +72,6 @@ public class MongoObjectMeta implements ObjectMetaData {
 		return chksum;
 	}
 	
-	//meta is mutable
-	@Override
-	public Object getUserMetaData() {
-		return userMeta;
-	}
 	
 	@Override
 	public int getSize() {
@@ -90,8 +83,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 		return "MongoObjectMeta [id=" + id + ", name=" + name + ", type="
 				+ type + ", createdDate=" + createdDate + ", version="
 				+ version + ", creator=" + creator + ", workspaceId="
-				+ workspaceId + ", chksum=" + chksum + ", userMeta=" + userMeta
-				+ "]";
+				+ workspaceId + ", chksum=" + chksum + "]";
 	}
 
 }

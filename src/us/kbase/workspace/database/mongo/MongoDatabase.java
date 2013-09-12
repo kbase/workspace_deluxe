@@ -672,7 +672,7 @@ public class MongoDatabase implements Database {
 		}
 		return new MongoObjectMeta(objectid, pkg.name,
 				pkg.td.getType().getTypeString(), created, ver, user, wsid,
-				pkg.td.getChksum(), pkg.wo.getUserMeta(), pkg.td.getSize());
+				pkg.td.getChksum(), pkg.td.getSize());
 	}
 	
 	//TODO make all projections not include _id unless specified

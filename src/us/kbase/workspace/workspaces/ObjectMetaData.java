@@ -13,5 +13,4 @@ public interface ObjectMetaData {
 	public String getCreator();
 	public int getWorkspaceId();
 	public String getCheckSum();
-	public Object getUserMetaData();
 }
