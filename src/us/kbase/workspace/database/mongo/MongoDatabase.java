@@ -83,7 +83,6 @@ public class MongoDatabase implements Database {
 	private static final String WORKSPACE_PTRS = "workspacePointers";
 	private static final String SHOCK_COLLECTION = "shockData";
 	private static final int MAX_USER_META_SIZE = 16000;
-	//TODO this needs to be immutable - set in set up script
 	private static final User allUsers = new AllUsers('*');
 	
 	private static MongoClient mongoClient = null;
@@ -311,7 +310,6 @@ public class MongoDatabase implements Database {
 		final DBObject ws = new BasicDBObject();
 		ws.put("owner", user.getUser());
 		ws.put("id", count);
-		ws.put("globalread", globalRead);
 		Date moddate = new Date();
 		ws.put("moddate", moddate);
 		ws.put("name", wsname);
@@ -501,7 +499,34 @@ public class MongoDatabase implements Database {
 		if (!verify && wsi.getId() != null) {
 			return wsi.getId();
 		}
-		return (int) queryWorkspace(wsi, PROJ_ID).get("id");
+		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
+		wsiset.add(wsi);
+		return getWorkspaceIDs(wsiset, verify).get(wsi);
+	}
+	
+	private Map<WorkspaceIdentifier, Integer> getWorkspaceIDs(
+			final Set<WorkspaceIdentifier> wsis, final boolean verify)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+		Set<WorkspaceIdentifier> query = new HashSet<WorkspaceIdentifier>();
+		Map<WorkspaceIdentifier, Integer> ret =
+				new HashMap<WorkspaceIdentifier, Integer>();
+		for (WorkspaceIdentifier wsi: wsis) {
+			if (!verify && wsi.getId() != null) {
+				ret.put(wsi, wsi.getId());
+			} else {
+				query.add(wsi);
+			}
+			
+		}
+		if (query.isEmpty()) {
+			return ret;
+		}
+		Map<WorkspaceIdentifier, Map<String, Object>> res =
+				queryWorkspacesByIdentifier(query, PROJ_ID);
+		for (WorkspaceIdentifier wsi: res.keySet()) {
+			ret.put(wsi, (Integer) res.get(wsi).get("id"));
+		}
+		return ret;
 	}
 
 	private WorkspaceUser getOwner(final int wsid) throws NoSuchWorkspaceException,
@@ -676,8 +701,6 @@ public class MongoDatabase implements Database {
 		return queryPermissions(wsi);
 	}
 
-	//TODO get rid of globalread in workspace doc
-	
 	private static final Set<String> PROJ_ID_NAME_OWNER_MODDATE = 
 			newHashSet("id", "name", "owner", "moddate");
 	
@@ -805,7 +828,7 @@ public class MongoDatabase implements Database {
 		final Date created = new Date();
 		pointer.put("createDate", created);
 		pointer.put("reffedBy", new ArrayList<Object>()); //TODO this might be a really bad idea
-		pointer.put("objectId", null); //TODO add objectID
+		pointer.put("provenance", null); //TODO add objectID
 		pointer.put("type", pkg.td.getType().getTypeString());
 		pointer.put("size", pkg.td.getSize());
 		pointer.put("revert", null);
@@ -941,17 +964,7 @@ public class MongoDatabase implements Database {
 		
 		public WorkspaceSaveObject wo;
 		public String name;
-//		public String json;
-//		public Map<String, Object> subdata = null;
-//		public AbsoluteTypeId type;
 		public TypeData td;
-		
-//		@Override
-//		public String toString() {
-//			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", json="
-//					+ json +  ", subdata=" + subdata
-//					+ ", type=" + type + ", td=" + td + "]";
-//		}
 		
 		@Override
 		public String toString() {
