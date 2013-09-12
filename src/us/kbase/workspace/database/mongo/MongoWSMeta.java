@@ -4,17 +4,18 @@ import java.util.Date;
 
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 
 public class MongoWSMeta implements WorkspaceMetaData {
 	
 	final private int id;
 	final private String name;
-	final private String owner;
+	final private WorkspaceUser owner;
 	final private Date modDate;
 	final private Permission userPermission;
 	final private boolean globalRead;
 	
-	public MongoWSMeta(int id, String name, String owner, Date modDate,
+	public MongoWSMeta(int id, String name, WorkspaceUser owner, Date modDate,
 			Permission userPermission, boolean globalRead) {
 		this.id = id;
 		this.name = name;
@@ -36,7 +37,7 @@ public class MongoWSMeta implements WorkspaceMetaData {
 	}
 
 	@Override
-	public String getOwner() {
+	public WorkspaceUser getOwner() {
 		return owner;
 	}
 

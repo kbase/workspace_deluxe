@@ -1,11 +1,11 @@
 package us.kbase.workspace.workspaces;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -16,7 +16,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspaces {
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
-	private static final String ALL_USERS = "*";
 	
 	private final Database db;
 	
@@ -25,21 +24,21 @@ public class Workspaces {
 			throw new NullPointerException("db");
 		}
 		this.db = db;
-		db.setAllUsersSymbol(ALL_USERS);
 	}
 	
-	private void checkPerms(String user, WorkspaceIdentifier wsi,
+	private void checkPerms(WorkspaceUser user, WorkspaceIdentifier wsi,
 			Permission perm, String error) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+			WorkspaceCommunicationException, WorkspaceAuthorizationException,
+			CorruptWorkspaceDBException {
 		if(perm.compareTo(db.getPermission(user, wsi)) > 0) {
 			final String err = user == null ? "Anonymous users may not %s workspace %s" :
-				"User " + user + " may not %s workspace %s";
+				"User " + user.getUser() + " may not %s workspace %s";
 			throw new WorkspaceAuthorizationException(String.format(
 					err, error, wsi.getIdentifierString()));
 		}
 	}
 	
-	public WorkspaceMetaData createWorkspace(String user, String wsname,
+	public WorkspaceMetaData createWorkspace(WorkspaceUser user, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
@@ -49,17 +48,17 @@ public class Workspaces {
 		return db.createWorkspace(user, wsname, globalread, description);
 	}
 	
-	public String getWorkspaceDescription(String user, WorkspaceIdentifier wsi)
+	public String getWorkspaceDescription(WorkspaceUser user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceAuthorizationException,
-			WorkspaceCommunicationException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		checkPerms(user, wsi, Permission.READ, "read");
 		return db.getWorkspaceDescription(wsi);
 	}
 
-	public void setPermissions(String user, WorkspaceIdentifier wsi,
-			List<String> users, Permission permission) throws
+	public void setPermissions(WorkspaceUser user, WorkspaceIdentifier wsi,
+			List<WorkspaceUser> users, Permission permission) throws
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
-			WorkspaceCommunicationException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
@@ -67,22 +66,23 @@ public class Workspaces {
 		db.setPermissions(wsi, users, permission);
 	}
 
-	public Map<String, Permission> getPermissions(String user,
+	public Map<User, Permission> getPermissions(WorkspaceUser user,
 				WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-				WorkspaceCommunicationException {
+				WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (user == null) {
 			throw new NullPointerException("user");
 		}
-		Map<String, Permission> perms = db.getUserAndGlobalPermission(user, wsi);
+		Map<User, Permission> perms = db.getUserAndGlobalPermission(user, wsi);
 		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
 			return perms;
 		}
 		return db.getAllPermissions(wsi);
 	}
 
-	public WorkspaceMetaData getWorkspaceMetaData(String user,
+	public WorkspaceMetaData getWorkspaceMetaData(WorkspaceUser user,
 				WorkspaceIdentifier wsi) throws WorkspaceAuthorizationException,
-				NoSuchWorkspaceException, WorkspaceCommunicationException {
+				NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
 		checkPerms(user, wsi, Permission.READ, "read");
 		return db.getWorkspaceMetadata(user, wsi);
 	}
@@ -91,16 +91,16 @@ public class Workspaces {
 		return db.getBackendType();
 	}
 	
-	public List<ObjectMetaData> saveObjects(String user,
+	public List<ObjectMetaData> saveObjects(WorkspaceUser user,
 			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
-			NoSuchObjectException {
+			NoSuchObjectException, CorruptWorkspaceDBException {
 		checkPerms(user, objects.getWorkspaceIdentifier(), Permission.WRITE,
 				"write to");
 		return db.saveObjects(user, objects);
 	}
 	
-	public void getObjects(List<ObjectIdentifier> loi) {
+	public void getObjects(WorkspaceUser user, List<ObjectIdentifier> loi) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -128,7 +128,7 @@ public class Workspaces {
 		woc.addObject(new WorkspaceSaveObject(ObjectIdentifier.parseObjectReference("permspriv/29-2"), data, t, meta, p, false));
 //		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
 		woc.addObject(new WorkspaceSaveObject(new WorkspaceIdentifier("permspriv"), data, t, meta, p, false));
-		List<ObjectMetaData> objmeta = w.saveObjects("kbasetest2", woc);
+		List<ObjectMetaData> objmeta = w.saveObjects(new WorkspaceUser("kbasetest2"), woc);
 		System.out.println("\n***** results****");
 		System.out.println(objmeta);
 	}

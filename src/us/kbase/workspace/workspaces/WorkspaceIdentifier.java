@@ -20,9 +20,9 @@ public class WorkspaceIdentifier {
 		this.wsname = wsname;
 	}
 	
-	public WorkspaceIdentifier(String wsname, String user) {
-		if (user == null || user.length() == 0) {
-			throw new IllegalArgumentException("user cannot be null and must have at least one character");
+	public WorkspaceIdentifier(String wsname, WorkspaceUser user) {
+		if (user == null) {
+			throw new IllegalArgumentException("user cannot be null");
 		}
 		checkWorkspaceName(wsname, user);
 		this.id = null;
@@ -41,7 +41,7 @@ public class WorkspaceIdentifier {
 		checkWorkspaceName(name, null);
 	}
 
-	public static void checkWorkspaceName(String name, String user) {
+	public static void checkWorkspaceName(String name, WorkspaceUser user) {
 		if (name == null || name.length() == 0) {
 			throw new IllegalArgumentException("A workspace name cannot be null and must have at least one character");
 		}
@@ -60,7 +60,7 @@ public class WorkspaceIdentifier {
 				throw new IllegalArgumentException(String.format(
 						"User name missing from %s", name));
 			}
-			if (user != null && !user_ws[0].equals(user)){
+			if (user != null && !user_ws[0].equals(user.getUser())){
 				throw new IllegalArgumentException(String.format(
 						"Workspace name %s must only contain the user name %s prior to the %s delimiter",
 						name, user, WS_NAME_DELIMITER));
@@ -124,9 +124,5 @@ public class WorkspaceIdentifier {
 		}
 		return "" + getId();
 		
-	}
-
-	public static void main(String[] args) {
-		System.out.println(new WorkspaceIdentifier("a:b", "a"));
 	}
 }

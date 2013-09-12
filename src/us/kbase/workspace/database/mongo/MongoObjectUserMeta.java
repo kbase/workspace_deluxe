@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 
 import us.kbase.workspace.workspaces.ObjectUserMetaData;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 
 public class MongoObjectUserMeta extends MongoObjectMeta implements
 		ObjectUserMetaData {
@@ -10,7 +11,7 @@ public class MongoObjectUserMeta extends MongoObjectMeta implements
 	final private Object userMeta;
 	
 	public MongoObjectUserMeta(int id, String name, String typeString, Date createdDate,
-			int version, String creator, int workspaceid, String chksum,
+			int version, WorkspaceUser creator, int workspaceid, String chksum,
 			int size, Object userMeta) {
 		super(id, name, typeString, createdDate, version, creator, workspaceid,
 				chksum, size);

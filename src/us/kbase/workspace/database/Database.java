@@ -3,12 +3,15 @@ package us.kbase.workspace.database;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.workspaces.User;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
@@ -17,40 +20,38 @@ public interface Database {
 
 	public String getBackendType();
 
-	public WorkspaceMetaData createWorkspace(String owner, String wsname,
+	public WorkspaceMetaData createWorkspace(WorkspaceUser owner, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException;
 	
-	public void setPermissions(WorkspaceIdentifier wsi, List<String> users,
+	public void setPermissions(WorkspaceIdentifier wsi, List<WorkspaceUser> users,
 			Permission perm) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException;
 	
-	public Permission getPermission(String user, WorkspaceIdentifier wsi)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+	public Permission getPermission(WorkspaceUser user, WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException;
 	
-	public Map<WorkspaceIdentifier, Permission> getPermissions(String user,
+	public Map<WorkspaceIdentifier, Permission> getPermissions(WorkspaceUser user,
 			List<WorkspaceIdentifier> wsis)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
-	Map<String, Permission> getUserAndGlobalPermission(String user,
+	public Map<User, Permission> getUserAndGlobalPermission(WorkspaceUser user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public Map<String, Permission> getAllPermissions(
+	public Map<User, Permission> getAllPermissions(
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public WorkspaceMetaData getWorkspaceMetadata(String user,
+	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceUser user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public String getWorkspaceDescription(WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
-	public List<ObjectMetaData> saveObjects(String user,
+	public List<ObjectMetaData> saveObjects(WorkspaceUser user,
 			WorkspaceObjectCollection objects) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException, NoSuchObjectException;
-
-	public void setAllUsersSymbol(String allUsers);
-
 }

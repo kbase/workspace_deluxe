@@ -19,6 +19,7 @@ import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.ObjectUserMetaData;
 import us.kbase.workspace.workspaces.Provenance;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 public class ArgUtils {
@@ -68,7 +69,7 @@ public class ArgUtils {
 		return new Tuple6<Integer, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())
-				.withE3(meta.getOwner())
+				.withE3(meta.getOwner().getUser())
 				.withE4(formatDate(meta.getModDate()))
 				.withE5(translatePermission(meta.getUserPermission())) 
 				.withE6(translatePermission(meta.isGloballyReadable()));
@@ -92,7 +93,7 @@ public class ArgUtils {
 					.withE3(m.getTypeString())
 					.withE4(formatDate(m.getCreatedDate()))
 					.withE5(m.getVersion())
-					.withE6(m.getCreator())
+					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())
 					.withE9(m.getSize()));
@@ -118,7 +119,7 @@ public class ArgUtils {
 					.withE3(m.getTypeString())
 					.withE4(formatDate(m.getCreatedDate()))
 					.withE5(m.getVersion())
-					.withE6(m.getCreator())
+					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())
 					.withE9(m.getSize())
@@ -128,10 +129,10 @@ public class ArgUtils {
 	}
 	
 	
-	public static String getUserName(AuthToken token) {
+	public static WorkspaceUser getUser(AuthToken token) {
 		if (token == null) {
 			return null;
 		}
-		return token.getUserName();
+		return new WorkspaceUser(token.getUserName());
 	}
 }

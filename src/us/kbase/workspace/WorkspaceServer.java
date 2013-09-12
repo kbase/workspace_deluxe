@@ -13,6 +13,7 @@ import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
 import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -38,6 +39,8 @@ import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
+import us.kbase.workspace.workspaces.User;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
 import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
@@ -196,7 +199,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			p = translatePermission(params.getGlobalread());
 		}
-		final WorkspaceMetaData meta = ws.createWorkspace(authPart.getUserName(), params.getWorkspace(),
+		final WorkspaceMetaData meta = ws.createWorkspace(getUser(authPart), params.getWorkspace(),
 				p.equals(Permission.READ), params.getDescription());
 		returnVal = ArgUtils.wsMetaToTuple(meta);
         //END create_workspace
@@ -217,7 +220,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_metadata
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(ArgUtils.getUserName(authPart), wksp);
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUser(authPart), wksp);
 		returnVal = ArgUtils.wsMetaToTuple(meta);
         //END get_workspace_metadata
         return returnVal;
@@ -236,7 +239,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_description
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = ws.getWorkspaceDescription(ArgUtils.getUserName(authPart), wksp);
+		returnVal = ws.getWorkspaceDescription(getUser(authPart), wksp);
         //END get_workspace_description
         return returnVal;
     }
@@ -260,6 +263,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
+		final List<WorkspaceUser> users = new ArrayList<WorkspaceUser>();
+		for (String u: params.getUsers()) {
+			users.add(new WorkspaceUser(u));
+		}
 		final Map<String, Boolean> userok = AuthService.isValidUserName(
 				params.getUsers(), authPart);
 		for (String user: userok.keySet()) {
@@ -268,7 +275,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						"User %s is not a valid user", user));
 			}
 		}
-		ws.setPermissions(authPart.getUserName(), wsi, params.getUsers(),
+		ws.setPermissions(getUser(authPart), wsi, users,
 				translatePermission(params.getNewPermission()));
         //END set_permissions
     }
@@ -287,9 +294,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final Map<String, Permission> acls = ws.getPermissions(authPart.getUserName(), wksp);
-		for (String acl: acls.keySet()) {
-			returnVal.put(acl, translatePermission(acls.get(acl)));
+		final Map<User, Permission> acls = ws.getPermissions(getUser(authPart), wksp);
+		for (User acl: acls.keySet()) {
+			returnVal.put(acl.getUser(), translatePermission(acls.get(acl)));
 		}
         //END get_permissions
         return returnVal;
@@ -344,7 +351,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			count++;
 		}
 		
-		List<ObjectMetaData> meta = ws.saveObjects(authPart.getUserName(), woc); 
+		List<ObjectMetaData> meta = ws.saveObjects(getUser(authPart), woc); 
 		returnVal = ArgUtils.objMetaToTuple(meta);
         //END save_objects
         return returnVal;
@@ -364,7 +371,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		for (ObjectIdentity oi: objects) {
 			loi.add(processObjectIdentifier(oi));
 		}
-		ws.getObjects(loi);
+		ws.getObjects(getUser(authPart), loi);
 		//TODO get_objects
         //END get_objects
         return returnVal;

@@ -7,7 +7,7 @@ public interface WorkspaceMetaData {
 	
 	public int getId();
 	public String getName();
-	public String getOwner();
+	public WorkspaceUser getOwner();
 	public Date getModDate();
 	public Permission getUserPermission();
 	public boolean isGloballyReadable();

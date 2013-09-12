@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 
 import us.kbase.workspace.workspaces.ObjectMetaData;
+import us.kbase.workspace.workspaces.WorkspaceUser;
 
 public class MongoObjectMeta implements ObjectMetaData {
 	
@@ -11,13 +12,13 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String type;
 	final private Date createdDate;
 	final private int version;
-	final private String creator;
+	final private WorkspaceUser creator;
 	final private int workspaceId;
 	final private String chksum;
 	final private int size;
 	
 	public MongoObjectMeta(int id, String name, String typeString, Date createdDate,
-			int version, String creator, int workspaceid, String chksum,
+			int version, WorkspaceUser creator, int workspaceid, String chksum,
 			int size) {
 		//no error checking for now, add if needed
 		this.id = id;
@@ -58,7 +59,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	}
 
 	@Override
-	public String getCreator() {
+	public WorkspaceUser getCreator() {
 		return creator;
 	}
 

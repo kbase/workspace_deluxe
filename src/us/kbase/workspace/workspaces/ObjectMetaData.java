@@ -10,7 +10,7 @@ public interface ObjectMetaData {
 	public int getSize();
 	public Date getCreatedDate();
 	public int getVersion();
-	public String getCreator();
+	public WorkspaceUser getCreator();
 	public int getWorkspaceId();
 	public String getCheckSum();
 }
