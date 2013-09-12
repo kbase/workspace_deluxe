@@ -10,9 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceIdentifier;
-import us.kbase.workspace.workspaces.WorkspaceType;
 
 public class KBaseIdentifierFactory {
 	
@@ -20,12 +18,6 @@ public class KBaseIdentifierFactory {
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
 			"kb\\|ws\\.(\\d+)\\.obj\\.(\\d+)(?:\\.ver\\.(\\d+))?");
 
-	private static final String NAME_SEP = "/"; //regex
-	private static final String ID_SEP = "\\."; //regex
-	private static final String TYPE_SEP = "\\."; //regex
-	private static final String VER_SEP = "\\."; //regex
-	
-	
 	private static WorkspaceIdentifier createWSID(String wsname) {
 		Matcher m = KB_WS_ID.matcher(wsname);
 		if (m.find()) {
@@ -57,57 +49,38 @@ public class KBaseIdentifierFactory {
 		return createWSID(workspace);
 	}
 	
+	private static void verifyRefOnly(final ObjectIdentity oi) {
+		if (oi.getWorkspace() != null || oi.getWsid() != null 
+				|| oi.getName() != null || oi.getObjid() != null ||
+				oi.getVer() != null) {
+			final List<Object> err = new ArrayList<Object>(4);
+			if (oi.getWorkspace() != null) {
+				err.add(oi.getWorkspace());
+			}
+			if (oi.getWsid() != null) {
+				err.add(oi.getWsid());
+			}
+			if (oi.getName() != null) {
+				err.add(oi.getName());
+			}
+			if (oi.getObjid() != null) {
+				err.add(oi.getObjid());
+			}
+			if (oi.getVer() != null) {
+				err.add(oi.getVer());
+			}
+			throw new IllegalArgumentException(String.format(
+					"Object reference %s provided; cannot provide any other means of identifying an object: %s",
+					oi.getRef(), StringUtils.join(err, " ")));
+		}
+	}
+	
 	public static ObjectIdentifier processObjectIdentifier(
 			final ObjectIdentity oi) {
-		//TODO split this beast up
 		ArgUtils.checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
-			if (oi.getWorkspace() != null || oi.getWsid() != null 
-					|| oi.getName() != null || oi.getObjid() != null ||
-					oi.getVer() != null) {
-				final List<Object> err = new ArrayList<Object>(4);
-				if (oi.getWorkspace() != null) {
-					err.add(oi.getWorkspace());
-				}
-				if (oi.getWsid() != null) {
-					err.add(oi.getWsid());
-				}
-				if (oi.getName() != null) {
-					err.add(oi.getName());
-				}
-				if (oi.getObjid() != null) {
-					err.add(oi.getObjid());
-				}
-				if (oi.getVer() != null) {
-					err.add(oi.getVer());
-				}
-				throw new IllegalArgumentException(String.format(
-						"Object reference %s provided; cannot provide any other means of identifying an object: %s",
-						oi.getRef(), StringUtils.join(err, " ")));
-			}
+			verifyRefOnly(oi);
 			final String ref = oi.getRef();
-			//might want to change order here for speed reasons
-			if (ref.contains(NAME_SEP)) { //it's a name based id
-				final String[] r = ref.split(NAME_SEP);
-				if (r.length == 2) {
-					return new ObjectIdentifier(
-							new WorkspaceIdentifier(r[0]),r[1]);
-				}
-				if (r.length == 3) {
-					try {
-						return new ObjectIdentifier(
-								new WorkspaceIdentifier(r[0]), r[1],
-								Integer.parseInt(r[2]));
-					} catch (NumberFormatException nfe) {
-						throw new IllegalArgumentException(String.format(
-								"Can't parse version of object ref %s to integer",
-								ref));
-					}
-				}
-				throw new IllegalArgumentException(String.format(
-						"Illegal number of object ref separator %s in ref %s",
-						NAME_SEP, ref));
-			}
 			final Matcher m = KB_OBJ_ID.matcher(ref);
 			if (m.matches()) {
 				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
@@ -119,25 +92,7 @@ public class KBaseIdentifierFactory {
 				return new ObjectIdentifier(wsi, obj,
 						Integer.parseInt(m.group(3)));
 			}
-			final String[] r = ref.split(ID_SEP);
-			if (r.length != 2 && r.length != 3) {
-				throw new IllegalArgumentException(String.format(
-						"Illegal number of object ref separator %s in ref %s",
-						ID_SEP, ref));
-			}
-			try {
-				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-						Integer.parseInt(r[0]));
-				final int obj = Integer.parseInt(r[1]); 
-				if (r.length == 2) {
-					return new ObjectIdentifier(wsi, obj);
-				}
-				return new ObjectIdentifier(wsi, obj,
-						Integer.parseInt(r[3]));
-			} catch (NumberFormatException nfe) {
-				throw new IllegalArgumentException(String.format(
-						"Can't parse object ref %s to integers", ref));
-			}
+			return ObjectIdentifier.parseObjectReference(ref);
 		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				oi.getWorkspace(), oi.getWsid());
@@ -171,47 +126,4 @@ public class KBaseIdentifierFactory {
 		}
 		return new ObjectIdentifier(wsi, id, ver);
 	}
-	
-	public static TypeId processTypeId(final String type, final String ver,
-			final String errprefix) {
-		if (type == null) {
-			throw new IllegalArgumentException(errprefix + " has no type");
-		}
-		final String[] t = type.split(TYPE_SEP);
-		if (t.length != 2) {
-			throw new IllegalArgumentException(errprefix + String.format(
-					" type %s could not be split into a module and name",
-					type));
-		}
-		final WorkspaceType wt = new WorkspaceType(t[0], t[1]);
-		if (ver == null) {
-			return new TypeId(wt);
-		}
-		final String[] v = ver.split(VER_SEP);
-		if (v.length == 1) {
-			try {
-				return new TypeId(wt, Integer.parseInt(v[0]));
-			} catch (NumberFormatException ne) {
-				throwTypeVerException(errprefix, ver);
-			}
-		}
-		if (v.length == 2) {
-			try {
-				return new TypeId(wt, Integer.parseInt(v[0]),
-						Integer.parseInt(v[1]));
-			} catch (NumberFormatException ne) {
-				throwTypeVerException(errprefix, ver);
-			}
-		}
-		throwTypeVerException(errprefix, ver);
-		return null; //shut up java
-	}
-	
-	private static void throwTypeVerException(final String errprefix,
-			final String ver) {
-		throw new IllegalArgumentException(errprefix + String.format(
-				" type version string %s could not be parsed to a version",
-				ver));
-	}
-
 }

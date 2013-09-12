@@ -31,7 +31,6 @@ import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.ArgUtils;
-import us.kbase.workspace.kbase.KBaseIdentifierFactory;
 import us.kbase.workspace.workspaces.ObjectIdentifier;
 import us.kbase.workspace.workspaces.ObjectMetaData;
 import us.kbase.workspace.workspaces.Permission;
@@ -324,7 +323,13 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (d.getData() == null) {
 				throw new IllegalArgumentException(errprefix + " has no data");
 			}
-			final TypeId t = KBaseIdentifierFactory.processTypeId(d.getType(), d.getTver(), errprefix);
+			TypeId t;
+			try {
+				t = new TypeId(d.getType(), d.getTver());
+			} catch (IllegalArgumentException iae) {
+				throw new IllegalArgumentException(errprefix + " type error: "
+						+ iae.getLocalizedMessage(), iae);
+			}
 			final Provenance p = ArgUtils.processProvenance(authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
