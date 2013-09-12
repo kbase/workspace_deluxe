@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -339,57 +340,159 @@ public class MongoDatabase implements Database {
 		return new MongoWSMeta(count, wsname, user, moddate, Permission.OWNER,
 				globalRead);
 	}
-
-	private Map<String, Object> queryWorkspace(WorkspaceIdentifier wsi,
-			List<String> fields) throws NoSuchWorkspaceException,
+	
+	private Map<String, Object> queryWorkspace(final WorkspaceIdentifier wsi,
+			final Set<String> fields) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		if (wsi.getId() != null) {
-			return queryWorkspace(wsi.getId(), fields);
+		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
+		wsiset.add(wsi);
+		return queryWorkspacesByIdentifier(wsiset, fields).get(wsi);
+	}
+
+	private Map<WorkspaceIdentifier, Map<String, Object>>
+			queryWorkspacesByIdentifier(final Set<WorkspaceIdentifier> wsiset,
+			final Set<String> fields) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
+		final Map<Integer, WorkspaceIdentifier> ids =
+				new HashMap<Integer, WorkspaceIdentifier>();
+		final Map<String, WorkspaceIdentifier> names =
+				new HashMap<String, WorkspaceIdentifier>();
+		for (WorkspaceIdentifier wsi: wsiset) {
+			if (wsi.getId() != null) {
+				ids.put(wsi.getId(), wsi);
+			} else {
+				names.put(wsi.getName(), wsi);
+			}
 		}
-		return queryWorkspace(wsi.getName(), fields);
+		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
+				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
+		final Map<Integer, Map<String, Object>> idres = queryWorkspacesByID(
+				ids.keySet(), fields);
+		for (Integer id: idres.keySet()) {
+			ret.put(ids.get(id), idres.get(id));
+		}
+		final Map<String, Map<String, Object>> nameres = queryWorkspacesByName(
+				names.keySet(), fields);
+		for (String name: nameres.keySet()) {
+			ret.put(names.get(name), nameres.get(name));
+		}
+		return ret;
 	}
 	
-	private Map<String, Object> queryWorkspace(String wsname, List<String> fields)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return queryWorkspace(String.format("{name: \"%s\"}", wsname),
-				"name " + wsname, fields);
+//	private Map<String, Object> queryWorkspace(final String name,
+//			final Set<String> fields) throws NoSuchWorkspaceException,
+//			WorkspaceCommunicationException {
+//		Set<String> nameset = new HashSet<String>();
+//		nameset.add(name);
+//		return queryWorkspacesByName(nameset, fields).get(name);
+//	}
+	
+	private Map<String, Map<String, Object>> queryWorkspacesByName(
+			Set<String> wsnames, Set<String> fields) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
+		if (wsnames.isEmpty()) {
+			return new HashMap<String, Map<String, Object>>();
+		}
+		fields.add("name");
+		final List<Map<String, Object>> queryres =
+				queryWorkspaces(String.format("{name: {$in: [\"%s\"]}}", 
+				StringUtils.join(wsnames, "\", \"")), fields);
+		final Map<String, Map<String, Object>> result =
+				new HashMap<String, Map<String, Object>>();
+		for (Map<String, Object> m: queryres) {
+			result.put((String) m.get("name"), m);
+		}
+		for (String name: wsnames) {
+			if (!result.containsKey(name)) {
+				throw new NoSuchWorkspaceException(String.format(
+						"No workspace with name %s exists", name));
+			}
+		}
+		return result;
 	}
 	
-	private Map<String, Object> queryWorkspace(int wsid, List<String> fields)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return queryWorkspace(String.format("{id: %d}", wsid), "id " + wsid,
-				fields);
+	private Map<String, Object> queryWorkspace(final Integer id,
+			final Set<String> fields) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
+		Set<Integer> idset = new HashSet<Integer>();
+		idset.add(id);
+		return queryWorkspacesByID(idset, fields).get(id);
+	}	
+	
+	private Map<Integer, Map<String, Object>> queryWorkspacesByID(
+			Set<Integer> wsids, Set<String> fields) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
+		if (wsids.isEmpty()) {
+			return new HashMap<Integer, Map<String, Object>>();
+		}
+		fields.add("id");
+		final List<Map<String, Object>> queryres =
+				queryWorkspaces(String.format("{id: {$in: [%s]}}",
+				StringUtils.join(wsids, ", ")), fields);
+		final Map<Integer, Map<String, Object>> result =
+				new HashMap<Integer, Map<String, Object>>();
+		for (Map<String, Object> m: queryres) {
+			result.put((Integer) m.get("id"), m);
+		}
+		for (Integer id: wsids) {
+			if (!result.containsKey(id)) {
+				throw new NoSuchWorkspaceException(String.format(
+						"No workspace with id %s exists", id));
+			}
+		}
+		return result;
 	}
 		
-	private Map<String, Object> queryWorkspace(String query, String error,
-			List<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
+	private List<Map<String, Object>> queryWorkspaces(String query,
+			Set<String> fields) throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		for (String field: fields) {
 			projection.put(field, 1);
 		}
-		Map<String, Object> result;
+		System.out.println("****query: " + query);
+		@SuppressWarnings("rawtypes")
+		Iterable<Map> im;
 		try {
-			@SuppressWarnings("unchecked")
-			final Map<String, Object> res = wsjongo.getCollection(WORKSPACES)
-					.findOne(query).projection(projection.toString())
+			@SuppressWarnings({ "rawtypes" })
+			final Iterable<Map> res = wsjongo.getCollection(WORKSPACES)
+					.find(query).projection(projection.toString())
 					.as(Map.class);
-			result = res;
+			im = res;
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		if (result == null) {
-			throw new NoSuchWorkspaceException(String.format(
-					"No workspace with %s exists", error));
+		System.out.println(im);
+		final List<Map<String, Object>> result =
+				new ArrayList<Map<String,Object>>();
+		for (@SuppressWarnings("rawtypes") Map m: im) {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> castmap = (Map<String, Object>) m; 
+			result.add(castmap);
 		}
+		System.out.println(result);
 		return result;
 	}
-
+	
+	//projection lists
+	private static final Set<String> PROJ_DESC = newHashSet("description");
+	private static final Set<String> PROJ_ID = newHashSet("id");
+	private static final Set<String> PROJ_OWNER = newHashSet("owner");
+	
+	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
+	@SafeVarargs
+	private static <T> Set<T> newHashSet(T... objs) {
+		Set<T> set = new HashSet<T>();
+		for (T o : objs) {
+			set.add(o);
+		}
+		return set;
+	}
+	
 	@Override
 	public String getWorkspaceDescription(WorkspaceIdentifier wsi) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return (String) queryWorkspace(wsi, Arrays.asList("description"))
+		return (String) queryWorkspace(wsi, PROJ_DESC)
 				.get("description");
 	}
 	
@@ -398,12 +501,12 @@ public class MongoDatabase implements Database {
 		if (!verify && wsi.getId() != null) {
 			return wsi.getId();
 		}
-		return (int) queryWorkspace(wsi, Arrays.asList("id")).get("id");
+		return (int) queryWorkspace(wsi, PROJ_ID).get("id");
 	}
 
 	private String getOwner(int wsid) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		return (String) queryWorkspace(wsid, Arrays.asList("owner")).get("owner");
+		return (String) queryWorkspace(wsid, PROJ_OWNER).get("owner");
 	}
 	
 	@Override
@@ -533,12 +636,15 @@ public class MongoDatabase implements Database {
 
 	//TODO get rid of globalread in workspace doc
 	
+	private static final Set<String> PROJ_ID_NAME_OWNER_MODDATE = 
+			newHashSet("id", "name", "owner", "moddate");
+	
 	@Override
 	public WorkspaceMetaData getWorkspaceMetadata(String user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		final Map<String, Object> ws = queryWorkspace(wsi, Arrays.asList(
-				"id", "name", "owner", "moddate"));
+		final Map<String, Object> ws = queryWorkspace(wsi,
+				PROJ_ID_NAME_OWNER_MODDATE);
 		final Map<String, Permission> res = getUserAndGlobalPermission(user, wsi);
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				(String) ws.get("owner"), (Date) ws.get("moddate"),
