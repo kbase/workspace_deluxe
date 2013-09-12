@@ -11,6 +11,7 @@ import us.kbase.JsonClientCaller;
 import us.kbase.JsonClientException;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
+import us.kbase.Tuple9;
 import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
@@ -168,11 +169,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        TypeReference<List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>>> retType = new TypeReference<List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>>>() {};
+        List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
 

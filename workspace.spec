@@ -165,6 +165,23 @@ module Workspace {
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
+
+	*/
+	typedef tuple<obj_id objid, obj_name name, type_string type,
+		timestamp create_date, int version, username created_by,
+		ws_id wsid, string chsum, int size> object_metadata;
+		
+	/* Metadata associated with an object, including user provided metadata.
+	
+		obj_id objid - the numerical id of the object.
+		obj_name name - the name of the object.
+		type_string type - the type of the object.
+		timestamp create_date - the creation date of the object.
+		obj_ver ver - the version of the object.
+		username created_by - the user that created the object.
+		ws_id wsid - the workspace containing the object.
+		string chsum - the md5 checksum of the object.
+		int size - the size of the object in bytes.
 		UnspecifiedObject metadata - arbitrary user-supplied metadata about
 			the object.
 
@@ -172,7 +189,7 @@ module Workspace {
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
 		ws_id wsid, string chsum, int size, UnspecifiedObject metadata>
-		object_metadata;
+		object_metadata_full;
 	
 	/* A provenance action.
 	
@@ -345,27 +362,29 @@ module Workspace {
 	/* 
 		Save objects to the workspace.
 	*/
-	funcdef save_objects(SaveObjectsParams params) returns (list<object_metadata> meta)
-		authentication required;
+	funcdef save_objects(SaveObjectsParams params)
+		returns (list<object_metadata> meta) authentication required;
 	
 	/* The data and metadata for an object.
 	
 		UnspecifiedObject data - the object's data.
-		object_metadata meta - metadata about the object.
+		object_metadata_full meta - metadata about the object.
 		
 	*/
 	typedef structure {
 		UnspecifiedObject data;
-		object_metadata meta;
+		object_metadata_full meta;
 	} ObjectData;
 	
 	/* 
 		Get objects from the workspace.
 	*/
-	funcdef get_objects(list<ObjectIdentity> objects) returns (list<ObjectData> data);
+	funcdef get_objects(list<ObjectIdentity> objects)
+		returns (list<ObjectData> data) authentication optional;
 	
 	/* 
 		Get object metadata from the workspace.
 	*/
-	funcdef get_object_metadata(list<ObjectIdentity> objects) returns (list<object_metadata> data);
+	funcdef get_object_metadata(list<ObjectIdentity> objects)
+		returns (list<object_metadata_full> data)  authentication optional;
 };

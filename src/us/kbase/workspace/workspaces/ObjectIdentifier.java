@@ -91,9 +91,12 @@ public class ObjectIdentifier {
 			return getName();
 		}
 		return "" + getId();
-		
 	}
 
+	public String getWorkspaceIdentifierString() {
+		return wsi.getIdentifierString();
+	}
+	
 	public static ObjectIdentifier parseObjectReference(String reference) {
 		checkString(reference, "reference");
 		if (reference.contains(REFERENCE_NAME_SEP)) {

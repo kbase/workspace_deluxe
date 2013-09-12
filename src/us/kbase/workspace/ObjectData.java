@@ -17,7 +17,7 @@ import us.kbase.Tuple10;
  * <pre>
  * The data and metadata for an object.
  *         UnspecifiedObject data - the object's data.
- *         object_metadata meta - metadata about the object.
+ *         object_metadata_full meta - metadata about the object.
  * </pre>
  * 
  */

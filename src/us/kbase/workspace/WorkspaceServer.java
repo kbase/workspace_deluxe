@@ -6,6 +6,7 @@ import us.kbase.JsonServerMethod;
 import us.kbase.JsonServerServlet;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
+import us.kbase.Tuple9;
 import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
@@ -301,8 +302,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
     @JsonServerMethod(rpc = "Workspace.save_objects")
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
-        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> returnVal = null;
+    public List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> returnVal = null;
         //BEGIN save_objects
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
@@ -354,8 +355,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * Get objects from the workspace.
      * </pre>
      */
-    @JsonServerMethod(rpc = "Workspace.get_objects")
-    public List<ObjectData> getObjects(List<ObjectIdentity> objects) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_objects", authOptional=true)
+    public List<ObjectData> getObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		//TODO get_objects
@@ -369,8 +370,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * Get object metadata from the workspace.
      * </pre>
      */
-    @JsonServerMethod(rpc = "Workspace.get_object_metadata")
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_object_metadata", authOptional=true)
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> returnVal = null;
         //BEGIN get_object_metadata
 		//TODO get_object_metadata
