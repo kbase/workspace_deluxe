@@ -5,13 +5,10 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.JsonProcessingException;
 
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;

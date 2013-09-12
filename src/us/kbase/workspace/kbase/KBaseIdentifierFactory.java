@@ -16,10 +16,12 @@ import us.kbase.workspace.workspaces.WorkspaceType;
 
 public class KBaseIdentifierFactory {
 	
-	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws.(\\d+)");
-	
-	private static final String NAME_SEP = "/";
-	private static final String ID_SEP = ".";
+	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
+	private static final Pattern KB_OBJ_ID = Pattern.compile(
+			"kb\\|ws\\.(\\d+)\\.obj\\.(\\d+)(?:\\.ver\\.(\\d+))?");
+
+	private static final String NAME_SEP = "/"; //regex
+	private static final String ID_SEP = "\\."; //regex
 	private static final String TYPE_SEP = "\\."; //regex
 	private static final String VER_SEP = "\\."; //regex
 	
@@ -36,12 +38,14 @@ public class KBaseIdentifierFactory {
 		return new WorkspaceIdentifier(id);
 	}
 	
-	public static WorkspaceIdentifier processWorkspaceIdentifier(final WorkspaceIdentity wsi) {
+	public static WorkspaceIdentifier processWorkspaceIdentifier(
+			final WorkspaceIdentity wsi) {
 		ArgUtils.checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
 	}
 	
-	public static WorkspaceIdentifier processWorkspaceIdentifier(final String workspace, final Integer id) {
+	public static WorkspaceIdentifier processWorkspaceIdentifier(
+			final String workspace, final Integer id) {
 		if (!(workspace == null ^ id == null)) {
 			throw new IllegalArgumentException(String.format(
 					"Must provide one and only one of workspace (was: %s) or id (was: %s)",
@@ -53,7 +57,9 @@ public class KBaseIdentifierFactory {
 		return createWSID(workspace);
 	}
 	
-	public static ObjectIdentifier processObjectIdentifier(final ObjectIdentity oi) {
+	public static ObjectIdentifier processObjectIdentifier(
+			final ObjectIdentity oi) {
+		//TODO split this beast up
 		ArgUtils.checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			if (oi.getWorkspace() != null || oi.getWsid() != null 
@@ -80,34 +86,90 @@ public class KBaseIdentifierFactory {
 						oi.getRef(), StringUtils.join(err, " ")));
 			}
 			final String ref = oi.getRef();
+			//might want to change order here for speed reasons
 			if (ref.contains(NAME_SEP)) { //it's a name based id
 				final String[] r = ref.split(NAME_SEP);
 				if (r.length == 2) {
 					return new ObjectIdentifier(
 							new WorkspaceIdentifier(r[0]),r[1]);
 				}
+				if (r.length == 3) {
+					try {
+						return new ObjectIdentifier(
+								new WorkspaceIdentifier(r[0]), r[1],
+								Integer.parseInt(r[2]));
+					} catch (NumberFormatException nfe) {
+						throw new IllegalArgumentException(String.format(
+								"Can't parse version of object ref %s to integer",
+								ref));
+					}
+				}
+				throw new IllegalArgumentException(String.format(
+						"Illegal number of object ref separator %s in ref %s",
+						NAME_SEP, ref));
 			}
-			//TODO process ref
+			final Matcher m = KB_OBJ_ID.matcher(ref);
+			if (m.matches()) {
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+						Integer.parseInt(m.group(1)));
+				final int obj = Integer.parseInt(m.group(2));
+				if (m.group(3) == null) {
+					return new ObjectIdentifier(wsi, obj);
+				}
+				return new ObjectIdentifier(wsi, obj,
+						Integer.parseInt(m.group(3)));
+			}
+			final String[] r = ref.split(ID_SEP);
+			if (r.length != 2 && r.length != 3) {
+				throw new IllegalArgumentException(String.format(
+						"Illegal number of object ref separator %s in ref %s",
+						ID_SEP, ref));
+			}
+			try {
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+						Integer.parseInt(r[0]));
+				final int obj = Integer.parseInt(r[1]); 
+				if (r.length == 2) {
+					return new ObjectIdentifier(wsi, obj);
+				}
+				return new ObjectIdentifier(wsi, obj,
+						Integer.parseInt(r[3]));
+			} catch (NumberFormatException nfe) {
+				throw new IllegalArgumentException(String.format(
+						"Can't parse object ref %s to integers", ref));
+			}
 		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				oi.getWorkspace(), oi.getWsid());
-		return processObjectIdentifier(wsi, oi.getName(), oi.getObjid());
+		return processObjectIdentifier(wsi, oi.getName(), oi.getObjid(),
+				oi.getVer());
+		
 	}
 	
-	public static ObjectIdentifier processObjectIdentifier(final WorkspaceIdentifier wsi,
-			final String name, final Integer id) {
-		if (name == null && id == null) {
-			return null;
-		}
+	public static ObjectIdentifier processObjectIdentifier(
+			final WorkspaceIdentifier wsi, final String name,
+			final Integer id) {
+		return processObjectIdentifier(wsi, name, id, null);
+	}
+	
+	public static ObjectIdentifier processObjectIdentifier(
+			final WorkspaceIdentifier wsi, final String name, final Integer id,
+			final Integer ver) {
 		if (!(name == null ^ id == null)) {
 			throw new IllegalArgumentException(String.format(
 					"Must provide one and only one of an object name or id: %s/%s",
 					name, id));
 		}
 		if (name != null) {
-			return new ObjectIdentifier(wsi, name);
+			if (ver == null) {
+				return new ObjectIdentifier(wsi, name);
+			}
+			return new ObjectIdentifier(wsi, name, ver);
 		}
-		return new ObjectIdentifier(wsi, id);
+		if (ver == null) {
+			return new ObjectIdentifier(wsi, id);
+		}
+		return new ObjectIdentifier(wsi, id, ver);
 	}
 	
 	public static TypeId processTypeId(final String type, final String ver,
@@ -145,7 +207,8 @@ public class KBaseIdentifierFactory {
 		return null; //shut up java
 	}
 	
-	private static void throwTypeVerException(final String errprefix, final String ver) {
+	private static void throwTypeVerException(final String errprefix,
+			final String ver) {
 		throw new IllegalArgumentException(errprefix + String.format(
 				" type version string %s could not be parsed to a version",
 				ver));

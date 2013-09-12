@@ -69,8 +69,8 @@ module Workspace {
 	/* A workspace identifier.
 
 		Select a workspace by one, and only one, of the numerical id or name,
-			where the
-		name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
+			where the name can also be a KBase ID including the numerical id,
+			e.g. kb|ws.35.
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase
 			format, e.g. kb|ws.78.
@@ -112,16 +112,18 @@ module Workspace {
 	/* A string that uniquely identifies an object in the workspace service.
 	
 		There are several ways to uniquely identify an object in one string:
-		"[ws_id].[obj_id].[version]" - for example, "23.567.2" would identify the
-		second version of an object with id 567 in a workspace with id 23.
-		"[ws_name]/[obj_name]/[version]" - for example,
-		"MyFirstWorkspace/MyFirstObject/3" would identify the third version of
-		an object called MyFirstObject in the workspace called MyFirstWorkspace.
-		"kb|ws.[ws_id].obj.[obj_id].ver.[version]" - for example, 
-		"kb|ws.23.obj.567.ver.2" would identify the same object as in the first
-		example.
-		In all cases, if the version number is omitted, the latest version of the
-		object is assumed.
+		"[ws_id].[obj_id].[obj_ver]" - for example, "23.567.2" would identify
+			the second version of an object with id 567 in a workspace with id
+			23.
+		"[ws_name]/[obj_name]/[obj_ver]" - for example,
+			"MyFirstWorkspace/MyFirstObject/3" would identify the third version
+			of an object called MyFirstObject in the workspace called
+			MyFirstWorkspace.
+		"kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
+			"kb|ws.23.obj.567.ver.2" would identify the same object as in the
+			first example.
+		In all cases, if the version number is omitted, the latest version of
+		the object is assumed.
 	*/
 	typedef string obj_ref;
 	
@@ -286,7 +288,6 @@ module Workspace {
 	*/
 	funcdef set_permissions(SetPermissionsParams params) returns ()
 		authentication required;
-		
 	
 	/* 
 		Get permissions for a workspace.
@@ -302,7 +303,7 @@ module Workspace {
 		Optional parameters:
 		One of an object name or id. If no name or id is provided the name
 			will be set to the object id as a string, possibly with -\d+
-			appended if the object id already exists as a name.
+			appended if that object id already exists as a name.
 		obj_name name - the name of the object.
 		obj_id objid - the id of the object to save over.
 		UnspecifiedObject metadata - arbitrary user-supplied

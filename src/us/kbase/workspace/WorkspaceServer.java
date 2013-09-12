@@ -311,7 +311,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		int count = 1;
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			final ObjectIdentifier oi = processObjectIdentifier(wsi, d.getName(), d.getObjid());
+			ObjectIdentifier oi = null;
+			if (d.getName() != null || d.getObjid() != null) {
+				 oi = processObjectIdentifier(wsi, d.getName(), d.getObjid());
+			}
 			String errprefix = "Object ";
 			if (oi == null) {
 				errprefix += count;
