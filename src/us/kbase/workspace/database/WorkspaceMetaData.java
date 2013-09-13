@@ -1,6 +1,7 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 import java.util.Date;
+
 
 
 public interface WorkspaceMetaData {

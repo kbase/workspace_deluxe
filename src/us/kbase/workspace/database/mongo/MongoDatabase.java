@@ -29,7 +29,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
+import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
@@ -45,20 +53,12 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
-import us.kbase.workspace.workspaces.AllUsers;
-import us.kbase.workspace.workspaces.ObjectIdentifier;
-import us.kbase.workspace.workspaces.ObjectMetaData;
-import us.kbase.workspace.workspaces.Permission;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.TypeSchema;
-import us.kbase.workspace.workspaces.User;
-import us.kbase.workspace.workspaces.WorkspaceIdentifier;
-import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 import us.kbase.workspace.workspaces.WorkspaceType;
-import us.kbase.workspace.workspaces.WorkspaceUser;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

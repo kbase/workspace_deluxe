@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 import java.util.HashMap;
 import java.util.Map;

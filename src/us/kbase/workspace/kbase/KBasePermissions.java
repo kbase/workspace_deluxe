@@ -3,7 +3,7 @@ package us.kbase.workspace.kbase;
 import java.util.HashMap;
 import java.util.Map;
 
-import us.kbase.workspace.workspaces.Permission;
+import us.kbase.workspace.database.Permission;
 
 public class KBasePermissions {
 	private static final Map<Object, String> PERM_TO_API = new HashMap<Object, String>();

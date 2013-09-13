@@ -5,6 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;

@@ -1,9 +1,10 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+
 
 public class WorkspaceIdentifier {
 	

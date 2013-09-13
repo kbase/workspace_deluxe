@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 import static us.kbase.workspace.util.Util.checkString;
 

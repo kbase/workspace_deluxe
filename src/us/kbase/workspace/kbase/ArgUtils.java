@@ -16,11 +16,11 @@ import us.kbase.Tuple9;
 import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ProvenanceAction;
-import us.kbase.workspace.workspaces.ObjectMetaData;
-import us.kbase.workspace.workspaces.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.WorkspaceUser;
-import us.kbase.workspace.workspaces.WorkspaceMetaData;
 
 public class ArgUtils {
 	

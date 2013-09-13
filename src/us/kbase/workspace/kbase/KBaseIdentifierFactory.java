@@ -9,8 +9,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.workspaces.ObjectIdentifier;
-import us.kbase.workspace.workspaces.WorkspaceIdentifier;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class KBaseIdentifierFactory {
 	

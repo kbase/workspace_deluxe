@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 public interface ObjectUserMetaData extends ObjectMetaData {
 	

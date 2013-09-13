@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import us.kbase.workspace.database.WorkspaceIdentifier;
+
 public class WorkspaceObjectCollection implements Iterable<WorkspaceSaveObject> {
 	
 	private final WorkspaceIdentifier wsi;

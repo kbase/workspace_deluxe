@@ -9,12 +9,6 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.workspaces.ObjectMetaData;
-import us.kbase.workspace.workspaces.Permission;
-import us.kbase.workspace.workspaces.User;
-import us.kbase.workspace.workspaces.WorkspaceUser;
-import us.kbase.workspace.workspaces.WorkspaceIdentifier;
-import us.kbase.workspace.workspaces.WorkspaceMetaData;
 import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 
 public interface Database {

@@ -1,5 +1,8 @@
 package us.kbase.workspace.workspaces;
 
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.WorkspaceIdentifier;
+
 public class WorkspaceSaveObject {
 	
 	private final ObjectIdentifier id;

@@ -2,8 +2,8 @@ package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
 
-import us.kbase.workspace.workspaces.ObjectUserMetaData;
-import us.kbase.workspace.workspaces.WorkspaceUser;
+import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoObjectUserMeta extends MongoObjectMeta implements
 		ObjectUserMetaData {

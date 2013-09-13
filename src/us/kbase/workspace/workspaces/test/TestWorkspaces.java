@@ -19,17 +19,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.AllUsers;
-import us.kbase.workspace.workspaces.Permission;
-import us.kbase.workspace.workspaces.User;
-import us.kbase.workspace.workspaces.WorkspaceIdentifier;
-import us.kbase.workspace.workspaces.WorkspaceMetaData;
-import us.kbase.workspace.workspaces.WorkspaceUser;
 import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO test vs. auth'd mongo
