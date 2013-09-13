@@ -685,23 +685,38 @@ public class MongoDatabase implements Database {
 	public Permission getPermission(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Map<User, Permission> res = getUserAndGlobalPermission(user, wsi);
-		Permission perm = Permission.NONE;
-		if (res.containsKey(allUsers)) {
-			perm = res.get(allUsers); //if allUsers is in the DB it's always read
-		}
-		if (res.containsKey(user) && !res.get(user).equals(Permission.NONE)) {
-			perm = res.get(user);
-		}
-		return perm;
+		final Set<WorkspaceIdentifier> wsis =
+				new HashSet<WorkspaceIdentifier>();
+		wsis.add(wsi);
+		return getPermissions(user, wsis).get(wsi);
 	}
 	
 	@Override
 	public Map<WorkspaceIdentifier, Permission> getPermissions(
-			final WorkspaceUser user, final List<WorkspaceIdentifier> wsis)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		// TODO Auto-generated method stub
-		return null;
+			final WorkspaceUser user, final Set<WorkspaceIdentifier> wsis)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException, 
+			CorruptWorkspaceDBException {
+		final Set<User> users = new HashSet<User>();
+		if (user != null) {
+			users.add(user);
+		}
+		users.add(allUsers);
+		final Map<WorkspaceIdentifier, Map<User, Permission>> perms = 
+				queryPermissions(wsis, users);
+		final Map<WorkspaceIdentifier, Permission> ret = 
+				new HashMap<WorkspaceIdentifier, Permission>();
+		for (WorkspaceIdentifier wsi: perms.keySet()) {
+			Permission p = Permission.NONE;
+			if (perms.get(wsi).containsKey(allUsers)) {
+				p = perms.get(wsi).get(allUsers); //if allUsers is in the DB it's always read
+			}
+			if (perms.get(wsi).containsKey(user) &&
+					!perms.get(wsi).get(user).equals(Permission.NONE)) {
+				p = perms.get(wsi).get(user);
+			}
+			ret.put(wsi, p);
+		}
+		return ret;
 	}
 	
 	@Override

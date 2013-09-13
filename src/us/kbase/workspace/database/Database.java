@@ -2,6 +2,7 @@ package us.kbase.workspace.database;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -24,17 +25,18 @@ public interface Database {
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException;
 	
-	public void setPermissions(WorkspaceIdentifier wsi, List<WorkspaceUser> users,
-			Permission perm) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+	public void setPermissions(WorkspaceIdentifier wsi,
+			List<WorkspaceUser> users, Permission perm) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
 	public Permission getPermission(WorkspaceUser user, WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
-	public Map<WorkspaceIdentifier, Permission> getPermissions(WorkspaceUser user,
-			List<WorkspaceIdentifier> wsis)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+	public Map<WorkspaceIdentifier, Permission> getPermissions(
+			WorkspaceUser user, Set<WorkspaceIdentifier> wsis)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException;
 
 	public Map<User, Permission> getUserAndGlobalPermission(WorkspaceUser user,
 			WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
