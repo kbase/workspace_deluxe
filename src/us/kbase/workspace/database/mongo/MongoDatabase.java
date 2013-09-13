@@ -579,18 +579,6 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private Permission translatePermission(final int perm) {
-		switch (perm) {
-			case 0: return Permission.NONE;
-			case 1: return Permission.READ;
-			case 2: return Permission.WRITE;
-			case 3: return Permission.ADMIN;
-			case 4: return Permission.OWNER;
-			default: throw new IllegalArgumentException(
-					"No such permission level " + perm);
-		}
-	}
-	
 	private Map<User, Permission> queryPermissions(
 			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -670,7 +658,7 @@ public class MongoDatabase implements Database {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
 			}
 			wsidToPerms.get(wsid).put(getUser((String) m.get("user")),
-					translatePermission((int) m.get("perm")));
+					Permission.fromInt((int) m.get("perm")));
 		}
 		final Map<WorkspaceIdentifier, Map<User, Permission>> ret =
 				new HashMap<WorkspaceIdentifier, Map<User, Permission>>();
