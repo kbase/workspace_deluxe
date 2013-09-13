@@ -620,11 +620,25 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<User, Permission> queryPermissions(
-			final WorkspaceIdentifier wsi, final List<User> users) throws
+			final WorkspaceIdentifier wsi, final Set<User> users) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final Set<WorkspaceIdentifier> wsis = new HashSet<WorkspaceIdentifier>();
+		wsis.add(wsi);
+		return queryPermissions(wsis, users).get(wsi);
+	}
+	
+	//TODO think about how to pare down the list of workspace identifiers to unique workspaces and still make it easy for users to use the pared list
+	private Map<WorkspaceIdentifier, Map<User, Permission>> queryPermissions(
+			final Set<WorkspaceIdentifier> wsis, final Set<User> users) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
-		query.put("id", getWorkspaceID(wsi, true));
+		final DBObject iddb = new BasicDBObject();
+		final Map<WorkspaceIdentifier, Integer> wsids = 
+				getWorkspaceIDs(wsis, true);
+		iddb.put("$in", wsids.values());
+		query.put("id", iddb);
 		if (users != null && users.size() > 0) {
 			final List<String> u = new ArrayList<String>();
 			for (User user: users) {
@@ -634,22 +648,35 @@ public class MongoDatabase implements Database {
 			usersdb.put("$in", u);
 			query.put("user", usersdb);
 		}
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> res;
+		final DBObject proj = new BasicDBObject();
+		proj.put("_id", 0);
+		proj.put("user", 1);
+		proj.put("perm", 1);
+		proj.put("id", 1);
+		
+		final DBCursor res;
 		try {
-			@SuppressWarnings("rawtypes")
-			final Iterable<Map> result = wsjongo.getCollection(WS_ACLS)
-					.find(query.toString()).projection("{user: 1, perm: 1}")
-					.as(Map.class);
-			res = result;
+			res = wsmongo.getCollection(WS_ACLS).find(query, proj);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final Map<User, Permission> ret = new HashMap<User, Permission>();
-		for (@SuppressWarnings("rawtypes") Map m: res) {
-			ret.put(getUser((String) m.get("user")),
+		
+		final Map<Integer, Map<User, Permission>> wsidToPerms =
+				new HashMap<Integer, Map<User, Permission>>();
+		for (DBObject m: res) {
+			final int wsid = (int) m.get("id");
+			if (!wsidToPerms.containsKey(wsid)) {
+				wsidToPerms.put(wsid, new HashMap<User, Permission>());
+			}
+			wsidToPerms.get(wsid).put(getUser((String) m.get("user")),
 					translatePermission((int) m.get("perm")));
+		}
+		final Map<WorkspaceIdentifier, Map<User, Permission>> ret =
+				new HashMap<WorkspaceIdentifier, Map<User, Permission>>();
+		for (WorkspaceIdentifier wsi: wsids.keySet()) {
+			final Map<User, Permission> p = wsidToPerms.get(wsids.get(wsi));
+			ret.put(wsi, p == null ? new HashMap<User, Permission>() : p);
 		}
 		return ret;
 	}
@@ -682,7 +709,7 @@ public class MongoDatabase implements Database {
 			final WorkspaceUser user, final WorkspaceIdentifier wsi) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final List<User> users = new ArrayList<User>();
+		final Set<User> users = new HashSet<User>();
 		users.add(allUsers);
 		if (user != null) {
 			users.add(user);
