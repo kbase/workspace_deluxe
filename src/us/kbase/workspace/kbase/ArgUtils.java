@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.Tuple9;
-import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -102,18 +101,18 @@ public class ArgUtils {
 }
 	
 	public static List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, UObject>>
+			Integer, String, Integer, Map<String, String>>>
 			objUserMetaToTuple (List<ObjectUserMetaData> meta) {
 		
 		//oh the humanity
 		final List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, UObject>> ret = 
+			Integer, String, Integer, Map<String, String>>> ret = 
 			new ArrayList<Tuple10<Integer, String, String, String, Integer,
-			String, Integer, String, Integer, UObject>>();
+			String, Integer, String, Integer, Map<String, String>>>();
 		
 		for (ObjectUserMetaData m: meta) {
 			ret.add(new Tuple10<Integer, String, String, String, Integer,
-					String, Integer, String, Integer, UObject>()
+					String, Integer, String, Integer, Map<String, String>>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
@@ -123,7 +122,7 @@ public class ArgUtils {
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())
 					.withE9(m.getSize())
-					.withE10(new UObject(m.getUserMetaData())));
+					.withE10(m.getUserMetaData()));
 		}
 		return ret;
 	}

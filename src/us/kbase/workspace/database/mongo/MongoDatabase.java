@@ -77,7 +77,7 @@ public class MongoDatabase implements Database {
 
 	//TODO handle deleting workspaces - changes most methods
 	//TODO handle hidden and deleted objects - changes most methods
-	//TODO make user metadata Map<String, String>
+	//TODO query user metadata
 	
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
@@ -1304,11 +1304,11 @@ public class MongoDatabase implements Database {
 		public void createPointer() throws Exception {
 			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null);
 			Map<String, Object> data = new HashMap<String, Object>();
-			Map<String, Object> meta = new HashMap<String, Object>();
+			Map<String, String> meta = new HashMap<String, String>();
 			Map<String, Object> moredata = new HashMap<String, Object>();
 			moredata.put("foo", "bar");
 			data.put("fubar", moredata);
-			meta.put("metastuff", moredata);
+			meta.put("metastuff", "meta");
 			Provenance p = new Provenance("kbasetest2");
 			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
@@ -1318,7 +1318,7 @@ public class MongoDatabase implements Database {
 			wco.addObject(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
-			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, 1, meta);
+			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, 1, data);
 			testdb.saveObjects(new WorkspaceUser("u"), wco);
 			ObjectMetaData md = testdb.createPointerAndSaveObject(new WorkspaceUser("u"), 1, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));

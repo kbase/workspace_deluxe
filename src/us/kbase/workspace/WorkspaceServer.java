@@ -1,6 +1,6 @@
 package us.kbase.workspace;
 
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Map;
 import us.kbase.JsonServerMethod;
@@ -8,7 +8,6 @@ import us.kbase.JsonServerServlet;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.Tuple9;
-import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 //BEGIN_HEADER
@@ -22,6 +21,7 @@ import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceId
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -343,10 +343,10 @@ public class WorkspaceServer extends JsonServerServlet {
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
 				woc.addObject(new WorkspaceSaveObject(wsi, d.getData().asInstance(), t,
-						d.getMetadata().asInstance(), p, hidden));
+						d.getMetadata(), p, hidden));
 			} else {
 				woc.addObject(new WorkspaceSaveObject(oi, d.getData().asInstance(), t,
-						d.getMetadata().asInstance(), p, hidden));
+						d.getMetadata(), p, hidden));
 			}
 			count++;
 		}
@@ -384,8 +384,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.get_object_metadata", authOptional=true)
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
-        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> returnVal = null;
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+        List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
 		//TODO get_object_metadata
         //END get_object_metadata

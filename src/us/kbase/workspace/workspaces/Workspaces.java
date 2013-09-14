@@ -120,11 +120,11 @@ public class Workspaces {
 		WorkspaceObjectCollection woc = new WorkspaceObjectCollection(new WorkspaceIdentifier("permspriv"));
 //		System.out.println(woc);
 		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, Object> meta = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		meta.put("metastuff", moredata);
+		meta.put("metastuff", "meta");
 		Provenance p = new Provenance("kbasetest2");
 		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));

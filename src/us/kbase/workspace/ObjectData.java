@@ -10,6 +10,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import us.kbase.Tuple10;
+import us.kbase.UObject;
 
 
 /**
@@ -30,37 +31,37 @@ import us.kbase.Tuple10;
 public class ObjectData {
 
     @JsonProperty("data")
-    private us.kbase.UObject data;
+    private UObject data;
     @JsonProperty("meta")
-    private Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta;
+    private Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
-    public us.kbase.UObject getData() {
+    public UObject getData() {
         return data;
     }
 
     @JsonProperty("data")
-    public void setData(us.kbase.UObject data) {
+    public void setData(UObject data) {
         this.data = data;
     }
 
-    public ObjectData withData(us.kbase.UObject data) {
+    public ObjectData withData(UObject data) {
         this.data = data;
         return this;
     }
 
     @JsonProperty("meta")
-    public Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> getMeta() {
+    public Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> getMeta() {
         return meta;
     }
 
     @JsonProperty("meta")
-    public void setMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta) {
+    public void setMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta) {
         this.meta = meta;
     }
 
-    public ObjectData withMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, us.kbase.UObject> meta) {
+    public ObjectData withMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta) {
         this.meta = meta;
         return this;
     }

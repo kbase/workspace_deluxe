@@ -1,6 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
+import java.util.Map;
 
 import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -8,11 +9,11 @@ import us.kbase.workspace.database.WorkspaceUser;
 public class MongoObjectUserMeta extends MongoObjectMeta implements
 		ObjectUserMetaData {
 	
-	final private Object userMeta;
+	final private Map<String, String> userMeta;
 	
 	public MongoObjectUserMeta(int id, String name, String typeString, Date createdDate,
 			int version, WorkspaceUser creator, int workspaceid, String chksum,
-			int size, Object userMeta) {
+			int size, Map<String, String> userMeta) {
 		super(id, name, typeString, createdDate, version, creator, workspaceid,
 				chksum, size);
 		//no error checking for now, add if needed
@@ -21,7 +22,7 @@ public class MongoObjectUserMeta extends MongoObjectMeta implements
 
 	//meta is mutable
 	@Override
-	public Object getUserMetaData() {
+	public Map<String, String> getUserMetaData() {
 		return userMeta;
 	}
 	

@@ -66,6 +66,11 @@ module Workspace {
 	*/
 	typedef string type_string;
 	
+	/* User provided metadata about an object.
+		Arbitrary key-value pairs provided by the user.
+	*/
+	typedef mapping<string, string> usermeta;
+	
 	/* A workspace identifier.
 
 		Select a workspace by one, and only one, of the numerical id or name,
@@ -182,13 +187,13 @@ module Workspace {
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
-		UnspecifiedObject metadata - arbitrary user-supplied metadata about
+		usermeta metadata - arbitrary user-supplied metadata about
 			the object.
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
-		ws_id wsid, string chsum, int size, UnspecifiedObject metadata>
+		ws_id wsid, string chsum, int size, usermeta metadata>
 		object_metadata_full;
 	
 	/* A provenance action.
@@ -252,12 +257,13 @@ module Workspace {
 	
 		Required arguments:
 		ws_name workspace - name of the workspace to be created.
+		
 		Optional arguments:
 		permission globalread - 'r' to set workspace globally readable,
 			default 'n'.
 		string description - A free-text description of the workspace, 1000
 			characters max. Longer strings will be mercilessly and brutally
-				truncated.
+			truncated.
 	*/
 	typedef structure { 
 		ws_name workspace;
@@ -289,6 +295,7 @@ module Workspace {
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase
 			format, e.g. kb|ws.78.
+		
 		Required arguments:
 		permission new_permission - the permission to assign to the users.
 		list<username> users - the users whose permissions will be altered.
@@ -317,14 +324,15 @@ module Workspace {
 		Required parameters:
 		type_id type - the type of the object.
 		UnspecifiedObject data - the object data.
+		
 		Optional parameters:
 		One of an object name or id. If no name or id is provided the name
 			will be set to the object id as a string, possibly with -\d+
 			appended if that object id already exists as a name.
 		obj_name name - the name of the object.
 		obj_id objid - the id of the object to save over.
-		UnspecifiedObject metadata - arbitrary user-supplied
-			metadata for the object, not to exceed 16kb.
+		usermeta metadata - arbitrary user-supplied metadata for the object,
+			not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
 		type_ver tver - the version of the type. If the version or minor
 			version is not provided the latest version will be assumed.
@@ -337,7 +345,7 @@ module Workspace {
 		UnspecifiedObject data;
 		obj_name name;
 		obj_id objid;
-		UnspecifiedObject metadata;
+		usermeta metadata;
 		list<ProvenanceAction> provenance;
 		type_ver tver;
 		boolean hidden;
@@ -349,6 +357,7 @@ module Workspace {
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace or the workspace ID in KBase
 			format, e.g. kb|ws.78.
+		
 		Required arguments:
 		list<ObjectSaveData> objects - the objects to save.
 		

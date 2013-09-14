@@ -1,5 +1,7 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.Map;
+
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
@@ -9,12 +11,12 @@ public class WorkspaceSaveObject {
 	private final WorkspaceIdentifier wsid;
 	private final Object data;
 	private final TypeId type;
-	private final Object userMeta;
+	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
 	public WorkspaceSaveObject(ObjectIdentifier id, Object data, TypeId type,
-			Object userMeta,  Provenance provenance, boolean hidden) {
+			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
@@ -28,7 +30,7 @@ public class WorkspaceSaveObject {
 	}
 	
 	public WorkspaceSaveObject(WorkspaceIdentifier wsid, Object data, TypeId type,
-			Object userMeta,  Provenance provenance, boolean hidden) {
+			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
 		if (wsid == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither wsid, data nor type may be null");
 		}
@@ -59,7 +61,7 @@ public class WorkspaceSaveObject {
 	}
 
 	//mutable!
-	public Object getUserMeta() {
+	public Map<String, String> getUserMeta() {
 		return userMeta;
 	}
 

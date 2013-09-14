@@ -21,6 +21,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  *         ws_id id - the numerical ID of the workspace.
  *         ws_name workspace - name of the workspace or the workspace ID in KBase
  *                 format, e.g. kb|ws.78.
+ *         
  *         Required arguments:
  *         list<ObjectSaveData> objects - the objects to save.
  * </pre>

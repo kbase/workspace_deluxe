@@ -17,12 +17,13 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * Input parameters for the "create_workspace" function.
  *         Required arguments:
  *         ws_name workspace - name of the workspace to be created.
+ *         
  *         Optional arguments:
  *         permission globalread - 'r' to set workspace globally readable,
  *                 default 'n'.
  *         string description - A free-text description of the workspace, 1000
  *                 characters max. Longer strings will be mercilessly and brutally
- *                         truncated.
+ *                 truncated.
  * </pre>
  * 
  */

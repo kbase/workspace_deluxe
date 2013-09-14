@@ -1,6 +1,8 @@
 package us.kbase.workspace.database;
 
+import java.util.Map;
+
 public interface ObjectUserMetaData extends ObjectMetaData {
 	
-	public Object getUserMetaData();
+	public Map<String, String> getUserMetaData();
 }

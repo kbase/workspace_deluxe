@@ -12,7 +12,6 @@ import us.kbase.JsonClientException;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.Tuple9;
-import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 
 /**
@@ -201,11 +200,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objects);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, UObject>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
+        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>>() {};
+        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
     }
 }
