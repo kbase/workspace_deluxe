@@ -34,6 +34,7 @@ import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
@@ -76,6 +77,7 @@ public class MongoDatabase implements Database {
 
 	//TODO handle deleting workspaces - changes most methods
 	//TODO handle hidden and deleted objects - changes most methods
+	//TODO make user metadata Map<String, String>
 	
 	private static final String SETTINGS = "settings";
 	private static final String WORKSPACES = "workspaces";
@@ -493,36 +495,31 @@ public class MongoDatabase implements Database {
 				.get("description");
 	}
 	
-	private int getWorkspaceID(final WorkspaceIdentifier wsi,
-			final boolean verify) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		if (!verify && wsi.getId() != null) {
-			return wsi.getId();
+	private ResolvedMongoWSID convertResolvedID(ResolvedWorkspaceID rwsi) {
+		if (!(rwsi instanceof ResolvedMongoWSID)) {
+			throw new RuntimeException(
+					"Passed incorrect implementation of ResolvedWorkspaceID");
 		}
+		return (ResolvedMongoWSID) rwsi;
+	}
+	
+	private int getWorkspaceID(final WorkspaceIdentifier wsi) throws
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
 		wsiset.add(wsi);
-		return getWorkspaceIDs(wsiset, verify).get(wsi);
+		return getWorkspaceIDs(wsiset).get(wsi);
 	}
 	
 	private Map<WorkspaceIdentifier, Integer> getWorkspaceIDs(
-			final Set<WorkspaceIdentifier> wsis, final boolean verify)
+			final Set<WorkspaceIdentifier> wsis)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		Set<WorkspaceIdentifier> query = new HashSet<WorkspaceIdentifier>();
 		Map<WorkspaceIdentifier, Integer> ret =
 				new HashMap<WorkspaceIdentifier, Integer>();
-		for (WorkspaceIdentifier wsi: wsis) {
-			if (!verify && wsi.getId() != null) {
-				ret.put(wsi, wsi.getId());
-			} else {
-				query.add(wsi);
-			}
-			
-		}
-		if (query.isEmpty()) {
+		if (wsis.isEmpty()) {
 			return ret;
 		}
 		Map<WorkspaceIdentifier, Map<String, Object>> res =
-				queryWorkspacesByIdentifier(query, PROJ_ID);
+				queryWorkspacesByIdentifier(wsis, PROJ_ID);
 		for (WorkspaceIdentifier wsi: res.keySet()) {
 			ret.put(wsi, (Integer) res.get(wsi).get("id"));
 		}
@@ -539,7 +536,7 @@ public class MongoDatabase implements Database {
 	public void setPermissions(final WorkspaceIdentifier wsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		setPermissionsForWorkspaceUsers(getWorkspaceID(wsi, true), users, perm,
+		setPermissionsForWorkspaceUsers(getWorkspaceID(wsi), users, perm,
 				true);
 	}
 	
@@ -624,7 +621,7 @@ public class MongoDatabase implements Database {
 		final DBObject query = new BasicDBObject();
 		final DBObject iddb = new BasicDBObject();
 		final Map<WorkspaceIdentifier, Integer> wsids = 
-				getWorkspaceIDs(wsis, true);
+				getWorkspaceIDs(wsis);
 		iddb.put("$in", wsids.values());
 		query.put("id", iddb);
 		if (users != null && users.size() > 0) {
@@ -1110,7 +1107,7 @@ public class MongoDatabase implements Database {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException {
 		//this method must maintain the order of the objects
-		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier(), true);
+		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier());
 //		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
