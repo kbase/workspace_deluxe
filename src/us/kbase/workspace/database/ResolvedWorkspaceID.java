@@ -1,7 +1,6 @@
 package us.kbase.workspace.database;
 
-/** A workspace ID that has been confirmed against the database and the 
- * name of the ID at the time it was confirmed.
+/** A workspace ID that has been confirmed against the database.
  * 
  * This class should never be instantiated directly - only by classes
  * implementing the {@link us.kbase.workspace.database.Database} interface.
@@ -13,7 +12,6 @@ package us.kbase.workspace.database;
  */
 public interface ResolvedWorkspaceID {
 	
-	public String getNameAtResolutionTime();
 	public int getID();
 
 }

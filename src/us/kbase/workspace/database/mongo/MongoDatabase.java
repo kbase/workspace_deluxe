@@ -291,7 +291,7 @@ public class MongoDatabase implements Database {
 	public WorkspaceMetaData createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
 			final String description) throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		//avoid incrementing the counter if we don't have to
 		try {
 			if (wsjongo.getCollection(WORKSPACES).count("{name: #}", wsname) > 0) {
@@ -318,38 +318,67 @@ public class MongoDatabase implements Database {
 		ws.put("deleted", null);
 		ws.put("numpointers", 0);
 		ws.put("description", description);
-		try { //this is almost impossible to test and will probably almost never happen
+		try {
 			wsmongo.getCollection(WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
+			//this is almost impossible to test and will probably almost never happen
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace %s already exists", wsname));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		try {
-			setPermissionsForWorkspaceUsers(count, Arrays.asList(user),
-					Permission.OWNER, false);
-			if (globalRead) {
-				setPermissions(count, Arrays.asList(allUsers), Permission.READ,
-						false);
-			}
-		} catch (NoSuchWorkspaceException nswe) { //should never happen
-			throw new RuntimeException(
-					"just created a workspace that doesn't exist", nswe);
+		setPermissionsForWorkspaceUsers(count, Arrays.asList(user),
+				Permission.OWNER, false);
+		if (globalRead) {
+			setPermissions(count, Arrays.asList(allUsers), Permission.READ,
+					false);
 		}
 		return new MongoWSMeta(count, wsname, user, moddate, Permission.OWNER,
 				globalRead);
 	}
 	
-	private Map<String, Object> queryWorkspace(final WorkspaceIdentifier wsi,
-			final Set<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
-		wsiset.add(wsi);
-		return queryWorkspacesByIdentifier(wsiset, fields).get(wsi);
+	private Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
+			final Set<String> fields) throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		Set<ResolvedMongoWSID> rwsiset = new HashSet<ResolvedMongoWSID>();
+		rwsiset.add(rwsi);
+		return queryWorkspacesByResolvedID(rwsiset, fields).get(rwsi);
+	}
+	
+	private Map<ResolvedMongoWSID, Map<String, Object>>
+			queryWorkspacesByResolvedID(final Set<ResolvedMongoWSID> rwsiset,
+			final Set<String> fields) throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final Map<Integer, ResolvedMongoWSID> ids =
+				new HashMap<Integer, ResolvedMongoWSID>();
+		for (ResolvedMongoWSID r: rwsiset) {
+			ids.put(r.getID(), r);
+		}
+		final Map<Integer, Map<String, Object>> idres;
+		try {
+			idres = queryWorkspacesByID(ids.keySet(), fields);
+		} catch (NoSuchWorkspaceException nswe) {
+			throw new CorruptWorkspaceDBException(
+					"Workspace deleted from database: " + 
+					nswe.getLocalizedMessage());
+		}
+		final Map<ResolvedMongoWSID, Map<String, Object>> ret =
+				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
+		for (Integer id: idres.keySet()) {
+			ret.put(ids.get(id), idres.get(id));
+		}
+		return ret;
 	}
 
+//	private Map<String, Object> queryWorkspace(final WorkspaceIdentifier wsi,
+//			final Set<String> fields) throws NoSuchWorkspaceException,
+//			WorkspaceCommunicationException {
+//		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
+//		wsiset.add(wsi);
+//		return queryWorkspacesByIdentifier(wsiset, fields).get(wsi);
+//	}
+	
 	private Map<WorkspaceIdentifier, Map<String, Object>>
 			queryWorkspacesByIdentifier(final Set<WorkspaceIdentifier> wsiset,
 			final Set<String> fields) throws NoSuchWorkspaceException,
@@ -489,9 +518,9 @@ public class MongoDatabase implements Database {
 	}
 	
 	@Override
-	public String getWorkspaceDescription(final WorkspaceIdentifier wsi) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return (String) queryWorkspace(wsi, PROJ_DESC)
+	public String getWorkspaceDescription(final ResolvedWorkspaceID rwsi) throws
+			CorruptWorkspaceDBException, WorkspaceCommunicationException {
+		return (String) queryWorkspace(convertResolvedID(rwsi), PROJ_DESC)
 				.get("description");
 	}
 	
@@ -503,47 +532,81 @@ public class MongoDatabase implements Database {
 		return (ResolvedMongoWSID) rwsi;
 	}
 	
-	private int getWorkspaceID(final WorkspaceIdentifier wsi) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
+	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
 		wsiset.add(wsi);
-		return getWorkspaceIDs(wsiset).get(wsi);
+		return resolveWorkspaces(wsiset).get(wsi);
+				
 	}
 	
-	private Map<WorkspaceIdentifier, Integer> getWorkspaceIDs(
-			final Set<WorkspaceIdentifier> wsis)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		Map<WorkspaceIdentifier, Integer> ret =
-				new HashMap<WorkspaceIdentifier, Integer>();
+	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
+			final Set<WorkspaceIdentifier> wsis) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException {
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
+				new HashMap<WorkspaceIdentifier, ResolvedWorkspaceID>();
 		if (wsis.isEmpty()) {
 			return ret;
 		}
-		Map<WorkspaceIdentifier, Map<String, Object>> res =
+		final Map<WorkspaceIdentifier, Map<String, Object>> res =
 				queryWorkspacesByIdentifier(wsis, PROJ_ID);
-		for (WorkspaceIdentifier wsi: res.keySet()) {
-			ret.put(wsi, (Integer) res.get(wsi).get("id"));
+		final Map<ResolvedMongoWSID, ResolvedMongoWSID> seen = 
+				new HashMap<ResolvedMongoWSID, ResolvedMongoWSID>();
+		for (final WorkspaceIdentifier wsi: res.keySet()) {
+			ResolvedMongoWSID r = new ResolvedMongoWSID(
+					(Integer) res.get(wsi).get("id"));
+			if (seen.containsKey(r)) {
+				r = seen.get(r);
+			} else {
+				seen.put(r, r);
+			}
+			ret.put(wsi, r);
 		}
 		return ret;
 	}
-
-	private WorkspaceUser getOwner(final int wsid) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		return new WorkspaceUser((String) queryWorkspace(wsid, PROJ_OWNER)
-				.get("owner"));
-	}
+	
+//	private int getWorkspaceID(final WorkspaceIdentifier wsi) throws
+//			NoSuchWorkspaceException, WorkspaceCommunicationException {
+//		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
+//		wsiset.add(wsi);
+//		return getWorkspaceIDs(wsiset).get(wsi);
+//	}
+//	
+//	private Map<WorkspaceIdentifier, Integer> getWorkspaceIDs(
+//			final Set<WorkspaceIdentifier> wsis)
+//			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+//		final Map<WorkspaceIdentifier, Integer> ret =
+//				new HashMap<WorkspaceIdentifier, Integer>();
+//		if (wsis.isEmpty()) {
+//			return ret;
+//		}
+//		final Map<WorkspaceIdentifier, Map<String, Object>> res =
+//				queryWorkspacesByIdentifier(wsis, PROJ_ID);
+//		for (WorkspaceIdentifier wsi: res.keySet()) {
+//			ret.put(wsi, (Integer) res.get(wsi).get("id"));
+//		}
+//		return ret;
+//	}
+	
+//	private WorkspaceUser getOwner(final int wsid) throws NoSuchWorkspaceException,
+//			WorkspaceCommunicationException {
+//		return new WorkspaceUser((String) queryWorkspace(wsid, PROJ_OWNER)
+//				.get("owner"));
+//	}
 	
 	@Override
-	public void setPermissions(final WorkspaceIdentifier wsi,
+	public void setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		setPermissionsForWorkspaceUsers(getWorkspaceID(wsi), users, perm,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		setPermissionsForWorkspaceUsers(convertResolvedID(rwsi).getID(), users, perm,
 				true);
 	}
 	
+	//wsid must exist as a workspace
 	private void setPermissionsForWorkspaceUsers(final int wsid,
 			final List<WorkspaceUser> users, final Permission perm, 
-			final boolean checkowner) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
+			final boolean checkowner) throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		List<User> u = new ArrayList<User>();
 		for (User user: users) {
 			u.add(user);
@@ -552,10 +615,22 @@ public class MongoDatabase implements Database {
 		
 	}
 	
+	//wsid must exist as a workspace
 	private void setPermissions(final int wsid, final List<User> users,
 			final Permission perm, final boolean checkowner) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		final WorkspaceUser owner = checkowner ? getOwner(wsid) : null;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final WorkspaceUser owner;
+		if (checkowner) {
+			try {
+				owner = new WorkspaceUser((String) queryWorkspace(wsid, PROJ_OWNER)
+						.get("owner"));
+			} catch (NoSuchWorkspaceException nswe) {
+				throw new CorruptWorkspaceDBException(String.format(
+						"Workspace %s was deleted from the database", wsid));
+			}
+		} else {
+			owner = null;
+		}
 		for (User user: users) {
 			if (owner != null && owner.getUser().equals(user.getUser())) {
 				continue; // can't change owner permissions
@@ -577,9 +652,9 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<User, Permission> queryPermissions(
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			final ResolvedMongoWSID rwsi) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(wsi, null);
+		return queryPermissions(rwsi, null);
 	}
 	
 	private static User getUser(final String user) throws
@@ -605,24 +680,23 @@ public class MongoDatabase implements Database {
 	}
 	
 	private Map<User, Permission> queryPermissions(
-			final WorkspaceIdentifier wsi, final Set<User> users) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final Set<WorkspaceIdentifier> wsis = new HashSet<WorkspaceIdentifier>();
-		wsis.add(wsi);
-		return queryPermissions(wsis, users).get(wsi);
+			final ResolvedMongoWSID rwsi, final Set<User> users) throws
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Set<ResolvedMongoWSID> wsis = new HashSet<ResolvedMongoWSID>();
+		wsis.add(rwsi);
+		return queryPermissions(wsis, users).get(rwsi);
 	}
 	
-	//TODO think about how to pare down the list of workspace identifiers to unique workspaces and still make it easy for users to use the pared list
-	private Map<WorkspaceIdentifier, Map<User, Permission>> queryPermissions(
-			final Set<WorkspaceIdentifier> wsis, final Set<User> users) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+	private Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
+			final Set<ResolvedMongoWSID> rwsis, final Set<User> users) throws
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
 		final DBObject iddb = new BasicDBObject();
-		final Map<WorkspaceIdentifier, Integer> wsids = 
-				getWorkspaceIDs(wsis);
-		iddb.put("$in", wsids.values());
+		final Set<Integer> wsids = new HashSet<Integer>();
+		for (final ResolvedMongoWSID r: rwsis) {
+			wsids.add(r.getID());
+		}
+		iddb.put("$in", wsids);
 		query.put("id", iddb);
 		if (users != null && users.size() > 0) {
 			final List<String> u = new ArrayList<String>();
@@ -649,7 +723,7 @@ public class MongoDatabase implements Database {
 		
 		final Map<Integer, Map<User, Permission>> wsidToPerms =
 				new HashMap<Integer, Map<User, Permission>>();
-		for (DBObject m: res) {
+		for (final DBObject m: res) {
 			final int wsid = (int) m.get("id");
 			if (!wsidToPerms.containsKey(wsid)) {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
@@ -657,64 +731,68 @@ public class MongoDatabase implements Database {
 			wsidToPerms.get(wsid).put(getUser((String) m.get("user")),
 					Permission.fromInt((int) m.get("perm")));
 		}
-		final Map<WorkspaceIdentifier, Map<User, Permission>> ret =
-				new HashMap<WorkspaceIdentifier, Map<User, Permission>>();
-		for (WorkspaceIdentifier wsi: wsids.keySet()) {
-			final Map<User, Permission> p = wsidToPerms.get(wsids.get(wsi));
-			ret.put(wsi, p == null ? new HashMap<User, Permission>() : p);
+		final Map<ResolvedMongoWSID, Map<User, Permission>> ret =
+				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
+		for (ResolvedMongoWSID rwsi: rwsis) {
+			final Map<User, Permission> p = wsidToPerms.get(rwsi.getID());
+			ret.put(rwsi, p == null ? new HashMap<User, Permission>() : p);
 		}
 		return ret;
 	}
 
 	@Override
 	public Permission getPermission(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			final ResolvedWorkspaceID wsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Set<WorkspaceIdentifier> wsis =
-				new HashSet<WorkspaceIdentifier>();
+		final Set<ResolvedWorkspaceID> wsis =
+				new HashSet<ResolvedWorkspaceID>();
 		wsis.add(wsi);
 		return getPermissions(user, wsis).get(wsi);
 	}
 	
 	@Override
-	public Map<WorkspaceIdentifier, Permission> getPermissions(
-			final WorkspaceUser user, final Set<WorkspaceIdentifier> wsis)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException, 
+	public Map<ResolvedWorkspaceID, Permission> getPermissions(
+			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
+			throws WorkspaceCommunicationException, 
 			CorruptWorkspaceDBException {
 		final Set<User> users = new HashSet<User>();
 		if (user != null) {
 			users.add(user);
 		}
 		users.add(allUsers);
-		final Map<WorkspaceIdentifier, Map<User, Permission>> perms = 
-				queryPermissions(wsis, users);
-		final Map<WorkspaceIdentifier, Permission> ret = 
-				new HashMap<WorkspaceIdentifier, Permission>();
-		for (WorkspaceIdentifier wsi: perms.keySet()) {
+		final Set<ResolvedMongoWSID> rm = new HashSet<ResolvedMongoWSID>();
+		for (final ResolvedWorkspaceID r: rwsis) {
+			rm.add(convertResolvedID(r));
+		}
+		final Map<ResolvedMongoWSID, Map<User, Permission>> perms = 
+				queryPermissions(rm, users);
+		final Map<ResolvedWorkspaceID, Permission> ret = 
+				new HashMap<ResolvedWorkspaceID, Permission>();
+		for (ResolvedMongoWSID r: perms.keySet()) {
 			Permission p = Permission.NONE;
-			if (perms.get(wsi).containsKey(allUsers)) {
-				p = perms.get(wsi).get(allUsers); //if allUsers is in the DB it's always read
+			if (perms.get(r).containsKey(allUsers)) {
+				p = perms.get(r).get(allUsers); //if allUsers is in the DB it's always read
 			}
-			if (perms.get(wsi).containsKey(user) &&
-					!perms.get(wsi).get(user).equals(Permission.NONE)) {
-				p = perms.get(wsi).get(user);
+			if (perms.get(r).containsKey(user) &&
+					!perms.get(r).get(user).equals(Permission.NONE)) {
+				p = perms.get(r).get(user);
 			}
-			ret.put(wsi, p);
+			ret.put(r, p);
 		}
 		return ret;
 	}
 	
 	@Override
 	public Map<User, Permission> getUserAndGlobalPermission(
-			final WorkspaceUser user, final WorkspaceIdentifier wsi) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			final WorkspaceUser user, final ResolvedWorkspaceID rwsi) throws
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final Set<User> users = new HashSet<User>();
 		users.add(allUsers);
 		if (user != null) {
 			users.add(user);
 		}
-		final Map<User, Permission> ret = queryPermissions(wsi, users);
+		final Map<User, Permission> ret = queryPermissions(
+				convertResolvedID(rwsi), users);
 		if (!ret.containsKey(user)) {
 			ret.put(user, Permission.NONE);
 		}
@@ -723,9 +801,9 @@ public class MongoDatabase implements Database {
 
 	@Override
 	public Map<User, Permission> getAllPermissions(
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			final ResolvedWorkspaceID rwsi) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(wsi);
+		return queryPermissions(convertResolvedID(rwsi));
 	}
 
 	private static final Set<String> PROJ_ID_NAME_OWNER_MODDATE = 
@@ -733,12 +811,13 @@ public class MongoDatabase implements Database {
 	
 	@Override
 	public WorkspaceMetaData getWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
+			final ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Map<String, Object> ws = queryWorkspace(wsi,
+		final ResolvedMongoWSID m = convertResolvedID(rwsi);
+		final Map<String, Object> ws = queryWorkspace(convertResolvedID(m),
 				PROJ_ID_NAME_OWNER_MODDATE);
 		final Map<User, Permission> res = getUserAndGlobalPermission(user,
-				wsi);
+				m);
 		return new MongoWSMeta((int) ws.get("id"), (String) ws.get("name"),
 				new WorkspaceUser((String) ws.get("owner")),
 				(Date) ws.get("moddate"), res.get(user),
@@ -1107,7 +1186,7 @@ public class MongoDatabase implements Database {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException {
 		//this method must maintain the order of the objects
-		final int wsid = getWorkspaceID(objects.getWorkspaceIdentifier());
+		final int wsid = resolveWorkspace(objects.getWorkspaceIdentifier()).getID(); //TODO use resolved id throughout
 //		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
