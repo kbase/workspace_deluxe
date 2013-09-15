@@ -903,8 +903,8 @@ public class MongoDatabase implements Database {
 	}
 	
 	// save object in preexisting object container
-	private ObjectMetaData saveObject(final WorkspaceUser user, final int wsid,
-			final int objectid, final ObjectSavePackage pkg)
+	private ObjectMetaData saveObjectInstance(final WorkspaceUser user,
+			final int wsid, final int objectid, final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		System.out.println("****save prexisting obj called****");
 		System.out.println("wsid " + wsid);
@@ -930,7 +930,17 @@ public class MongoDatabase implements Database {
 		pointer.put("version", ver);
 		pointer.put("createdby", user.getUser());
 		pointer.put("chksum", pkg.td.getChksum());
-		pointer.put("meta", pkg.wo.getUserMeta());
+		final List<Map<String, String>> meta = 
+				new ArrayList<Map<String, String>>();
+		if (pkg.wo.getUserMeta() != null) {
+			for (String key: pkg.wo.getUserMeta().keySet()) {
+				Map<String, String> m = new HashMap<String, String>();
+				m.put("k", key);
+				m.put("v", pkg.wo.getUserMeta().get(key));
+				meta.add(m);
+			}
+		}
+		pointer.put("meta", meta);
 		final Date created = new Date();
 		pointer.put("createDate", created);
 		pointer.put("reffedBy", new ArrayList<Object>()); //TODO this might be a really bad idea
@@ -1058,12 +1068,12 @@ public class MongoDatabase implements Database {
 				//oh ffs, name deleted again, recurse
 				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
 			}
-			return saveObject(user, wsid, objID.get(o).id, pkg);
+			return saveObjectInstance(user, wsid, objID.get(o).id, pkg);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return saveObject(user, wsid, objectid, pkg);
+		return saveObjectInstance(user, wsid, objectid, pkg);
 	}
 	
 	private static class ObjectSavePackage {
@@ -1251,12 +1261,12 @@ public class MongoDatabase implements Database {
 			if (oi == null) { //no name given, need to generate one
 				ret.add(createPointerAndSaveObject(user, wsid, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObject(user, wsid, oi.getId(), p));
+				ret.add(saveObjectInstance(user, wsid, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObject(user, wsid, objIDs.get(oi).id, p));
+				ret.add(saveObjectInstance(user, wsid, objIDs.get(oi).id, p));
 			} else if (seenNames.containsKey(oi.getName())) {
 				//we've already generated an id for this name
-				ret.add(saveObject(user, wsid, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectInstance(user, wsid, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
 				ObjectMetaData m = createPointerAndSaveObject(user, wsid,
 						newid++, oi.getName(), p);

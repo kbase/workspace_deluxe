@@ -10,6 +10,8 @@ import sys
 
 ANT = 'ant'
 
+WORKSPACETEST = 'Workspacetest'
+
 CONFIG_OPTS = ['test.shock.url',
                'test.mongo.host',
                'test.mongo.db1',
@@ -30,9 +32,21 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         fn = sys.argv[1]
     fn = os.path.join(d, fn)
+    if not os.path.isfile(fn):
+        print 'No such config file ' + fn + '. Halting.'
+        sys.exit(1)
+    print 'Using test config file ' + fn
     out = os.path.join(d, 'run_tests.sh')
     cfg = ConfigObj(fn)
-    testcfg = cfg['Workspacetest']
+    try:
+        testcfg = cfg[WORKSPACETEST]
+    except KeyError as ke:
+        print 'Test config file ' + fn + ' is missing section ' +\
+            WORKSPACETEST + '. Halting.'
+        sys.exit(1)
+    if testcfg['test.user1'] == testcfg['test.user2']:
+        print "The two test users are identical. Halting."
+        sys.exit(1)
     with open(out, 'w') as run:
         run.write('# Generated file - do not check into git\n')
 #        run.write('cd ..\n')
