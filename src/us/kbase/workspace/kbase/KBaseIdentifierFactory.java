@@ -88,6 +88,5 @@ public class KBaseIdentifierFactory {
 				oi.getWorkspace(), oi.getWsid());
 		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(),
 				oi.getVer());
-		
 	}
 }

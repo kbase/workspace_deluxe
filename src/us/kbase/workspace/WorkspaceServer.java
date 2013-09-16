@@ -13,6 +13,7 @@ import us.kbase.auth.AuthToken;
 //BEGIN_HEADER
 import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -372,7 +373,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		for (ObjectIdentity oi: objects) {
 			loi.add(processObjectIdentifier(oi));
 		}
-		ws.getObjects(getUser(authPart), loi);
+		returnVal = translateObjectData(ws.getObjects(getUser(authPart), loi));
 		//TODO get_objects
         //END get_objects
         return returnVal;

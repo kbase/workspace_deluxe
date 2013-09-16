@@ -96,6 +96,13 @@ public class ObjectIdentifier {
 		return wsi.getIdentifierString();
 	}
 	
+	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {
+		if (name == null) {
+			return new ObjectIDResolvedWS(rwsi, id, version);
+		}
+		return new ObjectIDResolvedWS(rwsi, name, version);
+	}
+	
 	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
 			final String name, final Integer id) {
 		return create(wsi, name, id, null);

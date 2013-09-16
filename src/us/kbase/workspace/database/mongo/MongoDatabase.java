@@ -31,12 +31,14 @@ import org.junit.experimental.runners.Enclosed;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -1374,6 +1376,12 @@ public class MongoDatabase implements Database {
 	
 	private String getTypeCollection(final AbsoluteTypeId type) {
 		return "type-" + type.getTypeString();
+	}
+	
+	public List<WorkspaceObjectData> getObjects(final List<ObjectIDResolvedWS> objectIDs) {
+		
+		//TODO getObjects
+		return null;
 	}
 	
 	public static class TestMongoInternals {

@@ -14,10 +14,12 @@ import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.Tuple9;
 import us.kbase.auth.AuthToken;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.workspaces.Provenance;
 
@@ -25,8 +27,8 @@ public class ArgUtils {
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	
-	public static void checkAddlArgs(Map<String, Object> addlargs,
-			@SuppressWarnings("rawtypes") Class clazz) {
+	public static void checkAddlArgs(final Map<String, Object> addlargs,
+			@SuppressWarnings("rawtypes") final Class clazz) {
 		if (addlargs.isEmpty()) {
 			return;
 		}
@@ -43,8 +45,8 @@ public class ArgUtils {
 		return DATE_FORMAT.format(d);
 	}
 	
-	public static Provenance processProvenance(String user,
-			List<ProvenanceAction> actions) {
+	public static Provenance processProvenance(final String user,
+			final List<ProvenanceAction> actions) {
 		
 		Provenance p = new Provenance(user);
 		if (actions == null) {
@@ -63,8 +65,8 @@ public class ArgUtils {
 		return p;
 	}
 	
-	public static Tuple6<Integer, String, String, String, String, String> wsMetaToTuple (
-			WorkspaceMetaData meta) {
+	public static Tuple6<Integer, String, String, String, String, String>
+			wsMetaToTuple (final WorkspaceMetaData meta) {
 		return new Tuple6<Integer, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())
@@ -76,7 +78,7 @@ public class ArgUtils {
 	
 	public static List<Tuple9<Integer, String, String, String, Integer, String,
 			Integer, String, Integer>>
-			objMetaToTuple (List<ObjectMetaData> meta) {
+			objMetaToTuple (final List<ObjectMetaData> meta) {
 		
 		//oh the humanity
 		final List<Tuple9<Integer, String, String, String, Integer, String,
@@ -102,7 +104,7 @@ public class ArgUtils {
 	
 	public static List<Tuple10<Integer, String, String, String, Integer, String,
 			Integer, String, Integer, Map<String, String>>>
-			objUserMetaToTuple (List<ObjectUserMetaData> meta) {
+			objUserMetaToTuple (final List<ObjectUserMetaData> meta) {
 		
 		//oh the humanity
 		final List<Tuple10<Integer, String, String, String, Integer, String,
@@ -127,11 +129,16 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	
-	public static WorkspaceUser getUser(AuthToken token) {
+	public static WorkspaceUser getUser(final AuthToken token) {
 		if (token == null) {
 			return null;
 		}
 		return new WorkspaceUser(token.getUserName());
+	}
+	
+	public static List<ObjectData> translateObjectData(
+			final List<WorkspaceObjectData> objects) {
+		//TODO translateObjectData
+		return null;
 	}
 }

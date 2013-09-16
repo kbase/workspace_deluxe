@@ -13,5 +13,7 @@ package us.kbase.workspace.database;
 public interface ResolvedWorkspaceID {
 	
 	public int getID();
+	public int hashCode();
+	public boolean equals(Object obj);
 
 }

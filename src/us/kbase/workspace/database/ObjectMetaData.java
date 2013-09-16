@@ -14,4 +14,6 @@ public interface ObjectMetaData {
 	public WorkspaceUser getCreator();
 	public int getWorkspaceId();
 	public String getCheckSum();
+	public int hashCode();
+	public boolean equals(Object obj);
 }

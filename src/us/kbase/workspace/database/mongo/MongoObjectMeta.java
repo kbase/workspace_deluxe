@@ -17,7 +17,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String chksum;
 	final private int size;
 	
-	public MongoObjectMeta(final int id, final String name,
+	MongoObjectMeta(final int id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
 			final String chksum,

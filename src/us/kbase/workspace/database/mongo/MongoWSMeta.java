@@ -15,7 +15,7 @@ public class MongoWSMeta implements WorkspaceMetaData {
 	final private Permission userPermission;
 	final private boolean globalRead;
 	
-	public MongoWSMeta(int id, String name, WorkspaceUser owner, Date modDate,
+	MongoWSMeta(int id, String name, WorkspaceUser owner, Date modDate,
 			Permission userPermission, boolean globalRead) {
 		this.id = id;
 		this.name = name;

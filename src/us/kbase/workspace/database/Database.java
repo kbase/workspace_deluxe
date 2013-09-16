@@ -58,4 +58,7 @@ public interface Database {
 			ResolvedWorkspaceID rwsi, List<WorkspaceSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
+	
+	public List<WorkspaceObjectData> getObjects(
+			List<ObjectIDResolvedWS> objectIDs);
 }

@@ -2,10 +2,13 @@ package us.kbase.workspace.workspaces;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.Permission;
@@ -13,6 +16,7 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -36,18 +40,27 @@ public class Workspaces {
 		this.db = db;
 	}
 	
+	private void comparePermission(final WorkspaceUser user,
+			final Permission required, final Permission available,
+			final String workspace, final String operation) throws
+			WorkspaceAuthorizationException {
+		if(required.compareTo(available) > 0) {
+			final String err = user == null ?
+					"Anonymous users may not %s workspace %s" :
+					"User " + user.getUser() + " may not %s workspace %s";
+			throw new WorkspaceAuthorizationException(String.format(
+					err, operation, workspace));
+		}
+	}
+	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final Permission perm,
-			final String error) throws CorruptWorkspaceDBException,
+			final String operation) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-		if(perm.compareTo(db.getPermission(user, wsid)) > 0) {
-			final String err = user == null ? "Anonymous users may not %s workspace %s" :
-				"User " + user.getUser() + " may not %s workspace %s";
-			throw new WorkspaceAuthorizationException(String.format(
-					err, error, wsi.getIdentifierString()));
-		}
+		comparePermission(user, perm, db.getPermission(user, wsid),
+				wsi.getIdentifierString(), operation);
 		return wsid;
 	}
 	
@@ -123,9 +136,37 @@ public class Workspaces {
 		return db.saveObjects(user, rwsi, objects);
 	}
 	
-	public void getObjects(WorkspaceUser user, List<ObjectIdentifier> loi) {
-		// TODO Auto-generated method stub
+	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi) throws
+			CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		return db.getObjects(checkPerms(user, loi, Permission.READ, "read"));
 		
+	}
+	
+	private List<ObjectIDResolvedWS> checkPerms(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final Permission perm,
+			final String operation) throws CorruptWorkspaceDBException,
+			NoSuchWorkspaceException, WorkspaceCommunicationException,
+			WorkspaceAuthorizationException {
+		final Set<WorkspaceIdentifier> wsis =
+				new HashSet<WorkspaceIdentifier>();
+		for (ObjectIdentifier o: loi) {
+			wsis.add(o.getWorkspaceIdentifier());
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
+				db.resolveWorkspaces(wsis);
+		final Map<ResolvedWorkspaceID, Permission> perms =
+				db.getPermissions(user,
+						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		final List<ObjectIDResolvedWS> ret = new ArrayList<ObjectIDResolvedWS>();
+		for (final ObjectIdentifier o: loi) {
+			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
+			comparePermission(user, perm, perms.get(r),
+					o.getWorkspaceIdentifierString(), operation);
+			ret.add(o.resolveWorkspace(r));
+		}
+		return ret;
 	}
 	
 	public static void main(String[] args) throws Exception {
