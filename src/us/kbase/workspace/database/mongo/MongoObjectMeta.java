@@ -17,9 +17,11 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String chksum;
 	final private int size;
 	
-	public MongoObjectMeta(int id, String name, String typeString, Date createdDate,
-			int version, WorkspaceUser creator, int workspaceid, String chksum,
-			int size) {
+	public MongoObjectMeta(final int id, final String name,
+			final String typeString, final Date createdDate, final int version,
+			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
+			final String chksum,
+			final int size) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
@@ -27,7 +29,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 		this.createdDate = createdDate;
 		this.version = version;
 		this.creator = creator;
-		this.workspaceId = workspaceid;
+		this.workspaceId = workspaceid.getID();
 		this.chksum = chksum;
 		this.size = size;
 		

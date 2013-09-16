@@ -2,26 +2,23 @@ package us.kbase.workspace.workspaces;
 
 import java.util.Map;
 
-import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceObjectID;
 
 public class WorkspaceSaveObject {
 	
-	private final ObjectIdentifier id;
-	private final WorkspaceIdentifier wsid;
+	private final WorkspaceObjectID id;
 	private final Object data;
 	private final TypeId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceSaveObject(ObjectIdentifier id, Object data, TypeId type,
+	public WorkspaceSaveObject(WorkspaceObjectID id, Object data, TypeId type,
 			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
 		this.id = id;
-		this.wsid = id.getWorkspaceIdentifier();
 		this.data = data;
 		this.type = type;
 		this.userMeta = userMeta;
@@ -29,13 +26,12 @@ public class WorkspaceSaveObject {
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceSaveObject(WorkspaceIdentifier wsid, Object data, TypeId type,
+	public WorkspaceSaveObject(Object data, TypeId type,
 			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
-		if (wsid == null || data == null || type == null) {
-			throw new IllegalArgumentException("Neither wsid, data nor type may be null");
+		if (data == null || type == null) {
+			throw new IllegalArgumentException("Neither data nor type may be null");
 		}
 		this.id = null;
-		this.wsid = wsid;
 		this.data = data;
 		this.type = type;
 		this.userMeta = userMeta;
@@ -43,12 +39,8 @@ public class WorkspaceSaveObject {
 		this.hidden = hidden;
 	}
 
-	public ObjectIdentifier getObjectIdentifier() {
+	public WorkspaceObjectID getObjectIdentifier() {
 		return id;
-	}
-
-	public WorkspaceIdentifier getWorkspaceIdentifier() {
-		return wsid;
 	}
 
 	//mutable!
@@ -75,8 +67,8 @@ public class WorkspaceSaveObject {
 
 	@Override
 	public String toString() {
-		return "WorkspaceObject [id=" + id + ", wsid=" + wsid + ", data="
-				+ data + ", type=" + type + ", userMeta=" + userMeta
-				+ ", provenance=" + provenance + ", hidden=" + hidden + "]";
+		return "WorkspaceSaveObject [id=" + id + ", data=" + data + ", type="
+				+ type + ", userMeta=" + userMeta + ", provenance="
+				+ provenance + ", hidden=" + hidden + "]";
 	}
 }

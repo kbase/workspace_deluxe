@@ -304,7 +304,7 @@ public class JSONRPCLayerTest {
 			fail("got non-existant workspace");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Must provide one and only one of workspace (was: null) or id (was: null)"));
+					is("Must provide one and only one of workspace name (was: null) or id (was: null)"));
 		}
 	}
 }

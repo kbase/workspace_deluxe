@@ -1,17 +1,14 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
 import static us.kbase.workspace.util.Util.checkString;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import static us.kbase.workspace.util.Util.xorNameId;
 
 public class ObjectIdentifier {
 	
 	private final static String REFERENCE_ID_SEP = ".";
 	private final static String REFERENCE_ID_SEP_REGEX = "\\" + REFERENCE_ID_SEP;
 	private final static String REFERENCE_NAME_SEP = "/"; //this cannot be a legal object/workspace char
-	private final static Pattern INVALID_OBJ_NAMES = 
-			Pattern.compile("[^\\w\\|._-]");
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
@@ -19,6 +16,9 @@ public class ObjectIdentifier {
 	private final Integer version;
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, String name) {
+		if (wsi == null) {
+			throw new IllegalArgumentException("wsi cannot be null");
+		}
 		checkObjectName(name);
 		this.wsi = wsi;
 		this.name = name;
@@ -27,6 +27,9 @@ public class ObjectIdentifier {
 	}
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, String name, int version) {
+		if (wsi == null) {
+			throw new IllegalArgumentException("wsi cannot be null");
+		}
 		checkObjectName(name);
 		if (version < 1) {
 			throw new IllegalArgumentException("Object version must be > 0");
@@ -38,6 +41,9 @@ public class ObjectIdentifier {
 	}
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, int id) {
+		if (wsi == null) {
+			throw new IllegalArgumentException("wsi cannot be null");
+		}
 		if (id < 1) {
 			throw new IllegalArgumentException("Object id must be > 0");
 		}
@@ -48,6 +54,9 @@ public class ObjectIdentifier {
 	}
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, int id, int version) {
+		if (wsi == null) {
+			throw new IllegalArgumentException("wsi cannot be null");
+		}
 		if (id < 1) {
 			throw new IllegalArgumentException("Object id must be > 0");
 		}
@@ -58,16 +67,6 @@ public class ObjectIdentifier {
 		this.name = null;
 		this.id = id;
 		this.version = version;
-	}
-	
-	private static Integer parseInt(String s, String reference, String portion) {
-		try {
-			return Integer.parseInt(s);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(String.format(
-					"Unable to parse %s portion of object reference %s to an integer",
-					portion, reference));
-		}
 	}
 	
 	public WorkspaceIdentifier getWorkspaceIdentifier() {
@@ -95,6 +94,26 @@ public class ObjectIdentifier {
 
 	public String getWorkspaceIdentifierString() {
 		return wsi.getIdentifierString();
+	}
+	
+	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
+			final String name, final Integer id) {
+		return create(wsi, name, id, null);
+	}
+	
+	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
+			final String name, final Integer id, final Integer ver) {
+		xorNameId(name, id, "object");
+		if (name != null) {
+			if (ver == null) {
+				return new ObjectIdentifier(wsi, name);
+			}
+			return new ObjectIdentifier(wsi, name, ver);
+		}
+		if (ver == null) {
+			return new ObjectIdentifier(wsi, id);
+		}
+		return new ObjectIdentifier(wsi, id, ver);
 	}
 	
 	public static ObjectIdentifier parseObjectReference(String reference) {
@@ -128,14 +147,13 @@ public class ObjectIdentifier {
 		return new ObjectIdentifier(new WorkspaceIdentifier(ws), obj);
 	}
 	
-	public static void checkObjectName(String name) {
-		if (name == null || name.length() == 0) {
-			throw new IllegalArgumentException("Object name cannot be null and must have at least one character");
-		}
-		final Matcher m = INVALID_OBJ_NAMES.matcher(name);
-		if (m.find()) {
+	private static Integer parseInt(String s, String reference, String portion) {
+		try {
+			return Integer.parseInt(s);
+		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal character in object name %s: %s", name, m.group()));
+					"Unable to parse %s portion of object reference %s to an integer",
+					portion, reference));
 		}
 	}
 	

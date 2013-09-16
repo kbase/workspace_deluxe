@@ -17,6 +17,7 @@ import com.mongodb.DB;
 
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.workspace.database.mongo.MD5;
+import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -50,7 +51,7 @@ public class ShockBackendTest {
 		AbsoluteTypeId wt = new AbsoluteTypeId(new WorkspaceType(mod, type), majorver, minorver);
 		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
 		String data = "this is some data";
-		TypeData td = new TypeData(data, wt, 3, subdata);
+		TypeData td = new TypeData(data, wt, new ResolvedMongoWSID(3), subdata);
 		MD5 tdmd = new MD5(td.getChksum());
 		sb.saveBlob(tdmd, td.getData());
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(tdmd));
@@ -58,7 +59,7 @@ public class ShockBackendTest {
 				UUID.matcher(id.getId()).matches());
 		assertThat("Ext id is the shock node", id.getId(),
 				is(sb.getExternalIdentifier(tdmd)));
-		TypeData faketd = new TypeData(data, wt, 3, subdata); //use same data to get same chksum
+		TypeData faketd = new TypeData(data, wt, new ResolvedMongoWSID(3), subdata); //use same data to get same chksum
 		MD5 tdfakemd = new MD5(faketd.getChksum());
 		assertThat("Shock data returned correctly", data, is(sb.getBlob(tdfakemd)));
 		sb.removeBlob(tdfakemd);
@@ -69,7 +70,7 @@ public class ShockBackendTest {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
 					is("No blob saved with chksum 1463f25d10e363181d686d2484a9eab6"));
 		}
-		TypeData badtd = new TypeData("nosuchdata", wt, 3, subdata);
+		TypeData badtd = new TypeData("nosuchdata", wt, new ResolvedMongoWSID(3), subdata);
 		try {
 			sb.getBlob(new MD5(badtd.getChksum()));
 			fail("Got non-existant blob");

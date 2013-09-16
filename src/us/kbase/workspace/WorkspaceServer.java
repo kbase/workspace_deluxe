@@ -35,6 +35,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.InvalidHostException;
@@ -44,7 +45,6 @@ import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
 
@@ -315,13 +315,14 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN save_objects
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
-		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
+//		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
+		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
 		int count = 1;
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			ObjectIdentifier oi = null;
+			WorkspaceObjectID oi = null;
 			if (d.getName() != null || d.getObjid() != null) {
-				 oi = processObjectIdentifier(wsi, d.getName(), d.getObjid());
+				 oi = WorkspaceObjectID.create(d.getName(), d.getObjid());
 			}
 			String errprefix = "Object ";
 			if (oi == null) {
@@ -342,16 +343,16 @@ public class WorkspaceServer extends JsonServerServlet {
 			final Provenance p = ArgUtils.processProvenance(authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
-				woc.addObject(new WorkspaceSaveObject(wsi, d.getData().asInstance(), t,
+				woc.add(new WorkspaceSaveObject(d.getData().asInstance(), t,
 						d.getMetadata(), p, hidden));
 			} else {
-				woc.addObject(new WorkspaceSaveObject(oi, d.getData().asInstance(), t,
+				woc.add(new WorkspaceSaveObject(oi, d.getData().asInstance(), t,
 						d.getMetadata(), p, hidden));
 			}
 			count++;
 		}
 		
-		List<ObjectMetaData> meta = ws.saveObjects(getUser(authPart), woc); 
+		List<ObjectMetaData> meta = ws.saveObjects(getUser(authPart), wsi, woc); 
 		returnVal = ArgUtils.objMetaToTuple(meta);
         //END save_objects
         return returnVal;

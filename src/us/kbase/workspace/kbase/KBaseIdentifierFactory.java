@@ -1,5 +1,7 @@
 package us.kbase.workspace.kbase;
 
+import static us.kbase.workspace.util.Util.xorNameId;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -18,18 +20,6 @@ public class KBaseIdentifierFactory {
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
 			"kb\\|ws\\.(\\d+)\\.obj\\.(\\d+)(?:\\.ver\\.(\\d+))?");
 
-	private static WorkspaceIdentifier createWSID(String wsname) {
-		Matcher m = KB_WS_ID.matcher(wsname);
-		if (m.find()) {
-			return new WorkspaceIdentifier(new Integer(m.group(1)));
-		}
-		return new WorkspaceIdentifier(wsname);
-	}
-	
-	private static WorkspaceIdentifier createWSID(int id) {
-		return new WorkspaceIdentifier(id);
-	}
-	
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
 		ArgUtils.checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
@@ -38,15 +28,15 @@ public class KBaseIdentifierFactory {
 	
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final String workspace, final Integer id) {
-		if (!(workspace == null ^ id == null)) {
-			throw new IllegalArgumentException(String.format(
-					"Must provide one and only one of workspace (was: %s) or id (was: %s)",
-					workspace, id));
-		}
+		xorNameId(workspace, id, "workspace");
 		if (id != null) {
-			return createWSID(id);
+			return new WorkspaceIdentifier(id);
 		}
-		return createWSID(workspace);
+		Matcher m = KB_WS_ID.matcher(workspace);
+		if (m.find()) {
+			return new WorkspaceIdentifier(new Integer(m.group(1)));
+		}
+		return new WorkspaceIdentifier(workspace);
 	}
 	
 	private static void verifyRefOnly(final ObjectIdentity oi) {
@@ -96,34 +86,8 @@ public class KBaseIdentifierFactory {
 		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				oi.getWorkspace(), oi.getWsid());
-		return processObjectIdentifier(wsi, oi.getName(), oi.getObjid(),
+		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(),
 				oi.getVer());
 		
-	}
-	
-	public static ObjectIdentifier processObjectIdentifier(
-			final WorkspaceIdentifier wsi, final String name,
-			final Integer id) {
-		return processObjectIdentifier(wsi, name, id, null);
-	}
-	
-	public static ObjectIdentifier processObjectIdentifier(
-			final WorkspaceIdentifier wsi, final String name, final Integer id,
-			final Integer ver) {
-		if (!(name == null ^ id == null)) {
-			throw new IllegalArgumentException(String.format(
-					"Must provide one and only one of an object name or id: %s/%s",
-					name, id));
-		}
-		if (name != null) {
-			if (ver == null) {
-				return new ObjectIdentifier(wsi, name);
-			}
-			return new ObjectIdentifier(wsi, name, ver);
-		}
-		if (ver == null) {
-			return new ObjectIdentifier(wsi, id);
-		}
-		return new ObjectIdentifier(wsi, id, ver);
 	}
 }

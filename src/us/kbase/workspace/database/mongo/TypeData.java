@@ -29,20 +29,21 @@ public class TypeData {
 	private Map<String, Object> subdata;
 	private int size;
 	
-	public TypeData(String data, AbsoluteTypeId type, int firstWorkspace,
-			Map<String,Object> subdata) {
+	public TypeData(final String data, final AbsoluteTypeId type,
+			final ResolvedMongoWSID firstWorkspace,
+			final Map<String,Object> subdata) {
 		//TODO might be better to generate subdata here
 		checkString(data, "data");
 		if (type == null) {
-			throw new NullPointerException("type may not be null");
+			throw new IllegalArgumentException("type may not be null");
 		}
-		if (firstWorkspace < 1) {
-			throw new IllegalArgumentException("firstWorkspace must be > 0");
+		if (firstWorkspace == null) {
+			throw new IllegalArgumentException("firstWorkspace cannot be null");
 		}
 		this.data = data;
 		this.type = type;
 		this.workspaces = new ArrayList<Integer>();
-		this.workspaces.add(firstWorkspace);
+		this.workspaces.add(firstWorkspace.getID());
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chksum = DigestUtils.md5Hex(data);

@@ -31,13 +31,13 @@ import org.junit.experimental.runners.Enclosed;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
-import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -58,7 +58,6 @@ import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.TypeSchema;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceObjectCollection;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -840,9 +839,10 @@ public class MongoDatabase implements Database {
 	}
 	
 	// T must be String or Integer
-	private <T> void validateOrTranslateObjectIDs(final int workspaceID,
-			final Map<T, ObjectIdentifier> objects,
-			final Map<ObjectIdentifier, ObjID> validatedIDs) throws 
+	private <T> void validateOrTranslateObjectIDs(
+			final ResolvedMongoWSID workspaceID,
+			final Map<T, WorkspaceObjectID> objects,
+			final Map<WorkspaceObjectID, ObjID> validatedIDs) throws 
 			WorkspaceCommunicationException {
 		if (objects.isEmpty()) {
 			return;
@@ -856,7 +856,7 @@ public class MongoDatabase implements Database {
 		}
 		
 		final DBObject query = new BasicDBObject();
-		query.put("workspace", workspaceID);
+		query.put("workspace", workspaceID.getID());
 		final DBObject identifiers = new BasicDBObject();
 		identifiers.put("$in", objects.keySet());
 		query.put(string ? "name" : "id", identifiers);
@@ -880,16 +880,17 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private Map<ObjectIdentifier, ObjID> getObjectIDs(final int workspaceID,
-			final Set<ObjectIdentifier> objects) throws
+	private Map<WorkspaceObjectID, ObjID> getObjectIDs(
+			final ResolvedMongoWSID workspaceID,
+			final Set<WorkspaceObjectID> objects) throws
 			WorkspaceCommunicationException {
-		final Map<String, ObjectIdentifier> names
-				= new HashMap<String, ObjectIdentifier>();
-		final Map<Integer, ObjectIdentifier> ids
-				= new HashMap<Integer, ObjectIdentifier>();
-		final Map<ObjectIdentifier, ObjID> goodIds =
-				new HashMap<ObjectIdentifier, ObjID>();
-		for (final ObjectIdentifier o: objects) {
+		final Map<String, WorkspaceObjectID> names
+				= new HashMap<String, WorkspaceObjectID>();
+		final Map<Integer, WorkspaceObjectID> ids
+				= new HashMap<Integer, WorkspaceObjectID>();
+		final Map<WorkspaceObjectID, ObjID> goodIds =
+				new HashMap<WorkspaceObjectID, ObjID>();
+		for (final WorkspaceObjectID o: objects) {
 			if (o.getId() == null) {
 				names.put(o.getName(), o);
 			} else {
@@ -904,7 +905,8 @@ public class MongoDatabase implements Database {
 	
 	// save object in preexisting object container
 	private ObjectMetaData saveObjectInstance(final WorkspaceUser user,
-			final int wsid, final int objectid, final ObjectSavePackage pkg)
+			final ResolvedMongoWSID wsid, final int objectid,
+			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		System.out.println("****save prexisting obj called****");
 		System.out.println("wsid " + wsid);
@@ -914,7 +916,7 @@ public class MongoDatabase implements Database {
 		final int ver;
 		try {
 			ver = (int) wsjongo.getCollection(WORKSPACE_PTRS)
-					.findAndModify("{workspace: #, id: #}", wsid, objectid)
+					.findAndModify("{workspace: #, id: #}", wsid.getID(), objectid)
 					.returnNew().with("{$inc: {version: 1}}")
 					.projection("{version: 1, _id: 0}").as(DBObject.class)
 					.get("version");
@@ -923,7 +925,7 @@ public class MongoDatabase implements Database {
 					"There was a problem communicating with the database", me);
 		}
 		final DBObject query = new BasicDBObject();
-		query.put("workspace", wsid);
+		query.put("workspace", wsid.getID());
 		query.put("id", objectid);
 		
 		final DBObject pointer = new BasicDBObject();
@@ -969,7 +971,7 @@ public class MongoDatabase implements Database {
 	
 	//TODO make all projections not include _id unless specified
 	
-	private String generateUniqueNameForObject(final int wsid,
+	private String generateUniqueNameForObject(final ResolvedWorkspaceID wsid,
 			final int objectid) throws WorkspaceCommunicationException {
 		System.out.println("***get unique name called ***");
 		System.out.println("wsid " + wsid);
@@ -978,7 +980,8 @@ public class MongoDatabase implements Database {
 		Iterable<Map> ids;
 		try {
 			ids = wsjongo.getCollection(WORKSPACE_PTRS)
-					.find("{workspace: #, name: {$regex: '^#'}}", wsid, objectid)
+					.find("{workspace: #, name: {$regex: '^#'}}", wsid.getID(),
+							objectid)
 					.projection("{name: 1, _id: 0}").as(Map.class);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -1024,7 +1027,7 @@ public class MongoDatabase implements Database {
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
 	private ObjectMetaData createPointerAndSaveObject(final WorkspaceUser user,
-			final int wsid, final int objectid, final String name,
+			final ResolvedMongoWSID wsid, final int objectid, final String name,
 			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
 		System.out.println("****save new obj called****");
 		System.out.println("wsid " + wsid);
@@ -1039,7 +1042,7 @@ public class MongoDatabase implements Database {
 		}
 		System.out.println("newname " + newName);
 		final DBObject dbo = new BasicDBObject();
-		dbo.put("workspace", wsid);
+		dbo.put("workspace", wsid.getID());
 		dbo.put("id", objectid);
 		dbo.put("version", 0);
 		dbo.put("name", newName);
@@ -1060,9 +1063,9 @@ public class MongoDatabase implements Database {
 				//not much chance of this happening again, let's just recurse
 				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
 			}
-			final ObjectIdentifier o = pkg.wo.getObjectIdentifier();
-			final Map<ObjectIdentifier, ObjID> objID = getObjectIDs(wsid,
-					new HashSet<ObjectIdentifier>(Arrays.asList(o)));
+			final WorkspaceObjectID o = pkg.wo.getObjectIdentifier();
+			final Map<WorkspaceObjectID, ObjID> objID = getObjectIDs(wsid,
+					new HashSet<WorkspaceObjectID>(Arrays.asList(o)));
 			System.out.println(objID);
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
@@ -1101,7 +1104,7 @@ public class MongoDatabase implements Database {
 		sortedMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
 	
-	private static String getObjectErrorId(final ObjectIdentifier oi,
+	private static String getObjectErrorId(final WorkspaceObjectID oi,
 			final int objcount) {
 		String objErrId = "#" + objcount;
 		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
@@ -1109,7 +1112,8 @@ public class MongoDatabase implements Database {
 	}
 	
 	private List<ObjectSavePackage> createObjectSavePackages(
-			final int workspaceid, final WorkspaceObjectCollection objects) {
+			final ResolvedMongoWSID rwsi,
+			final List<WorkspaceSaveObject> objects) {
 		//this method must maintain the order of the objects
 		//TODO split this up
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
@@ -1117,7 +1121,7 @@ public class MongoDatabase implements Database {
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			types.add(wo.getType());
-			final ObjectIdentifier oi = wo.getObjectIdentifier();
+			final WorkspaceObjectID oi = wo.getObjectIdentifier();
 			final ObjectSavePackage p = new ObjectSavePackage();
 			final String objErrId = getObjectErrorId(oi, objcount);
 			final String objerrpunc = oi == null ? "" : ",";
@@ -1150,7 +1154,7 @@ public class MongoDatabase implements Database {
 				new HashMap<ObjectSavePackage, TypeDataStore>();
 		for (ObjectSavePackage pkg: ret) {
 			final TypeDataStore tds = new TypeDataStore();
-			final ObjectIdentifier oi = pkg.wo.getObjectIdentifier();
+			final WorkspaceObjectID oi = pkg.wo.getObjectIdentifier();
 			final String objErrId = getObjectErrorId(oi, objcount);
 //			final String objerrpunc = oi == null ? "" : ",";
 			String json;
@@ -1185,29 +1189,29 @@ public class MongoDatabase implements Database {
 			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(tds.data, tds.type, workspaceid, null); //TODO add subdata
+			pkg.td = new TypeData(tds.data, tds.type, rwsi, null); //TODO add subdata
 		}
 		return ret;
 	}
 	
 	@Override
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
-			final WorkspaceObjectCollection objects) throws
+			final ResolvedWorkspaceID rwsi,
+			final List<WorkspaceSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException {
 		//this method must maintain the order of the objects
-		final int wsid = resolveWorkspace(objects.getWorkspaceIdentifier()).getID(); //TODO use resolved id throughout
 //		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
-		
-		final List<ObjectSavePackage> packages = createObjectSavePackages(wsid,
-				objects);
-		final Map<ObjectIdentifier, List<ObjectSavePackage>> idToPkg =
-				new HashMap<ObjectIdentifier, List<ObjectSavePackage>>();
+		final ResolvedMongoWSID wsidmongo = convertResolvedID(rwsi);
+		final List<ObjectSavePackage> packages = createObjectSavePackages(
+				wsidmongo, objects);
+		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
+				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
 		int newobjects = 0;
 		for (final ObjectSavePackage p: packages) {
-			final ObjectIdentifier o = p.wo.getObjectIdentifier();
+			final WorkspaceObjectID o = p.wo.getObjectIdentifier();
 			if (o != null) {
 //				names.add(p.wo.getObjectIdentifier());
 				if (idToPkg.get(o) == null) {
@@ -1218,8 +1222,9 @@ public class MongoDatabase implements Database {
 				newobjects++;
 			}
 		}
-		final Map<ObjectIdentifier, ObjID> objIDs = getObjectIDs(wsid, idToPkg.keySet());
-		for (ObjectIdentifier o: idToPkg.keySet()) {
+		final Map<WorkspaceObjectID, ObjID> objIDs = getObjectIDs(wsidmongo,
+				idToPkg.keySet());
+		for (WorkspaceObjectID o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				if (o.getId() != null) {
 					throw new NoSuchObjectException(
@@ -1240,11 +1245,11 @@ public class MongoDatabase implements Database {
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
-		saveData(wsid, packages);
+		saveData(wsidmongo, packages);
 		int lastid;
 			try {
 				lastid = (int) wsjongo.getCollection(WORKSPACES)
-						.findAndModify("{id: #}", wsid)
+						.findAndModify("{id: #}", wsidmongo.getID())
 						.returnNew().with("{$inc: {numpointers: #}}", newobjects)
 						.projection("{numpointers: 1, _id: 0}").as(DBObject.class)
 						.get("numpointers");
@@ -1257,18 +1262,18 @@ public class MongoDatabase implements Database {
 		//todo get counts and numbers
 		Map<String, Integer> seenNames = new HashMap<String, Integer>();
 		for (final ObjectSavePackage p: packages) {
-			ObjectIdentifier oi = p.wo.getObjectIdentifier();
+			WorkspaceObjectID oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(createPointerAndSaveObject(user, wsid, newid++, null, p));
+				ret.add(createPointerAndSaveObject(user, wsidmongo, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObjectInstance(user, wsid, oi.getId(), p));
+				ret.add(saveObjectInstance(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObjectInstance(user, wsid, objIDs.get(oi).id, p));
+				ret.add(saveObjectInstance(user, wsidmongo, objIDs.get(oi).id, p));
 			} else if (seenNames.containsKey(oi.getName())) {
 				//we've already generated an id for this name
-				ret.add(saveObjectInstance(user, wsid, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectInstance(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				ObjectMetaData m = createPointerAndSaveObject(user, wsid,
+				ObjectMetaData m = createPointerAndSaveObject(user, wsidmongo,
 						newid++, oi.getName(), p);
 				ret.add(m);
 				seenNames.put(oi.getName(), m.getObjectId());
@@ -1279,7 +1284,7 @@ public class MongoDatabase implements Database {
 	
 	//TODO test the paths
 	//TODO break this up
-	private void saveData(final int workspaceid,
+	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
 		final Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
@@ -1323,10 +1328,12 @@ public class MongoDatabase implements Database {
 					try {
 						wsjongo.getCollection(col)
 								.update("{chksum: #}", md5)
-								.with("{$addToSet: {workspaces: #}}", workspaceid);
+								.with("{$addToSet: {workspaces: #}}",
+										workspaceid.getID());
 					} catch (MongoException me) {
 						throw new WorkspaceCommunicationException(
-								"There was a problem communicating with the database", me);
+								"There was a problem communicating with the database",
+								me);
 					}
 					return;
 				}
@@ -1401,15 +1408,16 @@ public class MongoDatabase implements Database {
 			Provenance p = new Provenance("kbasetest2");
 			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
-			WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
-			WorkspaceSaveObject wo = new WorkspaceSaveObject(new ObjectIdentifier(wsi, "testobj"), data, t, meta, p, false);
-			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);
-			wco.addObject(wo);
+			WorkspaceSaveObject wo = new WorkspaceSaveObject(new WorkspaceObjectID("testobj"), data, t, meta, p, false);
+//			WorkspaceObjectCollection wco = new WorkspaceObjectCollection(wsi);
+			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
+			wco.add(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
-			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, 1, data);
-			testdb.saveObjects(new WorkspaceUser("u"), wco);
-			ObjectMetaData md = testdb.createPointerAndSaveObject(new WorkspaceUser("u"), 1, 3, "testobj", pkg);
+			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
+			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, rwsi , data);
+			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
+			ObjectMetaData md = testdb.createPointerAndSaveObject(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
 		}
 	}
