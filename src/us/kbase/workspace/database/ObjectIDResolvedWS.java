@@ -8,8 +8,7 @@ public class ObjectIDResolvedWS {
 	private final Integer version;
 	
 	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name,
-			int version) {
+	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name, Integer version) {
 		this.rwsi = rwsi;
 		this.name = name;
 		this.id = null;
@@ -17,7 +16,7 @@ public class ObjectIDResolvedWS {
 	}
 	
 	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, int version) {
+	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, Integer version) {
 		this.rwsi = rwsi;
 		this.name = null;
 		this.id = id;
@@ -38,6 +37,13 @@ public class ObjectIDResolvedWS {
 
 	public Integer getVersion() {
 		return version;
+	}
+	
+	public String getIdentifierString() {
+		if (getId() == null) {
+			return getName();
+		}
+		return "" + getId();
 	}
 
 	@Override

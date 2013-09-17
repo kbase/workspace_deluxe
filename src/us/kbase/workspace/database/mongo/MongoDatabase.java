@@ -33,6 +33,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
@@ -427,7 +428,8 @@ public class MongoDatabase implements Database {
 		}
 		fields.add("name");
 		final List<Map<String, Object>> queryres =
-				queryWorkspaces(String.format("{name: {$in: [\"%s\"]}}", 
+				queryCollection(WORKSPACES,
+				String.format("{name: {$in: [\"%s\"]}}", 
 				StringUtils.join(wsnames, "\", \"")), fields);
 		final Map<String, Map<String, Object>> result =
 				new HashMap<String, Map<String, Object>>();
@@ -459,7 +461,7 @@ public class MongoDatabase implements Database {
 		}
 		fields.add("id");
 		final List<Map<String, Object>> queryres =
-				queryWorkspaces(String.format("{id: {$in: [%s]}}",
+				queryCollection(WORKSPACES, String.format("{id: {$in: [%s]}}",
 				StringUtils.join(wsids, ", ")), fields);
 		final Map<Integer, Map<String, Object>> result =
 				new HashMap<Integer, Map<String, Object>>();
@@ -474,18 +476,131 @@ public class MongoDatabase implements Database {
 		}
 		return result;
 	}
-		
-	private List<Map<String, Object>> queryWorkspaces(final String query,
-			final Set<String> fields) throws WorkspaceCommunicationException {
+
+	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
+			final Set<ObjectIDResolvedWS> objectIDs, final Set<String> fields,
+			final Set<String> versionfields) throws NoSuchObjectException,
+			WorkspaceCommunicationException {
+		final Map<ResolvedMongoWSID, Map<Integer, ObjectIDResolvedWS>> ids = 
+				new HashMap<ResolvedMongoWSID, Map<Integer, ObjectIDResolvedWS>>();
+		final Map<ResolvedMongoWSID, Map<String, ObjectIDResolvedWS>> names = 
+				new HashMap<ResolvedMongoWSID, Map<String, ObjectIDResolvedWS>>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoWSID rwsi =
+					convertResolvedID(o.getWorkspaceIdentifier());
+			if (o.getId() == null) {
+				if (names.get(rwsi) == null) {
+					names.put(rwsi, new HashMap<String, ObjectIDResolvedWS>());
+				}
+				names.get(rwsi).put(o.getName(), o);
+			} else {
+				if (ids.get(rwsi) == null) {
+					ids.put(rwsi, new HashMap<Integer, ObjectIDResolvedWS>());
+				}
+				ids.get(rwsi).put(o.getId(), o);
+			}
+		}
+			
+		final Map<ObjectIDResolvedWS, Map<String, Object>> ret =
+				new HashMap<ObjectIDResolvedWS, Map<String, Object>>();
+		//nested or queries are slow per the mongo docs so just query one
+		//workspace at a time. If profiling shows this is slow investigate
+		//further
+		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
+			final Map<Integer, Map<String, Object>> idres = 
+					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
+							versionfields);
+			System.out.println("idres" + idres);
+			for (final Integer id: idres.keySet()) {
+				ret.put(ids.get(rwsi).get(id), idres.get(id));
+			}
+		}
+		for (final ResolvedMongoWSID rwsi: names.keySet()) {
+			final Map<String, Map<String, Object>> nameres = 
+					queryObjectsByName(rwsi, names.get(rwsi).keySet(), fields,
+							versionfields);
+			for (final String name: nameres.keySet()) {
+				ret.put(names.get(rwsi).get(name), nameres.get(name));
+			}
+		}
+		return ret;
+	}
+	
+	private Map<String, Map<String, Object>> queryObjectsByName(
+			final ResolvedMongoWSID rwsi, final Set<String> names,
+			final Set<String> fields, final Set<String> versionfields) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		if (names.isEmpty()) {
+			return new HashMap<String, Map<String, Object>>();
+		}
+		fields.add("name");
+		final List<Map<String, Object>> queryres = queryObjects(
+				String.format("{workspace: %s, name: {$in: [\"%s\"]}}",
+				rwsi.getID(), StringUtils.join(names, "\", \"")), fields,
+				versionfields);
+		final Map<String, Map<String, Object>> result =
+				new HashMap<String, Map<String, Object>>();
+		for (Map<String, Object> m: queryres) {
+			result.put((String) m.get("name"), m);
+		}
+		for (String name: names) {
+			if (!result.containsKey(name)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with name %s exists in workspace %s", name,
+						rwsi.getID()));
+			}
+		}
+		return result;
+	}
+	
+	private Map<Integer, Map<String, Object>> queryObjectsByID(
+			final ResolvedMongoWSID rwsi, final Set<Integer> ids,
+			final Set<String> fields, final Set<String> versionfields) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		if (ids.isEmpty()) {
+			return new HashMap<Integer, Map<String, Object>>();
+		}
+		fields.add("id");
+		final List<Map<String, Object>> queryres = queryObjects(
+				String.format("{workspace: %s, id: {$in: [%s]}}",
+				rwsi.getID(), StringUtils.join(ids, ", ")), fields,
+				versionfields);
+		final Map<Integer, Map<String, Object>> result =
+				new HashMap<Integer, Map<String, Object>>();
+		for (Map<String, Object> m: queryres) {
+			result.put((Integer) m.get("id"), m);
+		}
+		for (Integer id: ids) {
+			if (!result.containsKey(id)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with name %s exists in workspace %s", id,
+						rwsi.getID()));
+			}
+		}
+		return result;
+	}
+	
+	private List<Map<String, Object>> queryObjects(final String query,
+			final Set<String> fields, final Set<String> versionfields) throws
+			WorkspaceCommunicationException {
+		for (final String field: versionfields) {
+			fields.add("versions." + field);
+		}
+		return queryCollection(WORKSPACE_PTRS, query, fields);
+	}
+	
+	private List<Map<String, Object>> queryCollection(final String collection,
+			final String query, final Set<String> fields) throws
+			WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
-		for (String field: fields) {
+		for (final String field: fields) {
 			projection.put(field, 1);
 		}
 		@SuppressWarnings("rawtypes")
 		final Iterable<Map> im;
 		try {
 			@SuppressWarnings({ "rawtypes" })
-			final Iterable<Map> res = wsjongo.getCollection(WORKSPACES)
+			final Iterable<Map> res = wsjongo.getCollection(collection)
 					.find(query).projection(projection.toString())
 					.as(Map.class);
 			im = res;
@@ -502,6 +617,8 @@ public class MongoDatabase implements Database {
 		}
 		return result;
 	}
+	
+	
 	
 	//projection lists
 	private static final Set<String> PROJ_DESC = newHashSet("description");
@@ -565,35 +682,6 @@ public class MongoDatabase implements Database {
 		}
 		return ret;
 	}
-	
-//	private int getWorkspaceID(final WorkspaceIdentifier wsi) throws
-//			NoSuchWorkspaceException, WorkspaceCommunicationException {
-//		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
-//		wsiset.add(wsi);
-//		return getWorkspaceIDs(wsiset).get(wsi);
-//	}
-//	
-//	private Map<WorkspaceIdentifier, Integer> getWorkspaceIDs(
-//			final Set<WorkspaceIdentifier> wsis)
-//			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-//		final Map<WorkspaceIdentifier, Integer> ret =
-//				new HashMap<WorkspaceIdentifier, Integer>();
-//		if (wsis.isEmpty()) {
-//			return ret;
-//		}
-//		final Map<WorkspaceIdentifier, Map<String, Object>> res =
-//				queryWorkspacesByIdentifier(wsis, PROJ_ID);
-//		for (WorkspaceIdentifier wsi: res.keySet()) {
-//			ret.put(wsi, (Integer) res.get(wsi).get("id"));
-//		}
-//		return ret;
-//	}
-	
-//	private WorkspaceUser getOwner(final int wsid) throws NoSuchWorkspaceException,
-//			WorkspaceCommunicationException {
-//		return new WorkspaceUser((String) queryWorkspace(wsid, PROJ_OWNER)
-//				.get("owner"));
-//	}
 	
 	@Override
 	public void setPermissions(final ResolvedWorkspaceID rwsi,
@@ -882,6 +970,7 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
+	//TODO use queryWorkspaces
 	private Map<WorkspaceObjectID, ObjID> getObjectIDs(
 			final ResolvedMongoWSID workspaceID,
 			final Set<WorkspaceObjectID> objects) throws
@@ -1378,10 +1467,71 @@ public class MongoDatabase implements Database {
 		return "type-" + type.getTypeString();
 	}
 	
-	public List<WorkspaceObjectData> getObjects(final List<ObjectIDResolvedWS> objectIDs) {
-		
+	public List<WorkspaceObjectData> getObjects(final Set<ObjectIDResolvedWS> objectIDs) {
 		//TODO getObjects
 		return null;
+	}
+	
+	private static final Set<String> PROJ_META =
+			newHashSet("id", "name", "workspace", "version");
+	private static final Set<String> PROJ_META_VER = newHashSet("version",
+			"meta", "type", "createDate", "createdby", "chksum", "size");
+	
+	//TODO provide the workspace name for error purposes
+	//TODO don't pull same data for different versions - need array of versions to go through - need versionless id object
+	@Override
+	public List<ObjectUserMetaData> getObjectMeta(
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWS, Map<String, Object>> qres =
+				queryObjects(objectIDs, PROJ_META, PROJ_META_VER);
+		final List<ObjectUserMetaData> ret = new ArrayList<ObjectUserMetaData>();
+		for (ObjectIDResolvedWS o: objectIDs) {
+			final Map<String, Object> pointer = qres.get(o);
+			final int maxver = (int) pointer.get("version");
+			final int ver;
+			if (o.getVersion() == null) {
+				ver = maxver;
+			} else {
+				ver = o.getVersion();
+				if (ver > maxver) {
+					throw new NoSuchObjectException(String.format(
+							"No object with identifier '%s' and version %s exists in workspace %s",
+							o.getIdentifierString(), ver,
+							o.getWorkspaceIdentifier().getID()));
+				}
+			}
+			@SuppressWarnings("unchecked")
+			final List<Map<String, Object>> listver =
+					(List<Map<String, Object>>) pointer.get("versions");
+			final Map<Integer, Map<String, Object>> versions =
+					new HashMap<Integer, Map<String,Object>>();
+			for (final Map<String, Object> m: listver) {
+					versions.put((Integer) m.get("version"), m);
+			}
+			@SuppressWarnings("unchecked")
+			final List<Map<String, String>> meta =
+					(List<Map<String, String>>) versions.get(ver).get("meta");
+			ret.add(new MongoObjectUserMeta((int) pointer.get("id"),
+					(String) pointer.get("name"),
+					(String) versions.get(ver).get("type"),
+					(Date) versions.get(ver).get("createDate"), ver,
+					new WorkspaceUser((String) versions.get(ver).get("createdby")),
+					new ResolvedMongoWSID((int) pointer.get("workspace")),
+					(String) versions.get(ver).get("chksum"),
+					(int) versions.get(ver).get("size"),
+					metaMongoArrayToHash(meta)));
+		}
+		return ret;
+	}
+	
+	private Map<String, String> metaMongoArrayToHash(
+			final List<Map<String, String>> meta) {
+		final Map<String, String> ret = new HashMap<String, String>();
+		for (final Map<String, String> m: meta) {
+			ret.put(m.get("k"), m.get("v"));
+		}
+		return ret;
 	}
 	
 	public static class TestMongoInternals {

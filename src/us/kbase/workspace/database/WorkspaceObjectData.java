@@ -3,9 +3,9 @@ package us.kbase.workspace.database;
 public class WorkspaceObjectData {
 	
 	private final Object data;
-	private final ObjectMetaData meta;
+	private final ObjectUserMetaData meta;
 	
-	public WorkspaceObjectData(Object data, ObjectMetaData meta) {
+	public WorkspaceObjectData(Object data, ObjectUserMetaData meta) {
 		if (data == null || meta == null) {
 			throw new IllegalArgumentException("data and meta cannot be null");
 		}
@@ -17,7 +17,7 @@ public class WorkspaceObjectData {
 		return data;
 	}
 
-	public ObjectMetaData getMeta() {
+	public ObjectUserMetaData getMeta() {
 		return meta;
 	}
 

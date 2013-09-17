@@ -13,7 +13,6 @@ import us.kbase.auth.AuthToken;
 //BEGIN_HEADER
 import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -341,7 +340,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
-			final Provenance p = ArgUtils.processProvenance(authPart.getUserName(), d.getProvenance());
+			final Provenance p = ArgUtils.processProvenance(
+					authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			if (oi == null) {
 				woc.add(new WorkspaceSaveObject(d.getData().asInstance(), t,
@@ -373,8 +373,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		for (ObjectIdentity oi: objects) {
 			loi.add(processObjectIdentifier(oi));
 		}
-		returnVal = translateObjectData(ws.getObjects(getUser(authPart), loi));
-		//TODO get_objects
+		returnVal = ArgUtils.translateObjectData(
+				ws.getObjects(getUser(authPart), loi));
         //END get_objects
         return returnVal;
     }
@@ -389,7 +389,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
-		//TODO get_object_metadata
+		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
+		for (ObjectIdentity oi: objects) {
+			loi.add(processObjectIdentifier(oi));
+		}
+		returnVal = ArgUtils.objUserMetaToTuple(
+				ws.getObjectMetaData(getUser(authPart), loi));
         //END get_object_metadata
         return returnVal;
     }

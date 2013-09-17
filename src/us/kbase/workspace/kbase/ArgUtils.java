@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.Tuple9;
+import us.kbase.UObject;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -102,6 +103,14 @@ public class ArgUtils {
 		return ret;
 }
 	
+	public static Tuple10<Integer, String, String, String, Integer, String,
+			Integer, String, Integer, Map<String, String>>
+			objUserMetaToTuple (final ObjectUserMetaData meta) {
+		final List<ObjectUserMetaData> m = new ArrayList<ObjectUserMetaData>();
+		m.add(meta);
+		return objUserMetaToTuple(m).get(0);
+	}
+	
 	public static List<Tuple10<Integer, String, String, String, Integer, String,
 			Integer, String, Integer, Map<String, String>>>
 			objUserMetaToTuple (final List<ObjectUserMetaData> meta) {
@@ -138,7 +147,12 @@ public class ArgUtils {
 	
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects) {
-		//TODO translateObjectData
+		final List<ObjectData> ret = new ArrayList<ObjectData>();
+		for (final WorkspaceObjectData o: objects) {
+			ret.add(new ObjectData()
+					.withData(new UObject(o.getData()))
+					.withMeta(objUserMetaToTuple(o.getMeta())));
+		}
 		return null;
 	}
 }

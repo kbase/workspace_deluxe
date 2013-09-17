@@ -60,5 +60,9 @@ public interface Database {
 			NoSuchObjectException;
 	
 	public List<WorkspaceObjectData> getObjects(
-			List<ObjectIDResolvedWS> objectIDs);
+			Set<ObjectIDResolvedWS> objectIDs);
+
+	public List<ObjectUserMetaData> getObjectMeta(
+			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
+			WorkspaceCommunicationException;
 }
