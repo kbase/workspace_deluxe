@@ -48,6 +48,12 @@ public class ShockTests {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
+		//TODO query server to determine whether unauthed read is allowed and modify tests appropriately
+		/*
+			If the Shock server is configured to allow anonymous read this query will not return an error:
+			http://<shockurl>:<shockAPIport>/node/
+			But, if anonymous read is turned off, this query will return the error: "No Authorization".
+		 */
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing shock clients pointed at: " + url);

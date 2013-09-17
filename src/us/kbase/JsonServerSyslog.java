@@ -11,14 +11,17 @@ import java.util.Map;
 
 import org.ini4j.Ini;
 import org.productivity.java.syslog4j.SyslogConstants;
+import org.productivity.java.syslog4j.SyslogIF;
 import org.productivity.java.syslog4j.impl.unix.socket.UnixSocketSyslog;
 import org.productivity.java.syslog4j.impl.unix.socket.UnixSocketSyslogConfig;
 
 public class JsonServerSyslog {
 	private final String serviceName;
-	private final UnixSocketSyslog log;
+	private final SyslogIF log;
 	private final Config config;
-
+	private File currentFile = null;
+	private PrintWriter currentWriter = null;
+	private SyslogOutput output = defaultSyslogOutput;
 	private int logLevel = -1;
 
 	public static final int LOG_LEVEL_ERR = SyslogConstants.LEVEL_ERROR;
@@ -32,8 +35,15 @@ public class JsonServerSyslog {
 	private static String systemLogin = nn(System.getProperty("user.name"));
 	private static String pid = getPID();
 	
-	public JsonServerSyslog(String serviceName, String configFile) {
+	private static final SyslogOutput defaultSyslogOutput = new SyslogOutput();
+	
+	public JsonServerSyslog(String serviceName, String configFileParam) {
+		this(serviceName, configFileParam, -1);
+	}
+	
+	public JsonServerSyslog(String serviceName, String configFileParam, int defultLogLevel) {
 		this.serviceName = serviceName;
+		logLevel = defultLogLevel;
 		UnixSocketSyslogConfig cfg = new UnixSocketSyslogConfig();
 		if (System.getProperty("os.name").toLowerCase().startsWith("mac"))
 			cfg.setPath("/var/run/syslog");
@@ -42,7 +52,7 @@ public class JsonServerSyslog {
 		cfg.setIdent(null);
 		log = new UnixSocketSyslog();
 		log.initialize(SyslogConstants.UNIX_SOCKET, cfg);
-		this.config = new Config(configFile, serviceName);
+		this.config = new Config(configFileParam, serviceName);
 	}
 
 	public JsonServerSyslog(JsonServerSyslog otherLog) {
@@ -51,6 +61,12 @@ public class JsonServerSyslog {
 		this.config = otherLog.config;
 	}
 
+	public void changeOutput(SyslogOutput output) {
+		if (output == null)
+			throw new IllegalStateException("Syslog output shouldn't be null");
+		this.output = output;
+	}
+	
 	private static String nn(String value) {
 		return value == null ? "-" : value;
 	}
@@ -69,7 +85,7 @@ public class JsonServerSyslog {
 		if (level > LOG_LEVEL_DEBUG)
 			level = LOG_LEVEL_DEBUG;
 		for (String message : messages)
-			log.log(level, getFullMessage(level, caller, message));
+			output.logToSystem(log, level, getFullMessage(level, caller, message));
 		//log.flush();
 		logToFile(level, caller, messages);
 		config.addPrintedLines(messages.length);
@@ -88,14 +104,21 @@ public class JsonServerSyslog {
 		if (f == null)
 			return;
 		try {
-			PrintWriter pw = new PrintWriter(new FileWriter(f, true));
+			if (currentWriter != null && !f.equals(currentFile)) {
+				currentWriter.close();
+				currentWriter = null;
+			}
+			if (currentWriter == null) {
+				currentFile = f;
+			}
 			for (String message : messages) {
 				message = getDateFormat().format(new Date()) + " java " + getFullMessage(level, caller, message);
-				pw.println(message);
+				currentWriter = output.logToFile(currentFile, currentWriter, level, message);
 			}
-			pw.close();
+			if (currentWriter != null)
+				currentWriter.flush();
 		} catch (Exception ex) {
-			log.log(LOG_LEVEL_ERR, getFullMessage(LOG_LEVEL_ERR, getClass().getName(), "Can not write into log file: " + f));
+			output.logToSystem(log, LOG_LEVEL_ERR, getFullMessage(LOG_LEVEL_ERR, getClass().getName(), "Can not write into log file: " + f));
 		}
 	}
 	
@@ -126,15 +149,15 @@ public class JsonServerSyslog {
 	}
 
 	private class Config {
-		private String configPath;
+		private String configPathParam;
 		private String sectionName;
 		private int printedLines = 0;
 		private int maxLogLevel = LOG_LEVEL_INFO;
 		private File externalLogFile = null;
 		private long lastLoadingTime = -1;
 
-		public Config(String serviceConfigPath, String sectionName) {
-			this.configPath = serviceConfigPath;
+		public Config(String serviceConfigPathParam, String sectionName) {
+			this.configPathParam = serviceConfigPathParam;
 			this.sectionName = sectionName;
 			load();
 		}
@@ -161,7 +184,9 @@ public class JsonServerSyslog {
 			maxLogLevel = LOG_LEVEL_INFO;
 			externalLogFile = null;
 			File file;
-			System.out.println("Configuration file reloading...");
+			//System.out.println("Configuration file reloading...");
+			String configPath = System.getProperty(configPathParam) == null ?
+					System.getenv(configPathParam) : System.getProperty(configPathParam);
 			if (configPath == null) {
 				file = new File("/etc/mlog/mlog.conf");
 				if (!file.exists())
@@ -181,8 +206,21 @@ public class JsonServerSyslog {
 				if (logLevelText != null)
 					maxLogLevel = Integer.parseInt(logLevelText);
 			} catch (IOException ignore) {
-				log.log(LOG_LEVEL_ERR, getFullMessage(LOG_LEVEL_ERR, getClass().getName(), "Error reading configuration file: " + file));
+				output.logToSystem(log, LOG_LEVEL_ERR, getFullMessage(LOG_LEVEL_ERR, getClass().getName(), "Error reading configuration file: " + file));
 			}
+		}
+	}
+	
+	public static class SyslogOutput {
+		public void logToSystem(SyslogIF log, int level, String message) {
+			log.log(level, message);
+		}
+		
+		public PrintWriter logToFile(File f, PrintWriter pw, int level, String message) throws Exception {
+			if (pw == null)
+				pw = new PrintWriter(new FileWriter(f, true));
+			pw.println(message);
+			return pw;
 		}
 	}
 }

@@ -18,8 +18,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -125,7 +127,7 @@ public class JsonServerServlet extends HttpServlet {
 		}
 		String file = System.getProperty(KB_DEP) == null ?
 				System.getenv(KB_DEP) : System.getProperty(KB_DEP);
-		sysLogger = new JsonServerSyslog(serviceName, file);
+		sysLogger = new JsonServerSyslog(serviceName, KB_DEP, LOG_LEVEL_INFO);
 		userLogger = new JsonServerSyslog(sysLogger);
 		//read the config file
 		if (file == null) 
@@ -147,8 +149,49 @@ public class JsonServerServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * WARNING! Please use this method for testing purposes only.
+	 * @param output
+	 */
+	public void changeSyslogOutput(JsonServerSyslog.SyslogOutput output) {
+		sysLogger.changeOutput(output);
+		userLogger.changeOutput(output);
+	}
+	
 	public void logErr(String message) {
-		userLogger.log(LOG_LEVEL_ERR, findCaller(), message);
+		logErr(new Exception(message), findCaller());
+	}
+
+	public void logErr(Throwable err) {
+		logErr(err, findCaller());
+	}
+	
+	private void logErr(Throwable err, String caller) {
+		List<String> messages = new ArrayList<String>();
+		StackTraceElement[] st = err.getStackTrace();
+		int firstPos = 0;
+		String packageName = JsonServerServlet.class.getPackage().getName();
+		String className = JsonServerServlet.class.getName();
+		for (; firstPos < st.length; firstPos++) {
+			if (st[firstPos].getClassName().equals(className))
+				continue;
+			break;
+		}
+		int lastPos = st.length - 1;
+		for (; lastPos > firstPos; lastPos--) {
+			if (st[lastPos].getClassName().startsWith(packageName) && 
+					!st[lastPos].getClassName().equals(className))
+				break;
+		}
+		messages.add("Traceback (most recent call last):");
+		for (int pos = lastPos; pos >= firstPos; pos--) {
+			messages.add("Class \"" + st[pos].getClassName() + "\", file \"" + st[pos].getFileName() + 
+					"\", line " + st[pos].getLineNumber() + ", in " + st[pos].getMethodName());
+		}
+		String errorPrefix = err.getClass().equals(Exception.class) ? "Error: " :
+			(err.getClass().getName() + ": ");
+		messages.add(errorPrefix + err.getMessage());
+		userLogger.log(LOG_LEVEL_ERR, caller, messages.toArray(new String[messages.size()]));
 	}
 	
 	public void logInfo(String message) {
@@ -167,7 +210,15 @@ public class JsonServerServlet extends HttpServlet {
 
 	public static String findCaller() {
 		StackTraceElement[] st = Thread.currentThread().getStackTrace();
-		return st[3].getClassName();
+		String packageName = JsonServerServlet.class.getPackage().getName();
+		String className = JsonServerServlet.class.getName();
+		for (int pos = 0; pos < st.length; pos++) {
+			if (st[pos].getClassName().equals(className) ||
+					!st[pos].getClassName().startsWith(packageName))
+				continue;
+			return st[pos].getClassName();
+		}
+		throw new IllegalStateException();
 	}
 	
 	public int getLogLevel() {
@@ -277,6 +328,7 @@ public class JsonServerServlet extends HttpServlet {
 				if (ex instanceof InvocationTargetException && ex.getCause() != null) {
 					ex = ex.getCause();
 				}
+				logErr(ex, getClass().getName());
 				writeError(response, -32500, ex, output);
 				return;
 			}
@@ -324,6 +376,9 @@ public class JsonServerServlet extends HttpServlet {
 	private void writeError(HttpServletResponse response, int code, Throwable ex, OutputStream output) {
 		StringWriter sw = new StringWriter();
 		ex.printStackTrace(new PrintWriter(sw));
+		String errorMessage = ex.getLocalizedMessage();
+		if (errorMessage == null)
+			errorMessage = ex.getMessage();
 		writeError(response, code, ex.getLocalizedMessage(), sw.toString(), output);
 	}
 	
