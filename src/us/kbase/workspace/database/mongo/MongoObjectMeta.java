@@ -86,7 +86,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 		return "MongoObjectMeta [id=" + id + ", name=" + name + ", type="
 				+ type + ", createdDate=" + createdDate + ", version="
 				+ version + ", creator=" + creator + ", workspaceId="
-				+ workspaceId + ", chksum=" + chksum + "]";
+				+ workspaceId + ", chksum=" + chksum + ", size=" + size + "]";
 	}
 
 }

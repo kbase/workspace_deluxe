@@ -1,8 +1,5 @@
 package us.kbase.workspace.workspaces;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,14 +16,12 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
@@ -176,38 +171,5 @@ public class Workspaces {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, NoSuchObjectException {
 		return db.getObjectMeta(checkPerms(user, loi, Permission.READ, "read"));
-	}
-	
-	public static void main(String[] args) throws Exception {
-		Database db = new MongoDatabase("localhost", "ws_tester_db1", "foo");
-		Workspaces w = new Workspaces(db);
-		WorkspaceUser kb = new WorkspaceUser("kbasetest");
-		WorkspaceUser kb2 = new WorkspaceUser("kbasetest2");
-		WorkspaceIdentifier wsi = new WorkspaceIdentifier("somerandomcrap");
-//		w.createWorkspace(kb, wsi.getName(), false, null);
-//		w.setPermissions(kb, wsi, Arrays.asList(kb2), Permission.WRITE);
-		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, String> meta = new HashMap<String, String>();
-		Map<String, Object> moredata = new HashMap<String, Object>();
-		moredata.put("foo", "bar");
-		data.put("fubar", moredata);
-		meta.put("metastuff", "meta");
-		Provenance p = new Provenance("kbasetest2");
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
-		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
-//		System.out.println(wo);
-		List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		WorkspaceSaveObject wo = new WorkspaceSaveObject(new WorkspaceObjectID("29-1"), data, t, meta, p, false);
-		woc.add(wo);
-		woc.add(new WorkspaceSaveObject(new WorkspaceObjectID("29-1"), data, t, meta, p, false));
-		woc.add(new WorkspaceSaveObject(new WorkspaceObjectID("29-2"), data, t, meta, p, false));
-//		woc.addObject(new WorkspaceObject(ObjectIdentifier.parseObjectReference("permspriv/myobj2"), data, t, meta, p, false));
-		woc.add(new WorkspaceSaveObject(data, t, meta, p, false));
-		List<ObjectMetaData> objmeta = w.saveObjects(new WorkspaceUser("kbasetest2"), wsi, woc);
-		System.out.println("\n***** results****");
-		System.out.println(objmeta);
-		System.out.println("\n***** get meta ****");
-		ObjectIdentifier oi = new ObjectIdentifier(wsi, "29-1");
-		System.out.println(w.getObjectMetaData(kb2, Arrays.asList(oi)));
 	}
 }

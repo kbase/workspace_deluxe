@@ -510,7 +510,6 @@ public class MongoDatabase implements Database {
 			final Map<Integer, Map<String, Object>> idres = 
 					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
 							versionfields);
-			System.out.println("idres" + idres);
 			for (final Integer id: idres.keySet()) {
 				ret.put(ids.get(rwsi).get(id), idres.get(id));
 			}
@@ -950,7 +949,6 @@ public class MongoDatabase implements Database {
 		final DBObject identifiers = new BasicDBObject();
 		identifiers.put("$in", objects.keySet());
 		query.put(string ? "name" : "id", identifiers);
-		System.out.println(query);
 		@SuppressWarnings("rawtypes")
 		Iterable<Map> res; 
 		try {
@@ -963,7 +961,6 @@ public class MongoDatabase implements Database {
 					"There was a problem communicating with the database", me);
 		}
 		for (@SuppressWarnings("rawtypes") Map m: res) {
-			System.out.println(m);
 			final String name = (String) m.get("name");
 			final Integer id = (Integer) m.get("id");
 			validatedIDs.put(objects.get(string ? name : id), new ObjID(name, id));
@@ -999,10 +996,10 @@ public class MongoDatabase implements Database {
 			final ResolvedMongoWSID wsid, final int objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
-		System.out.println("****save prexisting obj called****");
-		System.out.println("wsid " + wsid);
-		System.out.println("objectid " + objectid);
-		System.out.println(pkg);
+//		System.out.println("****save prexisting obj called****");
+//		System.out.println("wsid " + wsid);
+//		System.out.println("objectid " + objectid);
+//		System.out.println(pkg);
 		//TODO save datainstance/provenance
 		final int ver;
 		try {
@@ -1064,9 +1061,9 @@ public class MongoDatabase implements Database {
 	
 	private String generateUniqueNameForObject(final ResolvedWorkspaceID wsid,
 			final int objectid) throws WorkspaceCommunicationException {
-		System.out.println("***get unique name called ***");
-		System.out.println("wsid " + wsid);
-		System.out.println("objectid " + objectid);
+//		System.out.println("***get unique name called ***");
+//		System.out.println("wsid " + wsid);
+//		System.out.println("objectid " + objectid);
 		@SuppressWarnings("rawtypes")
 		Iterable<Map> ids;
 		try {
@@ -1084,10 +1081,10 @@ public class MongoDatabase implements Database {
 		for (@SuppressWarnings("rawtypes") Map m: ids) {
 			
 			final String[] id = ((String) m.get("name")).split("-");
-			System.out.println("*** checking matching id***");
-			System.out.println(m);
-			System.out.println(Arrays.toString(id));
-			System.out.println(id.length);
+//			System.out.println("*** checking matching id***");
+//			System.out.println(m);
+//			System.out.println(Arrays.toString(id));
+//			System.out.println(id.length);
 			if (id.length == 2) {
 				try {
 					suffixes.add(Integer.parseInt(id[1]));
@@ -1102,8 +1099,8 @@ public class MongoDatabase implements Database {
 				}
 			}
 		}
-		System.out.println("exact " + exact);
-		System.out.println(suffixes);
+//		System.out.println("exact " + exact);
+//		System.out.println(suffixes);
 		if (!exact) {
 			return "" + objectid;
 		}
@@ -1120,18 +1117,18 @@ public class MongoDatabase implements Database {
 	private ObjectMetaData createPointerAndSaveObject(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final int objectid, final String name,
 			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
-		System.out.println("****save new obj called****");
-		System.out.println("wsid " + wsid);
-		System.out.println("objectid " + objectid);
-		System.out.println("name " + name);
-		System.out.println(pkg);
+//		System.out.println("****save new obj called****");
+//		System.out.println("wsid " + wsid);
+//		System.out.println("objectid " + objectid);
+//		System.out.println("name " + name);
+//		System.out.println(pkg);
 		String newName = name;
 		if (name == null) {
-			System.out.println("Getting name from null");
+//			System.out.println("Getting name from null");
 			newName = generateUniqueNameForObject(wsid, objectid);
 			pkg.name = newName;
 		}
-		System.out.println("newname " + newName);
+//		System.out.println("newname " + newName);
 		final DBObject dbo = new BasicDBObject();
 		dbo.put("workspace", wsid.getID());
 		dbo.put("id", objectid);
@@ -1157,7 +1154,7 @@ public class MongoDatabase implements Database {
 			final WorkspaceObjectID o = pkg.wo.getObjectIdentifier();
 			final Map<WorkspaceObjectID, ObjID> objID = getObjectIDs(wsid,
 					new HashSet<WorkspaceObjectID>(Arrays.asList(o)));
-			System.out.println(objID);
+//			System.out.println(objID);
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
 				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
@@ -1445,8 +1442,8 @@ public class MongoDatabase implements Database {
 			try {
 				wsjongo.getCollection(col).insert((Object[]) newdata.toArray(
 						new TypeData[newdata.size()]));
-				System.out.println("***bulk insertion***");
-				System.out.println(newdata);
+//				System.out.println("***bulk insertion***");
+//				System.out.println(newdata);
 			} catch (MongoException.DuplicateKey dk) {
 				//dammit, someone just inserted this data
 				//we'll have to go one by one doing upserts
@@ -1485,6 +1482,12 @@ public class MongoDatabase implements Database {
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> qres =
 				queryObjects(objectIDs, PROJ_META, PROJ_META_VER);
+		System.out.println("\n*** qres ***");
+		System.out.println("objectIDs size: " + objectIDs.size());
+		for (ObjectIDResolvedWS o: qres.keySet()) {
+			System.out.println(o);
+			System.out.println(qres.get(o));
+		}
 		final List<ObjectUserMetaData> ret = new ArrayList<ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final Map<String, Object> pointer = qres.get(o);

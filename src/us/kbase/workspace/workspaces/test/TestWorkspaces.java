@@ -21,15 +21,23 @@ import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.workspaces.Provenance;
+import us.kbase.workspace.workspaces.TypeId;
+import us.kbase.workspace.workspaces.WorkspaceSaveObject;
+import us.kbase.workspace.workspaces.WorkspaceType;
 import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO test vs. auth'd mongo
@@ -120,14 +128,14 @@ public class TestWorkspaces {
 		}
 	}
 	
-	private void checkMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
+	private void checkWSMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
 			Permission perm, boolean globalread, int id, Date moddate) {
-		checkMeta(meta, owner, name, perm, globalread);
+		checkWSMeta(meta, owner, name, perm, globalread);
 		assertThat("ws id correct", meta.getId(), is(id));
 		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
 	}
 	
-	private void checkMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
+	private void checkWSMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
 			Permission perm, boolean globalread) {
 		assertThat("ws owner correct", meta.getOwner(), is(owner));
 		assertThat("ws name correct", meta.getName(), is(name));
@@ -138,14 +146,14 @@ public class TestWorkspaces {
 	@Test
 	public void testCreateWorkspaceAndGetMeta() throws Exception {
 		WorkspaceMetaData meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
-		checkMeta(meta, SOMEUSER, "foo", Permission.OWNER, false);
+		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false);
 		int id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
 		meta = ws.getWorkspaceMetaData(SOMEUSER, new WorkspaceIdentifier(id));
-		checkMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
+		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
 		meta = ws.getWorkspaceMetaData(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
+		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
 		
 		try {
 			ws.getWorkspaceMetaData(BUSER, wsi);
@@ -164,13 +172,13 @@ public class TestWorkspaces {
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
 		meta = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
-		checkMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true);
 		id = meta.getId();
 		moddate = meta.getModDate();
 		meta = ws.getWorkspaceMetaData(anotheruser, new WorkspaceIdentifier(id));
-		checkMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
 		meta = ws.getWorkspaceMetaData(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
-		checkMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
 	}
 	
 	@Test
@@ -354,7 +362,7 @@ public class TestWorkspaces {
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
 		WorkspaceMetaData meta= ws.getWorkspaceMetaData(null, wsiGL);
-		checkMeta(meta, AUSER, "perms_global", Permission.NONE, true);
+		checkWSMeta(meta, AUSER, "perms_global", Permission.NONE, true);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -403,7 +411,95 @@ public class TestWorkspaces {
 		expect.remove(CUSER);
 		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+	}
+	
+	private void checkObjMeta(ObjectMetaData meta, int id, String name, String type,
+			int version, WorkspaceUser user, int wsid, String chksum, int size) {
+		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
+		assertThat("Object id correct", meta.getObjectId(), is(id));
+		assertThat("Object name is correct", meta.getObjectName(), is(name));
+		assertThat("Object type is correct", meta.getTypeString(), is(type));
+		assertThat("Object version is correct", meta.getVersion(), is(version));
+		assertThat("Object user is correct", meta.getCreator(), is(user));
+		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
+		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
+		assertThat("Object size is correct", meta.getSize(), is(size));
+	}
+	
+	@Test
+	public void saveObjectsAndGetMeta() throws Exception {
+		WorkspaceUser bum = new WorkspaceUser("bum");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
+		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
+		ws.createWorkspace(bum, read.getIdentifierString(), true, null);
+		int readid = ws.getWorkspaceMetaData(bum, read).getId();
+		int privid = ws.getWorkspaceMetaData(bum, read).getId();
+		ws.createWorkspace(bum, priv.getIdentifierString(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		Provenance p = new Provenance("kbasetest2");
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), data, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(data, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(data, t, meta, p, false));
+		List<ObjectMetaData> objmeta = ws.saveObjects(bum, read, objects);
+		String chksum = "36c4f68f2c98971b9736839232eb08f4";
+		System.out.println("\n*** test meta 1***");
+		System.out.println(objmeta);
+		checkObjMeta(objmeta.get(0), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(objmeta.get(1), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
+		checkObjMeta(objmeta.get(2), 2, "3-1", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(objmeta.get(3), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(objmeta.get(4), 4, "4", t.getTypeString(), 1, bum, readid, chksum, 23);
+		
+		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
+		loi.add(new ObjectIdentifier(read, 1));
+		loi.add(new ObjectIdentifier(read, 1, 1));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "3"));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "3", 1));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1, 1));
+		loi.add(new ObjectIdentifier(read, "3"));
+		loi.add(new ObjectIdentifier(read, "3", 1));
+		loi.add(new ObjectIdentifier(read, "3-2"));
+		loi.add(new ObjectIdentifier(read, 3));
+		loi.add(new ObjectIdentifier(read, "3-2", 1));
+		loi.add(new ObjectIdentifier(read, 3, 1));
+		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(bum, loi);
+		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(2), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(3), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(4), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(5), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(6), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(7), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(8), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
+		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
 		
 		
+		ws.saveObjects(bum, priv, objects);
+		//TODO test meta is correct, test getting meta is correct, run through all possible errors
+		//TODO test another user can't read w/o correct privs
+		
+		objects.clear();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
+		objmeta = ws.saveObjects(bum, new WorkspaceIdentifier("saveobjread"), objects);
+		System.out.println("\n*** test meta 2***");
+		System.out.println(objmeta);
+		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, bum, readid, chksum, 23);
+		//TODO test meta is correct, test getting meta is correct, run through all possible errors
 	}
 }
