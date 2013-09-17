@@ -601,16 +601,17 @@ ws_name is a string
 ws_id is an int
 ObjectSaveData is a reference to a hash where the following keys are defined:
 	type has a value which is a Workspace.type_id
-	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
-	metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	metadata has a value which is a Workspace.usermeta
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	tver has a value which is a Workspace.type_ver
 	hidden has a value which is a Workspace.boolean
 type_id is a string
 obj_name is a string
 obj_id is an int
+usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
@@ -629,7 +630,7 @@ timestamp is a string
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
-	object has a value which is a Workspace.obj_name
+	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
@@ -637,9 +638,9 @@ obj_ver is an int
 obj_ref is a string
 type_ver is a string
 boolean is an int
-object_metadata is a reference to a list containing 10 items:
+object_metadata is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
-	1: (object) a Workspace.obj_name
+	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (create_date) a Workspace.timestamp
 	4: (version) an int
@@ -647,7 +648,6 @@ object_metadata is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
 type_string is a string
 username is a string
 
@@ -667,16 +667,17 @@ ws_name is a string
 ws_id is an int
 ObjectSaveData is a reference to a hash where the following keys are defined:
 	type has a value which is a Workspace.type_id
-	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
-	metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	metadata has a value which is a Workspace.usermeta
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	tver has a value which is a Workspace.type_ver
 	hidden has a value which is a Workspace.boolean
 type_id is a string
 obj_name is a string
 obj_id is an int
+usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
@@ -695,7 +696,7 @@ timestamp is a string
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
-	object has a value which is a Workspace.obj_name
+	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
@@ -703,9 +704,9 @@ obj_ver is an int
 obj_ref is a string
 type_ver is a string
 boolean is an int
-object_metadata is a reference to a list containing 10 items:
+object_metadata is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
-	1: (object) a Workspace.obj_name
+	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (create_date) a Workspace.timestamp
 	4: (version) an int
@@ -713,7 +714,6 @@ object_metadata is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
 type_string is a string
 username is a string
 
@@ -722,7 +722,7 @@ username is a string
 
 =item Description
 
-Save objects to the workspace
+Save objects to the workspace.
 
 =back
 
@@ -790,7 +790,7 @@ $data is a reference to a list where each element is a Workspace.ObjectData
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
-	object has a value which is a Workspace.obj_name
+	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
@@ -801,11 +801,11 @@ obj_id is an int
 obj_ver is an int
 obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
-	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
-	meta has a value which is a Workspace.object_metadata
-object_metadata is a reference to a list containing 10 items:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	meta has a value which is a Workspace.object_metadata_full
+object_metadata_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
-	1: (object) a Workspace.obj_name
+	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (create_date) a Workspace.timestamp
 	4: (version) an int
@@ -813,10 +813,11 @@ object_metadata is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	9: (metadata) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -829,7 +830,7 @@ $data is a reference to a list where each element is a Workspace.ObjectData
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
-	object has a value which is a Workspace.obj_name
+	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
@@ -840,11 +841,11 @@ obj_id is an int
 obj_ver is an int
 obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
-	data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
-	meta has a value which is a Workspace.object_metadata
-object_metadata is a reference to a list containing 10 items:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	meta has a value which is a Workspace.object_metadata_full
+object_metadata_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
-	1: (object) a Workspace.obj_name
+	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (create_date) a Workspace.timestamp
 	4: (version) an int
@@ -852,17 +853,18 @@ object_metadata is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+	9: (metadata) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
 
 =item Description
 
-
+Get objects from the workspace.
 
 =back
 
@@ -872,7 +874,7 @@ sub get_objects
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -914,6 +916,142 @@ sub get_objects
 
 
 
+=head2 get_object_metadata
+
+  $data = $obj->get_object_metadata($objects)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.object_metadata_full
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_metadata_full is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.object_metadata_full
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_metadata_full is a reference to a list containing 10 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (create_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+	9: (metadata) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Get object metadata from the workspace.
+
+=back
+
+=cut
+
+sub get_object_metadata
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object_metadata (received $n, expecting 1)");
+    }
+    {
+	my($objects) = @args;
+
+	my @_bad_arguments;
+        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object_metadata');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_object_metadata",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_object_metadata',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_metadata",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object_metadata',
+				       );
+    }
+}
+
+
+
 sub version {
     my ($self) = @_;
     my $result = $self->{client}->call($self->{url}, {
@@ -925,16 +1063,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'get_objects',
+                method_name => 'get_object_metadata',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method get_objects",
+            error => "Error invoking method get_object_metadata",
             status_line => $self->{client}->status_line,
-            method_name => 'get_objects',
+            method_name => 'get_object_metadata',
         );
     }
 }
@@ -1265,6 +1403,38 @@ a string
 
 
 
+=head2 usermeta
+
+=over 4
+
+
+
+=item Description
+
+User provided metadata about an object.
+Arbitrary key-value pairs provided by the user.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the key is a string and the value is a string
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the key is a string and the value is a string
+
+=end text
+
+=back
+
+
+
 =head2 WorkspaceIdentity
 
 =over 4
@@ -1276,8 +1446,8 @@ a string
 A workspace identifier.
 
                 Select a workspace by one, and only one, of the numerical id or name,
-                        where the
-                name can also be a KBase ID including the numerical id, e.g. kb|ws.35.
+                        where the name can also be a KBase ID including the numerical id,
+                        e.g. kb|ws.35.
                 ws_id id - the numerical ID of the workspace.
                 ws_name workspace - name of the workspace or the workspace ID in KBase
                         format, e.g. kb|ws.78.
@@ -1469,16 +1639,18 @@ an int
 A string that uniquely identifies an object in the workspace service.
 
         There are several ways to uniquely identify an object in one string:
-        "[ws_id].[obj_id].[version]" - for example, "23.567.2" would identify the
-        second version of an object with id 567 in a workspace with id 23.
-        "[ws_name]/[obj_name]/[version]" - for example,
-        "MyFirstWorkspace/MyFirstObject/3" would identify the third version of
-        an object called MyFirstObject in the workspace called MyFirstWorkspace.
-        "kb|ws.[ws_id].obj.[obj_id].ver.[version]" - for example, 
-        "kb|ws.23.obj.567.ver.2" would identify the same object as in the first
-        example.
-        In all cases, if the version number is omitted, the latest version of the
-        object is assumed.
+        "[ws_id].[obj_id].[obj_ver]" - for example, "23.567.2" would identify
+                the second version of an object with id 567 in a workspace with id
+                23.
+        "[ws_name]/[obj_name]/[obj_ver]" - for example,
+                "MyFirstWorkspace/MyFirstObject/3" would identify the third version
+                of an object called MyFirstObject in the workspace called
+                MyFirstWorkspace.
+        "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
+                "kb|ws.23.obj.567.ver.2" would identify the same object as in the
+                first example.
+        In all cases, if the version number is omitted, the latest version of
+        the object is assumed.
 
 
 =item Definition
@@ -1521,7 +1693,7 @@ Select an object by either:
         AND 
         One, and only one, of the numerical id or name of the object.
                 obj_id objid- the numerical ID of the object.
-                obj_name object - name of the object.
+                obj_name name - name of the object.
         OPTIONALLY
                 obj_ver ver - the version of the object.
 OR an object reference string:
@@ -1536,7 +1708,7 @@ OR an object reference string:
 a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 wsid has a value which is a Workspace.ws_id
-object has a value which is a Workspace.obj_name
+name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
@@ -1550,7 +1722,7 @@ ref has a value which is a Workspace.obj_ref
 a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 wsid has a value which is a Workspace.ws_id
-object has a value which is a Workspace.obj_name
+name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
@@ -1573,7 +1745,7 @@ ref has a value which is a Workspace.obj_ref
 Metadata associated with an object.
 
         obj_id objid - the numerical id of the object.
-        obj_name object - the name of the object.
+        obj_name name - the name of the object.
         type_string type - the type of the object.
         timestamp create_date - the creation date of the object.
         obj_ver ver - the version of the object.
@@ -1581,8 +1753,69 @@ Metadata associated with an object.
         ws_id wsid - the workspace containing the object.
         string chsum - the md5 checksum of the object.
         int size - the size of the object in bytes.
-        mapping<string, UnspecifiedObject> metadata - arbitrary user-supplied
-                metadata about the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a list containing 9 items:
+0: (objid) a Workspace.obj_id
+1: (name) a Workspace.obj_name
+2: (type) a Workspace.type_string
+3: (create_date) a Workspace.timestamp
+4: (version) an int
+5: (created_by) a Workspace.username
+6: (wsid) a Workspace.ws_id
+7: (chsum) a string
+8: (size) an int
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a list containing 9 items:
+0: (objid) a Workspace.obj_id
+1: (name) a Workspace.obj_name
+2: (type) a Workspace.type_string
+3: (create_date) a Workspace.timestamp
+4: (version) an int
+5: (created_by) a Workspace.username
+6: (wsid) a Workspace.ws_id
+7: (chsum) a string
+8: (size) an int
+
+
+=end text
+
+=back
+
+
+
+=head2 object_metadata_full
+
+=over 4
+
+
+
+=item Description
+
+Metadata associated with an object, including user provided metadata.
+
+        obj_id objid - the numerical id of the object.
+        obj_name name - the name of the object.
+        type_string type - the type of the object.
+        timestamp create_date - the creation date of the object.
+        obj_ver ver - the version of the object.
+        username created_by - the user that created the object.
+        ws_id wsid - the workspace containing the object.
+        string chsum - the md5 checksum of the object.
+        int size - the size of the object in bytes.
+        usermeta metadata - arbitrary user-supplied metadata about
+                the object.
 
 
 =item Definition
@@ -1592,7 +1825,7 @@ Metadata associated with an object.
 <pre>
 a reference to a list containing 10 items:
 0: (objid) a Workspace.obj_id
-1: (object) a Workspace.obj_name
+1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
 3: (create_date) a Workspace.timestamp
 4: (version) an int
@@ -1600,7 +1833,7 @@ a reference to a list containing 10 items:
 6: (wsid) a Workspace.ws_id
 7: (chsum) a string
 8: (size) an int
-9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+9: (metadata) a Workspace.usermeta
 
 </pre>
 
@@ -1610,7 +1843,7 @@ a reference to a list containing 10 items:
 
 a reference to a list containing 10 items:
 0: (objid) a Workspace.obj_id
-1: (object) a Workspace.obj_name
+1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
 3: (create_date) a Workspace.timestamp
 4: (version) an int
@@ -1618,7 +1851,7 @@ a reference to a list containing 10 items:
 6: (wsid) a Workspace.ws_id
 7: (chsum) a string
 8: (size) an int
-9: (metadata) a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+9: (metadata) a Workspace.usermeta
 
 
 =end text
@@ -1736,12 +1969,13 @@ Input parameters for the "create_workspace" function.
 
         Required arguments:
         ws_name workspace - name of the workspace to be created.
+        
         Optional arguments:
         permission globalread - 'r' to set workspace globally readable,
                 default 'n'.
         string description - A free-text description of the workspace, 1000
                 characters max. Longer strings will be mercilessly and brutally
-                        truncated.
+                truncated.
 
 
 =item Definition
@@ -1786,6 +2020,7 @@ Input parameters for the "set_permissions" function.
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - name of the workspace or the workspace ID in KBase
                 format, e.g. kb|ws.78.
+        
         Required arguments:
         permission new_permission - the permission to assign to the users.
         list<username> users - the users whose permissions will be altered.
@@ -1833,15 +2068,16 @@ An object and associated data required for saving.
 
         Required parameters:
         type_id type - the type of the object.
-        mapping<string, UnspecifiedObject> data - the object data.
+        UnspecifiedObject data - the object data.
+        
         Optional parameters:
         One of an object name or id. If no name or id is provided the name
                 will be set to the object id as a string, possibly with -\d+
-                appended if the object id already exists as a name.
+                appended if that object id already exists as a name.
         obj_name name - the name of the object.
         obj_id objid - the id of the object to save over.
-        mapping<string, UnspecifiedObject>  metadata - arbitrary user-supplied
-                metadata for the object, not to exceed 16kb.
+        usermeta metadata - arbitrary user-supplied metadata for the object,
+                not to exceed 16kb.
         list<ProvenanceAction> provenance - provenance data for the object.
         type_ver tver - the version of the type. If the version or minor
                 version is not provided the latest version will be assumed.
@@ -1856,10 +2092,10 @@ An object and associated data required for saving.
 <pre>
 a reference to a hash where the following keys are defined:
 type has a value which is a Workspace.type_id
-data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+data has a value which is an UnspecifiedObject, which can hold any non-null object
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
-metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+metadata has a value which is a Workspace.usermeta
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 tver has a value which is a Workspace.type_ver
 hidden has a value which is a Workspace.boolean
@@ -1872,10 +2108,10 @@ hidden has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 type has a value which is a Workspace.type_id
-data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+data has a value which is an UnspecifiedObject, which can hold any non-null object
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
-metadata has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
+metadata has a value which is a Workspace.usermeta
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 tver has a value which is a Workspace.type_ver
 hidden has a value which is a Workspace.boolean
@@ -1901,6 +2137,7 @@ Input parameters for the "save_objects" function.
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - name of the workspace or the workspace ID in KBase
                 format, e.g. kb|ws.78.
+        
         Required arguments:
         list<ObjectSaveData> objects - the objects to save.
 
@@ -1943,8 +2180,8 @@ objects has a value which is a reference to a list where each element is a Works
 
 The data and metadata for an object.
 
-        mapping<String, UnspecifiedObject> data - the object's data.
-        object_metadata meta - metadata about the object.
+        UnspecifiedObject data - the object's data.
+        object_metadata_full meta - metadata about the object.
 
 
 =item Definition
@@ -1953,8 +2190,8 @@ The data and metadata for an object.
 
 <pre>
 a reference to a hash where the following keys are defined:
-data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
-meta has a value which is a Workspace.object_metadata
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+meta has a value which is a Workspace.object_metadata_full
 
 </pre>
 
@@ -1963,8 +2200,8 @@ meta has a value which is a Workspace.object_metadata
 =begin text
 
 a reference to a hash where the following keys are defined:
-data has a value which is a reference to a hash where the key is a string and the value is an UnspecifiedObject, which can hold any non-null object
-meta has a value which is a Workspace.object_metadata
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+meta has a value which is a Workspace.object_metadata_full
 
 
 =end text

@@ -276,18 +276,20 @@ module Workspace {
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
 		(workspace_metadata metadata) authentication required;
-		
+	
+	authentication optional;
+	
 	/*
 		Get a workspace's metadata.
 	*/
 	funcdef get_workspace_metadata(WorkspaceIdentity wsi)
-		returns (workspace_metadata meta) authentication optional;
+		returns (workspace_metadata meta);
 	
 	/* 
 		Get a workspace's description.
 	*/
 	funcdef get_workspace_description(WorkspaceIdentity wsi)
-		returns (string description) authentication optional;
+		returns (string description);
 	
 	/* Input parameters for the "set_permissions" function.
 	
@@ -307,17 +309,18 @@ module Workspace {
 		list<username> users;
 	} SetPermissionsParams;
 	
+	authentication required;
+	
 	/* 
 		Set permissions for a workspace.
 	*/
-	funcdef set_permissions(SetPermissionsParams params) returns ()
-		authentication required;
+	funcdef set_permissions(SetPermissionsParams params) returns ();
 	
 	/* 
 		Get permissions for a workspace.
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
-		(mapping<username, permission> perms) authentication required;
+		(mapping<username, permission> perms);
 	
 	/* An object and associated data required for saving.
 	
@@ -372,7 +375,7 @@ module Workspace {
 		Save objects to the workspace.
 	*/
 	funcdef save_objects(SaveObjectsParams params)
-		returns (list<object_metadata> meta) authentication required;
+		returns (list<object_metadata> meta);
 	
 	/* The data and metadata for an object.
 	
@@ -385,15 +388,17 @@ module Workspace {
 		object_metadata_full meta;
 	} ObjectData;
 	
+	authentication optional;
+	
 	/* 
 		Get objects from the workspace.
 	*/
 	funcdef get_objects(list<ObjectIdentity> objects)
-		returns (list<ObjectData> data) authentication optional;
+		returns (list<ObjectData> data);
 	
 	/* 
 		Get object metadata from the workspace.
 	*/
 	funcdef get_object_metadata(list<ObjectIdentity> objects)
-		returns (list<object_metadata_full> data)  authentication optional;
+		returns (list<object_metadata_full> data);
 };
