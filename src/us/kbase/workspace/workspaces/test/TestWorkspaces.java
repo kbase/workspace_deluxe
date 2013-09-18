@@ -657,31 +657,56 @@ public class TestWorkspaces {
 		}
 	}
 	
+	private void checkTypeIdFromString(String type, String exception) {
+		try {
+			TypeId.fromTypeString(type);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
 	@Test
 	public void type() throws Exception {
-		checkWSType(null, "bar", "module cannot be null or the empty string");
-		checkWSType("foo", null, "name cannot be null or the empty string");
-		checkWSType("", "bar", "module cannot be null or the empty string");
-		checkWSType("foo", "", "name cannot be null or the empty string");
+		checkWSType(null, "bar", "Module cannot be null or the empty string");
+		checkWSType("foo", null, "Name cannot be null or the empty string");
+		checkWSType("", "bar", "Module cannot be null or the empty string");
+		checkWSType("foo", "", "Name cannot be null or the empty string");
 		checkWSType("fo-o", "bar", "Illegal character in type id fo-o: -");
 		checkWSType("foo", "ba/r", "Illegal character in type id ba/r: /");
 		WorkspaceType wst = new WorkspaceType("foo", "bar");
-		checkTypeId(null, null, null, "type cannot be null");
-		checkTypeId(null, 1, null, "type cannot be null");
-		checkTypeId(null, 1, 0, "type cannot be null");
-		checkTypeId(wst, -1, null, "version numbers must be >= 0");
-		checkTypeId(wst,  -1, 0, "version numbers must be >= 0");
-		checkTypeId(wst,  0, -1, "version numbers must be >= 0");
-		checkTypeId(null, "type cannot be null");
-		checkTypeId(null, null, "type cannot be null");
+		checkTypeId(null, null, null, "Type cannot be null");
+		checkTypeId(null, 1, null, "Type cannot be null");
+		checkTypeId(null, 1, 0, "Type cannot be null");
+		checkTypeId(wst, -1, null, "Version numbers must be >= 0");
+		checkTypeId(wst,  -1, 0, "Version numbers must be >= 0");
+		checkTypeId(wst,  0, -1, "Version numbers must be >= 0");
+		checkTypeId(null, "Moduletype cannot be null or the empty string");
+		checkTypeId(null, null, "Moduletype cannot be null or the empty string");
+		checkTypeId("", "Moduletype cannot be null or the empty string");
+		checkTypeId("", null, "Moduletype cannot be null or the empty string");
 		checkTypeId("foo", "Type foo could not be split into a module and name");
 		checkTypeId("foo", null, "Type foo could not be split into a module and name");
-		checkTypeId("-", "Type - could not be split into a module and name");
-		checkTypeId("-", null, "Type - could not be split into a module and name");
-		checkTypeId("-foo", "Type -foo could not be split into a module and name");
-		checkTypeId("-foo", null, "Type -foo could not be split into a module and name");
-		checkTypeId("foo-", "Type foo- could not be split into a module and name");
-		checkTypeId("foo-", null, "Type foo- could not be split into a module and name");
-		
+		checkTypeId(".", "Type . could not be split into a module and name");
+		checkTypeId(".", null, "Type . could not be split into a module and name");
+		checkTypeId(".foo", "Module cannot be null or the empty string");
+		checkTypeId(".foo", null, "Module cannot be null or the empty string");
+		checkTypeId("foo.", "Type foo. could not be split into a module and name");
+		checkTypeId("foo.", null, "Type foo. could not be split into a module and name");
+		checkTypeId("foo.bar", "", "Typeversion cannot be an empty string");
+		checkTypeId("foo.bar", "2.1.3", "Type version string 2.1.3 could not be parsed to a version");
+		checkTypeId("foo.bar", "n", "Type version string n could not be parsed to a version");
+		checkTypeId("foo.bar", "1.n", "Type version string 1.n could not be parsed to a version");
+		checkTypeIdFromString(null, "Typestring cannot be null or the empty string");
+		checkTypeIdFromString("", "Typestring cannot be null or the empty string");
+		checkTypeIdFromString("foo.bar-2.1-3", "Could not parse typestring foo.bar-2.1-3 into module/type and version portions");
+		checkTypeIdFromString("-2.1", "Moduletype cannot be null or the empty string");	
+		checkTypeIdFromString("foo", "Type foo could not be split into a module and name");
+		checkTypeIdFromString(".", "Type . could not be split into a module and name");
+		checkTypeIdFromString(".foo", "Module cannot be null or the empty string");
+		checkTypeIdFromString("foo.", "Type foo. could not be split into a module and name");
+		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
+		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
+		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
 	}
 }

@@ -14,9 +14,9 @@ public class WorkspaceType {
 	private final String name;
 	
 	public WorkspaceType(String module, String name) {
-		checkString(module, "module");
+		checkString(module, "Module");
 		checkTypeName(module);
-		checkString(name, "name");
+		checkString(name, "Name");
 		checkTypeName(name);
 		this.module = module;
 		this.name = name;
