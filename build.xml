@@ -96,6 +96,7 @@
     <mkdir dir="${war.dir}/lib"/>
     <copy todir="${war.dir}/lib/" flatten="true">
       <fileset refid="libfiles"/>
+      <fileset refid="commonlib"/>
     </copy>
     <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
       <classes dir="${classes}"/>

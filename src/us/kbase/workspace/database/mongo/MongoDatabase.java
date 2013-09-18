@@ -453,6 +453,9 @@ public class MongoDatabase implements Database {
 		return queryWorkspacesByID(idset, fields).get(id);
 	}	
 	
+	//TODO constants class with field names for all objects
+	
+	//TODO move all query methods into separate class.
 	private Map<Integer, Map<String, Object>> queryWorkspacesByID(
 			final Set<Integer> wsids, final Set<String> fields) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
