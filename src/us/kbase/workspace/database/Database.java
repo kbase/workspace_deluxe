@@ -59,10 +59,10 @@ public interface Database {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
 	
-	public List<WorkspaceObjectData> getObjects(
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			Set<ObjectIDResolvedWS> objectIDs);
 
-	public List<ObjectUserMetaData> getObjectMeta(
+	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 }
