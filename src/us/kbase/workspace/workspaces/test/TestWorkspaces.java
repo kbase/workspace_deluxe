@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JFrame;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -540,7 +542,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void bigUserMeta() throws Exception {
+	public void bigUserMetaAndObjectErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
@@ -558,7 +560,7 @@ public class TestWorkspaces {
 					new WorkspaceObjectID("bigmeta"), data, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #1, bigmeta, is > 16000 bytes"));
 		}
 		try {
@@ -566,7 +568,7 @@ public class TestWorkspaces {
 					new WorkspaceObjectID(3), data, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #1, 3, is > 16000 bytes"));
 		}
 		
@@ -577,8 +579,109 @@ public class TestWorkspaces {
 			ws.saveObjects(foo, read, objects);
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #2, foo1, is > 16000 bytes"));
 		}
+		objects.clear();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, smallmeta, null, false));
+		objects.add(new WorkspaceSaveObject(data, t, meta, null, false));
+		try {
+			ws.saveObjects(foo, read, objects);
+			fail("saved object with > 16Mb metadata");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Metadata for object #2 is > 16000 bytes"));
+		}
+	}
+	
+	@Test
+	public void unserializableData() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		Object data = new JFrame();
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		try {
+			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
+			fail("saved unserializable object");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Unable to serialize data for object #1, jframe"));
+		}
+	}
+	
+	private void checkWSType(String module, String name, String exception) {
+		try {
+			new WorkspaceType(module, name);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(WorkspaceType t, Integer major, Integer minor, String exception) {
+		try {
+			if (minor == null) {
+				if (major == null) {
+					new TypeId(t);
+				} else {
+					new TypeId(t, major);
+				}
+			} else {
+				new TypeId(t, major, minor);
+			}
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(String moduletype, String typever, String exception) {
+		try {
+			new TypeId(moduletype, typever);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(String moduletype, String exception) {
+		try {
+			new TypeId(moduletype);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	@Test
+	public void type() throws Exception {
+		checkWSType(null, "bar", "module cannot be null or the empty string");
+		checkWSType("foo", null, "name cannot be null or the empty string");
+		checkWSType("", "bar", "module cannot be null or the empty string");
+		checkWSType("foo", "", "name cannot be null or the empty string");
+		checkWSType("fo-o", "bar", "Illegal character in type id fo-o: -");
+		checkWSType("foo", "ba/r", "Illegal character in type id ba/r: /");
+		WorkspaceType wst = new WorkspaceType("foo", "bar");
+		checkTypeId(null, null, null, "type cannot be null");
+		checkTypeId(null, 1, null, "type cannot be null");
+		checkTypeId(null, 1, 0, "type cannot be null");
+		checkTypeId(wst, -1, null, "version numbers must be >= 0");
+		checkTypeId(wst,  -1, 0, "version numbers must be >= 0");
+		checkTypeId(wst,  0, -1, "version numbers must be >= 0");
+		checkTypeId(null, "type cannot be null");
+		checkTypeId(null, null, "type cannot be null");
+		checkTypeId("foo", "Type foo could not be split into a module and name");
+		checkTypeId("foo", null, "Type foo could not be split into a module and name");
+		checkTypeId("-", "Type - could not be split into a module and name");
+		checkTypeId("-", null, "Type - could not be split into a module and name");
+		checkTypeId("-foo", "Type -foo could not be split into a module and name");
+		checkTypeId("-foo", null, "Type -foo could not be split into a module and name");
+		checkTypeId("foo-", "Type foo- could not be split into a module and name");
+		checkTypeId("foo-", null, "Type foo- could not be split into a module and name");
+		
 	}
 }

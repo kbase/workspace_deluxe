@@ -26,7 +26,7 @@ public class WorkspaceType {
 		final Matcher m = INVALID_TYPE_NAMES.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal character in type name %s: %s", name, m.group()));
+					"Illegal character in type id %s: %s", name, m.group()));
 		}
 	}
 	
