@@ -1,5 +1,8 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -61,14 +64,14 @@ public class Workspaces {
 		return wsid;
 	}
 	
-	private Set<ObjectIDResolvedWS> checkPerms(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi, final Permission perm,
-			final String operation) throws CorruptWorkspaceDBException,
+	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi,
+			final Permission perm, final String operation) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException {
+			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
-		for (ObjectIdentifier o: loi) {
+		for (final ObjectIdentifier o: loi) {
 			wsis.add(o.getWorkspaceIdentifier());
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
@@ -76,12 +79,13 @@ public class Workspaces {
 		final Map<ResolvedWorkspaceID, Permission> perms =
 				db.getPermissions(user,
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
-		final Set<ObjectIDResolvedWS> ret = new HashSet<ObjectIDResolvedWS>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			comparePermission(user, perm, perms.get(r),
 					o.getWorkspaceIdentifierString(), operation);
-			ret.add(o.resolveWorkspace(r));
+			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
 	}
@@ -162,14 +166,33 @@ public class Workspaces {
 			final List<ObjectIdentifier> loi) throws
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		return db.getObjects(checkPerms(user, loi, Permission.READ, "read"));
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
+				db.getObjects(new HashSet<ObjectIDResolvedWS>(ws.values()));
+		final List<WorkspaceObjectData> ret =
+				new ArrayList<WorkspaceObjectData>();
 		
+		for (final ObjectIdentifier o: loi) {
+			ret.add(data.get(ws.get(o)));
+		}
+		return ret;
 	}
 	
 	public List<ObjectUserMetaData> getObjectMetaData(WorkspaceUser user,
 			List<ObjectIdentifier> loi) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, NoSuchObjectException {
-		return db.getObjectMeta(checkPerms(user, loi, Permission.READ, "read"));
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, ObjectUserMetaData> meta = 
+				db.getObjectMeta(new HashSet<ObjectIDResolvedWS>(ws.values()));
+		final List<ObjectUserMetaData> ret =
+				new ArrayList<ObjectUserMetaData>();
+		
+		for (final ObjectIdentifier o: loi) {
+			ret.add(meta.get(ws.get(o)));
+		}
+		return ret;
 	}
 }

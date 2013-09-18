@@ -477,6 +477,7 @@ public class MongoDatabase implements Database {
 		return result;
 	}
 
+	//TODO this should return a mapping of ids without versions to objects.
 	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWS> objectIDs, final Set<String> fields,
 			final Set<String> versionfields) throws NoSuchObjectException,
@@ -1464,7 +1465,8 @@ public class MongoDatabase implements Database {
 		return "type-" + type.getTypeString();
 	}
 	
-	public List<WorkspaceObjectData> getObjects(final Set<ObjectIDResolvedWS> objectIDs) {
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
+			final Set<ObjectIDResolvedWS> objectIDs) {
 		//TODO getObjects
 		return null;
 	}
@@ -1477,7 +1479,7 @@ public class MongoDatabase implements Database {
 	//TODO provide the workspace name for error purposes
 	//TODO don't pull same data for different versions - need array of versions to go through - need versionless id object
 	@Override
-	public List<ObjectUserMetaData> getObjectMeta(
+	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> qres =
@@ -1488,7 +1490,8 @@ public class MongoDatabase implements Database {
 			System.out.println(o);
 			System.out.println(qres.get(o));
 		}
-		final List<ObjectUserMetaData> ret = new ArrayList<ObjectUserMetaData>();
+		final Map<ObjectIDResolvedWS, ObjectUserMetaData> ret =
+				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final Map<String, Object> pointer = qres.get(o);
 			final int maxver = (int) pointer.get("version");
@@ -1515,7 +1518,8 @@ public class MongoDatabase implements Database {
 			@SuppressWarnings("unchecked")
 			final List<Map<String, String>> meta =
 					(List<Map<String, String>>) versions.get(ver).get("meta");
-			ret.add(new MongoObjectUserMeta((int) pointer.get("id"),
+			ret.put(o, new MongoObjectUserMeta(
+					(int) pointer.get("id"),
 					(String) pointer.get("name"),
 					(String) versions.get(ver).get("type"),
 					(Date) versions.get(ver).get("createDate"), ver,
