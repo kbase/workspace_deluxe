@@ -32,6 +32,7 @@ import org.junit.experimental.runners.Enclosed;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.Permission;
@@ -480,33 +481,39 @@ public class MongoDatabase implements Database {
 		return result;
 	}
 
-	//TODO this should return a mapping of ids without versions to objects.
-	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
-			final Set<ObjectIDResolvedWS> objectIDs, final Set<String> fields,
-			final Set<String> versionfields) throws NoSuchObjectException,
-			WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, Map<Integer, ObjectIDResolvedWS>> ids = 
-				new HashMap<ResolvedMongoWSID, Map<Integer, ObjectIDResolvedWS>>();
-		final Map<ResolvedMongoWSID, Map<String, ObjectIDResolvedWS>> names = 
-				new HashMap<ResolvedMongoWSID, Map<String, ObjectIDResolvedWS>>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
+	private Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
+			final Set<ObjectIDResolvedWSNoVer> objectIDs,
+			final Set<String> fields, final Set<String> versionfields) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		
+		final Map<ResolvedMongoWSID,
+				Map<Integer, ObjectIDResolvedWSNoVer>> ids = 
+						new HashMap<ResolvedMongoWSID,
+								Map<Integer, ObjectIDResolvedWSNoVer>>();
+		final Map<ResolvedMongoWSID,
+				Map<String, ObjectIDResolvedWSNoVer>> names = 
+						new HashMap<ResolvedMongoWSID,
+								Map<String, ObjectIDResolvedWSNoVer>>();
+		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
 			final ResolvedMongoWSID rwsi =
 					convertResolvedID(o.getWorkspaceIdentifier());
 			if (o.getId() == null) {
 				if (names.get(rwsi) == null) {
-					names.put(rwsi, new HashMap<String, ObjectIDResolvedWS>());
+					names.put(rwsi,
+							new HashMap<String, ObjectIDResolvedWSNoVer>());
 				}
 				names.get(rwsi).put(o.getName(), o);
 			} else {
 				if (ids.get(rwsi) == null) {
-					ids.put(rwsi, new HashMap<Integer, ObjectIDResolvedWS>());
+					ids.put(rwsi,
+							new HashMap<Integer, ObjectIDResolvedWSNoVer>());
 				}
 				ids.get(rwsi).put(o.getId(), o);
 			}
 		}
 			
-		final Map<ObjectIDResolvedWS, Map<String, Object>> ret =
-				new HashMap<ObjectIDResolvedWS, Map<String, Object>>();
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
+				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
 		//nested or queries are slow per the mongo docs so just query one
 		//workspace at a time. If profiling shows this is slow investigate
 		//further
@@ -1480,23 +1487,37 @@ public class MongoDatabase implements Database {
 			"meta", "type", "createDate", "createdby", "chksum", "size");
 	
 	//TODO provide the workspace name for error purposes
-	//TODO don't pull same data for different versions - need array of versions to go through - need versionless id object
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWS, Map<String, Object>> qres =
-				queryObjects(objectIDs, PROJ_META, PROJ_META_VER);
-		System.out.println("\n*** qres ***");
-		System.out.println("objectIDs size: " + objectIDs.size());
-		for (ObjectIDResolvedWS o: qres.keySet()) {
-			System.out.println(o);
-			System.out.println(qres.get(o));
+		final Set<ObjectIDResolvedWSNoVer> noVer =
+				new HashSet<ObjectIDResolvedWSNoVer>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			noVer.add(o.withoutVersion());
+		}
+		
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> qres =
+				queryObjects(noVer, PROJ_META, PROJ_META_VER);
+
+		//preprocess data structure for faster access if multiple versions
+		//of same object required
+		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
+			final Map<String, Object> pointer = qres.get(o);
+			@SuppressWarnings("unchecked")
+			final List<Map<String, Object>> listver =
+					(List<Map<String, Object>>) pointer.get("versions");
+			final Map<Integer, Map<String, Object>> versions =
+					new HashMap<Integer, Map<String,Object>>();
+			for (final Map<String, Object> m: listver) {
+					versions.put((Integer) m.get("version"), m);
+			}
+			pointer.put("versions", versions);
 		}
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
-			final Map<String, Object> pointer = qres.get(o);
+			final Map<String, Object> pointer = qres.get(o.withoutVersion());
 			final int maxver = (int) pointer.get("version");
 			final int ver;
 			if (o.getVersion() == null) {
@@ -1511,25 +1532,21 @@ public class MongoDatabase implements Database {
 				}
 			}
 			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> listver =
-					(List<Map<String, Object>>) pointer.get("versions");
-			final Map<Integer, Map<String, Object>> versions =
-					new HashMap<Integer, Map<String,Object>>();
-			for (final Map<String, Object> m: listver) {
-					versions.put((Integer) m.get("version"), m);
-			}
+			final Map<String, Object> verpoint = 
+					((Map<Integer, Map<String, Object>>)
+							pointer.get("versions")).get(ver);
 			@SuppressWarnings("unchecked")
 			final List<Map<String, String>> meta =
-					(List<Map<String, String>>) versions.get(ver).get("meta");
+					(List<Map<String, String>>) verpoint.get("meta");
 			ret.put(o, new MongoObjectUserMeta(
 					(int) pointer.get("id"),
 					(String) pointer.get("name"),
-					(String) versions.get(ver).get("type"),
-					(Date) versions.get(ver).get("createDate"), ver,
-					new WorkspaceUser((String) versions.get(ver).get("createdby")),
+					(String) verpoint.get("type"),
+					(Date) verpoint.get("createDate"), ver,
+					new WorkspaceUser((String) verpoint.get("createdby")),
 					new ResolvedMongoWSID((int) pointer.get("workspace")),
-					(String) versions.get(ver).get("chksum"),
-					(int) versions.get(ver).get("size"),
+					(String) verpoint.get("chksum"),
+					(int) verpoint.get("size"),
 					metaMongoArrayToHash(meta)));
 		}
 		return ret;

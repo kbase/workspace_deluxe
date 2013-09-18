@@ -1,26 +1,24 @@
 package us.kbase.workspace.database;
 
-public class ObjectIDResolvedWS {
+//these class names are getting ridiculous, need to think of a better way
+public class ObjectIDResolvedWSNoVer {
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final Integer id;
-	private final Integer version;
 	
-	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name, Integer version) {
+	//no error checking on constructors - should only be generated from an ObjectIdResolvedWS instance
+	ObjectIDResolvedWSNoVer(ResolvedWorkspaceID rwsi, String name) {
 		this.rwsi = rwsi;
 		this.name = name;
 		this.id = null;
-		this.version = version;
 	}
 	
 	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, Integer version) {
+	ObjectIDResolvedWSNoVer(ResolvedWorkspaceID rwsi, int id) {
 		this.rwsi = rwsi;
 		this.name = null;
 		this.id = id;
-		this.version = version;
 	}
 	
 	public ResolvedWorkspaceID getWorkspaceIdentifier() {
@@ -35,28 +33,17 @@ public class ObjectIDResolvedWS {
 		return id;
 	}
 
-	public Integer getVersion() {
-		return version;
-	}
-	
 	public String getIdentifierString() {
 		if (getId() == null) {
 			return getName();
 		}
 		return "" + getId();
 	}
-	
-	public ObjectIDResolvedWSNoVer withoutVersion() {
-		if (name == null) {
-			return new ObjectIDResolvedWSNoVer(rwsi, id);
-		}
-		return new ObjectIDResolvedWSNoVer(rwsi, name);
-	}
 
 	@Override
 	public String toString() {
-		return "ObjectIDResolvedWS [rwsi=" + rwsi + ", name=" + name + ", id="
-				+ id + ", version=" + version + "]";
+		return "ObjectIDResolvedWSNoVer [rwsi=" + rwsi + ", name=" + name
+				+ ", id=" + id + "]";
 	}
 
 	@Override
@@ -66,7 +53,6 @@ public class ObjectIDResolvedWS {
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((rwsi == null) ? 0 : rwsi.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
@@ -78,10 +64,10 @@ public class ObjectIDResolvedWS {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ObjectIDResolvedWS)) {
+		if (!(obj instanceof ObjectIDResolvedWSNoVer)) {
 			return false;
 		}
-		ObjectIDResolvedWS other = (ObjectIDResolvedWS) obj;
+		ObjectIDResolvedWSNoVer other = (ObjectIDResolvedWSNoVer) obj;
 		if (id == null) {
 			if (other.id != null) {
 				return false;
@@ -101,13 +87,6 @@ public class ObjectIDResolvedWS {
 				return false;
 			}
 		} else if (!rwsi.equals(other.rwsi)) {
-			return false;
-		}
-		if (version == null) {
-			if (other.version != null) {
-				return false;
-			}
-		} else if (!version.equals(other.version)) {
 			return false;
 		}
 		return true;

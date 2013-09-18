@@ -33,6 +33,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
@@ -415,6 +416,9 @@ public class TestWorkspaces {
 	
 	private void checkObjMeta(ObjectMetaData meta, int id, String name, String type,
 			int version, WorkspaceUser user, int wsid, String chksum, int size) {
+		if (meta instanceof ObjectUserMetaData) {
+			throw new TestException("missed testing meta");
+		}
 		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
 		assertThat("Object id correct", meta.getObjectId(), is(id));
 		assertThat("Object name is correct", meta.getObjectName(), is(name));
@@ -424,6 +428,21 @@ public class TestWorkspaces {
 		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
 		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
 		assertThat("Object size is correct", meta.getSize(), is(size));
+	}
+	
+	private void checkObjMeta(ObjectUserMetaData meta, int id,
+			String name, String type, int version, WorkspaceUser user,
+			int wsid, String chksum, int size, Map<String, String> usermeta) {
+		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
+		assertThat("Object id correct", meta.getObjectId(), is(id));
+		assertThat("Object name is correct", meta.getObjectName(), is(name));
+		assertThat("Object type is correct", meta.getTypeString(), is(type));
+		assertThat("Object version is correct", meta.getVersion(), is(version));
+		assertThat("Object user is correct", meta.getCreator(), is(user));
+		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
+		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
+		assertThat("Object size is correct", meta.getSize(), is(size));
+		assertThat("Object user meta is correct", meta.getUserMetaData(), is(usermeta));
 	}
 	
 	@Test
@@ -450,7 +469,7 @@ public class TestWorkspaces {
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), data, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(data, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(data, t, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(data, t, meta, p, false));
 		List<ObjectMetaData> objmeta = ws.saveObjects(bum, read, objects);
 		String chksum = "36c4f68f2c98971b9736839232eb08f4";
@@ -475,20 +494,19 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, 3));
 		loi.add(new ObjectIdentifier(read, "3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
-		//TODO reenable these when fixed.
-//		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(bum, loi);
-//		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(2), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(3), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(4), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(5), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(6), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(7), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(8), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
-//		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23);
+		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(bum, loi);
+		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23, meta);
+		checkObjMeta(usermeta.get(2), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(3), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23, meta);
+		checkObjMeta(usermeta.get(4), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(5), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23, meta);
+		checkObjMeta(usermeta.get(6), 1, "3", t.getTypeString(), 2, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(7), 1, "3", t.getTypeString(), 1, bum, readid, chksum, 23, meta);
+		checkObjMeta(usermeta.get(8), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23, meta2);
+		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, bum, readid, chksum, 23, meta2);
 		
 		
 		ws.saveObjects(bum, priv, objects);
