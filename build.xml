@@ -27,9 +27,9 @@
     <include name="apache_commons/http/httpmime-4.2.5.jar"/>
     <include name="bson4jackson/bson4jackson-2.1.0.jar"/>
     <include name="ini4j/ini4j-0.5.2.jar"/>
-    <include name="jackson/jackson-annotations-2.1.4.jar"/>
-    <include name="jackson/jackson-core-2.1.4.jar"/>
-    <include name="jackson/jackson-databind-2.1.4.jar"/>
+    <include name="jackson/jackson-annotations-2.2.3.jar"/>
+    <include name="jackson/jackson-core-2.2.1.jar"/>
+    <include name="jackson/jackson-databind-2.2.1.jar"/>
     <include name="jetty/jetty-all-7.0.0.jar"/>
     <include name="jna/jna-3.4.0.jar"/>
     <include name="jongo/jongo-0.4.jar"/>
@@ -44,6 +44,11 @@
     <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
   </fileset>
 	
+  <fileset dir="${lib}" id="locallib">
+    <include name="java/json-schema-validator-2.1.8-full.jar"/>
+    <include name="java/kbase-kidl-parser.jar"/>
+  </fileset>
+
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
       <include name="workspace/*.java"/>
       <exclude name="workspace/WorkspaceServer.java"/>
@@ -63,6 +68,7 @@
   <path id="compile.classpath">
     <fileset refid="libfiles"/>
     <fileset refid="commonlib"/>
+    <fileset refid="locallib"/>
   </path>
 
   <path id="test.client.import.classpath">
@@ -113,7 +119,7 @@
       noindex="false" nonavbar="false" notree="false"
       source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
-      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.1.0/"/>
+      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
       <link href="http://jackson.codehaus.org/1.9.9/javadoc/"/>
       <fileset refid="client-jdoc-files"/>
     </javadoc>
