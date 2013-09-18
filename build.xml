@@ -27,9 +27,9 @@
     <include name="apache_commons/http/httpmime-4.2.5.jar"/>
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
     <include name="ini4j/ini4j-0.5.2.jar"/>
-    <!--<include name="jackson/jackson-annotations-2.2.3.jar"/>
-    <include name="jackson/jackson-core-2.2.1.jar"/>
-    <include name="jackson/jackson-databind-2.2.1.jar"/>-->
+    <include name="jackson/jackson-annotations-2.2.3.jar"/>
+    <include name="jackson/jackson-core-2.2.3.jar"/>
+    <include name="jackson/jackson-databind-2.2.3.jar"/>
     <include name="jetty/jetty-all-7.0.0.jar"/>
     <include name="jna/jna-3.4.0.jar"/>
     <include name="jongo/jongo-0.5-early-20130912-1506.jar"/>
@@ -37,7 +37,28 @@
     <include name="servlet/servlet-api-2.5.jar"/>
     <include name="syslog4j/syslog4j-0.9.46.jar"/>
   </fileset>
-	
+
+  <fileset dir="${jardir}" id="validatorlibfiles">
+    <include name="activation/activation-1.1.jar"/>
+    <include name="aopalliance/aopalliance-1.0.jar"/>
+    <include name="fge/btf-1.0.jar"/>
+    <include name="fge/jackson-coreutils-1.4.jar"/>
+    <include name="fge/json-schema-core-1.1.8.jar"/>
+    <include name="fge/json-schema-validator-2.1.7.jar"/>
+    <include name="fge/msg-simple-0.9.jar"/>
+    <include name="fge/uri-template-0.7.jar"/>
+    <include name="google/guava-14.0.1.jar"/>
+    <include name="google/guice-3.0.jar"/>
+    <include name="google/jsr305-2.0.1.jar"/>
+    <include name="google/libphonenumber-5.6.jar"/>
+    <include name="inject/javax.inject-1.jar"/>
+    <include name="joda/joda-time-2.2.jar"/>
+    <include name="mailapi/mailapi-1.4.3.jar"/>
+    <include name="mozilla/rhino-1.7R.jar"/>
+    <include name="testng/testng-6.8.5.jar"/>
+  </fileset>
+
+  	
   <fileset dir="${jardir}" id="commonlib">
     <include name="jackson/jackson-all-1.9.11.jar"/>
     <include name="junit/junit-4.9.jar"/>
@@ -45,7 +66,7 @@
   </fileset>
 	
   <fileset dir="${lib}" id="locallib">
-    <include name="java/json-schema-validator-2.1.8-full.jar"/>
+    <!-- <include name="java/json-schema-validator-2.1.8-full.jar"/> -->
     <include name="java/kbase-kidl-parser.jar"/>
   </fileset>
 
@@ -67,6 +88,7 @@
 
   <path id="compile.classpath">
     <fileset refid="libfiles"/>
+    <fileset refid="validatorlibfiles"/>
     <fileset refid="commonlib"/>
     <fileset refid="locallib"/>
   </path>
