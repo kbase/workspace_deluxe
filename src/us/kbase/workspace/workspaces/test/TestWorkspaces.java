@@ -540,7 +540,6 @@ public class TestWorkspaces {
 		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
-		//TODO tests for get meta and get object errors
 		
 		ws.saveObjects(foo, priv, objects);
 		
