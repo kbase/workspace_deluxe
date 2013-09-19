@@ -394,6 +394,18 @@ public class JSONRPCLayerTest {
 	
 	}
 	
+	private void saveBadObject(List<ObjectSaveData> objects, String exception) 
+			throws Exception {
+		try {
+			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("saveget")
+					.withObjects(objects));
+			fail("saved invalid data package");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is(exception));
+		}
+	}
+	
 	@Test
 	public void saveAndGetData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget")
@@ -417,44 +429,23 @@ public class JSONRPCLayerTest {
 			assertThat("correct args list", argset,
 					is(new HashSet<String>(Arrays.asList("foo", "baz"))));
 		}
-		sop = new SaveObjectsParams().withWorkspace("permspriv").withObjects(objects);
+		
 		objects.get(0).setAdditionalProperties("wugga", "boo");
-		try {
-			CLIENT2.saveObjects(sop);
-			fail("allowed unexpected args");
-		} catch (ServerException e) {
-			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Unexpected arguments in ObjectSaveData: wugga"));
-		}
+		saveBadObject(objects, "Unexpected arguments in ObjectSaveData: wugga");
 		
-		objects.clear();
-		objects.add(new ObjectSaveData().withName("myname").withObjid(1));
-		try {
-			CLIENT2.saveObjects(sop);
-			fail("saved object with both name and id");
-		} catch (ServerException e) {
-			System.out.println(e);
-			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Must provide one and only one of object name (was: myname) or id (was: 1)"));
-		}
+		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1));
+		saveBadObject(objects, "Must provide one and only one of object name (was: myname) or id (was: 1)");
 		
-		objects.clear();
-		objects.add(new ObjectSaveData());
-		try {
-			CLIENT2.saveObjects(sop);
-			fail("saved object 1 no data");
-		} catch (ServerException e) {
-			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Object 1 has no data"));
-		}
+		objects.set(0, new ObjectSaveData().withName("myname+"));
+		saveBadObject(objects, "Illegal character in object name myname+: +");
+		
+		objects.set(0, new ObjectSaveData().withObjid(0));
+		saveBadObject(objects, "Object id must be > 0");
+		
+		objects.set(0, new ObjectSaveData());
+		saveBadObject(objects, "Object 1 has no data");
 		
 		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar"));
-		try {
-			CLIENT2.saveObjects(sop);
-			fail("saved object 2 no data");
-		} catch (ServerException e) {
-			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Object 2 has no data"));
-		}
+		saveBadObject(objects, "Object 2 has no data");
 	}
 }
