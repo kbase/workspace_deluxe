@@ -97,6 +97,9 @@ public class ObjectIdentifier {
 	}
 	
 	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
 		if (name == null) {
 			if (version == null) {
 				return new ObjectIDResolvedWS(rwsi, id);
@@ -111,6 +114,7 @@ public class ObjectIdentifier {
 		}
 	}
 	
+	//TODO test OI.create
 	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
 			final String name, final Integer id) {
 		return create(wsi, name, id, null);
@@ -131,6 +135,7 @@ public class ObjectIdentifier {
 		return new ObjectIdentifier(wsi, id, ver);
 	}
 	
+	//TODO test OI.parseObjRef
 	public static ObjectIdentifier parseObjectReference(String reference) {
 		checkString(reference, "reference");
 		if (reference.contains(REFERENCE_NAME_SEP)) {

@@ -417,6 +417,44 @@ public class JSONRPCLayerTest {
 			assertThat("correct args list", argset,
 					is(new HashSet<String>(Arrays.asList("foo", "baz"))));
 		}
+		sop = new SaveObjectsParams().withWorkspace("permspriv").withObjects(objects);
+		objects.get(0).setAdditionalProperties("wugga", "boo");
+		try {
+			CLIENT2.saveObjects(sop);
+			fail("allowed unexpected args");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Unexpected arguments in ObjectSaveData: wugga"));
+		}
 		
+		objects.clear();
+		objects.add(new ObjectSaveData().withName("myname").withObjid(1));
+		try {
+			CLIENT2.saveObjects(sop);
+			fail("saved object with both name and id");
+		} catch (ServerException e) {
+			System.out.println(e);
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Must provide one and only one of object name (was: myname) or id (was: 1)"));
+		}
+		
+		objects.clear();
+		objects.add(new ObjectSaveData());
+		try {
+			CLIENT2.saveObjects(sop);
+			fail("saved object 1 no data");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Object 1 has no data"));
+		}
+		
+		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar"));
+		try {
+			CLIENT2.saveObjects(sop);
+			fail("saved object 2 no data");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Object 2 has no data"));
+		}
 	}
 }

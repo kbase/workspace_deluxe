@@ -24,6 +24,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -849,5 +851,175 @@ public class TestWorkspaces {
 		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
 		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
 		//TODO more abs type tests (from TypeId) assuming it sticks around after integration with Roman's code
+	}
+	
+	private void testObjectIdentifier(String goodId) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(String goodId, int version) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(int goodId) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(int goodId, int version) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
+			String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			System.out.println(e);
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		try {
+			new ObjectIDResolvedWSNoVer(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				new WorkspaceObjectID(badId);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
+			int version, String exception) {
+		try {
+			new ObjectIdentifier(new WorkspaceIdentifier("foo"), badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			System.out.println(e);
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, int badId,
+			String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			System.out.println(e);
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		try {
+			new ObjectIDResolvedWSNoVer(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				new WorkspaceObjectID(badId);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS,
+			int badId, int version, String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			System.out.println(e);
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	@Test
+	public void objectIDs() throws Exception {
+		WorkspaceIdentifier goodWs = new WorkspaceIdentifier("foo");
+		testObjectIdentifier("f|o.A-1_2");
+		testObjectIdentifier("f|o.A-1_2", 1);
+		testObjectIdentifier(null, "foo", "wsi cannot be null");
+		testObjectIdentifier(goodWs, null, "Object name cannot be null and must have at least one character");
+		testObjectIdentifier(goodWs, "", "Object name cannot be null and must have at least one character");
+		testObjectIdentifier(goodWs, "f|o.A-1_2+", "Illegal character in object name f|o.A-1_2+: +");
+		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
+		testObjectIdentifier(1);
+		testObjectIdentifier(1, 1);
+		testObjectIdentifier(null, 1, "wsi cannot be null");
+		testObjectIdentifier(goodWs, 0, "Object id must be > 0");
+		testObjectIdentifier(goodWs, 0, 1, "Object id must be > 0");
+		testObjectIdentifier(goodWs, 1, 0, "Object version must be > 0");
 	}
 }
