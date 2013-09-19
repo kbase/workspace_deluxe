@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.ini4j.Ini;
@@ -22,7 +23,10 @@ import org.junit.Test;
 import us.kbase.JsonClientException;
 import us.kbase.ServerException;
 import us.kbase.Tuple6;
+import us.kbase.UObject;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -278,7 +282,27 @@ public class JSONRPCLayerTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
 		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv")); //should work, now readable
-		//TODO WAIT for more methods: test write permissions
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
+				.withType("SomeRandom.Type"));
+		try {
+			CLIENT2.saveObjects(new SaveObjectsParams()
+				.withWorkspace("permspriv").withObjects(objects));
+		} catch (ServerException e) {
+			assertThat("correcet exception", e.getLocalizedMessage(),
+					is("User kbasetest2 may not write to workspace permspriv"));
+		}
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		CLIENT2.saveObjects(new SaveObjectsParams()
+			.withWorkspace("permspriv").withObjects(objects)); //should work
+		Map<String, String> expected = new HashMap<String, String>();
+		expected.put(USER1, "a");
+		expected.put(USER2, "w");
+		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity()
+			.withWorkspace("permspriv"));
+		assertThat("Permissions set correctly", perms, is(expected));
+		
 		try {
 			CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 					.withNewPermission("a").withUsers(Arrays.asList(USER1)));
@@ -290,11 +314,10 @@ public class JSONRPCLayerTest {
 				.withNewPermission("a").withUsers(Arrays.asList(USER2)));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("w").withUsers(Arrays.asList(USERNOEMAIL))); //should work
-		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
 		expected.put(USER2, "a");
 		expected.put(USERNOEMAIL, "w");
-		Map<String, String> perms = CLIENT2.getPermissions(new WorkspaceIdentity()
+		perms = CLIENT2.getPermissions(new WorkspaceIdentity()
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
 	}
