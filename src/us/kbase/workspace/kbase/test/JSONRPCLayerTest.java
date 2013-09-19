@@ -59,6 +59,8 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
+	//TODO saveObject and getObjectMeta tests
+	
 	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
 	public static Map<String, String> getenv() throws NoSuchFieldException,

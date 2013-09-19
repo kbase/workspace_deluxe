@@ -1,6 +1,7 @@
 package us.kbase.workspace.workspaces.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -13,6 +14,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.swing.JFrame;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,11 +33,13 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
@@ -477,8 +482,6 @@ public class TestWorkspaces {
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		System.out.println("\n*** test meta 1***");
-		System.out.println(objmeta);
 		checkObjMeta(objmeta.get(0), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23);
 		checkObjMeta(objmeta.get(1), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24);
 		checkObjMeta(objmeta.get(2), 2, "3-1", t.getTypeString(), 1, foo, readid, chksum1, 23);
@@ -514,14 +517,11 @@ public class TestWorkspaces {
 		
 		
 		ws.saveObjects(foo, priv, objects);
-		//TODO run through all possible errors
 		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		System.out.println("\n*** test meta 2***");
-		System.out.println(objmeta);
 		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23);
 		usermeta = ws.getObjectMetaData(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
 		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
@@ -540,7 +540,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void bigUserMeta() throws Exception {
+	public void bigUserMetaAndObjectErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
@@ -558,7 +558,7 @@ public class TestWorkspaces {
 					new WorkspaceObjectID("bigmeta"), data, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #1, bigmeta, is > 16000 bytes"));
 		}
 		try {
@@ -566,7 +566,7 @@ public class TestWorkspaces {
 					new WorkspaceObjectID(3), data, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #1, 3, is > 16000 bytes"));
 		}
 		
@@ -577,8 +577,196 @@ public class TestWorkspaces {
 			ws.saveObjects(foo, read, objects);
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception name", iae.getLocalizedMessage(),
+			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata for object #2, foo1, is > 16000 bytes"));
 		}
+		objects.clear();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, smallmeta, null, false));
+		objects.add(new WorkspaceSaveObject(data, t, meta, null, false));
+		try {
+			ws.saveObjects(foo, read, objects);
+			fail("saved object with > 16Mb metadata");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Metadata for object #2 is > 16000 bytes"));
+		}
+	}
+	
+	@Test
+	public void wrongObjectId() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, null, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), data, t, null, null, false));
+		try {
+			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+					new WorkspaceObjectID(3), data, t, null, null, false)));
+			fail("saved object with non-existant id");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception", nsoe.getLocalizedMessage(),
+					is("There is no object with id 3"));
+		}
+		
+	}
+	
+	@Test
+	public void unserializableData() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		Object data = new JFrame();
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		try {
+			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
+			fail("saved unserializable object");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Unable to serialize data for object #1, jframe"));
+		}
+	}
+	
+	private void checkWSType(String module, String name, String exception) {
+		try {
+			new WorkspaceType(module, name);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(WorkspaceType t, Integer major, Integer minor, String exception) {
+		try {
+			if (minor == null) {
+				if (major == null) {
+					new TypeId(t);
+				} else {
+					new TypeId(t, major);
+				}
+			} else {
+				new TypeId(t, major, minor);
+			}
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkAbsType(WorkspaceType t, Integer major, Integer minor, String exception) {
+		try {
+			new AbsoluteTypeId(t, major, minor);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkAbsTypeFromType(TypeId type, Integer major, Integer minor, String exception) {
+		try {
+			if (minor == null) {
+				if (major == null) {
+					AbsoluteTypeId.fromTypeId(type);
+				} else {
+					AbsoluteTypeId.fromTypeId(type, major);
+				}
+			} else {
+				AbsoluteTypeId.fromTypeId(type, major, minor);
+			}
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(String moduletype, String typever, String exception) {
+		try {
+			new TypeId(moduletype, typever);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeId(String moduletype, String exception) {
+		try {
+			new TypeId(moduletype);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeIdFromString(String type, String exception) {
+		try {
+			TypeId.fromTypeString(type);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	@Test
+	public void type() throws Exception {
+		checkWSType(null, "bar", "Module cannot be null or the empty string");
+		checkWSType("foo", null, "Name cannot be null or the empty string");
+		checkWSType("", "bar", "Module cannot be null or the empty string");
+		checkWSType("foo", "", "Name cannot be null or the empty string");
+		checkWSType("fo-o", "bar", "Illegal character in type id fo-o: -");
+		checkWSType("foo", "ba/r", "Illegal character in type id ba/r: /");
+		WorkspaceType wst = new WorkspaceType("foo", "bar");
+		checkTypeId(null, null, null, "Type cannot be null");
+		checkTypeId(null, 1, null, "Type cannot be null");
+		checkTypeId(null, 1, 0, "Type cannot be null");
+		checkTypeId(wst, -1, null, "Version numbers must be >= 0");
+		checkTypeId(wst,  -1, 0, "Version numbers must be >= 0");
+		checkTypeId(wst,  0, -1, "Version numbers must be >= 0");
+		checkTypeId(null, "Moduletype cannot be null or the empty string");
+		checkTypeId(null, null, "Moduletype cannot be null or the empty string");
+		checkTypeId("", "Moduletype cannot be null or the empty string");
+		checkTypeId("", null, "Moduletype cannot be null or the empty string");
+		checkTypeId("foo", "Type foo could not be split into a module and name");
+		checkTypeId("foo", null, "Type foo could not be split into a module and name");
+		checkTypeId(".", "Type . could not be split into a module and name");
+		checkTypeId(".", null, "Type . could not be split into a module and name");
+		checkTypeId(".foo", "Module cannot be null or the empty string");
+		checkTypeId(".foo", null, "Module cannot be null or the empty string");
+		checkTypeId("foo.", "Type foo. could not be split into a module and name");
+		checkTypeId("foo.", null, "Type foo. could not be split into a module and name");
+		checkTypeId("foo.bar", "", "Typeversion cannot be an empty string");
+		checkTypeId("foo.bar", "2.1.3", "Type version string 2.1.3 could not be parsed to a version");
+		checkTypeId("foo.bar", "n", "Type version string n could not be parsed to a version");
+		checkTypeId("foo.bar", "1.n", "Type version string 1.n could not be parsed to a version");
+		checkTypeIdFromString(null, "Typestring cannot be null or the empty string");
+		checkTypeIdFromString("", "Typestring cannot be null or the empty string");
+		checkTypeIdFromString("foo.bar-2.1-3", "Could not parse typestring foo.bar-2.1-3 into module/type and version portions");
+		checkTypeIdFromString("-2.1", "Moduletype cannot be null or the empty string");	
+		checkTypeIdFromString("foo", "Type foo could not be split into a module and name");
+		checkTypeIdFromString(".", "Type . could not be split into a module and name");
+		checkTypeIdFromString(".foo", "Module cannot be null or the empty string");
+		checkTypeIdFromString("foo.", "Type foo. could not be split into a module and name");
+		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
+		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
+		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
+		
+		assertTrue("absolute type", new TypeId(wst, 1, 1).isAbsolute());
+		assertFalse("absolute type", new TypeId(wst, 1).isAbsolute());
+		assertFalse("absolute type", new TypeId(wst).isAbsolute());
+		assertThat("check typestring", new TypeId(wst, 1, 1).getTypeString(),
+				is("foo.bar-1.1"));
+		assertThat("check typestring", new TypeId(wst, 1).getTypeString(),
+				is("foo.bar-1"));
+		assertThat("check typestring", new TypeId(wst).getTypeString(),
+				is("foo.bar"));
+		
+		checkAbsType(null, 1, 0, "Type cannot be null");
+		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
+		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
+		//TODO more abs type tests (from TypeId) assuming it sticks around after integration with Roman's code
 	}
 }

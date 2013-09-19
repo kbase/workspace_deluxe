@@ -8,6 +8,9 @@ public class AbsoluteTypeId extends TypeId{
 	}
 	
 	public static AbsoluteTypeId fromTypeId(TypeId type) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
 		if (!type.isAbsolute()) {
 			throw new IllegalArgumentException("type must be absolute");
 		}
@@ -16,6 +19,9 @@ public class AbsoluteTypeId extends TypeId{
 	}
 	
 	public static AbsoluteTypeId fromTypeId(TypeId type, int minorVersion) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
 		if (type.getMajorVersion() == null) {
 			throw new IllegalArgumentException(
 					"Incoming type major version cannot be null");
@@ -26,6 +32,9 @@ public class AbsoluteTypeId extends TypeId{
 	
 	public static AbsoluteTypeId fromTypeId(TypeId type, int majorVersion,
 			int minorVersion) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
 		return new AbsoluteTypeId(type.getType(), majorVersion, minorVersion);
 	}
 	

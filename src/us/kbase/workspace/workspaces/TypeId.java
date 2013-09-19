@@ -1,5 +1,7 @@
 package us.kbase.workspace.workspaces;
 
+import static us.kbase.workspace.util.Util.checkString;
+
 public class TypeId {
 	
 	private final static String TYPE_VER_SEP = "-";
@@ -14,10 +16,10 @@ public class TypeId {
 
 	public TypeId(WorkspaceType type, int majorVersion, int minorVersion) {
 		if (type == null) {
-			throw new IllegalArgumentException("type cannot be null");
+			throw new IllegalArgumentException("Type cannot be null");
 		}
 		if (majorVersion < 0 || minorVersion < 0) {
-			throw new IllegalArgumentException("version numbers must be >= 0");
+			throw new IllegalArgumentException("Version numbers must be >= 0");
 		}
 		this.type = type;
 		this.majorVersion = majorVersion;
@@ -26,10 +28,10 @@ public class TypeId {
 	
 	public TypeId(WorkspaceType type, int majorVersion) {
 		if (type == null) {
-			throw new IllegalArgumentException("type cannot be null");
+			throw new IllegalArgumentException("Type cannot be null");
 		}
 		if (majorVersion < 0) {
-			throw new IllegalArgumentException("version numbers must be >= 0");
+			throw new IllegalArgumentException("Version numbers must be >= 0");
 		}
 		this.type = type;
 		this.majorVersion = majorVersion;
@@ -38,7 +40,7 @@ public class TypeId {
 	
 	public TypeId(WorkspaceType type) {
 		if (type == null) {
-			throw new IllegalArgumentException("type cannot be null");
+			throw new IllegalArgumentException("Type cannot be null");
 		}
 		this.type = type;
 		this.majorVersion = null;
@@ -49,8 +51,9 @@ public class TypeId {
 			"Type version string %s could not be parsed to a version";
 	
 	public TypeId(String moduletype, String typeversion) {
-		if (moduletype == null) {
-			throw new IllegalArgumentException("type cannot be null");
+		checkString(moduletype, "Moduletype");
+		if (typeversion != null && typeversion.equals("")) {
+			throw new IllegalArgumentException("Typeversion cannot be an empty string");
 		}
 		final String[] t = moduletype.split(TYPE_SEP_REGEX);
 		if (t.length != 2) {
@@ -92,6 +95,7 @@ public class TypeId {
 	}
 	
 	public static TypeId fromTypeString(String typestring) {
+		checkString(typestring, "Typestring");
 		final String[] ts = typestring.split(TYPE_VER_SEP);
 		if (ts.length == 1) {
 			return new TypeId(ts[0]);
@@ -117,7 +121,7 @@ public class TypeId {
 	}
 	
 	public boolean isAbsolute() {
-		return majorVersion != null && minorVersion != null;
+		return minorVersion != null;
 	}
 	
 	public String getTypeString() {
