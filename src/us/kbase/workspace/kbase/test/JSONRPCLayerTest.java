@@ -401,6 +401,7 @@ public class JSONRPCLayerTest {
 					.withObjects(objects));
 			fail("saved invalid data package");
 		} catch (ServerException e) {
+			System.out.println(e);
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is(exception));
 		}
@@ -447,5 +448,24 @@ public class JSONRPCLayerTest {
 		
 		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar"));
 		saveBadObject(objects, "Object 2 has no data");
+		
+		objects.clear();
+		objects.add(new ObjectSaveData().withData(new UObject("foo")));
+		saveBadObject(objects, "Object 1 type error: Moduletype cannot be null or the empty string");
+		
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(""));
+		saveBadObject(objects, "Object 1 type error: Moduletype cannot be null or the empty string");
+		
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("F.B").withTver(""));
+		saveBadObject(objects, "Object 1 type error: Typeversion cannot be an empty string");
+		
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo"));
+		saveBadObject(objects, "Object 1 type error: Type foo could not be split into a module and name");
+		
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar").withTver("1.2.3"));
+		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
+		
+		//TODO provenance testing
+		
 	}
 }
