@@ -121,7 +121,7 @@ public class TypeId {
 	}
 	
 	public boolean isAbsolute() {
-		return majorVersion != null && minorVersion != null;
+		return minorVersion != null;
 	}
 	
 	public String getTypeString() {

@@ -1,6 +1,7 @@
 package us.kbase.workspace.workspaces.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -32,11 +33,13 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
@@ -595,6 +598,27 @@ public class TestWorkspaces {
 	}
 	
 	@Test
+	public void wrongObjectId() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, null, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), data, t, null, null, false));
+		try {
+			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+					new WorkspaceObjectID(3), data, t, null, null, false)));
+			fail("saved object with non-existant id");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception", nsoe.getLocalizedMessage(),
+					is("There is no object with id 3"));
+		}
+		
+	}
+	
+	@Test
 	public void unserializableData() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
@@ -632,6 +656,32 @@ public class TestWorkspaces {
 				}
 			} else {
 				new TypeId(t, major, minor);
+			}
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkAbsType(WorkspaceType t, Integer major, Integer minor, String exception) {
+		try {
+			new AbsoluteTypeId(t, major, minor);
+			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkAbsTypeFromType(TypeId type, Integer major, Integer minor, String exception) {
+		try {
+			if (minor == null) {
+				if (major == null) {
+					AbsoluteTypeId.fromTypeId(type);
+				} else {
+					AbsoluteTypeId.fromTypeId(type, major);
+				}
+			} else {
+				AbsoluteTypeId.fromTypeId(type, major, minor);
 			}
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
@@ -708,5 +758,20 @@ public class TestWorkspaces {
 		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
+		
+		assertTrue("absolute type", new TypeId(wst, 1, 1).isAbsolute());
+		assertFalse("absolute type", new TypeId(wst, 1).isAbsolute());
+		assertFalse("absolute type", new TypeId(wst).isAbsolute());
+		assertThat("check typestring", new TypeId(wst, 1, 1).getTypeString(),
+				is("foo.bar-1.1"));
+		assertThat("check typestring", new TypeId(wst, 1).getTypeString(),
+				is("foo.bar-1"));
+		assertThat("check typestring", new TypeId(wst).getTypeString(),
+				is("foo.bar"));
+		
+		checkAbsType(null, 1, 0, "Type cannot be null");
+		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
+		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
+		//TODO more abs type tests (from TypeId) assuming it sticks around after integration with Roman's code
 	}
 }
