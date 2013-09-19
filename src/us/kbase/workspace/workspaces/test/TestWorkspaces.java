@@ -482,8 +482,6 @@ public class TestWorkspaces {
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		System.out.println("\n*** test meta 1***");
-		System.out.println(objmeta);
 		checkObjMeta(objmeta.get(0), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23);
 		checkObjMeta(objmeta.get(1), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24);
 		checkObjMeta(objmeta.get(2), 2, "3-1", t.getTypeString(), 1, foo, readid, chksum1, 23);
@@ -519,14 +517,11 @@ public class TestWorkspaces {
 		
 		
 		ws.saveObjects(foo, priv, objects);
-		//TODO run through all possible errors
 		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		System.out.println("\n*** test meta 2***");
-		System.out.println(objmeta);
 		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23);
 		usermeta = ws.getObjectMetaData(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
 		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
