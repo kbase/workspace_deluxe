@@ -164,7 +164,8 @@ public class Workspaces {
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+			WorkspaceCommunicationException, WorkspaceAuthorizationException,
+			NoSuchObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 

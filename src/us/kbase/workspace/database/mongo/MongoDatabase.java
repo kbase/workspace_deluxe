@@ -56,6 +56,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
@@ -64,7 +65,9 @@ import us.kbase.workspace.workspaces.TypeSchema;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceType;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
@@ -1450,9 +1453,53 @@ public class MongoDatabase implements Database {
 	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
-			final Set<ObjectIDResolvedWS> objectIDs) {
-		//TODO getObjects
-		return null;
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
+				getPointerData(objectIDs);
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
+				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
+		final Map<String, Object> chksumToData = new HashMap<String, Object>();
+		for (ObjectIDResolvedWS o: objectIDs) {
+			final MongoObjectUserMeta meta = generateUserMeta(
+					pointerData.get(o.withoutVersion()),
+					o.getVersion(), 
+					Integer.toString(o.getWorkspaceIdentifier().getID()),
+					o.getIdentifierString());
+			if (chksumToData.containsKey(meta.getCheckSum())) {
+				ret.put(o, new WorkspaceObjectData(
+						chksumToData.get(meta.getCheckSum()), meta));
+			} else {
+				final String data;
+				try {
+					data = blob.getBlob(new MD5(meta.getCheckSum()));
+				} catch (BlobStoreCommunicationException e) {
+					throw new WorkspaceCommunicationException(
+							e.getLocalizedMessage(), e);
+				} catch (BlobStoreAuthorizationException e) {
+					throw new WorkspaceCommunicationException(
+							"Authorization error communicating with the backend storage system",
+							e);
+				} catch (NoSuchBlobException e) {
+					throw new CorruptWorkspaceDBException(String.format(
+							"No data present for valid pointer %s.%s.%s",
+							meta.getWorkspaceId(), meta.getObjectId(),
+							meta.getVersion()), e);
+				}
+				final Object object;
+				try {
+					object = defaultMapper.readValue(data, Object.class);
+				} catch (IOException e) {
+					throw new RuntimeException(String.format(
+							"Unable to deserialize object %s",
+							meta.getCheckSum()), e); 
+				}
+				chksumToData.put(meta.getCheckSum(), object);
+				ret.put(o, new WorkspaceObjectData(object, meta));
+			}
+		}
+		return ret;
 	}
 	
 	private static final Set<String> PROJ_META =

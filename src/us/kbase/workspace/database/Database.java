@@ -60,7 +60,8 @@ public interface Database {
 			NoSuchObjectException;
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
-			Set<ObjectIDResolvedWS> objectIDs);
+			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,

@@ -31,6 +31,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -501,6 +502,7 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, 3));
 		loi.add(new ObjectIdentifier(read, "3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
+		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
 		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(foo, loi);
 		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
@@ -514,6 +516,30 @@ public class TestWorkspaces {
 		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(0).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(1).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(2).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(3).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(4).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(5).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(6).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(7).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(8).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(9).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(10).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(11).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(3).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(4).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(5).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(6).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(7).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(8).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
 		
 		
 		ws.saveObjects(foo, priv, objects);
