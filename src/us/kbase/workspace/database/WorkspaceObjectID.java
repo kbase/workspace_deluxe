@@ -71,7 +71,6 @@ public class WorkspaceObjectID {
 		return "" + getId();
 	}
 	
-	//TODO test woid.create
 	public static WorkspaceObjectID create(final String name, 
 			final Integer id) {
 		xorNameId(name, id, "object");

@@ -891,7 +891,6 @@ public class TestWorkspaces {
 			new ObjectIdentifier(badWS, badId);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
-			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 		FakeResolvedWSID fakews = null;
@@ -928,7 +927,6 @@ public class TestWorkspaces {
 			new ObjectIdentifier(new WorkspaceIdentifier("foo"), badId, version);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
-			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 		FakeResolvedWSID fakews = null;
@@ -951,7 +949,6 @@ public class TestWorkspaces {
 			new ObjectIdentifier(badWS, badId);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
-			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 		FakeResolvedWSID fakews = null;
@@ -988,7 +985,6 @@ public class TestWorkspaces {
 			new ObjectIdentifier(badWS, badId, version);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
-			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 		FakeResolvedWSID fakews = null;
@@ -1001,6 +997,61 @@ public class TestWorkspaces {
 			new ObjectIDResolvedWS(fakews, badId, version);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testCreate(WorkspaceIdentifier goodWs, String name,
+			Integer id) {
+		ObjectIdentifier.create(goodWs, name, id);
+		WorkspaceObjectID.create(name, id);
+		
+	}
+	
+	
+	private void testCreateVer(WorkspaceIdentifier goodWs, String name, Integer id,
+			Integer ver) {
+		ObjectIdentifier.create(goodWs, name, id, ver);
+	}
+	
+	private void testCreate(WorkspaceIdentifier badWS, String name,
+			Integer id, String exception) {
+		try {
+			ObjectIdentifier.create(badWS, name, id);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				WorkspaceObjectID.create(name, id);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testCreateVer(WorkspaceIdentifier badWS, String name,
+			Integer id, Integer ver, String exception) {
+		try {
+			ObjectIdentifier.create(badWS, name, id, ver);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testRef(String ref) {
+		ObjectIdentifier.parseObjectReference(ref);
+	}
+	
+	private void testRef(String ref, String exception) {
+		try {
+			ObjectIdentifier.parseObjectReference(ref);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
@@ -1021,5 +1072,29 @@ public class TestWorkspaces {
 		testObjectIdentifier(goodWs, 0, "Object id must be > 0");
 		testObjectIdentifier(goodWs, 0, 1, "Object id must be > 0");
 		testObjectIdentifier(goodWs, 1, 0, "Object version must be > 0");
+		testCreate(goodWs, "f|o.A-1_2", null);
+		testCreate(goodWs, null, 1);
+		testCreate(null, "boo", null, "wsi cannot be null");
+		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
+		testCreate(goodWs, "boo", 1, "Must provide one and only one of object name (was: boo) or id (was: 1)");
+		testCreateVer(goodWs, "boo", null, 1);
+		testCreateVer(goodWs, null, 1, 1);
+		testCreateVer(goodWs, "boo", null, null);
+		testCreateVer(goodWs, null, 1, null);
+		testCreateVer(goodWs, "boo", null, 0, "Object version must be > 0");
+		testCreateVer(goodWs, null, 1, 0, "Object version must be > 0");
+		testRef("foo/bar");
+		testRef("foo/bar/1");
+		testRef("foo/bar/1/2", "Illegal number of separators / in object name reference foo/bar/1/2");
+		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
+		testRef("1.2");
+		testRef("1.2.3");
+		testRef("1.2.3.4", "Illegal number of separators . in object id reference 1.2.3.4");
+		testRef("n.2", "Unable to parse workspace portion of object reference n.2 to an integer");
+		testRef("1.n", "Unable to parse object portion of object reference 1.n to an integer");
+		testRef("n.2.3", "Unable to parse workspace portion of object reference n.2.3 to an integer");
+		testRef("1.n.3", "Unable to parse object portion of object reference 1.n.3 to an integer");
+		testRef("1.2.n", "Unable to parse version portion of object reference 1.2.n to an integer");
+		testRef("1", "Illegal number of separators . in object id reference 1");
 	}
 }
