@@ -11,6 +11,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 
 
 public class TestBasicValidation {
@@ -24,7 +25,7 @@ public class TestBasicValidation {
 	
 	
 	@BeforeClass
-	public static void setupDb() throws FileNotFoundException {
+	public static void setupDb() throws FileNotFoundException, TypeStorageException {
 
 		// Create a simple db
 		TypeDefinitionDB db            = new SimpleTypeDefinitionDB(new FileTypeStorage(test_file_location));

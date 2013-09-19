@@ -42,9 +42,10 @@ public final class TypedObjectValidator {
 	 * @return ProcessingReport containing the result of the validation
 	 * @throws InstanceValidationException 
 	 * @throws BadJsonSchemaDocumentException 
+	 * @throws TypeStorageException 
 	 */
 	public ProcessingReport validate(String instance, String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		String version = null;
 		return validate(instance,moduleName,typeName,version);
@@ -62,9 +63,10 @@ public final class TypedObjectValidator {
 	 * @return ProcessingReport containing the result of the validation
 	 * @throws InstanceValidationException 
 	 * @throws BadJsonSchemaDocumentException 
+	 * @throws TypeStorageException 
 	 */
 	public ProcessingReport validate(String instance, String moduleName, String typeName, String version)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
@@ -92,9 +94,10 @@ public final class TypedObjectValidator {
 	 * @throws NoSuchTypeException
 	 * @throws InstanceValidationException
 	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException 
 	 */
 	public ProcessingReport validate(JsonNode instanceRootNode, String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		String version = null;
         return validate(instanceRootNode, moduleName, typeName, version);
@@ -113,9 +116,10 @@ public final class TypedObjectValidator {
 	 * @throws NoSuchTypeException
 	 * @throws InstanceValidationException
 	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException 
 	 */
 	public ProcessingReport validate(JsonNode instanceRootNode, String moduleName, String typeName, String version)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		if(version != null) {
 			throw new BadJsonSchemaDocumentException("Versioning of typed objects not supported yet, pass 'null' for now as the version String.");

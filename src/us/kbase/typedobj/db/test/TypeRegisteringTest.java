@@ -47,7 +47,7 @@ public class TypeRegisteringTest {
 	
 	@After
 	public void cleanupAfter() throws Exception {
-		cleanupBefore();
+		//cleanupBefore();
 	}
 	
 	@Test
@@ -55,14 +55,21 @@ public class TypeRegisteringTest {
 		AuthUser user = getAdmin();
 		String taxonomySpec = loadSpec("simple", "Taxonomy");
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
+		db.releaseType("Taxonomy", "taxon");
 		String sequenceSpec = loadSpec("simple", "Sequence");
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);
+		db.releaseType("Sequence", "sequence_id");
+		db.releaseType("Sequence", "sequence_pos");
 		String annotationSpec = loadSpec("simple", "Annotation");
 		db.registerModule(annotationSpec, Arrays.asList("genome", "gene"), user);
+		db.releaseType("Annotation", "genome");
+		db.releaseType("Annotation", "gene");
 		String regulationSpec = loadSpec("simple", "Regulation");
 		db.registerModule(regulationSpec, Arrays.asList("regulator", "binding_site"), user);
+		db.releaseType("Regulation", "regulator");
+		db.releaseType("Regulation", "binding_site");
 		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
-		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "0.2", true);
+		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 	}
 	
 	private AuthUser getAdmin() throws Exception {
@@ -71,11 +78,11 @@ public class TypeRegisteringTest {
 		AuthUser user = c.newInstance();
 		c.setAccessible(false);
 		for (Field f : user.getClass().getDeclaredFields()) {
-			System.out.println("Field: " + f.getName());
+			//System.out.println("Field: " + f.getName() + ": " + f.getType());
 			f.setAccessible(true);
 			if (f.getName().equals("userId"))
 				f.set(user, "admin");
-			if (f.getName().equals("isSystemAdmin"))
+			if (f.getName().equals("systemAdmin"))
 				f.set(user, true);
 			f.setAccessible(false);
 		}

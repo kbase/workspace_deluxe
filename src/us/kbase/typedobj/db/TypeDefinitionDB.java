@@ -62,21 +62,22 @@ public abstract class TypeDefinitionDB {
 	/**
 	 * @return all names of registered modules
 	 */
-	public abstract List<String> getAllRegisteredModules();
+	public abstract List<String> getAllRegisteredModules() throws TypeStorageException;
 
-	public abstract boolean isValidModule(String moduleName);
+	public abstract boolean isValidModule(String moduleName) throws TypeStorageException;
 	
-	public abstract String getModuleSpecDocument(String moduleName) throws NoSuchModuleException;
+	public abstract String getModuleSpecDocument(String moduleName) throws NoSuchModuleException, TypeStorageException;
 	
-	public abstract ModuleInfo getModuleInfo(String moduleName) throws NoSuchModuleException;
+	public abstract ModuleInfo getModuleInfo(String moduleName) throws NoSuchModuleException, TypeStorageException;
 	
 	/**
 	 * Given a module and a type name, return true if the type exists, false otherwise
 	 * @param moduleName
 	 * @param typeName
 	 * @return true if valid, false otherwise
+	 * @throws TypeStorageException 
 	 */
-	public boolean isValidType(String moduleName, String typeName) {
+	public boolean isValidType(String moduleName, String typeName) throws TypeStorageException {
 		return isValidType(moduleName, typeName, null);
 	}
 	
@@ -89,7 +90,7 @@ public abstract class TypeDefinitionDB {
 	 * @param version
 	 * @return true if valid, false otherwise
 	 */
-	public abstract boolean isValidType(String moduleName, String typeName, String version);
+	public abstract boolean isValidType(String moduleName, String typeName, String version) throws TypeStorageException;
 	
 	/**
 	 * Given a moduleName and typeName, return the JSON Schema document for the type. No version
@@ -100,7 +101,7 @@ public abstract class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public String getJsonSchemaDocument(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException {
+	public String getJsonSchemaDocument(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		return getJsonSchemaDocument(moduleName, typeName, null);
 	}
 
@@ -114,7 +115,8 @@ public abstract class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public abstract String getJsonSchemaDocument(String moduleName, String typeName, String version) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract String getJsonSchemaDocument(String moduleName, String typeName, String version) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
 	/**
 	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
@@ -126,7 +128,7 @@ public abstract class TypeDefinitionDB {
 	 * @throws NoSuchTypeException
 	 */
 	public JsonSchema getJsonSchema(String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		// first we retrieve the Json Schema document, this can throw a NoSuchTypeException
 		String jsonSchemaDocument = getJsonSchemaDocument(moduleName, typeName);
@@ -138,7 +140,7 @@ public abstract class TypeDefinitionDB {
 
 	protected JsonSchema jsonSchemaFromString(String moduleName,
 			String typeName, String jsonSchemaDocument)
-			throws BadJsonSchemaDocumentException {
+			throws BadJsonSchemaDocumentException, TypeStorageException {
 		try {
 			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
 			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
@@ -155,7 +157,8 @@ public abstract class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public KbTypedef getTypeParsingDocument(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException {
+	public KbTypedef getTypeParsingDocument(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		return getTypeParsingDocument(moduleName, typeName, null);
 	}
 
@@ -168,7 +171,8 @@ public abstract class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public abstract KbTypedef getTypeParsingDocument(String moduleName, String typeName, String version) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract KbTypedef getTypeParsingDocument(String moduleName, String typeName, String version) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
 	/**
 	 * Return latest version of specified type. Version has two level structure of integers divided by dot like &lt;major&gt;.&lt;minor&gt;
@@ -176,19 +180,23 @@ public abstract class TypeDefinitionDB {
 	 * @param typeName
 	 * @return latest version of specified type
 	 */
-	public abstract String getLatestTypeVersion(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract String getLatestTypeVersion(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 		
 	/**
 	 * @param moduleName
 	 * @return all names of registered types belonging to specified module
 	 */
-	public abstract List<String> getAllRegisteredTypes(String moduleName) throws NoSuchModuleException;
+	public abstract List<String> getAllRegisteredTypes(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException;
 	
-	public abstract void registerModule(String specDocument, List<String> registeredTypes, AuthUser owner) throws SpecParseException;
+	public abstract void registerModule(String specDocument, List<String> registeredTypes, 
+			AuthUser owner) throws SpecParseException, TypeStorageException;
 	
 	public abstract void updateModule(String specDocument, List<String> changedTypes,
 			List<String> backwardIncompatibleTypes, List<String> changedFuncs,
-			List<String> backwardIncompatibleFuncs, AuthUser owner) throws SpecParseException;
+			List<String> backwardIncompatibleFuncs, AuthUser owner) 
+					throws SpecParseException, TypeStorageException;
 	
 	/**
 	 * Change major version from 0 to 1.
@@ -197,7 +205,8 @@ public abstract class TypeDefinitionDB {
 	 * @return new version
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 */
-	public abstract String releaseType(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract String releaseType(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 		
 	/**
 	 * Return latest version of specified type. Version has two level structure of integers divided by dot like &lt;major&gt;.&lt;minor&gt;
@@ -205,19 +214,23 @@ public abstract class TypeDefinitionDB {
 	 * @param typeName
 	 * @return latest version of specified type
 	 */
-	public abstract String getLatestFuncVersion(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException;
+	public abstract String getLatestFuncVersion(String moduleName, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
 	/**
 	 * @param moduleName
 	 * @return all names of registered functions belonging to specified module
 	 */
-	public abstract List<String> getAllRegisteredFuncs(String moduleName) throws NoSuchModuleException;
+	public abstract List<String> getAllRegisteredFuncs(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException;
 
-	public KbFuncdef getFuncParsingDocument(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException {
+	public KbFuncdef getFuncParsingDocument(String moduleName, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		return getFuncParsingDocument(moduleName, funcName, null);
 	}
 
-	public abstract KbFuncdef getFuncParsingDocument(String moduleName, String funcName, String version) throws NoSuchFuncException, NoSuchModuleException;
+	public abstract KbFuncdef getFuncParsingDocument(String moduleName, String funcName, 
+			String version) throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
 	/**
 	 * Change major version from 0 to 1.
@@ -226,28 +239,39 @@ public abstract class TypeDefinitionDB {
 	 * @return new version
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 */
-	public abstract String releaseFunc(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException;
+	public abstract String releaseFunc(String moduleName, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void removeTypeVersion(String moduleName, String typeName, String version) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract void removeTypeVersion(String moduleName, String typeName, String version) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void stopTypeSupport(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException;	
+	public abstract void stopTypeSupport(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;	
 	
-	public abstract void removeTypeForAllVersions(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException;
+	public abstract void removeTypeForAllVersions(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void stopFuncSupport(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException;	
+	public abstract void stopFuncSupport(String moduleName, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;	
 
-	public abstract void removeFuncForAllVersions(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException;
+	public abstract void removeFuncForAllVersions(String moduleName, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void removeModule(String moduleName) throws NoSuchModuleException;
+	public abstract void removeModule(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException;
 	
-	public abstract void removeAllRefs();
+	public abstract void removeAllRefs() throws TypeStorageException;
 	
-	public abstract Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version);
+	public abstract Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version)
+			throws TypeStorageException;
 
-	public abstract Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version);
+	public abstract Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version)
+			throws TypeStorageException;
 
-	public abstract Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, String version);
+	public abstract Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, String version)
+			throws TypeStorageException;
 
-	public abstract Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version);
+	public abstract Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version)
+			throws TypeStorageException;
 
 }
