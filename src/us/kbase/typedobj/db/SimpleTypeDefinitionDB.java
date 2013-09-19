@@ -19,6 +19,7 @@ import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -85,17 +86,17 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	
 	@Override
-	public boolean isValidModule(String moduleName) {
+	public boolean isValidModule(String moduleName) throws TypeStorageException {
 		return storage.checkModuleRecordsExist(moduleName);
 	}
 
-	protected void checkModule(String moduleName) throws NoSuchModuleException {
+	protected void checkModule(String moduleName) throws NoSuchModuleException, TypeStorageException {
 		if (!storage.checkModuleExist(moduleName))
 			throw new NoSuchModuleException("Module wasn't registered: " + moduleName);
 	}
 	
 	@Override
-	public boolean isValidType(String moduleName, String typeName, String version) {
+	public boolean isValidType(String moduleName, String typeName, String version) throws TypeStorageException {
 		if (!isValidModule(moduleName))
 			return false;
 		SemanticVersion ver = findTypeVersion(moduleName, typeName, version);
@@ -104,7 +105,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		return storage.checkTypeSchemaRecordExists(moduleName, typeName, ver.toString());
 	}
 
-	private boolean isTypePresent(String moduleName, String typeName) {
+	private boolean isTypePresent(String moduleName, String typeName) throws TypeStorageException {
 		ModuleInfo mi;
 		try {
 			mi = getModuleInfo(moduleName);
@@ -114,12 +115,14 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		return mi.getTypes().get(typeName) != null;
 	}
 
-	private SemanticVersion findTypeVersion(String moduleName, String typeName, String versionText) {
+	private SemanticVersion findTypeVersion(String moduleName, String typeName, 
+			String versionText) throws TypeStorageException {
 		return versionText == null ? findLastTypeVersion(moduleName, typeName, false) : 
 			new SemanticVersion(versionText);
 	}
 
-	private SemanticVersion findLastTypeVersion(String moduleName, String typeName, boolean withNoLongerSupported) {
+	private SemanticVersion findLastTypeVersion(String moduleName, String typeName, 
+			boolean withNoLongerSupported) throws TypeStorageException {
 		if (!isTypePresent(moduleName, typeName))
 			return null;
 		ModuleInfo mi;
@@ -143,7 +146,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public String getJsonSchemaDocument(String moduleName, String typeName, String version)
-			throws NoSuchTypeException, NoSuchModuleException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		// first make sure that the json schema document can be found
 		SemanticVersion schemaDocumentVer = findTypeVersion(moduleName, typeName, version);
@@ -168,7 +171,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public List<String> getAllRegisteredTypes(String moduleName) throws NoSuchModuleException {
+	public List<String> getAllRegisteredTypes(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException {
 		List<String> ret = new ArrayList<String>();
 		for (TypeInfo typeInfo : getModuleInfo(moduleName).getTypes().values())
 			if (typeInfo.isSupported())
@@ -177,7 +181,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public String getLatestTypeVersion(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException {
+	public String getLatestTypeVersion(String moduleName, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion ret = findLastTypeVersion(moduleName, typeName, false);
 		if (ret == null)
@@ -186,8 +191,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private String saveType(ModuleInfo mi, String typeName, String jsonSchemaDocument,
-			KbTypedef specParsing, boolean notBackwardCompatible, List<RefInfo> dependencies) 
-					throws NoSuchModuleException {
+			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) 
+					throws NoSuchModuleException, TypeStorageException {
 		TypeInfo ti = mi.getTypes().get(typeName);
 		if (ti == null) {
 			ti = new TypeInfo();
@@ -199,8 +204,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
-			KbTypedef specParsing, boolean notBackwardCompatible, List<RefInfo> dependencies) 
-					throws NoSuchModuleException {
+			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) 
+					throws NoSuchModuleException, TypeStorageException {
 		SemanticVersion version = findLastTypeVersion(mi, ti.getTypeName(), true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
@@ -220,8 +225,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
-			KbTypedef specParsing, List<RefInfo> dependencies) 
-					throws NoSuchModuleException {
+			KbTypedef specParsing, Set<RefInfo> dependencies) 
+					throws NoSuchModuleException, TypeStorageException {
 		if (dependencies != null)
 			for (RefInfo ri : dependencies) {
 				ri.setDepVersion(ti.getTypeVersion());
@@ -246,7 +251,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		}
 	}
 	
-	private void writeTypeParsingFile(String moduleName, String typeName, String version, KbTypedef document) {
+	private void writeTypeParsingFile(String moduleName, String typeName, String version, 
+			KbTypedef document) throws TypeStorageException {
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, document.getData());
@@ -259,7 +265,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public String releaseType(String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion curVersion = findLastTypeVersion(info, typeName, false);
 		if (curVersion == null)
@@ -268,7 +274,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 			throwNoSuchTypeException(moduleName, typeName, "0.x");
 		String jsonSchemaDocument = getJsonSchemaDocument(moduleName, typeName);
 		KbTypedef specParsing = getTypeParsingDocument(moduleName, typeName);
-		List<RefInfo> deps = new ArrayList<RefInfo>(storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString()));
+		Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString());
 		SemanticVersion ret = releaseVersion;
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -276,6 +282,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 			ti.setTypeVersion(ret.toString());
 			saveType(info, ti, jsonSchemaDocument, specParsing, deps);
 			writeModuleInfo(moduleName, info, transactionStartTime);
+			storage.addRefs(deps, new TreeSet<RefInfo>());
 			transactionStartTime = -1;
 		} finally {
 			if (transactionStartTime > 0)
@@ -286,7 +293,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public void removeTypeForAllVersions(String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getTypes().containsKey(typeName))
 			throwNoSuchTypeException(moduleName, typeName, null);
@@ -297,7 +304,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 
 	@Override
 	public void removeFuncForAllVersions(String moduleName, String funcName)
-			throws NoSuchFuncException, NoSuchModuleException {
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getFuncs().containsKey(funcName))
 			throwNoSuchFuncException(moduleName, funcName, null);
@@ -308,7 +315,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public KbTypedef getTypeParsingDocument(String moduleName, String typeName,
-			String version) throws NoSuchTypeException, NoSuchModuleException {
+			String version) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion documentVer = findTypeVersion(moduleName, typeName, version);
 		if (documentVer == null)
@@ -353,13 +360,15 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 
 	@Override
-	public String getModuleSpecDocument(String moduleName) throws NoSuchModuleException {
+	public String getModuleSpecDocument(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		return storage.getModuleSpecRecord(moduleName);
 	}
 	
 	@Override
-	public ModuleInfo getModuleInfo(String moduleName) throws NoSuchModuleException {
+	public ModuleInfo getModuleInfo(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		String text = storage.getModuleInfoRecord(moduleName);
 		try {
@@ -370,7 +379,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 		
 	@Override
-	public List<String> getAllRegisteredFuncs(String moduleName) throws NoSuchModuleException {
+	public List<String> getAllRegisteredFuncs(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException {
 		List<String> ret = new ArrayList<String>();
 		for (FuncInfo info : getModuleInfo(moduleName).getFuncs().values()) 
 			if (info.isSupported())
@@ -378,7 +388,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		return ret;
 	}
 
-	private SemanticVersion findLastFuncVersion(String moduleName, String funcName, boolean withNotSupported) {
+	private SemanticVersion findLastFuncVersion(String moduleName, String funcName, 
+			boolean withNotSupported) throws TypeStorageException {
 		try {
 			return findLastFuncVersion(getModuleInfo(moduleName), funcName, withNotSupported);
 		} catch (NoSuchModuleException e) {
@@ -398,7 +409,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 
 	@Override
 	public String getLatestFuncVersion(String moduleName, String funcName)
-			throws NoSuchFuncException, NoSuchModuleException {
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion ret = findLastFuncVersion(moduleName, funcName, false);
 		if (ret == null)
@@ -407,7 +418,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private String saveFunc(ModuleInfo mi, String funcName, KbFuncdef specParsingDocument, 
-			boolean notBackwardCompatible, List<RefInfo> dependencies) throws NoSuchModuleException {
+			boolean notBackwardCompatible, Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
 		FuncInfo fi = mi.getFuncs().get(funcName);
 		if (fi == null) {
 			fi = new FuncInfo();
@@ -419,7 +430,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private String saveFunc(ModuleInfo mi, FuncInfo fi, KbFuncdef specParsingDocument, 
-			boolean notBackwardCompatible, List<RefInfo> dependencies) throws NoSuchModuleException {
+			boolean notBackwardCompatible, Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
 		SemanticVersion version = findLastFuncVersion(mi, fi.getFuncName(), true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
@@ -439,7 +450,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 		
 	private String saveFunc(ModuleInfo mi, FuncInfo fi, KbFuncdef specParsingDocument, 
-			List<RefInfo> dependencies) throws NoSuchModuleException {
+			Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
 		if (dependencies != null)
 			for (RefInfo dep : dependencies) {
 				dep.setDepVersion(fi.getFuncVersion());
@@ -449,7 +460,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		return fi.getFuncVersion();
 	}
 	
-	private void writeFuncParsingFile(String moduleName, String funcName, String version, KbFuncdef document) {
+	private void writeFuncParsingFile(String moduleName, String funcName, String version, KbFuncdef document) 
+			throws TypeStorageException {
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, document.getData());
@@ -461,14 +473,15 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 
 	@Override
-	public String releaseFunc(String moduleName, String funcName) throws NoSuchFuncException, NoSuchModuleException {
+	public String releaseFunc(String moduleName, String funcName) throws NoSuchFuncException, 
+	NoSuchModuleException, TypeStorageException {
 		SemanticVersion curVersion = findLastFuncVersion(moduleName, funcName, false);
 		if (curVersion == null)
 			throwNoSuchFuncException(moduleName, funcName, null);
 		if (curVersion.getMajor() != 0)
 			throwNoSuchFuncException(moduleName, funcName, "0.x");
 		KbFuncdef specParsing = getFuncParsingDocument(moduleName, funcName);
-		List<RefInfo> deps = new ArrayList<RefInfo>(storage.getFuncRefsByDep(moduleName, funcName, curVersion.toString()));
+		Set<RefInfo> deps = storage.getFuncRefsByDep(moduleName, funcName, curVersion.toString());
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion ret = releaseVersion;
 		long transactionStartTime = storage.getStorageCurrentTime();
@@ -477,6 +490,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 			fi.setFuncVersion(ret.toString());
 			saveFunc(info, fi, specParsing, deps);
 			writeModuleInfo(moduleName, info, transactionStartTime);
+			storage.addRefs(new TreeSet<RefInfo>(), deps);
 			transactionStartTime = -1;
 		} finally {
 			if (transactionStartTime > 0)
@@ -487,7 +501,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public KbFuncdef getFuncParsingDocument(String moduleName, String typeName,
-			String version) throws NoSuchFuncException, NoSuchModuleException {
+			String version) throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion curVersion = version == null ? 
 				findLastFuncVersion(moduleName, typeName, false) : new SemanticVersion(version);
@@ -504,7 +518,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		}
 	}
 	
-	private void stopTypeSupport(ModuleInfo mi, String typeName) throws NoSuchTypeException, NoSuchModuleException {
+	private void stopTypeSupport(ModuleInfo mi, String typeName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		TypeInfo ti = mi.getTypes().get(typeName);
 		if (ti == null)
 			throwNoSuchTypeException(mi.getModuleName(), typeName, null);
@@ -516,7 +531,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public void stopTypeSupport(String moduleName, String typeName)
-			throws NoSuchTypeException, NoSuchModuleException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -531,14 +546,15 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public void removeTypeVersion(String moduleName, String typeName,
-			String version) throws NoSuchTypeException, NoSuchModuleException {
+			String version) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion sVer = new SemanticVersion(version);
 		if (!storage.removeTypeRecordsForVersion(moduleName, typeName, sVer.toString()))
 			throwNoSuchTypeException(moduleName, typeName, version);
 	}
 	
-	private void stopFuncSupport(ModuleInfo info, String funcName) throws NoSuchFuncException, NoSuchModuleException {
+	private void stopFuncSupport(ModuleInfo info, String funcName) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		FuncInfo fi = info.getFuncs().get(funcName);
 		if (fi == null)
 			throwNoSuchFuncException(info.getModuleName(), funcName, null);
@@ -549,7 +565,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	
 	@Override
 	public void stopFuncSupport(String moduleName, String funcName)
-			throws NoSuchFuncException, NoSuchModuleException {
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -563,38 +579,43 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void removeModule(String moduleName) throws NoSuchModuleException {
+	public void removeModule(String moduleName) throws NoSuchModuleException, 
+	TypeStorageException {
 		checkModule(moduleName);
 		storage.removeModule(moduleName);
 	}
 	
 	@Override
-	public List<String> getAllRegisteredModules() {
+	public List<String> getAllRegisteredModules() throws TypeStorageException {
 		return storage.getAllRegisteredModules();
 	}
 	
 	@Override
-	public void removeAllRefs() {
+	public void removeAllRefs() throws TypeStorageException {
 		storage.removeAllRefs();
 	}
 	
 	@Override
-	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version) {
+	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType, 
+			String version) throws TypeStorageException {
 		return storage.getTypeRefsByDep(depModule, depType, version);
 	}
 	
 	@Override
-	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version) {
+	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType, 
+			String version) throws TypeStorageException {
 		return storage.getTypeRefsByRef(refModule, refType, version);
 	}
 	
 	@Override
-	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, String version) {
+	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, 
+			String version) throws TypeStorageException {
 		return storage.getFuncRefsByDep(depModule, depFunc, version);
 	}
 	
 	@Override
-	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version) {
+	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType, 
+			String version) throws TypeStorageException {
 		return storage.getFuncRefsByRef(refModule, refType, version);
 	}
 	
@@ -683,9 +704,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 			AuthUser owner) throws SpecParseException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
-		System.out.println("----------------------------------------------");
-		System.out.println("Spec-file:");
-		System.out.println(specDocument);
+		//System.out.println("----------------------------------------------");
+		//System.out.println("Spec-file:");
+		//System.out.println(specDocument);
 		String moduleName = null;
 		long transactionStartTime = -1;
 		try {
@@ -744,8 +765,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 						typesToSave.add(type);
 						String jsonSchemaDocument = typeToSchema.get(type.getName());
 						boolean notBackwardCompatible = backwardIncompatibleTypes.contains(type.getName());
-						List<RefInfo> dependencies = new ArrayList<RefInfo>(
-								extractTypeRefs(type, moduleToInfo, registeredTypes));
+						Set<RefInfo> dependencies = extractTypeRefs(type, moduleToInfo, registeredTypes);
 						jsonSchemaFromString(info.getModuleName(), type.getName(), jsonSchemaDocument);
 						comps.add(new ComponentCreation(true, type.getName(), jsonSchemaDocument, type, null, 
 								notBackwardCompatible, dependencies));
@@ -755,7 +775,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 					allNewFuncs.add(func.getName());
 					if (isNew || changedFuncs.contains(func.getName())) {
 						boolean notBackwardCompatible = backwardIncompatibleFuncs.contains(func.getName());
-						List<RefInfo> dependencies = new ArrayList<RefInfo>();
+						Set<RefInfo> dependencies = new TreeSet<RefInfo>();
 						for (KbParameter param : func.getParameters())
 							dependencies.addAll(extractTypeRefs(moduleName, func.getName(), param, moduleToInfo, registeredTypes));
 						for (KbParameter param : func.getReturnType())
@@ -869,7 +889,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	private void saveIncludedModuleRecusive(File workDir, String moduleName, Map<String, ModuleInfo> savedModules) 
-			throws NoSuchModuleException, IOException {
+			throws NoSuchModuleException, IOException, TypeStorageException {
 		if (savedModules.containsKey(moduleName))
 			return;
 		String spec = getModuleSpecDocument(moduleName);
@@ -914,10 +934,10 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 		KbTypedef typeParsing;
 		KbFuncdef funcParsing;
 		boolean notBackwardCompatible;
-		List<RefInfo> dependencies;
+		Set<RefInfo> dependencies;
 		
 		public ComponentCreation(boolean isType, String name, String jsonSchemaDocument, KbTypedef typeParsing,
-				KbFuncdef funcParsing, boolean notBackwardCompatible, List<RefInfo> dependencies) {
+				KbFuncdef funcParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) {
 			this.isType = isType;
 			this.name = name;
 			this.jsonSchemaDocument = jsonSchemaDocument;
