@@ -1460,9 +1460,7 @@ public class MongoDatabase implements Database {
 	private static final Set<String> PROJ_META_VER = newHashSet("version",
 			"meta", "type", "createDate", "createdby", "chksum", "size");
 	
-	//TODO provide the workspace name for error purposes
-	@Override
-	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
+	private Map<ObjectIDResolvedWSNoVer, Map<String, Object>> getPointerData(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Set<ObjectIDResolvedWSNoVer> noVer =
@@ -1488,40 +1486,58 @@ public class MongoDatabase implements Database {
 			}
 			pointer.put("versions", versions);
 		}
+		return qres;
+	}
+	
+	private MongoObjectUserMeta generateUserMeta(
+			final Map<String, Object> pointer, final Integer version,
+			final String workspaceIdentifier, final String objectIdentifier)
+			throws NoSuchObjectException {
+		final int maxver = (int) pointer.get("version");
+		final int ver;
+		if (version == null) {
+			ver = maxver;
+		} else {
+			ver = version;
+			if (ver > maxver) {
+				throw new NoSuchObjectException(String.format(
+						"No object with identifier '%s' and version %s exists in workspace %s",
+						workspaceIdentifier, ver, objectIdentifier));
+			}
+		}
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> verpoint = 
+				((Map<Integer, Map<String, Object>>)
+						pointer.get("versions")).get(ver);
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> meta =
+				(List<Map<String, String>>) verpoint.get("meta");
+		return new MongoObjectUserMeta(
+				(int) pointer.get("id"),
+				(String) pointer.get("name"),
+				(String) verpoint.get("type"),
+				(Date) verpoint.get("createDate"), ver,
+				new WorkspaceUser((String) verpoint.get("createdby")),
+				new ResolvedMongoWSID((int) pointer.get("workspace")),
+				(String) verpoint.get("chksum"),
+				(int) verpoint.get("size"),
+				metaMongoArrayToHash(meta));
+	}
+	
+	//TODO provide the workspace name for error purposes
+	@Override
+	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
+				getPointerData(objectIDs);
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
-			final Map<String, Object> pointer = qres.get(o.withoutVersion());
-			final int maxver = (int) pointer.get("version");
-			final int ver;
-			if (o.getVersion() == null) {
-				ver = maxver;
-			} else {
-				ver = o.getVersion();
-				if (ver > maxver) {
-					throw new NoSuchObjectException(String.format(
-							"No object with identifier '%s' and version %s exists in workspace %s",
-							o.getIdentifierString(), ver,
-							o.getWorkspaceIdentifier().getID()));
-				}
-			}
-			@SuppressWarnings("unchecked")
-			final Map<String, Object> verpoint = 
-					((Map<Integer, Map<String, Object>>)
-							pointer.get("versions")).get(ver);
-			@SuppressWarnings("unchecked")
-			final List<Map<String, String>> meta =
-					(List<Map<String, String>>) verpoint.get("meta");
-			ret.put(o, new MongoObjectUserMeta(
-					(int) pointer.get("id"),
-					(String) pointer.get("name"),
-					(String) verpoint.get("type"),
-					(Date) verpoint.get("createDate"), ver,
-					new WorkspaceUser((String) verpoint.get("createdby")),
-					new ResolvedMongoWSID((int) pointer.get("workspace")),
-					(String) verpoint.get("chksum"),
-					(int) verpoint.get("size"),
-					metaMongoArrayToHash(meta)));
+			ret.put(o, generateUserMeta(pointerData.get(o.withoutVersion()),
+					o.getVersion(), 
+					Integer.toString(o.getWorkspaceIdentifier().getID()),
+					o.getIdentifierString()));
 		}
 		return ret;
 	}
