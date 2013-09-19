@@ -184,10 +184,18 @@ public class QueryMethods {
 		}
 		return result;
 	}
-
+	
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
 			final Set<String> fields, final Set<String> versionfields) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		return queryObjects(objectIDs, fields, versionfields, true);
+	}
+
+	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
+			final Set<ObjectIDResolvedWSNoVer> objectIDs,
+			final Set<String> fields, final Set<String> versionfields,
+			final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		
 		final Map<ResolvedMongoWSID,
@@ -224,7 +232,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
 			final Map<Integer, Map<String, Object>> idres = 
 					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
-							versionfields);
+							versionfields, exceptOnMissing);
 			for (final Integer id: idres.keySet()) {
 				ret.put(ids.get(rwsi).get(id), idres.get(id));
 			}
@@ -232,7 +240,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final Map<String, Map<String, Object>> nameres = 
 					queryObjectsByName(rwsi, names.get(rwsi).keySet(), fields,
-							versionfields);
+							versionfields, exceptOnMissing);
 			for (final String name: nameres.keySet()) {
 				ret.put(names.get(rwsi).get(name), nameres.get(name));
 			}
@@ -242,7 +250,8 @@ public class QueryMethods {
 	
 	Map<String, Map<String, Object>> queryObjectsByName(
 			final ResolvedMongoWSID rwsi, final Set<String> names,
-			final Set<String> fields, final Set<String> versionfields) throws
+			final Set<String> fields, final Set<String> versionfields,
+			final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (names.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
@@ -258,7 +267,7 @@ public class QueryMethods {
 			result.put((String) m.get("name"), m);
 		}
 		for (String name: names) {
-			if (!result.containsKey(name)) {
+			if (exceptOnMissing && !result.containsKey(name)) {
 				throw new NoSuchObjectException(String.format(
 						"No object with name %s exists in workspace %s", name,
 						rwsi.getID()));
@@ -269,7 +278,8 @@ public class QueryMethods {
 	
 	Map<Integer, Map<String, Object>> queryObjectsByID(
 			final ResolvedMongoWSID rwsi, final Set<Integer> ids,
-			final Set<String> fields, final Set<String> versionfields) throws
+			final Set<String> fields, final Set<String> versionfields,
+			final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (ids.isEmpty()) {
 			return new HashMap<Integer, Map<String, Object>>();
@@ -285,7 +295,7 @@ public class QueryMethods {
 			result.put((Integer) m.get("id"), m);
 		}
 		for (Integer id: ids) {
-			if (!result.containsKey(id)) {
+			if (exceptOnMissing && !result.containsKey(id)) {
 				throw new NoSuchObjectException(String.format(
 						"No object with id %s exists in workspace %s", id,
 						rwsi.getID()));

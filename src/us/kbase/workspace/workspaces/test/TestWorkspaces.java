@@ -543,6 +543,8 @@ public class TestWorkspaces {
 		
 		ws.saveObjects(foo, priv, objects);
 		
+		//TODO test empty lists/sets
+		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);

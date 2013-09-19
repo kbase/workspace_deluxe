@@ -559,67 +559,38 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	// T must be String or Integer
-	private <T> void validateOrTranslateObjectIDs(
-			final ResolvedMongoWSID workspaceID,
-			final Map<T, WorkspaceObjectID> objects,
-			final Map<WorkspaceObjectID, ObjID> validatedIDs) throws 
-			WorkspaceCommunicationException {
-		if (objects.isEmpty()) {
-			return;
-		}
-		
-		//this is kind of lame... but C&Ping the code with minor changes is pretty lame too
-		boolean string = objects.keySet().iterator().next() instanceof String;
-		boolean integer = objects.keySet().iterator().next() instanceof Integer;
-		if (!string && !integer) {
-			throw new IllegalArgumentException("Only takes strings or integers");
-		}
-		
-		final DBObject query = new BasicDBObject();
-		query.put("workspace", workspaceID.getID());
-		final DBObject identifiers = new BasicDBObject();
-		identifiers.put("$in", objects.keySet());
-		query.put(string ? "name" : "id", identifiers);
-		@SuppressWarnings("rawtypes")
-		Iterable<Map> res; 
-		try {
-			res = wsjongo.getCollection(WORKSPACE_PTRS)
-					.find(query.toString())
-					.projection("{id: 1, name: 1, _id: 0}")
-					.as(Map.class);
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
-		for (@SuppressWarnings("rawtypes") Map m: res) {
-			final String name = (String) m.get("name");
-			final Integer id = (Integer) m.get("id");
-			validatedIDs.put(objects.get(string ? name : id), new ObjID(name, id));
-		}
-	}
+	private final Set<String> PROJ_ID_NAME = newHashSet("id", "name");
 	
-	//TODO use queryWorkspaces
 	private Map<WorkspaceObjectID, ObjID> getObjectIDs(
 			final ResolvedMongoWSID workspaceID,
 			final Set<WorkspaceObjectID> objects) throws
 			WorkspaceCommunicationException {
-		final Map<String, WorkspaceObjectID> names
-				= new HashMap<String, WorkspaceObjectID>();
-		final Map<Integer, WorkspaceObjectID> ids
-				= new HashMap<Integer, WorkspaceObjectID>();
+		
+		final Map<WorkspaceObjectID, ObjectIDResolvedWSNoVer> queryobjs = 
+				new HashMap<WorkspaceObjectID, ObjectIDResolvedWSNoVer>();
+		for (final WorkspaceObjectID o: objects) {
+			queryobjs.put(o, new ObjectIDResolvedWSNoVer(workspaceID, o));
+		}
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> retobjs;
+		try { 
+			retobjs = query.queryObjects(
+					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
+					PROJ_ID_NAME, new HashSet<String>(), false);
+		} catch (NoSuchObjectException nsoe) {
+			throw new RuntimeException(
+					"Threw a NoSuchObjectException when explicitly told not to");
+		}
+		
 		final Map<WorkspaceObjectID, ObjID> goodIds =
 				new HashMap<WorkspaceObjectID, ObjID>();
 		for (final WorkspaceObjectID o: objects) {
-			if (o.getId() == null) {
-				names.put(o.getName(), o);
-			} else {
-				ids.put(o.getId(), o);
+			if (retobjs.containsKey(queryobjs.get(o))) {
+				final Map<String, Object> pointer =
+						retobjs.get(queryobjs.get(o));
+				goodIds.put(o, new ObjID((String) pointer.get("name"),
+						(int) pointer.get("id")));
 			}
 		}
-		// could try doing an or later, probably doesn't matter
-		validateOrTranslateObjectIDs(workspaceID, names, goodIds);
-		validateOrTranslateObjectIDs(workspaceID, ids, goodIds);
 		return goodIds;
 	}
 	
@@ -898,8 +869,8 @@ public class MongoDatabase implements Database {
 			final List<WorkspaceSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException {
+		//TODO break this up
 		//this method must maintain the order of the objects
-//		final Set<ObjectIdentifier> names = new HashSet<ObjectIdentifier>();
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
