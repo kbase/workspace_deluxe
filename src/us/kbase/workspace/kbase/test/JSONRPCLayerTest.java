@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -224,7 +225,7 @@ public class JSONRPCLayerTest {
 		try {
 			CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("badperms")
 					.withNewPermission("r").withUsers(new ArrayList<String>()));
-			fail("able to set permission with no useres");
+			fail("able to set permission with no users");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Must provide at least one user"));
@@ -282,6 +283,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
 		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv")); //should work, now readable
+		
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
 				.withType("SomeRandom.Type"));
@@ -331,5 +333,90 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Must provide one and only one of workspace name (was: null) or id (was: null)"));
 		}
+	}
+	
+	@Test
+	public void workspaceIDprocessing() throws Exception {
+		String ws = "idproc";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
+				.withDescription("foo"));
+		Tuple6<Integer, String, String, String, String, String> meta =
+				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace(ws));
+		//these should work
+		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(meta.getE2())
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams()
+					.withUsers(Arrays.asList(USER2)).withNewPermission("w"));
+			fail("able set perms without providing ws id or name");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Must provide one and only one of workspace name (was: null) or id (was: null)"));
+		}
+		
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
+					.withNewPermission("w").withUsers(Arrays.asList(USER2))
+					.withWorkspace(meta.getE2()));
+			fail("able to specify workspace by id and name");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is(String.format(
+					"Must provide one and only one of workspace name (was: idproc) or id (was: %s)",
+					meta.getE1())));
+		}
+		
+		try {
+			CLIENT1.setPermissions(new SetPermissionsParams().withId(-1)
+					.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+			fail("able to specify workspace by id and name");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Workspace id must be > 0"));
+		}
+		
+		//should work 
+		CLIENT1.setPermissions(new SetPermissionsParams()
+				.withWorkspace("kb|ws." + meta.getE1())
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		
+		try {
+			CLIENT1.createWorkspace(new CreateWorkspaceParams()
+					.withWorkspace("kb|ws." + meta.getE1()));
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is("Illegal character in workspace name kb|ws.7: |"));
+		}
+		
+	
+	}
+	
+	@Test
+	public void saveAndGetData() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget")
+				.withDescription("foo"));
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
+				.withType("SomeRandom.Type"));
+		SaveObjectsParams sop = new SaveObjectsParams()
+			.withWorkspace("permspriv").withObjects(objects);
+		sop.setAdditionalProperties("foo", "bar");
+		sop.setAdditionalProperties("baz", "faz");
+		try {
+			CLIENT2.saveObjects(sop);
+			fail("allowed unexpected args");
+		} catch (ServerException e) {
+			String[] exp = e.getLocalizedMessage().split(":");
+			String[] args = exp[1].trim().split("\\s");
+			HashSet<String> argset = new HashSet<String>(Arrays.asList(args));
+			assertThat("correct exception message", exp[0],
+					is("Unexpected arguments in SaveObjectsParams"));
+			assertThat("correct args list", argset,
+					is(new HashSet<String>(Arrays.asList("foo", "baz"))));
+		}
+		
 	}
 }

@@ -256,9 +256,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		if (translatePermission(params.getNewPermission()) == null) {
-			throw new IllegalArgumentException("Invalid permission: " + params.getNewPermission());
-		}
+		final Permission p = translatePermission(params.getNewPermission());
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
@@ -274,8 +272,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						"User %s is not a valid user", user));
 			}
 		}
-		ws.setPermissions(getUser(authPart), wsi, users,
-				translatePermission(params.getNewPermission()));
+		ws.setPermissions(getUser(authPart), wsi, users, p);
         //END set_permissions
     }
 
