@@ -586,7 +586,7 @@ public class MongoDatabase implements Database {
 		for (Integer id: ids) {
 			if (!result.containsKey(id)) {
 				throw new NoSuchObjectException(String.format(
-						"No object with name %s exists in workspace %s", id,
+						"No object with id %s exists in workspace %s", id,
 						rwsi.getID()));
 			}
 		}
@@ -1549,7 +1549,7 @@ public class MongoDatabase implements Database {
 			if (ver > maxver) {
 				throw new NoSuchObjectException(String.format(
 						"No object with identifier '%s' and version %s exists in workspace %s",
-						workspaceIdentifier, ver, objectIdentifier));
+						objectIdentifier, ver, workspaceIdentifier));
 			}
 		}
 		@SuppressWarnings("unchecked")

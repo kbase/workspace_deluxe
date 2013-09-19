@@ -540,7 +540,7 @@ public class TestWorkspaces {
 		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
-		
+		//TODO tests for get meta and get object errors
 		
 		ws.saveObjects(foo, priv, objects);
 		
@@ -560,9 +560,30 @@ public class TestWorkspaces {
 			assertThat("correct exception message", auth.getLocalizedMessage(),
 					is("User bar may not read workspace saveobj"));
 		}
+		ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
+		try {
+			ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+			fail("Able to get obj data from private workspace");
+		} catch (WorkspaceAuthorizationException auth) {
+			assertThat("correct exception message", auth.getLocalizedMessage(),
+					is("User bar may not read workspace saveobj"));
+		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+		checkObjMeta(retdata.get(0).getMeta(), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
+		try {
+			ws.saveObjects(bar, priv, objects);
+			fail("saved objects to unwritable workspace");
+		} catch (WorkspaceAuthorizationException auth) {
+			assertThat("correct exception message", auth.getLocalizedMessage(),
+					is("User bar may not write to workspace saveobj"));
+		}
+		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
+		objmeta = ws.saveObjects(bar, priv, objects);
+		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
 	@Test
@@ -619,7 +640,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void wrongObjectId() throws Exception {
+	public void saveWithWrongObjectId() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
@@ -655,6 +676,39 @@ public class TestWorkspaces {
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Unable to serialize data for object #1, jframe"));
+		}
+	}
+	
+	@Test
+	public void getNonexistantObjects() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		int readid = ws.getWorkspaceMetaData(foo, read).getId();
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("fubar", "thingy");
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), data, t, null, null, false));
+		ws.saveObjects(foo, read, objects);
+		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
+				"No object with id 2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, 1, 2),
+				"No object with identifier '1' and version 2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, "myname2"),
+				"No object with name myname2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, "myname", 2),
+				"No object with identifier 'myname' and version 2 exists in workspace " + readid);
+	}
+
+	private void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
+			String exception) throws Exception {
+		try {
+			ws.getObjectMetaData(foo, Arrays.asList(oi));
+			fail("got non-existant object");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getLocalizedMessage(), 
+					is(exception));
 		}
 	}
 	
