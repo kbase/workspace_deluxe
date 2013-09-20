@@ -65,6 +65,22 @@ public class KBaseIdentifierFactory {
 		}
 	}
 	
+	public static List<ObjectIdentifier> processObjectIdentifiers(
+			List<ObjectIdentity> objects) {
+		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
+		int objcount = 1;
+		for (ObjectIdentity oi: objects) {
+			try {
+				loi.add(processObjectIdentifier(oi));
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Error on ObjectIdentity #"
+						+ objcount + ": " + e.getLocalizedMessage(), e);
+			}
+			objcount++;
+		}
+		return loi;
+	}
+	
 	public static ObjectIdentifier processObjectIdentifier(
 			final ObjectIdentity oi) {
 		ArgUtils.checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());

@@ -537,6 +537,7 @@ public class JSONRPCLayerTest {
 				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
 		loi.clear();
+		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + ".2"));
@@ -544,10 +545,44 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2));
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2"));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2));
+		// w/ versions
+		loi.add(new ObjectIdentity().withRef("saveget/2/2"));
+		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.2"));
+		loi.add(new ObjectIdentity().withRef(wsid + ".2.2"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(2));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2).withVer(2));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(2));
+		
 		checkSavedObjects(loi, 2, "2", "Wiggle.Wugga-2.1", 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
-		//TODO lots more tests here
-		//TODO try some bad refs and id/name combos
+		
+		// try some bad refs and id/name combos
+		//TODO more
+		
+		loi.clear();
+		loi.add(new ObjectIdentity().withRef("saveget/2"));
+		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators . in object id reference kb|wss.9.obj.2");
+		
+	}
+	
+	private void getObjectWBadParams(List<ObjectIdentity> loi, String exception)
+			throws Exception {
+		try {
+			CLIENT1.getObjects(loi);
+		} catch (ServerException se) {
+			System.out.println(se);
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.getObjectMetadata(loi);
+		} catch (ServerException se) {
+			System.out.println(se);
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
 	}
 	
 	private void checkSavedObjects(List<ObjectIdentity> loi, int id, String name,

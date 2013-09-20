@@ -16,6 +16,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
@@ -365,11 +366,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
-		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
-		for (ObjectIdentity oi: objects) {
-			//TODO catch exceptions and add object #
-			loi.add(processObjectIdentifier(oi));
-		}
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
 		returnVal = ArgUtils.translateObjectData(
 				ws.getObjects(getUser(authPart), loi));
         //END get_objects
@@ -386,11 +383,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
-		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
-		for (ObjectIdentity oi: objects) {
-			//TODO catch exceptions and add object #
-			loi.add(processObjectIdentifier(oi));
-		}
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
 		returnVal = ArgUtils.objUserMetaToTuple(
 				ws.getObjectMetaData(getUser(authPart), loi));
         //END get_object_metadata
