@@ -26,6 +26,7 @@ import us.kbase.JsonClientException;
 import us.kbase.ServerException;
 import us.kbase.Tuple10;
 import us.kbase.Tuple6;
+import us.kbase.Tuple9;
 import us.kbase.UObject;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
@@ -499,20 +500,30 @@ public class JSONRPCLayerTest {
 				.withObjects(objects);
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withMetadata(meta).withType("Foo.Bar")); // will be "1"
-		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType("Genome.Wugga").withTver("2")); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType("Wiggle.Wugga").withTver("2.1")
+				.withMetadata(meta).withType("Genome.Wugga").withTver("2")); // will be "2"
+		objects.add(new ObjectSaveData().withData(new UObject(data2))
+				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
 				.withName("foo")); 
 		
-		CLIENT1.saveObjects(soc);
+		List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> retmet =
+				CLIENT1.saveObjects(soc);
+		
+		assertThat("num metas correct", retmet.size(), is(3));
+		checkMeta(retmet.get(0), 1, "1", "Foo.Bar-0.0", 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(1), 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(2), 3, "foo", "Wiggle.Wugga-2.1", 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		
 		
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
 				.withObjid(2));
 		
-		CLIENT1.saveObjects(soc);
+		retmet = CLIENT1.saveObjects(soc);
+		
+		assertThat("num metas correct", retmet.size(), is(1));
+		checkMeta(retmet.get(0), 2, "2", "Wiggle.Wugga-2.1", 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
@@ -522,16 +533,43 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2).withVer(1));
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(1));
+		checkSavedObjects(loi, 2, "2", "Genome.Wugga-2.0", 1, USER1,
+				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
-		List<ObjectData> retdata = CLIENT1.getObjects(loi);
-		for (ObjectData o: retdata) {
-			checkData(o, 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid,
-					"3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
-		}
-		
+		loi.clear();
+		loi.add(new ObjectIdentity().withRef("saveget/2"));
+		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
+		loi.add(new ObjectIdentity().withRef(wsid + ".2"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("2"));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2));
+		checkSavedObjects(loi, 2, "2", "Wiggle.Wugga-2.1", 2, USER1,
+				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		//TODO lots more tests here
 		//TODO try some bad refs and id/name combos
+	}
+	
+	private void checkSavedObjects(List<ObjectIdentity> loi, int id, String name,
+			String type, int ver, String user, int wsid, String chksum, int size,
+			Map<String, String> meta, Map<String, Object> data) throws Exception {
+		List<ObjectData> retdata = CLIENT1.getObjects(loi);
+		assertThat("num data correct", retdata.size(), is(loi.size()));
+		for (ObjectData o: retdata) {
+			checkData(o, id, name, type, ver, user, wsid,
+					chksum, size, meta, data);
+		}
 		
+		List<Tuple10<Integer, String, String, String, Integer, String, Integer,
+				String, Integer, Map<String, String>>> retusermeta =
+				CLIENT1.getObjectMetadata(loi);
+		
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (Tuple10<Integer, String, String, String, Integer, String, Integer,
+				String, Integer, Map<String, String>> o: retusermeta) {
+			checkUserMeta(o, id, name, type, ver, user, wsid,
+					chksum, size, meta);
+		}
 	}
 
 	private void checkData(ObjectData retdata, int id, String name,
@@ -562,4 +600,20 @@ public class JSONRPCLayerTest {
 		assertThat("size is correct", usermeta.getE9(), is(size));
 		assertThat("meta is correct", usermeta.getE10(), is(meta));
 	}
+	private void checkMeta(
+			Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer> usermeta,
+			int id, String name, String typeString, int ver, String user,
+			int wsid, String chksum, int size) throws Exception {
+		
+		assertThat("id is correct", usermeta.getE1(), is(id));
+		assertThat("name is correct", usermeta.getE2(), is(name));
+		assertThat("type is correct", usermeta.getE3(), is(typeString));
+		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
+		assertThat("version is correct", usermeta.getE5(), is(ver));
+		assertThat("user is correct", usermeta.getE6(), is(user));
+		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
+		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
+		assertThat("size is correct", usermeta.getE9(), is(size));
+	}
+	
 }
