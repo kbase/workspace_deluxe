@@ -28,6 +28,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -96,6 +99,7 @@ public class MongoDatabase implements Database {
 	private final BlobStore blob;
 	private final QueryMethods query;
 	private final FindAndModify updateWScounter;
+	private final TypedObjectValidator typeValidator;
 	
 	private final Map<AbsoluteTypeId, Boolean> typeIndexEnsured = 
 			new HashMap<AbsoluteTypeId, Boolean>();
@@ -135,7 +139,8 @@ public class MongoDatabase implements Database {
 		indexes.put(WORKSPACE_PTRS, wsPtr);
 	}
 
-	public MongoDatabase(String host, String database, String backendSecret)
+	public MongoDatabase(String host, String database, String backendSecret,
+			TypedObjectValidator typeValidator)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException {
 		wsmongo = getDB(host, database);
@@ -149,13 +154,14 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		this.typeValidator = typeValidator;
 		ensureIndexes();
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret,
-			String user, String password) throws UnknownHostException,
-			IOException, DBAuthorizationException, InvalidHostException,
-			WorkspaceDBException {
+			String user, String password, TypedObjectValidator typeValidator)
+			throws UnknownHostException, IOException, DBAuthorizationException,
+			WorkspaceDBException, InvalidHostException{
 		wsmongo = getDB(host, database);
 		try {
 			wsmongo.authenticate(user, password.toCharArray());
@@ -173,6 +179,7 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		this.typeValidator = typeValidator;
 		ensureIndexes();
 	}
 	
@@ -1205,10 +1212,12 @@ public class MongoDatabase implements Database {
 			String db1 = WorkspaceTestCommon.getDB1();
 			String mUser = WorkspaceTestCommon.getMongoUser();
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
+			TypedObjectValidator t = new TypedObjectValidator(
+					new SimpleTypeDefinitionDB(new FileTypeStorage("/home/crusherofheads/workspacetypes")));
 			if (mUser == null || mUser == "") {
-				testdb = new MongoDatabase(host, db1, "foo");
+				testdb = new MongoDatabase(host, db1, "foo", t);
 			} else {
-				testdb = new MongoDatabase(host, db1, "foo", mUser, mPwd);
+				testdb = new MongoDatabase(host, db1, "foo", mUser, mPwd, t);
 			}
 		}
 		

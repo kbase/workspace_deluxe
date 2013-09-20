@@ -27,6 +27,9 @@ import java.util.HashMap;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -81,13 +84,14 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspaces ws;
 	
-	private Database getDB(final String host, final String dbs, final String secret,
-			final String user, final String pwd) {
+	private Database getDB(final String host, final String dbs,
+			final String secret, final String user, final String pwd,
+			final TypedObjectValidator tv) {
 		try {
 			if (user != null) {
-				return new MongoDatabase(host, dbs, secret, user, pwd);
+				return new MongoDatabase(host, dbs, secret, user, pwd, tv);
 			} else {
-				return new MongoDatabase(host, dbs, secret);
+				return new MongoDatabase(host, dbs, secret, tv);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -117,6 +121,11 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
+		//TODO replace with real validator storage system
+		TypedObjectValidator tv = new TypedObjectValidator(
+				new SimpleTypeDefinitionDB(
+				new FileTypeStorage("/home/crusherofheads/workspacetypes")));
+		
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.
@@ -164,7 +173,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			final Database db = getDB(host, dbs, secret, user, pwd);
+			final Database db = getDB(host, dbs, secret, user, pwd, tv);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;
