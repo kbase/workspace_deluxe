@@ -2,12 +2,12 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-import us.kbase.JsonServerMethod;
-import us.kbase.JsonServerServlet;
-import us.kbase.Tuple10;
-import us.kbase.Tuple6;
-import us.kbase.Tuple9;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonServerMethod;
+import us.kbase.common.service.JsonServerServlet;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple9;
 
 //BEGIN_HEADER
 import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
@@ -15,7 +15,6 @@ import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 

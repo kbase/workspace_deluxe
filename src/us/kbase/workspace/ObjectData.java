@@ -9,8 +9,8 @@ import org.codehaus.jackson.annotate.JsonAnySetter;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
-import us.kbase.Tuple10;
-import us.kbase.UObject;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.UObject;
 
 
 /**

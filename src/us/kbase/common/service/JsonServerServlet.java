@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -170,7 +170,7 @@ public class JsonServerServlet extends HttpServlet {
 		List<String> messages = new ArrayList<String>();
 		StackTraceElement[] st = err.getStackTrace();
 		int firstPos = 0;
-		String packageName = JsonServerServlet.class.getPackage().getName();
+		String packageName = "us.kbase";
 		String className = JsonServerServlet.class.getName();
 		for (; firstPos < st.length; firstPos++) {
 			if (st[firstPos].getClassName().equals(className))
@@ -210,7 +210,7 @@ public class JsonServerServlet extends HttpServlet {
 
 	public static String findCaller() {
 		StackTraceElement[] st = Thread.currentThread().getStackTrace();
-		String packageName = JsonServerServlet.class.getPackage().getName();
+		String packageName = "us.kbase";
 		String className = JsonServerServlet.class.getName();
 		for (int pos = 0; pos < st.length; pos++) {
 			if (st[pos].getClassName().equals(className) ||

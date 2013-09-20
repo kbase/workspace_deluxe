@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 /** 
  * Raised when a user cannot be authorized.

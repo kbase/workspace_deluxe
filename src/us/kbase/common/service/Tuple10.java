@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 import java.util.HashMap;
 import java.util.Map;

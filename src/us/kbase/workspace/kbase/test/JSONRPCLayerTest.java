@@ -22,12 +22,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import us.kbase.JsonClientException;
-import us.kbase.ServerException;
-import us.kbase.Tuple10;
-import us.kbase.Tuple6;
-import us.kbase.Tuple9;
-import us.kbase.UObject;
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.ServerException;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple9;
+import us.kbase.common.service.UObject;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -37,7 +37,6 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /*
@@ -584,30 +583,30 @@ public class JSONRPCLayerTest {
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators . in object id reference kb|wss.9.obj.2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators . in object id reference kb|wss." + wsid + ".obj.2");
 		
 		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unable to parse workspace portion of object reference kb|ws.9 to an integer");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unable to parse workspace portion of object reference kb|ws." + wsid + " to an integer");
 		
 		//there are 32 different ways to get this type of error. Just try a few.
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. object name: 2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object name: 2");
 		
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withObjid(2));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. object id: 2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object id: 2");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withVer(2));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. version: 2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. version: 2");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWorkspace("saveget"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace: saveget");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace: saveget");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace id: " + wsid);
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace id: " + wsid);
 		
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid).withWorkspace("saveget").withVer(2));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace: saveget workspace id: " + wsid + " version: 2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace: saveget workspace id: " + wsid + " version: 2");
 		
 		ObjectIdentity oi = new ObjectIdentity().withRef("saveget/1");
 		oi.setAdditionalProperties("foo", "bar");

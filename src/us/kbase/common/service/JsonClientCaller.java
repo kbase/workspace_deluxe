@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;

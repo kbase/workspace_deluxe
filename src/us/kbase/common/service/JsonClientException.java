@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 /** 
  * The base class of all KBase JSONRPC exceptions raised by a client.
