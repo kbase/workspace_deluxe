@@ -151,6 +151,9 @@ public class WorkspaceTestCommon {
 			}
 			dbo.put("shock_user", shockuser);
 			dbo.put("shock_location", getShockUrl());
+			System.out.println(String.format(
+					"Setting up shock with user %s and url %s", shockuser,
+					getShockUrl()));
 		}
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", type));

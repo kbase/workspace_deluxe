@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,6 +56,9 @@ public class JSONRPCLayerTest {
 	private static WorkspaceClient CLIENT2 = null;
 	private static String USER2 = null;
 	private static WorkspaceClient CLIENT_NO_AUTH = null;
+	
+	private static SimpleDateFormat DATE_FORMAT =
+			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	
 	private static class ServerThread extends Thread {
 		
@@ -392,7 +396,8 @@ public class JSONRPCLayerTest {
 					.withWorkspace("kb|ws." + meta.getE1()));
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Illegal character in workspace name kb|ws.7: |"));
+					is("Illegal character in workspace name kb|ws." 
+					+ meta.getE1() + ": |"));
 		}
 		
 	
@@ -519,10 +524,13 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(1));
 		
 		List<ObjectData> retdata = CLIENT1.getObjects(loi);
-		checkData(retdata.get(0), 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid,
-				"3c59f762140806c36ab48a152f28e840", 24, meta2, data2); 
+		for (ObjectData o: retdata) {
+			checkData(o, 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid,
+					"3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		}
 		
 		//TODO lots more tests here
+		//TODO try some bad refs and id/name combos
 		
 	}
 
@@ -540,12 +548,13 @@ public class JSONRPCLayerTest {
 	private void checkUserMeta(
 			Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> usermeta,
 			int id, String name, String typeString, int ver, String user,
-			int wsid, String chksum, int size, Map<String, String> meta) {
+			int wsid, String chksum, int size, Map<String, String> meta)
+			throws Exception {
 		
 		assertThat("id is correct", usermeta.getE1(), is(id));
 		assertThat("name is correct", usermeta.getE2(), is(name));
 		assertThat("type is correct", usermeta.getE3(), is(typeString));
-//		assertThat("date is a string", usermeta.getE4().getClass(), is(String.class)); //TODO parse
+		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
 		assertThat("version is correct", usermeta.getE5(), is(ver));
 		assertThat("user is correct", usermeta.getE6(), is(user));
 		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
