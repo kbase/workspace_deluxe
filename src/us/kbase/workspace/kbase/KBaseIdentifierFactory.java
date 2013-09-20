@@ -43,33 +43,36 @@ public class KBaseIdentifierFactory {
 		if (oi.getWorkspace() != null || oi.getWsid() != null 
 				|| oi.getName() != null || oi.getObjid() != null ||
 				oi.getVer() != null) {
-			final List<Object> err = new ArrayList<Object>(4);
+			final List<String> err = new ArrayList<String>(4);
 			if (oi.getWorkspace() != null) {
-				err.add(oi.getWorkspace());
+				err.add("workspace: " + oi.getWorkspace());
 			}
 			if (oi.getWsid() != null) {
-				err.add(oi.getWsid());
+				err.add("workspace id: " + oi.getWsid());
 			}
 			if (oi.getName() != null) {
-				err.add(oi.getName());
+				err.add("object name: " + oi.getName());
 			}
 			if (oi.getObjid() != null) {
-				err.add(oi.getObjid());
+				err.add("object id: " + oi.getObjid());
 			}
 			if (oi.getVer() != null) {
-				err.add(oi.getVer());
+				err.add("version: " + oi.getVer());
 			}
 			throw new IllegalArgumentException(String.format(
-					"Object reference %s provided; cannot provide any other means of identifying an object: %s",
+					"Object reference %s provided; cannot provide any other means of identifying an object. %s",
 					oi.getRef(), StringUtils.join(err, " ")));
 		}
 	}
 	
 	public static List<ObjectIdentifier> processObjectIdentifiers(
-			List<ObjectIdentity> objects) {
+			List<ObjectIdentity> objectIDs) {
+		if (objectIDs.isEmpty()) {
+			throw new IllegalArgumentException("No object identifiers provided");
+		}
 		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		int objcount = 1;
-		for (ObjectIdentity oi: objects) {
+		for (ObjectIdentity oi: objectIDs) {
 			try {
 				loi.add(processObjectIdentifier(oi));
 			} catch (IllegalArgumentException e) {

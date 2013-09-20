@@ -315,6 +315,9 @@ public class WorkspaceServer extends JsonServerServlet {
 //		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
 		int count = 1;
+		if (params.getObjects().isEmpty()) {
+			throw new IllegalArgumentException("No data provided");
+		}
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
 			WorkspaceObjectID oi = null;

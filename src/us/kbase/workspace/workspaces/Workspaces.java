@@ -156,6 +156,9 @@ public class Workspaces {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException {
+		if (objects.isEmpty()) {
+			throw new IllegalArgumentException("No data provided");
+		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
 		return db.saveObjects(user, rwsi, objects);
@@ -166,6 +169,9 @@ public class Workspaces {
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
+		if (loi.isEmpty()) {
+			throw new IllegalArgumentException("No object identifiers provided");
+		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
@@ -183,6 +189,9 @@ public class Workspaces {
 			List<ObjectIdentifier> loi) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, NoSuchObjectException {
+		if (loi.isEmpty()) {
+			throw new IllegalArgumentException("No object identifiers provided");
+		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> meta = 

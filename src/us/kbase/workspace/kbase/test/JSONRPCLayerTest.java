@@ -73,8 +73,6 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
-	//TODO saveObject, getObject and getObjectMeta tests
-	
 	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
 	public static Map<String, String> getenv() throws NoSuchFieldException,
@@ -498,6 +496,15 @@ public class JSONRPCLayerTest {
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
 				.withObjects(objects);
+		
+		try {
+			CLIENT1.saveObjects(soc);
+			fail("called save with no data");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("No data provided"));
+		}
+		
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withMetadata(meta).withType("Foo.Bar")); // will be "1"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
@@ -557,13 +564,61 @@ public class JSONRPCLayerTest {
 		checkSavedObjects(loi, 2, "2", "Wiggle.Wugga-2.1", 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
-		// try some bad refs and id/name combos
-		//TODO more
+		try {
+			CLIENT1.getObjects(new ArrayList<ObjectIdentity>());
+			fail("called get obj with no ids");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("No object identifiers provided"));
+		}
 		
+		try {
+			CLIENT1.getObjectMetadata(new ArrayList<ObjectIdentity>());
+			fail("called get meta with no ids");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("No object identifiers provided"));
+		}
+		
+		// try some bad refs and id/name combos
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators . in object id reference kb|wss.9.obj.2");
+		
+		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
+		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unable to parse workspace portion of object reference kb|ws.9 to an integer");
+		
+		//there are 32 different ways to get this type of error. Just try a few.
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. object name: 2");
+		
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withObjid(2));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. object id: 2");
+
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withVer(2));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. version: 2");
+
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWorkspace("saveget"));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace: saveget");
+
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace id: " + wsid);
+		
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid).withWorkspace("saveget").withVer(2));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws.9 provided; cannot provide any other means of identifying an object. workspace: saveget workspace id: " + wsid + " version: 2");
+		
+		ObjectIdentity oi = new ObjectIdentity().withRef("saveget/1");
+		oi.setAdditionalProperties("foo", "bar");
+		loi.set(2, oi);
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
+		
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
+		
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object id must be > 0");
 		
 	}
 	
@@ -571,15 +626,15 @@ public class JSONRPCLayerTest {
 			throws Exception {
 		try {
 			CLIENT1.getObjects(loi);
+			fail("got object with bad id");
 		} catch (ServerException se) {
-			System.out.println(se);
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
 		try {
 			CLIENT1.getObjectMetadata(loi);
+			fail("got meta with bad id");
 		} catch (ServerException se) {
-			System.out.println(se);
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}

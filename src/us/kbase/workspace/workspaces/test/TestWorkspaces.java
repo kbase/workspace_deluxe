@@ -477,6 +477,28 @@ public class TestWorkspaces {
 		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		
+		try {
+			ws.saveObjects(foo, read, objects);
+			fail("Saved no objects");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No data provided"));
+		}
+		
+		try {
+			ws.getObjects(foo, new ArrayList<ObjectIdentifier>());
+			fail("called method with no identifiers");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
+		}
+		
+		try {
+			ws.getObjectMetaData(foo, new ArrayList<ObjectIdentifier>());
+			fail("called method with no identifiers");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
+		}
+		
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data2, t, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), data, t, meta, p, false));
@@ -544,8 +566,6 @@ public class TestWorkspaces {
 		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
 		
 		ws.saveObjects(foo, priv, objects);
-		
-		//TODO test empty lists/sets
 		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
@@ -1051,7 +1071,6 @@ public class TestWorkspaces {
 			ObjectIdentifier.parseObjectReference(ref);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
-			System.out.println(e);
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
