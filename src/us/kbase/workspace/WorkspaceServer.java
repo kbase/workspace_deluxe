@@ -367,6 +367,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		for (ObjectIdentity oi: objects) {
+			//TODO catch exceptions and add object #
 			loi.add(processObjectIdentifier(oi));
 		}
 		returnVal = ArgUtils.translateObjectData(
@@ -387,6 +388,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_metadata
 		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		for (ObjectIdentity oi: objects) {
+			//TODO catch exceptions and add object #
 			loi.add(processObjectIdentifier(oi));
 		}
 		returnVal = ArgUtils.objUserMetaToTuple(

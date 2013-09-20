@@ -23,15 +23,19 @@ import org.junit.Test;
 
 import us.kbase.JsonClientException;
 import us.kbase.ServerException;
+import us.kbase.Tuple10;
 import us.kbase.Tuple6;
 import us.kbase.UObject;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /*
@@ -397,19 +401,18 @@ public class JSONRPCLayerTest {
 	private void saveBadObject(List<ObjectSaveData> objects, String exception) 
 			throws Exception {
 		try {
-			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("saveget")
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("savebadpkg")
 					.withObjects(objects));
 			fail("saved invalid data package");
 		} catch (ServerException e) {
-			System.out.println(e);
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is(exception));
 		}
 	}
 	
 	@Test
-	public void saveAndGetData() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget")
+	public void saveBadPackages() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("savebadpkg")
 				.withDescription("foo"));
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
@@ -419,7 +422,7 @@ public class JSONRPCLayerTest {
 		sop.setAdditionalProperties("foo", "bar");
 		sop.setAdditionalProperties("baz", "faz");
 		try {
-			CLIENT2.saveObjects(sop);
+			CLIENT1.saveObjects(sop);
 			fail("allowed unexpected args");
 		} catch (ServerException e) {
 			String[] exp = e.getLocalizedMessage().split(":");
@@ -466,6 +469,88 @@ public class JSONRPCLayerTest {
 		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
 		
 		//TODO provenance testing
+	}
+	
+	@Test
+	public void saveAndGetObjects() throws Exception {
 		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget"));
+		int wsid = CLIENT1.getWorkspaceMetadata(
+				new WorkspaceIdentity().withWorkspace("saveget")).getE1();
+		
+		//save some objects to get
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> data2 = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		data2.put("fubar2", moredata);
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withMetadata(meta).withType("Foo.Bar")); // will be "1"
+		objects.add(new ObjectSaveData().withData(new UObject(data2))
+				.withMetadata(meta2).withType("Genome.Wugga").withTver("2")); // will be "2"
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withMetadata(meta).withType("Wiggle.Wugga").withTver("2.1")
+				.withName("foo")); 
+		
+		CLIENT1.saveObjects(soc);
+		
+		objects.clear();
+		objects.add(new ObjectSaveData().withData(new UObject(data2))
+				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
+				.withObjid(2));
+		
+		CLIENT1.saveObjects(soc);
+		
+		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
+		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
+		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.1"));
+		loi.add(new ObjectIdentity().withRef(wsid + ".2.1"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(1));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2).withVer(1));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(1));
+		
+		List<ObjectData> retdata = CLIENT1.getObjects(loi);
+		checkData(retdata.get(0), 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid,
+				"3c59f762140806c36ab48a152f28e840", 24, meta2, data2); 
+		
+		//TODO lots more tests here
+		
+	}
+
+	private void checkData(ObjectData retdata, int id, String name,
+			String typeString, int ver, String user, int wsid, String chksum,
+			int size, Map<String, String> meta, Map<String, Object> data) 
+			throws Exception {
+		
+		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
+				is((Object) data));
+		
+		checkUserMeta(retdata.getMeta(), id, name, typeString, ver, user, wsid, chksum, size, meta);
+	}
+
+	private void checkUserMeta(
+			Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> usermeta,
+			int id, String name, String typeString, int ver, String user,
+			int wsid, String chksum, int size, Map<String, String> meta) {
+		
+		assertThat("id is correct", usermeta.getE1(), is(id));
+		assertThat("name is correct", usermeta.getE2(), is(name));
+		assertThat("type is correct", usermeta.getE3(), is(typeString));
+//		assertThat("date is a string", usermeta.getE4().getClass(), is(String.class)); //TODO parse
+		assertThat("version is correct", usermeta.getE5(), is(ver));
+		assertThat("user is correct", usermeta.getE6(), is(user));
+		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
+		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
+		assertThat("size is correct", usermeta.getE9(), is(size));
+		assertThat("meta is correct", usermeta.getE10(), is(meta));
 	}
 }

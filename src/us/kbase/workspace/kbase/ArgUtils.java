@@ -153,6 +153,6 @@ public class ArgUtils {
 					.withData(new UObject(o.getData()))
 					.withMeta(objUserMetaToTuple(o.getMeta())));
 		}
-		return null;
+		return ret;
 	}
 }
