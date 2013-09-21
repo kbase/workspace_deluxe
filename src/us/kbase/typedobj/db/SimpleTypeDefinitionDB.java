@@ -1,6 +1,5 @@
 package us.kbase.typedobj.db;
 
-import us.kbase.auth.AuthUser;
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbList;
 import us.kbase.kidl.KbMapping;
@@ -54,10 +53,10 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	protected static SemanticVersion releaseVersion = new SemanticVersion(1, 0);
 	
 	protected final TypeStorage storage;
-	
-	private File parentTempDir;
-	
+	private final File parentTempDir;
 	private final boolean withApprovalQueue;
+	private final UserInfoProvider uip;
+	
 	
 	/**
 	 * Set up a new DB pointing to the specified db folder.  The contents
@@ -66,15 +65,15 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	 * documents named the same as the type names.
 	 * @param storage low level storage object
 	 */
-	public SimpleTypeDefinitionDB(TypeStorage storage) {
-		this(storage, null);
+	public SimpleTypeDefinitionDB(TypeStorage storage, UserInfoProvider uip) {
+		this(storage, null, uip);
 	}
 	
-	public SimpleTypeDefinitionDB(TypeStorage storage, File tempDir) {
-		this(storage, tempDir, false);
+	public SimpleTypeDefinitionDB(TypeStorage storage, File tempDir, UserInfoProvider uip) {
+		this(storage, tempDir, false, uip);
 	}
 	
-	public SimpleTypeDefinitionDB(TypeStorage storage, File tempDir, boolean withApprovalQueue) {
+	public SimpleTypeDefinitionDB(TypeStorage storage, File tempDir, boolean withApprovalQueue, UserInfoProvider uip) {
 		// initialize the base class with a null json schema factory
 		super(null);
 		// Create the custom json schema factory for KBase typed objects and use this
@@ -89,6 +88,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 			this.parentTempDir = tempDir;
 		}
 		this.withApprovalQueue = withApprovalQueue;
+		this.uip = uip;
 	}
 	
 	
@@ -276,8 +276,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public String releaseType(String moduleName, String typeName)
+	public String releaseType(String moduleName, String typeName, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion curVersion = findLastTypeVersion(info, typeName, false);
 		if (curVersion == null)
@@ -304,8 +305,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void removeTypeForAllVersions(String moduleName, String typeName)
+	public void removeTypeForAllVersions(String moduleName, String typeName, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getTypes().containsKey(typeName))
 			throwNoSuchTypeException(moduleName, typeName, null);
@@ -315,8 +317,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 
 	@Override
-	public void removeFuncForAllVersions(String moduleName, String funcName)
+	public void removeFuncForAllVersions(String moduleName, String funcName, String userId)
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getFuncs().containsKey(funcName))
 			throwNoSuchFuncException(moduleName, funcName, null);
@@ -473,8 +476,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 
 	@Override
-	public String releaseFunc(String moduleName, String funcName) throws NoSuchFuncException, 
-	NoSuchModuleException, TypeStorageException {
+	public String releaseFunc(String moduleName, String funcName, String userId) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		SemanticVersion curVersion = findLastFuncVersion(moduleName, funcName, false);
 		if (curVersion == null)
 			throwNoSuchFuncException(moduleName, funcName, null);
@@ -530,8 +534,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void stopTypeSupport(String moduleName, String typeName)
+	public void stopTypeSupport(String moduleName, String typeName, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -545,8 +550,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void removeTypeVersion(String moduleName, String typeName,
-			String version) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+	public void removeTypeVersion(String moduleName, String typeName, String version, String userId) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		checkModule(moduleName);
 		SemanticVersion sVer = new SemanticVersion(version);
 		if (!storage.removeTypeRecordsForVersion(moduleName, typeName, sVer.toString()))
@@ -564,8 +570,9 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void stopFuncSupport(String moduleName, String funcName)
+	public void stopFuncSupport(String moduleName, String funcName, String userId)
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -579,7 +586,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void removeModule(String moduleName) throws NoSuchModuleException, TypeStorageException {
+	public void removeModule(String moduleName, String userId) throws NoSuchModuleException, TypeStorageException {
+		// TODO: check userId
 		checkModuleRegistered(moduleName);
 		storage.removeModule(moduleName);
 	}
@@ -590,7 +598,8 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void removeAllRefs() throws TypeStorageException {
+	public void removeAllRefs(String userId) throws TypeStorageException {
+		// TODO: check userId
 		storage.removeAllRefs();
 	}
 	
@@ -625,28 +634,27 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	}
 	
 	@Override
-	public void requestModuleRegistration(String moduleName, AuthUser owner)
+	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
 		if (!withApprovalQueue)
 			throw new IllegalStateException("Type definition db was created without approval queue, please use registerModule without request.");
-		autoGenerateModuleInfo(moduleName, owner);  // TODO: it should be saved in special queue instead
+		autoGenerateModuleInfo(moduleName, ownerUserId);  // TODO: it should be saved in special queue instead
 	}
 	
-	private void autoGenerateModuleInfo(String moduleName, AuthUser owner) throws TypeStorageException {
+	private void autoGenerateModuleInfo(String moduleName, String ownerUserId) throws TypeStorageException {
 		if (storage.checkModuleInfoRecordExist(moduleName))
 			throw new IllegalStateException("Module " + moduleName + " was already registered");
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleName(moduleName);
-		info.setOwner(owner.getUserId());
-		info.setEmail(owner.getEmail());
+		info.setOwner(ownerUserId);
 		storage.writeModuleInfoRecord(moduleName, info);
 	}
 	
 	@Override
 	public void registerModule(String specDocument, List<String> registeredTypes, 
-			AuthUser owner) throws SpecParseException, TypeStorageException {
+			String userId) throws SpecParseException, TypeStorageException {
 		saveModule(specDocument, true, new HashSet<String>(registeredTypes), Collections.<String>emptySet(), 
-				Collections.<String>emptySet(), Collections.<String>emptySet(), true, owner);
+				Collections.<String>emptySet(), Collections.<String>emptySet(), true, userId);
 	}
 	
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) throws SpecParseException {
@@ -718,7 +726,7 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	private void saveModule(String specDocument, boolean isNew, Set<String> changedTypes,
 			Set<String> backwardIncompatibleTypes, Set<String> changedFuncs,
 			Set<String> backwardIncompatibleFuncs, boolean useAllFuncsInstead,
-			AuthUser owner) throws SpecParseException, TypeStorageException {
+			String userId) throws SpecParseException, TypeStorageException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		//System.out.println("----------------------------------------------");
@@ -738,16 +746,16 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 						throw new IllegalStateException("Module " + moduleName + " was already uploaded");
 				} else {
 					if (!storage.checkModuleInfoRecordExist(moduleName))
-						autoGenerateModuleInfo(moduleName, owner);
+						autoGenerateModuleInfo(moduleName, userId);
 				}
 			} else {
 				checkModule(moduleName);
 			}
 			ModuleInfo info = getModuleInfo(moduleName);
-			if (!owner.isSystemAdmin()) {
-				if (!info.getOwner().equals(owner.getUserId()))
+			if (!uip.isAdmin(userId)) {
+				if (!info.getOwner().equals(userId))
 					throw new SpecParseException("Module owner is not in updating user list: " +
-							"owner=" + owner + ", changing_user=" + owner.getUserId());
+							"owner=" + info.getOwner() + ", changing_user=" + userId);
 			}
 			info.setIncludedModuleNames(new ArrayList<String>(includedModules));
 			Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
@@ -938,10 +946,10 @@ public class SimpleTypeDefinitionDB extends TypeDefinitionDB {
 	@Override
 	public void updateModule(String specDocument, List<String> changedTypes,
 			List<String> backwardIncompatibleTypes, List<String> changedFuncs,
-			List<String> backwardIncompatibleFuncs, AuthUser owner) throws SpecParseException, TypeStorageException {
+			List<String> backwardIncompatibleFuncs, String userId) throws SpecParseException, TypeStorageException {
 		saveModule(specDocument, false, new HashSet<String>(changedTypes), 
 				new HashSet<String>(backwardIncompatibleTypes), new HashSet<String>(changedFuncs), 
-				new HashSet<String>(backwardIncompatibleFuncs), false, owner);
+				new HashSet<String>(backwardIncompatibleFuncs), false, userId);
 		
 	}
 	

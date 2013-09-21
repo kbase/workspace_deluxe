@@ -27,11 +27,13 @@ import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
+import us.kbase.typedobj.db.UserInfoProviderForTests;
 
 public class TypeRegisteringTest {
 	private static TypeStorage storage = null;
 	private static TypeDefinitionDB db = null;
 	private static boolean useMongo = true;
+	private static String adminUser = "admin";
 
 	@BeforeClass
 	public static void prepareBeforeClass() throws Exception {
@@ -40,14 +42,14 @@ public class TypeRegisteringTest {
 			dir.mkdir();
 		storage = useMongo ? new MongoTypeStorage(new Mongo("localhost").getDB("test")) :
 			new FileTypeStorage(dir.getAbsolutePath());
-		db = new SimpleTypeDefinitionDB(storage, dir);
+		db = new SimpleTypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
 	}
 	
 	@Before
 	public void cleanupBefore() throws Exception {
-		db.removeAllRefs();
+		db.removeAllRefs(adminUser);
 		for (String moduleName : db.getAllRegisteredModules()) {
-			db.removeModule(moduleName);
+			db.removeModule(moduleName, adminUser);
 		}
 	}
 	
@@ -58,22 +60,22 @@ public class TypeRegisteringTest {
 	
 	@Test
 	public void testSimple() throws Exception {
-		AuthUser user = getAdmin();
+		String user = adminUser;
 		String taxonomySpec = loadSpec("simple", "Taxonomy");
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
-		db.releaseType("Taxonomy", "taxon");
+		db.releaseType("Taxonomy", "taxon", user);
 		String sequenceSpec = loadSpec("simple", "Sequence");
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);
-		db.releaseType("Sequence", "sequence_id");
-		db.releaseType("Sequence", "sequence_pos");
+		db.releaseType("Sequence", "sequence_id", user);
+		db.releaseType("Sequence", "sequence_pos", user);
 		String annotationSpec = loadSpec("simple", "Annotation");
 		db.registerModule(annotationSpec, Arrays.asList("genome", "gene"), user);
-		db.releaseType("Annotation", "genome");
-		db.releaseType("Annotation", "gene");
+		db.releaseType("Annotation", "genome", user);
+		db.releaseType("Annotation", "gene", user);
 		String regulationSpec = loadSpec("simple", "Regulation");
 		db.registerModule(regulationSpec, Arrays.asList("regulator", "binding_site"), user);
-		db.releaseType("Regulation", "regulator");
-		db.releaseType("Regulation", "binding_site");
+		db.releaseType("Regulation", "regulator", user);
+		db.releaseType("Regulation", "binding_site", user);
 		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 	}
