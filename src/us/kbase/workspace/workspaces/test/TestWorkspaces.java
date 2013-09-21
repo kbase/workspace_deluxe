@@ -22,9 +22,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.db.FileTypeStorage;
-import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -88,19 +85,14 @@ public class TestWorkspaces {
 		String db1 = WorkspaceTestCommon.getDB1();
 		String db2 = WorkspaceTestCommon.getDB2();
 		
-		//TODO replace with real validator storage system
-		TypedObjectValidator tv = new TypedObjectValidator(
-				new SimpleTypeDefinitionDB(
-						new FileTypeStorage("/home/crusherofheads/workspacetypes")));
-
 		Database gfs = null;
 		Database shock = null;
 		if (mUser != null) {
-			gfs = new MongoDatabase(host, db1, shockpwd, mUser, mPwd, tv);
-			shock = new MongoDatabase(host, db2, shockpwd, mUser, mPwd, tv);
+			gfs = new MongoDatabase(host, db1, shockpwd, mUser, mPwd);
+			shock = new MongoDatabase(host, db2, shockpwd, mUser, mPwd);
 		} else {
-			gfs = new MongoDatabase(host, db1, shockpwd, tv);
-			shock = new MongoDatabase(host, db2, shockpwd, tv);
+			gfs = new MongoDatabase(host, db1, shockpwd);
+			shock = new MongoDatabase(host, db2, shockpwd);
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs);
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));

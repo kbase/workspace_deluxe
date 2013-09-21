@@ -31,6 +31,7 @@ import org.junit.experimental.runners.Enclosed;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -139,10 +140,9 @@ public class MongoDatabase implements Database {
 		indexes.put(WORKSPACE_PTRS, wsPtr);
 	}
 
-	public MongoDatabase(String host, String database, String backendSecret,
-			TypedObjectValidator typeValidator)
+	public MongoDatabase(String host, String database, String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
-			WorkspaceDBException {
+			WorkspaceDBException, TypeStorageException {
 		wsmongo = getDB(host, database);
 		try {
 			wsmongo.getCollectionNames();
@@ -154,14 +154,17 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
-		this.typeValidator = typeValidator;
+		//TODO replace with real validator storage system
+		this.typeValidator = new TypedObjectValidator(
+				new SimpleTypeDefinitionDB(
+						new FileTypeStorage("/home/crusherofheads/workspacetypes")));
 		ensureIndexes();
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret,
-			String user, String password, TypedObjectValidator typeValidator)
+			String user, String password)
 			throws UnknownHostException, IOException, DBAuthorizationException,
-			WorkspaceDBException, InvalidHostException{
+			WorkspaceDBException, InvalidHostException, TypeStorageException{
 		wsmongo = getDB(host, database);
 		try {
 			wsmongo.authenticate(user, password.toCharArray());
@@ -179,7 +182,10 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
-		this.typeValidator = typeValidator;
+		//TODO replace with real validator storage system
+		this.typeValidator = new TypedObjectValidator(
+				new SimpleTypeDefinitionDB(
+						new FileTypeStorage("/home/crusherofheads/workspacetypes")));
 		ensureIndexes();
 	}
 	
@@ -297,6 +303,11 @@ public class MongoDatabase implements Database {
 			return bs;
 		}
 		throw new RuntimeException("Something's real broke y'all");
+	}
+	
+	@Override
+	public TypedObjectValidator getTypeValidator() {
+		return typeValidator;
 	}
 
 	@Override
@@ -1212,12 +1223,10 @@ public class MongoDatabase implements Database {
 			String db1 = WorkspaceTestCommon.getDB1();
 			String mUser = WorkspaceTestCommon.getMongoUser();
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
-			TypedObjectValidator t = new TypedObjectValidator(
-					new SimpleTypeDefinitionDB(new FileTypeStorage("/home/crusherofheads/workspacetypes")));
 			if (mUser == null || mUser == "") {
-				testdb = new MongoDatabase(host, db1, "foo", t);
+				testdb = new MongoDatabase(host, db1, "foo");
 			} else {
-				testdb = new MongoDatabase(host, db1, "foo", mUser, mPwd, t);
+				testdb = new MongoDatabase(host, db1, "foo", mUser, mPwd);
 			}
 		}
 		
