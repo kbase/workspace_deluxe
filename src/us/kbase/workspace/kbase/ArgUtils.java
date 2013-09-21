@@ -10,10 +10,10 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import us.kbase.Tuple10;
-import us.kbase.Tuple6;
-import us.kbase.Tuple9;
-import us.kbase.UObject;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple9;
+import us.kbase.common.service.UObject;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -153,6 +153,6 @@ public class ArgUtils {
 					.withData(new UObject(o.getData()))
 					.withMeta(objUserMetaToTuple(o.getMeta())));
 		}
-		return null;
+		return ret;
 	}
 }

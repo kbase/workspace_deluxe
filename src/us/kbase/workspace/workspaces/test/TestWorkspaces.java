@@ -24,6 +24,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -31,6 +33,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -474,6 +477,28 @@ public class TestWorkspaces {
 		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		
+		try {
+			ws.saveObjects(foo, read, objects);
+			fail("Saved no objects");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No data provided"));
+		}
+		
+		try {
+			ws.getObjects(foo, new ArrayList<ObjectIdentifier>());
+			fail("called method with no identifiers");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
+		}
+		
+		try {
+			ws.getObjectMetaData(foo, new ArrayList<ObjectIdentifier>());
+			fail("called method with no identifiers");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
+		}
+		
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data2, t, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), data, t, meta, p, false));
@@ -501,6 +526,7 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, 3));
 		loi.add(new ObjectIdentifier(read, "3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
+		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
 		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(foo, loi);
 		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
@@ -514,7 +540,30 @@ public class TestWorkspaces {
 		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		
+		checkObjMeta(retdata.get(0).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(1).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(2).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(3).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(4).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(5).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(6).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(7).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(8).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(9).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(10).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(11).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(3).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(4).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(5).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(6).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(7).getData(), is((Object) data));
+		assertThat("correct data", retdata.get(8).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
+		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
 		
 		ws.saveObjects(foo, priv, objects);
 		
@@ -534,9 +583,30 @@ public class TestWorkspaces {
 			assertThat("correct exception message", auth.getLocalizedMessage(),
 					is("User bar may not read workspace saveobj"));
 		}
+		ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
+		try {
+			ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+			fail("Able to get obj data from private workspace");
+		} catch (WorkspaceAuthorizationException auth) {
+			assertThat("correct exception message", auth.getLocalizedMessage(),
+					is("User bar may not read workspace saveobj"));
+		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+		checkObjMeta(retdata.get(0).getMeta(), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
+		try {
+			ws.saveObjects(bar, priv, objects);
+			fail("saved objects to unwritable workspace");
+		} catch (WorkspaceAuthorizationException auth) {
+			assertThat("correct exception message", auth.getLocalizedMessage(),
+					is("User bar may not write to workspace saveobj"));
+		}
+		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
+		objmeta = ws.saveObjects(bar, priv, objects);
+		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
 	@Test
@@ -593,7 +663,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void wrongObjectId() throws Exception {
+	public void saveWithWrongObjectId() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
@@ -629,6 +699,39 @@ public class TestWorkspaces {
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Unable to serialize data for object #1, jframe"));
+		}
+	}
+	
+	@Test
+	public void getNonexistantObjects() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		int readid = ws.getWorkspaceMetaData(foo, read).getId();
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("fubar", "thingy");
+		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), data, t, null, null, false));
+		ws.saveObjects(foo, read, objects);
+		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
+				"No object with id 2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, 1, 2),
+				"No object with identifier '1' and version 2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, "myname2"),
+				"No object with name myname2 exists in workspace " + readid);
+		getNonExistantObject(foo, new ObjectIdentifier(read, "myname", 2),
+				"No object with identifier 'myname' and version 2 exists in workspace " + readid);
+	}
+
+	private void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
+			String exception) throws Exception {
+		try {
+			ws.getObjectMetaData(foo, Arrays.asList(oi));
+			fail("got non-existant object");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getLocalizedMessage(), 
+					is(exception));
 		}
 	}
 	
@@ -768,5 +871,249 @@ public class TestWorkspaces {
 		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
 		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
 		//TODO more abs type tests (from TypeId) assuming it sticks around after integration with Roman's code
+	}
+	
+	private void testObjectIdentifier(String goodId) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(String goodId, int version) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(int goodId) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(int goodId, int version) {
+		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
+		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
+		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWSNoVer(fakews, goodId);
+		new WorkspaceObjectID(goodId);
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
+			String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		try {
+			new ObjectIDResolvedWSNoVer(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				new WorkspaceObjectID(badId);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
+			int version, String exception) {
+		try {
+			new ObjectIdentifier(new WorkspaceIdentifier("foo"), badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS, int badId,
+			String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		try {
+			new ObjectIDResolvedWSNoVer(fakews, badId);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				new WorkspaceObjectID(badId);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testObjectIdentifier(WorkspaceIdentifier badWS,
+			int badId, int version, String exception) {
+		try {
+			new ObjectIdentifier(badWS, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		FakeResolvedWSID fakews = null;
+		if (badWS != null) {
+			fakews = new FakeResolvedWSID(1);
+		} else {
+			exception = "r" + exception;
+		}
+		try {
+			new ObjectIDResolvedWS(fakews, badId, version);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testCreate(WorkspaceIdentifier goodWs, String name,
+			Integer id) {
+		ObjectIdentifier.create(goodWs, name, id);
+		WorkspaceObjectID.create(name, id);
+		
+	}
+	
+	
+	private void testCreateVer(WorkspaceIdentifier goodWs, String name, Integer id,
+			Integer ver) {
+		ObjectIdentifier.create(goodWs, name, id, ver);
+	}
+	
+	private void testCreate(WorkspaceIdentifier badWS, String name,
+			Integer id, String exception) {
+		try {
+			ObjectIdentifier.create(badWS, name, id);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+		if (badWS != null) {
+			try {
+				WorkspaceObjectID.create(name, id);
+				fail("Initialized invalid object id");
+			} catch (IllegalArgumentException e) {
+				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+			}
+		}
+	}
+	
+	private void testCreateVer(WorkspaceIdentifier badWS, String name,
+			Integer id, Integer ver, String exception) {
+		try {
+			ObjectIdentifier.create(badWS, name, id, ver);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void testRef(String ref) {
+		ObjectIdentifier.parseObjectReference(ref);
+	}
+	
+	private void testRef(String ref, String exception) {
+		try {
+			ObjectIdentifier.parseObjectReference(ref);
+			fail("Initialized invalid object id");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	@Test
+	public void objectIDs() throws Exception {
+		WorkspaceIdentifier goodWs = new WorkspaceIdentifier("foo");
+		testObjectIdentifier("f|o.A-1_2");
+		testObjectIdentifier("f|o.A-1_2", 1);
+		testObjectIdentifier(null, "foo", "wsi cannot be null");
+		testObjectIdentifier(goodWs, null, "Object name cannot be null and must have at least one character");
+		testObjectIdentifier(goodWs, "", "Object name cannot be null and must have at least one character");
+		testObjectIdentifier(goodWs, "f|o.A-1_2+", "Illegal character in object name f|o.A-1_2+: +");
+		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
+		testObjectIdentifier(1);
+		testObjectIdentifier(1, 1);
+		testObjectIdentifier(null, 1, "wsi cannot be null");
+		testObjectIdentifier(goodWs, 0, "Object id must be > 0");
+		testObjectIdentifier(goodWs, 0, 1, "Object id must be > 0");
+		testObjectIdentifier(goodWs, 1, 0, "Object version must be > 0");
+		testCreate(goodWs, "f|o.A-1_2", null);
+		testCreate(goodWs, null, 1);
+		testCreate(null, "boo", null, "wsi cannot be null");
+		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
+		testCreate(goodWs, "boo", 1, "Must provide one and only one of object name (was: boo) or id (was: 1)");
+		testCreateVer(goodWs, "boo", null, 1);
+		testCreateVer(goodWs, null, 1, 1);
+		testCreateVer(goodWs, "boo", null, null);
+		testCreateVer(goodWs, null, 1, null);
+		testCreateVer(goodWs, "boo", null, 0, "Object version must be > 0");
+		testCreateVer(goodWs, null, 1, 0, "Object version must be > 0");
+		testRef("foo/bar");
+		testRef("foo/bar/1");
+		testRef("foo/bar/1/2", "Illegal number of separators / in object name reference foo/bar/1/2");
+		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
+		testRef("1.2");
+		testRef("1.2.3");
+		testRef("1.2.3.4", "Illegal number of separators . in object id reference 1.2.3.4");
+		testRef("n.2", "Unable to parse workspace portion of object reference n.2 to an integer");
+		testRef("1.n", "Unable to parse object portion of object reference 1.n to an integer");
+		testRef("n.2.3", "Unable to parse workspace portion of object reference n.2.3 to an integer");
+		testRef("1.n.3", "Unable to parse object portion of object reference 1.n.3 to an integer");
+		testRef("1.2.n", "Unable to parse version portion of object reference 1.2.n to an integer");
+		testRef("1", "Illegal number of separators . in object id reference 1");
 	}
 }

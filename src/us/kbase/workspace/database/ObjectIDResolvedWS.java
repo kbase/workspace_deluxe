@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+
 public class ObjectIDResolvedWS {
 	
 	private final ResolvedWorkspaceID rwsi;
@@ -7,16 +9,54 @@ public class ObjectIDResolvedWS {
 	private final Integer id;
 	private final Integer version;
 	
-	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name, Integer version) {
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		checkObjectName(name);
+		this.rwsi = rwsi;
+		this.name = name;
+		this.id = null;
+		this.version = null;
+	}
+	
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name, int version) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		checkObjectName(name);
+		if (version < 1) {
+			throw new IllegalArgumentException("Object version must be > 0");
+		}
 		this.rwsi = rwsi;
 		this.name = name;
 		this.id = null;
 		this.version = version;
 	}
 	
-	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, Integer version) {
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (id < 1) {
+			throw new IllegalArgumentException("Object id must be > 0");
+		}
+		this.rwsi = rwsi;
+		this.name = null;
+		this.id = id;
+		this.version = null;
+	}
+	
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, int version) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (id < 1) {
+			throw new IllegalArgumentException("Object id must be > 0");
+		}
+		if (version < 1) {
+			throw new IllegalArgumentException("Object version must be > 0");
+		}
 		this.rwsi = rwsi;
 		this.name = null;
 		this.id = id;

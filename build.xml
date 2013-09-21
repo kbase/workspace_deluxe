@@ -86,17 +86,17 @@
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
       <include name="workspace/*.java"/>
       <exclude name="workspace/WorkspaceServer.java"/>
-      <include name="*.java"/>
-      <exclude name="JsonServer*"/>
-      <exclude name="JacksonTupleModule.java"/>
-      <exclude name="JsonClientCaller.java"/>
+      <include name="common/service/*.java"/>
+      <exclude name="common/service/JsonServer*"/>
+      <exclude name="common/service/JacksonTupleModule.java"/>
+      <exclude name="common/service/JsonClientCaller.java"/>
   </fileset>
 
   <fileset id="client-class-files" dir="${classes}" defaultexcludes="yes">
     <include name="us/kbase/workspace/*.class"/>
     <exclude name="us/kbase/workspace/WorkspaceServer.class"/>
-    <include name="us/kbase/*.class"/>
-    <exclude name="us/kbase/JsonServer*"/>
+    <include name="us/kbase/common/service/*.class"/>
+    <exclude name="us/kbase/common/service/JsonServer*"/>
   </fileset>
 
   <path id="compile.classpath">

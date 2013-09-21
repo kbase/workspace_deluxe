@@ -97,10 +97,21 @@ public class ObjectIdentifier {
 	}
 	
 	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {
-		if (name == null) {
-			return new ObjectIDResolvedWS(rwsi, id, version);
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
 		}
-		return new ObjectIDResolvedWS(rwsi, name, version);
+		if (name == null) {
+			if (version == null) {
+				return new ObjectIDResolvedWS(rwsi, id);
+			} else {
+				return new ObjectIDResolvedWS(rwsi, id, version);
+			}
+		}
+		if (version == null) {
+			return new ObjectIDResolvedWS(rwsi, name);
+		} else {
+			return new ObjectIDResolvedWS(rwsi, name, version);
+		}
 	}
 	
 	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,

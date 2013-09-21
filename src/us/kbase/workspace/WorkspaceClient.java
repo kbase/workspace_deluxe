@@ -7,12 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.codehaus.jackson.type.TypeReference;
-import us.kbase.JsonClientCaller;
-import us.kbase.JsonClientException;
-import us.kbase.Tuple10;
-import us.kbase.Tuple6;
-import us.kbase.Tuple9;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonClientCaller;
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple9;
 
 /**
  * <p>Original spec-file module name: Workspace</p>

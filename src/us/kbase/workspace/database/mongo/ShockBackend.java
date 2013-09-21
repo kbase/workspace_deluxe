@@ -74,7 +74,7 @@ public class ShockBackend implements BlobStore {
 					"Could not authenticate backend user " + user, ae);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
+					"Could not connect to the shock backend auth provider: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
 		return u.getToken();

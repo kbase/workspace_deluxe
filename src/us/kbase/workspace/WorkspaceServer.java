@@ -2,12 +2,12 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-import us.kbase.JsonServerMethod;
-import us.kbase.JsonServerServlet;
-import us.kbase.Tuple10;
-import us.kbase.Tuple6;
-import us.kbase.Tuple9;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonServerMethod;
+import us.kbase.common.service.JsonServerServlet;
+import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple9;
 
 //BEGIN_HEADER
 import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
@@ -15,7 +15,7 @@ import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
@@ -27,6 +27,7 @@ import java.util.HashMap;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -81,8 +82,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspaces ws;
 	
-	private Database getDB(final String host, final String dbs, final String secret,
-			final String user, final String pwd) {
+	private Database getDB(final String host, final String dbs,
+			final String secret, final String user, final String pwd) {
 		try {
 			if (user != null) {
 				return new MongoDatabase(host, dbs, secret, user, pwd);
@@ -103,6 +104,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (WorkspaceDBException uwde) {
 			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
+		} catch (TypeStorageException tse) {
+			fail("Couldn't set up the type database:" + 
+					tse.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -256,9 +260,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		if (translatePermission(params.getNewPermission()) == null) {
-			throw new IllegalArgumentException("Invalid permission: " + params.getNewPermission());
-		}
+		final Permission p = translatePermission(params.getNewPermission());
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
@@ -274,8 +276,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						"User %s is not a valid user", user));
 			}
 		}
-		ws.setPermissions(getUser(authPart), wsi, users,
-				translatePermission(params.getNewPermission()));
+		ws.setPermissions(getUser(authPart), wsi, users, p);
         //END set_permissions
     }
 
@@ -317,6 +318,9 @@ public class WorkspaceServer extends JsonServerServlet {
 //		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
 		int count = 1;
+		if (params.getObjects().isEmpty()) {
+			throw new IllegalArgumentException("No data provided");
+		}
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
 			WorkspaceObjectID oi = null;
@@ -368,10 +372,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
-		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
-		for (ObjectIdentity oi: objects) {
-			loi.add(processObjectIdentifier(oi));
-		}
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
 		returnVal = ArgUtils.translateObjectData(
 				ws.getObjects(getUser(authPart), loi));
         //END get_objects
@@ -388,10 +389,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
-		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
-		for (ObjectIdentity oi: objects) {
-			loi.add(processObjectIdentifier(oi));
-		}
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
 		returnVal = ArgUtils.objUserMetaToTuple(
 				ws.getObjectMetaData(getUser(authPart), loi));
         //END get_object_metadata

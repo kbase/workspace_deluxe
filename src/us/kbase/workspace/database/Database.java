@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -14,6 +15,8 @@ import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 public interface Database {
 
 	public String getBackendType();
+	
+	public TypedObjectValidator getTypeValidator();
 	
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
@@ -60,7 +63,8 @@ public interface Database {
 			NoSuchObjectException;
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
-			Set<ObjectIDResolvedWS> objectIDs);
+			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,

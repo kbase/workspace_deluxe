@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+
 //these class names are getting ridiculous, need to think of a better way
 public class ObjectIDResolvedWSNoVer {
 	
@@ -7,18 +9,46 @@ public class ObjectIDResolvedWSNoVer {
 	private final String name;
 	private final Integer id;
 	
-	//no error checking on constructors - should only be generated from an ObjectIdResolvedWS instance
-	ObjectIDResolvedWSNoVer(ResolvedWorkspaceID rwsi, String name) {
+	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
+			final String name) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		checkObjectName(name);
 		this.rwsi = rwsi;
 		this.name = name;
 		this.id = null;
 	}
 	
-	//no error checking on constructors - should only be generated from an ObjectIdentifier instance
-	ObjectIDResolvedWSNoVer(ResolvedWorkspaceID rwsi, int id) {
+	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
+			final int id) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (id < 1) {
+			throw new IllegalArgumentException("Object id must be > 0");
+		}
 		this.rwsi = rwsi;
 		this.name = null;
 		this.id = id;
+	}
+	
+	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, 
+			final WorkspaceObjectID id) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		this.rwsi = rwsi;
+		if (id.getId() == null) {
+			this.name = id.getName();
+			this.id = null;
+		} else {
+			this.name = null;
+			this.id = id.getId();
+		}
 	}
 	
 	public ResolvedWorkspaceID getWorkspaceIdentifier() {

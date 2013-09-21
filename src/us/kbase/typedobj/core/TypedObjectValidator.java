@@ -23,6 +23,13 @@ public final class TypedObjectValidator {
 	 */
 	protected TypeDefinitionDB typeDefDB;
 	
+	/**
+	 * Get the type database the validator validates types against.
+	 * @return the database.
+	 */
+	public TypeDefinitionDB getDB() {
+		return typeDefDB;
+	}
 	
 	/**
 	 * Construct a TypedObjectValidator set to the specified Typed Object Definition DB

@@ -1,4 +1,4 @@
-package us.kbase;
+package us.kbase.common.service;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
