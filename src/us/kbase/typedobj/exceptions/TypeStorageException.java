@@ -19,6 +19,6 @@ public class TypeStorageException extends TypedObjectException {
 	}
 
 	public TypeStorageException(Throwable e) {
-		super(e.getMessage(), e);
+		super(e.getMessage() == null ? "Unknown error" : e.getMessage(), e);
 	}
 }

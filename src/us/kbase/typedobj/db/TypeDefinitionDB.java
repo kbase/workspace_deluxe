@@ -189,7 +189,9 @@ public abstract class TypeDefinitionDB {
 	 */
 	public abstract List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException;
-	
+
+	public abstract void requestModuleRegistration(String moduleName, AuthUser owner) throws TypeStorageException;
+
 	public abstract void registerModule(String specDocument, List<String> registeredTypes, 
 			AuthUser owner) throws SpecParseException, TypeStorageException;
 	

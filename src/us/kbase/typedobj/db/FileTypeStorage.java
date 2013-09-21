@@ -12,6 +12,7 @@ import java.util.TreeSet;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -186,17 +187,15 @@ public class FileTypeStorage extends TypeStorage {
 	private File getTypeParseFile(String moduleName, String typeName, String version) {
 		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + ".prs");
 	}
-
-	@Override
-	public boolean checkModuleExist(String moduleName) {
-		File dir = getModuleDir(moduleName);
-		return dir.exists() && dir.isDirectory();
-	}
 	
 	@Override
-	public boolean checkModuleRecordsExist(String moduleName) {
-		return getModuleInfoFile(moduleName, null).exists() && 
-				getModuleSpecFile(moduleName, null).exists();
+	public boolean checkModuleInfoRecordExist(String moduleName) {
+		return getModuleInfoFile(moduleName, null).exists();
+	}
+
+	@Override
+	public boolean checkModuleSpecRecordExist(String moduleName) {
+		return getModuleSpecFile(moduleName, null).exists();
 	}
 	
 	@Override
@@ -250,6 +249,8 @@ public class FileTypeStorage extends TypeStorage {
 
 	private void writeFile(File location, String document) throws TypeStorageException {
 		try {
+			if (!location.getParentFile().exists())
+				location.getParentFile().mkdir();
 			PrintWriter pw = new PrintWriter(location);
 			pw.print(document);
 			pw.close();
@@ -295,12 +296,6 @@ public class FileTypeStorage extends TypeStorage {
 	}
 
 	@Override
-	public void createModule(String moduleName) {
-		File dir = getModuleDir(moduleName);
-		dir.mkdir();
-	}
-	
-	@Override
 	public void writeModuleSpecRecord(String moduleName,
 			String specDocument) throws TypeStorageException {
 		writeFile(getModuleSpecFile(moduleName, null), specDocument);
@@ -313,18 +308,35 @@ public class FileTypeStorage extends TypeStorage {
 	}
 	
 	@Override
-	public void writeModuleInfoRecord(String moduleName, String infoText) throws TypeStorageException {
+	public void writeModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException {
+		String infoText;
+		try {
+			infoText = mapper.writeValueAsString(info);
+		} catch (JsonProcessingException e) {
+			throw new TypeStorageException(e);
+		}
 		writeFile(getModuleInfoFile(moduleName, null), infoText);
 	}
 	
 	@Override
-	public void writeModuleInfoRecordBackup(String moduleName, String infoText, long backupTime) throws TypeStorageException {
+	public void writeModuleInfoRecordBackup(String moduleName, ModuleInfo info, long backupTime) throws TypeStorageException {
+		String infoText;
+		try {
+			infoText = mapper.writeValueAsString(info);
+		} catch (JsonProcessingException e) {
+			throw new TypeStorageException(e);
+		}
 		writeFile(getModuleInfoFile(moduleName, backupTime), infoText);
 	}
 	
 	@Override
-	public String getModuleInfoRecord(String moduleName) throws TypeStorageException {
-		return readFile(getModuleInfoFile(moduleName, null));
+	public ModuleInfo getModuleInfoRecord(String moduleName) throws TypeStorageException {
+		String infoText = readFile(getModuleInfoFile(moduleName, null));
+		try {
+			return mapper.readValue(infoText, ModuleInfo.class);
+		} catch (Exception ex) {
+			throw new TypeStorageException(ex);
+		}
 	}
 	
 	@Override

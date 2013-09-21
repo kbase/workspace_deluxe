@@ -18,8 +18,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.mongodb.Mongo;
+
 import us.kbase.auth.AuthUser;
 import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -28,21 +31,24 @@ import us.kbase.typedobj.db.TypeStorage;
 public class TypeRegisteringTest {
 	private static TypeStorage storage = null;
 	private static TypeDefinitionDB db = null;
+	private static boolean useMongo = true;
 
 	@BeforeClass
 	public static void prepareBeforeClass() throws Exception {
 		File dir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		storage = new FileTypeStorage(dir.getAbsolutePath());
+		storage = useMongo ? new MongoTypeStorage(new Mongo("localhost").getDB("test")) :
+			new FileTypeStorage(dir.getAbsolutePath());
 		db = new SimpleTypeDefinitionDB(storage, dir);
 	}
 	
 	@Before
 	public void cleanupBefore() throws Exception {
 		db.removeAllRefs();
-		for (String moduleName : db.getAllRegisteredModules())
+		for (String moduleName : db.getAllRegisteredModules()) {
 			db.removeModule(moduleName);
+		}
 	}
 	
 	@After
