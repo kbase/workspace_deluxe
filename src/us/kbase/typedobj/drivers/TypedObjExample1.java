@@ -15,7 +15,6 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
-import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.auth.*;
@@ -29,7 +28,7 @@ public class TypedObjExample1 {
 		
 		// 1) Create a simple db
 		String dblocation = "test/typedobj_test_files/t1/db";
-		TypeDefinitionDB db            = new SimpleTypeDefinitionDB(new FileTypeStorage(dblocation), new UserInfoProviderForTests());
+		TypeDefinitionDB db            = new TypeDefinitionDB(new FileTypeStorage(dblocation), new UserInfoProviderForTests());
 		System.out.println("connecting to: "+dblocation);
 		
 		// list all the modules that have been loaded

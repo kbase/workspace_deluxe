@@ -9,7 +9,6 @@ import org.junit.Test;
 
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
-import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -29,7 +28,7 @@ public class TestBasicValidation {
 	public static void setupDb() throws FileNotFoundException, TypeStorageException {
 
 		// Create a simple db
-		TypeDefinitionDB db = new SimpleTypeDefinitionDB(
+		TypeDefinitionDB db = new TypeDefinitionDB(
 				new FileTypeStorage(test_file_location), new UserInfoProviderForTests());
 		
 		// Create a simple validator that finds objects using the db

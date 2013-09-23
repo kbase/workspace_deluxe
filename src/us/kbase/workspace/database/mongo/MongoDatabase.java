@@ -32,8 +32,8 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.MongoTypeStorage;
-import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
@@ -151,9 +151,10 @@ public class MongoDatabase implements Database {
 		updateWScounter = buildCounterQuery();
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
-				new SimpleTypeDefinitionDB(new MongoTypeStorage(
-						getDB(host, settings.getTypeDatabase())),
-						new UserInfoProviderForTests()));
+				new TypeDefinitionDB(
+						new MongoTypeStorage(
+								getDB(host, settings.getTypeDatabase())),
+								new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 
@@ -171,9 +172,10 @@ public class MongoDatabase implements Database {
 		updateWScounter = buildCounterQuery();
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
-				new SimpleTypeDefinitionDB(new MongoTypeStorage(
-						getDB(host, settings.getTypeDatabase(), user, password)),
-						new UserInfoProviderForTests()));
+				new TypeDefinitionDB(
+						new MongoTypeStorage(
+								getDB(host, settings.getTypeDatabase(), user, password)),
+								new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 	
