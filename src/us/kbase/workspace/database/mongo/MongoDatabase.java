@@ -721,7 +721,7 @@ public class MongoDatabase implements Database {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ObjectMetaData createPointerAndSaveObject(final WorkspaceUser user,
+	private ObjectMetaData saveObjectWithNewPointer(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final int objectid, final String name,
 			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
 		String newName = name;
@@ -749,14 +749,14 @@ public class MongoDatabase implements Database {
 			//TODO is this a name or id clash? if the latter, something is broken
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
-				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
+				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
 			}
 			final WorkspaceObjectID o = pkg.wo.getObjectIdentifier();
 			final Map<WorkspaceObjectID, ObjID> objID = getObjectIDs(wsid,
 					new HashSet<WorkspaceObjectID>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
-				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
+				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
 			}
 			return saveObjectInstance(user, wsid, objID.get(o).id, pkg);
 		} catch (MongoException me) {
@@ -798,7 +798,7 @@ public class MongoDatabase implements Database {
 		return objErrId;
 	}
 	
-	private List<ObjectSavePackage> createObjectSavePackages(
+	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
 			final List<WorkspaceSaveObject> objects) {
 		//this method must maintain the order of the objects
@@ -892,8 +892,9 @@ public class MongoDatabase implements Database {
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
-		final List<ObjectSavePackage> packages = createObjectSavePackages(
+		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				wsidmongo, objects);
+		//TODO move up to here into workspaces, but build typedata here 
 		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
 				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
 		int newobjects = 0;
@@ -950,7 +951,7 @@ public class MongoDatabase implements Database {
 		for (final ObjectSavePackage p: packages) {
 			WorkspaceObjectID oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(createPointerAndSaveObject(user, wsidmongo, newid++, null, p));
+				ret.add(saveObjectWithNewPointer(user, wsidmongo, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObjectInstance(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
@@ -959,7 +960,7 @@ public class MongoDatabase implements Database {
 				//we've already generated an id for this name
 				ret.add(saveObjectInstance(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				ObjectMetaData m = createPointerAndSaveObject(user, wsidmongo,
+				ObjectMetaData m = saveObjectWithNewPointer(user, wsidmongo,
 						newid++, oi.getName(), p);
 				ret.add(m);
 				seenNames.put(oi.getName(), m.getObjectId());
@@ -1056,6 +1057,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	private String getTypeCollection(final AbsoluteTypeId type) {
+		//TODO don't use minor string, make method in type
 		return "type-" + type.getTypeString();
 	}
 	
@@ -1250,7 +1252,7 @@ public class MongoDatabase implements Database {
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, rwsi , data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-			ObjectMetaData md = testdb.createPointerAndSaveObject(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
+			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
 		}
 	}

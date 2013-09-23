@@ -106,6 +106,7 @@ public final class TypedObjectValidator {
 	public ProcessingReport validate(JsonNode instanceRootNode, String moduleName, String typeName)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
+		//TODO make input for all validate methods a TypeId and return an AbsoluteTypeId
 		String version = null;
         return validate(instanceRootNode, moduleName, typeName, version);
 	}
