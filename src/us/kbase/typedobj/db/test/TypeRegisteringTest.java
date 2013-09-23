@@ -24,7 +24,6 @@ import us.kbase.auth.AuthUser;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
-import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
@@ -42,7 +41,7 @@ public class TypeRegisteringTest {
 			dir.mkdir();
 		storage = useMongo ? new MongoTypeStorage(new Mongo("localhost").getDB("test")) :
 			new FileTypeStorage(dir.getAbsolutePath());
-		db = new SimpleTypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
+		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
 	}
 	
 	@Before
