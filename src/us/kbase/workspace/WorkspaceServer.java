@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
-import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -336,9 +336,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (d.getData() == null) {
 				throw new IllegalArgumentException(errprefix + " has no data");
 			}
-			TypeId t;
+			TypeDefId t;
 			try {
-				t = new TypeId(d.getType(), d.getTver());
+				t = new TypeDefId(d.getType(), d.getTver());
 			} catch (IllegalArgumentException iae) {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);

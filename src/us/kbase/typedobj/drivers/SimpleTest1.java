@@ -23,7 +23,7 @@ public class SimpleTest1 {
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);
-		TypeId t = new TypeId(new ModuleType("ID", "Feature"));
+		TypeDefId t = new TypeDefId(new TypeDefName("ID", "Feature"));
 		
 		// Validate something directly from JSON
 		String instance1 = "{\"id\":\"f1\",\"name\":\"cheA\",\"start\":131,\"end\":582,\"other_ids\":[\"f8\",\"f99\"]," +

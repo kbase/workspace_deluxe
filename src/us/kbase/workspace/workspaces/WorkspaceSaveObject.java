@@ -6,8 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
-import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.WorkspaceObjectID;
 
 public class WorkspaceSaveObject {
@@ -17,13 +17,13 @@ public class WorkspaceSaveObject {
 	
 	private final WorkspaceObjectID id;
 	private final JsonNode data;
-	private final TypeId type;
+	private final TypeDefId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
 	public WorkspaceSaveObject(final WorkspaceObjectID id, final Object data,
-			final TypeId type, final Map<String, String> userMeta,
+			final TypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
@@ -42,7 +42,7 @@ public class WorkspaceSaveObject {
 	}
 	
 	public WorkspaceSaveObject(final WorkspaceObjectID id, final JsonNode data,
-			final TypeId type, final Map<String, String> userMeta,
+			final TypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
@@ -56,7 +56,7 @@ public class WorkspaceSaveObject {
 		checkMeta(userMeta);
 	}
 	
-	public WorkspaceSaveObject(final Object data, final TypeId type,
+	public WorkspaceSaveObject(final Object data, final TypeDefId type,
 			final Map<String, String> userMeta,  final Provenance provenance,
 			final boolean hidden) {
 		if (data == null || type == null) {
@@ -75,7 +75,7 @@ public class WorkspaceSaveObject {
 		checkMeta(userMeta);
 	}
 	
-	public WorkspaceSaveObject(final JsonNode data, final TypeId type,
+	public WorkspaceSaveObject(final JsonNode data, final TypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
 			final boolean hidden) {
 		if (data == null || type == null) {
@@ -117,7 +117,7 @@ public class WorkspaceSaveObject {
 		return data;
 	}
 
-	public TypeId getType() {
+	public TypeDefId getType() {
 		return type;
 	}
 
@@ -134,7 +134,7 @@ public class WorkspaceSaveObject {
 		return hidden;
 	}
 
-	public ResolvedSaveObject resolve(final AbsoluteTypeId type,
+	public ResolvedSaveObject resolve(final AbsoluteTypeDefId type,
 			final JsonNode resolvedData) {
 		if (id == null) {
 			return new ResolvedSaveObject(resolvedData, type, this.userMeta,

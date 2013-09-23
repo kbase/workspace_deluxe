@@ -51,7 +51,7 @@ public final class TypedObjectValidator {
 	 * @throws BadJsonSchemaDocumentException 
 	 * @throws TypeStorageException 
 	 */
-	public ProcessingReport validate(String instance, TypeId type)
+	public ProcessingReport validate(String instance, TypeDefId type)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		// parse the instance document into a JsonNode
@@ -81,7 +81,7 @@ public final class TypedObjectValidator {
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
-	public ProcessingReport validate(JsonNode instanceRootNode, TypeId type)
+	public ProcessingReport validate(JsonNode instanceRootNode, TypeDefId type)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		//TODO deal with versions, return AbsoluteTypeID with full information
@@ -89,7 +89,7 @@ public final class TypedObjectValidator {
 		//	throw new BadJsonSchemaDocumentException("Versioning of typed objects not supported yet, pass 'null' for now as the version String.");
 		//}
 		// Retrieve the JsonSchema object; this will throw an error if the type or schema aren't valid
-		final ModuleType mt = type.getType();
+		final TypeDefName mt = type.getType();
 		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),
 		mt.getName());
 		

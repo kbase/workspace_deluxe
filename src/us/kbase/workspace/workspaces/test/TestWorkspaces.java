@@ -25,9 +25,9 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
-import us.kbase.typedobj.core.ModuleType;
-import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -481,7 +481,7 @@ public class TestWorkspaces {
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
 		Provenance p = new Provenance("kbasetest2");
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		
@@ -630,7 +630,7 @@ public class TestWorkspaces {
 		for (int i = 0; i < 18; i++) {
 			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
 		}
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new WorkspaceObjectID("bigmeta"), savedata, t, meta, null, false)));
@@ -677,7 +677,7 @@ public class TestWorkspaces {
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		JsonNode savedata = mapper.valueToTree(data);
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new WorkspaceObjectID(3), savedata, t, null, null, false)));
@@ -697,7 +697,7 @@ public class TestWorkspaces {
 		Object data = new JFrame();
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
@@ -717,7 +717,7 @@ public class TestWorkspaces {
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
 		JsonNode savedata = mapper.valueToTree(data);
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), savedata, t, null, null, false));
 		ws.saveObjects(foo, read, objects);
@@ -744,23 +744,23 @@ public class TestWorkspaces {
 	
 	private void checkWSType(String module, String name, String exception) {
 		try {
-			new ModuleType(module, name);
+			new TypeDefName(module, name);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
 	
-	private void checkTypeId(ModuleType t, Integer major, Integer minor, String exception) {
+	private void checkTypeId(TypeDefName t, Integer major, Integer minor, String exception) {
 		try {
 			if (minor == null) {
 				if (major == null) {
-					new TypeId(t);
+					new TypeDefId(t);
 				} else {
-					new TypeId(t, major);
+					new TypeDefId(t, major);
 				}
 			} else {
-				new TypeId(t, major, minor);
+				new TypeDefId(t, major, minor);
 			}
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
@@ -768,25 +768,25 @@ public class TestWorkspaces {
 		}
 	}
 	
-	private void checkAbsType(ModuleType t, Integer major, Integer minor, String exception) {
+	private void checkAbsType(TypeDefName t, Integer major, Integer minor, String exception) {
 		try {
-			new AbsoluteTypeId(t, major, minor);
+			new AbsoluteTypeDefId(t, major, minor);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
 	
-	private void checkAbsTypeFromType(TypeId type, Integer major, Integer minor, String exception) {
+	private void checkAbsTypeFromType(TypeDefId type, Integer major, Integer minor, String exception) {
 		try {
 			if (minor == null) {
 				if (major == null) {
-					AbsoluteTypeId.fromTypeId(type);
+					AbsoluteTypeDefId.fromTypeId(type);
 				} else {
-					AbsoluteTypeId.fromTypeId(type, major);
+					AbsoluteTypeDefId.fromTypeId(type, major);
 				}
 			} else {
-				AbsoluteTypeId.fromTypeId(type, major, minor);
+				AbsoluteTypeDefId.fromTypeId(type, major, minor);
 			}
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
@@ -796,7 +796,7 @@ public class TestWorkspaces {
 	
 	private void checkTypeId(String moduletype, String typever, String exception) {
 		try {
-			new TypeId(moduletype, typever);
+			new TypeDefId(moduletype, typever);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -805,7 +805,7 @@ public class TestWorkspaces {
 	
 	private void checkTypeId(String moduletype, String exception) {
 		try {
-			new TypeId(moduletype);
+			new TypeDefId(moduletype);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -814,7 +814,7 @@ public class TestWorkspaces {
 	
 	private void checkTypeIdFromString(String type, String exception) {
 		try {
-			TypeId.fromTypeString(type);
+			TypeDefId.fromTypeString(type);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -829,7 +829,7 @@ public class TestWorkspaces {
 		checkWSType("foo", "", "Name cannot be null or the empty string");
 		checkWSType("fo-o", "bar", "Illegal character in type id fo-o: -");
 		checkWSType("foo", "ba/r", "Illegal character in type id ba/r: /");
-		ModuleType wst = new ModuleType("foo", "bar");
+		TypeDefName wst = new TypeDefName("foo", "bar");
 		checkTypeId(null, null, null, "Type cannot be null");
 		checkTypeId(null, 1, null, "Type cannot be null");
 		checkTypeId(null, 1, 0, "Type cannot be null");
@@ -864,14 +864,14 @@ public class TestWorkspaces {
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
 		
-		assertTrue("absolute type", new TypeId(wst, 1, 1).isAbsolute());
-		assertFalse("absolute type", new TypeId(wst, 1).isAbsolute());
-		assertFalse("absolute type", new TypeId(wst).isAbsolute());
-		assertThat("check typestring", new TypeId(wst, 1, 1).getTypeString(),
+		assertTrue("absolute type", new TypeDefId(wst, 1, 1).isAbsolute());
+		assertFalse("absolute type", new TypeDefId(wst, 1).isAbsolute());
+		assertFalse("absolute type", new TypeDefId(wst).isAbsolute());
+		assertThat("check typestring", new TypeDefId(wst, 1, 1).getTypeString(),
 				is("foo.bar-1.1"));
-		assertThat("check typestring", new TypeId(wst, 1).getTypeString(),
+		assertThat("check typestring", new TypeDefId(wst, 1).getTypeString(),
 				is("foo.bar-1"));
-		assertThat("check typestring", new TypeId(wst).getTypeString(),
+		assertThat("check typestring", new TypeDefId(wst).getTypeString(),
 				is("foo.bar"));
 		
 		checkAbsType(null, 1, 0, "Type cannot be null");

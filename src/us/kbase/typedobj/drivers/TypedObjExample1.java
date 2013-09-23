@@ -11,8 +11,8 @@ import java.util.List;
 
 import com.github.fge.jsonschema.report.ProcessingReport;
 
-import us.kbase.typedobj.core.ModuleType;
-import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
@@ -65,7 +65,7 @@ public class TypedObjExample1 {
 		TypedObjectValidator validator = new TypedObjectValidator(db);
 		
 		String instance1 = "{\"id\":\"g.1\",\"name\":\"myGenome\",\"sequence\":\"gataca\",\"feature_ids\":[\"cds.8\",\"cds.99\"]}";
-		ProcessingReport report = validator.validate(instance1, new TypeId(new ModuleType("KB", "Genome")));
+		ProcessingReport report = validator.validate(instance1, new TypeDefId(new TypeDefName("KB", "Genome")));
 		System.out.println("VALIDATION MESSAGE\n"+report.toString());
 		
 		
