@@ -28,9 +28,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
-import us.kbase.typedobj.core.ModuleType;
-import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
@@ -101,8 +101,8 @@ public class MongoDatabase implements Database {
 	private final FindAndModify updateWScounter;
 	private final TypedObjectValidator typeValidator;
 	
-	private final Map<AbsoluteTypeId, Boolean> typeIndexEnsured = 
-			new HashMap<AbsoluteTypeId, Boolean>();
+	private final Map<AbsoluteTypeDefId, Boolean> typeIndexEnsured = 
+			new HashMap<AbsoluteTypeDefId, Boolean>();
 	
 	//TODO constants class with field names for all objects
 
@@ -195,7 +195,7 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private void ensureTypeIndexes(final AbsoluteTypeId type) {
+	private void ensureTypeIndexes(final AbsoluteTypeDefId type) {
 		if (typeIndexEnsured.containsKey(type)) {
 			return;
 		}
@@ -926,15 +926,15 @@ public class MongoDatabase implements Database {
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
-		final Map<AbsoluteTypeId, List<ObjectSavePackage>> pkgByType =
-				new HashMap<AbsoluteTypeId, List<ObjectSavePackage>>();
+		final Map<AbsoluteTypeDefId, List<ObjectSavePackage>> pkgByType =
+				new HashMap<AbsoluteTypeDefId, List<ObjectSavePackage>>();
 		for (final ObjectSavePackage p: data) {
 			if (pkgByType.get(p.td.getType()) == null) {
 				pkgByType.put(p.td.getType(), new ArrayList<ObjectSavePackage>());
 			}
 			pkgByType.get(p.td.getType()).add(p);
 		}
-		for (final AbsoluteTypeId type: pkgByType.keySet()) {
+		for (final AbsoluteTypeDefId type: pkgByType.keySet()) {
 			ensureTypeIndexes(type); //TODO do this on adding type and on startup
 			final String col = getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
@@ -1009,7 +1009,7 @@ public class MongoDatabase implements Database {
 		//TODO save provenance as batch and add prov id to pkgs
 	}
 	
-	private String getTypeCollection(final AbsoluteTypeId type) {
+	private String getTypeCollection(final AbsoluteTypeDefId type) {
 		return "type-" + type.getType().getTypeString() + "-" +
 				type.getMajorVersion();
 	}
@@ -1195,8 +1195,8 @@ public class MongoDatabase implements Database {
 			data.put("fubar", moredata);
 			meta.put("metastuff", "meta");
 			Provenance p = new Provenance("kbasetest2");
-			TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
-			AbsoluteTypeId at = new AbsoluteTypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+			TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new WorkspaceObjectID("testobj"),
 					DEFAULT_MAPPER.valueToTree(data), t, meta, p, false);

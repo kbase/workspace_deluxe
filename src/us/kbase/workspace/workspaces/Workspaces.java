@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -183,7 +183,7 @@ public class Workspaces {
 //			final String objErrId = getObjectErrorId(oi, objcount);
 //			final String objerrpunc = oi == null ? "" : ",";
 			 //TODO replace this with value returned from validator
-			final AbsoluteTypeId type = new AbsoluteTypeId(wo.getType().getType(),
+			final AbsoluteTypeDefId type = new AbsoluteTypeDefId(wo.getType().getType(),
 					wo.getType().getMajorVersion() == null ? 0 : wo.getType().getMajorVersion(),
 					wo.getType().getMinorVersion() == null ? 0 : wo.getType().getMinorVersion());
 			//TODO validate objects by type

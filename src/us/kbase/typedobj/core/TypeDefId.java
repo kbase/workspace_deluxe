@@ -2,7 +2,7 @@ package us.kbase.typedobj.core;
 
 import static us.kbase.typedobj.util.TypeUtils.checkString;
 
-public class TypeId {
+public class TypeDefId {
 	
 	private final static String TYPE_VER_SEP = "-";
 	private final static String TYPE_SEP = ".";
@@ -10,11 +10,11 @@ public class TypeId {
 	private final static String TYPE_SEP_REGEX = "\\" + TYPE_SEP;
 	private final static String VER_SEP_REGEX = "\\" + VER_SEP;
 	
-	final ModuleType type;
+	final TypeDefName type;
 	final Integer majorVersion;
 	final Integer minorVersion;
 
-	public TypeId(ModuleType type, int majorVersion, int minorVersion) {
+	public TypeDefId(TypeDefName type, int majorVersion, int minorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -26,7 +26,7 @@ public class TypeId {
 		this.minorVersion = minorVersion;
 	}
 	
-	public TypeId(ModuleType type, int majorVersion) {
+	public TypeDefId(TypeDefName type, int majorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -38,7 +38,7 @@ public class TypeId {
 		this.minorVersion = null;
 	}
 	
-	public TypeId(ModuleType type) {
+	public TypeDefId(TypeDefName type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -50,7 +50,7 @@ public class TypeId {
 	private static final String TYPE_VER_ERR = 
 			"Type version string %s could not be parsed to a version";
 	
-	public TypeId(String moduletype, String typeversion) {
+	public TypeDefId(String moduletype, String typeversion) {
 		checkString(moduletype, "Moduletype");
 		if (typeversion != null && typeversion.equals("")) {
 			throw new IllegalArgumentException("Typeversion cannot be an empty string");
@@ -61,7 +61,7 @@ public class TypeId {
 					"Type %s could not be split into a module and name",
 					moduletype));
 		}
-		type = new ModuleType(t[0], t[1]);
+		type = new TypeDefName(t[0], t[1]);
 		if (typeversion == null) {
 			majorVersion = null;
 			minorVersion = null;
@@ -90,25 +90,25 @@ public class TypeId {
 		}
 	}
 	
-	public TypeId(String moduletype) {
+	public TypeDefId(String moduletype) {
 		this(moduletype, null);
 	}
 	
-	public static TypeId fromTypeString(String typestring) {
+	public static TypeDefId fromTypeString(String typestring) {
 		checkString(typestring, "Typestring");
 		final String[] ts = typestring.split(TYPE_VER_SEP);
 		if (ts.length == 1) {
-			return new TypeId(ts[0]);
+			return new TypeDefId(ts[0]);
 		}
 		if (ts.length == 2) {
-			return new TypeId(ts[0], ts[1]);
+			return new TypeDefId(ts[0], ts[1]);
 		}
 		throw new IllegalArgumentException(String.format(
 				"Could not parse typestring %s into module/type and version portions",
 				typestring));
 	}
 	
-	public ModuleType getType() {
+	public TypeDefName getType() {
 		return type;
 	}
 	
@@ -155,10 +155,10 @@ public class TypeId {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof TypeId)) {
+		if (!(obj instanceof TypeDefId)) {
 			return false;
 		}
-		TypeId other = (TypeId) obj;
+		TypeDefId other = (TypeDefId) obj;
 		if (majorVersion == null) {
 			if (other.majorVersion != null) {
 				return false;

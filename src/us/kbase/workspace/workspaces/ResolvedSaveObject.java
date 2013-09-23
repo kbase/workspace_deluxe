@@ -2,7 +2,7 @@ package us.kbase.workspace.workspaces;
 
 import java.util.Map;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.workspace.database.WorkspaceObjectID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,13 +11,13 @@ public class ResolvedSaveObject {
 	
 	private final WorkspaceObjectID id;
 	private final JsonNode data;
-	private final AbsoluteTypeId type;
+	private final AbsoluteTypeDefId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
 	ResolvedSaveObject(final WorkspaceObjectID id,
-			final JsonNode resolvedData, final AbsoluteTypeId type,
+			final JsonNode resolvedData, final AbsoluteTypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
 			final boolean hidden) {
 		if (id == null || resolvedData == null || type == null) {
@@ -32,7 +32,7 @@ public class ResolvedSaveObject {
 	}
 	
 	ResolvedSaveObject(final JsonNode resolvedData,
-			final AbsoluteTypeId type, final Map<String, String> userMeta,
+			final AbsoluteTypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden) {
 		if (resolvedData == null || type == null) {
 			throw new IllegalArgumentException("Neither data nor type may be null");
@@ -54,7 +54,7 @@ public class ResolvedSaveObject {
 		return data;
 	}
 
-	public AbsoluteTypeId getType() {
+	public AbsoluteTypeDefId getType() {
 		return type;
 	}
 

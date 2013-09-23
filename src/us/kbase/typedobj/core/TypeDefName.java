@@ -5,7 +5,7 @@ import static us.kbase.typedobj.util.TypeUtils.checkString;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ModuleType {
+public class TypeDefName {
 	
 	private final static Pattern INVALID_TYPE_NAMES = 
 			Pattern.compile("[^\\w]");
@@ -13,7 +13,7 @@ public class ModuleType {
 	private final String module;
 	private final String name;
 	
-	public ModuleType(String module, String name) {
+	public TypeDefName(String module, String name) {
 		checkString(module, "Module");
 		checkTypeName(module);
 		checkString(name, "Name");
@@ -59,10 +59,10 @@ public class ModuleType {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ModuleType)) {
+		if (!(obj instanceof TypeDefName)) {
 			return false;
 		}
-		ModuleType other = (ModuleType) obj;
+		TypeDefName other = (TypeDefName) obj;
 		if (module == null) {
 			if (other.module != null) {
 				return false;

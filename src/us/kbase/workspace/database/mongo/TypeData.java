@@ -8,7 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -20,7 +20,7 @@ public class TypeData {
 	@JsonIgnore
 	private String data = null;
 	@JsonIgnore
-	private AbsoluteTypeId type = null;
+	private AbsoluteTypeDefId type = null;
 	
 	//these attributes are actually saved in mongo
 	private List<Integer> workspaces;
@@ -30,7 +30,7 @@ public class TypeData {
 	private int size;
 	private int version;
 	
-	public TypeData(final String data, final AbsoluteTypeId type,
+	public TypeData(final String data, final AbsoluteTypeDefId type,
 			final ResolvedMongoWSID firstWorkspace,
 			final Map<String,Object> subdata) {
 		//TODO might be better to generate subdata here
@@ -56,7 +56,7 @@ public class TypeData {
 		return data;
 	}
 	
-	public AbsoluteTypeId getType() {
+	public AbsoluteTypeDefId getType() {
 		return type;
 	}
 	

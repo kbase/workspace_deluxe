@@ -16,8 +16,8 @@ import org.junit.Test;
 import com.mongodb.DB;
 
 import us.kbase.shock.client.ShockNodeId;
-import us.kbase.typedobj.core.AbsoluteTypeId;
-import us.kbase.typedobj.core.ModuleType;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.ShockBackend;
@@ -48,7 +48,7 @@ public class ShockBackendTest {
 		String type = "typeA";
 		int majorver = 0;
 		int minorver = 1;
-		AbsoluteTypeId wt = new AbsoluteTypeId(new ModuleType(mod, type), majorver, minorver);
+		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName(mod, type), majorver, minorver);
 		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
 		String data = "this is some data";
 		TypeData td = new TypeData(data, wt, new ResolvedMongoWSID(3), subdata);
