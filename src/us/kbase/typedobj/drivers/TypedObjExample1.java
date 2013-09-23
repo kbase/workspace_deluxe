@@ -64,7 +64,7 @@ public class TypedObjExample1 {
 		TypedObjectValidator validator = new TypedObjectValidator(db);
 		
 		String instance1 = "{\"id\":\"g.1\",\"name\":\"myGenome\",\"sequence\":\"gataca\",\"feature_ids\":[\"cds.8\",\"cds.99\"]}";
-		ProcessingReport report = validator.validate(instance1, new TypeDefId(new TypeDefName("KB", "Genome")));
+		ProcessingReport report = validator.validate(instance1, new TypeDefId(new TypeDefName("KB", "Genome"))).getRawProcessingReport();
 		System.out.println("VALIDATION MESSAGE\n"+report.toString());
 		
 		
