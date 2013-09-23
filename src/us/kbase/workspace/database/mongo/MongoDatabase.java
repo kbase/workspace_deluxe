@@ -1060,8 +1060,8 @@ public class MongoDatabase implements Database {
 	}
 	
 	private String getTypeCollection(final AbsoluteTypeId type) {
-		//TODO don't use minor string, make method in type
-		return "type-" + type.getTypeString();
+		return "type-" + type.getType().getTypeString() + "-" +
+				type.getMajorVersion();
 	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
