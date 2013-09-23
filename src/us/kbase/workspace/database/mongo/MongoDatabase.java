@@ -92,7 +92,7 @@ public class MongoDatabase implements Database {
 	private static final String WS_ACLS = "workspaceACLs";
 	private static final String WORKSPACE_PTRS = "workspacePointers";
 	private static final String SHOCK_COLLECTION = "shockData";
-	private static final int MAX_USER_META_SIZE = 16000;
+//	private static final int MAX_USER_META_SIZE = 16000;
 	private static final User allUsers = new AllUsers('*');
 	
 	private static MongoClient mongoClient = null;
@@ -782,108 +782,72 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private Map<TypeId, TypeSchema> getTypes(final Set<TypeId> types) {
-		Map<TypeId, TypeSchema> ret = new HashMap<TypeId, TypeSchema>();
-		//TODO getTypes
-		return ret;
-	}
-	
 	private static final ObjectMapper defaultMapper = new ObjectMapper();
 	private static final ObjectMapper sortedMapper = new ObjectMapper();
 	static {
 		sortedMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
 	
-	private static String getObjectErrorId(final WorkspaceObjectID oi,
-			final int objcount) {
-		String objErrId = "#" + objcount;
-		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-		return objErrId;
-	}
+//	private static String getObjectErrorId(final WorkspaceObjectID oi,
+//			final int objcount) {
+//		String objErrId = "#" + objcount;
+//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+//		return objErrId;
+//	}
 	
+	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
 			final List<WorkspaceSaveObject> objects) {
 		//this method must maintain the order of the objects
 		//TODO split this up
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
-		final Set<TypeId> types = new HashSet<TypeId>();
-		int objcount = 1;
-		for (WorkspaceSaveObject wo: objects) {
-			types.add(wo.getType());
-			final WorkspaceObjectID oi = wo.getObjectIdentifier();
-			final ObjectSavePackage p = new ObjectSavePackage();
-			final String objErrId = getObjectErrorId(oi, objcount);
-			final String objerrpunc = oi == null ? "" : ",";
-			ret.add(p);
-			p.wo = wo;
-			if (wo.getUserMeta() != null) {
-				String meta;
-				try {
-					meta = defaultMapper.writeValueAsString(wo.getUserMeta());
-				} catch (JsonProcessingException jpe) {
-					throw new IllegalArgumentException(String.format(
-							"Unable to serialize metadata for object %s",
-							objErrId), jpe);
-				}
-				if (meta.length() > MAX_USER_META_SIZE) {
-					throw new IllegalArgumentException(String.format(
-							"Metadata for object %s is > %s bytes",
-							objErrId + objerrpunc, MAX_USER_META_SIZE));
-				}
-			}
-			objcount++;
-		}
-		final Map<TypeId, TypeSchema> schemas = getTypes(types);
-		class TypeDataStore {
-			public String data;
-			public AbsoluteTypeId type;
-		}
-		objcount = 1;
-		final Map<ObjectSavePackage, TypeDataStore> pkgData = 
-				new HashMap<ObjectSavePackage, TypeDataStore>();
-		for (ObjectSavePackage pkg: ret) {
-			final TypeDataStore tds = new TypeDataStore();
-			final WorkspaceObjectID oi = pkg.wo.getObjectIdentifier();
-			final String objErrId = getObjectErrorId(oi, objcount);
-//			final String objerrpunc = oi == null ? "" : ",";
-			String json;
-			try {
-				json = sortedMapper.writeValueAsString(pkg.wo.getData());
-			} catch (JsonProcessingException jpe) {
-				throw new IllegalArgumentException(String.format(
-						"Unable to serialize data for object %s",
-						objErrId), jpe);
-			}
-			//TODO check type for json vs schema, transform to absolute type, below is temp
-			final TypeId t = pkg.wo.getType();
-			tds.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
+//		class TypeDataStore {
+//			public String data;
+//			public AbsoluteTypeId type;
+//		}
+//		int objcount = 1;
+//		final Map<ObjectSavePackage, TypeDataStore> pkgData = 
+//				new HashMap<ObjectSavePackage, TypeDataStore>();
+		for (WorkspaceSaveObject o: objects) {
+			final ObjectSavePackage pkg = new ObjectSavePackage();
+//			final TypeDataStore tds = new TypeDataStore();
+//			final WorkspaceObjectID oi = pkg.wo.getObjectIdentifier();
+//			final String objErrId = getObjectErrorId(oi, objcount);
+			final String json;
+//			try {
+			json = o.getData().toString();
+//				json = sortedMapper.convertValue(o.getData(), String.class);
+//			} catch (JsonProcessingException jpe) {
+//				throw new IllegalArgumentException(String.format(
+//						"Unable to serialize data for object %s",
+//						objErrId), jpe);
+//			}
+			pkg.wo = o;
+			final TypeId t = o.getType();
+			final AbsoluteTypeId type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
 					t.getMinorVersion() == null ? 0 : t.getMinorVersion()); //TODO could make this a bit cleaner
-			//TODO get references 
 			//TODO get subdata (later)?
-			//TODO check subdata size
-			//TODO temporary saving of json - remove when rewritten with new refs below
-			tds.data = json;
-			pkgData.put(pkg, tds);
-			objcount++;
-		}
-		//TODO map all references to real references, error if not found
-		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
-		
-		for (ObjectSavePackage pkg: ret) {
-			final TypeDataStore tds = pkgData.get(pkg);
-			//TODO rewrite data with new references
-			//TODO -or- get subdata after rewrite?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
+//			tds.data = json;
+//			pkgData.put(pkg, tds);
+//			objcount++;
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(tds.data, tds.type, rwsi, null); //TODO add subdata
+			pkg.td = new TypeData(json, type, rwsi, null); //TODO add subdata
+			ret.add(pkg);
 		}
+//		for (ObjectSavePackage pkg: ret) {
+//			final TypeDataStore tds = pkgData.get(pkg);
+//			//TODO -or- get subdata after rewrite?
+//			//TODO check subdata size
+//		}
 		return ret;
 	}
 	
+	//at this point the objects are expected to be validated and references rewritten
 	@Override
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
 			final ResolvedWorkspaceID rwsi,
@@ -1247,13 +1211,15 @@ public class MongoDatabase implements Database {
 			Provenance p = new Provenance("kbasetest2");
 			TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeId at = new AbsoluteTypeId(new ModuleType("SomeModule", "AType"), 0, 1);
-			WorkspaceSaveObject wo = new WorkspaceSaveObject(new WorkspaceObjectID("testobj"), data, t, meta, p, false);
+			WorkspaceSaveObject wo = new WorkspaceSaveObject(
+					new WorkspaceObjectID("testobj"),
+					defaultMapper.valueToTree(data), t, meta, p, false);
 			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
 			wco.add(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, rwsi , data);
+			pkg.td = new TypeData(defaultMapper.writeValueAsString(data), at, rwsi , data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));

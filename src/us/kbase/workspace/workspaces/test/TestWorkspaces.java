@@ -22,6 +22,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import us.kbase.typedobj.core.AbsoluteTypeId;
 import us.kbase.typedobj.core.ModuleType;
 import us.kbase.typedobj.core.TypeId;
@@ -53,6 +56,8 @@ import us.kbase.workspace.workspaces.Workspaces;
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
+	private static final ObjectMapper mapper = new ObjectMapper();
+	
 	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
@@ -469,7 +474,9 @@ public class TestWorkspaces {
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
+		JsonNode savedata = mapper.valueToTree(data);
 		data2.put("fubar2", moredata);
+		JsonNode savedata2 = mapper.valueToTree(data2);
 		meta.put("metastuff", "meta");
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
@@ -499,11 +506,11 @@ public class TestWorkspaces {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), data2, t, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), data, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(data2, t, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(data, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), savedata, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), savedata2, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), savedata, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(savedata2, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(savedata, t, meta, p, false));
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
@@ -568,7 +575,7 @@ public class TestWorkspaces {
 		ws.saveObjects(foo, priv, objects);
 		
 		objects.clear();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), data, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), savedata, t, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
 		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23);
@@ -619,13 +626,14 @@ public class TestWorkspaces {
 		smallmeta.put("foo", "bar");
 		Map<String, String> meta = new HashMap<String, String>();
 		data.put("fubar", "bar");
+		JsonNode savedata = mapper.valueToTree(data);
 		for (int i = 0; i < 18; i++) {
 			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
 		}
 		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID("bigmeta"), data, t, meta, null, false)));
+					new WorkspaceObjectID("bigmeta"), savedata, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -633,7 +641,7 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID(3), data, t, meta, null, false)));
+					new WorkspaceObjectID(3), savedata, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -641,8 +649,8 @@ public class TestWorkspaces {
 		}
 		
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, smallmeta, null, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), data, t, meta, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, t, meta, null, false));
 		try {
 			ws.saveObjects(foo, read, objects);
 			fail("saved object with > 16Mb metadata");
@@ -651,8 +659,8 @@ public class TestWorkspaces {
 					is("Metadata for object #2, foo1, is > 16000 bytes"));
 		}
 		objects.clear();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, smallmeta, null, false));
-		objects.add(new WorkspaceSaveObject(data, t, meta, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
+		objects.add(new WorkspaceSaveObject(savedata, t, meta, null, false));
 		try {
 			ws.saveObjects(foo, read, objects);
 			fail("saved object with > 16Mb metadata");
@@ -668,13 +676,11 @@ public class TestWorkspaces {
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
+		JsonNode savedata = mapper.valueToTree(data);
 		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
-		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, null, null, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), data, t, null, null, false));
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID(3), data, t, null, null, false)));
+					new WorkspaceObjectID(3), savedata, t, null, null, false)));
 			fail("saved object with non-existant id");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
@@ -683,24 +689,24 @@ public class TestWorkspaces {
 		
 	}
 	
-	@Test
-	public void unserializableData() throws Exception {
-		WorkspaceUser foo = new WorkspaceUser("foo");
-		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
-		Object data = new JFrame();
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("foo", "bar");
-		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
-		try {
-			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
-			fail("saved unserializable object");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Unable to serialize data for object #1, jframe"));
-		}
-	}
+//	@Test
+//	public void unserializableData() throws Exception {
+//		WorkspaceUser foo = new WorkspaceUser("foo");
+//		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
+//		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+//		Object data = new JFrame();
+//		Map<String, String> meta = new HashMap<String, String>();
+//		meta.put("foo", "bar");
+//		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+//		try {
+//			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+//					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
+//			fail("saved unserializable object");
+//		} catch (IllegalArgumentException iae) {
+//			assertThat("correct exception", iae.getLocalizedMessage(),
+//					is("Unable to serialize data for object #1, jframe"));
+//		}
+//	}
 	
 	@Test
 	public void getNonexistantObjects() throws Exception {
@@ -710,9 +716,10 @@ public class TestWorkspaces {
 		int readid = ws.getWorkspaceMetaData(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
+		JsonNode savedata = mapper.valueToTree(data);
 		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), data, t, null, null, false));
+		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), savedata, t, null, null, false));
 		ws.saveObjects(foo, read, objects);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
