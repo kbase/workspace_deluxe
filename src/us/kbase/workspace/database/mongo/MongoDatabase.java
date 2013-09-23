@@ -782,47 +782,21 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private static final ObjectMapper defaultMapper = new ObjectMapper();
-	private static final ObjectMapper sortedMapper = new ObjectMapper();
+	private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
+	private static final ObjectMapper SORTED_MAPPER = new ObjectMapper();
 	static {
-		sortedMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		SORTED_MAPPER.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
-	
-//	private static String getObjectErrorId(final WorkspaceObjectID oi,
-//			final int objcount) {
-//		String objErrId = "#" + objcount;
-//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-//		return objErrId;
-//	}
 	
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
 			final List<WorkspaceSaveObject> objects) {
+		//TODO sorted nodes how
 		//this method must maintain the order of the objects
-		//TODO split this up
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
-//		class TypeDataStore {
-//			public String data;
-//			public AbsoluteTypeId type;
-//		}
-//		int objcount = 1;
-//		final Map<ObjectSavePackage, TypeDataStore> pkgData = 
-//				new HashMap<ObjectSavePackage, TypeDataStore>();
 		for (WorkspaceSaveObject o: objects) {
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-//			final TypeDataStore tds = new TypeDataStore();
-//			final WorkspaceObjectID oi = pkg.wo.getObjectIdentifier();
-//			final String objErrId = getObjectErrorId(oi, objcount);
-			final String json;
-//			try {
-			json = o.getData().toString();
-//				json = sortedMapper.convertValue(o.getData(), String.class);
-//			} catch (JsonProcessingException jpe) {
-//				throw new IllegalArgumentException(String.format(
-//						"Unable to serialize data for object %s",
-//						objErrId), jpe);
-//			}
 			pkg.wo = o;
 			final TypeId t = o.getType();
 			final AbsoluteTypeId type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
@@ -831,19 +805,11 @@ public class MongoDatabase implements Database {
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
-//			tds.data = json;
-//			pkgData.put(pkg, tds);
-//			objcount++;
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, type, rwsi, null); //TODO add subdata
+			pkg.td = new TypeData(o.getData().toString(), type, rwsi, null); //TODO add subdata
 			ret.add(pkg);
 		}
-//		for (ObjectSavePackage pkg: ret) {
-//			final TypeDataStore tds = pkgData.get(pkg);
-//			//TODO -or- get subdata after rewrite?
-//			//TODO check subdata size
-//		}
 		return ret;
 	}
 	
@@ -1065,7 +1031,7 @@ public class MongoDatabase implements Database {
 				}
 				final Object object;
 				try {
-					object = defaultMapper.readValue(data, Object.class);
+					object = DEFAULT_MAPPER.readValue(data, Object.class);
 				} catch (IOException e) {
 					throw new RuntimeException(String.format(
 							"Unable to deserialize object %s",
@@ -1213,13 +1179,13 @@ public class MongoDatabase implements Database {
 			AbsoluteTypeId at = new AbsoluteTypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new WorkspaceObjectID("testobj"),
-					defaultMapper.valueToTree(data), t, meta, p, false);
+					DEFAULT_MAPPER.valueToTree(data), t, meta, p, false);
 			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
 			wco.add(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(defaultMapper.writeValueAsString(data), at, rwsi , data);
+			pkg.td = new TypeData(DEFAULT_MAPPER.writeValueAsString(data), at, rwsi , data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
