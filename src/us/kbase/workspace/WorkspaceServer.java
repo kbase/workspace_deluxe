@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
 import us.kbase.typedobj.core.TypeId;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -106,9 +105,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (WorkspaceDBException uwde) {
 			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
-		} catch (TypeStorageException tse) {
-			fail("Couldn't set up the type database:" + 
-					tse.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -351,12 +347,17 @@ public class WorkspaceServer extends JsonServerServlet {
 					authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			final String data = d.getData().asJsonNode().toString();
-			if (oi == null) {
-				woc.add(new WorkspaceSaveObject(mapper.readTree(data), t,
-						d.getMetadata(), p, hidden));
-			} else {
-				woc.add(new WorkspaceSaveObject(oi, mapper.readTree(data), t,
-						d.getMetadata(), p, hidden));
+			try {
+				if (oi == null) {
+					woc.add(new WorkspaceSaveObject(mapper.readTree(data), t,
+							d.getMetadata(), p, hidden));
+				} else {
+					woc.add(new WorkspaceSaveObject(oi, mapper.readTree(data), t,
+							d.getMetadata(), p, hidden));
+				}
+			} catch (IllegalArgumentException iae) {
+				throw new IllegalArgumentException(errprefix + " save error: "
+						+ iae.getLocalizedMessage(), iae);
 			}
 			count++;
 		}
