@@ -1,6 +1,6 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.typedobj.core;
 
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 
 public class TypeId {
 	
@@ -10,11 +10,11 @@ public class TypeId {
 	private final static String TYPE_SEP_REGEX = "\\" + TYPE_SEP;
 	private final static String VER_SEP_REGEX = "\\" + VER_SEP;
 	
-	final WorkspaceType type;
+	final ModuleType type;
 	final Integer majorVersion;
 	final Integer minorVersion;
 
-	public TypeId(WorkspaceType type, int majorVersion, int minorVersion) {
+	public TypeId(ModuleType type, int majorVersion, int minorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -26,7 +26,7 @@ public class TypeId {
 		this.minorVersion = minorVersion;
 	}
 	
-	public TypeId(WorkspaceType type, int majorVersion) {
+	public TypeId(ModuleType type, int majorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -38,7 +38,7 @@ public class TypeId {
 		this.minorVersion = null;
 	}
 	
-	public TypeId(WorkspaceType type) {
+	public TypeId(ModuleType type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -61,7 +61,7 @@ public class TypeId {
 					"Type %s could not be split into a module and name",
 					moduletype));
 		}
-		type = new WorkspaceType(t[0], t[1]);
+		type = new ModuleType(t[0], t[1]);
 		if (typeversion == null) {
 			majorVersion = null;
 			minorVersion = null;
@@ -108,7 +108,7 @@ public class TypeId {
 				typestring));
 	}
 	
-	public WorkspaceType getType() {
+	public ModuleType getType() {
 		return type;
 	}
 	

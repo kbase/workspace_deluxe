@@ -2,6 +2,7 @@ package us.kbase.workspace.workspaces;
 
 import java.util.Map;
 
+import us.kbase.typedobj.core.TypeId;
 import us.kbase.workspace.database.WorkspaceObjectID;
 
 public class WorkspaceSaveObject {

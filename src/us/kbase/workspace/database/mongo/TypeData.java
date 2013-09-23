@@ -1,6 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
+import us.kbase.typedobj.core.AbsoluteTypeId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;

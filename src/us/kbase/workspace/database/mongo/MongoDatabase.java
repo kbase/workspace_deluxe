@@ -28,6 +28,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
+import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.ModuleType;
+import us.kbase.typedobj.core.TypeId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
@@ -62,12 +65,9 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.TypeSchema;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1245,8 +1245,8 @@ public class MongoDatabase implements Database {
 			data.put("fubar", moredata);
 			meta.put("metastuff", "meta");
 			Provenance p = new Provenance("kbasetest2");
-			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
-			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+			TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+			AbsoluteTypeId at = new AbsoluteTypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(new WorkspaceObjectID("testobj"), data, t, meta, p, false);
 			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
 			wco.add(wo);

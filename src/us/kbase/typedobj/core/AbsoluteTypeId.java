@@ -1,8 +1,8 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.typedobj.core;
 
 public class AbsoluteTypeId extends TypeId{
 
-	public AbsoluteTypeId(WorkspaceType type, int majorVersion,
+	public AbsoluteTypeId(ModuleType type, int majorVersion,
 			int minorVersion) {
 		super(type, majorVersion, minorVersion);
 	}

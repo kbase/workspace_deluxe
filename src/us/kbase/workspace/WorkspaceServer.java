@@ -27,6 +27,7 @@ import java.util.HashMap;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
+import us.kbase.typedobj.core.TypeId;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -43,7 +44,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER

@@ -22,6 +22,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.ModuleType;
+import us.kbase.typedobj.core.TypeId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -42,11 +45,8 @@ import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceType;
 import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO test vs. auth'd mongo
@@ -474,7 +474,7 @@ public class TestWorkspaces {
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
 		Provenance p = new Provenance("kbasetest2");
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		
@@ -622,7 +622,7 @@ public class TestWorkspaces {
 		for (int i = 0; i < 18; i++) {
 			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
 		}
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new WorkspaceObjectID("bigmeta"), data, t, meta, null, false)));
@@ -668,7 +668,7 @@ public class TestWorkspaces {
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), data, t, null, null, false));
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), data, t, null, null, false));
@@ -691,7 +691,7 @@ public class TestWorkspaces {
 		Object data = new JFrame();
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
@@ -710,7 +710,7 @@ public class TestWorkspaces {
 		int readid = ws.getWorkspaceMetaData(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
-		TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), data, t, null, null, false));
 		ws.saveObjects(foo, read, objects);
@@ -737,14 +737,14 @@ public class TestWorkspaces {
 	
 	private void checkWSType(String module, String name, String exception) {
 		try {
-			new WorkspaceType(module, name);
+			new ModuleType(module, name);
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
 	
-	private void checkTypeId(WorkspaceType t, Integer major, Integer minor, String exception) {
+	private void checkTypeId(ModuleType t, Integer major, Integer minor, String exception) {
 		try {
 			if (minor == null) {
 				if (major == null) {
@@ -761,7 +761,7 @@ public class TestWorkspaces {
 		}
 	}
 	
-	private void checkAbsType(WorkspaceType t, Integer major, Integer minor, String exception) {
+	private void checkAbsType(ModuleType t, Integer major, Integer minor, String exception) {
 		try {
 			new AbsoluteTypeId(t, major, minor);
 			fail("Initialized invalid type");
@@ -822,7 +822,7 @@ public class TestWorkspaces {
 		checkWSType("foo", "", "Name cannot be null or the empty string");
 		checkWSType("fo-o", "bar", "Illegal character in type id fo-o: -");
 		checkWSType("foo", "ba/r", "Illegal character in type id ba/r: /");
-		WorkspaceType wst = new WorkspaceType("foo", "bar");
+		ModuleType wst = new ModuleType("foo", "bar");
 		checkTypeId(null, null, null, "Type cannot be null");
 		checkTypeId(null, 1, null, "Type cannot be null");
 		checkTypeId(null, 1, 0, "Type cannot be null");
