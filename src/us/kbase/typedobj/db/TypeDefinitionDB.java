@@ -50,7 +50,7 @@ public abstract class TypeDefinitionDB {
 	 * Constructor which initializes this TypeDefinitionDB with a factory for
 	 * generating schema objects from schema documents, and allows you to specify a
 	 * custom Jackson object mapper for mapping the schema documents to JsonTree
-	 * document, used before constructing the JsonSchema object.  
+	 * document, used before constructing the JsonSchema object.
 	 * @param jsonSchemaFactory
 	 * @param mapper
 	 */
@@ -64,6 +64,7 @@ public abstract class TypeDefinitionDB {
 	 */
 	public abstract List<String> getAllRegisteredModules() throws TypeStorageException;
 
+	
 	public abstract boolean isValidModule(String moduleName) throws TypeStorageException;
 	
 	public abstract String getModuleSpecDocument(String moduleName) throws NoSuchModuleException, TypeStorageException;

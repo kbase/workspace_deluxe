@@ -10,7 +10,6 @@ import com.github.fge.jsonschema.report.ProcessingReport;
 
 
 
-
 public class SimpleTest1 {
 
 	/**
@@ -19,7 +18,7 @@ public class SimpleTest1 {
 	public static void main(String[] args) throws Exception {
 		
 		// Create a simple db
-		TypeDefinitionDB db            = new SimpleTypeDefinitionDB(new FileTypeStorage("kb-typed-obj-lib/test_schemas/test_db_1"));
+		TypeDefinitionDB db            = new SimpleTypeDefinitionDB(new FileTypeStorage("test/typedobj_test_files/testdb/db1"));
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);

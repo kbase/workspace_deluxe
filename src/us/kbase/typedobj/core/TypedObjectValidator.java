@@ -71,14 +71,14 @@ public final class TypedObjectValidator {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
-        try {
-        	instanceRootNode = mapper.readTree(instance);
+		try {
+		instanceRootNode = mapper.readTree(instance);
 		} catch (Exception e) {
 			throw new InstanceValidationException("instance was not a valid or readable JSON document",e);
 		}
-        
-        // validate and return the report
-        return validate(instanceRootNode, moduleName, typeName, version);
+
+		// validate and return the report
+		return validate(instanceRootNode, moduleName, typeName, version);
 	}
 	
 	
@@ -100,7 +100,7 @@ public final class TypedObjectValidator {
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		String version = null;
-        return validate(instanceRootNode, moduleName, typeName, version);
+		return validate(instanceRootNode, moduleName, typeName, version);
 	}
 	
 	
@@ -116,7 +116,7 @@ public final class TypedObjectValidator {
 	 * @throws NoSuchTypeException
 	 * @throws InstanceValidationException
 	 * @throws BadJsonSchemaDocumentException
-	 * @throws TypeStorageException 
+	 * @throws TypeStorageException
 	 */
 	public ProcessingReport validate(JsonNode instanceRootNode, String moduleName, String typeName, String version)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
@@ -128,7 +128,7 @@ public final class TypedObjectValidator {
 		final JsonSchema schema = typeDefDB.getJsonSchema(moduleName, typeName);
 		
 		// Actually perform the validation and return the report
-        ProcessingReport report;
+		ProcessingReport report;
 		try {
 			report = schema.validate(instanceRootNode);
 		} catch (ProcessingException e) {
@@ -136,16 +136,6 @@ public final class TypedObjectValidator {
 		}
 		return report;
 	}
-	
-	
-	/**
-	 * 
-	 * @param instance
-	 * @param typeName
-	 * @return
-	 */
-	public String extractSearchableSubset(String instance, String typeName) {
-		
-		return "{}";
-	}
+
+
 }
