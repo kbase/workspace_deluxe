@@ -164,7 +164,6 @@ public class Workspaces {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException {
-		//TODO this should take objects. Convert to JsonNode, then make new object with the node & abs type.
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}

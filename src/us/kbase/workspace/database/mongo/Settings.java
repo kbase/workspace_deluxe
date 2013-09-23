@@ -10,14 +10,16 @@ public class Settings {
 	private String shockUrl;
 	private String shockUser;
 	private String backendType;
+	private String typeDatabase;
 	
 	private static final String SHOCK = "shock";
 	private static final String GFS = "gridFS";
 
 	@JsonCreator
-	private Settings(@JsonProperty("shock_location") String shockUrl,
-			@JsonProperty("shock_user") String shockUser,
-			@JsonProperty("backend") String backendType) throws 
+	private Settings(@JsonProperty("shock_location") final String shockUrl,
+			@JsonProperty("shock_user") final String shockUser,
+			@JsonProperty("backend") final String backendType,
+			@JsonProperty("type_db") final String typeDatabase) throws 
 			CorruptWorkspaceDBException {
 		this.shockUrl = shockUrl;
 		this.shockUser = shockUser;
@@ -26,6 +28,7 @@ public class Settings {
 					"Illegal backend type: " + backendType);
 		}
 		this.backendType = backendType;
+		this.typeDatabase = typeDatabase;
 	}
 	
 	public String getShockUrl() {
@@ -42,12 +45,16 @@ public class Settings {
 	public boolean isGridFSBackend() {
 		return backendType.equals(GFS);
 	}
+	
+	public String getTypeDatabase() {
+		return typeDatabase;
+	}
 
 	@Override
 	public String toString() {
-		return this.getClass().getName() +
-				" [shockUrl=" + shockUrl + ", shockUser=" + shockUser
-				+ ", backendType=" + backendType + "]";
+		return "Settings [shockUrl=" + shockUrl + ", shockUser=" + shockUser
+				+ ", backendType=" + backendType + ", typeDatabase="
+				+ typeDatabase + "]";
 	}
 
 }

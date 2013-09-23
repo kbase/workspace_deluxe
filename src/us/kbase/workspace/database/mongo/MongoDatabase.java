@@ -824,7 +824,6 @@ public class MongoDatabase implements Database {
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
 		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				wsidmongo, objects);
-		//TODO move up to here into workspaces, but build typedata here 
 		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
 				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
 		int newobjects = 0;
