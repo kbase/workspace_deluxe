@@ -125,14 +125,23 @@ public class TypeDefId {
 	}
 	
 	public String getTypeString() {
-		String t = type.getModule() + TYPE_SEP + type.getName();
-		if (majorVersion != null) {
-			t += TYPE_VER_SEP + majorVersion; 
-		}
-		if (minorVersion != null) {
-			t += VER_SEP + minorVersion;
+		String t = type.getTypeString();
+		final String v = getVerString();
+		if (v != null) {
+			t += TYPE_VER_SEP + v;
 		}
 		return t;
+	}
+	
+	public String getVerString() {
+		if (majorVersion == null) {
+			return null;
+		}
+		String t = "" + majorVersion;
+		if (minorVersion == null) {
+			return t;
+		}
+		return t + VER_SEP + minorVersion;
 	}
 
 	@Override
