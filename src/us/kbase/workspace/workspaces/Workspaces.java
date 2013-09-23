@@ -7,9 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import us.kbase.typedobj.core.AbsoluteTypeId;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -21,7 +19,6 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -33,7 +30,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspaces {
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
-	private static final int MAX_USER_META_SIZE = 16000;
 	
 	private final Database db;
 	
@@ -155,14 +151,12 @@ public class Workspaces {
 		return db.getBackendType();
 	}
 	
-	private static String getObjectErrorId(final WorkspaceObjectID oi,
-			final int objcount) {
-		String objErrId = "#" + objcount;
-		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-		return objErrId;
-	}
-	
-	private static final ObjectMapper defaultMapper = new ObjectMapper();
+//	private static String getObjectErrorId(final WorkspaceObjectID oi,
+//			final int objcount) {
+//		String objErrId = "#" + objcount;
+//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+//		return objErrId;
+//	}
 	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
@@ -176,39 +170,29 @@ public class Workspaces {
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
+		final List<ResolvedSaveObject> saveobjs =
+				new ArrayList<ResolvedSaveObject>();
 		//this method must maintain the order of the objects
-		int objcount = 1;
+//		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
-			final WorkspaceObjectID oi = wo.getObjectIdentifier();
-			final String objErrId = getObjectErrorId(oi, objcount);
-			final String objerrpunc = oi == null ? "" : ",";
-			if (wo.getUserMeta() != null) {
-				String meta;
-				try {
-					meta = defaultMapper.writeValueAsString(wo.getUserMeta());
-				} catch (JsonProcessingException jpe) {
-					throw new IllegalArgumentException(String.format(
-							"Unable to serialize metadata for object %s",
-							objErrId), jpe);
-				}
-				if (meta.length() > MAX_USER_META_SIZE) {
-					throw new IllegalArgumentException(String.format(
-							"Metadata for object %s is > %s bytes",
-							objErrId + objerrpunc, MAX_USER_META_SIZE));
-				}
-			}
+//			final WorkspaceObjectID oi = wo.getObjectIdentifier();
+//			final String objErrId = getObjectErrorId(oi, objcount);
+//			final String objerrpunc = oi == null ? "" : ",";
+			 //TODO replace this with value returned from validator
+			final AbsoluteTypeId type = new AbsoluteTypeId(wo.getType().getType(),
+					wo.getType().getMajorVersion() == null ? 0 : wo.getType().getMajorVersion(),
+					wo.getType().getMinorVersion() == null ? 0 : wo.getType().getMinorVersion());
 			//TODO validate objects by type
 			//TODO get reference list by object
-			//TODO swap out absolute type for typeId
-			//TODO make ValidatedWSSaveObj class, pass that in
-			objcount++;
+			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
+//			objcount++;
 		}
 		//TODO resolve references (std resolve, resolve to IDs, no resolution)
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
 		//TODO rewrite references
 		//TODO when safe, add references to references collection
 		//TODO replace object in workspace object
-		return db.saveObjects(user, rwsi, objects);
+		return db.saveObjects(user, rwsi, saveobjs);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

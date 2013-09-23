@@ -66,10 +66,9 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeSchema;
+import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
@@ -769,9 +768,10 @@ public class MongoDatabase implements Database {
 		return saveObjectInstance(user, wsid, objectid, pkg);
 	}
 	
+	//TODO can get rid of this?
 	private static class ObjectSavePackage {
 		
-		public WorkspaceSaveObject wo;
+		public ResolvedSaveObject wo;
 		public String name;
 		public TypeData td;
 		
@@ -791,23 +791,20 @@ public class MongoDatabase implements Database {
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
-			final List<WorkspaceSaveObject> objects) {
-		//TODO sorted nodes how
+			final List<ResolvedSaveObject> objects) {
 		//this method must maintain the order of the objects
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
-		for (WorkspaceSaveObject o: objects) {
+		for (ResolvedSaveObject o: objects) {
 			final ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = o;
-			final TypeId t = o.getType();
-			final AbsoluteTypeId type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
-					t.getMinorVersion() == null ? 0 : t.getMinorVersion()); //TODO could make this a bit cleaner
+			final String json = o.getData().toString(); //TODO this needs to have sorted keys somehow
 			//TODO get subdata (later)?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(o.getData().toString(), type, rwsi, null); //TODO add subdata
+			pkg.td = new TypeData(json, o.getType(), rwsi, null); //TODO add subdata
 			ret.add(pkg);
 		}
 		return ret;
@@ -817,7 +814,7 @@ public class MongoDatabase implements Database {
 	@Override
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
 			final ResolvedWorkspaceID rwsi,
-			final List<WorkspaceSaveObject> objects) throws
+			final List<ResolvedSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException {
 		//TODO break this up
@@ -1180,10 +1177,10 @@ public class MongoDatabase implements Database {
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new WorkspaceObjectID("testobj"),
 					DEFAULT_MAPPER.valueToTree(data), t, meta, p, false);
-			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
-			wco.add(wo);
+			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
+			wco.add(wo.resolve(at, wo.getData()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.wo = wo;
+			pkg.wo = wo.resolve(at, wo.getData());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(DEFAULT_MAPPER.writeValueAsString(data), at, rwsi , data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

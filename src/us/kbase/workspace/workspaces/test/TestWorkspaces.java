@@ -637,7 +637,7 @@ public class TestWorkspaces {
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata for object #1, bigmeta, is > 16000 bytes"));
+					is("Metadata is > 16000 bytes"));
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
@@ -645,29 +645,29 @@ public class TestWorkspaces {
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata for object #1, 3, is > 16000 bytes"));
+					is("Metadata is > 16000 bytes"));
 		}
 		
-		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, t, meta, null, false));
-		try {
-			ws.saveObjects(foo, read, objects);
-			fail("saved object with > 16Mb metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata for object #2, foo1, is > 16000 bytes"));
-		}
-		objects.clear();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
-		objects.add(new WorkspaceSaveObject(savedata, t, meta, null, false));
-		try {
-			ws.saveObjects(foo, read, objects);
-			fail("saved object with > 16Mb metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata for object #2 is > 16000 bytes"));
-		}
+//		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, t, meta, null, false));
+//		try {
+//			ws.saveObjects(foo, read, objects);
+//			fail("saved object with > 16Mb metadata");
+//		} catch (IllegalArgumentException iae) {
+//			assertThat("correct exception", iae.getLocalizedMessage(),
+//					is("Metadata is > 16000 bytes"));
+//		}
+//		objects.clear();
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
+//		objects.add(new WorkspaceSaveObject(savedata, t, meta, null, false));
+//		try {
+//			ws.saveObjects(foo, read, objects);
+//			fail("saved object with > 16Mb metadata");
+//		} catch (IllegalArgumentException iae) {
+//			assertThat("correct exception", iae.getLocalizedMessage(),
+//					is("Metadata is > 16000 bytes"));
+//		}
 	}
 	
 	@Test
@@ -689,24 +689,24 @@ public class TestWorkspaces {
 		
 	}
 	
-//	@Test
-//	public void unserializableData() throws Exception {
-//		WorkspaceUser foo = new WorkspaceUser("foo");
-//		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
-//		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
-//		Object data = new JFrame();
-//		Map<String, String> meta = new HashMap<String, String>();
-//		meta.put("foo", "bar");
-//		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
-//		try {
-//			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-//					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
-//			fail("saved unserializable object");
-//		} catch (IllegalArgumentException iae) {
-//			assertThat("correct exception", iae.getLocalizedMessage(),
-//					is("Unable to serialize data for object #1, jframe"));
-//		}
-//	}
+	@Test
+	public void unserializableData() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		Object data = new JFrame();
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+		try {
+			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
+					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
+			fail("saved unserializable object");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Cannot serialize data"));
+		}
+	}
 	
 	@Test
 	public void getNonexistantObjects() throws Exception {
