@@ -37,6 +37,7 @@ SETTINGS = 'settings'
 SHOCKURL = 'shock_location'
 SHOCKUSER = 'shock_user'
 BACKEND = 'backend'
+TYPE_DB = 'type_db'
 BACKENDCREDS = 'backend-secret'
 SHOCK = 'shock'
 GFS = 'gridFS'
@@ -96,7 +97,7 @@ def getparams(params, cfg, dropall):
 
 
 def printDBsettings(settings):
-    for s in [BACKEND, SHOCKURL, SHOCKUSER]:
+    for s in [TYPE_DB, BACKEND, SHOCKURL, SHOCKUSER]:
         print(s + '=' + str(settings.get(s, None)))
 
 
@@ -127,6 +128,8 @@ def _get_token(user_id, password,
 
 def configDB(wscfg):
     settings = {SHOCKURL: None, SHOCKUSER: None, BACKEND: None}
+    settings[TYPE_DB] = input(
+        'Please enter the name of the mongodb type database: ')
     backend = getinput('Choose a backend: ', ('s', SHOCK), {'g': GFS})
     if backend == 's':
         settings[BACKEND] = SHOCK

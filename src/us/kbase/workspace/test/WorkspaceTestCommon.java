@@ -20,6 +20,7 @@ public class WorkspaceTestCommon {
 	
 	public static final String DB1 = "test.mongo.db1";
 	public static final String DB2 = "test.mongo.db2";
+	public static final String TYPEDB = "test.mongo.db.types";
 	public static final String HOST = "test.mongo.host";
 	public static final String M_USER = "test.mongo.user";
 	public static final String M_PWD = "test.mongo.pwd";
@@ -61,6 +62,10 @@ public class WorkspaceTestCommon {
 	
 	public static String getDB2() {
 		return getProp(DB2);
+	}
+	
+	public static String getTypeDB() {
+		return getProp(TYPEDB);
 	}
 	
 	public static String getShockUrl() {
@@ -140,6 +145,7 @@ public class WorkspaceTestCommon {
 				mdb.getCollection(c).drop();
 			}
 		}
+		dbo.put("type_db", getTypeDB());
 		System.out.println(" buhbye.");
 		if (type == GRIDFS) {
 			dbo.put("backend", GRIDFS);

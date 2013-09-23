@@ -10,7 +10,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
+import us.kbase.workspace.workspaces.ResolvedSaveObject;
 
 public interface Database {
 
@@ -58,7 +58,7 @@ public interface Database {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public List<ObjectMetaData> saveObjects(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi, List<WorkspaceSaveObject> objects) throws
+			ResolvedWorkspaceID rwsi, List<ResolvedSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
 	

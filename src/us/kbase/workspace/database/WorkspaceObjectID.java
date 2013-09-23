@@ -12,23 +12,11 @@ public class WorkspaceObjectID {
 	
 	private final String name;
 	private final Integer id;
-	private final Integer version;
 	
 	public WorkspaceObjectID(String name) {
 		checkObjectName(name);
 		this.name = name;
 		this.id = null;
-		this.version = null;
-	}
-	
-	public WorkspaceObjectID(String name, int version) {
-		checkObjectName(name);
-		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
-		}
-		this.name = name;
-		this.id = null;
-		this.version = version;
 	}
 	
 	public WorkspaceObjectID(int id) {
@@ -37,19 +25,6 @@ public class WorkspaceObjectID {
 		}
 		this.name = null;
 		this.id = id;
-		this.version = null;
-	}
-	
-	public WorkspaceObjectID(int id, int version) {
-		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
-		}
-		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
-		}
-		this.name = null;
-		this.id = id;
-		this.version = version;
 	}
 	
 	public String getName() {
@@ -58,10 +33,6 @@ public class WorkspaceObjectID {
 
 	public Integer getId() {
 		return id;
-	}
-
-	public Integer getVersion() {
-		return version;
 	}
 	
 	public String getIdentifierString() {
@@ -93,8 +64,7 @@ public class WorkspaceObjectID {
 
 	@Override
 	public String toString() {
-		return "WorkspaceObjectID [name=" + name + ", id=" + id + ", version="
-				+ version + "]";
+		return "WorkspaceObjectID [name=" + name + ", id=" + id + "]";
 	}
 
 	@Override
@@ -103,7 +73,6 @@ public class WorkspaceObjectID {
 		int result = 1;
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
@@ -131,13 +100,6 @@ public class WorkspaceObjectID {
 				return false;
 			}
 		} else if (!name.equals(other.name)) {
-			return false;
-		}
-		if (version == null) {
-			if (other.version != null) {
-				return false;
-			}
-		} else if (!version.equals(other.version)) {
 			return false;
 		}
 		return true;

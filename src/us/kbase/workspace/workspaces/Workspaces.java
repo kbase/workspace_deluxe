@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.SpecParseException;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -31,12 +35,14 @@ public class Workspaces {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
 	private final Database db;
+	private final TypeDefinitionDB typedb;
 	
 	public Workspaces(Database db) {
 		if (db == null) {
 			throw new NullPointerException("db");
 		}
 		this.db = db;
+		typedb = db.getTypeValidator().getDB();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -150,6 +156,13 @@ public class Workspaces {
 		return db.getBackendType();
 	}
 	
+//	private static String getObjectErrorId(final WorkspaceObjectID oi,
+//			final int objcount) {
+//		String objErrId = "#" + objcount;
+//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+//		return objErrId;
+//	}
+	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
 			final List<WorkspaceSaveObject> objects) throws
@@ -161,7 +174,29 @@ public class Workspaces {
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
-		return db.saveObjects(user, rwsi, objects);
+		final List<ResolvedSaveObject> saveobjs =
+				new ArrayList<ResolvedSaveObject>();
+		//this method must maintain the order of the objects
+//		int objcount = 1;
+		for (WorkspaceSaveObject wo: objects) {
+//			final WorkspaceObjectID oi = wo.getObjectIdentifier();
+//			final String objErrId = getObjectErrorId(oi, objcount);
+//			final String objerrpunc = oi == null ? "" : ",";
+			 //TODO replace this with value returned from validator
+			final AbsoluteTypeDefId type = new AbsoluteTypeDefId(wo.getType().getType(),
+					wo.getType().getMajorVersion() == null ? 0 : wo.getType().getMajorVersion(),
+					wo.getType().getMinorVersion() == null ? 0 : wo.getType().getMinorVersion());
+			//TODO validate objects by type
+			//TODO get reference list by object
+			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
+//			objcount++;
+		}
+		//TODO resolve references (std resolve, resolve to IDs, no resolution)
+		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
+		//TODO rewrite references
+		//TODO when safe, add references to references collection
+		//TODO replace object in workspace object
+		return db.saveObjects(user, rwsi, saveobjs);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
@@ -185,10 +220,11 @@ public class Workspaces {
 		return ret;
 	}
 	
-	public List<ObjectUserMetaData> getObjectMetaData(WorkspaceUser user,
-			List<ObjectIdentifier> loi) throws CorruptWorkspaceDBException,
+	public List<ObjectUserMetaData> getObjectMetaData(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi) throws 
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, NoSuchObjectException {
+			WorkspaceAuthorizationException, NoSuchObjectException,
+			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
@@ -204,4 +240,25 @@ public class Workspaces {
 		}
 		return ret;
 	}
+	
+	public void requestModuleRegistration(final WorkspaceUser user,
+			final String module) throws TypeStorageException {
+		if (typedb.isValidModule(module)) {
+			throw new IllegalArgumentException(module +
+					" module already exists");
+		}
+		typedb.requestModuleRegistration(module, user.getUser());
+		//TODO need some way to confirm the reg
+	}
+	
+	public void compileTypeSpec(final WorkspaceUser user,
+			final String typespec, final List<String> types) throws
+			SpecParseException, TypeStorageException {
+		//TODO return the versions of the types that were updated
+		//TODO dry run method
+		//TODO update module method
+		typedb.registerModule(typespec, types, user.getUser());
+	}
+	
+	
 }
