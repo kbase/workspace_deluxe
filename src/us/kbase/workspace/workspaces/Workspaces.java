@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.SpecParseException;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -32,12 +35,14 @@ public class Workspaces {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
 	private final Database db;
+	private final TypeDefinitionDB typedb;
 	
 	public Workspaces(Database db) {
 		if (db == null) {
 			throw new NullPointerException("db");
 		}
 		this.db = db;
+		typedb = db.getTypeValidator().getDB();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -215,10 +220,11 @@ public class Workspaces {
 		return ret;
 	}
 	
-	public List<ObjectUserMetaData> getObjectMetaData(WorkspaceUser user,
-			List<ObjectIdentifier> loi) throws CorruptWorkspaceDBException,
+	public List<ObjectUserMetaData> getObjectMetaData(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi) throws 
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, NoSuchObjectException {
+			WorkspaceAuthorizationException, NoSuchObjectException,
+			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
@@ -234,4 +240,25 @@ public class Workspaces {
 		}
 		return ret;
 	}
+	
+	public void requestModuleRegistration(final WorkspaceUser user,
+			final String module) throws TypeStorageException {
+		if (typedb.isValidModule(module)) {
+			throw new IllegalArgumentException(module +
+					" module already exists");
+		}
+		typedb.requestModuleRegistration(module, user.getUser());
+		//TODO need some way to confirm the reg
+	}
+	
+	public void compileTypeSpec(final WorkspaceUser user,
+			final String typespec, final List<String> types) throws
+			SpecParseException, TypeStorageException {
+		//TODO return the versions of the types that were updated
+		//TODO dry run method
+		//TODO update module method
+		typedb.registerModule(typespec, types, user.getUser());
+	}
+	
+	
 }
