@@ -1,6 +1,6 @@
 package us.kbase.workspace.workspaces;
 
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 
 import java.util.ArrayList;
 import java.util.List;

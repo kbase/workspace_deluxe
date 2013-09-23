@@ -24,9 +24,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
+import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -42,7 +46,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
@@ -81,8 +84,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspaces ws;
 	
-	private Database getDB(final String host, final String dbs, final String secret,
-			final String user, final String pwd) {
+	private Database getDB(final String host, final String dbs,
+			final String secret, final String user, final String pwd) {
 		try {
 			if (user != null) {
 				return new MongoDatabase(host, dbs, secret, user, pwd);
@@ -103,6 +106,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (WorkspaceDBException uwde) {
 			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
+		} catch (TypeStorageException tse) {
+			fail("Couldn't set up the type database:" + 
+					tse.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -313,6 +319,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
 //		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
+		//TODO get rid of this crap
+		final ObjectMapper mapper = new ObjectMapper();
 		int count = 1;
 		if (params.getObjects().isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
@@ -342,11 +350,12 @@ public class WorkspaceServer extends JsonServerServlet {
 			final Provenance p = ArgUtils.processProvenance(
 					authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
+			final String data = d.getData().asJsonNode().toString();
 			if (oi == null) {
-				woc.add(new WorkspaceSaveObject(d.getData().asInstance(), t,
+				woc.add(new WorkspaceSaveObject(mapper.readTree(data), t,
 						d.getMetadata(), p, hidden));
 			} else {
-				woc.add(new WorkspaceSaveObject(oi, d.getData().asInstance(), t,
+				woc.add(new WorkspaceSaveObject(oi, mapper.readTree(data), t,
 						d.getMetadata(), p, hidden));
 			}
 			count++;

@@ -1,7 +1,7 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 import static us.kbase.workspace.util.Util.xorNameId;
 
 public class ObjectIdentifier {

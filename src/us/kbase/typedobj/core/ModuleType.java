@@ -1,11 +1,11 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.typedobj.core;
 
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WorkspaceType {
+public class ModuleType {
 	
 	private final static Pattern INVALID_TYPE_NAMES = 
 			Pattern.compile("[^\\w]");
@@ -13,7 +13,7 @@ public class WorkspaceType {
 	private final String module;
 	private final String name;
 	
-	public WorkspaceType(String module, String name) {
+	public ModuleType(String module, String name) {
 		checkString(module, "Module");
 		checkTypeName(module);
 		checkString(name, "Name");
@@ -37,6 +37,10 @@ public class WorkspaceType {
 	public String getName() {
 		return name;
 	}
+	
+	public String getTypeString() {
+		return module + "." + name;
+	}
 
 	@Override
 	public int hashCode() {
@@ -55,10 +59,10 @@ public class WorkspaceType {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof WorkspaceType)) {
+		if (!(obj instanceof ModuleType)) {
 			return false;
 		}
-		WorkspaceType other = (WorkspaceType) obj;
+		ModuleType other = (ModuleType) obj;
 		if (module == null) {
 			if (other.module != null) {
 				return false;

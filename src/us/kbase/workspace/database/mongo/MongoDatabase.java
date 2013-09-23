@@ -28,6 +28,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
+import us.kbase.typedobj.core.AbsoluteTypeId;
+import us.kbase.typedobj.core.ModuleType;
+import us.kbase.typedobj.core.TypeId;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
+import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -57,12 +65,9 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
 import us.kbase.workspace.workspaces.Provenance;
-import us.kbase.workspace.workspaces.TypeId;
 import us.kbase.workspace.workspaces.TypeSchema;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -87,7 +92,7 @@ public class MongoDatabase implements Database {
 	private static final String WS_ACLS = "workspaceACLs";
 	private static final String WORKSPACE_PTRS = "workspacePointers";
 	private static final String SHOCK_COLLECTION = "shockData";
-	private static final int MAX_USER_META_SIZE = 16000;
+//	private static final int MAX_USER_META_SIZE = 16000;
 	private static final User allUsers = new AllUsers('*');
 	
 	private static MongoClient mongoClient = null;
@@ -96,6 +101,7 @@ public class MongoDatabase implements Database {
 	private final BlobStore blob;
 	private final QueryMethods query;
 	private final FindAndModify updateWScounter;
+	private final TypedObjectValidator typeValidator;
 	
 	private final Map<AbsoluteTypeId, Boolean> typeIndexEnsured = 
 			new HashMap<AbsoluteTypeId, Boolean>();
@@ -137,7 +143,7 @@ public class MongoDatabase implements Database {
 
 	public MongoDatabase(String host, String database, String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
-			WorkspaceDBException {
+			WorkspaceDBException, TypeStorageException {
 		wsmongo = getDB(host, database);
 		try {
 			wsmongo.getCollectionNames();
@@ -149,13 +155,18 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		//TODO replace with real validator storage system
+		this.typeValidator = new TypedObjectValidator(
+				new SimpleTypeDefinitionDB(
+						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 
 	public MongoDatabase(String host, String database, String backendSecret,
-			String user, String password) throws UnknownHostException,
-			IOException, DBAuthorizationException, InvalidHostException,
-			WorkspaceDBException {
+			String user, String password)
+			throws UnknownHostException, IOException, DBAuthorizationException,
+			WorkspaceDBException, InvalidHostException, TypeStorageException{
 		wsmongo = getDB(host, database);
 		try {
 			wsmongo.authenticate(user, password.toCharArray());
@@ -173,6 +184,11 @@ public class MongoDatabase implements Database {
 				WORKSPACE_PTRS, WS_ACLS);
 		blob = setupDB(backendSecret);
 		updateWScounter = buildCounterQuery();
+		//TODO replace with real validator storage system
+		this.typeValidator = new TypedObjectValidator(
+				new SimpleTypeDefinitionDB(
+						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 	
@@ -290,6 +306,11 @@ public class MongoDatabase implements Database {
 			return bs;
 		}
 		throw new RuntimeException("Something's real broke y'all");
+	}
+	
+	@Override
+	public TypedObjectValidator getTypeValidator() {
+		return typeValidator;
 	}
 
 	@Override
@@ -703,7 +724,7 @@ public class MongoDatabase implements Database {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ObjectMetaData createPointerAndSaveObject(final WorkspaceUser user,
+	private ObjectMetaData saveObjectWithNewPointer(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final int objectid, final String name,
 			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
 		String newName = name;
@@ -731,14 +752,14 @@ public class MongoDatabase implements Database {
 			//TODO is this a name or id clash? if the latter, something is broken
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
-				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
+				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
 			}
 			final WorkspaceObjectID o = pkg.wo.getObjectIdentifier();
 			final Map<WorkspaceObjectID, ObjID> objID = getObjectIDs(wsid,
 					new HashSet<WorkspaceObjectID>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
-				return createPointerAndSaveObject(user, wsid, objectid, name, pkg);
+				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
 			}
 			return saveObjectInstance(user, wsid, objID.get(o).id, pkg);
 		} catch (MongoException me) {
@@ -761,108 +782,38 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private Map<TypeId, TypeSchema> getTypes(final Set<TypeId> types) {
-		Map<TypeId, TypeSchema> ret = new HashMap<TypeId, TypeSchema>();
-		//TODO getTypes
-		return ret;
-	}
-	
-	private static final ObjectMapper defaultMapper = new ObjectMapper();
-	private static final ObjectMapper sortedMapper = new ObjectMapper();
+	private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
+	private static final ObjectMapper SORTED_MAPPER = new ObjectMapper();
 	static {
-		sortedMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		SORTED_MAPPER.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
 	
-	private static String getObjectErrorId(final WorkspaceObjectID oi,
-			final int objcount) {
-		String objErrId = "#" + objcount;
-		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-		return objErrId;
-	}
-	
-	private List<ObjectSavePackage> createObjectSavePackages(
+	//at this point the objects are expected to be validated and references rewritten
+	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
 			final List<WorkspaceSaveObject> objects) {
+		//TODO sorted nodes how
 		//this method must maintain the order of the objects
-		//TODO split this up
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
-		final Set<TypeId> types = new HashSet<TypeId>();
-		int objcount = 1;
-		for (WorkspaceSaveObject wo: objects) {
-			types.add(wo.getType());
-			final WorkspaceObjectID oi = wo.getObjectIdentifier();
-			final ObjectSavePackage p = new ObjectSavePackage();
-			final String objErrId = getObjectErrorId(oi, objcount);
-			final String objerrpunc = oi == null ? "" : ",";
-			ret.add(p);
-			p.wo = wo;
-			if (wo.getUserMeta() != null) {
-				String meta;
-				try {
-					meta = defaultMapper.writeValueAsString(wo.getUserMeta());
-				} catch (JsonProcessingException jpe) {
-					throw new IllegalArgumentException(String.format(
-							"Unable to serialize metadata for object %s",
-							objErrId), jpe);
-				}
-				if (meta.length() > MAX_USER_META_SIZE) {
-					throw new IllegalArgumentException(String.format(
-							"Metadata for object %s is > %s bytes",
-							objErrId + objerrpunc, MAX_USER_META_SIZE));
-				}
-			}
-			objcount++;
-		}
-		final Map<TypeId, TypeSchema> schemas = getTypes(types);
-		class TypeDataStore {
-			public String data;
-			public AbsoluteTypeId type;
-		}
-		objcount = 1;
-		final Map<ObjectSavePackage, TypeDataStore> pkgData = 
-				new HashMap<ObjectSavePackage, TypeDataStore>();
-		for (ObjectSavePackage pkg: ret) {
-			final TypeDataStore tds = new TypeDataStore();
-			final WorkspaceObjectID oi = pkg.wo.getObjectIdentifier();
-			final String objErrId = getObjectErrorId(oi, objcount);
-//			final String objerrpunc = oi == null ? "" : ",";
-			String json;
-			try {
-				json = sortedMapper.writeValueAsString(pkg.wo.getData());
-			} catch (JsonProcessingException jpe) {
-				throw new IllegalArgumentException(String.format(
-						"Unable to serialize data for object %s",
-						objErrId), jpe);
-			}
-			//TODO check type for json vs schema, transform to absolute type, below is temp
-			final TypeId t = pkg.wo.getType();
-			tds.type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
+		for (WorkspaceSaveObject o: objects) {
+			final ObjectSavePackage pkg = new ObjectSavePackage();
+			pkg.wo = o;
+			final TypeId t = o.getType();
+			final AbsoluteTypeId type = new AbsoluteTypeId(t.getType(), t.getMajorVersion() == null ? 0 : t.getMajorVersion(),
 					t.getMinorVersion() == null ? 0 : t.getMinorVersion()); //TODO could make this a bit cleaner
-			//TODO get references 
 			//TODO get subdata (later)?
-			//TODO check subdata size
-			//TODO temporary saving of json - remove when rewritten with new refs below
-			tds.data = json;
-			pkgData.put(pkg, tds);
-			objcount++;
-		}
-		//TODO map all references to real references, error if not found
-		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
-		
-		for (ObjectSavePackage pkg: ret) {
-			final TypeDataStore tds = pkgData.get(pkg);
-			//TODO rewrite data with new references
-			//TODO -or- get subdata after rewrite?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
 			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(tds.data, tds.type, rwsi, null); //TODO add subdata
+			pkg.td = new TypeData(o.getData().toString(), type, rwsi, null); //TODO add subdata
+			ret.add(pkg);
 		}
 		return ret;
 	}
 	
+	//at this point the objects are expected to be validated and references rewritten
 	@Override
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
 			final ResolvedWorkspaceID rwsi,
@@ -874,8 +825,9 @@ public class MongoDatabase implements Database {
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
-		final List<ObjectSavePackage> packages = createObjectSavePackages(
+		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				wsidmongo, objects);
+		//TODO move up to here into workspaces, but build typedata here 
 		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
 				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
 		int newobjects = 0;
@@ -932,7 +884,7 @@ public class MongoDatabase implements Database {
 		for (final ObjectSavePackage p: packages) {
 			WorkspaceObjectID oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(createPointerAndSaveObject(user, wsidmongo, newid++, null, p));
+				ret.add(saveObjectWithNewPointer(user, wsidmongo, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObjectInstance(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
@@ -941,7 +893,7 @@ public class MongoDatabase implements Database {
 				//we've already generated an id for this name
 				ret.add(saveObjectInstance(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				ObjectMetaData m = createPointerAndSaveObject(user, wsidmongo,
+				ObjectMetaData m = saveObjectWithNewPointer(user, wsidmongo,
 						newid++, oi.getName(), p);
 				ret.add(m);
 				seenNames.put(oi.getName(), m.getObjectId());
@@ -1038,7 +990,8 @@ public class MongoDatabase implements Database {
 	}
 	
 	private String getTypeCollection(final AbsoluteTypeId type) {
-		return "type-" + type.getTypeString();
+		return "type-" + type.getType().getTypeString() + "-" +
+				type.getMajorVersion();
 	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
@@ -1078,7 +1031,7 @@ public class MongoDatabase implements Database {
 				}
 				final Object object;
 				try {
-					object = defaultMapper.readValue(data, Object.class);
+					object = DEFAULT_MAPPER.readValue(data, Object.class);
 				} catch (IOException e) {
 					throw new RuntimeException(String.format(
 							"Unable to deserialize object %s",
@@ -1222,17 +1175,19 @@ public class MongoDatabase implements Database {
 			data.put("fubar", moredata);
 			meta.put("metastuff", "meta");
 			Provenance p = new Provenance("kbasetest2");
-			TypeId t = new TypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
-			AbsoluteTypeId at = new AbsoluteTypeId(new WorkspaceType("SomeModule", "AType"), 0, 1);
-			WorkspaceSaveObject wo = new WorkspaceSaveObject(new WorkspaceObjectID("testobj"), data, t, meta, p, false);
+			TypeId t = new TypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+			AbsoluteTypeId at = new AbsoluteTypeId(new ModuleType("SomeModule", "AType"), 0, 1);
+			WorkspaceSaveObject wo = new WorkspaceSaveObject(
+					new WorkspaceObjectID("testobj"),
+					DEFAULT_MAPPER.valueToTree(data), t, meta, p, false);
 			List<WorkspaceSaveObject> wco = new ArrayList<WorkspaceSaveObject>();
 			wco.add(wo);
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo;
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(sortedMapper.writeValueAsString(data), at, rwsi , data);
+			pkg.td = new TypeData(DEFAULT_MAPPER.writeValueAsString(data), at, rwsi , data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-			ObjectMetaData md = testdb.createPointerAndSaveObject(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
+			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1));
 		}
 	}

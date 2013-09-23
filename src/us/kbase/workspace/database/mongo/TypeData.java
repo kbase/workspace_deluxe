@@ -1,6 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.util.Util.checkString;
+import static us.kbase.typedobj.util.TypeUtils.checkString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import us.kbase.workspace.workspaces.AbsoluteTypeId;
+import us.kbase.typedobj.core.AbsoluteTypeId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -28,6 +28,7 @@ public class TypeData {
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private int size;
+	private int version;
 	
 	public TypeData(final String data, final AbsoluteTypeId type,
 			final ResolvedMongoWSID firstWorkspace,
@@ -47,6 +48,7 @@ public class TypeData {
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chksum = DigestUtils.md5Hex(data);
+		this.version = type.getMinorVersion();
 		
 	}
 
@@ -84,6 +86,9 @@ public class TypeData {
 		final DBObject size = new BasicDBObject();
 		size.put("size", getSize());
 		dbo.put(soi, size);
+		final DBObject version = new BasicDBObject();
+		version.put("version", this.version);
+		dbo.put(soi, version);
 		return dbo;
 	}
 
@@ -91,6 +96,6 @@ public class TypeData {
 	public String toString() {
 		return "TypeData [data=" + data + ", type=" + type + ", workspaces="
 				+ workspaces + ", chksum=" + chksum + ", subdata=" + subdata
-				+ ", size=" + size + "]";
+				+ ", size=" + size + ", version=" + version + "]";
 	}
 }

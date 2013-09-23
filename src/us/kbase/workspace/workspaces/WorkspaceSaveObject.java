@@ -2,18 +2,21 @@ package us.kbase.workspace.workspaces;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import us.kbase.typedobj.core.TypeId;
 import us.kbase.workspace.database.WorkspaceObjectID;
 
 public class WorkspaceSaveObject {
 	
 	private final WorkspaceObjectID id;
-	private final Object data;
+	private final JsonNode data;
 	private final TypeId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceSaveObject(WorkspaceObjectID id, Object data, TypeId type,
+	public WorkspaceSaveObject(WorkspaceObjectID id, JsonNode data, TypeId type,
 			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
 		if (id == null || data == null || type == null) {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
@@ -26,8 +29,9 @@ public class WorkspaceSaveObject {
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceSaveObject(Object data, TypeId type,
-			Map<String, String> userMeta,  Provenance provenance, boolean hidden) {
+	public WorkspaceSaveObject(JsonNode data, TypeId type,
+			Map<String, String> userMeta,  Provenance provenance,
+			boolean hidden) {
 		if (data == null || type == null) {
 			throw new IllegalArgumentException("Neither data nor type may be null");
 		}
@@ -44,7 +48,7 @@ public class WorkspaceSaveObject {
 	}
 
 	//mutable!
-	public Object getData() {
+	public JsonNode getData() {
 		return data;
 	}
 
