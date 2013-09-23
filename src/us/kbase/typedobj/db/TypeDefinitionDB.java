@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
-import us.kbase.auth.AuthUser;
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbTypedef;
 import us.kbase.typedobj.exceptions.*;
@@ -190,14 +189,14 @@ public abstract class TypeDefinitionDB {
 	public abstract List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException;
 
-	public abstract void requestModuleRegistration(String moduleName, AuthUser owner) throws TypeStorageException;
+	public abstract void requestModuleRegistration(String moduleName, String ownerUserId) throws TypeStorageException;
 
 	public abstract void registerModule(String specDocument, List<String> registeredTypes, 
-			AuthUser owner) throws SpecParseException, TypeStorageException;
+			String userId) throws SpecParseException, TypeStorageException;
 	
 	public abstract void updateModule(String specDocument, List<String> changedTypes,
 			List<String> backwardIncompatibleTypes, List<String> changedFuncs,
-			List<String> backwardIncompatibleFuncs, AuthUser owner) 
+			List<String> backwardIncompatibleFuncs, String userId) 
 					throws SpecParseException, TypeStorageException;
 	
 	/**
@@ -207,7 +206,7 @@ public abstract class TypeDefinitionDB {
 	 * @return new version
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 */
-	public abstract String releaseType(String moduleName, String typeName) 
+	public abstract String releaseType(String moduleName, String typeName, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 		
 	/**
@@ -241,28 +240,28 @@ public abstract class TypeDefinitionDB {
 	 * @return new version
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 */
-	public abstract String releaseFunc(String moduleName, String funcName) 
+	public abstract String releaseFunc(String moduleName, String funcName, String userId) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void removeTypeVersion(String moduleName, String typeName, String version) 
+	public abstract void removeTypeVersion(String moduleName, String typeName, String version, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void stopTypeSupport(String moduleName, String typeName) 
+	public abstract void stopTypeSupport(String moduleName, String typeName, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;	
 	
-	public abstract void removeTypeForAllVersions(String moduleName, String typeName) 
+	public abstract void removeTypeForAllVersions(String moduleName, String typeName, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void stopFuncSupport(String moduleName, String funcName) 
+	public abstract void stopFuncSupport(String moduleName, String funcName, String userId) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;	
 
-	public abstract void removeFuncForAllVersions(String moduleName, String funcName) 
+	public abstract void removeFuncForAllVersions(String moduleName, String funcName, String userId) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException;
 
-	public abstract void removeModule(String moduleName) 
+	public abstract void removeModule(String moduleName, String userId) 
 			throws NoSuchModuleException, TypeStorageException;
 	
-	public abstract void removeAllRefs() throws TypeStorageException;
+	public abstract void removeAllRefs(String userId) throws TypeStorageException;
 	
 	public abstract Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version)
 			throws TypeStorageException;

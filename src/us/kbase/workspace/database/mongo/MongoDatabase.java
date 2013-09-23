@@ -31,6 +31,7 @@ import org.junit.experimental.runners.Enclosed;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
+import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
@@ -157,7 +158,8 @@ public class MongoDatabase implements Database {
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new SimpleTypeDefinitionDB(
-						new FileTypeStorage("/home/crusherofheads/workspacetypes")));
+						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 
@@ -185,7 +187,8 @@ public class MongoDatabase implements Database {
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new SimpleTypeDefinitionDB(
-						new FileTypeStorage("/home/crusherofheads/workspacetypes")));
+						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 	
