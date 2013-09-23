@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
 import us.kbase.typedobj.core.TypeId;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -106,9 +105,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (WorkspaceDBException uwde) {
 			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
-		} catch (TypeStorageException tse) {
-			fail("Couldn't set up the type database:" + 
-					tse.getLocalizedMessage());
 		}
 		return null;
 	}

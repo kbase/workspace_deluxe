@@ -32,10 +32,9 @@ import us.kbase.typedobj.core.AbsoluteTypeId;
 import us.kbase.typedobj.core.ModuleType;
 import us.kbase.typedobj.core.TypeId;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.SimpleTypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -140,53 +139,40 @@ public class MongoDatabase implements Database {
 		indexes.put(WORKSPACE_PTRS, wsPtr);
 	}
 
-	public MongoDatabase(String host, String database, String backendSecret)
-			throws UnknownHostException, IOException, InvalidHostException,
-			WorkspaceDBException, TypeStorageException {
+	public MongoDatabase(final String host, final String database,
+			final String backendSecret) throws UnknownHostException,
+			IOException, InvalidHostException, WorkspaceDBException {
 		wsmongo = getDB(host, database);
-		try {
-			wsmongo.getCollectionNames();
-		} catch (MongoException.Network men) {
-			throw (IOException) men.getCause();
-		}
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, WORKSPACES,
 				WORKSPACE_PTRS, WS_ACLS);
-		blob = setupDB(backendSecret);
+		final Settings settings = getSettings();
+		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
-				new SimpleTypeDefinitionDB(
-						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+				new SimpleTypeDefinitionDB(new MongoTypeStorage(
+						getDB(host, settings.getTypeDatabase())),
 						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
 
-	public MongoDatabase(String host, String database, String backendSecret,
-			String user, String password)
-			throws UnknownHostException, IOException, DBAuthorizationException,
-			WorkspaceDBException, InvalidHostException, TypeStorageException{
-		wsmongo = getDB(host, database);
-		try {
-			wsmongo.authenticate(user, password.toCharArray());
-		} catch (MongoException.Network men) {
-			throw (IOException) men.getCause();
-		}
-		try {
-			wsmongo.getCollectionNames();
-		} catch (MongoException me) {
-			throw new DBAuthorizationException("Not authorized for database "
-					+ database, me);
-		}
+	public MongoDatabase(final String host, final String database,
+			final String backendSecret, final String user,
+			final String password) throws UnknownHostException, IOException,
+			DBAuthorizationException, WorkspaceDBException,
+			InvalidHostException {
+		wsmongo = getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, WORKSPACES,
 				WORKSPACE_PTRS, WS_ACLS);
-		blob = setupDB(backendSecret);
+		final Settings settings = getSettings();
+		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
 		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
-				new SimpleTypeDefinitionDB(
-						new FileTypeStorage("/home/crusherofheads/workspacetypes"), 
+				new SimpleTypeDefinitionDB(new MongoTypeStorage(
+						getDB(host, settings.getTypeDatabase(), user, password)),
 						new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
@@ -209,7 +195,7 @@ public class MongoDatabase implements Database {
 		}
 	}
 	
-	private void ensureTypeIndexes(AbsoluteTypeId type) {
+	private void ensureTypeIndexes(final AbsoluteTypeId type) {
 		if (typeIndexEnsured.containsKey(type)) {
 			return;
 		}
@@ -231,9 +217,10 @@ public class MongoDatabase implements Database {
 				.upsert().returnNew().with("{$inc: {num: 1}}")
 				.projection("{num: 1, _id: 0}");
 	}
-
-	private DB getDB(String host, String database) throws UnknownHostException,
-			InvalidHostException {
+	
+	//only the first call sets the host, host ignored for further calls
+	private MongoClient getMongoClient(final String host) throws
+			UnknownHostException, InvalidHostException {
 		//Only make one instance of MongoClient per JVM per mongo docs
 		if (mongoClient == null) {
 			// Don't print to stderr
@@ -247,10 +234,41 @@ public class MongoDatabase implements Database {
 						+ " is not a valid mongodb host");
 			}
 		}
-		return mongoClient.getDB(database);
+		return mongoClient;
 	}
-
-	private BlobStore setupDB(String backendSecret) throws WorkspaceDBException {
+	
+	private DB getDB(final String host, final String database) throws
+			UnknownHostException, InvalidHostException, IOException {
+		final DB db = getMongoClient(host).getDB(database);
+		try {
+			db.getCollectionNames();
+		} catch (MongoException.Network men) {
+			throw (IOException) men.getCause();
+		}
+		return db;
+	}
+	
+	private DB getDB(final String host, final String database,
+			final String user, final String pwd) throws
+			UnknownHostException, InvalidHostException, IOException,
+			DBAuthorizationException {
+		final DB db = getMongoClient(host).getDB(database);
+		try {
+			db.authenticate(user, pwd.toCharArray());
+		} catch (MongoException.Network men) {
+			throw (IOException) men.getCause();
+		}
+		try {
+			db.getCollectionNames();
+		} catch (MongoException me) {
+			throw new DBAuthorizationException("Not authorized for database "
+					+ database, me);
+		}
+		return db;
+	}
+	
+	private Settings getSettings() throws UninitializedWorkspaceDBException,
+			CorruptWorkspaceDBException {
 		if (!wsmongo.collectionExists(SETTINGS)) {
 			throw new UninitializedWorkspaceDBException(
 					"No settings collection exists");
@@ -276,22 +294,28 @@ public class MongoDatabase implements Database {
 			}
 			throw (CorruptWorkspaceDBException) ex;
 		}
-		if (wsSettings.isGridFSBackend()) {
+		return wsSettings;
+	}
+
+	private BlobStore setupBlobStore(final Settings settings,
+			final String backendSecret) throws CorruptWorkspaceDBException,
+			DBAuthorizationException, WorkspaceDBInitializationException {
+		if (settings.isGridFSBackend()) {
 			return new GridFSBackend(wsmongo);
 		}
-		if (wsSettings.isShockBackend()) {
+		if (settings.isShockBackend()) {
 			URL shockurl = null;
 			try {
-				shockurl = new URL(wsSettings.getShockUrl());
+				shockurl = new URL(settings.getShockUrl());
 			} catch (MalformedURLException mue) {
 				throw new CorruptWorkspaceDBException(
 						"Settings has bad shock url: "
-								+ wsSettings.getShockUrl(), mue);
+								+ settings.getShockUrl(), mue);
 			}
 			BlobStore bs;
 			try {
 				bs = new ShockBackend(wsmongo.getCollection(SHOCK_COLLECTION),
-						shockurl, wsSettings.getShockUser(), backendSecret);
+						shockurl, settings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
 						"Not authorized to access the blob store database", e);
