@@ -402,6 +402,34 @@ public class WorkspaceServer extends JsonServerServlet {
         return returnVal;
     }
 
+    /**
+     * <p>Original spec-file function name: delete_objects</p>
+     * <pre>
+     * Delete objects. All versions of an object are deleted, regardless of
+     * the version specified in the ObjectIdentity. If an object is already
+     * deleted, no error is thrown.
+     * </pre>
+     */
+    @JsonServerMethod(rpc = "Workspace.delete_objects", authOptional=true)
+    public void deleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+        //BEGIN delete_objects
+        //END delete_objects
+    }
+
+    /**
+     * <p>Original spec-file function name: undelete_objects</p>
+     * <pre>
+     * Undelete objects. All versions of an object are un deleted, regardless
+     * of the version specified in the ObjectIdentity. If an object is not
+     * deleted, no error is thrown.
+     * </pre>
+     */
+    @JsonServerMethod(rpc = "Workspace.undelete_objects", authOptional=true)
+    public void undeleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+        //BEGIN undelete_objects
+        //END undelete_objects
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             System.out.println("Usage: <program> <server_port>");

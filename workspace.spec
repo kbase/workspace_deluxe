@@ -401,4 +401,18 @@ module Workspace {
 	*/
 	funcdef get_object_metadata(list<ObjectIdentity> objects)
 		returns (list<object_metadata_full> data);
+		
+	/* 
+		Delete objects. All versions of an object are deleted, regardless of
+		the version specified in the ObjectIdentity. If an object is already
+		deleted, no error is thrown.
+	*/
+	funcdef delete_objects(list<ObjectIdentity> objects) returns();
+	
+	/* 
+		Undelete objects. All versions of an object are un deleted, regardless
+		of the version specified in the ObjectIdentity. If an object is not
+		deleted, no error is thrown.
+	*/
+	funcdef undelete_objects(list<ObjectIdentity> objects) returns();
 };

@@ -207,4 +207,38 @@ public class WorkspaceClient {
         List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
     }
+
+    /**
+     * <p>Original spec-file function name: delete_objects</p>
+     * <pre>
+     * Delete objects. All versions of an object are deleted, regardless of
+     * the version specified in the ObjectIdentity. If an object is already
+     * deleted, no error is thrown.
+     * </pre>
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void deleteObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objects);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, false);
+    }
+
+    /**
+     * <p>Original spec-file function name: undelete_objects</p>
+     * <pre>
+     * Undelete objects. All versions of an object are un deleted, regardless
+     * of the version specified in the ObjectIdentity. If an object is not
+     * deleted, no error is thrown.
+     * </pre>
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void undeleteObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objects);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, false);
+    }
 }
