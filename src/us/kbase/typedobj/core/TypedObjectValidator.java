@@ -1,5 +1,8 @@
 package us.kbase.typedobj.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -10,7 +13,10 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 
 /**
- * The primary class you should use for validating
+ * Interface for validating typed object instances in JSON against typed object definitions
+ * registered in a type definition database.  This interface also provides methods for
+ * extracting ID reference fields from a typed object instance, relabeling ID references,
+ * and extracting the searchable subset of a typed object instance as smaller JSON object.
  * @author msneddon
  * @author gaprice@lbl.gov
  *
@@ -25,7 +31,7 @@ public final class TypedObjectValidator {
 	protected TypeDefinitionDB typeDefDB;
 	
 	/**
-	 * Get the type database the validator validates types against.
+	 * Get the type database the validator validates typed object instances against.
 	 * @return the database.
 	 */
 	public TypeDefinitionDB getDB() {
@@ -39,8 +45,10 @@ public final class TypedObjectValidator {
 		this.typeDefDB = typeDefDB;
 	}
 	
+	
+	
 	/**
-	 * Validate a Json String instance against the specified module and type.  Returns a ProcessingReport
+	 * Validate a Json String instance against the specified module and type.  Returns a TypedObjectValidationReport
 	 * containing the results of the validation and any other KBase typed object specific information such
 	 * as a list of recognized IDs.
 	 * @param instance in Json format
@@ -51,7 +59,7 @@ public final class TypedObjectValidator {
 	 * @throws BadJsonSchemaDocumentException 
 	 * @throws TypeStorageException 
 	 */
-	public ProcessingReport validate(String instance, TypeDefId type)
+	public TypedObjectValidationReport validate(String instance, TypeDefId type)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		// parse the instance document into a JsonNode
@@ -81,17 +89,13 @@ public final class TypedObjectValidator {
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
-	public ProcessingReport validate(JsonNode instanceRootNode, TypeDefId type)
+	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		//TODO deal with versions, return AbsoluteTypeID with full information
-		//if(version != null) {
-		//	throw new BadJsonSchemaDocumentException("Versioning of typed objects not supported yet, pass 'null' for now as the version String.");
-		//}
-		// Retrieve the JsonSchema object; this will throw an error if the type or schema aren't valid
-		final TypeDefName mt = type.getType();
-		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),
-		mt.getName());
+
+		final TypeDefName mt = typeDefId.getType();
+		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),mt.getName());
 		
 		// Actually perform the validation and return the report
 		ProcessingReport report;
@@ -101,8 +105,38 @@ public final class TypedObjectValidator {
 			throw new InstanceValidationException(
 					"instance is not a valid '" + mt.getTypeString() + "'",e);
 		}
-		return report;
+		
+		//@todo set the correct AbsoluteTypeDefId
+		return new TypedObjectValidationReport(report, new AbsoluteTypeDefId(new TypeDefName(mt.getModule(),mt.getName()),0,0));
 	}
 
+	
+	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
+	{
+		final TypeDefName mt = typeDefId.getType();
+		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),mt.getName());
+		
+		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
+		for(JsonNode j : instanceRootNodes) {
+			// Actually perform the validation and return the report
+			ProcessingReport report;
+			try {
+				report = schema.validate(j);
+			} catch (ProcessingException e) {
+				throw new InstanceValidationException(
+				"instance is not a valid '" + mt.getTypeString() + "'",e);
+			}
+			reportList.add(new TypedObjectValidationReport(report, new AbsoluteTypeDefId(new TypeDefName(mt.getModule(),mt.getName()),0,0)) );
+		}
+		return reportList;
+	}
+	
+	
+	
+	
+	
+	
+	
 
 }
