@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,13 +22,9 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -38,10 +33,30 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 
 
-public class TestValidation1 {
+/**
+ * simple test of the basic typed object validation framework that creates a simple
+ * file storage typed object database using a couple spec files, looks at the directory
+ * containing instances to validate, and ensures that the instances validate or don't
+ * as indicated.
+ * 
+ * The test files are in us.kbase.typedobj.tests.files.t1
+ * 
+ * You can add as many instances to validate as you like by naming text files as:
+ *   ModuleName.TypeName.[valid|invalid].instance.N
+ * where you need to indicate if the instance is valid or not, and N is any string
+ * identifier for the test, usually integer numbers.
+ * 
+ * If the spec files are updated or new ones added, you need to modify the db
+ * setup method to add the new typed obj defs.
+ * 
+ * Note: we could/should migrate this to JUnit parameterized tests in the future...
+ * 
+ * @author msneddon
+ *
+ */
+public class TestBasicValidation {
 
 	/**
 	 * location to stash the temporary database for testing
@@ -54,10 +69,14 @@ public class TestValidation1 {
 	
 	private static TypedObjectValidator validator;
 	
+	/*
+	 * structures to store info on each instance we wish to validate 
+	 */
+	
 	private static List<TestInstanceInfo> validInstanceResources = new ArrayList <TestInstanceInfo> ();
 	private static List<TestInstanceInfo> invalidInstanceResources = new ArrayList <TestInstanceInfo> ();
 	
-	private class TestInstanceInfo {
+	private static class TestInstanceInfo {
 		public TestInstanceInfo(String resourceName, String moduleName, String typeName) {
 			this.resourceName = resourceName;
 			this.moduleName = moduleName;
@@ -68,9 +87,13 @@ public class TestValidation1 {
 		public String typeName;
 	}
 	
-	
+	/**
+	 * Setup the typedef database, load and release the types in the simple specs, and
+	 * identify all the files containing instances to validate.
+	 * @throws Exception
+	 */
 	@BeforeClass
-	public static void setupDb() throws Exception
+	public static void prepareDb() throws Exception
 	{
 		System.out.println("setting up the typed obj database");
 		
@@ -89,12 +112,8 @@ public class TestValidation1 {
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
-	}
 	
-	@Before
-	public void loadDb() throws Exception
-	{
-		// SET KB_TOP in environment before running this to ensure compile_typespec is on the path....
+		
 		System.out.println("loading db with types");
 		String username = "wstester1";
 		
@@ -111,11 +130,7 @@ public class TestValidation1 {
 		for(String typename : fba_types) {
 			db.releaseType("FBA", typename, username);
 		}
-	}
-	
-	@Before
-	public void assembleInstanceLists() throws Exception
-	{
+		
 		System.out.println("finding test instances");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
@@ -138,7 +153,7 @@ public class TestValidation1 {
 	public static void removeDb() throws IOException {
 		File dir = new File(TEST_DB_LOCATION);
 		FileUtils.deleteDirectory(dir);
-		System.out.println("deleting typed obj database");
+		System.out.println("\ndeleting typed obj database");
 	}
 	
 	
@@ -150,27 +165,30 @@ public class TestValidation1 {
 			System.out.println("  -("+instance.resourceName+")");
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
-			try {
-				TypedObjectValidationReport report = 
-					validator.validate(
-						instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
-			} catch (Exception e) {
-				assertTrue(false);
-				
+			TypedObjectValidationReport report = 
+				validator.validate(
+					instanceJson,
+					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+					);
+			
+			// print errors, if any before the assert to aid in testing
+			String [] mssgs = report.getErrorMessages();
+			for(int i=0; i<mssgs.length; i++) {
+				System.out.println("    ["+i+"]:"+mssgs[i]);
 			}
+			
+			assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		}
 
 		
 		
 	}
 
-	
+	@Test
 	public void testInvalidInstances() throws Exception {
 		
 		System.out.println("\ntesting invalid instances ("+validInstanceResources.size()+" total)");
-		for(TestInstanceInfo instance : validInstanceResources) {
+		for(TestInstanceInfo instance : invalidInstanceResources) {
 			System.out.println("  -("+instance.resourceName+")");
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
@@ -180,22 +198,27 @@ public class TestValidation1 {
 						instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 						);
+				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
+				String [] mssgs = report.getErrorMessages();
+				for(int i=0; i<mssgs.length; i++) {
+					System.out.println("    ["+i+"]:"+mssgs[i]);
+				}
 			} catch (Exception e) {
-				assertTrue(false);
-				
+				//if an exception is thrown, it must be an InstanceValidationException
+				//we are not testing if an incorrect module name or type name is given here
+				assertEquals("InstanceValidationException",e.getClass().getSimpleName());
 			}
 		}
-		
 	}
 	
 	
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test
 	 */
-	private String loadResourceFile(String resourceName) throws Exception {
+	private static String loadResourceFile(String resourceName) throws Exception {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		InputStream is = getClass().getResourceAsStream(resourceName);
+		InputStream is = TestBasicValidation.class.getResourceAsStream(resourceName);
 		if (is == null)
 			throw new IllegalStateException("Resource not found: " + resourceName);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -224,8 +247,8 @@ public class TestValidation1 {
 	 * @throws URISyntaxException 
 	 * @throws IOException 
 	 */
-	String[] getResourceListing(String path) throws URISyntaxException, IOException {
-		URL dirURL = getClass().getResource(path);
+	private static String[] getResourceListing(String path) throws URISyntaxException, IOException {
+		URL dirURL = TestBasicValidation.class.getResource(path);
 		if (dirURL != null && dirURL.getProtocol().equals("file")) {
 			/* A file path: easy enough */
 			return new File(dirURL.toURI()).list();
@@ -233,9 +256,9 @@ public class TestValidation1 {
 
 		if (dirURL == null) {
 			// In case of a jar file, we can't actually find a directory.
-			// Have to assume the same jar as clazz.
-			String me = getClass().getName().replace(".", "/")+".class";
-			dirURL = getClass().getResource(me);
+			// Have to assume the same jar as the class.
+			String me = TestBasicValidation.class.getName().replace(".", "/")+".class";
+			dirURL = TestBasicValidation.class.getResource(me);
 		}
 
 		if (dirURL.getProtocol().equals("jar")) {

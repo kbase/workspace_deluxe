@@ -14,6 +14,7 @@ module FBA {
 
 	/*
 	@ws_searchable id name genome
+	@optional description
 	*/
 	typedef structure {
 		string id;
