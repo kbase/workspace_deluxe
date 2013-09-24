@@ -55,7 +55,7 @@ public class TypedObjExample1 {
 		
 		TypedObjectValidationReport report = validator.validate(instance1, new TypeDefId(new TypeDefName("KB", "Genome")));
 		
-		List<IdReference> idRefList = report.getListOfIdReferences();
+		List<IdReference> idRefList = report.getListOfIdReferenceObjects();
 		
 		for(IdReference idRef: idRefList) {
 			System.out.println(idRef);
