@@ -1052,6 +1052,218 @@ sub get_object_metadata
 
 
 
+=head2 delete_objects
+
+  $obj->delete_objects($objects)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+
+=end text
+
+=item Description
+
+Delete objects. All versions of an object are deleted, regardless of
+the version specified in the ObjectIdentity. If an object is already
+deleted, no error is thrown.
+
+=back
+
+=cut
+
+sub delete_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function delete_objects (received $n, expecting 1)");
+    }
+    {
+	my($objects) = @args;
+
+	my @_bad_arguments;
+        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to delete_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'delete_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.delete_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'delete_objects',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method delete_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'delete_objects',
+				       );
+    }
+}
+
+
+
+=head2 undelete_objects
+
+  $obj->undelete_objects($objects)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+
+=end text
+
+=item Description
+
+Undelete objects. All versions of an object are un deleted, regardless
+of the version specified in the ObjectIdentity. If an object is not
+deleted, no error is thrown.
+
+=back
+
+=cut
+
+sub undelete_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function undelete_objects (received $n, expecting 1)");
+    }
+    {
+	my($objects) = @args;
+
+	my @_bad_arguments;
+        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to undelete_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'undelete_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.undelete_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'undelete_objects',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method undelete_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'undelete_objects',
+				       );
+    }
+}
+
+
+
 sub version {
     my ($self) = @_;
     my $result = $self->{client}->call($self->{url}, {
@@ -1063,16 +1275,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'get_object_metadata',
+                method_name => 'undelete_objects',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method get_object_metadata",
+            error => "Error invoking method undelete_objects",
             status_line => $self->{client}->status_line,
-            method_name => 'get_object_metadata',
+            method_name => 'undelete_objects',
         );
     }
 }

@@ -8,7 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
@@ -252,13 +256,26 @@ public class Workspaces {
 	}
 	
 	public void compileTypeSpec(final WorkspaceUser user,
-			final String typespec, final List<String> types) throws
+			final String typespec, final List<TypeDefName> types) throws
 			SpecParseException, TypeStorageException {
 		//TODO return the versions of the types that were updated
 		//TODO dry run method
 		//TODO update module method
-		typedb.registerModule(typespec, types, user.getUser());
+		final List<String> typestr = new ArrayList<String>();
+		for (TypeDefName t: types) {
+			typestr.add(t.getTypeString());
+		}
+		typedb.registerModule(typespec, typestr, user.getUser());
 	}
 	
+	public String getTypeSpec(final String module) throws NoSuchModuleException,
+			TypeStorageException {
+		return typedb.getModuleSpecDocument(module);
+	}
 	
+	public String getJsonSchema(final TypeDefId type) throws
+			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return typedb.getJsonSchemaDocument(type.getType().getModule(),
+				type.getType().getName(), type.getVerString());
+	}
 }
