@@ -6,7 +6,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -23,6 +26,8 @@ public class FileTypeStorage extends TypeStorage {
 	private File dbFolder;
 	private Set<RefInfo> typeRefs = null;
 	private Set<RefInfo> funcRefs = null;
+	private List<OwnerInfo> requests = null;
+	private List<OwnerInfo> owners = null;
 
 	/**
 	 * Set up a new DB pointing to the specified db folder.  The contents
@@ -42,6 +47,113 @@ public class FileTypeStorage extends TypeStorage {
 		mapper = new ObjectMapper();
 		typeRefs = loadRefs(getTypeRefFile());
 		funcRefs = loadRefs(getFuncRefFile());
+		requests = loadOwnerInfos(getRequestFile());
+		owners = loadOwnerInfos(getOwnersFile());
+	}
+	
+	private File getRequestFile() {
+		return new File(dbFolder, "requests.json");
+	}
+
+	private File getOwnersFile() {
+		return new File(dbFolder, "owners.json");
+	}
+
+	private List<OwnerInfo> loadOwnerInfos(File f) throws TypeStorageException {
+		try {
+			if (!f.exists())
+				return new ArrayList<OwnerInfo>();
+			return mapper.readValue(f, new TypeReference<List<OwnerInfo>>() {});
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	private static List<OwnerInfo> copy(List<OwnerInfo> input) {
+		List<OwnerInfo> ret = new ArrayList<OwnerInfo>();
+		for (OwnerInfo o1 : input) {
+			ret.add(copy(o1));
+		}
+		return ret;
+	}
+
+	protected static OwnerInfo copy(OwnerInfo o1) {
+		OwnerInfo o2 = new OwnerInfo();
+		o2.setOwnerUserId(o1.getOwnerUserId());
+		o2.setWithChangeOwnersPrivilege(o1.isWithChangeOwnersPrivilege());
+		o2.setModuleName(o1.getModuleName());
+		return o2;
+	}
+
+	private void saveOwners(List<OwnerInfo> owners, File f) throws TypeStorageException {
+		try {
+			mapper.writeValue(f, owners);
+		} catch (Exception ex) {
+			throw new TypeStorageException(ex);
+		}
+	}
+
+	@Override
+	public void addNewModuleRegistrationRequest(String moduleName, String userId)
+			throws TypeStorageException {
+		OwnerInfo oi = new OwnerInfo();
+		oi.setOwnerUserId(userId);
+		oi.setWithChangeOwnersPrivilege(true);
+		oi.setModuleName(moduleName);
+		requests.add(oi);
+		saveOwners(requests, getRequestFile());
+	}
+	
+	@Override
+	public void addOwnerToModule(String moduleName, String userId,
+			boolean withChangeOwnersPrivilege) throws TypeStorageException {
+		OwnerInfo oi = new OwnerInfo();
+		oi.setOwnerUserId(userId);
+		oi.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
+		oi.setModuleName(moduleName);
+		owners.add(oi);
+		saveOwners(owners, getRequestFile());
+	}
+	
+	@Override
+	public List<OwnerInfo> getNewModuleRegistrationRequests()
+			throws TypeStorageException {
+		return copy(requests);
+	}
+	
+	@Override
+	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
+			throws TypeStorageException {
+		Map<String, OwnerInfo> ret = new HashMap<String, OwnerInfo>();
+		for (OwnerInfo oi : owners) {
+			if (oi.getModuleName().equals(moduleName))
+				ret.put(oi.getOwnerUserId(), copy(oi));
+		}
+		return ret;
+	}
+	
+	@Override
+	public void removeNewModuleRegistrationRequest(String moduleName,
+			String userId) throws TypeStorageException {
+		for (Iterator<OwnerInfo> it = requests.iterator(); it.hasNext();) {
+			if (it.next().getOwnerUserId().equals(userId)) {
+				it.remove();
+				break;
+			}
+		}
+		saveOwners(requests, getRequestFile());
+	}
+	
+	@Override
+	public void removeOwnerFromModule(String moduleName, String userId)
+			throws TypeStorageException {
+		for (Iterator<OwnerInfo> it = owners.iterator(); it.hasNext();) {
+			if (it.next().getOwnerUserId().equals(userId)) {
+				it.remove();
+				break;
+			}
+		}
+		saveOwners(owners, getOwnersFile());
 	}
 	
 	private File getTypeRefFile() {

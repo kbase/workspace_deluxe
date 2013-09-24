@@ -7,7 +7,6 @@ import java.util.Map;
 
 public class ModuleInfo {
 	private String moduleName;
-	private String owner;
 	private List<String> includedModuleNames = new ArrayList<String>();
 	private Map<String, TypeInfo> types = new LinkedHashMap<String, TypeInfo>();
 	private Map<String, FuncInfo> funcs = new LinkedHashMap<String, FuncInfo>();
@@ -42,13 +41,5 @@ public class ModuleInfo {
 	
 	public void setFuncs(Map<String, FuncInfo> funcs) {
 		this.funcs = funcs;
-	}
-	
-	public String getOwner() {
-		return owner;
-	}
-	
-	public void setOwner(String owner) {
-		this.owner = owner;
 	}
 }

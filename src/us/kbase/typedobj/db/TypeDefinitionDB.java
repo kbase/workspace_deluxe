@@ -372,6 +372,16 @@ public class TypeDefinitionDB {
 		}
 	}
 	
+	private boolean checkUserIsOwnerOrAdmin(String moduleName, String userId) 
+			throws NoSuchPrivilegeException, TypeStorageException {
+		if (uip.isAdmin(userId))
+			return true;
+		Map<String, OwnerInfo> owners = storage.getOwnersForModule(moduleName);
+		if (!owners.containsKey(userId))
+			throw new NoSuchPrivilegeException("User " + userId + " is not in list of owners of module " + moduleName);
+		return owners.get(userId).isWithChangeOwnersPrivilege();
+	}
+	
 	/**
 	 * Change major version from 0 to 1.
 	 * @param moduleName
@@ -379,10 +389,11 @@ public class TypeDefinitionDB {
 	 * @param userId
 	 * @return new version
 	 * @throws NoSuchTypeException when current major version isn't 0
+	 * @throws NoSuchPrivilegeException 
 	 */
 	public String releaseType(String moduleName, String typeName, String userId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion curVersion = findLastTypeVersion(info, typeName, false);
 		if (curVersion == null)
@@ -409,8 +420,8 @@ public class TypeDefinitionDB {
 	}
 	
 	public void removeTypeForAllVersions(String moduleName, String typeName, String userId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getTypes().containsKey(typeName))
 			throwNoSuchTypeException(moduleName, typeName, null);
@@ -420,8 +431,8 @@ public class TypeDefinitionDB {
 	}
 
 	public void removeFuncForAllVersions(String moduleName, String funcName, String userId)
-			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getFuncs().containsKey(funcName))
 			throwNoSuchFuncException(moduleName, funcName, null);
@@ -597,11 +608,12 @@ public class TypeDefinitionDB {
 	 * @param moduleName
 	 * @param funcName
 	 * @return new version
+	 * @throws NoSuchPrivilegeException 
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 */
 	public String releaseFunc(String moduleName, String funcName, String userId) 
-			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		SemanticVersion curVersion = findLastFuncVersion(moduleName, funcName, false);
 		if (curVersion == null)
 			throwNoSuchFuncException(moduleName, funcName, null);
@@ -656,8 +668,8 @@ public class TypeDefinitionDB {
 	}
 	
 	public void stopTypeSupport(String moduleName, String typeName, String userId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -671,8 +683,8 @@ public class TypeDefinitionDB {
 	}
 	
 	public void removeTypeVersion(String moduleName, String typeName, String version, String userId) 
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		checkModule(moduleName);
 		SemanticVersion sVer = new SemanticVersion(version);
 		if (!storage.removeTypeRecordsForVersion(moduleName, typeName, sVer.toString()))
@@ -690,8 +702,8 @@ public class TypeDefinitionDB {
 	}
 	
 	public void stopFuncSupport(String moduleName, String funcName, String userId)
-			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
 		try {
@@ -704,8 +716,9 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public void removeModule(String moduleName, String userId) throws NoSuchModuleException, TypeStorageException {
-		// TODO: check userId
+	public void removeModule(String moduleName, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkAdmin(userId);
 		checkModuleRegistered(moduleName);
 		storage.removeModule(moduleName);
 	}
@@ -717,8 +730,8 @@ public class TypeDefinitionDB {
 		return storage.getAllRegisteredModules();
 	}
 	
-	public void removeAllRefs(String userId) throws TypeStorageException {
-		// TODO: check userId
+	public void removeAllRefs(String userId) throws TypeStorageException, NoSuchPrivilegeException {
+		checkAdmin(userId);
 		storage.removeAllRefs();
 	}
 	
@@ -752,7 +765,32 @@ public class TypeDefinitionDB {
 			throws TypeStorageException {
 		if (!withApprovalQueue)
 			throw new IllegalStateException("Type definition db was created without approval queue, please use registerModule without request.");
-		autoGenerateModuleInfo(moduleName, ownerUserId);  // TODO: it should be saved in special queue instead
+		storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
+	}
+	
+	public OwnerInfo getNextNewModuleRegistrationRequest(String adminUserId) 
+			throws NoSuchPrivilegeException, TypeStorageException {
+		checkAdmin(adminUserId);
+		List<OwnerInfo> list = storage.getNewModuleRegistrationRequests();
+		if (list.size() == 0)
+			return null;
+		return list.get(0);
+	}
+
+	private void checkAdmin(String adminUserId)
+			throws NoSuchPrivilegeException {
+		if (!uip.isAdmin(adminUserId))
+			throw new NoSuchPrivilegeException("User " + adminUserId + " should be administrator");
+	}
+	
+	public void approveModuleRegistrationRequest(String adminUserId, String newModuleName, 
+			String newOwnerUserId) throws TypeStorageException, NoSuchPrivilegeException {
+		if (!withApprovalQueue)
+			throw new IllegalStateException("Type definition db was created without approval queue, please use registerModule without request.");
+		checkAdmin(adminUserId);
+		autoGenerateModuleInfo(newModuleName, newOwnerUserId);
+		storage.removeNewModuleRegistrationRequest(newModuleName, newOwnerUserId);
+		// TODO: send notification to e-mail of requesting user
 	}
 	
 	private void autoGenerateModuleInfo(String moduleName, String ownerUserId) throws TypeStorageException {
@@ -760,8 +798,8 @@ public class TypeDefinitionDB {
 			throw new IllegalStateException("Module " + moduleName + " was already registered");
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleName(moduleName);
-		info.setOwner(ownerUserId);
 		storage.writeModuleInfoRecord(moduleName, info);
+		storage.addOwnerToModule(moduleName, ownerUserId, true);
 	}
 	
 	public void registerModule(String specDocument, List<String> registeredTypes, 
@@ -864,12 +902,8 @@ public class TypeDefinitionDB {
 			} else {
 				checkModule(moduleName);
 			}
+			checkUserIsOwnerOrAdmin(moduleName, userId);
 			ModuleInfo info = getModuleInfo(moduleName);
-			if (!uip.isAdmin(userId)) {
-				if (!info.getOwner().equals(userId))
-					throw new SpecParseException("Module owner is not in updating user list: " +
-							"owner=" + info.getOwner() + ", changing_user=" + userId);
-			}
 			info.setIncludedModuleNames(new ArrayList<String>(includedModules));
 			Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 			if (typeToSchema == null)
@@ -1062,7 +1096,26 @@ public class TypeDefinitionDB {
 		saveModule(specDocument, false, new HashSet<String>(changedTypes), 
 				new HashSet<String>(backwardIncompatibleTypes), new HashSet<String>(changedFuncs), 
 				new HashSet<String>(backwardIncompatibleFuncs), false, userId);
-		
+	}
+	
+	public void addOwnerToModule(String knownOwnerUserId, String moduleName, String newOwnerUserId, 
+			boolean withChangeOwnersPrivilege) throws TypeStorageException, NoSuchPrivilegeException {
+		checkUserCanChangePrivileges(knownOwnerUserId, moduleName);
+		storage.addOwnerToModule(moduleName, newOwnerUserId, withChangeOwnersPrivilege);
+	}
+
+	public void removeOwnerFromModule(String knownOwnerUserId, String moduleName, String removedOwnerUserId) 
+			throws NoSuchPrivilegeException, TypeStorageException {
+		checkUserCanChangePrivileges(knownOwnerUserId, moduleName);
+		storage.removeOwnerFromModule(moduleName, removedOwnerUserId);
+	}
+	
+	private void checkUserCanChangePrivileges(String knownOwnerUserId,
+			String moduleName) throws NoSuchPrivilegeException, TypeStorageException {
+		boolean canChangeOwnersPrivilege = checkUserIsOwnerOrAdmin(moduleName, knownOwnerUserId);
+		if (!canChangeOwnersPrivilege)
+			throw new NoSuchPrivilegeException("User " + knownOwnerUserId + " can not change " +
+					"priviledges for module " + moduleName);
 	}
 	
 	private static class ComponentCreation {

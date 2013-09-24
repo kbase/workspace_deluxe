@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -33,6 +34,10 @@ public abstract class TypeStorage {
 
 	public abstract Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
 
+	public abstract List<OwnerInfo> getNewModuleRegistrationRequests() throws TypeStorageException;
+	
+	public abstract Map<String, OwnerInfo> getOwnersForModule(String moduleName) throws TypeStorageException;
+	
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
 	public abstract void writeTypeSchemaRecord(String moduleName, String typeName, String version, String document) throws TypeStorageException;
@@ -63,6 +68,14 @@ public abstract class TypeStorage {
 	public abstract void removeFuncRefs(String depModule, String depFunc, String version) throws TypeStorageException;
 
 	public abstract void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs) throws TypeStorageException;
+
+	public abstract void addNewModuleRegistrationRequest(String moduleName, String userId) throws TypeStorageException;
+	
+	public abstract void removeNewModuleRegistrationRequest(String moduleName, String userId) throws TypeStorageException;
+	
+	public abstract void addOwnerToModule(String moduleName, String userId, boolean withChangeOwnersPrivilege) throws TypeStorageException;
+
+	public abstract void removeOwnerFromModule(String moduleName, String userId) throws TypeStorageException;
 
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	

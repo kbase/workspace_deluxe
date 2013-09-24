@@ -1,22 +1,25 @@
 package us.kbase.typedobj.db;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.DB;
 
 public class MongoTypeStorage extends TypeStorage {
 	private Jongo jdb;
 	
+	public static final String TABLE_MODULE_REQUEST = "module_request";
 	public static final String TABLE_MODULE_INFO = "module_info";
+	public static final String TABLE_MODULE_OWNER = "module_owner";
 	public static final String TABLE_MODULE_SPEC = "module_spec";
 	public static final String TABLE_MODULE_INFO_BAK = "module_info_bak";
 	public static final String TABLE_MODULE_SPEC_BAK = "module_spec_bak";
@@ -26,6 +29,7 @@ public class MongoTypeStorage extends TypeStorage {
 	public static final String TABLE_FUNC_REFS = "func_refs";
 	public static final String TABLE_TYPE_REFS = "type_refs";
 
+	public static final int MAX_REQUESTS_BY_USER = 10;
 	
 	public MongoTypeStorage(DB db) {
 		jdb = new Jongo(db);
@@ -303,6 +307,66 @@ public class MongoTypeStorage extends TypeStorage {
 		rec.setVersion(version);
 		rec.setDocument(document);
 		recs.insert(rec);
+	}
+	
+	@Override
+	public void addNewModuleRegistrationRequest(String moduleName, String userId)
+			throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
+		int prevCount = Lists.newArrayList(recs.find("{moduleName:#,ownerUserId:#}", 
+				moduleName, userId).as(OwnerInfo.class)).size();
+		if (prevCount >= MAX_REQUESTS_BY_USER)
+			throw new TypeStorageException("User " + userId + " has maximal count " +
+					"of requests: " + MAX_REQUESTS_BY_USER);
+		OwnerInfo rec = new OwnerInfo();
+		rec.setOwnerUserId(userId);
+		rec.setWithChangeOwnersPrivilege(true);
+		rec.setModuleName(moduleName);
+		recs.insert(rec);
+	}
+	
+	@Override
+	public void addOwnerToModule(String moduleName, String userId,
+			boolean withChangeOwnersPrivilege) throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
+		recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+		OwnerInfo rec = new OwnerInfo();
+		rec.setOwnerUserId(userId);
+		rec.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
+		rec.setModuleName(moduleName);
+		recs.insert(rec);
+	}
+	
+	@Override
+	public List<OwnerInfo> getNewModuleRegistrationRequests()
+			throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
+		return Lists.newArrayList(recs.find().as(OwnerInfo.class));
+	}
+	
+	@Override
+	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
+			throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
+		List<OwnerInfo> owners = Lists.newArrayList(recs.find().as(OwnerInfo.class));
+		Map<String, OwnerInfo> ret = new HashMap<String, OwnerInfo>();
+		for (OwnerInfo oi : owners)
+			ret.put(oi.getOwnerUserId(), oi);
+		return ret;
+	}
+	
+	@Override
+	public void removeNewModuleRegistrationRequest(String moduleName,
+			String userId) throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
+		recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+	}
+	
+	@Override
+	public void removeOwnerFromModule(String moduleName, String userId)
+			throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
+		recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
 	}
 	
 	public static class ModuleSpec {

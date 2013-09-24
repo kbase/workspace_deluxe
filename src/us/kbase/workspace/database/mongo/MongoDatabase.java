@@ -68,6 +68,7 @@ import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
@@ -814,16 +815,33 @@ public class MongoDatabase implements Database {
 		SORTED_MAPPER.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
 	
+	private static String getObjectErrorId(final WorkspaceObjectID oi,
+			final int objcount) {
+		String objErrId = "#" + objcount;
+		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+		return objErrId;
+	}
+	
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final ResolvedMongoWSID rwsi,
 			final List<ResolvedSaveObject> objects) {
 		//this method must maintain the order of the objects
+		int objnum = 1;
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
 		for (ResolvedSaveObject o: objects) {
 			final ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = o;
-			final String json = o.getData().toString(); //TODO this needs to have sorted keys somehow
+			final String json;
+			try {
+				final Object obj = SORTED_MAPPER.treeToValue(o.getData(),
+						Object.class);
+				json = SORTED_MAPPER.writeValueAsString(obj);
+			} catch (JsonProcessingException jpe) {
+				throw new IllegalArgumentException(
+						"Couldn't serialize data from object " +
+						getObjectErrorId(o.getObjectIdentifier(), objnum));
+			}
 			//TODO get subdata (later)?
 			//TODO check subdata size
 			//TODO change subdata disallowed chars - html encode (%)
@@ -832,6 +850,7 @@ public class MongoDatabase implements Database {
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(json, o.getType(), rwsi, null); //TODO add subdata
 			ret.add(pkg);
+			objnum++;
 		}
 		return ret;
 	}
