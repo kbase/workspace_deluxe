@@ -1118,9 +1118,15 @@ public class MongoDatabase implements Database {
 					(List<Map<String, Object>>) pointer.get("versions");
 			final Map<Integer, Map<String, Object>> versions =
 					new HashMap<Integer, Map<String,Object>>();
+			int maxver = -1;
 			for (final Map<String, Object> m: listver) {
-					versions.put((Integer) m.get("version"), m);
+				final int ver = (int) m.get("version");
+				if (ver > maxver) {
+					maxver = ver;
+				}
+				versions.put(ver, m);
 			}
+			pointer.put("maxver", maxver);
 			pointer.put("versions", versions);
 		}
 		return qres;
@@ -1130,17 +1136,17 @@ public class MongoDatabase implements Database {
 			final Map<String, Object> pointer, final Integer version,
 			final String workspaceIdentifier, final String objectIdentifier)
 			throws NoSuchObjectException {
-		final int maxver = (int) pointer.get("version");
+		final int maxver = (int) pointer.get("maxver");
 		final int ver;
 		if (version == null) {
+			if (maxver < 1) {
+				throw new NoSuchObjectException(String.format(
+						"No object with identifier '%s' exists in workspace %s",
+						objectIdentifier, workspaceIdentifier));
+			}
 			ver = maxver;
 		} else {
-			ver = version;
-			if (ver > maxver) {
-				throw new NoSuchObjectException(String.format(
-						"No object with identifier '%s' and version %s exists in workspace %s",
-						objectIdentifier, ver, workspaceIdentifier));
-			}
+			ver = version; //bad version error will be caught below
 		}
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> verpoint = 
