@@ -394,26 +394,26 @@ module Workspace {
 	/* 
 		Get objects from the workspace.
 	*/
-	funcdef get_objects(list<ObjectIdentity> objects)
+	funcdef get_objects(list<ObjectIdentity> object_ids)
 		returns (list<ObjectData> data);
 	
 	/* 
 		Get object metadata from the workspace.
 	*/
-	funcdef get_object_metadata(list<ObjectIdentity> objects)
-		returns (list<object_metadata_full> data);
+	funcdef get_object_metadata(list<ObjectIdentity> object_ids)
+		returns (list<object_metadata_full> meta);
 		
 	/* 
 		Delete objects. All versions of an object are deleted, regardless of
 		the version specified in the ObjectIdentity. If an object is already
 		deleted, no error is thrown.
 	*/
-	funcdef delete_objects(list<ObjectIdentity> objects) returns();
+	funcdef delete_objects(list<ObjectIdentity> object_ids) returns();
 	
 	/* 
 		Undelete objects. All versions of an object are undeleted, regardless
 		of the version specified in the ObjectIdentity. If an object is not
 		deleted, no error is thrown.
 	*/
-	funcdef undelete_objects(list<ObjectIdentity> objects) returns();
+	funcdef undelete_objects(list<ObjectIdentity> object_ids) returns();
 };

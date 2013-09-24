@@ -344,10 +344,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_objects(self, objects):
+    def get_objects(self, object_ids):
 
         arg_hash = { 'method': 'Workspace.get_objects',
-                     'params': [objects],
+                     'params': [object_ids],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }
@@ -379,10 +379,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_object_metadata(self, objects):
+    def get_object_metadata(self, object_ids):
 
         arg_hash = { 'method': 'Workspace.get_object_metadata',
-                     'params': [objects],
+                     'params': [object_ids],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }
@@ -414,10 +414,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def delete_objects(self, objects):
+    def delete_objects(self, object_ids):
 
         arg_hash = { 'method': 'Workspace.delete_objects',
-                     'params': [objects],
+                     'params': [object_ids],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }
@@ -449,10 +449,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def undelete_objects(self, objects):
+    def undelete_objects(self, object_ids):
 
         arg_hash = { 'method': 'Workspace.undelete_objects',
-                     'params': [objects],
+                     'params': [object_ids],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }

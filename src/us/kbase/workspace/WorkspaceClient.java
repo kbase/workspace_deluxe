@@ -162,7 +162,8 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
-     * Save objects to the workspace.
+     * Save objects to the workspace. Saving over a deleted object undeletes
+     * it.
      * </pre>
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      * @throws IOException if an IO exception occurs
@@ -184,9 +185,9 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<ObjectData> getObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public List<ObjectData> getObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(objects);
+        args.add(objectIds);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
         List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false);
         return res.get(0);
@@ -200,9 +201,9 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(objects);
+        args.add(objectIds);
         TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>>() {};
         List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
@@ -218,9 +219,9 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void deleteObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public void deleteObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(objects);
+        args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, false);
     }
@@ -228,16 +229,16 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: undelete_objects</p>
      * <pre>
-     * Undelete objects. All versions of an object are un deleted, regardless
+     * Undelete objects. All versions of an object are undeleted, regardless
      * of the version specified in the ObjectIdentity. If an object is not
      * deleted, no error is thrown.
      * </pre>
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void undeleteObjects(List<ObjectIdentity> objects) throws IOException, JsonClientException {
+    public void undeleteObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(objects);
+        args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, false);
     }

@@ -303,7 +303,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
-     * Save objects to the workspace.
+     * Save objects to the workspace. Saving over a deleted object undeletes
+     * it.
      * </pre>
      * @param   params   Original type "SaveObjectsParams" (see {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams} for details)
      */
@@ -375,10 +376,10 @@ public class WorkspaceServer extends JsonServerServlet {
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.get_objects", authOptional=true)
-    public List<ObjectData> getObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+    public List<ObjectData> getObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = ArgUtils.translateObjectData(
 				ws.getObjects(getUser(authPart), loi));
         //END get_objects
@@ -392,10 +393,10 @@ public class WorkspaceServer extends JsonServerServlet {
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.get_object_metadata", authOptional=true)
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = ArgUtils.objUserMetaToTuple(
 				ws.getObjectMetaData(getUser(authPart), loi));
         //END get_object_metadata
@@ -411,9 +412,9 @@ public class WorkspaceServer extends JsonServerServlet {
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.delete_objects", authOptional=true)
-    public void deleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+    public void deleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN delete_objects
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		ws.deleteObjects(getUser(authPart), loi);
         //END delete_objects
     }
@@ -421,15 +422,15 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: undelete_objects</p>
      * <pre>
-     * Undelete objects. All versions of an object are un deleted, regardless
+     * Undelete objects. All versions of an object are undeleted, regardless
      * of the version specified in the ObjectIdentity. If an object is not
      * deleted, no error is thrown.
      * </pre>
      */
     @JsonServerMethod(rpc = "Workspace.undelete_objects", authOptional=true)
-    public void undeleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
+    public void undeleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN undelete_objects
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		ws.undeleteObjects(getUser(authPart), loi);
         //END undelete_objects
     }

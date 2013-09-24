@@ -722,7 +722,8 @@ username is a string
 
 =item Description
 
-Save objects to the workspace.
+Save objects to the workspace. Saving over a deleted object undeletes
+it.
 
 =back
 
@@ -776,7 +777,7 @@ sub save_objects
 
 =head2 get_objects
 
-  $data = $obj->get_objects($objects)
+  $data = $obj->get_objects($object_ids)
 
 =over 4
 
@@ -785,7 +786,7 @@ sub save_objects
 =begin html
 
 <pre>
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 $data is a reference to a list where each element is a Workspace.ObjectData
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -825,7 +826,7 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =begin text
 
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 $data is a reference to a list where each element is a Workspace.ObjectData
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -882,10 +883,10 @@ sub get_objects
 							       "Invalid argument count for function get_objects (received $n, expecting 1)");
     }
     {
-	my($objects) = @args;
+	my($object_ids) = @args;
 
 	my @_bad_arguments;
-        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to get_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -918,7 +919,7 @@ sub get_objects
 
 =head2 get_object_metadata
 
-  $data = $obj->get_object_metadata($objects)
+  $meta = $obj->get_object_metadata($object_ids)
 
 =over 4
 
@@ -927,8 +928,8 @@ sub get_objects
 =begin html
 
 <pre>
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
-$data is a reference to a list where each element is a Workspace.object_metadata_full
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$meta is a reference to a list where each element is a Workspace.object_metadata_full
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -964,8 +965,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =begin text
 
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
-$data is a reference to a list where each element is a Workspace.object_metadata_full
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$meta is a reference to a list where each element is a Workspace.object_metadata_full
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -1018,10 +1019,10 @@ sub get_object_metadata
 							       "Invalid argument count for function get_object_metadata (received $n, expecting 1)");
     }
     {
-	my($objects) = @args;
+	my($object_ids) = @args;
 
 	my @_bad_arguments;
-        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to get_object_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -1054,7 +1055,7 @@ sub get_object_metadata
 
 =head2 delete_objects
 
-  $obj->delete_objects($objects)
+  $obj->delete_objects($object_ids)
 
 =over 4
 
@@ -1063,7 +1064,7 @@ sub get_object_metadata
 =begin html
 
 <pre>
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -1084,7 +1085,7 @@ obj_ref is a string
 
 =begin text
 
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -1124,10 +1125,10 @@ sub delete_objects
 							       "Invalid argument count for function delete_objects (received $n, expecting 1)");
     }
     {
-	my($objects) = @args;
+	my($object_ids) = @args;
 
 	my @_bad_arguments;
-        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to delete_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -1160,7 +1161,7 @@ sub delete_objects
 
 =head2 undelete_objects
 
-  $obj->undelete_objects($objects)
+  $obj->undelete_objects($object_ids)
 
 =over 4
 
@@ -1169,7 +1170,7 @@ sub delete_objects
 =begin html
 
 <pre>
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -1190,7 +1191,7 @@ obj_ref is a string
 
 =begin text
 
-$objects is a reference to a list where each element is a Workspace.ObjectIdentity
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -1210,7 +1211,7 @@ obj_ref is a string
 
 =item Description
 
-Undelete objects. All versions of an object are un deleted, regardless
+Undelete objects. All versions of an object are undeleted, regardless
 of the version specified in the ObjectIdentity. If an object is not
 deleted, no error is thrown.
 
@@ -1230,10 +1231,10 @@ sub undelete_objects
 							       "Invalid argument count for function undelete_objects (received $n, expecting 1)");
     }
     {
-	my($objects) = @args;
+	my($object_ids) = @args;
 
 	my @_bad_arguments;
-        (ref($objects) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"objects\" (value was \"$objects\")");
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to undelete_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,

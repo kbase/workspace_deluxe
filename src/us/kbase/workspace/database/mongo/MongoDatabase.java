@@ -130,7 +130,7 @@ public class MongoDatabase implements Database {
 		
 		Map<List<String>, List<String>> wsPtr = new HashMap<List<String>, List<String>>();
 		//find objects by workspace id & name
-		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique", "sparse"));
+		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique"));
 		//find object by workspace id & object id
 		wsPtr.put(Arrays.asList("workspace", "id"), Arrays.asList("unique"));
 		//find objects by legacy UUID
@@ -1087,7 +1087,7 @@ public class MongoDatabase implements Database {
 	}
 	
 	private static final Set<String> PROJ_META =
-			newHashSet("id", "name", "workspace", "version");
+			newHashSet("id", "name", "workspace", "version", "deleted");
 	private static final Set<String> PROJ_META_VER = newHashSet("version",
 			"meta", "type", "createDate", "createdby", "chksum", "size");
 	
@@ -1107,6 +1107,12 @@ public class MongoDatabase implements Database {
 		//of same object required
 		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
 			final Map<String, Object> pointer = qres.get(o);
+			if (pointer.get("deleted") != null) {
+				throw new NoSuchObjectException(String.format(
+						"Object %s in workspace %s has been deleted",
+						o.getIdentifierString(),
+						o.getWorkspaceIdentifier().getID()));
+			}
 			@SuppressWarnings("unchecked")
 			final List<Map<String, Object>> listver =
 					(List<Map<String, Object>>) pointer.get("versions");
@@ -1218,9 +1224,7 @@ public class MongoDatabase implements Database {
 		return wsToIDs;
 	}
 
-	//TODO tests for un/delete
-	//TODO getObject* should fail on deleted objects
-	//TODO all object resolution should fail on deleted objects by default
+	//TODO tests for un/delete - save over deleted objects, cant getObject* on deleted objects
 	@Override
 	public void deleteObjects(final Set<ObjectIDResolvedWSNoVer> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
