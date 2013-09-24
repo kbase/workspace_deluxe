@@ -22,6 +22,23 @@ public class TypeDefName {
 		this.name = name;
 	}
 	
+	/**
+	 * accepts (and splits) fully qualified name, e.g. 'KB.Genome', 'FBA.Model'
+	 */
+	public TypeDefName(String fullname) {
+		String [] tokens = fullname.split("\\.");
+		if(tokens.length != 2) {
+			throw new IllegalArgumentException(String.format(
+					"Illegal fullname of a typed object: %s", fullname));
+		}
+		this.module = tokens[0];
+		this.name = tokens[1];
+		checkString(this.module, "Module");
+		checkTypeName(this.module);
+		checkString(this.name, "Name");
+		checkTypeName(this.name);
+	}
+	
 	private void checkTypeName(String name) {
 		final Matcher m = INVALID_TYPE_NAMES.matcher(name);
 		if (m.find()) {

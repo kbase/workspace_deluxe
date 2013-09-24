@@ -1,5 +1,8 @@
 package us.kbase.typedobj.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -103,8 +106,37 @@ public final class TypedObjectValidator {
 					"instance is not a valid '" + mt.getTypeString() + "'",e);
 		}
 		
-		return new TypedObjectValidationReport(report);
+		//@todo set the correct AbsoluteTypeDefId
+		return new TypedObjectValidationReport(report, new AbsoluteTypeDefId(new TypeDefName(mt.getModule(),mt.getName()),0,0));
 	}
 
+	
+	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
+	{
+		final TypeDefName mt = typeDefId.getType();
+		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),mt.getName());
+		
+		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
+		for(JsonNode j : instanceRootNodes) {
+			// Actually perform the validation and return the report
+			ProcessingReport report;
+			try {
+				report = schema.validate(j);
+			} catch (ProcessingException e) {
+				throw new InstanceValidationException(
+				"instance is not a valid '" + mt.getTypeString() + "'",e);
+			}
+			reportList.add(new TypedObjectValidationReport(report, new AbsoluteTypeDefId(new TypeDefName(mt.getModule(),mt.getName()),0,0)) );
+		}
+		return reportList;
+	}
+	
+	
+	
+	
+	
+	
+	
 
 }
