@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -1184,6 +1185,69 @@ public class MongoDatabase implements Database {
 			ret.put(m.get("k"), m.get("v"));
 		}
 		return ret;
+	}
+	
+	private Map<ObjectIDResolvedWSNoVer, Integer> resolveObjectIDs(
+			final Set<ObjectIDResolvedWSNoVer> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
+				query.queryObjects(objectIDs, PROJ_ID, null);
+		final Map<ObjectIDResolvedWSNoVer, Integer> ret =
+				new HashMap<ObjectIDResolvedWSNoVer, Integer>();
+		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
+			ret.put(o, (Integer) ids.get(o).get("id"));
+		}
+		return ret;
+	}
+	
+	private Map<ResolvedMongoWSID, List<Integer>> getObjectIDsByWS(
+			final Set<ObjectIDResolvedWSNoVer> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWSNoVer, Integer> ids =
+				resolveObjectIDs(objectIDs);
+		final Map<ResolvedMongoWSID, List<Integer>> wsToIDs = 
+				new HashMap<ResolvedMongoWSID, List<Integer>>();
+		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
+			final ResolvedMongoWSID ws = query.convertResolvedID(
+					o.getWorkspaceIdentifier());
+			if (!wsToIDs.containsKey(ws)) {
+				wsToIDs.put(ws, new ArrayList<Integer>());
+			}
+			wsToIDs.get(ws).add(ids.get(o));
+		}
+		return wsToIDs;
+	}
+
+	//TODO tests for un/delete
+	//TODO getObject* should fail on deleted objects
+	//TODO all object resolution should fail on deleted objects by default
+	@Override
+	public void deleteObjects(final Set<ObjectIDResolvedWSNoVer> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ResolvedMongoWSID, List<Integer>> toDelete = 
+				getObjectIDsByWS(objectIDs);
+		//Do this by workspace since per mongo docs nested $ors are crappy
+		for (final ResolvedMongoWSID ws: toDelete.keySet()) {
+			final String query = String.format(
+					"{workspace: %s, id: {$in: [%s]}, deleted: null}",
+					ws.getID(), StringUtils.join(toDelete.get(ws), ", "));	
+			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
+					.with("{$set: {deleted: #}}", new Date());
+		}
+	}
+
+	@Override
+	public void undeleteObjects(final Set<ObjectIDResolvedWSNoVer> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ResolvedMongoWSID, List<Integer>> toUndelete = 
+				getObjectIDsByWS(objectIDs);
+		for (final ResolvedMongoWSID ws: toUndelete.keySet()) {
+			final String query = String.format(
+					"{workspace: %s, id: {$in: [%s]}, deleted: {$ne: null}}",
+					ws.getID(), StringUtils.join(toUndelete.get(ws), ", "));	
+			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
+					.with("{$set: {deleted: null}}");
+		}
 	}
 	
 	public static class TestMongoInternals {

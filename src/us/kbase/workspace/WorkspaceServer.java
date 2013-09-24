@@ -413,6 +413,8 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.delete_objects", authOptional=true)
     public void deleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         //BEGIN delete_objects
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		ws.deleteObjects(getUser(authPart), loi);
         //END delete_objects
     }
 
@@ -427,6 +429,8 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.undelete_objects", authOptional=true)
     public void undeleteObjects(List<ObjectIdentity> objects, AuthToken authPart) throws Exception {
         //BEGIN undelete_objects
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objects);
+		ws.undeleteObjects(getUser(authPart), loi);
         //END undelete_objects
     }
 

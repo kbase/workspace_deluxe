@@ -17,6 +17,7 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -78,6 +79,9 @@ public class Workspaces {
 			final Permission perm, final String operation) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
+		if (loi.isEmpty()) {
+			throw new IllegalArgumentException("No object identifiers provided");
+		}
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
 		for (final ObjectIdentifier o: loi) {
@@ -208,9 +212,6 @@ public class Workspaces {
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
-		if (loi.isEmpty()) {
-			throw new IllegalArgumentException("No object identifiers provided");
-		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
@@ -229,9 +230,6 @@ public class Workspaces {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, NoSuchObjectException,
 			CorruptWorkspaceDBException {
-		if (loi.isEmpty()) {
-			throw new IllegalArgumentException("No object identifiers provided");
-		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> meta = 
@@ -243,6 +241,40 @@ public class Workspaces {
 			ret.add(meta.get(ws.get(o)));
 		}
 		return ret;
+	}
+	
+	private Set<ObjectIDResolvedWSNoVer> removeVersions(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi,
+			final Permission p, final String operation)
+					throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+					CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, p, operation);
+		final Set<ObjectIDResolvedWSNoVer> objectIDs =
+				new HashSet<ObjectIDResolvedWSNoVer>();
+		for (ObjectIDResolvedWS o: ws.values()) {
+			objectIDs.add(o.withoutVersion());
+		}
+		return objectIDs;
+	}
+	
+	public void deleteObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
+			NoSuchObjectException {
+		db.deleteObjects(removeVersions(user, loi, Permission.WRITE,
+				"delete objects from"));
+	}
+	
+	
+	public void undeleteObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
+			NoSuchObjectException {
+		db.undeleteObjects(removeVersions(user, loi, Permission.WRITE,
+				"undelete objects from"));
 	}
 	
 	public void requestModuleRegistration(final WorkspaceUser user,

@@ -372,7 +372,8 @@ module Workspace {
 	} SaveObjectsParams;
 	
 	/* 
-		Save objects to the workspace.
+		Save objects to the workspace. Saving over a deleted object undeletes
+		it.
 	*/
 	funcdef save_objects(SaveObjectsParams params)
 		returns (list<object_metadata> meta);
@@ -410,7 +411,7 @@ module Workspace {
 	funcdef delete_objects(list<ObjectIdentity> objects) returns();
 	
 	/* 
-		Undelete objects. All versions of an object are un deleted, regardless
+		Undelete objects. All versions of an object are undeleted, regardless
 		of the version specified in the ObjectIdentity. If an object is not
 		deleted, no error is thrown.
 	*/

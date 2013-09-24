@@ -307,8 +307,10 @@ public class QueryMethods {
 	List<Map<String, Object>> queryObjects(final String query,
 			final Set<String> fields, final Set<String> versionfields) throws
 			WorkspaceCommunicationException {
-		for (final String field: versionfields) {
-			fields.add("versions." + field);
+		if (versionfields != null) {
+			for (final String field: versionfields) {
+				fields.add("versions." + field);
+			}
 		}
 		return queryCollection(pointerCollection, query, fields);
 	}
