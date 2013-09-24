@@ -41,12 +41,12 @@ public class TypedObjExample1 {
 		
 		
 		// SET KB_TOP in environment before running this; delete the files in the db dir if you want to recreate the db
-		/*String username = "wstester1";
+		String username = "wstester1";
 		String kbSpec = readTestFile("test/typedobj_test_files/t1/spec/KB.spec");
 		db.registerModule(kbSpec, Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id"), username);
 		String fbaSpec = readTestFile("test/typedobj_test_files/t1/spec/FBA.spec");
 		db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
-		*/
+		
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);
