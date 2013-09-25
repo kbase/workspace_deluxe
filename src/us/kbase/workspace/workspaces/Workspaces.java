@@ -307,7 +307,11 @@ public class Workspaces {
 	
 	public String getJsonSchema(final TypeDefId type) throws
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return typedb.getJsonSchemaDocument(type.getType().getModule(),
-				type.getType().getName(), type.getVerString());
+		if (type.isAbsolute()) {
+			return typedb.getJsonSchemaDocument(new AbsoluteTypeDefId(type.getType(),
+					type.getMajorVersion(), type.getMinorVersion()));
+		} else {
+			return typedb.getJsonSchemaDocument(type.getType());
+		}
 	}
 }

@@ -121,14 +121,14 @@ public class TestBasicValidation {
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
 		db.registerModule(kbSpec ,kb_types, username);
 		for(String typename : kb_types) {
-			db.releaseType("KB", typename, username);
+			db.releaseType(new TypeDefName("KB." + typename), username);
 		}
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
 		db.registerModule(fbaSpec ,fba_types, username);
 		for(String typename : fba_types) {
-			db.releaseType("FBA", typename, username);
+			db.releaseType(new TypeDefName("FBA." + typename), username);
 		}
 		
 		System.out.println("finding test instances");

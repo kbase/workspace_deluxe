@@ -125,7 +125,7 @@ public final class TypedObjectValidator {
 		//TODO deal with versions, return AbsoluteTypeID with full information
 
 		final TypeDefName mt = typeDefId.getType();
-		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),mt.getName());
+		final JsonSchema schema = typeDefDB.getJsonSchema(mt);
 		
 		// Actually perform the validation and return the report
 		ProcessingReport report;
@@ -156,7 +156,7 @@ public final class TypedObjectValidator {
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		final TypeDefName mt = typeDefId.getType();
-		final JsonSchema schema = typeDefDB.getJsonSchema(mt.getModule(),mt.getName());
+		final JsonSchema schema = typeDefDB.getJsonSchema(mt);
 		
 		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
 		for(JsonNode j : instanceRootNodes) {

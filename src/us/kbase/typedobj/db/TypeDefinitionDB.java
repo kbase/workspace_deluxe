@@ -36,6 +36,8 @@ import us.kbase.kidl.KbType;
 import us.kbase.kidl.KbTypedef;
 import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.validatorconfig.ValidationConfigurationFactory;
 import us.kbase.typedobj.exceptions.*;
 
@@ -116,8 +118,8 @@ public class TypeDefinitionDB {
 	 * @return true if valid, false otherwise
 	 * @throws TypeStorageException 
 	 */
-	public boolean isValidType(String moduleName, String typeName) throws TypeStorageException {
-		return isValidType(moduleName, typeName, null);
+	public boolean isValidType(TypeDefName type) throws TypeStorageException {
+		return isValidType(type.getModule(), type.getName(), null);
 	}
 		
 	/**
@@ -129,8 +131,9 @@ public class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public String getJsonSchemaDocument(String moduleName, String typeName) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return getJsonSchemaDocument(moduleName, typeName, null);
+	public String getJsonSchemaDocument(TypeDefName type) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getJsonSchemaDocument(type.getModule(), type.getName(), null);
 	}
 
 	/**
@@ -142,15 +145,15 @@ public class TypeDefinitionDB {
 	 * @return
 	 * @throws NoSuchTypeException
 	 */
-	public JsonSchema getJsonSchema(String moduleName, String typeName)
+	public JsonSchema getJsonSchema(TypeDefName type)
 			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		// first we retrieve the Json Schema document, this can throw a NoSuchTypeException
-		String jsonSchemaDocument = getJsonSchemaDocument(moduleName, typeName);
+		String jsonSchemaDocument = getJsonSchemaDocument(type);
 		
 		// next we parse the document into a JsonSchema using our jsonSchemaFactory
 		// if there are problems, we catch and throw up an error indicating a bad document
-		return jsonSchemaFromString(moduleName, typeName, jsonSchemaDocument);
+		return jsonSchemaFromString(type.getModule(), type.getName(), jsonSchemaDocument);
 	}
 
 	protected JsonSchema jsonSchemaFromString(String moduleName,
@@ -172,9 +175,9 @@ public class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public KbTypedef getTypeParsingDocument(String moduleName, String typeName) 
+	public KbTypedef getTypeParsingDocument(TypeDefName type) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return getTypeParsingDocument(moduleName, typeName, null);
+		return getTypeParsingDocument(type.getModule(), type.getName(), null);
 	}
 
 	public boolean isValidModule(String moduleName) throws TypeStorageException {
@@ -200,7 +203,11 @@ public class TypeDefinitionDB {
 	 * @param version
 	 * @return true if valid, false otherwise
 	 */
-	public boolean isValidType(String moduleName, String typeName, String version) throws TypeStorageException {
+	public boolean isValidType(AbsoluteTypeDefId typeDef) throws TypeStorageException {
+		return isValidType(typeDef.getType().getModule(), typeDef.getType().getName(), typeDef.getVerString());
+	}
+	
+	private boolean isValidType(String moduleName, String typeName, String version) throws TypeStorageException {
 		if (!isValidModule(moduleName))
 			return false;
 		SemanticVersion ver = findTypeVersion(moduleName, typeName, version);
@@ -257,7 +264,13 @@ public class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public String getJsonSchemaDocument(String moduleName, String typeName, String version)
+	public String getJsonSchemaDocument(AbsoluteTypeDefId typeDef)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getJsonSchemaDocument(typeDef.getType().getModule(), typeDef.getType().getName(), 
+				typeDef.getVerString());
+	}
+	
+	private String getJsonSchemaDocument(String moduleName, String typeName, String version)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		// first make sure that the json schema document can be found
@@ -297,12 +310,12 @@ public class TypeDefinitionDB {
 	 * @param typeName
 	 * @return latest version of specified type
 	 */
-	public String getLatestTypeVersion(String moduleName, String typeName) 
+	public String getLatestTypeVersion(TypeDefName type) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		checkModule(moduleName);
-		SemanticVersion ret = findLastTypeVersion(moduleName, typeName, false);
+		checkModule(type.getModule());
+		SemanticVersion ret = findLastTypeVersion(type.getModule(), type.getName(), false);
 		if (ret == null)
-			throwNoSuchTypeException(moduleName, typeName, null);
+			throwNoSuchTypeException(type.getModule(), type.getName(), null);
 		return ret.toString();
 	}
 	
@@ -398,8 +411,10 @@ public class TypeDefinitionDB {
 	 * @throws NoSuchTypeException when current major version isn't 0
 	 * @throws NoSuchPrivilegeException 
 	 */
-	public String releaseType(String moduleName, String typeName, String userId)
+	public String releaseType(TypeDefName type, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		String moduleName = type.getModule();
+		String typeName = type.getName();
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion curVersion = findLastTypeVersion(info, typeName, false);
@@ -407,8 +422,8 @@ public class TypeDefinitionDB {
 			throwNoSuchTypeException(moduleName, typeName, null);
 		if (curVersion.getMajor() != 0)
 			throwNoSuchTypeException(moduleName, typeName, "0.x");
-		String jsonSchemaDocument = getJsonSchemaDocument(moduleName, typeName);
-		KbTypedef specParsing = getTypeParsingDocument(moduleName, typeName);
+		String jsonSchemaDocument = getJsonSchemaDocument(moduleName, typeName, null);
+		KbTypedef specParsing = getTypeParsingDocument(moduleName, typeName, null);
 		Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString());
 		SemanticVersion ret = releaseVersion;
 		long transactionStartTime = storage.getStorageCurrentTime();
@@ -426,8 +441,10 @@ public class TypeDefinitionDB {
 		return ret.toString();
 	}
 	
-	public void removeTypeForAllVersions(String moduleName, String typeName, String userId)
+	public void removeTypeForAllVersions(TypeDefName type, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		String moduleName = type.getModule();
+		String typeName = type.getName();
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
 		if (!info.getTypes().containsKey(typeName))
@@ -457,7 +474,13 @@ public class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public KbTypedef getTypeParsingDocument(String moduleName, String typeName,
+	public KbTypedef getTypeParsingDocument(AbsoluteTypeDefId typeDef) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getTypeParsingDocument(typeDef.getType().getModule(), typeDef.getType().getName(), 
+				typeDef.getVerString());
+	}
+	
+	private KbTypedef getTypeParsingDocument(String moduleName, String typeName,
 			String version) throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion documentVer = findTypeVersion(moduleName, typeName, version);
@@ -644,16 +667,16 @@ public class TypeDefinitionDB {
 		return ret.toString();
 	}
 	
-	public KbFuncdef getFuncParsingDocument(String moduleName, String typeName,
+	public KbFuncdef getFuncParsingDocument(String moduleName, String funcName,
 			String version) throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion curVersion = version == null ? 
-				findLastFuncVersion(moduleName, typeName, false) : new SemanticVersion(version);
+				findLastFuncVersion(moduleName, funcName, false) : new SemanticVersion(version);
 		if (curVersion == null)
-			throwNoSuchFuncException(moduleName, typeName, null);
-		String ret = storage.getFuncParseRecord(moduleName, typeName, curVersion.toString());
+			throwNoSuchFuncException(moduleName, funcName, null);
+		String ret = storage.getFuncParseRecord(moduleName, funcName, curVersion.toString());
 		if (ret == null)
-			throwNoSuchFuncException(moduleName, typeName, version);
+			throwNoSuchFuncException(moduleName, funcName, version);
 		try {
 			Map<?,?> data = mapper.readValue(ret, Map.class);
 			return new KbFuncdef().loadFromMap(data, null);
@@ -673,8 +696,10 @@ public class TypeDefinitionDB {
 		ti.setSupported(false);
 	}
 	
-	public void stopTypeSupport(String moduleName, String typeName, String userId)
+	public void stopTypeSupport(TypeDefName type, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		String moduleName = type.getModule();
+		String typeName = type.getName();
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.getStorageCurrentTime();
@@ -688,13 +713,14 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public void removeTypeVersion(String moduleName, String typeName, String version, String userId) 
+	public void removeTypeVersion(AbsoluteTypeDefId typeDef, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		checkUserIsOwnerOrAdmin(moduleName, userId);
-		checkModule(moduleName);
-		SemanticVersion sVer = new SemanticVersion(version);
-		if (!storage.removeTypeRecordsForVersion(moduleName, typeName, sVer.toString()))
-			throwNoSuchTypeException(moduleName, typeName, version);
+		checkUserIsOwnerOrAdmin(typeDef.getType().getModule(), userId);
+		checkModule(typeDef.getType().getModule());
+		if (!storage.removeTypeRecordsForVersion(typeDef.getType().getModule(), typeDef.getType().getName(), 
+				typeDef.getVerString()))
+			throwNoSuchTypeException(typeDef.getType().getModule(), typeDef.getType().getName(), 
+					typeDef.getVerString());
 	}
 	
 	private void stopFuncSupport(ModuleInfo info, String funcName) 
@@ -741,13 +767,17 @@ public class TypeDefinitionDB {
 		storage.removeAllRefs();
 	}
 	
-	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType, 
-			String version) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByDep(AbsoluteTypeDefId depTypeDef) throws TypeStorageException {
+		String depModule = depTypeDef.getType().getModule();
+		String depType = depTypeDef.getType().getName();
+		String version = depTypeDef.getVerString();
 		return storage.getTypeRefsByDep(depModule, depType, version);
 	}
 	
-	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType, 
-			String version) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+		String refModule = refTypeDef.getType().getModule();
+		String refType = refTypeDef.getType().getName();
+		String version = refTypeDef.getVerString();
 		return storage.getTypeRefsByRef(refModule, refType, version);
 	}
 	
@@ -756,8 +786,10 @@ public class TypeDefinitionDB {
 		return storage.getFuncRefsByDep(depModule, depFunc, version);
 	}
 	
-	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType, 
-			String version) throws TypeStorageException {
+	public Set<RefInfo> getFuncRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+		String refModule = refTypeDef.getType().getModule();
+		String refType = refTypeDef.getType().getName();
+		String version = refTypeDef.getVerString();
 		return storage.getFuncRefsByRef(refModule, refType, version);
 	}
 	
