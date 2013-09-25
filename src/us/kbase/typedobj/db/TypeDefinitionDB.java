@@ -8,7 +8,6 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,12 +27,14 @@ import us.kbase.kidl.KbMapping;
 import us.kbase.kidl.KbModule;
 import us.kbase.kidl.KbModuleComp;
 import us.kbase.kidl.KbParameter;
+import us.kbase.kidl.KbScalar;
 import us.kbase.kidl.KbService;
 import us.kbase.kidl.KbStruct;
 import us.kbase.kidl.KbStructItem;
 import us.kbase.kidl.KbTuple;
 import us.kbase.kidl.KbType;
 import us.kbase.kidl.KbTypedef;
+import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
 import us.kbase.typedobj.core.validatorconfig.ValidationConfigurationFactory;
 import us.kbase.typedobj.exceptions.*;
@@ -68,6 +69,13 @@ public class TypeDefinitionDB {
 	private final boolean withApprovalQueue;
 	private final UserInfoProvider uip;
 	
+	enum Change {
+		noChange, backwardCompatible, notCompatible;
+		
+		public static Change joinChanges(Change c1, Change c2) {
+			return Change.values()[Math.max(c1.ordinal(), c2.ordinal())];
+		}
+	}
 	
 	/**
 	 * Set up a new DB pointing to the specified db folder.  The contents
@@ -231,13 +239,12 @@ public class TypeDefinitionDB {
 	}
 	
 	private SemanticVersion findLastTypeVersion(ModuleInfo module, String typeName, boolean withNoLongerSupported) {
-		SemanticVersion ret = defaultVersion;
 		TypeInfo ti = module.getTypes().get(typeName);
 		if (ti == null || !(ti.isSupported() || withNoLongerSupported))
 			return null;
-		if (ti.getTypeVersion() != null && !ti.getTypeVersion().isEmpty())
-			ret = new SemanticVersion(ti.getTypeVersion());
-		return ret;
+		if (ti.getTypeVersion() == null)
+			return null;
+		return new SemanticVersion(ti.getTypeVersion());
 	}
 	
 	/**
@@ -517,13 +524,12 @@ public class TypeDefinitionDB {
 	}
 		
 	private SemanticVersion findLastFuncVersion(ModuleInfo mi, String funcName, boolean withNotSupported) {
-		SemanticVersion ret = defaultVersion;
 		FuncInfo fi = mi.getFuncs().get(funcName);
 		if (fi == null || !(fi.isSupported() || withNotSupported))
 			return null;
-		if (fi.getFuncVersion() != null && !fi.getFuncVersion().isEmpty())
-			ret = new SemanticVersion(fi.getFuncVersion());
-		return ret;
+		if (fi.getFuncVersion() == null)
+			return null;
+		return new SemanticVersion(fi.getFuncVersion());
 	}
 
 	/**
@@ -650,7 +656,7 @@ public class TypeDefinitionDB {
 			throwNoSuchFuncException(moduleName, typeName, version);
 		try {
 			Map<?,?> data = mapper.readValue(ret, Map.class);
-			return new KbFuncdef().loadFromMap(data);
+			return new KbFuncdef().loadFromMap(data, null);
 		} catch (Exception e) {
 			throw new IllegalStateException(e);
 		}
@@ -804,8 +810,7 @@ public class TypeDefinitionDB {
 	
 	public void registerModule(String specDocument, List<String> registeredTypes, 
 			String userId) throws SpecParseException, TypeStorageException {
-		saveModule(specDocument, true, new HashSet<String>(registeredTypes), Collections.<String>emptySet(), 
-				Collections.<String>emptySet(), Collections.<String>emptySet(), true, userId);
+		saveModule(specDocument, true, new HashSet<String>(registeredTypes), new HashSet<String>(), userId);
 	}
 	
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) throws SpecParseException {
@@ -874,10 +879,9 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private void saveModule(String specDocument, boolean isNew, Set<String> changedTypes,
-			Set<String> backwardIncompatibleTypes, Set<String> changedFuncs,
-			Set<String> backwardIncompatibleFuncs, boolean useAllFuncsInstead,
-			String userId) throws SpecParseException, TypeStorageException {
+	private void saveModule(String specDocument, boolean isNew, Set<String> addedTypes,
+			Set<String> unregisteredTypes, String userId) 
+					throws SpecParseException, TypeStorageException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		//System.out.println("----------------------------------------------");
@@ -908,83 +912,106 @@ public class TypeDefinitionDB {
 			Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 			if (typeToSchema == null)
 				throw new SpecParseException("Json schema generation was missed for module: " + moduleName);
-			List<KbTypedef> typesToSave = new ArrayList<KbTypedef>();
-			Set<String> registeredTypes = new HashSet<String>();
-			Set<String> registeredFuncs = new HashSet<String>();
+			Set<String> oldRegisteredTypes = new HashSet<String>();
+			Set<String> oldRegisteredFuncs = new HashSet<String>();
 			if (!isNew) {
 				for (TypeInfo typeInfo : info.getTypes().values())
 					if (typeInfo.isSupported())
-						registeredTypes.add(typeInfo.getTypeName());
-				registeredFuncs.addAll(getAllRegisteredFuncs(moduleName));
+						oldRegisteredTypes.add(typeInfo.getTypeName());
 				for (FuncInfo funcInfo : getModuleInfo(moduleName).getFuncs().values()) 
 					if (funcInfo.isSupported())
-						registeredFuncs.add(funcInfo.getFuncName());
+						oldRegisteredFuncs.add(funcInfo.getFuncName());
 			}
-			registeredTypes.addAll(changedTypes);
-			registeredFuncs.addAll(changedFuncs);
+			for (String type : unregisteredTypes) {
+				if (!oldRegisteredTypes.contains(type))
+					throw new SpecParseException("Type is in unregistering type list but was not already " +
+							"registered: " + type);
+			}
+			for (String type : addedTypes) {
+				if (oldRegisteredTypes.contains(type))
+					throw new SpecParseException("Type was already registered before: " + type);
+				if (unregisteredTypes.contains(type))
+					throw new SpecParseException("Type couldn't be in both adding and unregistering lists: " + type);
+			}
+			Set<String> newRegisteredTypes = new HashSet<String>();
+			newRegisteredTypes.addAll(oldRegisteredTypes);
+			newRegisteredTypes.removeAll(unregisteredTypes);
+			newRegisteredTypes.addAll(addedTypes);
 			Set<String> allNewTypes = new HashSet<String>();
 			Set<String> allNewFuncs = new HashSet<String>();
-			List<ComponentCreation> comps = new ArrayList<ComponentCreation>();
+			List<ComponentChange> comps = new ArrayList<ComponentChange>();
 			for (KbModuleComp comp : module.getModuleComponents()) {
 				if (comp instanceof KbTypedef) {
 					KbTypedef type = (KbTypedef)comp;
 					allNewTypes.add(type.getName());
-					if (changedTypes.contains(type.getName())) {
+					if (newRegisteredTypes.contains(type.getName())) {
 						if (typeToSchema.get(type.getName()) == null)
 							throw new SpecParseException("Json schema wasn't generated for type: " + type.getName());
-						typesToSave.add(type);
+						Change change = findTypeChange(info, type);
+						if (change == Change.noChange)
+							continue;
 						String jsonSchemaDocument = typeToSchema.get(type.getName());
-						boolean notBackwardCompatible = backwardIncompatibleTypes.contains(type.getName());
-						Set<RefInfo> dependencies = extractTypeRefs(type, moduleToInfo, registeredTypes);
+						Set<RefInfo> dependencies = extractTypeRefs(type, moduleToInfo, newRegisteredTypes);
 						jsonSchemaFromString(info.getModuleName(), type.getName(), jsonSchemaDocument);
-						comps.add(new ComponentCreation(true, type.getName(), jsonSchemaDocument, type, null, 
+						boolean notBackwardCompatible = (change == Change.notCompatible);
+						comps.add(new ComponentChange(true, false, type.getName(), jsonSchemaDocument, type, null, 
 								notBackwardCompatible, dependencies));
 					}
 				} else if (comp instanceof KbFuncdef) {
 					KbFuncdef func = (KbFuncdef)comp;
 					allNewFuncs.add(func.getName());
-					if (isNew || changedFuncs.contains(func.getName())) {
-						boolean notBackwardCompatible = backwardIncompatibleFuncs.contains(func.getName());
-						Set<RefInfo> dependencies = new TreeSet<RefInfo>();
-						for (KbParameter param : func.getParameters())
-							dependencies.addAll(extractTypeRefs(moduleName, func.getName(), param, moduleToInfo, registeredTypes));
-						for (KbParameter param : func.getReturnType())
-							dependencies.addAll(extractTypeRefs(moduleName, func.getName(), param, moduleToInfo, registeredTypes));					
-						comps.add(new ComponentCreation(false, func.getName(), null, null, func, notBackwardCompatible, 
-								dependencies));
-					}
+					Change change = findFuncChange(info, func);
+					if (change == Change.noChange)
+						continue;
+					Set<RefInfo> dependencies = new TreeSet<RefInfo>();
+					for (KbParameter param : func.getParameters())
+						dependencies.addAll(extractTypeRefs(moduleName, func.getName(), param, moduleToInfo, newRegisteredTypes));
+					for (KbParameter param : func.getReturnType())
+						dependencies.addAll(extractTypeRefs(moduleName, func.getName(), param, moduleToInfo, newRegisteredTypes));					
+					boolean notBackwardCompatible = (change == Change.notCompatible);
+					comps.add(new ComponentChange(false, false, func.getName(), null, null, func, notBackwardCompatible, 
+							dependencies));
+				}
+			}
+			for (String type : addedTypes) {
+				if (!allNewTypes.contains(type))
+					throw new SpecParseException("Type is in adding type list but is not defined in spec-file: " + type);
+			}
+			for (String type : newRegisteredTypes) {
+				if (!allNewTypes.contains(type))
+					unregisteredTypes.add(type);
+			}
+			for (String typeName : unregisteredTypes) {
+				comps.add(new ComponentChange(true, true, typeName, null, null, null, false, null));
+			}
+			for (String funcName : oldRegisteredFuncs) {
+				if (!allNewFuncs.contains(funcName)) {
+					comps.add(new ComponentChange(false, true, funcName, null, null, null, false, null));
 				}
 			}
 			Set<RefInfo> createdTypeRefs = new TreeSet<RefInfo>();
 			Set<RefInfo> createdFuncRefs = new TreeSet<RefInfo>();
 			transactionStartTime = storage.getStorageCurrentTime();
-			
-			for (ComponentCreation comp : comps) {
+			for (ComponentChange comp : comps) {
 				if (comp.isType) {
-					saveType(info, comp.name, comp.jsonSchemaDocument, comp.typeParsing, comp.notBackwardCompatible, 
-							comp.dependencies);					
-					createdTypeRefs.addAll(comp.dependencies);
+					if (comp.isDeletion) {
+						stopTypeSupport(info, comp.name);						
+					} else {
+						saveType(info, comp.name, comp.jsonSchemaDocument, comp.typeParsing, comp.notBackwardCompatible, 
+								comp.dependencies);					
+						createdTypeRefs.addAll(comp.dependencies);
+					}
 				} else {
-					saveFunc(info, comp.name, comp.funcParsing, comp.notBackwardCompatible, comp.dependencies);
-					createdFuncRefs.addAll(comp.dependencies);
+					if (comp.isDeletion) {
+						stopFuncSupport(info, comp.name);
+					} else {
+						saveFunc(info, comp.name, comp.funcParsing, comp.notBackwardCompatible, comp.dependencies);
+						createdFuncRefs.addAll(comp.dependencies);
+					}
 				}
 			}
 			writeModuleInfo(moduleName, info, transactionStartTime);
 			writeModuleSpec(moduleName, specDocument, transactionStartTime);
-			for (String typeName : registeredTypes) {
-				if (!allNewTypes.contains(typeName)) {
-					if (changedTypes.contains(typeName))
-						throw new SpecParseException("Type from change list is not found in current spec-file: " + typeName);
-					stopTypeSupport(info, typeName);
-				}
-			}
-			for (String funcName : registeredFuncs) {
-				if (!allNewFuncs.contains(funcName)) {
-					if (changedFuncs.contains(funcName))
-						throw new SpecParseException("Function from change list is not found in current spec-file: " + funcName);
-					stopFuncSupport(info, funcName);
-				}
-			}
 			storage.addRefs(createdTypeRefs, createdFuncRefs);
 			transactionStartTime = -1;
 		} catch (TypeStorageException ex) {
@@ -1000,6 +1027,109 @@ public class TypeDefinitionDB {
 				}
 			} catch (Exception ignore) {}
 		}
+	}
+	
+	private Change findTypeChange(ModuleInfo info, KbTypedef newType) 
+			throws SpecParseException, NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		if (!info.getTypes().containsKey(newType.getName()))
+			return Change.notCompatible;
+		TypeInfo ti = info.getTypes().get(newType.getName());
+		KbTypedef oldType = getTypeParsingDocument(info.getModuleName(), ti.getTypeName(), ti.getTypeVersion());
+		return findChange(oldType, newType);
+	}
+	
+	private Change findChange(KbType oldType, KbType newType) throws SpecParseException {
+		if (!oldType.getClass().equals(newType.getClass()))
+			return Change.notCompatible;
+		if (newType instanceof KbTypedef) {
+			KbTypedef oldIType = (KbTypedef)oldType;
+			KbTypedef newIType = (KbTypedef)newType;
+			if (!newIType.getName().equals(oldIType.getName()))
+				return Change.notCompatible;
+			return findChange(oldIType.getAliasType(), newIType.getAliasType());
+		} else if (newType instanceof KbList) {
+			KbList oldIType = (KbList)oldType;
+			KbList newIType = (KbList)newType;
+			return findChange(oldIType.getElementType(), newIType.getElementType());
+		} else if (newType instanceof KbMapping) {
+			KbMapping oldIType = (KbMapping)oldType;
+			KbMapping newIType = (KbMapping)newType;
+			return findChange(oldIType.getValueType(), newIType.getValueType());
+		} else if (newType instanceof KbTuple) {
+			KbTuple oldIType = (KbTuple)oldType;
+			KbTuple newIType = (KbTuple)newType;
+			if (oldIType.getElementTypes().size() != newIType.getElementTypes().size())
+				return Change.notCompatible;
+			Change ret = Change.noChange;
+			for (int pos = 0; pos < oldIType.getElementTypes().size(); pos++) {
+				ret = Change.joinChanges(ret, findChange(oldIType.getElementTypes().get(pos), 
+						newIType.getElementTypes().get(pos)));
+				if (ret == Change.notCompatible)
+					return ret;
+			}
+			return ret;
+		} else if (newType instanceof KbUnspecifiedObject) {
+			return Change.noChange;
+		} else if (newType instanceof KbScalar) {
+			KbScalar oldIType = (KbScalar)oldType;
+			KbScalar newIType = (KbScalar)newType;
+			if (oldIType.getScalarType() != newIType.getScalarType())
+				return Change.notCompatible;
+			String oldIdRefText = "" + oldIType.getIdReferences();
+			String newIdRefText = "" + newIType.getIdReferences();
+			return oldIdRefText.equals(newIdRefText) ? Change.noChange : Change.notCompatible;
+		} else if (newType instanceof KbStruct) {
+			KbStruct oldIType = (KbStruct)oldType;
+			KbStruct newIType = (KbStruct)newType;
+			Map<String, KbStructItem> newFields = new HashMap<String, KbStructItem>();
+			for (KbStructItem item : newIType.getItems())
+				newFields.put(item.getName(), item);
+			Change ret = Change.noChange;
+			for (KbStructItem oldItem : oldIType.getItems()) {
+				if (!newFields.containsKey(oldItem.getName()))
+					return Change.notCompatible;
+				ret = Change.joinChanges(ret, findChange(oldItem.getItemType(), 
+						newFields.get(oldItem.getName()).getItemType()));
+				if (ret == Change.notCompatible)
+					return ret;
+				if (oldItem.isOptional() != newFields.get(oldItem.getName()).isOptional())
+					return Change.notCompatible;
+				newFields.remove(oldItem.getName());
+			}
+			for (KbStructItem newItem : newFields.values()) {
+				if (!newItem.isOptional())
+					return Change.notCompatible;
+				ret = Change.joinChanges(ret, Change.backwardCompatible);
+			}
+		}
+		throw new SpecParseException("Unknown type class: " + newType.getClass().getSimpleName());
+	}
+
+	private Change findFuncChange(ModuleInfo info, KbFuncdef newFunc) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, SpecParseException {
+		if (!info.getFuncs().containsKey(newFunc.getName()))
+			return Change.notCompatible;
+		FuncInfo fi = info.getFuncs().get(newFunc.getName());
+		KbFuncdef oldFunc = getFuncParsingDocument(info.getModuleName(), fi.getFuncName(), fi.getFuncVersion());
+		if (oldFunc.getParameters().size() != newFunc.getParameters().size() ||
+				oldFunc.getReturnType().size() != newFunc.getReturnType().size())
+			return Change.notCompatible;
+		Change ret = Change.noChange;
+		for (int pos = 0; pos < oldFunc.getParameters().size(); pos++) {
+			KbParameter oldParam = oldFunc.getParameters().get(pos);
+			KbParameter newParam = newFunc.getParameters().get(pos);
+			ret = Change.joinChanges(ret, findChange(oldParam.getType(), newParam.getType()));
+			if (ret == Change.notCompatible)
+				return ret;
+		}
+		for (int pos = 0; pos < oldFunc.getReturnType().size(); pos++) {
+			KbParameter oldRet = oldFunc.getReturnType().get(pos);
+			KbParameter newRet = newFunc.getReturnType().get(pos);
+			ret = Change.joinChanges(ret, findChange(oldRet.getType(), newRet.getType()));
+			if (ret == Change.notCompatible)
+				return ret;
+		}
+		return ret;
 	}
 
 	private Set<RefInfo> extractTypeRefs(KbTypedef main, Map<String, ModuleInfo> moduleToInfo,
@@ -1090,12 +1220,10 @@ public class TypeDefinitionDB {
 		dir.delete();
 	}
 	
-	public void updateModule(String specDocument, List<String> changedTypes,
-			List<String> backwardIncompatibleTypes, List<String> changedFuncs,
-			List<String> backwardIncompatibleFuncs, String userId) throws SpecParseException, TypeStorageException {
-		saveModule(specDocument, false, new HashSet<String>(changedTypes), 
-				new HashSet<String>(backwardIncompatibleTypes), new HashSet<String>(changedFuncs), 
-				new HashSet<String>(backwardIncompatibleFuncs), false, userId);
+	public void updateModule(String specDocument, List<String> addedTypes, List<String> unregisteredTypes,
+			String userId) throws SpecParseException, TypeStorageException {
+		saveModule(specDocument, false, new HashSet<String>(addedTypes), 
+				new HashSet<String>(unregisteredTypes), userId);
 	}
 	
 	public void addOwnerToModule(String knownOwnerUserId, String moduleName, String newOwnerUserId, 
@@ -1118,8 +1246,9 @@ public class TypeDefinitionDB {
 					"priviledges for module " + moduleName);
 	}
 	
-	private static class ComponentCreation {
+	private static class ComponentChange {
 		boolean isType;
+		boolean isDeletion;
 		String name;
 		String jsonSchemaDocument;
 		KbTypedef typeParsing;
@@ -1127,9 +1256,10 @@ public class TypeDefinitionDB {
 		boolean notBackwardCompatible;
 		Set<RefInfo> dependencies;
 		
-		public ComponentCreation(boolean isType, String name, String jsonSchemaDocument, KbTypedef typeParsing,
+		public ComponentChange(boolean isType, boolean isDeletion, String name, String jsonSchemaDocument, KbTypedef typeParsing,
 				KbFuncdef funcParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) {
 			this.isType = isType;
+			this.isDeletion = isDeletion;
 			this.name = name;
 			this.jsonSchemaDocument = jsonSchemaDocument;
 			this.typeParsing = typeParsing;
