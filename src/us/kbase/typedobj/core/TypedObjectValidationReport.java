@@ -3,6 +3,7 @@ package us.kbase.typedobj.core;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import us.kbase.typedobj.core.ReportUtil.IdForValidation;
@@ -29,6 +30,7 @@ public class TypedObjectValidationReport {
 	private final AbsoluteTypeDefId validationTypeDefId;
 	
 	private List<IdReference> idReferences;
+	
 	private boolean idRefListIsBuilt;
 	
 	
@@ -46,7 +48,9 @@ public class TypedObjectValidationReport {
 		return validationTypeDefId;
 	}
 	
-	
+	/**
+	 * @return boolean true if the instance is valid, false otherwise
+	 */
 	public boolean isInstanceValid() {
 		return processingReport.isSuccess();
 	}
@@ -97,18 +101,48 @@ public class TypedObjectValidationReport {
 		return processingReport;
 	}
 	
-	public List<IdReference> getListOfIdReferences() {
+	
+	
+	/**
+	 * Returns the full information about each ID Reference, e.g. info on where in the instance it was located
+	 * @return
+	 */
+	public List<IdReference> getListOfIdReferenceObjects() {
 		if(!idRefListIsBuilt) {
 			buildIdList();
 		}
-		return idReferences;
+		return this.idReferences;
 	}
 	
+	/**
+	 * Return a list of all fields that were flagged as ID References
+	 * @return
+	 */	
+	public String [] getListOfIdReferences() {
+		if(!idRefListIsBuilt) {
+			buildIdList();
+		}
+		String [] idRefOnly = new String[idReferences.size()];
+		for(int i=0; i<idReferences.size(); i++) {
+			idRefOnly[i] = idReferences.get(i).getIdReference();
+		}
+		return idRefOnly;
+	}
+	
+	
+	/**
+	 * Set the absolute ID References as specified in the absoluteIdRefMapping (original ids
+	 * are keys, replacement absolute IDs are values)
+	 */
+	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) {
+		//@todo implement
+	}
 	
 	
 	@Override
 	public String toString() {
 		// temp hack, just return what the processing report says
+		//@TODO make nicer string version of TypedObjectValidationReport
 		return processingReport.toString();
 	}
 	

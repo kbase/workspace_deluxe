@@ -1,12 +1,15 @@
 package us.kbase.typedobj.core;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -17,6 +20,32 @@ import us.kbase.typedobj.exceptions.*;
  * registered in a type definition database.  This interface also provides methods for
  * extracting ID reference fields from a typed object instance, relabeling ID references,
  * and extracting the searchable subset of a typed object instance as smaller JSON object.
+ * 
+ * Ex.
+ * // validate, which gives you a report
+ * TypedObjectValidator tov = ...
+ * TypedObjectValidationReport report = tov.validate(instanceRootNode, typeDefId);
+ * if(report.isInstanceValid()) {
+ *    // get a list of ids
+ *    String [] idReferences = report.getIdReferences();
+ *      ... validate refs, create map which maps id refs to absolute id refs ...
+ *    Map<string,string> absoluteIdMap = ...
+ *    
+ *    // update the ids in place
+ *    report.setAbsoluteIdReferences(absoluteIdMap);
+ *    tov.relableToAbsoluteIds(instanceRootNode,report);
+ *    
+ *    // extract out 
+ *    JsonNode subset = tov.extractWsSearchableSubset(instanceRootNode,report);
+ *    
+ *      ... do what you want with the instance and the subset ...
+ *    
+ *    
+ * } else {
+ *   ... handle invalid typed object
+ * }
+ * 
+ * 
  * @author msneddon
  * @author gaprice@lbl.gov
  *
@@ -30,6 +59,7 @@ public final class TypedObjectValidator {
 	 */
 	protected TypeDefinitionDB typeDefDB;
 	
+	
 	/**
 	 * Get the type database the validator validates typed object instances against.
 	 * @return the database.
@@ -37,6 +67,7 @@ public final class TypedObjectValidator {
 	public TypeDefinitionDB getDB() {
 		return typeDefDB;
 	}
+	
 	
 	/**
 	 * Construct a TypedObjectValidator set to the specified Typed Object Definition DB
@@ -46,9 +77,8 @@ public final class TypedObjectValidator {
 	}
 	
 	
-	
 	/**
-	 * Validate a Json String instance against the specified module and type.  Returns a TypedObjectValidationReport
+	 * Validate a Json String instance against the specified TypeDefId.  Returns a TypedObjectValidationReport
 	 * containing the results of the validation and any other KBase typed object specific information such
 	 * as a list of recognized IDs.
 	 * @param instance in Json format
@@ -110,7 +140,18 @@ public final class TypedObjectValidator {
 		return new TypedObjectValidationReport(report, new AbsoluteTypeDefId(new TypeDefName(mt.getModule(),mt.getName()),0,0));
 	}
 
-	
+	/**
+	 * Batch validation of the given Json instances, all against a single TypeDefId.  This method saves some communication
+	 * steps with the backend 
+	 * @param instanceRootNodes
+	 * @param typeDefId
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws InstanceValidationException
+	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException
+	 */
 	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
@@ -134,8 +175,50 @@ public final class TypedObjectValidator {
 	
 	
 	
+	/**
+	 * Given the original JsonNode instance and a report from a validation, convert all ID references in the JsonNode
+	 * to the absolute reference set in the report.
+	 * @param instanceRootNode
+	 * @param report
+	 * @return
+	 */
+	public void relableToAbsoluteIds(JsonNode instanceRootNode, TypedObjectValidationReport report) {
+		
+		//@TODO implement
+		
+		
+		return;
+	}
 	
 	
+	
+	public JsonNode extractWsSearchableSubset(JsonNode instanceRootNode, TypedObjectValidationReport report) {
+		
+		// current method uses the data stashed by the report
+		//@TODO double check that any updates to instanceRootNode get propagated via the report....
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode subset = mapper.createObjectNode();
+		Iterator<ProcessingMessage> mssgs = report.getRawProcessingReport().iterator();
+		while(mssgs.hasNext()) {
+			ProcessingMessage m = mssgs.next();
+			if( m.getMessage().compareTo("ws-searchable-fields-subset") == 0 ) {
+				JsonNode fieldsSubset = m.asJson().get("value");
+				Iterator<String> fieldNames = fieldsSubset.fieldNames();
+				while(fieldNames.hasNext()) {
+					String fieldName = fieldNames.next();
+					subset.put(fieldName, fieldsSubset.findValue(fieldName));
+				}
+			} else if( m.getMessage().compareTo("ws-searchable-keys-subset") == 0 ) {
+				JsonNode fieldsSubset = m.asJson().get("keys_of");
+				Iterator<String> fieldNames = fieldsSubset.fieldNames();
+				while(fieldNames.hasNext()) {
+					String fieldName = fieldNames.next();
+					subset.put(fieldName, fieldsSubset.findValue(fieldName));
+				}
+			}
+		}
+		return subset;
+	}
 	
 	
 
