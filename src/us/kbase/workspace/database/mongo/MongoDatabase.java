@@ -132,7 +132,7 @@ public class MongoDatabase implements Database {
 		//find objects by workspace id & name
 		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique"));
 		//find object by workspace id & object id
-		wsPtr.put(Arrays.asList("workspace", "id"), Arrays.asList("unique"));
+		wsPtr.put(Arrays.asList("workspace", "id", "versions.version"), Arrays.asList("unique"));
 		//find objects by legacy UUID
 		wsPtr.put(Arrays.asList("versions.legacyUUID"), Arrays.asList("unique", "sparse"));
 		//determine whether a particular object references this object
@@ -151,7 +151,6 @@ public class MongoDatabase implements Database {
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
-		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
@@ -172,7 +171,6 @@ public class MongoDatabase implements Database {
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
-		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
@@ -885,7 +883,6 @@ public class MongoDatabase implements Database {
 				newobjects++;
 			}
 		}
-		//TODO unique index on ws/objid/ver
 		final Map<WorkspaceObjectID, ObjID> objIDs = getObjectIDs(wsidmongo,
 				idToPkg.keySet());
 		for (WorkspaceObjectID o: idToPkg.keySet()) {
