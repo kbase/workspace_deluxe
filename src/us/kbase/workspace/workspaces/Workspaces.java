@@ -264,7 +264,7 @@ public class Workspaces {
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
 		db.setObjectsDeleted(removeVersions(user, loi, Permission.WRITE,
-				"delete objects from"), delete);
+				(delete ? "" : "un") + "delete objects from"), delete);
 	}
 
 	public void requestModuleRegistration(final WorkspaceUser user,

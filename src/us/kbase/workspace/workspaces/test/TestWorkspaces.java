@@ -40,8 +40,11 @@ import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.TestException;
@@ -982,5 +985,100 @@ public class TestWorkspaces {
 		testRef("1.n.3", "Unable to parse object portion of object reference 1.n.3 to an integer");
 		testRef("1.2.n", "Unable to parse version portion of object reference 1.2.n to an integer");
 		testRef("1", "Illegal number of separators . in object id reference 1");
+	}
+	
+	@Test
+	public void deleteUndelete() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
+		int wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, null).getId();
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+		Map<String, String> data1 = new HashMap<String, String>();
+		Map<String, String> data2 = new HashMap<String, String>();
+		data1.put("data", "1");
+		data2.put("data", "2");
+		ws.saveObjects(foo, read, Arrays.asList(
+				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false),
+				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data2, t, null, null, false)));
+		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
+		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
+		
+		Map<ObjectIdentifier, Object> idToData = new HashMap<ObjectIdentifier, Object>();
+		idToData.put(o1, data1);
+		idToData.put(o2, data2);
+		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
+		
+		checkNonDeletedObjs(foo, idToData);
+		List<ObjectIdentifier> obj1 = new ArrayList<ObjectIdentifier>(Arrays.asList(o1));
+		List<ObjectIdentifier> obj2 = new ArrayList<ObjectIdentifier>(Arrays.asList(o2));
+		try {
+			ws.setObjectsDeleted(new WorkspaceUser("bar"), obj1, true);
+			fail("deleted objects w/o auth");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("User bar may not delete objects from workspace deleteundelete"));
+		}
+		try {
+			ws.setObjectsDeleted(new WorkspaceUser("bar"), obj1, false);
+			fail("deleted objects w/o auth");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("User bar may not undelete objects from workspace deleteundelete"));
+		}
+		ws.setObjectsDeleted(foo, obj1, true);
+		String err = String.format("Object obj in workspace %s has been deleted", wsid);
+		failToGetDeletedObjects(foo, objs, err);
+		failToGetDeletedObjects(foo, obj1, err);
+		failToGetDeletedObjects(foo, obj2, err);
+		
+		ws.setObjectsDeleted(foo, obj2, true); //should have no effect
+		failToGetDeletedObjects(foo, objs, err);
+		failToGetDeletedObjects(foo, obj1, err);
+		failToGetDeletedObjects(foo, obj2, err);
+		
+		ws.setObjectsDeleted(foo, obj2, false);
+		checkNonDeletedObjs(foo, idToData);
+		
+		ws.setObjectsDeleted(foo, obj1, false);//should have no effect
+		checkNonDeletedObjs(foo, idToData);
+		
+		ws.setObjectsDeleted(foo, obj2, true);
+		failToGetDeletedObjects(foo, objs, err);
+		failToGetDeletedObjects(foo, obj1, err);
+		failToGetDeletedObjects(foo, obj2, err);
+
+		//save should undelete
+		ws.saveObjects(foo, read, Arrays.asList(
+				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false)));
+		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
+		idToData.put(o3, data1);
+		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
+		
+		checkNonDeletedObjs(foo, idToData);
+	}
+
+	private void checkNonDeletedObjs(WorkspaceUser foo,
+			Map<ObjectIdentifier, Object> idToData) throws CorruptWorkspaceDBException,
+			NoSuchWorkspaceException, WorkspaceCommunicationException,
+			WorkspaceAuthorizationException, NoSuchObjectException {
+		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
+		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
+		for (int i = 0; i < d.size(); i++) {
+			assertThat("can get correct data from undeleted objects",
+					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+		}
+	}
+
+	private void failToGetDeletedObjects(WorkspaceUser user,
+			List<ObjectIdentifier> objs, String exception) throws
+			CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		try {
+			ws.getObjects(user, objs);
+			fail("got deleted objects");
+		} catch (NoSuchObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
+		}
+		
 	}
 }

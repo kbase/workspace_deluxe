@@ -98,7 +98,6 @@ public class TypeDefs {
 		}
 		assertThat("check verstring", new AbsoluteTypeDefId(wst, 1, 1).getVerString(),
 				is("1.1"));
-		
 	}
 	
 	private void checkTypeDefName(String module, String name, String exception) {

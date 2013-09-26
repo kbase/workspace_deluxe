@@ -1228,7 +1228,6 @@ public class MongoDatabase implements Database {
 		return wsToIDs;
 	}
 
-	//TODO tests for un/delete - save over deleted objects, cant getObject* on deleted objects
 	@Override
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWSNoVer> objectIDs,
 			final boolean delete)
