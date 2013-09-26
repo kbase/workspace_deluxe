@@ -12,7 +12,7 @@ public class AbsoluteTypeDefId extends TypeDefId{
 			throw new IllegalArgumentException("Type cannot be null");
 		}
 		if (!type.isAbsolute()) {
-			throw new IllegalArgumentException("type must be absolute");
+			throw new IllegalArgumentException("Type must be absolute");
 		}
 		return new AbsoluteTypeDefId(type.getType(), type.getMajorVersion(),
 				type.getMinorVersion());

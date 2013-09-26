@@ -2,9 +2,13 @@ package us.kbase.typedobj.tests;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -66,11 +70,35 @@ public class TypeDefs {
 				is("foo.bar-1"));
 		assertThat("check typestring", new TypeDefId(wst).getTypeString(),
 				is("foo.bar"));
-		
+		assertNull("check verstring", new TypeDefId(wst).getVerString());
+		assertThat("check verstring", new TypeDefId(wst, 1).getVerString(), is("1"));
+		assertThat("check verstring", new TypeDefId(wst, 1, 1).getVerString(), is("1.1"));
+	}
+	
+	@Test
+	public void absType() throws Exception {
+		TypeDefName wst = new TypeDefName("foo", "bar");
 		checkAbsType(null, 1, 0, "Type cannot be null");
 		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
 		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
-		//TODO more abs type tests (from TypeId) assuming it sticks around after integration with Roman's code
+		checkAbsTypeFromType(null, null, null, "Type cannot be null");
+		checkAbsTypeFromType(null, null, 1, "Type cannot be null");
+		checkAbsTypeFromType(null, 1, 1, "Type cannot be null");
+		checkAbsTypeFromType(new TypeDefId(wst), null, null, "Type must be absolute");
+		checkAbsTypeFromType(new TypeDefId(wst, 1), null, null, "Type must be absolute");
+		checkAbsTypeFromType(new TypeDefId(wst), null, 1, "Incoming type major version cannot be null");
+		assertTrue("absolute type", new AbsoluteTypeDefId(wst, 1, 1).isAbsolute());
+		List<AbsoluteTypeDefId> ids = Arrays.asList(new AbsoluteTypeDefId(wst, 1, 1),
+				AbsoluteTypeDefId.fromTypeId(new TypeDefId(wst, 1, 1)),
+				AbsoluteTypeDefId.fromTypeId(new TypeDefId(wst, 1), 1),
+				AbsoluteTypeDefId.fromTypeId(new TypeDefId(wst), 1, 1));
+		for (AbsoluteTypeDefId id: ids) {
+			assertThat("check typestring",id.getTypeString(),
+					is("foo.bar-1.1"));
+		}
+		assertThat("check verstring", new AbsoluteTypeDefId(wst, 1, 1).getVerString(),
+				is("1.1"));
+		
 	}
 	
 	private void checkTypeDefName(String module, String name, String exception) {
@@ -110,14 +138,14 @@ public class TypeDefs {
 	
 	private void checkAbsTypeFromType(TypeDefId type, Integer major, Integer minor, String exception) {
 		try {
-			if (minor == null) {
-				if (major == null) {
-					AbsoluteTypeDefId.fromTypeId(type);
+			if (minor != null) {
+				if (major != null) {
+					AbsoluteTypeDefId.fromTypeId(type, major, minor);
 				} else {
-					AbsoluteTypeDefId.fromTypeId(type, major);
+					AbsoluteTypeDefId.fromTypeId(type, minor);
 				}
 			} else {
-				AbsoluteTypeDefId.fromTypeId(type, major, minor);
+				AbsoluteTypeDefId.fromTypeId(type);
 			}
 			fail("Initialized invalid type");
 		} catch (IllegalArgumentException e) {
