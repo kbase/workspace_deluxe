@@ -25,6 +25,7 @@ import us.kbase.common.service.Tuple9;
  * Object to object references
  * Workspace sharing
  * ***Add stuff here***
+ * Notes about deletion and GC
  * BINARY DATA:
  * All binary data must be hex encoded prior to storage in a workspace. 
  * Attempting to send binary data via a workspace client will cause errors.
@@ -241,5 +242,41 @@ public class WorkspaceClient {
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, false);
+    }
+
+    /**
+     * <p>Original spec-file function name: delete_workspace</p>
+     * <pre>
+     * Delete a workspace. All objects contained in the workspace are deleted.
+     * Running this command on a deleted workspace has no effect.
+     * </pre>
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void deleteWorkspace(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(wsi);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, false);
+    }
+
+    /**
+     * <p>Original spec-file function name: undelete_workspace</p>
+     * <pre>
+     * Undelete a workspace. All objects contained in the workspace are
+     * undeleted, regardless of their state at the time the workspace was
+     * deleted. Running this command on a workspace that is not deleted has
+     * no effect.
+     * </pre>
+     * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void undeleteWorkspace(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(wsi);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, false);
     }
 }

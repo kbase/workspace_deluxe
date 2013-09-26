@@ -30,6 +30,7 @@ Object to object references
 Workspace sharing
 **Add stuff here***
 
+Notes about deletion and GC
 
 BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
@@ -1265,6 +1266,186 @@ sub undelete_objects
 
 
 
+=head2 delete_workspace
+
+  $obj->delete_workspace($wsi)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsi is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsi is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+
+
+=end text
+
+=item Description
+
+Delete a workspace. All objects contained in the workspace are deleted.
+Running this command on a deleted workspace has no effect.
+
+=back
+
+=cut
+
+sub delete_workspace
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function delete_workspace (received $n, expecting 1)");
+    }
+    {
+	my($wsi) = @args;
+
+	my @_bad_arguments;
+        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to delete_workspace:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'delete_workspace');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.delete_workspace",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'delete_workspace',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method delete_workspace",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'delete_workspace',
+				       );
+    }
+}
+
+
+
+=head2 undelete_workspace
+
+  $obj->undelete_workspace($wsi)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsi is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsi is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+
+
+=end text
+
+=item Description
+
+Undelete a workspace. All objects contained in the workspace are
+undeleted, regardless of their state at the time the workspace was
+deleted. Running this command on a workspace that is not deleted has
+no effect.
+
+=back
+
+=cut
+
+sub undelete_workspace
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function undelete_workspace (received $n, expecting 1)");
+    }
+    {
+	my($wsi) = @args;
+
+	my @_bad_arguments;
+        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to undelete_workspace:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'undelete_workspace');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.undelete_workspace",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'undelete_workspace',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method undelete_workspace",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'undelete_workspace',
+				       );
+    }
+}
+
+
+
 sub version {
     my ($self) = @_;
     my $result = $self->{client}->call($self->{url}, {
@@ -1276,16 +1457,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'undelete_objects',
+                method_name => 'undelete_workspace',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method undelete_objects",
+            error => "Error invoking method undelete_workspace",
             status_line => $self->{client}->status_line,
-            method_name => 'undelete_objects',
+            method_name => 'undelete_workspace',
         );
     }
 }
