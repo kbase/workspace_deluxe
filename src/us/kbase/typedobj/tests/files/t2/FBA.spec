@@ -12,8 +12,7 @@ module FBA {
 	*/
 	typedef string fba_model_id;
 
-	
-	/* 
+	/*
 	@ws_searchable id name genome
 	@optional description
 	*/

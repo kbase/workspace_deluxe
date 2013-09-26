@@ -60,9 +60,6 @@ public class TypedObjExample1 {
 		for(IdReference idRef: idRefList) {
 			System.out.println(idRef);
 		}
-		
-		
-		
 
 	}
 	
