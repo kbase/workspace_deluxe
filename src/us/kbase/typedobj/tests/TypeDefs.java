@@ -2,6 +2,7 @@ package us.kbase.typedobj.tests;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -66,7 +67,14 @@ public class TypeDefs {
 				is("foo.bar-1"));
 		assertThat("check typestring", new TypeDefId(wst).getTypeString(),
 				is("foo.bar"));
-		
+		assertNull("check verstring", new TypeDefId(wst).getVerString());
+		assertThat("check verstring", new TypeDefId(wst, 1).getVerString(), is("1"));
+		assertThat("check verstring", new TypeDefId(wst, 1, 1).getVerString(), is("1.1"));
+	}
+	
+	@Test
+	public void absType() throws Exception {
+		TypeDefName wst = new TypeDefName("foo", "bar");
 		checkAbsType(null, 1, 0, "Type cannot be null");
 		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
 		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
