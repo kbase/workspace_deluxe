@@ -12,8 +12,10 @@ module FBA {
 	*/
 	typedef string fba_model_id;
 
+	
+	/* @ws_searchable id name genome */
+	
 	/*
-	@ws_searchable id name genome
 	@optional description
 	*/
 	typedef structure {
@@ -27,6 +29,8 @@ module FBA {
 	/*
 	@ws_searchable model fluxes
 	*/
+	
+	/* */
 	typedef structure {
 		fba_model_id model;
 		list <float> fluxes;
