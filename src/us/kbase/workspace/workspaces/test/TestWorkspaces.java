@@ -1079,6 +1079,8 @@ public class TestWorkspaces {
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
 		}
-		
 	}
+	
+	//TODO test almost all methods shouldn't work on deleted workspaces
+	//TODO tests for deleted workspaces
 }

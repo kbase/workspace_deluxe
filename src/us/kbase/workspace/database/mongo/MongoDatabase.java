@@ -371,7 +371,7 @@ public class MongoDatabase implements Database {
 		Date moddate = new Date();
 		ws.put("moddate", moddate);
 		ws.put("name", wsname);
-		ws.put("deleted", null);
+		ws.put("deleted", false);
 		ws.put("numpointers", 0);
 		ws.put("description", description);
 		try {
@@ -397,6 +397,7 @@ public class MongoDatabase implements Database {
 	//projection lists
 	private static final Set<String> PROJ_DESC = newHashSet("description");
 	private static final Set<String> PROJ_ID = newHashSet("id");
+	private static final Set<String> PROJ_ID_DEL = newHashSet("id", "deleted");
 	private static final Set<String> PROJ_OWNER = newHashSet("owner");
 	
 	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
@@ -416,34 +417,47 @@ public class MongoDatabase implements Database {
 				PROJ_DESC).get("description");
 	}
 	
+	@Override
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+		return resolveWorkspace(wsi, false);
+	}
+	
+	@Override
+	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi,
+			final boolean allowDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
 		wsiset.add(wsi);
-		return resolveWorkspaces(wsiset).get(wsi);
+		return resolveWorkspaces(wsiset, allowDeleted).get(wsi);
 				
 	}
 	
+	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			final Set<WorkspaceIdentifier> wsis) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
+		return resolveWorkspaces(wsis, false);
+	}
+	
+	@Override
+	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
+			final Set<WorkspaceIdentifier> wsis, final boolean allowDeleted)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
 				new HashMap<WorkspaceIdentifier, ResolvedWorkspaceID>();
 		if (wsis.isEmpty()) {
 			return ret;
 		}
 		final Map<WorkspaceIdentifier, Map<String, Object>> res =
-				query.queryWorkspacesByIdentifier(wsis, PROJ_ID);
-		final Map<ResolvedMongoWSID, ResolvedMongoWSID> seen = 
-				new HashMap<ResolvedMongoWSID, ResolvedMongoWSID>();
+				query.queryWorkspacesByIdentifier(wsis, PROJ_ID_DEL);
 		for (final WorkspaceIdentifier wsi: res.keySet()) {
+			if (!allowDeleted && (boolean) res.get(wsi).get("deleted")) {
+				throw new NoSuchWorkspaceException("Workspace " +
+						wsi.getIdentifierString() + " is deleted");
+			}
 			ResolvedMongoWSID r = new ResolvedMongoWSID(
 					(Integer) res.get(wsi).get("id"));
-			if (seen.containsKey(r)) {
-				r = seen.get(r);
-			} else {
-				seen.put(r, r);
-			}
 			ret.put(wsi, r);
 		}
 		return ret;
@@ -689,7 +703,7 @@ public class MongoDatabase implements Database {
 		update.put("$push", versions);
 		final DBObject deleted = new BasicDBObject();
 		deleted.put("deleted", false);
-		deleted.put("lastmod", created);
+		deleted.put("moddate", created);
 		update.put("$set", deleted);
 		
 		try {
@@ -1236,14 +1250,47 @@ public class MongoDatabase implements Database {
 				getObjectIDsByWS(objectIDs);
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedMongoWSID ws: toModify.keySet()) {
-			final String query = String.format(
-					"{workspace: %s, id: {$in: [%s]}, deleted: %s}",
-					ws.getID(), StringUtils.join(toModify.get(ws), ", "),
-					!delete);
-			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
-					.with("{$set: {deleted: #, lastmod: #}}", delete,
-							new Date());
+			setObjectsDeleted(ws, toModify.get(ws), delete);
 		}
+	}
+
+	private void setObjectsDeleted(final ResolvedMongoWSID ws,
+			final List<Integer> objectIDs, final boolean delete)
+			throws WorkspaceCommunicationException {
+		final String query;
+		if (objectIDs.isEmpty()) {
+			query = String.format(
+					"{workspace: %s, deleted: %s}", ws.getID(), !delete);
+		} else {
+			query = String.format(
+					"{workspace: %s, id: {$in: [%s]}, deleted: %s}",
+					ws.getID(), StringUtils.join(objectIDs, ", "), !delete);
+		}
+		try {
+			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
+					.with("{$set: {deleted: #, moddate: #}}", delete,
+							new Date());
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+	
+	public void setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
+			final boolean delete) throws WorkspaceCommunicationException {
+		//there's a possibility of a race condition here if a workspace is
+		//deleted and undeleted or vice versa in a very short amount of time,
+		//but that seems so unlikely it's not worth the code
+		final ResolvedMongoWSID mrwsi = query.convertResolvedID(rwsi);
+		try {
+			wsjongo.getCollection(WORKSPACES).update("{id: #}", mrwsi.getID())
+					.with("{$set: {deleted: #, moddate: #}}", delete,
+							new Date());
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		setObjectsDeleted(mrwsi, new ArrayList<Integer>(), delete);
 	}
 	
 	public static class TestMongoInternals {

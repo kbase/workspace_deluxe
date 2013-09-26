@@ -220,7 +220,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
-		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUser(authPart), wksp);
 		returnVal = ArgUtils.wsMetaToTuple(meta);
@@ -239,7 +238,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getWorkspaceDescription(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_workspace_description
-		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		returnVal = ws.getWorkspaceDescription(getUser(authPart), wksp);
         //END get_workspace_description
@@ -290,7 +288,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final Map<User, Permission> acls = ws.getPermissions(getUser(authPart), wksp);
@@ -447,6 +444,8 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.delete_workspace", authOptional=true)
     public void deleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         //BEGIN delete_workspace
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		ws.setWorkspaceDeleted(getUser(authPart), wksp, true);
         //END delete_workspace
     }
 
@@ -463,6 +462,8 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.undelete_workspace", authOptional=true)
     public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         //BEGIN undelete_workspace
+    	final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		ws.setWorkspaceDeleted(getUser(authPart), wksp, false);
         //END undelete_workspace
     }
 

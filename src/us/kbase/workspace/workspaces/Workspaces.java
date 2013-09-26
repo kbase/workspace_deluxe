@@ -65,10 +65,19 @@ public class Workspaces {
 	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final Permission perm,
-			final String operation) throws CorruptWorkspaceDBException,
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+			final String operation)
+			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
+		return checkPerms(user, wsi, perm, operation, false);
+	}
+	
+	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final Permission perm,
+			final String operation, boolean allowDeletedWorkspace)
+			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
+			NoSuchWorkspaceException, WorkspaceCommunicationException {
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
+				allowDeletedWorkspace);
 		comparePermission(user, perm, db.getPermission(user, wsid),
 				wsi.getIdentifierString(), operation);
 		return wsid;
@@ -265,6 +274,16 @@ public class Workspaces {
 			NoSuchObjectException {
 		db.setObjectsDeleted(removeVersions(user, loi, Permission.WRITE,
 				(delete ? "" : "un") + "delete objects from"), delete);
+	}
+
+	public void setWorkspaceDeleted(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final boolean delete)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		// TODO Auto-generated method stub
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.WRITE,
+				(delete ? "" : "un") + "delete", !delete);
+		db.setWorkspaceDeleted(wsid, delete);
 	}
 
 	public void requestModuleRegistration(final WorkspaceUser user,
