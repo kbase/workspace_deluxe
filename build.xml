@@ -23,13 +23,13 @@
     <include name="jna/jna-3.4.0.jar"/>
     <include name="servlet/servlet-api-2.5.jar"/>
     <include name="syslog4j/syslog4j-0.9.46.jar"/>
+    <include name="kbase/kidl/kbase-kidl-parser.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="jackson/jackson-all-1.9.11.jar"/>
     <include name="junit/junit-4.9.jar"/>
     <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
-    <include name="kbase/kidl/kbase-kidl-parser.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
@@ -71,16 +71,12 @@
     <include name="testng/testng-6.8.5.jar"/>
   </fileset>
 	
-  <fileset dir="${lib}" id="locallib">
-  </fileset>
-
   <union id="serverside">
     <fileset refid="serverlib"/>
     <fileset refid="clientserverlib"/>
     <fileset refid="shocklib"/>
     <fileset refid="applicationlib"/>
     <fileset refid="validatorlib"/>
-    <fileset refid="locallib"/>
   </union>
 
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
@@ -205,8 +201,8 @@
       <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
       <test name="us.kbase.workspace.kbase.test.JSONRPCLayerTest"/>
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
-      <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
-      <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
+      <!--<test name="us.kbase.typedobj.tests.TestBasicValidation"/>
+      <test name="us.kbase.typedobj.tests.TestIdProcessing"/>-->
     </junit>
     <junit failureproperty="test.failed">
       <classpath refid="test.classpath"/>
