@@ -821,6 +821,8 @@ public class TestWorkspaces {
 		}
 	}
 	
+	
+	//TODO move to type tests
 	@Test
 	public void type() throws Exception {
 		checkWSType(null, "bar", "Module cannot be null or the empty string");
