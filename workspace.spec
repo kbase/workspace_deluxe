@@ -420,15 +420,13 @@ module Workspace {
 	
 	/*
 		Delete a workspace. All objects contained in the workspace are deleted.
-		Running this command on a deleted workspace has no effect.
 	*/
 	funcdef delete_workspace(WorkspaceIdentity wsi) returns();
 	
 	/* 
 		Undelete a workspace. All objects contained in the workspace are
 		undeleted, regardless of their state at the time the workspace was
-		deleted. Running this command on a workspace that is not deleted has
-		no effect.
+		deleted.
 	*/
 	funcdef undelete_workspace(WorkspaceIdentity wsi) returns();
 };
