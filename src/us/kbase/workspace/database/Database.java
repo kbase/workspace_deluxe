@@ -69,10 +69,8 @@ public interface Database {
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
-	
-	public void deleteObjects(Set<ObjectIDResolvedWSNoVer> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException;
-	
-	public void undeleteObjects(Set<ObjectIDResolvedWSNoVer> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException;
+
+	void setObjectsDeleted(Set<ObjectIDResolvedWSNoVer> objectIDs,
+			boolean delete) throws NoSuchObjectException,
+			WorkspaceCommunicationException;
 }

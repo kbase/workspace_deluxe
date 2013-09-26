@@ -258,25 +258,15 @@ public class Workspaces {
 		return objectIDs;
 	}
 	
-	public void deleteObjects(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi)
+	public void setObjectsDeleted(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final boolean delete)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
-		db.deleteObjects(removeVersions(user, loi, Permission.WRITE,
-				"delete objects from"));
+		db.setObjectsDeleted(removeVersions(user, loi, Permission.WRITE,
+				"delete objects from"), delete);
 	}
-	
-	
-	public void undeleteObjects(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
-			NoSuchObjectException {
-		db.undeleteObjects(removeVersions(user, loi, Permission.WRITE,
-				"undelete objects from"));
-	}
-	
+
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
@@ -307,7 +297,11 @@ public class Workspaces {
 	
 	public String getJsonSchema(final TypeDefId type) throws
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return typedb.getJsonSchemaDocument(type.getType().getModule(),
-				type.getType().getName(), type.getVerString());
+		if (type.isAbsolute()) {
+			return typedb.getJsonSchemaDocument(new AbsoluteTypeDefId(type.getType(),
+					type.getMajorVersion(), type.getMinorVersion()));
+		} else {
+			return typedb.getJsonSchemaDocument(type.getType());
+		}
 	}
 }

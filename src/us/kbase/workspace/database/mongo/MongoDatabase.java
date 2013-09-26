@@ -132,7 +132,7 @@ public class MongoDatabase implements Database {
 		//find objects by workspace id & name
 		wsPtr.put(Arrays.asList("workspace", "name"), Arrays.asList("unique"));
 		//find object by workspace id & object id
-		wsPtr.put(Arrays.asList("workspace", "id"), Arrays.asList("unique"));
+		wsPtr.put(Arrays.asList("workspace", "id", "versions.version"), Arrays.asList("unique"));
 		//find objects by legacy UUID
 		wsPtr.put(Arrays.asList("versions.legacyUUID"), Arrays.asList("unique", "sparse"));
 		//determine whether a particular object references this object
@@ -151,7 +151,6 @@ public class MongoDatabase implements Database {
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
-		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
@@ -172,7 +171,6 @@ public class MongoDatabase implements Database {
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery();
-		//TODO replace with real validator storage system
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
@@ -690,7 +688,8 @@ public class MongoDatabase implements Database {
 		final DBObject update = new BasicDBObject();
 		update.put("$push", versions);
 		final DBObject deleted = new BasicDBObject();
-		deleted.put("deleted", null);
+		deleted.put("deleted", false);
+		deleted.put("lastmod", created);
 		update.put("$set", deleted);
 		
 		try {
@@ -764,7 +763,7 @@ public class MongoDatabase implements Database {
 		dbo.put("id", objectid);
 		dbo.put("version", 0);
 		dbo.put("name", newName);
-		dbo.put("deleted", null);
+		//deleted handled in saveObjectInstance()
 		dbo.put("hidden", false); //TODO hidden, also set hidden when not creating pointer from scratch
 		dbo.put("versions", new ArrayList<Object>());
 		try {
@@ -885,7 +884,6 @@ public class MongoDatabase implements Database {
 				newobjects++;
 			}
 		}
-		//TODO unique index on ws/objid/ver
 		final Map<WorkspaceObjectID, ObjID> objIDs = getObjectIDs(wsidmongo,
 				idToPkg.keySet());
 		for (WorkspaceObjectID o: idToPkg.keySet()) {
@@ -1107,7 +1105,7 @@ public class MongoDatabase implements Database {
 		//of same object required
 		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
 			final Map<String, Object> pointer = qres.get(o);
-			if (pointer.get("deleted") != null) {
+			if ((boolean) pointer.get("deleted")) {
 				throw new NoSuchObjectException(String.format(
 						"Object %s in workspace %s has been deleted",
 						o.getIdentifierString(),
@@ -1232,31 +1230,20 @@ public class MongoDatabase implements Database {
 
 	//TODO tests for un/delete - save over deleted objects, cant getObject* on deleted objects
 	@Override
-	public void deleteObjects(final Set<ObjectIDResolvedWSNoVer> objectIDs)
+	public void setObjectsDeleted(final Set<ObjectIDResolvedWSNoVer> objectIDs,
+			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, List<Integer>> toDelete = 
+		final Map<ResolvedMongoWSID, List<Integer>> toModify = 
 				getObjectIDsByWS(objectIDs);
 		//Do this by workspace since per mongo docs nested $ors are crappy
-		for (final ResolvedMongoWSID ws: toDelete.keySet()) {
+		for (final ResolvedMongoWSID ws: toModify.keySet()) {
 			final String query = String.format(
-					"{workspace: %s, id: {$in: [%s]}, deleted: null}",
-					ws.getID(), StringUtils.join(toDelete.get(ws), ", "));	
+					"{workspace: %s, id: {$in: [%s]}, deleted: %s}",
+					ws.getID(), StringUtils.join(toModify.get(ws), ", "),
+					!delete);
 			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
-					.with("{$set: {deleted: #}}", new Date());
-		}
-	}
-
-	@Override
-	public void undeleteObjects(final Set<ObjectIDResolvedWSNoVer> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, List<Integer>> toUndelete = 
-				getObjectIDsByWS(objectIDs);
-		for (final ResolvedMongoWSID ws: toUndelete.keySet()) {
-			final String query = String.format(
-					"{workspace: %s, id: {$in: [%s]}, deleted: {$ne: null}}",
-					ws.getID(), StringUtils.join(toUndelete.get(ws), ", "));	
-			wsjongo.getCollection(WORKSPACE_PTRS).update(query).multi()
-					.with("{$set: {deleted: null}}");
+					.with("{$set: {deleted: #, lastmod: #}}", delete,
+							new Date());
 		}
 	}
 	
