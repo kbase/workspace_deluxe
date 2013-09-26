@@ -415,7 +415,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void deleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN delete_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.deleteObjects(getUser(authPart), loi);
+		ws.setObjectsDeleted(getUser(authPart), loi, true);
         //END delete_objects
     }
 
@@ -431,7 +431,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void undeleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN undelete_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.undeleteObjects(getUser(authPart), loi);
+		ws.setObjectsDeleted(getUser(authPart), loi, false);
         //END undelete_objects
     }
 
