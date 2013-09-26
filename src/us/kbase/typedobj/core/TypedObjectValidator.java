@@ -27,7 +27,7 @@ import us.kbase.typedobj.exceptions.*;
  * TypedObjectValidationReport report = tov.validate(instanceRootNode, typeDefId);
  * if(report.isInstanceValid()) {
  *    // get a list of ids
- *    String [] idReferences = report.getIdReferences();
+ *    String [] idReferences = report.getListOfIdReferences();
  *      ... validate refs, create map which maps id refs to absolute id refs ...
  *    Map<string,string> absoluteIdMap = ...
  *    

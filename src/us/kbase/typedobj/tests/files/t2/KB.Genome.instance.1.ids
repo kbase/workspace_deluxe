@@ -1,0 +1,7 @@
+{
+	"ids-expected":["kb|ws.1","kb|ws.2"],
+	"ids-relabel":{
+					"kb|ws.1":"absolute_id.1",
+					"kb|ws.2":"absolute_id.2"
+					}
+}
