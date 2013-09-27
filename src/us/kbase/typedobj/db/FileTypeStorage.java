@@ -292,27 +292,41 @@ public class FileTypeStorage extends TypeStorage {
 		return new File(getModuleDir(moduleName), "type." + typeName).getAbsolutePath();
 	}
 
-	private File getTypeSchemaFile(String moduleName, String typeName, String version) {
-		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + ".json");
+	private File getTypeSchemaFile(String moduleName, String typeName, String version, long moduleVersion) {
+		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".json");
 	}
 
-	private File getTypeParseFile(String moduleName, String typeName, String version) {
-		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + ".prs");
+	private File getTypeSchemaFile(String moduleName, String typeName, String version) throws TypeStorageException {
+		List<File> ret = findFiles(moduleName, "type." + typeName + "." + version + "-", ".json");
+		if (ret.isEmpty())
+			throw new TypeStorageException("No type schema file was found for: " + moduleName + "." + typeName + "." + version);
+		return ret.get(0);
 	}
-	
-	@Override
-	public boolean checkModuleInfoRecordExist(String moduleName) {
-		return getModuleInfoFile(moduleName, null).exists();
+
+	private File getTypeParseFile(String moduleName, String typeName, String version, long moduleVersion) {
+		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".prs");
+	}
+
+	private File getTypeParseFile(String moduleName, String typeName, String version) throws TypeStorageException {
+		List<File> ret = findFiles(moduleName, "type." + typeName + "." + version + "-", ".prs");
+		if (ret.isEmpty())
+			throw new TypeStorageException("No type parsing file was found for: " + moduleName + "." + typeName + "." + version);
+		return ret.get(0);
 	}
 
 	@Override
-	public boolean checkModuleSpecRecordExist(String moduleName) {
-		return getModuleSpecFile(moduleName, null).exists();
+	public boolean checkModuleInfoRecordExist(String moduleName, long version) {
+		return getModuleInfoFile(moduleName, version).exists();
+	}
+
+	@Override
+	public boolean checkModuleSpecRecordExist(String moduleName, long version) {
+		return getModuleSpecFile(moduleName, version).exists();
 	}
 	
 	@Override
 	public boolean checkTypeSchemaRecordExists(String moduleName,
-			String typeName, String version) {
+			String typeName, String version) throws TypeStorageException {
 		File schemaDocument = getTypeSchemaFile(moduleName, typeName, version);
 		return schemaDocument != null && schemaDocument.canRead();
 	}
@@ -373,14 +387,14 @@ public class FileTypeStorage extends TypeStorage {
 
 	@Override
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
-			String version, String document) throws TypeStorageException {
-		writeFile(getTypeSchemaFile(moduleName, typeName, version), document);
+			String version, long moduleVersion, String document) throws TypeStorageException {
+		writeFile(getTypeSchemaFile(moduleName, typeName, version, moduleVersion), document);
 	}
 	
 	@Override
 	public void writeTypeParseRecord(String moduleName, String typeName,
-			String version, String document) throws TypeStorageException {
-		writeFile(getTypeParseFile(moduleName, typeName, version), document);
+			String version, long moduleVersion, String document) throws TypeStorageException {
+		writeFile(getTypeParseFile(moduleName, typeName, version, moduleVersion), document);
 	}
 	
 	@Override
@@ -397,53 +411,41 @@ public class FileTypeStorage extends TypeStorage {
 				f.delete();
 	}
 	
-	private File getModuleSpecFile(String moduleName, Long time) {
-		String newSuffix = time == null ? "" : ("." + time);
-		return new File(getModuleDir(moduleName), "module" + newSuffix + ".spec");
+	private File getModuleSpecFile(String moduleName, long time) {
+		return new File(getModuleDir(moduleName), "module." + time + ".spec");
 	}
 
-	private File getModuleInfoFile(String moduleName, Long time) {
-		String newSuffix = time == null ? "" : ("." + time);
-		return new File(getModuleDir(moduleName), "module" + newSuffix + ".info");
-	}
-
-	@Override
-	public void writeModuleSpecRecord(String moduleName,
-			String specDocument) throws TypeStorageException {
-		writeFile(getModuleSpecFile(moduleName, null), specDocument);
-	}
-	
+	private File getModuleInfoFile(String moduleName, long time) {
+		return new File(getModuleDir(moduleName), "module." + time + ".info");
+	}	
 	
 	@Override
-	public void writeModuleSpecRecordBackup(String moduleName, String specDocument, long backupTime) throws TypeStorageException {
-		writeFile(getModuleSpecFile(moduleName, backupTime), specDocument);
-	}
-	
-	@Override
-	public void writeModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException {
+	public void writeModuleRecords(String moduleName, ModuleInfo info, String specDocument, long time) throws TypeStorageException {
+		writeFile(getModuleSpecFile(moduleName, time), specDocument);
 		String infoText;
 		try {
 			infoText = mapper.writeValueAsString(info);
 		} catch (JsonProcessingException e) {
 			throw new TypeStorageException(e);
 		}
-		writeFile(getModuleInfoFile(moduleName, null), infoText);
+		writeFile(getModuleInfoFile(moduleName, time), infoText);
 	}
 	
 	@Override
-	public void writeModuleInfoRecordBackup(String moduleName, ModuleInfo info, long backupTime) throws TypeStorageException {
+	public void initModuleInfoRecord(String moduleName, ModuleInfo info)
+			throws TypeStorageException {
 		String infoText;
 		try {
 			infoText = mapper.writeValueAsString(info);
 		} catch (JsonProcessingException e) {
 			throw new TypeStorageException(e);
 		}
-		writeFile(getModuleInfoFile(moduleName, backupTime), infoText);
+		writeFile(getModuleInfoFile(moduleName, generateNewModuleVersion(moduleName)), infoText);
 	}
 	
 	@Override
-	public ModuleInfo getModuleInfoRecord(String moduleName) throws TypeStorageException {
-		String infoText = readFile(getModuleInfoFile(moduleName, null));
+	public ModuleInfo getModuleInfoRecord(String moduleName, long version) throws TypeStorageException {
+		String infoText = readFile(getModuleInfoFile(moduleName, version));
 		try {
 			return mapper.readValue(infoText, ModuleInfo.class);
 		} catch (Exception ex) {
@@ -460,18 +462,33 @@ public class FileTypeStorage extends TypeStorage {
 	}
 
 	@Override
-	public String getModuleSpecRecord(String moduleName) throws TypeStorageException {
-		return readFile(getModuleSpecFile(moduleName, null));
+	public String getModuleSpecRecord(String moduleName, long version) throws TypeStorageException {
+		return readFile(getModuleSpecFile(moduleName, version));
 	}
 		
-	private File getFuncParseFile(String moduleName, String typeName, String version) {
-		return new File(new File(getModuleDir(moduleName), "func." + typeName).getAbsolutePath() + "." + version + ".prs");
+	private List<File> findFiles(String moduleName, String prefix, String suffix) {
+		List<File> ret = new ArrayList<File>();
+		for (File f : getModuleDir(moduleName).listFiles())
+			if (f.isFile() && f.getName().startsWith(prefix) && f.getName().endsWith(suffix))
+				ret.add(f);
+		return ret;
+	}
+	
+	private File getFuncParseFile(String moduleName, String funcName, String version, long moduleVersion) {
+		return new File(new File(getModuleDir(moduleName), "func." + funcName).getAbsolutePath() + "." + version + "-" + moduleVersion + ".prs");
+	}
+
+	private File getFuncParseFile(String moduleName, String funcName, String version) throws TypeStorageException {
+		List<File> ret = findFiles(moduleName, "func." + funcName + "." + version + "-", ".prs");
+		if (ret.isEmpty())
+			throw new TypeStorageException("No function parsing file was found for: " + moduleName + "." + funcName + "." + version);
+		return ret.get(0);
 	}
 
 	@Override
 	public void writeFuncParseRecord(String moduleName, String funcName,
-			String version, String parseText) throws TypeStorageException {
-		writeFile(getFuncParseFile(moduleName, funcName, version), parseText);
+			String version, long moduleVersion, String parseText) throws TypeStorageException {
+		writeFile(getFuncParseFile(moduleName, funcName, version, moduleVersion), parseText);
 	}
 	
 	@Override
@@ -485,7 +502,7 @@ public class FileTypeStorage extends TypeStorage {
 	
 	@Override
 	public boolean removeTypeRecordsForVersion(String moduleName,
-			String typeName, String version) {
+			String typeName, String version) throws TypeStorageException {
 		File f1 = getTypeSchemaFile(moduleName, typeName, version);
 		if (!f1.exists())
 			return false;
@@ -496,7 +513,32 @@ public class FileTypeStorage extends TypeStorage {
 	}
 	
 	@Override
-	public long getStorageCurrentTime() {
+	public List<Long> getAllModuleVersions(String moduleName)
+			throws TypeStorageException {
+		Set<Long> ret = new TreeSet<Long>();
+		for (File f : findFiles(moduleName, "module.", ".info"))
+			ret.add(Long.parseLong(f.getName().substring(7, f.getName().length() - 5)));
+		for (File f : findFiles(moduleName, "module.", ".spec"))
+			ret.add(Long.parseLong(f.getName().substring(7, f.getName().length() - 5)));
+		return new ArrayList<Long>(ret);
+	}
+	
+	@Override
+	public long getLastModuleVersion(String moduleName) throws TypeStorageException {
+		List<Long> ret = getAllModuleVersions(moduleName);
+		if (ret.isEmpty())
+			throw new TypeStorageException("No version information for module: " + moduleName);
+		return ret.get(ret.size() - 1);
+	}
+	
+	@Override
+	public boolean checkModuleExist(String moduleName) throws TypeStorageException {
+		List<Long> ret = getAllModuleVersions(moduleName);
+		return !ret.isEmpty();
+	}
+	
+	@Override
+	public long generateNewModuleVersion(String moduleName) throws TypeStorageException {
 		return System.currentTimeMillis();
 	}
 }

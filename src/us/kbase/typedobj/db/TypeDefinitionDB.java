@@ -181,7 +181,11 @@ public class TypeDefinitionDB {
 	}
 
 	public boolean isValidModule(String moduleName) throws TypeStorageException {
-		return storage.checkModuleInfoRecordExist(moduleName) && storage.checkModuleSpecRecordExist(moduleName);
+		if (!storage.checkModuleExist(moduleName))
+			return false;
+		long version = storage.getLastModuleVersion(moduleName);
+		return storage.checkModuleInfoRecordExist(moduleName, version) && 
+				storage.checkModuleSpecRecordExist(moduleName, version);
 	}
 
 	protected void checkModule(String moduleName) throws NoSuchModuleException, TypeStorageException {
@@ -190,7 +194,8 @@ public class TypeDefinitionDB {
 	}
 
 	protected void checkModuleRegistered(String moduleName) throws NoSuchModuleException, TypeStorageException {
-		if (!storage.checkModuleInfoRecordExist(moduleName))
+		if ((!storage.checkModuleExist(moduleName)) || (!storage.checkModuleInfoRecordExist(moduleName,
+				storage.getLastModuleVersion(moduleName))))
 			throw new NoSuchModuleException("Module wasn't registered: " + moduleName);
 	}
 
@@ -320,8 +325,8 @@ public class TypeDefinitionDB {
 	}
 	
 	private String saveType(ModuleInfo mi, String typeName, String jsonSchemaDocument,
-			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) 
-					throws NoSuchModuleException, TypeStorageException {
+			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies,
+			long newModuleVersion) throws NoSuchModuleException, TypeStorageException {
 		TypeInfo ti = mi.getTypes().get(typeName);
 		if (ti == null) {
 			ti = new TypeInfo();
@@ -329,12 +334,12 @@ public class TypeDefinitionDB {
 			mi.getTypes().put(typeName, ti);
 		}
 		ti.setSupported(true);
-		return saveType(mi, ti, jsonSchemaDocument, specParsing, notBackwardCompatible, dependencies);
+		return saveType(mi, ti, jsonSchemaDocument, specParsing, notBackwardCompatible, dependencies, newModuleVersion);
 	}
 	
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
-			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) 
-					throws NoSuchModuleException, TypeStorageException {
+			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies, 
+			long newModuleVersion) throws NoSuchModuleException, TypeStorageException {
 		SemanticVersion version = findLastTypeVersion(mi, ti.getTypeName(), true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
@@ -350,20 +355,21 @@ public class TypeDefinitionDB {
 			version = new SemanticVersion(major, minor);
 		}
 		ti.setTypeVersion(version.toString());
-		return saveType(mi, ti, jsonSchemaDocument, specParsing, dependencies);
+		return saveType(mi, ti, jsonSchemaDocument, specParsing, dependencies, newModuleVersion);
 	}
 	
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
-			KbTypedef specParsing, Set<RefInfo> dependencies) 
+			KbTypedef specParsing, Set<RefInfo> dependencies, long newModuleVersion) 
 					throws NoSuchModuleException, TypeStorageException {
 		if (dependencies != null)
 			for (RefInfo ri : dependencies) {
 				ri.setDepVersion(ti.getTypeVersion());
+				ri.setDepModuleVersion(newModuleVersion);
 				updateInternalRefVersion(ri, mi);
 			}
-		storage.writeTypeSchemaRecord(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), jsonSchemaDocument);
+		storage.writeTypeSchemaRecord(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), newModuleVersion, jsonSchemaDocument);
 		storage.removeTypeRefs(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion());
-		writeTypeParsingFile(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), specParsing);
+		writeTypeParsingFile(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), specParsing, newModuleVersion);
 		return ti.getTypeVersion();
 	}
 
@@ -381,12 +387,12 @@ public class TypeDefinitionDB {
 	}
 	
 	private void writeTypeParsingFile(String moduleName, String typeName, String version, 
-			KbTypedef document) throws TypeStorageException {
+			KbTypedef document, long newModuleVersion) throws TypeStorageException {
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, document.getData());
 			sw.close();
-			storage.writeTypeParseRecord(moduleName, typeName, version, sw.toString());
+			storage.writeTypeParseRecord(moduleName, typeName, version, newModuleVersion, sw.toString());
 		} catch (IOException ex) {
 			throw new IllegalStateException("Unexpected internal error: " + ex.getMessage(), ex);
 		}
@@ -426,12 +432,12 @@ public class TypeDefinitionDB {
 		KbTypedef specParsing = getTypeParsingDocument(moduleName, typeName, null);
 		Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString());
 		SemanticVersion ret = releaseVersion;
-		long transactionStartTime = storage.getStorageCurrentTime();
+		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
 			TypeInfo ti = info.getTypes().get(typeName);
 			ti.setTypeVersion(ret.toString());
 			writeModuleInfo(moduleName, info, transactionStartTime);
-			saveType(info, ti, jsonSchemaDocument, specParsing, deps);
+			saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
 			storage.addRefs(deps, new TreeSet<RefInfo>());
 			transactionStartTime = -1;
 		} finally {
@@ -450,7 +456,7 @@ public class TypeDefinitionDB {
 		if (!info.getTypes().containsKey(typeName))
 			throwNoSuchTypeException(moduleName, typeName, null);
 		info.getTypes().remove(typeName);
-		writeModuleInfo(moduleName, info, storage.getStorageCurrentTime());
+		writeModuleInfo(moduleName, info, storage.generateNewModuleVersion(moduleName));
 		storage.removeAllTypeRecords(moduleName, typeName);
 	}
 
@@ -461,7 +467,7 @@ public class TypeDefinitionDB {
 		if (!info.getFuncs().containsKey(funcName))
 			throwNoSuchFuncException(moduleName, funcName, null);
 		info.getTypes().remove(funcName);
-		writeModuleInfo(moduleName, info, storage.getStorageCurrentTime());
+		writeModuleInfo(moduleName, info, storage.generateNewModuleVersion(moduleName));
 		storage.removeAllFuncRecords(moduleName, funcName);
 	}
 	
@@ -499,33 +505,26 @@ public class TypeDefinitionDB {
 		
 	private void rollbackModuleTransaction(String moduleName, long transtactionStartTime) {
 	}
-	
+
 	private void writeModuleInfo(String moduleName, ModuleInfo info, long backupTime) throws TypeStorageException {
-		if (storage.checkModuleInfoRecordExist(moduleName)) {
-			ModuleInfo prevInfo = storage.getModuleInfoRecord(moduleName);
-			storage.writeModuleInfoRecordBackup(moduleName, prevInfo, backupTime);
-		}
-		storage.writeModuleInfoRecord(moduleName, info);
+		String specDocument = storage.getModuleSpecRecord(moduleName, storage.getLastModuleVersion(moduleName));
+		storage.writeModuleRecords(moduleName, info, specDocument, backupTime);
 	}
 
-	private void writeModuleSpec(String moduleName, String specDocument, long backupTime) throws TypeStorageException {
-		if (storage.checkModuleSpecRecordExist(moduleName)) {
-			String prevText = storage.getModuleSpecRecord(moduleName);
-			storage.writeModuleSpecRecordBackup(moduleName, prevText, backupTime);
-		}
-		storage.writeModuleSpecRecord(moduleName, specDocument);
+	private void writeModuleInfoSpec(String moduleName, ModuleInfo info, String specDocument, long backupTime) throws TypeStorageException {
+		storage.writeModuleRecords(moduleName, info, specDocument, backupTime);
 	}
 
 	public String getModuleSpecDocument(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
-		return storage.getModuleSpecRecord(moduleName);
+		return storage.getModuleSpecRecord(moduleName, storage.getLastModuleVersion(moduleName));
 	}
 	
 	public ModuleInfo getModuleInfo(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		checkModuleRegistered(moduleName);
-		return storage.getModuleInfoRecord(moduleName);
+		return storage.getModuleInfoRecord(moduleName, storage.getLastModuleVersion(moduleName));
 	}
 		
 	public List<String> getAllRegisteredFuncs(String moduleName) 
@@ -571,7 +570,7 @@ public class TypeDefinitionDB {
 	}
 	
 	private String saveFunc(ModuleInfo mi, String funcName, KbFuncdef specParsingDocument, 
-			boolean notBackwardCompatible, Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
+			boolean notBackwardCompatible, Set<RefInfo> dependencies, long newModuleVersion) throws NoSuchModuleException, TypeStorageException {
 		FuncInfo fi = mi.getFuncs().get(funcName);
 		if (fi == null) {
 			fi = new FuncInfo();
@@ -579,11 +578,12 @@ public class TypeDefinitionDB {
 			mi.getFuncs().put(funcName, fi);
 		}
 		fi.setSupported(true);
-		return saveFunc(mi, fi, specParsingDocument, notBackwardCompatible, dependencies);
+		return saveFunc(mi, fi, specParsingDocument, notBackwardCompatible, dependencies, newModuleVersion);
 	}
 	
 	private String saveFunc(ModuleInfo mi, FuncInfo fi, KbFuncdef specParsingDocument, 
-			boolean notBackwardCompatible, Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
+			boolean notBackwardCompatible, Set<RefInfo> dependencies, long newModuleVersion) 
+					throws NoSuchModuleException, TypeStorageException {
 		SemanticVersion version = findLastFuncVersion(mi, fi.getFuncName(), true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
@@ -599,27 +599,28 @@ public class TypeDefinitionDB {
 			version = new SemanticVersion(major, minor);
 		}
 		fi.setFuncVersion(version.toString());
-		return saveFunc(mi, fi, specParsingDocument, dependencies);
+		return saveFunc(mi, fi, specParsingDocument, dependencies, newModuleVersion);
 	}
 		
 	private String saveFunc(ModuleInfo mi, FuncInfo fi, KbFuncdef specParsingDocument, 
-			Set<RefInfo> dependencies) throws NoSuchModuleException, TypeStorageException {
+			Set<RefInfo> dependencies, long newModuleVersion) throws NoSuchModuleException, TypeStorageException {
 		if (dependencies != null)
 			for (RefInfo dep : dependencies) {
 				dep.setDepVersion(fi.getFuncVersion());
+				dep.setDepModuleVersion(newModuleVersion);
 				updateInternalRefVersion(dep, mi);
 			}
-		writeFuncParsingFile(mi.getModuleName(), fi.getFuncName(), fi.getFuncVersion(), specParsingDocument);
+		writeFuncParsingFile(mi.getModuleName(), fi.getFuncName(), fi.getFuncVersion(), specParsingDocument, newModuleVersion);
 		return fi.getFuncVersion();
 	}
 	
-	private void writeFuncParsingFile(String moduleName, String funcName, String version, KbFuncdef document) 
+	private void writeFuncParsingFile(String moduleName, String funcName, String version, KbFuncdef document, long newModuleVersion) 
 			throws TypeStorageException {
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, document.getData());
 			sw.close();
-			storage.writeFuncParseRecord(moduleName, funcName, version.toString(), sw.toString());
+			storage.writeFuncParseRecord(moduleName, funcName, version.toString(), newModuleVersion, sw.toString());
 		} catch (TypeStorageException ex) {
 			throw ex;
 		} catch (IOException ex) {
@@ -652,12 +653,12 @@ public class TypeDefinitionDB {
 		Set<RefInfo> deps = storage.getFuncRefsByDep(moduleName, funcName, curVersion.toString());
 		ModuleInfo info = getModuleInfo(moduleName);
 		SemanticVersion ret = releaseVersion;
-		long transactionStartTime = storage.getStorageCurrentTime();
+		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
 			FuncInfo fi = info.getFuncs().get(funcName);
 			fi.setFuncVersion(ret.toString());
 			writeModuleInfo(moduleName, info, transactionStartTime);
-			saveFunc(info, fi, specParsing, deps);
+			saveFunc(info, fi, specParsing, deps, transactionStartTime);
 			storage.addRefs(new TreeSet<RefInfo>(), deps);
 			transactionStartTime = -1;
 		} finally {
@@ -685,14 +686,14 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private void stopTypeSupport(ModuleInfo mi, String typeName) 
+	private void stopTypeSupport(ModuleInfo mi, String typeName, long newModuleVersion) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		TypeInfo ti = mi.getTypes().get(typeName);
 		if (ti == null)
 			throwNoSuchTypeException(mi.getModuleName(), typeName, null);
 		String jsonSchemaDocument = storage.getTypeSchemaRecord(mi.getModuleName(), typeName, ti.getTypeVersion());
 		KbTypedef specParsing = getTypeParsingDocument(mi.getModuleName(), typeName, ti.getTypeVersion());
-		saveType(mi, ti, jsonSchemaDocument, specParsing, false, null);
+		saveType(mi, ti, jsonSchemaDocument, specParsing, false, null, newModuleVersion);
 		ti.setSupported(false);
 	}
 	
@@ -702,10 +703,10 @@ public class TypeDefinitionDB {
 		String typeName = type.getName();
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
-		long transactionStartTime = storage.getStorageCurrentTime();
+		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
 			writeModuleInfo(moduleName, mi, transactionStartTime);
-			stopTypeSupport(mi, typeName);
+			stopTypeSupport(mi, typeName, transactionStartTime);
 			transactionStartTime = -1;
 		} finally {
 			if (transactionStartTime > 0)
@@ -723,13 +724,13 @@ public class TypeDefinitionDB {
 					typeDef.getVerString());
 	}
 	
-	private void stopFuncSupport(ModuleInfo info, String funcName) 
+	private void stopFuncSupport(ModuleInfo info, String funcName, long newModuleVersion) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		FuncInfo fi = info.getFuncs().get(funcName);
 		if (fi == null)
 			throwNoSuchFuncException(info.getModuleName(), funcName, null);
 		KbFuncdef specParsingDocument = getFuncParsingDocument(info.getModuleName(), funcName, fi.getFuncVersion());
-		saveFunc(info, fi, specParsingDocument, false, null);
+		saveFunc(info, fi, specParsingDocument, false, null, newModuleVersion);
 		fi.setSupported(false);
 	}
 	
@@ -737,10 +738,10 @@ public class TypeDefinitionDB {
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
-		long transactionStartTime = storage.getStorageCurrentTime();
+		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
 			writeModuleInfo(moduleName, mi, transactionStartTime);
-			stopFuncSupport(mi, funcName);
+			stopFuncSupport(mi, funcName, transactionStartTime);
 			transactionStartTime = -1;
 		} finally {
 			if (transactionStartTime > 0)
@@ -832,11 +833,11 @@ public class TypeDefinitionDB {
 	}
 	
 	private void autoGenerateModuleInfo(String moduleName, String ownerUserId) throws TypeStorageException {
-		if (storage.checkModuleInfoRecordExist(moduleName))
+		if (storage.checkModuleExist(moduleName))
 			throw new IllegalStateException("Module " + moduleName + " was already registered");
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleName(moduleName);
-		storage.writeModuleInfoRecord(moduleName, info);
+		storage.initModuleInfoRecord(moduleName, info);
 		storage.addOwnerToModule(moduleName, ownerUserId, true);
 	}
 	
@@ -929,10 +930,10 @@ public class TypeDefinitionDB {
 			if (isNew) {
 				if (withApprovalQueue) {
 					checkModuleRegistered(moduleName);
-					if (storage.checkModuleSpecRecordExist(moduleName))
+					if (storage.checkModuleSpecRecordExist(moduleName, storage.getLastModuleVersion(moduleName)))
 						throw new IllegalStateException("Module " + moduleName + " was already uploaded");
 				} else {
-					if (!storage.checkModuleInfoRecordExist(moduleName))
+					if (!storage.checkModuleExist(moduleName))
 						autoGenerateModuleInfo(moduleName, userId);
 				}
 			} else {
@@ -1023,27 +1024,27 @@ public class TypeDefinitionDB {
 			}
 			Set<RefInfo> createdTypeRefs = new TreeSet<RefInfo>();
 			Set<RefInfo> createdFuncRefs = new TreeSet<RefInfo>();
-			transactionStartTime = storage.getStorageCurrentTime();
+			transactionStartTime = storage.generateNewModuleVersion(moduleName);
 			for (ComponentChange comp : comps) {
 				if (comp.isType) {
 					if (comp.isDeletion) {
-						stopTypeSupport(info, comp.name);						
+						stopTypeSupport(info, comp.name, transactionStartTime);						
 					} else {
 						saveType(info, comp.name, comp.jsonSchemaDocument, comp.typeParsing, comp.notBackwardCompatible, 
-								comp.dependencies);					
+								comp.dependencies, transactionStartTime);					
 						createdTypeRefs.addAll(comp.dependencies);
 					}
 				} else {
 					if (comp.isDeletion) {
-						stopFuncSupport(info, comp.name);
+						stopFuncSupport(info, comp.name, transactionStartTime);
 					} else {
-						saveFunc(info, comp.name, comp.funcParsing, comp.notBackwardCompatible, comp.dependencies);
+						saveFunc(info, comp.name, comp.funcParsing, comp.notBackwardCompatible, comp.dependencies,
+								transactionStartTime);
 						createdFuncRefs.addAll(comp.dependencies);
 					}
 				}
 			}
-			writeModuleInfo(moduleName, info, transactionStartTime);
-			writeModuleSpec(moduleName, specDocument, transactionStartTime);
+			writeModuleInfoSpec(moduleName, info, specDocument, transactionStartTime);
 			storage.addRefs(createdTypeRefs, createdFuncRefs);
 			transactionStartTime = -1;
 		} catch (TypeStorageException ex) {
