@@ -8,9 +8,17 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public abstract class TypeStorage {
 
-	public abstract boolean checkModuleInfoRecordExist(String moduleName) throws TypeStorageException;
+	public abstract long getLastModuleVersion(String moduleName) throws TypeStorageException;
 
-	public abstract boolean checkModuleSpecRecordExist(String moduleName) throws TypeStorageException;
+	public abstract boolean checkModuleExist(String moduleName) throws TypeStorageException;
+
+	public abstract List<Long> getAllModuleVersions(String moduleName) throws TypeStorageException;
+
+	public abstract long generateNewModuleVersion(String moduleName) throws TypeStorageException;
+
+	public abstract boolean checkModuleInfoRecordExist(String moduleName, long version) throws TypeStorageException;
+
+	public abstract boolean checkModuleSpecRecordExist(String moduleName, long version) throws TypeStorageException;
 
 	public abstract boolean checkTypeSchemaRecordExists(String moduleName, String typeName, String version) throws TypeStorageException;
 
@@ -18,9 +26,9 @@ public abstract class TypeStorage {
 
 	public abstract String getTypeParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 	
-	public abstract String getModuleSpecRecord(String moduleName) throws TypeStorageException;
+	public abstract String getModuleSpecRecord(String moduleName, long version) throws TypeStorageException;
 
-	public abstract ModuleInfo getModuleInfoRecord(String moduleName) throws TypeStorageException;
+	public abstract ModuleInfo getModuleInfoRecord(String moduleName, long version) throws TypeStorageException;
 	
 	public abstract String getFuncParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
@@ -40,25 +48,21 @@ public abstract class TypeStorage {
 	
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
-	public abstract void writeTypeSchemaRecord(String moduleName, String typeName, String version, String document) throws TypeStorageException;
+	public abstract void writeTypeSchemaRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
 
-	public abstract void writeTypeParseRecord(String moduleName, String typeName, String version, String document) throws TypeStorageException;
+	public abstract void writeTypeParseRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
 
 	public abstract void removeAllTypeRecords(String moduleName, String typeName) throws TypeStorageException;
 
 	public abstract void removeAllFuncRecords(String moduleName, String funcName) throws TypeStorageException;
 
-	public abstract void writeModuleSpecRecordBackup(String moduleName, String specDocument, long backupTime) throws TypeStorageException;
+	public abstract void writeModuleRecords(String moduleName, ModuleInfo info, String specDocument, long version) throws TypeStorageException;
 
-	public abstract void writeModuleSpecRecord(String moduleName, String specDocument) throws TypeStorageException;
-
-	public abstract void writeModuleInfoRecordBackup(String moduleName, ModuleInfo infoText, long backupTime) throws TypeStorageException;
-
-	public abstract void writeModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException;
+	public abstract void initModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException;
 
 	public abstract boolean removeTypeRecordsForVersion(String moduleName, String typeName, String version) throws TypeStorageException;
 
-	public abstract void writeFuncParseRecord(String moduleName, String funcName, String version,
+	public abstract void writeFuncParseRecord(String moduleName, String funcName, String version, long moduleVersion,
 			String parseText) throws TypeStorageException;
 
 	public abstract void removeModule(String moduleName) throws TypeStorageException;
@@ -80,6 +84,4 @@ public abstract class TypeStorage {
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	
 	public abstract void removeAllRefs() throws TypeStorageException;
-	
-	public abstract long getStorageCurrentTime() throws TypeStorageException;
 }

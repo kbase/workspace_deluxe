@@ -4,6 +4,7 @@ public class RefInfo implements Comparable<RefInfo> {
 	private String depModule;
 	private String depName;
 	private String depVersion;
+	private long depModuleVersion;
 	private String refModule;
 	private String refName;
 	private String refVersion;
@@ -33,6 +34,14 @@ public class RefInfo implements Comparable<RefInfo> {
 	
 	public void setDepVersion(String depVersion) {
 		this.depVersion = depVersion;
+	}
+	
+	public long getDepModuleVersion() {
+		return depModuleVersion;
+	}
+	
+	public void setDepModuleVersion(long depModuleVersion) {
+		this.depModuleVersion = depModuleVersion;
 	}
 	
 	public String getRefModule() {
