@@ -112,7 +112,7 @@ public class FileTypeStorage extends TypeStorage {
 		oi.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
 		oi.setModuleName(moduleName);
 		owners.add(oi);
-		saveOwners(owners, getRequestFile());
+		saveOwners(owners, getOwnersFile());
 	}
 	
 	@Override
@@ -277,11 +277,17 @@ public class FileTypeStorage extends TypeStorage {
 	}
 
 	@Override
-	public void removeAllRefs() {
+	public void removeAllData() {
+		for (String moduleName : getAllRegisteredModules())
+			removeModule(moduleName);
 		getTypeRefFile().delete();
 		getFuncRefFile().delete();
+		getRequestFile().delete();
+		getOwnersFile().delete();
 		typeRefs = new TreeSet<RefInfo>();
 		funcRefs = new TreeSet<RefInfo>();
+		requests = new ArrayList<OwnerInfo>();
+		owners = new ArrayList<OwnerInfo>();
 	}
 	
 	private File getModuleDir(String moduleName) {
@@ -303,6 +309,16 @@ public class FileTypeStorage extends TypeStorage {
 		return ret.get(0);
 	}
 
+	@Override
+	public List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
+		List<String> ret = new ArrayList<String>();
+		for (String text : findFileMidParts(moduleName, "type." + typeName + ".", ".json")) {
+			text = text.substring(0, text.indexOf('-'));
+			ret.add(text);
+		}
+		return ret;
+	}
+	
 	private File getTypeParseFile(String moduleName, String typeName, String version, long moduleVersion) {
 		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".prs");
 	}
@@ -512,14 +528,23 @@ public class FileTypeStorage extends TypeStorage {
 		return true;
 	}
 	
+	private List<String> findFileMidParts(String moduleName, String prefix, String suffix) {
+		List<String> ret = new ArrayList<String>();
+		for (File f : findFiles(moduleName, prefix, suffix))
+			if (f.getName().length() > prefix.length() + suffix.length() && 
+					f.getName().startsWith(prefix) && f.getName().endsWith(suffix))
+				ret.add(f.getName().substring(prefix.length(), f.getName().length() - suffix.length()));
+		return ret;
+	}
+	
 	@Override
 	public List<Long> getAllModuleVersions(String moduleName)
 			throws TypeStorageException {
 		Set<Long> ret = new TreeSet<Long>();
-		for (File f : findFiles(moduleName, "module.", ".info"))
-			ret.add(Long.parseLong(f.getName().substring(7, f.getName().length() - 5)));
-		for (File f : findFiles(moduleName, "module.", ".spec"))
-			ret.add(Long.parseLong(f.getName().substring(7, f.getName().length() - 5)));
+		for (String text : findFileMidParts(moduleName, "module.", ".info"))
+			ret.add(Long.parseLong(text));
+		for (String text : findFileMidParts(moduleName, "module.", ".spec"))
+			ret.add(Long.parseLong(text));
 		return new ArrayList<Long>(ret);
 	}
 	
@@ -533,12 +558,20 @@ public class FileTypeStorage extends TypeStorage {
 	
 	@Override
 	public boolean checkModuleExist(String moduleName) throws TypeStorageException {
+		if (!getModuleDir(moduleName).exists())
+			return false;
 		List<Long> ret = getAllModuleVersions(moduleName);
 		return !ret.isEmpty();
 	}
 	
 	@Override
 	public long generateNewModuleVersion(String moduleName) throws TypeStorageException {
-		return System.currentTimeMillis();
+		long ret = System.currentTimeMillis();
+		if (checkModuleExist(moduleName)) {
+			long lastVersion = getLastModuleVersion(moduleName);
+			if (ret <= lastVersion)
+				ret = lastVersion + 1;
+		}
+		return ret;
 	}
 }

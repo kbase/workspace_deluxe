@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -16,7 +17,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -39,17 +41,25 @@ public class TypeRegisteringTest {
 		File dir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		storage = useMongo ? new MongoTypeStorage(new Mongo("localhost").getDB("test")) :
-			new FileTypeStorage(dir.getAbsolutePath());
+		if (useMongo) {
+			storage = new MongoTypeStorage(new MongoClient("localhost", 
+					MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(getTestDbName()));
+		} else {
+			storage = new FileTypeStorage(dir.getAbsolutePath());
+		}
 		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
+	}
+	
+	private static String getTestDbName() {
+		String ret = System.getProperty("test.mongo.db1");
+		if (ret == null)
+			ret = "test";
+		return ret;
 	}
 	
 	@Before
 	public void cleanupBefore() throws Exception {
-		db.removeAllRefs(adminUser);
-		for (String moduleName : db.getAllRegisteredModules()) {
-			db.removeModule(moduleName, adminUser);
-		}
+		storage.removeAllData();
 	}
 	
 	@After
@@ -71,12 +81,19 @@ public class TypeRegisteringTest {
 		db.registerModule(annotationSpec, Arrays.asList("genome", "gene"), user);
 		releaseType("Annotation", "genome", user);
 		releaseType("Annotation", "gene", user);
+		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
 		String regulationSpec = loadSpec("simple", "Regulation");
 		db.registerModule(regulationSpec, Arrays.asList("regulator", "binding_site"), user);
+		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "0.1", true);
 		releaseType("Regulation", "regulator", user);
 		releaseType("Regulation", "binding_site", user);
-		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
+		String reg2spec = loadSpec("simple", "Regulation", "2");
+		db.updateModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
+		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
+		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
+		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
+		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
 	}
 	
 	private void releaseType(String module, String type, String user) throws Exception {
