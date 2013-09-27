@@ -187,7 +187,7 @@ public class TestBasicValidation {
 	@Test
 	public void testInvalidInstances() throws Exception {
 		
-		System.out.println("\ntesting invalid instances ("+validInstanceResources.size()+" total)");
+		System.out.println("\ntesting invalid instances ("+invalidInstanceResources.size()+" total)");
 		for(TestInstanceInfo instance : invalidInstanceResources) {
 			System.out.println("  -("+instance.resourceName+")");
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
@@ -242,6 +242,7 @@ public class TestBasicValidation {
 	 * adapted from: http://www.uofr.net/~greg/java/get-resource-listing.html
 	 * 
 	 * @author Greg Briggs
+	 * @author msneddon
 	 * @param path Should end with "/", but not start with one.
 	 * @return Just the name of each member item, not the full paths.
 	 * @throws URISyntaxException 
@@ -269,8 +270,10 @@ public class TestBasicValidation {
 			Set<String> result = new HashSet<String>(); //avoid duplicates in case it is a subdirectory
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
-				if (name.startsWith(path)) { //filter according to the path
-					String entry = name.substring(path.length());
+				// construct internal jar path relative to the class
+				String fullPath = TestBasicValidation.class.getPackage().getName().replace(".","/") + "/" + path;
+				if (name.startsWith(fullPath)) { //filter according to the path
+					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");
 					if (checkSubdir >= 0) {
 						// if it is a subdirectory, we just return the directory name
