@@ -25,6 +25,14 @@ public interface Database {
 			Set<WorkspaceIdentifier> rwsis) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException;
 
+	public ResolvedWorkspaceID resolveWorkspace(WorkspaceIdentifier wsi,
+			boolean allowDeleted) throws NoSuchWorkspaceException,
+			WorkspaceCommunicationException;
+	
+	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
+			Set<WorkspaceIdentifier> wsis, boolean allowDeleted)
+					throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+
 	public WorkspaceMetaData createWorkspace(WorkspaceUser owner, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
@@ -70,7 +78,10 @@ public interface Database {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
-	void setObjectsDeleted(Set<ObjectIDResolvedWSNoVer> objectIDs,
+	public void setObjectsDeleted(Set<ObjectIDResolvedWSNoVer> objectIDs,
 			boolean delete) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
+
+	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
+			throws WorkspaceCommunicationException;
 }

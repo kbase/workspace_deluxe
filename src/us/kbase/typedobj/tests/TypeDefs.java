@@ -61,6 +61,15 @@ public class TypeDefs {
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
 		
+		TypeDefName foobar = new TypeDefName("foo.bar");
+		assertThat("TypeDefName constructor of Mod.type parsed module name",foobar.getModule(),is("foo"));
+		assertThat("TypeDefName constructor of Mod.type parsed type name",foobar.getName(),is("bar"));
+		checkTypeDefNameFromString("foobar", "Illegal fullname of a typed object: foobar");
+		checkTypeDefNameFromString("f.o.o.b.a.r", "Illegal fullname of a typed object: f.o.o.b.a.r");
+		checkTypeDefNameFromString("f .r", "Illegal character in type id f :  ");
+		checkTypeDefNameFromString("foobar.", "Illegal fullname of a typed object: foobar.");
+		checkTypeDefNameFromString(".foobar", "Module cannot be null or the empty string");
+		
 		assertTrue("absolute type", new TypeDefId(wst, 1, 1).isAbsolute());
 		assertFalse("absolute type", new TypeDefId(wst, 1).isAbsolute());
 		assertFalse("absolute type", new TypeDefId(wst).isAbsolute());
@@ -174,6 +183,15 @@ public class TypeDefs {
 		try {
 			TypeDefId.fromTypeString(type);
 			fail("Initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	private void checkTypeDefNameFromString(String invalidTypeNameString, String exception) {
+		try {
+			new TypeDefName(invalidTypeNameString);
+			fail("Initialized invalid type def name");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}

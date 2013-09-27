@@ -155,7 +155,7 @@ public class TestIdProcessing {
 		//	db.releaseType("FBA", typename, username);
 		//}
 		
-		System.out.println("finding test instances");
+		System.out.println("finding test instances\n");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
@@ -170,7 +170,7 @@ public class TestIdProcessing {
 	@AfterClass
 	public static void removeDb() throws IOException {
 		File dir = new File(TEST_DB_LOCATION);
-		//FileUtils.deleteDirectory(dir);
+		FileUtils.deleteDirectory(dir);
 		System.out.println("\ndeleting typed obj database");
 	}
 	
@@ -212,7 +212,19 @@ public class TestIdProcessing {
 		// check that all expected Ids are in fact found
 		String [] foundIdRefs = report.getListOfIdReferences();
 		for(int k=0; k<foundIdRefs.length; k++) {
-			assertTrue("  -("+instance.resourceName+") extracted key "+foundIdRefs[k]+" that should not have been extracted",expectedIdList.containsKey(foundIdRefs[k]));
+			assertTrue("  -("+instance.resourceName+") extracted id "+foundIdRefs[k]+" that should not have been extracted",
+					expectedIdList.containsKey(foundIdRefs[k]));
+			int n_refs = expectedIdList.get(foundIdRefs[k]).intValue();
+			assertFalse("  -("+instance.resourceName+") extracted id "+foundIdRefs[k]+" too many times",
+					n_refs==0);
+			expectedIdList.put(foundIdRefs[k], new Integer(n_refs-1));
+		}
+		Iterator<Map.Entry<String,Integer>> mapIter = expectedIdList.entrySet().iterator();
+		while(mapIter.hasNext()) {
+			Map.Entry<String, Integer> pair = mapIter.next();
+			int n_refs_remaining = pair.getValue().intValue();
+			assertTrue("  -("+instance.resourceName+") needed to extract id '"+pair.getKey()+"' "+n_refs_remaining+" more times",
+					n_refs_remaining == 0);
 		}
 		
 		
@@ -251,6 +263,7 @@ public class TestIdProcessing {
 	 * adapted from: http://www.uofr.net/~greg/java/get-resource-listing.html
 	 * 
 	 * @author Greg Briggs
+	 * @author msneddon
 	 * @param path Should end with "/", but not start with one.
 	 * @return Just the name of each member item, not the full paths.
 	 * @throws URISyntaxException 
@@ -278,8 +291,10 @@ public class TestIdProcessing {
 			Set<String> result = new HashSet<String>(); //avoid duplicates in case it is a subdirectory
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
-				if (name.startsWith(path)) { //filter according to the path
-					String entry = name.substring(path.length());
+				// construct internal jar path relative to the class
+				String fullPath = TestIdProcessing.class.getPackage().getName().replace(".","/") + "/" + path;
+				if (name.startsWith(fullPath)) { //filter according to the path
+					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");
 					if (checkSubdir >= 0) {
 						// if it is a subdirectory, we just return the directory name

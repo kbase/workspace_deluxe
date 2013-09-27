@@ -29,12 +29,23 @@ module KB {
 	} Feature;
 
 	/*
+	
+	*/
+	typedef structure {
+		genome_id genome;
+		string description;
+		list <feature_id> interesting_things;
+	} RelatedGenome;
+
+	/*
 	*/
 	typedef structure {
 		string id;
 		string name;
 		string sequence;
 		list <feature_id> feature_ids;
+		mapping <feature_id, int> length_of_features;
+		list <RelatedGenome> related_genomes;
 	} Genome;
 
 	/*
