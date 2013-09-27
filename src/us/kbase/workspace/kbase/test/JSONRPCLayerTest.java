@@ -705,6 +705,67 @@ public class JSONRPCLayerTest {
 		assertThat("size is correct", usermeta.getE9(), is(size));
 	}
 	
-	//TODO delete/undelete testing
-	
+	@Test
+	public void deleteUndelete() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
+				.withDescription("foo"));
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
+		int wsid = CLIENT1.getWorkspaceMetadata(wsi).getE1();
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("delundel")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType("Foo.Bar").withName("myname"));
+		CLIENT1.saveObjects(soc);
+		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
+				.withRef("delundel/myname"));
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+		CLIENT1.deleteObjects(loi);
+		try {
+			CLIENT1.getObjects(loi);
+			fail("got deleted object");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Object myname in workspace " + wsid + " has been deleted"));
+		}
+		CLIENT1.undeleteObjects(loi);
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+		CLIENT1.deleteWorkspace(wsi);
+		try {
+			CLIENT1.getObjects(loi);
+			fail("got deleted object");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Workspace delundel is deleted"));
+		}
+		try {
+			CLIENT1.getWorkspaceDescription(wsi);
+			fail("got desc from deleted WS");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Workspace delundel is deleted"));
+		}
+		CLIENT1.undeleteWorkspace(wsi);
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
+				is("foo"));
+		CLIENT1.deleteObjects(loi);
+		try {
+			CLIENT1.getObjects(loi);
+			fail("got deleted object");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Object myname in workspace " + wsid + " has been deleted"));
+		}
+		CLIENT1.saveObjects(soc);
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+	}
 }

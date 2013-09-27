@@ -1020,7 +1020,7 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.setObjectsDeleted(new WorkspaceUser("bar"), obj1, false);
-			fail("deleted objects w/o auth");
+			fail("undeleted objects w/o auth");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is("User bar may not undelete objects from workspace deleteundelete"));

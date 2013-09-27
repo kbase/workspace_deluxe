@@ -197,7 +197,7 @@
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user.noemail" value="${test.user.noemail}"/>
       <sysproperty key="test.pwd.noemail" value="${test.pwd.noemail}"/>
-      <test name="us.kbase.shock.client.test.ShockTests"/> 
+      <test name="us.kbase.shock.client.test.ShockTests"/>
       <test name="us.kbase.workspace.database.mongo.test.ShockBackendTest"/>
       <test name="us.kbase.workspace.database.mongo.test.GridFSBackendTest"/>
       <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
