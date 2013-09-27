@@ -705,4 +705,6 @@ public class JSONRPCLayerTest {
 		assertThat("size is correct", usermeta.getE9(), is(size));
 	}
 	
+	//TODO delete/undelete testing
+	
 }
