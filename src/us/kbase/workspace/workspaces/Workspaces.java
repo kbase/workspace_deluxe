@@ -281,7 +281,7 @@ public class Workspaces {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		// TODO Auto-generated method stub
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.WRITE,
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
 				(delete ? "" : "un") + "delete", !delete);
 		db.setWorkspaceDeleted(wsid, delete);
 	}

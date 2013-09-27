@@ -991,14 +991,14 @@ public class TestWorkspaces {
 	public void deleteUndelete() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
-		int wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, null).getId();
+		int wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
 		data2.put("data", "2");
-		ws.saveObjects(foo, read, Arrays.asList(
-				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false),
+		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false);
+		ws.saveObjects(foo, read, Arrays.asList(sobj1,
 				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data2, t, null, null, false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
@@ -1055,6 +1055,86 @@ public class TestWorkspaces {
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		
 		checkNonDeletedObjs(foo, idToData);
+		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
+				is("descrip"));
+		checkWSMeta(ws.getWorkspaceMetaData(foo, read), foo, "deleteundelete", Permission.OWNER, false);
+		WorkspaceUser bar = new WorkspaceUser("bar");
+		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
+		Map<User, Permission> p = new HashMap<User, Permission>();
+		p.put(foo, Permission.OWNER);
+		p.put(bar, Permission.ADMIN);
+		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
+		try {
+			ws.setWorkspaceDeleted(bar, read, true);
+			fail("Non owner deleted workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("User bar may not delete workspace deleteundelete"));
+		}
+		ws.setWorkspaceDeleted(foo, read, true);
+		try {
+			ws.getWorkspaceDescription(foo, read);
+			fail("got description from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.getWorkspaceMetaData(foo, read);
+			fail("got meta from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.setPermissions(foo, read, Arrays.asList(bar), Permission.NONE);
+			fail("set perms on deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.getPermissions(foo, read);
+			fail("got perms from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.getObjects(bar, objs);
+			fail("got objs from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.getObjectMetaData(bar, objs);
+			fail("got obj meta from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.saveObjects(bar, read, Arrays.asList(sobj1));
+			fail("saved objs from deleted workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		try {
+			ws.setObjectsDeleted(bar, obj1, true);
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is("Workspace deleteundelete is deleted"));
+		}
+		ws.setWorkspaceDeleted(foo, read, false);
+		checkNonDeletedObjs(foo, idToData);
+		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
+				is("descrip"));
+		checkWSMeta(ws.getWorkspaceMetaData(foo, read), foo, "deleteundelete", Permission.OWNER, false);
+		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
+		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
+		
 	}
 
 	private void checkNonDeletedObjs(WorkspaceUser foo,
@@ -1079,8 +1159,11 @@ public class TestWorkspaces {
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
 		}
+		try {
+			ws.getObjectMetaData(user, objs);
+			fail("got deleted object's metadata");
+		} catch (NoSuchObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
+		}
 	}
-	
-	//TODO test almost all methods shouldn't work on deleted workspaces
-	//TODO tests for deleted workspaces
 }
