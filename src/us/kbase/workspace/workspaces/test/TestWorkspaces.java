@@ -53,6 +53,9 @@ import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
 
+
+//TODO make sure ordered lists stay ordered
+//TODO test subdata access from independent mongo DB instance
 //TODO test vs. auth'd mongo
 @RunWith(Parameterized.class)
 public class TestWorkspaces {

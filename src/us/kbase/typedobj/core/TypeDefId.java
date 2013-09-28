@@ -194,7 +194,7 @@ public class TypeDefId {
 	
 	@Override
 	public String toString() {
-		return "TypeId [type=" + type + ", majorVersion=" + majorVersion
+		return "TypeDefId [type=" + type + ", majorVersion=" + majorVersion
 				+ ", minorVersion=" + minorVersion + "]";
 	}
 

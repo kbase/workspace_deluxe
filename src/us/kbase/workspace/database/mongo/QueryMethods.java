@@ -134,15 +134,15 @@ public class QueryMethods {
 		if (wsnames.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
 		}
-		fields.add("name");
+		fields.add(Fields.WS_NAME);
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection,
-				String.format("{name: {$in: [\"%s\"]}}", 
+				String.format("{%s: {$in: [\"%s\"]}}", Fields.WS_NAME,
 				StringUtils.join(wsnames, "\", \"")), fields);
 		final Map<String, Map<String, Object>> result =
 				new HashMap<String, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			result.put((String) m.get("name"), m);
+			result.put((String) m.get(Fields.WS_NAME), m);
 		}
 		for (String name: wsnames) {
 			if (!result.containsKey(name)) {
@@ -167,14 +167,15 @@ public class QueryMethods {
 		if (wsids.isEmpty()) {
 			return new HashMap<Integer, Map<String, Object>>();
 		}
-		fields.add("id");
+		fields.add(Fields.WS_ID);
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection, String.format(
-				"{id: {$in: [%s]}}", StringUtils.join(wsids, ", ")), fields);
+				"{%s: {$in: [%s]}}", Fields.WS_ID,
+				StringUtils.join(wsids, ", ")), fields);
 		final Map<Integer, Map<String, Object>> result =
 				new HashMap<Integer, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			result.put((Integer) m.get("id"), m);
+			result.put((Integer) m.get(Fields.WS_ID), m);
 		}
 		for (Integer id: wsids) {
 			if (!result.containsKey(id)) {
@@ -256,15 +257,15 @@ public class QueryMethods {
 		if (names.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
 		}
-		fields.add("name");
+		fields.add(Fields.PTR_NAME);
 		final List<Map<String, Object>> queryres = queryObjects(
-				String.format("{workspace: %s, name: {$in: [\"%s\"]}}",
-				rwsi.getID(), StringUtils.join(names, "\", \"")), fields,
-				versionfields);
+				String.format("{%s: %s, %s: {$in: [\"%s\"]}}", Fields.PTR_WS_ID,
+				rwsi.getID(), Fields.PTR_NAME,
+				StringUtils.join(names, "\", \"")), fields, versionfields);
 		final Map<String, Map<String, Object>> result =
 				new HashMap<String, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			result.put((String) m.get("name"), m);
+			result.put((String) m.get(Fields.PTR_NAME), m);
 		}
 		for (String name: names) {
 			if (exceptOnMissing && !result.containsKey(name)) {
@@ -284,11 +285,11 @@ public class QueryMethods {
 		if (ids.isEmpty()) {
 			return new HashMap<Integer, Map<String, Object>>();
 		}
-		fields.add("id");
+		fields.add(Fields.PTR_ID);
 		final List<Map<String, Object>> queryres = queryObjects(
-				String.format("{workspace: %s, id: {$in: [%s]}}",
-				rwsi.getID(), StringUtils.join(ids, ", ")), fields,
-				versionfields);
+				String.format("{%s: %s, %s: {$in: [%s]}}", Fields.PTR_WS_ID,
+				rwsi.getID(), Fields.PTR_ID,
+				StringUtils.join(ids, ", ")), fields, versionfields);
 		final Map<Integer, Map<String, Object>> result =
 				new HashMap<Integer, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -309,7 +310,8 @@ public class QueryMethods {
 			WorkspaceCommunicationException {
 		if (versionfields != null) {
 			for (final String field: versionfields) {
-				fields.add("versions." + field);
+				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
+				
 			}
 		}
 		return queryCollection(pointerCollection, query, fields);
@@ -368,7 +370,7 @@ public class QueryMethods {
 			wsids.add(r.getID());
 		}
 		iddb.put("$in", wsids);
-		query.put("id", iddb);
+		query.put(Fields.ACL_WSID, iddb);
 		if (users != null && users.size() > 0) {
 			final List<String> u = new ArrayList<String>();
 			for (User user: users) {
@@ -376,13 +378,13 @@ public class QueryMethods {
 			}
 			final DBObject usersdb = new BasicDBObject();
 			usersdb.put("$in", u);
-			query.put("user", usersdb);
+			query.put(Fields.ACL_USER, usersdb);
 		}
 		final DBObject proj = new BasicDBObject();
-		proj.put("_id", 0);
-		proj.put("user", 1);
-		proj.put("perm", 1);
-		proj.put("id", 1);
+		proj.put(Fields.MONGO_ID, 0);
+		proj.put(Fields.ACL_USER, 1);
+		proj.put(Fields.ACL_PERM, 1);
+		proj.put(Fields.ACL_WSID, 1);
 		
 		final DBCursor res;
 		try {
@@ -396,12 +398,12 @@ public class QueryMethods {
 		final Map<Integer, Map<User, Permission>> wsidToPerms =
 				new HashMap<Integer, Map<User, Permission>>();
 		for (final DBObject m: res) {
-			final int wsid = (int) m.get("id");
+			final int wsid = (int) m.get(Fields.ACL_WSID);
 			if (!wsidToPerms.containsKey(wsid)) {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
 			}
-			wsidToPerms.get(wsid).put(getUser((String) m.get("user")),
-					Permission.fromInt((int) m.get("perm")));
+			wsidToPerms.get(wsid).put(getUser((String) m.get(Fields.ACL_USER)),
+					Permission.fromInt((int) m.get(Fields.ACL_PERM)));
 		}
 		final Map<ResolvedMongoWSID, Map<User, Permission>> ret =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
