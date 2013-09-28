@@ -121,6 +121,7 @@ public class MongoTypeStorage extends TypeStorage {
 		return infos.distinct("moduleName").as(String.class);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public String getFuncParseRecord(String moduleName, String funcName,
 			String version) throws TypeStorageException {
@@ -170,16 +171,30 @@ public class MongoTypeStorage extends TypeStorage {
 	@Override
 	public List<Long> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-		ArrayList<Map> data = Lists.newArrayList(infos.find("{moduleName:#}", moduleName).projection(
-				"{versionTime:1}").as(Map.class));
-		List<Long> ret = new ArrayList<Long>();
+		return getProjection(infos, "{moduleName:#}", "versionTime", Long.class, moduleName);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected <T> List<T> getProjection(MongoCollection infos,
+			String whereCondition, String selectField, Class<T> type, Object... params)
+			throws TypeStorageException {
+		ArrayList<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
+				"{" + selectField + ":1}").as(Map.class));
+		List<T> ret = new ArrayList<T>();
 		for (Map<?,?> item : data) {
-			Object value = item.get("versionTime");
-			if (value == null || !(value instanceof Long))
+			Object value = item.get(selectField);
+			if (value == null || !(type.isInstance(value)))
 				throw new TypeStorageException("Value is wrong: " + value);
-			ret.add((Long)value);
+			ret.add((T)value);
 		}
 		return ret;
+	}
+	
+	@Override
+	public List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
+		MongoCollection schemas = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+		return getProjection(schemas, "{moduleName:#,typeName:#}", "version", String.class, 
+				moduleName, typeName);
 	}
 	
 	@Override
@@ -192,6 +207,7 @@ public class MongoTypeStorage extends TypeStorage {
 		return ret;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public String getTypeParseRecord(String moduleName, String typeName,
 			String version) throws TypeStorageException {
@@ -220,6 +236,7 @@ public class MongoTypeStorage extends TypeStorage {
 				refModule, refType, version).as(RefInfo.class));
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public String getTypeSchemaRecord(String moduleName, String typeName,
 			String version) throws TypeStorageException {
@@ -239,9 +256,17 @@ public class MongoTypeStorage extends TypeStorage {
 	}
 	
 	@Override
-	public void removeAllRefs() throws TypeStorageException {
+	public void removeAllData() throws TypeStorageException {
 		jdb.getCollection(TABLE_TYPE_REFS).remove();
 		jdb.getCollection(TABLE_FUNC_REFS).remove();
+		jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove();
+		jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove();
+		jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove();
+		jdb.getCollection(TABLE_MODULE_REQUEST).remove();
+		jdb.getCollection(TABLE_MODULE_OWNER).remove();
+		jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove();
+		jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove();
+		jdb.getCollection(TABLE_MODULE_VERSION).remove();
 	}
 	
 	@Override
@@ -259,8 +284,6 @@ public class MongoTypeStorage extends TypeStorage {
 	
 	@Override
 	public void removeModule(String moduleName) throws TypeStorageException {
-		jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#}", moduleName);
-		jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_TYPE_REFS).remove("{depModule:#}", moduleName);
 		jdb.getCollection(TABLE_TYPE_REFS).remove("{refModule:#}", moduleName);
 		jdb.getCollection(TABLE_FUNC_REFS).remove("{depModule:#}", moduleName);
@@ -268,8 +291,6 @@ public class MongoTypeStorage extends TypeStorage {
 		jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#}", moduleName);
-		jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#}", moduleName);
-		jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_MODULE_REQUEST).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_MODULE_OWNER).remove("{moduleName:#}", moduleName);
 		jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#}", moduleName);

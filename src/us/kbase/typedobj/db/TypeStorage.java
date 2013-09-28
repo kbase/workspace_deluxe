@@ -8,9 +8,9 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public abstract class TypeStorage {
 
-	public abstract long getLastModuleVersion(String moduleName) throws TypeStorageException;
-
 	public abstract boolean checkModuleExist(String moduleName) throws TypeStorageException;
+
+	public abstract long getLastModuleVersion(String moduleName) throws TypeStorageException;
 
 	public abstract List<Long> getAllModuleVersions(String moduleName) throws TypeStorageException;
 
@@ -20,31 +20,33 @@ public abstract class TypeStorage {
 
 	public abstract boolean checkModuleSpecRecordExist(String moduleName, long version) throws TypeStorageException;
 
+	public abstract String getModuleSpecRecord(String moduleName, long version) throws TypeStorageException;
+
+	public abstract ModuleInfo getModuleInfoRecord(String moduleName, long version) throws TypeStorageException;
+
+	public abstract List<String> getAllRegisteredModules() throws TypeStorageException;
+
+	public abstract List<OwnerInfo> getNewModuleRegistrationRequests() throws TypeStorageException;
+	
+	public abstract Map<String, OwnerInfo> getOwnersForModule(String moduleName) throws TypeStorageException;
+
 	public abstract boolean checkTypeSchemaRecordExists(String moduleName, String typeName, String version) throws TypeStorageException;
 
 	public abstract String getTypeSchemaRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
 	public abstract String getTypeParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
-	
-	public abstract String getModuleSpecRecord(String moduleName, long version) throws TypeStorageException;
-
-	public abstract ModuleInfo getModuleInfoRecord(String moduleName, long version) throws TypeStorageException;
-	
-	public abstract String getFuncParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
-
-	public abstract List<String> getAllRegisteredModules() throws TypeStorageException;
 
 	public abstract Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version) throws TypeStorageException;
 
 	public abstract Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
 
+	public abstract List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException;
+	
+	public abstract String getFuncParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
+
 	public abstract Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, String version) throws TypeStorageException;
 
 	public abstract Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
-
-	public abstract List<OwnerInfo> getNewModuleRegistrationRequests() throws TypeStorageException;
-	
-	public abstract Map<String, OwnerInfo> getOwnersForModule(String moduleName) throws TypeStorageException;
 	
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
@@ -83,5 +85,5 @@ public abstract class TypeStorage {
 
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	
-	public abstract void removeAllRefs() throws TypeStorageException;
+	public abstract void removeAllData() throws TypeStorageException;
 }
