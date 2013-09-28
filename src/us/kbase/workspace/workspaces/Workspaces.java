@@ -37,6 +37,18 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
+	//TODO rename workspace / object
+	//TODO clone workspace
+	//TODO get history of object
+	//TODO copy object(s)
+	//TODO move objects(s) ? needed?
+	//TODO revert object
+	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
+	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
+	//TODO get object changes since date (based on type collection and pointers collection
+	//TODO set global read
+	//TODO set description
+	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
 	private final Database db;
