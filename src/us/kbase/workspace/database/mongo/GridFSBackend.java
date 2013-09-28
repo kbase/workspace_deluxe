@@ -49,7 +49,7 @@ public class GridFSBackend implements BlobStore {
 	public String getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
 		DBObject query = new BasicDBObject();
-		query.put("_id", md5.getMD5());
+		query.put(Fields.MONGO_ID, md5.getMD5());
 		GridFSDBFile out;
 		try {
 			out = gfs.findOne(query);
@@ -73,7 +73,7 @@ public class GridFSBackend implements BlobStore {
 	@Override
 	public void removeBlob(MD5 md5) throws BlobStoreCommunicationException {
 		DBObject query = new BasicDBObject();
-		query.put("_id", md5.getMD5());
+		query.put(Fields.MONGO_ID, md5.getMD5());
 		try {
 			gfs.remove(query);
 		} catch (MongoException me) {

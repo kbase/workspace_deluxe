@@ -23,12 +23,12 @@ public class TypeData {
 	private AbsoluteTypeDefId type = null;
 	
 	//these attributes are actually saved in mongo
-	private List<Integer> workspaces;
+	private List<Integer> ws;
 	private String chksum;
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private int size;
-	private int version;
+	private int minver;
 	
 	public TypeData(final String data, final AbsoluteTypeDefId type,
 			final ResolvedMongoWSID firstWorkspace,
@@ -43,12 +43,12 @@ public class TypeData {
 		}
 		this.data = data;
 		this.type = type;
-		this.workspaces = new ArrayList<Integer>();
-		this.workspaces.add(firstWorkspace.getID());
+		this.ws = new ArrayList<Integer>();
+		this.ws.add(firstWorkspace.getID());
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chksum = DigestUtils.md5Hex(data);
-		this.version = type.getMinorVersion();
+		this.minver = type.getMinorVersion();
 		
 	}
 
@@ -70,32 +70,26 @@ public class TypeData {
 	
 	//subdata is mutable!
 	public DBObject getSafeUpdate() {
-		final String soi = "$setOnInsert";
 		final DBObject dbo = new BasicDBObject();
 		final DBObject wsids = new BasicDBObject();
-		wsids.put("$each", workspaces);
+		wsids.put("$each", ws);
 		final DBObject ws = new BasicDBObject();
 		ws.put("workspaces", wsids);
 		dbo.put("$addToSet", ws);
-		final DBObject chksum = new BasicDBObject();
-		chksum.put("chksum", getChksum());
-		dbo.put(soi, chksum);
-		final DBObject subdata = new BasicDBObject();
-		subdata.put("subdata", subdata);
-		dbo.put(soi, subdata);
-		final DBObject size = new BasicDBObject();
-		size.put("size", getSize());
-		dbo.put(soi, size);
-		final DBObject version = new BasicDBObject();
-		version.put("version", this.version);
-		dbo.put(soi, version);
+		
+		final DBObject setOnIns = new BasicDBObject();
+		setOnIns.put("chksum", getChksum());
+		setOnIns.put("subdata", subdata);
+		setOnIns.put("size", getSize());
+		setOnIns.put("version", minver);
+		dbo.put("$setOnInsert", setOnIns);
 		return dbo;
 	}
 
 	@Override
 	public String toString() {
 		return "TypeData [data=" + data + ", type=" + type + ", workspaces="
-				+ workspaces + ", chksum=" + chksum + ", subdata=" + subdata
-				+ ", size=" + size + ", version=" + version + "]";
+				+ ws + ", chksum=" + chksum + ", subdata=" + subdata
+				+ ", size=" + size + ", version=" + minver + "]";
 	}
 }

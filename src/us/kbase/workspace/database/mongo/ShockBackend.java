@@ -32,9 +32,7 @@ public class ShockBackend implements BlobStore {
 	private BasicShockClient client;
 	private DBCollection mongoCol;
 	
-	private static final String CHKSUM = "chksum";
-	private static final String NODE = "node";
-	private static final String VER = "ver";
+	private static final String IDX_UNIQ = "unique";
 	
 	public ShockBackend(DBCollection collection, URL url, String user,
 			String password) throws BlobStoreAuthorizationException,
@@ -44,8 +42,10 @@ public class ShockBackend implements BlobStore {
 		}
 		this.mongoCol = collection;
 		final DBObject dbo = new BasicDBObject();
-		dbo.put(CHKSUM, 1);
-		mongoCol.ensureIndex(dbo);
+		dbo.put(Fields.SHOCK_CHKSUM, 1);
+		final DBObject opts = new BasicDBObject();
+		opts.put(IDX_UNIQ, 1);
+		mongoCol.ensureIndex(dbo, opts);
 		this.user = user;
 		this.password = password;
 		try {
@@ -124,15 +124,15 @@ public class ShockBackend implements BlobStore {
 					she.getLocalizedMessage(), she);
 		}
 		final DBObject dbo = new BasicDBObject();
-		dbo.put(CHKSUM, md5.getMD5());
+		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		try {
-			dbo.put(NODE, sn.getId().getId());
-			dbo.put(VER, sn.getVersion().getVersion());
+			dbo.put(Fields.SHOCK_NODE, sn.getId().getId());
+			dbo.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
 		} catch (ShockNodeDeletedException d) {
 			throw new RuntimeException("Shock is returning deleted nodes");
 		}
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, md5.getMD5());
+		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		try {
 			mongoCol.update(query, dbo, true, false);
 		} catch (MongoException me) {
@@ -144,7 +144,7 @@ public class ShockBackend implements BlobStore {
 	private String getNode(MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, md5.getMD5());
+		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		DBObject ret;
 		try {
 			ret = mongoCol.findOne(query);
@@ -156,7 +156,7 @@ public class ShockBackend implements BlobStore {
 			throw new NoSuchBlobException("No blob saved with chksum "
 					+ md5.getMD5());
 		}
-		return (String) ret.get(NODE);
+		return (String) ret.get(Fields.SHOCK_NODE);
 	}
 
 	@Override
@@ -209,7 +209,7 @@ public class ShockBackend implements BlobStore {
 					she.getLocalizedMessage(), she);
 		}
 		final DBObject query = new BasicDBObject();
-		query.put(CHKSUM, md5.getMD5());
+		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		mongoCol.remove(query);
 	}
 

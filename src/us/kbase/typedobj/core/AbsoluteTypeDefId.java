@@ -40,7 +40,7 @@ public class AbsoluteTypeDefId extends TypeDefId{
 	
 	@Override
 	public String toString() {
-		return "AbsoluteTypeId [type=" + type + ", majorVersion=" +
+		return "AbsoluteTypeDefId [type=" + type + ", majorVersion=" +
 				majorVersion + ", minorVersion=" + minorVersion + "]";
 	}
 }

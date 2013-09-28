@@ -99,7 +99,7 @@ public class TypeDefName {
 	
 	@Override
 	public String toString() {
-		return "WorkspaceType [module=" + module + ", name=" + name + "]";
+		return "TypeDefName [module=" + module + ", name=" + name + "]";
 	}
 
 }
