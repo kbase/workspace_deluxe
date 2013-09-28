@@ -106,7 +106,7 @@ public class MongoDatabase implements Database {
 	private final Map<AbsoluteTypeDefId, Boolean> typeIndexEnsured = 
 			new HashMap<AbsoluteTypeDefId, Boolean>();
 	
-	//TODO constants class with field names for all objects
+	//TODO constants class
 
 	private static final Map<String, Map<List<String>, List<String>>> INDEXES;
 	private static final String IDX_UNIQ = "unique";

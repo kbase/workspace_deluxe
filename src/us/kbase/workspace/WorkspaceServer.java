@@ -345,6 +345,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			final Provenance p = ArgUtils.processProvenance(
 					authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
+			//TODO This is a Jackson 1.9.11 JsonNode, need typecomp update (see above)
 			final String data = d.getData().asJsonNode().toString();
 			try {
 				if (oi == null) {

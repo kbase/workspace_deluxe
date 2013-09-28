@@ -29,26 +29,7 @@ public class WorkspaceSaveObject {
 			throw new IllegalArgumentException("Neither id, data nor type may be null");
 		}
 		this.id = id;
-		try {
-			this.data = mapper.valueToTree(data);
-		} catch (IllegalArgumentException iae) {
-			throw new IllegalArgumentException("Cannot serialize data", iae);
-		}
-		this.type = type;
-		this.userMeta = userMeta;
-		this.provenance = provenance;
-		this.hidden = hidden;
-		checkMeta(userMeta);
-	}
-	
-	public WorkspaceSaveObject(final WorkspaceObjectID id, final JsonNode data,
-			final TypeDefId type, final Map<String, String> userMeta,
-			final Provenance provenance, final boolean hidden) {
-		if (id == null || data == null || type == null) {
-			throw new IllegalArgumentException("Neither id, data nor type may be null");
-		}
-		this.id = id;
-		this.data = data;
+		this.data = transformData(data);
 		this.type = type;
 		this.userMeta = userMeta;
 		this.provenance = provenance;
@@ -63,31 +44,26 @@ public class WorkspaceSaveObject {
 			throw new IllegalArgumentException("Neither data nor type may be null");
 		}
 		this.id = null;
-		try {
-			this.data = mapper.valueToTree(data);
-		} catch (IllegalArgumentException iae) {
-			throw new IllegalArgumentException("Cannot serialize data", iae);
-		}
+		this.data = transformData(data);
 		this.type = type;
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
 		checkMeta(userMeta);
 	}
-	
-	public WorkspaceSaveObject(final JsonNode data, final TypeDefId type,
-			final Map<String, String> userMeta, final Provenance provenance,
-			final boolean hidden) {
-		if (data == null || type == null) {
-			throw new IllegalArgumentException("Neither data nor type may be null");
+
+	private JsonNode transformData(final Object data) {
+		final JsonNode retdata;
+		if (!(data instanceof JsonNode)) {
+			try {
+				retdata = mapper.valueToTree(data);
+			} catch (IllegalArgumentException iae) {
+				throw new IllegalArgumentException("Cannot serialize data", iae);
+			}
+		} else {
+			retdata = (JsonNode) data;
 		}
-		this.id = null;
-		this.data = data;
-		this.type = type;
-		this.userMeta = userMeta;
-		this.provenance = provenance;
-		this.hidden = hidden;
-		checkMeta(userMeta);
+		return retdata;
 	}
 	
 	private final static String META_ERR = String.format(
