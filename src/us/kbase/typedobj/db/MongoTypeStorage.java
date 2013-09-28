@@ -15,7 +15,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.DB;
 
-public class MongoTypeStorage extends TypeStorage {
+public class MongoTypeStorage implements TypeStorage {
 	private Jongo jdb;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";

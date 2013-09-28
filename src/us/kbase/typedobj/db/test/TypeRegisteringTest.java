@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -29,9 +30,11 @@ import us.kbase.typedobj.db.SemanticVersion;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.SpecParseException;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public class TypeRegisteringTest {
-	private static TypeStorage storage = null;
+	private static TestTypeStorage storage = null;
 	private static TypeDefinitionDB db = null;
 	private static boolean useMongo = true;
 	private static String adminUser = "admin";
@@ -41,12 +44,14 @@ public class TypeRegisteringTest {
 		File dir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
+		TypeStorage innerStorage;
 		if (useMongo) {
-			storage = new MongoTypeStorage(new MongoClient("localhost", 
+			innerStorage = new MongoTypeStorage(new MongoClient("localhost", 
 					MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(getTestDbName()));
 		} else {
-			storage = new FileTypeStorage(dir.getAbsolutePath());
+			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
 		}
+		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
 		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
 	}
 	
@@ -60,6 +65,7 @@ public class TypeRegisteringTest {
 	@Before
 	public void cleanupBefore() throws Exception {
 		storage.removeAllData();
+		storage.removeAllTypeStorageListeners();
 	}
 	
 	@After
@@ -71,29 +77,60 @@ public class TypeRegisteringTest {
 	public void testSimple() throws Exception {
 		String user = adminUser;
 		String taxonomySpec = loadSpec("simple", "Taxonomy");
+		initModule("Taxonomy", user);
+		readOnlyMode();
+		db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), user, true);
+		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
 		releaseType("Taxonomy", "taxon", user);
 		String sequenceSpec = loadSpec("simple", "Sequence");
+		initModule("Sequence", user);
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);
 		releaseType("Sequence", "sequence_id", user);
 		releaseType("Sequence", "sequence_pos", user);
 		String annotationSpec = loadSpec("simple", "Annotation");
+		initModule("Annotation", user);
 		db.registerModule(annotationSpec, Arrays.asList("genome", "gene"), user);
 		releaseType("Annotation", "genome", user);
 		releaseType("Annotation", "gene", user);
 		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
 		String regulationSpec = loadSpec("simple", "Regulation");
+		initModule("Regulation", user);
 		db.registerModule(regulationSpec, Arrays.asList("regulator", "binding_site"), user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "0.1", true);
 		releaseType("Regulation", "regulator", user);
 		releaseType("Regulation", "binding_site", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 		String reg2spec = loadSpec("simple", "Regulation", "2");
-		db.updateModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
+		readOnlyMode();
+		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user, true);
+		storage.removeAllTypeStorageListeners();
+		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
 		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
+	}
+	
+	private void readOnlyMode() {
+		storage.addTypeStorageListener(new TypeStorageListener() {
+			@Override
+			public void onMethodStart(String method, Object[] params)
+					throws TypeStorageException {
+				if (method.startsWith("add") || method.startsWith("write") || 
+						method.startsWith("init") || method.startsWith("remove"))
+					throw new TypeStorageException("Type storage is in read only mode.");
+			}
+			@Override
+			public void onMethodEnd(String method, Object[] params, Object ret)
+					throws TypeStorageException {
+			}
+		});
+	}
+	
+	private void initModule(String moduleName, String user) throws Exception {
+		db.requestModuleRegistration(moduleName, user);
+		db.approveModuleRegistrationRequest(adminUser, moduleName, user);
 	}
 	
 	private void releaseType(String module, String type, String user) throws Exception {
