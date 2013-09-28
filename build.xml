@@ -203,8 +203,8 @@
       <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
       <test name="us.kbase.workspace.kbase.test.JSONRPCLayerTest"/>
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
-      <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
-      <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
+      <!--<test name="us.kbase.typedobj.tests.TestBasicValidation"/>
+      <test name="us.kbase.typedobj.tests.TestIdProcessing"/>-->
     </junit>
     <junit failureproperty="test.failed">
       <classpath refid="test.classpath"/>

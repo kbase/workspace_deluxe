@@ -124,6 +124,10 @@ public class WorkspaceTestCommon {
 		}
 		String mUser = getMongoUser();
 		String mPwd = getMongoPwd();
+		System.out.print(String.format("Destroying mongo database %s at %s...",
+				db, getHost()));
+		mongoClient.dropDatabase(db);
+		System.out.println(" buhbye.");
 		DB mdb;
 		try {
 			mdb = mongoClient.getDB(db);
@@ -134,19 +138,8 @@ public class WorkspaceTestCommon {
 			throw new TestException("Error connecting to mongodb test instance: "
 					+ men.getCause().getLocalizedMessage());
 		}
-		System.out.print(String.format("Destroying mongo database %s at %s...",
-				db, getHost()));
 		DBObject dbo = new BasicDBObject();
-		for (String c: COLLECTIONS) {
-			mdb.getCollection(c).remove(dbo);
-		}
-		for (String c: mdb.getCollectionNames()) {
-			if (c.startsWith("type-")) {
-				mdb.getCollection(c).drop();
-			}
-		}
 		dbo.put("type_db", getTypeDB());
-		System.out.println(" buhbye.");
 		if (type == GRIDFS) {
 			dbo.put("backend", GRIDFS);
 		}

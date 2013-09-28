@@ -48,6 +48,7 @@ public class Workspaces {
 	//TODO get object changes since date (based on type collection and pointers collection
 	//TODO set global read
 	//TODO set description
+	//TODO garbage collection - make a static thread that calls a gc() method
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
