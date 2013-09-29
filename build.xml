@@ -7,6 +7,7 @@
   <!-- set global properties for this build -->
   <property name="package" value="workspace service"/>
   <property name="src" location="src"/>
+  <property name="common-src" location="../java_common/src"/>
   <property name="lib" location="lib"/>
   <property name="dist" location="dist"/>
   <property name="test" location="test"/>
@@ -118,8 +119,11 @@
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
-    <javac destdir="${classes}" srcdir="${src}" includeantruntime="false"
-      debug="true" classpathref="compile.classpath" />
+    <javac destdir="${classes}" includeantruntime="false"
+      debug="true" classpathref="compile.classpath">
+      <src path="${src}"/>
+      <src path="${common-src}"/>
+    </javac>
     <!-- Copy resource files-->
     <copy todir="${classes}">
       <fileset dir="${src}">

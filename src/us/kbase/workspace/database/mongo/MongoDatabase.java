@@ -16,8 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jongo.FindAndModify;
@@ -29,6 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
 
+import us.kbase.common.mongo.GetMongoDB;
+import us.kbase.common.mongo.exceptions.InvalidHostException;
+import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
@@ -52,7 +53,6 @@ import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
-import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -76,8 +76,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoException;
 
 @RunWith(Enclosed.class)
@@ -95,7 +93,6 @@ public class MongoDatabase implements Database {
 	private static final String COL_SHOCK = "shockData";
 	private static final User allUsers = new AllUsers('*');
 	
-	private static MongoClient MONGO_CLIENT = null;
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
@@ -153,7 +150,7 @@ public class MongoDatabase implements Database {
 	public MongoDatabase(final String host, final String database,
 			final String backendSecret) throws UnknownHostException,
 			IOException, InvalidHostException, WorkspaceDBException {
-		wsmongo = getDB(host, database);
+		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
 				COL_WORKSPACE_PTRS, COL_WS_ACLS);
@@ -163,7 +160,7 @@ public class MongoDatabase implements Database {
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
-								getDB(host, settings.getTypeDatabase())),
+								GetMongoDB.getDB(host, settings.getTypeDatabase())),
 								new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
@@ -171,9 +168,8 @@ public class MongoDatabase implements Database {
 	public MongoDatabase(final String host, final String database,
 			final String backendSecret, final String user,
 			final String password) throws UnknownHostException, IOException,
-			DBAuthorizationException, WorkspaceDBException,
-			InvalidHostException {
-		wsmongo = getDB(host, database, user, password);
+			WorkspaceDBException, InvalidHostException, MongoAuthException {
+		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
 				COL_WORKSPACE_PTRS, COL_WS_ACLS);
@@ -183,7 +179,8 @@ public class MongoDatabase implements Database {
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
-								getDB(host, settings.getTypeDatabase(), user, password)),
+								GetMongoDB.getDB(host, settings.getTypeDatabase(),
+										user, password)),
 								new UserInfoProviderForTests()));
 		ensureIndexes();
 	}
@@ -230,56 +227,7 @@ public class MongoDatabase implements Database {
 				.projection(String.format("{%s: 1, %s: 0}",
 						Fields.CNT_NUM, Fields.MONGO_ID));
 	}
-	
-	//only the first call sets the host, host ignored for further calls
-	private MongoClient getMongoClient(final String host) throws
-			UnknownHostException, InvalidHostException {
-		//Only make one instance of MongoClient per JVM per mongo docs
-		if (MONGO_CLIENT == null) {
-			// Don't print to stderr
-			Logger.getLogger("com.mongodb").setLevel(Level.OFF);
-			final MongoClientOptions opts = MongoClientOptions.builder()
-					.autoConnectRetry(true).build();
-			try {
-				MONGO_CLIENT = new MongoClient(host, opts);
-			} catch (NumberFormatException nfe) {
-				throw new InvalidHostException(host
-						+ " is not a valid mongodb host");
-			}
-		}
-		return MONGO_CLIENT;
-	}
-	
-	private DB getDB(final String host, final String database) throws
-			UnknownHostException, InvalidHostException, IOException {
-		final DB db = getMongoClient(host).getDB(database);
-		try {
-			db.getCollectionNames();
-		} catch (MongoException.Network men) {
-			throw (IOException) men.getCause();
-		}
-		return db;
-	}
-	
-	private DB getDB(final String host, final String database,
-			final String user, final String pwd) throws
-			UnknownHostException, InvalidHostException, IOException,
-			DBAuthorizationException {
-		final DB db = getMongoClient(host).getDB(database);
-		try {
-			db.authenticate(user, pwd.toCharArray());
-		} catch (MongoException.Network men) {
-			throw (IOException) men.getCause();
-		}
-		try {
-			db.getCollectionNames();
-		} catch (MongoException me) {
-			throw new DBAuthorizationException("Not authorized for database "
-					+ database, me);
-		}
-		return db;
-	}
-	
+
 	private Settings getSettings() throws UninitializedWorkspaceDBException,
 			CorruptWorkspaceDBException {
 		if (!wsmongo.collectionExists(COL_SETTINGS)) {

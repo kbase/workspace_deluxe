@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import us.kbase.workspace.database.exceptions.InvalidHostException;
+import us.kbase.common.mongo.exceptions.InvalidHostException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

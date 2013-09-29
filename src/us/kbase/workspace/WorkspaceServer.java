@@ -29,6 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthService;
+import us.kbase.common.mongo.exceptions.InvalidHostException;
+import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -39,8 +41,6 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.exceptions.DBAuthorizationException;
-import us.kbase.workspace.database.exceptions.InvalidHostException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.ArgUtils;
@@ -98,7 +98,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (IOException io) {
 			fail("Couldn't connect to mongo host " + host + ": " +
 					io.getLocalizedMessage());
-		} catch (DBAuthorizationException ae) {
+		} catch (MongoAuthException ae) {
 			fail("Not authorized: " + ae.getLocalizedMessage());
 		} catch (InvalidHostException ihe) {
 			fail(host + " is an invalid database host: "  +
