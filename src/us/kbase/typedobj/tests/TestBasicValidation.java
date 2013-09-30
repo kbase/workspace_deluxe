@@ -60,6 +60,7 @@ public class TestBasicValidation {
 
 	/**
 	 * location to stash the temporary database for testing
+	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
 	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
 	
@@ -99,12 +100,12 @@ public class TestBasicValidation {
 		
 		//ensure test location is available
 		File dir = new File(TEST_DB_LOCATION);
-		if (!dir.exists()) {
-			if(!dir.mkdirs()) {
-				fail("unable to create needed test directory: "+TEST_DB_LOCATION);
-			}
-		} else {
-			fail("database at location: "+TEST_DB_LOCATION+" already exists, remove/rename this directory first");
+		if (dir.exists()) {
+			//fail("database at location: "+TEST_DB_LOCATION+" already exists, remove/rename this directory first");
+			removeDb();
+		}
+		if(!dir.mkdirs()) {
+			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
 		// point the type definition db to point there
@@ -119,6 +120,7 @@ public class TestBasicValidation {
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
+		db.approveModuleRegistrationRequest(username, "KB", username);
 		db.registerModule(kbSpec ,kb_types, username);
 		for(String typename : kb_types) {
 			db.releaseType(new TypeDefName("KB." + typename), username);
@@ -126,6 +128,7 @@ public class TestBasicValidation {
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
+		db.approveModuleRegistrationRequest(username, "FBA", username);
 		db.registerModule(fbaSpec ,fba_types, username);
 		for(String typename : fba_types) {
 			db.releaseType(new TypeDefName("FBA." + typename), username);
