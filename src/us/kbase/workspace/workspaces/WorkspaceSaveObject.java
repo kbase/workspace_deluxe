@@ -12,7 +12,7 @@ import us.kbase.workspace.database.WorkspaceObjectID;
 
 public class WorkspaceSaveObject {
 	
-	private static final ObjectMapper mapper = new ObjectMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final int MAX_USER_META_SIZE = 16000;
 	
 	private final WorkspaceObjectID id;
@@ -56,7 +56,7 @@ public class WorkspaceSaveObject {
 		final JsonNode retdata;
 		if (!(data instanceof JsonNode)) {
 			try {
-				retdata = mapper.valueToTree(data);
+				retdata = MAPPER.valueToTree(data);
 			} catch (IllegalArgumentException iae) {
 				throw new IllegalArgumentException("Cannot serialize data", iae);
 			}
@@ -73,7 +73,7 @@ public class WorkspaceSaveObject {
 		if (meta != null) {
 			final String jsonmeta;
 			try {
-				jsonmeta = mapper.writeValueAsString(meta);
+				jsonmeta = MAPPER.writeValueAsString(meta);
 			} catch (JsonProcessingException jpe) {
 				throw new IllegalArgumentException(
 						"Unable to serialize metadata", jpe);

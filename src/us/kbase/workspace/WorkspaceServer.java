@@ -314,7 +314,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
 //		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		//TODO get rid of this crap
+		//TODO get rid of this crap when java TC updated to Jackson 2.2
 		final ObjectMapper mapper = new ObjectMapper();
 		int count = 1;
 		if (params.getObjects().isEmpty()) {

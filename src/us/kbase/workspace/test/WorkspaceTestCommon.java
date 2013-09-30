@@ -2,8 +2,6 @@ package us.kbase.workspace.test;
 
 
 import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,9 +25,6 @@ public class WorkspaceTestCommon {
 	public static final String SHOCKURL = "test.shock.url";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
-	public static final List<String> COLLECTIONS = Arrays.asList(
-			"settings", "workspaces", "workspaceACLs", "workspaceCounter",
-			"workspacePointers", "shockData");
 			
 	private static MongoClient mongoClient = null;
 	

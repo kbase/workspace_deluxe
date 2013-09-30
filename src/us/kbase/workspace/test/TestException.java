@@ -6,7 +6,7 @@ package us.kbase.workspace.test;
  *
  */
 public class TestException extends RuntimeException {
-
+	//TODO replace with version in java common
 	private static final long serialVersionUID = 1L;
 	
 	public TestException() { super(); }
