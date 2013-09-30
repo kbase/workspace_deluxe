@@ -30,7 +30,7 @@
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="jackson/jackson-all-1.9.11.jar"/>
     <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-8f670e9.jar"/>
+    <include name="kbase/auth/kbase-auth-78bc050.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
