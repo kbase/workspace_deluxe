@@ -213,13 +213,18 @@ public class JsonServerSyslog {
 	
 	public static class SyslogOutput {
 		public void logToSystem(SyslogIF log, int level, String message) {
-			log.log(level, message);
+			try {
+				log.log(level, message);
+				log.flush();
+			} catch (Throwable ignore) {}
 		}
 		
 		public PrintWriter logToFile(File f, PrintWriter pw, int level, String message) throws Exception {
-			if (pw == null)
-				pw = new PrintWriter(new FileWriter(f, true));
-			pw.println(message);
+			try {
+				if (pw == null)
+					pw = new PrintWriter(new FileWriter(f, true));
+				pw.println(message);
+			} catch (Throwable ignore) {}
 			return pw;
 		}
 	}

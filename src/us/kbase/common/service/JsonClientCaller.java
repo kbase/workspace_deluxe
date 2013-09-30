@@ -12,9 +12,12 @@ import java.util.*;
 import javax.net.ssl.HttpsURLConnection;
 import javax.xml.bind.DatatypeConverter;
 
-import org.codehaus.jackson.*;
-import org.codehaus.jackson.type.*;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonClientCaller {
 
@@ -30,7 +33,7 @@ public class JsonClientCaller {
 
 	public JsonClientCaller(URL url) {
 		serviceUrl = url;
-		mapper = new ObjectMapper().withModule(new JacksonTupleModule());
+		mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	}
 
 	public JsonClientCaller(URL url, AuthToken accessToken) {
@@ -126,7 +129,7 @@ public class JsonClientCaller {
 		}
 		rd.close();
 		ObjectMapper mapper = new ObjectMapper();
-		JsonParser parser = mapper.getJsonFactory().createJsonParser(new ByteArrayInputStream(response.toString().getBytes()));
+		JsonParser parser = mapper.getFactory().createParser(new ByteArrayInputStream(response.toString().getBytes()));
 		LinkedHashMap<String, Object> respMap = parser.readValueAs(new TypeReference<LinkedHashMap<String, Object>>() {});
 		AuthToken token = null;
 		try {
@@ -163,7 +166,7 @@ public class JsonClientCaller {
 			throws IOException, JsonClientException {
 		HttpURLConnection conn = setupCall(authRequired);
 		OutputStream os = conn.getOutputStream();
-		JsonGenerator g = mapper.getJsonFactory().createJsonGenerator(os, JsonEncoding.UTF8);
+		JsonGenerator g = mapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
 
 		g.writeStartObject();
 		g.writeObjectField("params", arg);
@@ -186,7 +189,8 @@ public class JsonClientCaller {
 
 		JsonNode node = mapper.readTree(new UnclosableInputStream(istream));
 		if (node.has("error")) {
-			Map<String, String> ret_error = mapper.readValue(node.get("error"), new TypeReference<Map<String, String>>(){});
+			Map<String, String> ret_error = mapper.readValue(mapper.treeAsTokens(node.get("error")), 
+					new TypeReference<Map<String, String>>(){});
 			
 			String data = ret_error.get("data") == null ? ret_error.get("error") : ret_error.get("data");
 			throw new ServerException(ret_error.get("message"),
@@ -195,7 +199,7 @@ public class JsonClientCaller {
 		}
 		RET res = null;
 		if (node.has("result"))
-			res = mapper.readValue(node.get("result"), cls);
+			res = mapper.readValue(mapper.treeAsTokens(node.get("result")), cls);
 		if (res == null && ret)
 			throw new ServerException("An unknown server error occured", 0, "Unknown", null);
 		return res;

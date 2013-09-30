@@ -2,8 +2,8 @@ package us.kbase.common.service;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.codehaus.jackson.annotate.JsonAnyGetter;
-import org.codehaus.jackson.annotate.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 
 public class Tuple10 <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
     private T1 e1;

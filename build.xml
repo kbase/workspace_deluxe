@@ -27,9 +27,11 @@
   </fileset>
 
   <fileset dir="${jardir}" id="clientserverlib">
-    <include name="jackson/jackson-all-1.9.11.jar"/>
     <include name="junit/junit-4.9.jar"/>
     <include name="kbase/auth/kbase-auth-78bc050.jar"/>
+    <include name="jackson/jackson-annotations-2.2.3.jar"/>
+    <include name="jackson/jackson-core-2.2.3.jar"/>
+    <include name="jackson/jackson-databind-2.2.3.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
@@ -45,9 +47,6 @@
     <include name="apache_commons/commons-io-2.4.jar"/>
     <include name="apache_commons/commons-lang3-3.1.jar"/>
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
-    <include name="jackson/jackson-annotations-2.2.3.jar"/>
-    <include name="jackson/jackson-core-2.2.3.jar"/>
-    <include name="jackson/jackson-databind-2.2.3.jar"/>
     <include name="jongo/jongo-0.5-early-20130912-1506.jar"/>
     <include name="mongo/mongo-java-driver-2.11.2.jar"/>
   </fileset>

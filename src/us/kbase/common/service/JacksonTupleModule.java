@@ -5,48 +5,43 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.Version;
-import org.codehaus.jackson.map.BeanDescription;
-import org.codehaus.jackson.map.BeanProperty;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.DeserializerProvider;
-import org.codehaus.jackson.map.JsonDeserializer;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.map.SerializerProvider;
-import org.codehaus.jackson.map.module.SimpleDeserializers;
-import org.codehaus.jackson.map.module.SimpleModule;
-import org.codehaus.jackson.map.module.SimpleSerializers;
-import org.codehaus.jackson.type.JavaType;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializationConfig;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleDeserializers;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.module.SimpleSerializers;
 
 public class JacksonTupleModule extends SimpleModule {
 	public JacksonTupleModule() {
-		super(JacksonTupleModule.class.getSimpleName(), new Version(1, 0, 0, null));
+		super(JacksonTupleModule.class.getSimpleName(), new Version(1, 0, 0, null, null, null));
 		setSerializers(new SimpleSerializers() {
 			@Override
 			public JsonSerializer<?> findSerializer(SerializationConfig config,
-					JavaType type, BeanDescription beanDesc,
-					BeanProperty property) {
+					JavaType type, BeanDescription beanDesc) {
 				Class<?> rawClass = type.getRawClass();
 				//if ()
 				int tupleSizeIfTuple = getTupleSize(rawClass);
 				if (tupleSizeIfTuple > 0) {
 					return new TupleSerializer(tupleSizeIfTuple);
 				}
-				return super.findSerializer(config, type, beanDesc, property);
+				return super.findSerializer(config, type, beanDesc);
 			}
 		});
 		setDeserializers(new SimpleDeserializers() {
 			@Override
 			public JsonDeserializer<?> findBeanDeserializer(JavaType type,
-					DeserializationConfig config,
-					DeserializerProvider provider, BeanDescription beanDesc,
-					BeanProperty property) throws JsonMappingException {
+					DeserializationConfig config, BeanDescription beanDesc) throws JsonMappingException {
 				Class<?> rawClass = type.getRawClass();
 				if (isTuple(rawClass)) {
 					int paramCount = type.containedTypeCount();
@@ -55,7 +50,7 @@ public class JacksonTupleModule extends SimpleModule {
 						params.add(type.containedType(i));
 					return new TupleDeserializer(rawClass, params);
 				}
-				return super.findBeanDeserializer(type, config, provider, beanDesc, property);
+				return super.findBeanDeserializer(type, config, beanDesc);
 			}
 		});
 		addSerializer(UObject.class, new UObjectSerializer());

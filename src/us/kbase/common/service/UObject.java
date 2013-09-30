@@ -8,15 +8,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class UObject {
 	private Object userObj;
 		
-	private static ObjectMapper mapper = new ObjectMapper().withModule(new JacksonTupleModule());
+	private static ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	
 	public UObject(Object obj) {
 		userObj = obj;
@@ -68,7 +68,7 @@ public class UObject {
 		Map<String, UObject> ret = new LinkedHashMap<String, UObject>();
 		if (isJsonNode()) {
 			JsonNode root = asJsonNode();
-			for (Iterator<String> propIt = root.getFieldNames(); propIt.hasNext(); ) {
+			for (Iterator<String> propIt = root.fieldNames(); propIt.hasNext(); ) {
 				String prop = propIt.next();
 				ret.put(prop, new UObject(root.get(prop)));
 			}
@@ -149,6 +149,7 @@ public class UObject {
 	}
 
 	public static <T> T transformObjectToObject(Object obj, Class<T> retType) throws JsonProcessingException {
+		//return transformJacksonToObject(transformObjectToJackson(obj), retType);
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, obj);
@@ -161,6 +162,7 @@ public class UObject {
 	}
 
 	public static <T> T transformObjectToObject(Object obj, TypeReference<T> retType) throws JsonProcessingException {
+		//return transformJacksonToObject(transformObjectToJackson(obj), retType);
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, obj);
@@ -174,7 +176,7 @@ public class UObject {
 
 	public static <T> T transformJacksonToObject(JsonNode node, Class<T> retType) throws JsonProcessingException {
 		try {
-			T ret = mapper.readValue(node, retType);
+			T ret = mapper.readValue(mapper.treeAsTokens(node), retType);
 			return ret;
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
@@ -183,14 +185,20 @@ public class UObject {
 
 	public static <T> T transformJacksonToObject(JsonNode node, TypeReference<T> retType) throws JsonProcessingException {
 		try {
-			T ret = mapper.readValue(node, retType);
+			T ret = mapper.readValue(mapper.treeAsTokens(node), retType);
 			return ret;
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
 	
+	/*public static String transformJacksonToString(JsonNode node) throws JsonProcessingException {
+		JsonGenerator gen = mapper.
+		mapper.writeTree(jgen, node);
+	}*/
+	
 	public static JsonNode transformObjectToJackson(Object obj) {
+		//return mapper.valueToTree(obj);
 		try {
 			StringWriter sw = new StringWriter();
 			mapper.writeValue(sw, obj);

@@ -29,15 +29,16 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.type.TypeReference;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.ini4j.Ini;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class JsonServerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
@@ -109,7 +110,7 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	public JsonServerServlet(String specServiceName) {
-		this.mapper = new ObjectMapper().withModule(new JacksonTupleModule());
+		this.mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 		this.rpcCache = new HashMap<String, Method>();
 		for (Method m : getClass().getMethods()) {
 			if (m.isAnnotationPresent(JsonServerMethod.class)) {
@@ -311,7 +312,7 @@ public class JsonServerServlet extends HttpServlet {
 				Type paramType = rpcMethod.getGenericParameterTypes()[typePos];
 				PlainTypeRef paramJavaType = new PlainTypeRef(paramType);
 				try {
-					methodValues[typePos] = mapper.readValue(jsonData, paramJavaType);
+					methodValues[typePos] = mapper.readValue(mapper.treeAsTokens(jsonData), paramJavaType);
 				} catch (Exception ex) {
 					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", output);	
 					return;

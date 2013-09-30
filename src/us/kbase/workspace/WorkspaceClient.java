@@ -1,12 +1,12 @@
 package us.kbase.workspace;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.codehaus.jackson.type.TypeReference;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientCaller;
 import us.kbase.common.service.JsonClientException;
@@ -248,7 +248,6 @@ public class WorkspaceClient {
      * <p>Original spec-file function name: delete_workspace</p>
      * <pre>
      * Delete a workspace. All objects contained in the workspace are deleted.
-     * Running this command on a deleted workspace has no effect.
      * </pre>
      * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      * @throws IOException if an IO exception occurs
@@ -266,8 +265,7 @@ public class WorkspaceClient {
      * <pre>
      * Undelete a workspace. All objects contained in the workspace are
      * undeleted, regardless of their state at the time the workspace was
-     * deleted. Running this command on a workspace that is not deleted has
-     * no effect.
+     * deleted.
      * </pre>
      * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      * @throws IOException if an IO exception occurs

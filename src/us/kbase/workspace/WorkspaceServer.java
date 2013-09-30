@@ -314,8 +314,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
 //		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		//TODO get rid of this crap when java TC updated to Jackson 2.2
-		final ObjectMapper mapper = new ObjectMapper();
 		int count = 1;
 		if (params.getObjects().isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
@@ -345,15 +343,14 @@ public class WorkspaceServer extends JsonServerServlet {
 			final Provenance p = ArgUtils.processProvenance(
 					authPart.getUserName(), d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
-			//TODO This is a Jackson 1.9.11 JsonNode, need typecomp update (see above)
-			final String data = d.getData().asJsonNode().toString();
 			try {
 				if (oi == null) {
-					woc.add(new WorkspaceSaveObject(mapper.readTree(data), t,
-							d.getMetadata(), p, hidden));
+					woc.add(new WorkspaceSaveObject(d.getData().asJsonNode(),
+							t, d.getMetadata(), p, hidden));
 				} else {
-					woc.add(new WorkspaceSaveObject(oi, mapper.readTree(data), t,
-							d.getMetadata(), p, hidden));
+					woc.add(new WorkspaceSaveObject(oi,
+							d.getData().asJsonNode(), t, d.getMetadata(), p,
+							hidden));
 				}
 			} catch (IllegalArgumentException iae) {
 				throw new IllegalArgumentException(errprefix + " save error: "
@@ -438,7 +435,6 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: delete_workspace</p>
      * <pre>
      * Delete a workspace. All objects contained in the workspace are deleted.
-     * Running this command on a deleted workspace has no effect.
      * </pre>
      * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
@@ -455,8 +451,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Undelete a workspace. All objects contained in the workspace are
      * undeleted, regardless of their state at the time the workspace was
-     * deleted. Running this command on a workspace that is not deleted has
-     * no effect.
+     * deleted.
      * </pre>
      * @param   wsi   Original type "WorkspaceIdentity" (see {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity} for details)
      */
