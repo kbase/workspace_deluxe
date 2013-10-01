@@ -8,7 +8,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -22,6 +21,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.MongoTypeStorage;
@@ -30,7 +30,6 @@ import us.kbase.typedobj.db.SemanticVersion;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public class TypeRegisteringTest {
@@ -110,6 +109,18 @@ public class TypeRegisteringTest {
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
 		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
+	}
+	
+	@Test
+	public void testDescr() throws Exception {
+		String sequenceSpec = loadSpec("descr", "Descr");
+		initModule("Descr", adminUser);
+		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), adminUser);
+		Assert.assertEquals("Descr module.\n\nEnd of comment.", db.getModuleDescription("Descr"));
+		Assert.assertEquals("", db.getTypeDescription(new TypeDefId("Descr.sequence_id")));
+		Assert.assertEquals("", db.getFuncDescription("Descr", "invis_func", null));
+		Assert.assertEquals("position of fragment on a sequence", db.getTypeDescription(new TypeDefId("Descr.sequence_pos")));
+		Assert.assertEquals("The super function.", db.getFuncDescription("Descr", "super_func", null));
 	}
 	
 	private void readOnlyMode() {

@@ -993,6 +993,7 @@ public class TypeDefinitionDB {
 			}
 			checkUserIsOwnerOrAdmin(moduleName, userId);
 			ModuleInfo info = getModuleInfo(moduleName);
+			info.setDescription(module.getComment());
 			info.setIncludedModuleNames(new ArrayList<String>(includedModules));
 			Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 			if (typeToSchema == null)
@@ -1329,6 +1330,26 @@ public class TypeDefinitionDB {
 					"priviledges for module " + moduleName);
 	}
 	
+	public String getModuleDescription(String moduleName) 
+			throws TypeStorageException, NoSuchModuleException {
+		return getModuleInfo(moduleName).getDescription();
+	}
+
+	public String getModuleDescription(String moduleName, long version) 
+			throws TypeStorageException, NoSuchModuleException {
+		return getModuleInfo(moduleName, version).getDescription();
+	}
+	
+	public String getTypeDescription(TypeDefId typeDef) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getTypeParsingDocument(typeDef).getComment();
+	}
+	
+	public String getFuncDescription(String moduleName, String funcName, String version) 
+			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
+		return getFuncParsingDocument(moduleName, funcName, version).getComment();
+	}
+	
 	private static class ComponentChange {
 		boolean isType;
 		boolean isDeletion;
@@ -1339,8 +1360,9 @@ public class TypeDefinitionDB {
 		boolean notBackwardCompatible;
 		Set<RefInfo> dependencies;
 		
-		public ComponentChange(boolean isType, boolean isDeletion, String name, String jsonSchemaDocument, KbTypedef typeParsing,
-				KbFuncdef funcParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies) {
+		public ComponentChange(boolean isType, boolean isDeletion, String name, 
+				String jsonSchemaDocument, KbTypedef typeParsing, KbFuncdef funcParsing, 
+				boolean notBackwardCompatible, Set<RefInfo> dependencies) {
 			this.isType = isType;
 			this.isDeletion = isDeletion;
 			this.name = name;
