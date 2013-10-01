@@ -10,7 +10,7 @@ import sys
 
 ANT = 'ant'
 
-WORKSPACETEST = 'Workspacetest'
+CFG_SECTION = 'Workspacetest'
 
 CONFIG_OPTS = ['test.shock.url',
                'test.mongo.host',
@@ -40,10 +40,10 @@ if __name__ == '__main__':
     out = os.path.join(d, 'run_tests.sh')
     cfg = ConfigObj(fn)
     try:
-        testcfg = cfg[WORKSPACETEST]
+        testcfg = cfg[CFG_SECTION]
     except KeyError as ke:
         print 'Test config file ' + fn + ' is missing section ' +\
-            WORKSPACETEST + '. Halting.'
+            CFG_SECTION + '. Halting.'
         sys.exit(1)
     if testcfg['test.user1'] == testcfg['test.user2']:
         print "The two test users are identical. Halting."

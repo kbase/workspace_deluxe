@@ -8,7 +8,8 @@ public class TestClientImport {
 	
 	@Test
 	public void checkClientImport() throws Exception {
-		WorkspaceClient c = new WorkspaceClient(new URL("http://johanngambolputtydevonausfernschplendenschlittercrasscrenbon.com"));
+		WorkspaceClient c = new WorkspaceClient(
+				new URL("http://johanngambolputtydevonausfernschplendenschlittercrasscrenbon.com"));
 		c.isAuthAllowedForHttp();
 		//ok all imports work
 	}
