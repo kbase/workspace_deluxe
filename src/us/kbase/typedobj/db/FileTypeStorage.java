@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -182,6 +183,7 @@ public class FileTypeStorage implements TypeStorage {
 			r2.setDepModule(r1.getDepModule());
 			r2.setDepName(r1.getDepName());
 			r2.setDepVersion(r1.getDepVersion());
+			r2.setDepModuleVersion(r1.getDepModuleVersion());
 			r2.setRefModule(r1.getRefModule());
 			r2.setRefName(r1.getRefName());
 			r2.setRefVersion(r1.getRefVersion());
@@ -573,5 +575,60 @@ public class FileTypeStorage implements TypeStorage {
 				ret = lastVersion + 1;
 		}
 		return ret;
+	}
+
+	@Override
+	public Map<String, Long> listObjects() throws TypeStorageException {
+		Map<String, Long> ret = new TreeMap<String, Long>();
+		for (File f1 : dbFolder.listFiles()) {
+			if (f1.isFile()) {
+				try {
+					List<?> list = mapper.readValue(f1, List.class);
+					ret.put(f1.getName(), (long)list.size());
+				} catch (Exception e) {
+					throw new TypeStorageException(e);
+				}
+			} else {
+				for (File f2 : f1.listFiles()) {
+					ret.put(f1.getName() + "/" + f2.getName(), f2.length());
+				}
+			}
+		}
+		return ret;
+	}
+	
+	@Override
+	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName, 
+			long versionToDelete, long versionToSwitchTo) throws TypeStorageException {
+		Set<RefInfo> typeRefs2 = new TreeSet<RefInfo>();
+		for (RefInfo ri : typeRefs) {
+			if (ri.getDepModule().equals(moduleName) && ri.getDepModuleVersion() == versionToDelete)
+				continue;
+			typeRefs2.add(ri);
+		}
+		typeRefs = typeRefs2;
+		saveRefs(typeRefs, getTypeRefFile());
+		Set<RefInfo> funcRefs2 = new TreeSet<RefInfo>();
+		for (RefInfo ri : funcRefs) {
+			if (ri.getDepModule().equals(moduleName) && ri.getDepModuleVersion() == versionToDelete)
+				continue;
+			funcRefs2.add(ri);
+		}
+		funcRefs = funcRefs2;
+		saveRefs(funcRefs, getFuncRefFile());
+		for (File f : findFiles(moduleName, "type.", "-" + versionToDelete + ".json"))
+			f.delete();
+		for (File f : findFiles(moduleName, "type.", "-" + versionToDelete + ".prs"))
+			f.delete();
+		for (File f : findFiles(moduleName, "func.", "-" + versionToDelete + ".prs"))
+			f.delete();
+		File spec = getModuleSpecFile(moduleName, versionToDelete);
+		if (spec.exists())
+			spec.delete();
+		File info = getModuleInfoFile(moduleName, versionToDelete);
+		if (info.exists())
+			info.delete();
+		if (versionToSwitchTo != getLastModuleVersion(moduleName))
+			throw new TypeStorageException("Last module version should be: " + versionToSwitchTo);
 	}
 }

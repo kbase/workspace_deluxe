@@ -83,7 +83,11 @@ public interface TypeStorage {
 
 	public void removeOwnerFromModule(String moduleName, String userId) throws TypeStorageException;
 
+	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName, long versionToDelete, long versionToSwitchTo) throws TypeStorageException;
+	
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	
 	public void removeAllData() throws TypeStorageException;
+	
+	public Map<String, Long> listObjects() throws TypeStorageException;
 }

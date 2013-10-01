@@ -389,7 +389,6 @@ public class TypeDefinitionDB {
 			}
 		storage.writeTypeSchemaRecord(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), 
 				newModuleVersion, jsonSchemaDocument);
-		storage.removeTypeRefs(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion());
 		writeTypeParsingFile(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), 
 				specParsing, newModuleVersion);
 		return ti.getTypeVersion();
@@ -525,7 +524,15 @@ public class TypeDefinitionDB {
 	}
 		
 	private void rollbackModuleTransaction(String moduleName, long versionTime) {
-		// TODO: clean up all stuff related to new versionTime
+		try {
+			TreeSet<Long> allVers = new TreeSet<Long>(storage.getAllModuleVersions(moduleName));
+			if (allVers.last() == versionTime) {
+				allVers.remove(allVers.last());
+			}
+			storage.removeModuleVersionAndSwitchIfNotCurrent(moduleName, versionTime, allVers.last());
+		} catch (Throwable ignore) {
+			ignore.printStackTrace();
+		}
 	}
 
 	private void writeModuleInfo(String moduleName, ModuleInfo info, long backupTime) 
