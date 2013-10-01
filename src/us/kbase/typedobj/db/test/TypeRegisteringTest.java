@@ -32,6 +32,8 @@ import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public class TypeRegisteringTest {
@@ -130,6 +132,49 @@ public class TypeRegisteringTest {
 		Assert.assertEquals("", db.getFuncDescription("Descr", "invis_func", null));
 		Assert.assertEquals("position of fragment on a sequence", db.getTypeDescription(new TypeDefId("Descr.sequence_pos")));
 		Assert.assertEquals("The super function.", db.getFuncDescription("Descr", "super_func", null));
+	}
+	
+	@Test
+	public void testBackward() throws Exception {
+		String regulationSpec = loadSpec("backward", "Regulation");
+		initModule("Regulation", adminUser);
+		db.registerModule(regulationSpec, Arrays.asList("gene", "binding_site"), adminUser);
+		releaseType("Regulation", "gene", adminUser);
+		releaseType("Regulation", "binding_site", adminUser);
+		db.releaseFunc("Regulation", "get_gene_descr", adminUser);
+		db.releaseFunc("Regulation", "get_nearest_binding_sites", adminUser);
+		db.releaseFunc("Regulation", "get_regulated_genes", adminUser);
+		String reg2spec = loadSpec("backward", "Regulation", "2");
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes.size());
+		Assert.assertEquals("1.1", changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "2.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "2.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "1.1");
+		String reg3spec = loadSpec("backward", "Regulation", "3");
+		Map<TypeDefName, TypeChange> changes3 = db.registerModule(reg3spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes3.size());
+		Assert.assertEquals("1.2", changes3.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("3.0", changes3.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "2.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "3.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "1.2");
+		String reg4spec = loadSpec("backward", "Regulation", "4");
+		Map<TypeDefName, TypeChange> changes4 = db.registerModule(reg4spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes4.size());
+		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "3.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
+	}
+	
+	private void checkFuncVer(String module, String funcName, String version) throws Exception {
+		Assert.assertEquals(version, db.getLatestFuncVersion(module, funcName));
 	}
 	
 	private void readOnlyMode() {
