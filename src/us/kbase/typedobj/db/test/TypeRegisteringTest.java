@@ -42,10 +42,21 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 public class TypeRegisteringTest {
 	private TestTypeStorage storage = null;
 	private TypeDefinitionDB db = null;
-	private boolean useMongo = false; //true;
+	private final boolean useMongo;
 	private static String adminUser = "admin";
 
+	public static void main(String[] args) throws Exception {
+		TypeRegisteringTest test = new TypeRegisteringTest(false);
+		test.cleanupBefore();
+		try {
+			test.testRollback();
+		} finally {
+			test.cleanupAfter();
+		}
+	}
+	
 	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
+		useMongo = useMongoParam;
 		File dir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
@@ -192,7 +203,6 @@ public class TypeRegisteringTest {
 		String objAfterInit = getStorageObjects();
 		for (String errMethod : Arrays.asList(
 				"writeTypeSchemaRecord", "writeTypeParseRecord", "writeFuncParseRecord", "writeModuleRecords", "addRefs")) {
-			System.out.println("Error method: " + errMethod);
 			storage.removeAllTypeStorageListeners();
 			withErrorAfterMethod(errMethod);
 			Assert.assertEquals(1, storage.getTypeStorageListeners().size());
@@ -201,7 +211,6 @@ public class TypeRegisteringTest {
 				Assert.fail("Error should occur before this line");
 			} catch (Exception ex) {
 				Assert.assertEquals("Method has test error at the end of body.", ex.getMessage());
-				System.out.println(objAfterInit);
 				Assert.assertEquals(verAfterInit, db.getLastModuleVersion("First"));
 				Assert.assertEquals(typesAfterInit, db.getAllRegisteredTypes("First").size());
 				Assert.assertEquals(funcsAfterInit, db.getAllRegisteredFuncs("First").size());
