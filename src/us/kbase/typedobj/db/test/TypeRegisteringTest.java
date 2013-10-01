@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -27,6 +28,7 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SemanticVersion;
+import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
@@ -102,7 +104,14 @@ public class TypeRegisteringTest {
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 		String reg2spec = loadSpec("simple", "Regulation", "2");
 		readOnlyMode();
-		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user, true);
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"), 
+				Collections.<String>emptyList(), user, true);
+		Assert.assertEquals(3, changes.size());
+		Assert.assertFalse(changes.get(new TypeDefName("Regulation.new_regulator")).isUnregistered());
+		Assert.assertEquals("0.1", changes.get(new TypeDefName("Regulation.new_regulator")).getTypeVersion().getVerString());
+		Assert.assertFalse(changes.get(new TypeDefName("Regulation.binding_site")).isUnregistered());
+		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		Assert.assertTrue(changes.get(new TypeDefName("Regulation.regulator")).isUnregistered());
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);

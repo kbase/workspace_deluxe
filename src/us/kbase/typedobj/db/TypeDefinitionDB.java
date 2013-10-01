@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -352,7 +353,15 @@ public class TypeDefinitionDB {
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
 			KbTypedef specParsing, boolean notBackwardCompatible, Set<RefInfo> dependencies, 
 			long newModuleVersion) throws NoSuchModuleException, TypeStorageException {
-		SemanticVersion version = findLastTypeVersion(mi, ti.getTypeName(), true);
+		SemanticVersion version = getIncrementedVersion(mi, ti.getTypeName(),
+				notBackwardCompatible);
+		ti.setTypeVersion(version.toString());
+		return saveType(mi, ti, jsonSchemaDocument, specParsing, dependencies, newModuleVersion);
+	}
+
+	protected SemanticVersion getIncrementedVersion(ModuleInfo mi, String typeName,
+			boolean notBackwardCompatible) {
+		SemanticVersion version = findLastTypeVersion(mi, typeName, true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
 		} else {
@@ -366,8 +375,7 @@ public class TypeDefinitionDB {
 			}
 			version = new SemanticVersion(major, minor);
 		}
-		ti.setTypeVersion(version.toString());
-		return saveType(mi, ti, jsonSchemaDocument, specParsing, dependencies, newModuleVersion);
+		return version;
 	}
 	
 	private String saveType(ModuleInfo mi, TypeInfo ti, String jsonSchemaDocument,
@@ -885,19 +893,22 @@ public class TypeDefinitionDB {
 		storage.addOwnerToModule(moduleName, ownerUserId, true);
 	}
 	
-	public void registerModule(String specDocument, List<String> typesToSave, 
-			String userId) throws SpecParseException, TypeStorageException {
-		registerModule(specDocument, typesToSave, Collections.<String>emptyList(), userId);
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, String userId) throws SpecParseException, 
+			TypeStorageException {
+		return registerModule(specDocument, typesToSave, Collections.<String>emptyList(), userId);
 	}
 	
-	public void registerModule(String specDocument, List<String> typesToSave, 
-			List<String> typesToUnregister, String userId) throws SpecParseException, TypeStorageException {
-		registerModule(specDocument, typesToSave, typesToUnregister, userId, false);
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId) 
+					throws SpecParseException, TypeStorageException {
+		return registerModule(specDocument, typesToSave, typesToUnregister, userId, false);
 	}
 
-	public void registerModule(String specDocument, List<String> typesToSave, 
-			List<String> typesToUnregister, String userId, boolean dryMode) throws SpecParseException, TypeStorageException {
-		saveModule(specDocument, new HashSet<String>(typesToSave), 
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode) throws SpecParseException, TypeStorageException {
+		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode);
 	}
 
@@ -968,9 +979,9 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private void saveModule(String specDocument, Set<String> addedTypes,
-			Set<String> unregisteredTypes, String userId, boolean dryMode) 
-					throws SpecParseException, TypeStorageException {
+	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
+			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
+			boolean dryMode) throws SpecParseException, TypeStorageException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		//System.out.println("----------------------------------------------");
@@ -1026,6 +1037,7 @@ public class TypeDefinitionDB {
 			Set<String> allNewTypes = new HashSet<String>();
 			Set<String> allNewFuncs = new HashSet<String>();
 			List<ComponentChange> comps = new ArrayList<ComponentChange>();
+			Map<TypeDefName, TypeChange> ret = new LinkedHashMap<TypeDefName, TypeChange>();
 			for (KbModuleComp comp : module.getModuleComponents()) {
 				if (comp instanceof KbTypedef) {
 					KbTypedef type = (KbTypedef)comp;
@@ -1042,6 +1054,10 @@ public class TypeDefinitionDB {
 						boolean notBackwardCompatible = (change == Change.notCompatible);
 						comps.add(new ComponentChange(true, false, type.getName(), jsonSchemaDocument, type, null, 
 								notBackwardCompatible, dependencies));
+						TypeDefName typeDefName = new TypeDefName(info.getModuleName(), type.getName());
+						SemanticVersion newVer = getIncrementedVersion(info, type.getName(), notBackwardCompatible);
+						ret.put(typeDefName, new TypeChange(false, new TypeDefId(typeDefName, newVer.getMajor(), 
+								newVer.getMinor()), jsonSchemaDocument));
 					}
 				} else if (comp instanceof KbFuncdef) {
 					KbFuncdef func = (KbFuncdef)comp;
@@ -1069,6 +1085,8 @@ public class TypeDefinitionDB {
 			}
 			for (String typeName : unregisteredTypes) {
 				comps.add(new ComponentChange(true, true, typeName, null, null, null, false, null));
+				TypeDefName typeDefName = new TypeDefName(info.getModuleName(), typeName);
+				ret.put(typeDefName, new TypeChange(true, null, null));
 			}
 			for (String funcName : oldRegisteredFuncs) {
 				if (!allNewFuncs.contains(funcName)) {
@@ -1102,6 +1120,7 @@ public class TypeDefinitionDB {
 				storage.addRefs(createdTypeRefs, createdFuncRefs);
 				transactionStartTime = -1;
 			}
+			return ret;
 		} catch (TypeStorageException ex) {
 			throw ex;
 		} catch (SpecParseException ex) {
