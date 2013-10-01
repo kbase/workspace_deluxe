@@ -6,7 +6,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -15,8 +17,10 @@ import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -32,18 +36,27 @@ import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-import us.kbase.typedobj.exceptions.NoSuchFuncException;
-import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+@RunWith(Parameterized.class)
 public class TypeRegisteringTest {
-	private static TestTypeStorage storage = null;
-	private static TypeDefinitionDB db = null;
-	private static boolean useMongo = true;
+	private TestTypeStorage storage = null;
+	private TypeDefinitionDB db = null;
+	private final boolean useMongo;
 	private static String adminUser = "admin";
 
-	@BeforeClass
-	public static void prepareBeforeClass() throws Exception {
+	public static void main(String[] args) throws Exception {
+		TypeRegisteringTest test = new TypeRegisteringTest(false);
+		test.cleanupBefore();
+		try {
+			test.testRollback();
+		} finally {
+			test.cleanupAfter();
+		}
+	}
+	
+	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
+		useMongo = useMongoParam;
 		File dir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
@@ -56,6 +69,13 @@ public class TypeRegisteringTest {
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
 		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
+	}
+	
+	@Parameters
+	public static Collection<Object[]> generateData() {
+		return Arrays.asList(new Object[][] {
+				{false}, {true}
+		});
 	}
 	
 	private static String getTestDbName() {
@@ -173,6 +193,40 @@ public class TypeRegisteringTest {
 		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
 	}
 	
+	@Test
+	public void testRollback() throws Exception {
+		String spec1 = loadSpec("rollback", "First");
+		initModule("First", adminUser);
+		long verAfterInit = db.getLastModuleVersion("First");
+		int typesAfterInit = db.getAllRegisteredTypes("First").size();
+		int funcsAfterInit = db.getAllRegisteredFuncs("First").size();
+		String objAfterInit = getStorageObjects();
+		for (String errMethod : Arrays.asList(
+				"writeTypeSchemaRecord", "writeTypeParseRecord", "writeFuncParseRecord", "writeModuleRecords", "addRefs")) {
+			storage.removeAllTypeStorageListeners();
+			withErrorAfterMethod(errMethod);
+			Assert.assertEquals(1, storage.getTypeStorageListeners().size());
+			try {
+				db.registerModule(spec1, Arrays.asList("seq_id", "seq_pos"), adminUser);
+				Assert.fail("Error should occur before this line");
+			} catch (Exception ex) {
+				Assert.assertEquals("Method has test error at the end of body.", ex.getMessage());
+				Assert.assertEquals(verAfterInit, db.getLastModuleVersion("First"));
+				Assert.assertEquals(typesAfterInit, db.getAllRegisteredTypes("First").size());
+				Assert.assertEquals(funcsAfterInit, db.getAllRegisteredFuncs("First").size());
+				Assert.assertEquals(objAfterInit, getStorageObjects());
+			}
+		}
+	}
+	
+	private String getStorageObjects() throws Exception {
+		Map<String, Long> ret = storage.listObjects();
+		for (String key : new ArrayList<String>(ret.keySet())) 
+			if (ret.get(key) == 0)
+				ret.remove(key);
+		return "" + ret;
+	}
+	
 	private void checkFuncVer(String module, String funcName, String version) throws Exception {
 		Assert.assertEquals(version, db.getLatestFuncVersion(module, funcName));
 	}
@@ -192,7 +246,23 @@ public class TypeRegisteringTest {
 			}
 		});
 	}
-	
+
+	private void withErrorAfterMethod(final String errMethodName) {
+		storage.addTypeStorageListener(new TypeStorageListener() {
+			@Override
+			public void onMethodStart(String method, Object[] params)
+					throws TypeStorageException {
+				//System.out.println("TypeStorage method starts: " + method);
+			}
+			@Override
+			public void onMethodEnd(String method, Object[] params, Object ret)
+					throws TypeStorageException {
+				if (method.equals(errMethodName))
+					throw new TypeStorageException("Method has test error at the end of body.");
+			}
+		});
+	}
+
 	private void initModule(String moduleName, String user) throws Exception {
 		db.requestModuleRegistration(moduleName, user);
 		db.approveModuleRegistrationRequest(adminUser, moduleName, user);

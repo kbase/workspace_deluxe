@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -449,6 +450,44 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
 		recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+	}
+	
+	@Override
+	public Map<String, Long> listObjects() throws TypeStorageException {
+		String[] tables = {
+			TABLE_FUNC_REFS,
+			TABLE_MODULE_FUNC_PARSE,
+			TABLE_MODULE_INFO_HISTORY,
+			TABLE_MODULE_OWNER,
+			TABLE_MODULE_REQUEST,
+			TABLE_MODULE_SPEC_HISTORY,
+			TABLE_MODULE_TYPE_PARSE,
+			TABLE_MODULE_TYPE_SCHEMA,
+			TABLE_MODULE_VERSION,
+			TABLE_TYPE_REFS
+		};
+		Map<String, Long> ret = new TreeMap<String, Long>();
+		for (String table : tables) {
+			MongoCollection recs = jdb.getCollection(table);
+			List<Object> rows = Lists.newArrayList(recs.find().as(Object.class));
+			ret.put(table, (long)rows.size());
+		}
+		return ret;
+	}
+	
+	@Override
+	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName,
+			long versionToDelete, long versionToSwitchTo)
+			throws TypeStorageException {
+		jdb.getCollection(TABLE_TYPE_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_FUNC_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
+		jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
+		if (versionToSwitchTo != getLastModuleVersion(moduleName))
+			writeModuleVersion(moduleName, versionToSwitchTo);
 	}
 	
 	public static class ModuleSpec {
