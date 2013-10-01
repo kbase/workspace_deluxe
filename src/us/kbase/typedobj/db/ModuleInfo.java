@@ -10,6 +10,7 @@ public class ModuleInfo {
 	private List<String> includedModuleNames = new ArrayList<String>();
 	private Map<String, TypeInfo> types = new LinkedHashMap<String, TypeInfo>();
 	private Map<String, FuncInfo> funcs = new LinkedHashMap<String, FuncInfo>();
+	private String description;
 	
 	public String getModuleName() {
 		return moduleName;
@@ -41,5 +42,13 @@ public class ModuleInfo {
 	
 	public void setFuncs(Map<String, FuncInfo> funcs) {
 		this.funcs = funcs;
+	}
+	
+	public String getDescription() {
+		return description;
+	}
+	
+	public void setDescription(String description) {
+		this.description = description;
 	}
 }

@@ -8,7 +8,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -22,15 +22,18 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SemanticVersion;
+import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-import us.kbase.typedobj.exceptions.SpecParseException;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 public class TypeRegisteringTest {
@@ -103,13 +106,75 @@ public class TypeRegisteringTest {
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 		String reg2spec = loadSpec("simple", "Regulation", "2");
 		readOnlyMode();
-		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user, true);
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"), 
+				Collections.<String>emptyList(), user, true);
+		Assert.assertEquals(3, changes.size());
+		Assert.assertFalse(changes.get(new TypeDefName("Regulation.new_regulator")).isUnregistered());
+		Assert.assertEquals("0.1", changes.get(new TypeDefName("Regulation.new_regulator")).getTypeVersion().getVerString());
+		Assert.assertFalse(changes.get(new TypeDefName("Regulation.binding_site")).isUnregistered());
+		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		Assert.assertTrue(changes.get(new TypeDefName("Regulation.regulator")).isUnregistered());
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
 		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
+	}
+	
+	@Test
+	public void testDescr() throws Exception {
+		String sequenceSpec = loadSpec("descr", "Descr");
+		initModule("Descr", adminUser);
+		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), adminUser);
+		Assert.assertEquals("Descr module.\n\nEnd of comment.", db.getModuleDescription("Descr"));
+		Assert.assertEquals("", db.getTypeDescription(new TypeDefId("Descr.sequence_id")));
+		Assert.assertEquals("", db.getFuncDescription("Descr", "invis_func", null));
+		Assert.assertEquals("position of fragment on a sequence", db.getTypeDescription(new TypeDefId("Descr.sequence_pos")));
+		Assert.assertEquals("The super function.", db.getFuncDescription("Descr", "super_func", null));
+	}
+	
+	@Test
+	public void testBackward() throws Exception {
+		String regulationSpec = loadSpec("backward", "Regulation");
+		initModule("Regulation", adminUser);
+		db.registerModule(regulationSpec, Arrays.asList("gene", "binding_site"), adminUser);
+		releaseType("Regulation", "gene", adminUser);
+		releaseType("Regulation", "binding_site", adminUser);
+		db.releaseFunc("Regulation", "get_gene_descr", adminUser);
+		db.releaseFunc("Regulation", "get_nearest_binding_sites", adminUser);
+		db.releaseFunc("Regulation", "get_regulated_genes", adminUser);
+		String reg2spec = loadSpec("backward", "Regulation", "2");
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes.size());
+		Assert.assertEquals("1.1", changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "2.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "2.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "1.1");
+		String reg3spec = loadSpec("backward", "Regulation", "3");
+		Map<TypeDefName, TypeChange> changes3 = db.registerModule(reg3spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes3.size());
+		Assert.assertEquals("1.2", changes3.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("3.0", changes3.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "2.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "3.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "1.2");
+		String reg4spec = loadSpec("backward", "Regulation", "4");
+		Map<TypeDefName, TypeChange> changes4 = db.registerModule(reg4spec, Arrays.<String>asList(), 
+				Collections.<String>emptyList(), adminUser);
+		Assert.assertEquals(2, changes4.size());
+		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
+		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkFuncVer("Regulation", "get_gene_descr", "3.0");
+		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
+		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
+	}
+	
+	private void checkFuncVer(String module, String funcName, String version) throws Exception {
+		Assert.assertEquals(version, db.getLatestFuncVersion(module, funcName));
 	}
 	
 	private void readOnlyMode() {
