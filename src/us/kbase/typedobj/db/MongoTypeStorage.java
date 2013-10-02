@@ -99,9 +99,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private ModuleInfo getModuleInfoOrNull(String moduleName, long version) {
 		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-		ModuleInfoHistory info = infos.findOne("{moduleName:#, versionTime:#}", moduleName, 
-				version).as(ModuleInfoHistory.class);
-		return info == null ? null : info.getInfo();
+		ModuleInfo info = infos.findOne("{moduleName:#, versionTime:#}", moduleName, 
+				version).as(ModuleInfo.class);
+		return info;
 	}
 
 	private String getModuleSpecOrNull(String moduleName, long version) {
@@ -336,32 +336,29 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 
 	@Override
-	public void writeModuleRecords(String moduleName, ModuleInfo info, 
-			String specDocument, long version) throws TypeStorageException {
-		writeModuleVersion(moduleName, version);
-		writeModuleInfo(moduleName, info, version);
+	public void writeModuleRecords(ModuleInfo info,  String specDocument, long version) 
+			throws TypeStorageException {
+		writeModuleVersion(info.getModuleName(), version);
+		writeModuleInfo(info, version);
 		MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
 		ModuleSpec spec = new ModuleSpec();
-		spec.setModuleName(moduleName);
+		spec.setModuleName(info.getModuleName());
 		spec.setDocument(specDocument);
 		spec.setVersionTime(version);
 		specs.insert(spec);
 	}
 
 	@Override
-	public void initModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException {
-		long version = generateNewModuleVersion(moduleName);
-		writeModuleVersion(moduleName, version);
-		writeModuleInfo(moduleName, info, version);
+	public void initModuleInfoRecord(ModuleInfo info) throws TypeStorageException {
+		long version = generateNewModuleVersion(info.getModuleName());
+		writeModuleVersion(info.getModuleName(), version);
+		writeModuleInfo(info, version);
 	}
 	
-	private void writeModuleInfo(String moduleName, ModuleInfo info, long version) throws TypeStorageException {
+	private void writeModuleInfo(ModuleInfo info, long version) throws TypeStorageException {
 		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-		ModuleInfoHistory ih = new ModuleInfoHistory();
-		ih.setModuleName(moduleName);
-		ih.setInfo(info);
-		ih.setVersionTime(version);
-		infos.insert(ih);
+		info.setVersionTime(version);
+		infos.insert(info);
 	}
 	
 	@Override
@@ -520,36 +517,6 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 	}
 	
-	public static class ModuleInfoHistory {
-		private String moduleName;
-		private ModuleInfo info;
-		private long versionTime;
-		
-		public String getModuleName() {
-			return moduleName;
-		}
-		
-		public void setModuleName(String moduleName) {
-			this.moduleName = moduleName;
-		}
-		
-		public ModuleInfo getInfo() {
-			return info;
-		}
-		
-		public void setInfo(ModuleInfo info) {
-			this.info = info;
-		}
-		
-		public long getVersionTime() {
-			return versionTime;
-		}
-		
-		public void setVersionTime(long versionTime) {
-			this.versionTime = versionTime;
-		}
-	}
-
 	public static class ModuleVersion {
 		private String moduleName;
 		private long versionTime;

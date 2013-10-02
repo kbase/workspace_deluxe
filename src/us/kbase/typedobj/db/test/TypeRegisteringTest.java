@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,6 +37,7 @@ import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 @RunWith(Parameterized.class)
@@ -46,12 +48,15 @@ public class TypeRegisteringTest {
 	private static String adminUser = "admin";
 
 	public static void main(String[] args) throws Exception {
-		TypeRegisteringTest test = new TypeRegisteringTest(false);
-		test.cleanupBefore();
-		try {
-			test.testRollback();
-		} finally {
-			test.cleanupAfter();
+		boolean[] storageParams = {false, true};
+		for (boolean useMongoParam : storageParams) {
+			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
+			test.cleanupBefore();
+			try {
+				test.testRestrict();
+			} finally {
+				//test.cleanupAfter();
+			}
 		}
 	}
 	
@@ -93,7 +98,7 @@ public class TypeRegisteringTest {
 	
 	@After
 	public void cleanupAfter() throws Exception {
-		//cleanupBefore();
+		cleanupBefore();
 	}
 	
 	@Test
@@ -217,6 +222,54 @@ public class TypeRegisteringTest {
 				Assert.assertEquals(objAfterInit, getStorageObjects());
 			}
 		}
+	}
+	
+	@Test
+	public void testRestrict() throws Exception {
+		initModule("Common", adminUser);
+		db.registerModule(loadSpec("restrict", "Common"), Arrays.asList("common_struct"), adminUser);
+		long commonVer1 = db.getLastModuleVersion("Common");
+		initModule("Middle", adminUser);
+		db.registerModule(loadSpec("restrict", "Middle"), Arrays.asList("middle_struct"), adminUser);
+		long middleVer1 = db.getLastModuleVersion("Middle");
+		db.registerModule(loadSpec("restrict", "Common", "2"), Collections.<String>emptyList(), adminUser);
+		long commonVer2 = db.getLastModuleVersion("Common");
+		initModule("Upper", adminUser);
+		try {
+			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"), adminUser);
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Incompatible module dependecies: Common"));
+		}
+		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"), 
+				Collections.<String>emptyList(), adminUser, true, restrict("Common", commonVer1));
+		db.refreshModule("Middle", adminUser);
+		try {
+			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
+					Collections.<String>emptyList(), adminUser, false, restrict("Common", commonVer1));
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Version of dependent module Common"));
+		}
+		try {
+			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
+					Collections.<String>emptyList(), adminUser, false, 
+					restrict("Common", commonVer2, "Middle", middleVer1));
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Version of dependent module Common"));
+		}
+		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
+				Collections.<String>emptyList(), adminUser, false, 
+				restrict("Common", commonVer1, "Middle", middleVer1));
+	}
+	
+	private Map<String, Long> restrict(Object... params) {
+		Map<String, Long> restrictions = new HashMap<String, Long>();
+		for (int i = 0; i < params.length / 2; i++) {
+			restrictions.put((String)params[i * 2], (Long)params[i * 2 + 1]);
+		}
+		return restrictions;
 	}
 	
 	private String getStorageObjects() throws Exception {
