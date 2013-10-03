@@ -1,16 +1,15 @@
 package us.kbase.typedobj.db;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class ModuleInfo {
 	private String moduleName;
-	private List<String> includedModuleNames = new ArrayList<String>();
+	private Map<String, Long> includedModuleNameToVersion = new LinkedHashMap<String, Long>();
 	private Map<String, TypeInfo> types = new LinkedHashMap<String, TypeInfo>();
 	private Map<String, FuncInfo> funcs = new LinkedHashMap<String, FuncInfo>();
 	private String description;
+	private long versionTime;
 	
 	public String getModuleName() {
 		return moduleName;
@@ -20,12 +19,13 @@ public class ModuleInfo {
 		this.moduleName = moduleName;
 	}
 	
-	public List<String> getIncludedModuleNames() {
-		return includedModuleNames;
+	public Map<String, Long> getIncludedModuleNameToVersion() {
+		return includedModuleNameToVersion;
 	}
 	
-	public void setIncludedModuleNames(List<String> includedModuleNames) {
-		this.includedModuleNames = includedModuleNames;
+	public void setIncludedModuleNameToVersion(
+			Map<String, Long> includedModuleNameToVersion) {
+		this.includedModuleNameToVersion = includedModuleNameToVersion;
 	}
 	
 	public Map<String, TypeInfo> getTypes() {
@@ -50,5 +50,13 @@ public class ModuleInfo {
 	
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	public long getVersionTime() {
+		return versionTime;
+	}
+	
+	public void setVersionTime(long versionTime) {
+		this.versionTime = versionTime;
 	}
 }

@@ -438,27 +438,30 @@ public class FileTypeStorage implements TypeStorage {
 	}	
 	
 	@Override
-	public void writeModuleRecords(String moduleName, ModuleInfo info, String specDocument, long time) throws TypeStorageException {
-		writeFile(getModuleSpecFile(moduleName, time), specDocument);
+	public void writeModuleRecords(ModuleInfo info, String specDocument, long time) 
+			throws TypeStorageException {
+		info.setVersionTime(time);
+		writeFile(getModuleSpecFile(info.getModuleName(), time), specDocument);
 		String infoText;
 		try {
 			infoText = mapper.writeValueAsString(info);
 		} catch (JsonProcessingException e) {
 			throw new TypeStorageException(e);
 		}
-		writeFile(getModuleInfoFile(moduleName, time), infoText);
+		writeFile(getModuleInfoFile(info.getModuleName(), time), infoText);
 	}
 	
 	@Override
-	public void initModuleInfoRecord(String moduleName, ModuleInfo info)
-			throws TypeStorageException {
+	public void initModuleInfoRecord(ModuleInfo info) throws TypeStorageException {
+		long version = generateNewModuleVersion(info.getModuleName());
+		info.setVersionTime(version);
 		String infoText;
 		try {
 			infoText = mapper.writeValueAsString(info);
 		} catch (JsonProcessingException e) {
 			throw new TypeStorageException(e);
 		}
-		writeFile(getModuleInfoFile(moduleName, generateNewModuleVersion(moduleName)), infoText);
+		writeFile(getModuleInfoFile(info.getModuleName(), version), infoText);
 	}
 	
 	@Override

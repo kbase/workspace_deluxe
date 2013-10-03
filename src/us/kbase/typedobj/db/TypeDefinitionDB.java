@@ -310,11 +310,16 @@ public class TypeDefinitionDB {
 		throw new NoSuchFuncException("Unable to locate function: '"+moduleName+"."+funcName+"'" + 
 				(version == null ? "" : (" for version " + version)));
 	}
-	
+
 	public List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
+		return getAllRegisteredTypes(moduleName, getLastModuleVersion(moduleName));
+	}
+	
+	public List<String> getAllRegisteredTypes(String moduleName, long moduleVersion) 
+			throws NoSuchModuleException, TypeStorageException {
 		List<String> ret = new ArrayList<String>();
-		for (TypeInfo typeInfo : getModuleInfo(moduleName).getTypes().values())
+		for (TypeInfo typeInfo : getModuleInfo(moduleName, moduleVersion).getTypes().values())
 			if (typeInfo.isSupported())
 				ret.add(typeInfo.getTypeName());
 		return ret;
@@ -459,7 +464,7 @@ public class TypeDefinitionDB {
 		try {
 			TypeInfo ti = info.getTypes().get(typeName);
 			ti.setTypeVersion(ret.toString());
-			writeModuleInfo(moduleName, info, transactionStartTime);
+			writeModuleInfo(info, transactionStartTime);
 			saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
 			storage.addRefs(deps, new TreeSet<RefInfo>());
 			transactionStartTime = -1;
@@ -479,7 +484,7 @@ public class TypeDefinitionDB {
 		if (!info.getTypes().containsKey(typeName))
 			throwNoSuchTypeException(moduleName, typeName, null);
 		info.getTypes().remove(typeName);
-		writeModuleInfo(moduleName, info, storage.generateNewModuleVersion(moduleName));
+		writeModuleInfo(info, storage.generateNewModuleVersion(moduleName));
 		storage.removeAllTypeRecords(moduleName, typeName);
 	}
 
@@ -490,7 +495,7 @@ public class TypeDefinitionDB {
 		if (!info.getFuncs().containsKey(funcName))
 			throwNoSuchFuncException(moduleName, funcName, null);
 		info.getTypes().remove(funcName);
-		writeModuleInfo(moduleName, info, storage.generateNewModuleVersion(moduleName));
+		writeModuleInfo(info, storage.generateNewModuleVersion(moduleName));
 		storage.removeAllFuncRecords(moduleName, funcName);
 	}
 	
@@ -535,16 +540,16 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	private void writeModuleInfo(String moduleName, ModuleInfo info, long backupTime) 
+	private void writeModuleInfo(ModuleInfo info, long backupTime) 
 			throws TypeStorageException {
-		String specDocument = storage.getModuleSpecRecord(moduleName, 
-				storage.getLastModuleVersion(moduleName));
-		storage.writeModuleRecords(moduleName, info, specDocument, backupTime);
+		String specDocument = storage.getModuleSpecRecord(info.getModuleName(), 
+				storage.getLastModuleVersion(info.getModuleName()));
+		storage.writeModuleRecords(info, specDocument, backupTime);
 	}
 
-	private void writeModuleInfoSpec(String moduleName, ModuleInfo info, String specDocument, 
+	private void writeModuleInfoSpec(ModuleInfo info, String specDocument, 
 			long backupTime) throws TypeStorageException {
-		storage.writeModuleRecords(moduleName, info, specDocument, backupTime);
+		storage.writeModuleRecords(info, specDocument, backupTime);
 	}
 
 	public String getModuleSpecDocument(String moduleName) 
@@ -718,7 +723,7 @@ public class TypeDefinitionDB {
 		try {
 			FuncInfo fi = info.getFuncs().get(funcName);
 			fi.setFuncVersion(ret.toString());
-			writeModuleInfo(moduleName, info, transactionStartTime);
+			writeModuleInfo(info, transactionStartTime);
 			saveFunc(info, fi, specParsing, deps, transactionStartTime);
 			storage.addRefs(new TreeSet<RefInfo>(), deps);
 			transactionStartTime = -1;
@@ -768,7 +773,7 @@ public class TypeDefinitionDB {
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
-			writeModuleInfo(moduleName, mi, transactionStartTime);
+			writeModuleInfo(mi, transactionStartTime);
 			stopTypeSupport(mi, typeName, transactionStartTime);
 			transactionStartTime = -1;
 		} finally {
@@ -804,7 +809,7 @@ public class TypeDefinitionDB {
 		ModuleInfo mi = getModuleInfo(moduleName);
 		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 		try {
-			writeModuleInfo(moduleName, mi, transactionStartTime);
+			writeModuleInfo(mi, transactionStartTime);
 			stopFuncSupport(mi, funcName, transactionStartTime);
 			transactionStartTime = -1;
 		} finally {
@@ -827,17 +832,17 @@ public class TypeDefinitionDB {
 		return storage.getAllRegisteredModules();
 	}
 	
-	public Set<RefInfo> getTypeRefsByDep(AbsoluteTypeDefId depTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByDep(TypeDefId depTypeDef) throws TypeStorageException {
 		String depModule = depTypeDef.getType().getModule();
 		String depType = depTypeDef.getType().getName();
-		String version = depTypeDef.getVerString();
+		String version = findTypeVersion(depTypeDef).toString();
 		return storage.getTypeRefsByDep(depModule, depType, version);
 	}
 	
-	public Set<RefInfo> getTypeRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = refTypeDef.getVerString();
+		String version = findTypeVersion(refTypeDef).toString();
 		return storage.getTypeRefsByRef(refModule, refType, version);
 	}
 	
@@ -846,10 +851,10 @@ public class TypeDefinitionDB {
 		return storage.getFuncRefsByDep(depModule, depFunc, version);
 	}
 	
-	public Set<RefInfo> getFuncRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = refTypeDef.getVerString();
+		String version = findTypeVersion(refTypeDef).toString();
 		return storage.getFuncRefsByRef(refModule, refType, version);
 	}
 	
@@ -861,8 +866,8 @@ public class TypeDefinitionDB {
 	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
-		//throw new IllegalStateException("Type definition db was created without approval queue, " +
-		//		"please use registerModule without request.");
+		if (storage.checkModuleExist(moduleName))
+			throw new TypeStorageException("Module " + moduleName + " was already registered");
 		storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
 	}
 	
@@ -896,10 +901,16 @@ public class TypeDefinitionDB {
 			throw new IllegalStateException("Module " + moduleName + " was already registered");
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleName(moduleName);
-		storage.initModuleInfoRecord(moduleName, info);
+		storage.initModuleInfoRecord(info);
 		storage.addOwnerToModule(moduleName, ownerUserId, true);
 	}
-	
+
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			String userId) throws SpecParseException, 
+			TypeStorageException {
+		return registerModule(specDocument, Collections.<String>emptyList(), userId);
+	}
+
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, String userId) throws SpecParseException, 
 			TypeStorageException {
@@ -915,8 +926,50 @@ public class TypeDefinitionDB {
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
 			boolean dryMode) throws SpecParseException, TypeStorageException {
+		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
+				Collections.<String, Long>emptyMap());
+	}
+
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
+					throws SpecParseException, TypeStorageException {
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
-				new HashSet<String>(typesToUnregister), userId, dryMode);
+				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
+	}
+
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			String userId) throws SpecParseException, 
+			TypeStorageException, NoSuchModuleException {
+		return refreshModule(moduleName, Collections.<String>emptyList(), userId);
+	}
+
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			List<String> typesToSave, String userId) throws SpecParseException, 
+			TypeStorageException, NoSuchModuleException {
+		return refreshModule(moduleName, typesToSave, Collections.<String>emptyList(), userId);
+	}
+	
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId) 
+					throws SpecParseException, TypeStorageException, NoSuchModuleException {
+		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, false);
+	}
+
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode) throws SpecParseException, TypeStorageException, NoSuchModuleException {
+		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, dryMode, 
+				Collections.<String, Long>emptyMap());
+	}
+
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
+					throws SpecParseException, TypeStorageException, NoSuchModuleException {
+		String specDocument = getModuleSpecDocument(moduleName);
+		return saveModule(specDocument, new HashSet<String>(typesToSave), 
+				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
 	}
 
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) 
@@ -963,14 +1016,22 @@ public class TypeDefinitionDB {
 	
 	private KbModule compileSpecFile(String specDocument, List<String> includedModules,
 			Map<String, Map<String, String>> moduleToTypeToSchema,
-			Map<String, ModuleInfo> moduleToInfo) throws SpecParseException {
+			Map<String, ModuleInfo> moduleToInfo, Map<String, Long> moduleVersionRestrictions) 
+					throws SpecParseException {
 		File tempDir = createTempDir();
 		try {
 			File specFile = new File(tempDir, "currentlyCompiled.spec");
 			writeFile(specDocument, specFile);
+			Map<String, IncludeDependentPath> moduleToPath = new HashMap<String, IncludeDependentPath>();
 			for (String iModule : includedModules) {
-				saveIncludedModuleRecusive(tempDir, iModule, moduleToInfo);
+				Long iVersion = moduleVersionRestrictions.get(iModule);
+				if (iVersion == null)
+					iVersion = getLastModuleVersion(iModule);
+				saveIncludedModuleRecusive(tempDir, new IncludeDependentPath(), iModule, iVersion, 
+						moduleToPath, moduleVersionRestrictions);
 			}
+			for (IncludeDependentPath path : moduleToPath.values())
+				moduleToInfo.put(path.info.getModuleName(), path.info);
 			List<KbService> services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema);
 			if (services.size() != 1)
 				throw new SpecParseException("Spec-file should consist of only one service");
@@ -988,7 +1049,8 @@ public class TypeDefinitionDB {
 	
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
-			boolean dryMode) throws SpecParseException, TypeStorageException {
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
+					throws SpecParseException, TypeStorageException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		//System.out.println("----------------------------------------------");
@@ -999,7 +1061,8 @@ public class TypeDefinitionDB {
 		try {
 			Map<String, Map<String, String>> moduleToTypeToSchema = new HashMap<String, Map<String, String>>();
 			Map<String, ModuleInfo> moduleToInfo = new HashMap<String, ModuleInfo>();
-			KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo);
+			KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
+					moduleVersionRestrictions);
 			moduleName = module.getModuleName();
 			boolean isNew = !isValidModule(moduleName);
 			if (isNew) {
@@ -1012,7 +1075,10 @@ public class TypeDefinitionDB {
 			checkUserIsOwnerOrAdmin(moduleName, userId);
 			ModuleInfo info = getModuleInfo(moduleName);
 			info.setDescription(module.getComment());
-			info.setIncludedModuleNames(new ArrayList<String>(includedModules));
+			Map<String, Long> includedModuleNameToVersion = new LinkedHashMap<String, Long>();
+			for (String iModule : includedModules)
+				includedModuleNameToVersion.put(iModule, moduleToInfo.get(iModule).getVersionTime());
+			info.setIncludedModuleNameToVersion(includedModuleNameToVersion);
 			Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 			if (typeToSchema == null)
 				throw new SpecParseException("Json schema generation was missed for module: " + moduleName);
@@ -1123,7 +1189,7 @@ public class TypeDefinitionDB {
 						}
 					}
 				}
-				writeModuleInfoSpec(moduleName, info, specDocument, transactionStartTime);
+				writeModuleInfoSpec(info, specDocument, transactionStartTime);
 				storage.addRefs(createdTypeRefs, createdFuncRefs);
 				transactionStartTime = -1;
 			}
@@ -1307,16 +1373,32 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private void saveIncludedModuleRecusive(File workDir, String moduleName, Map<String, ModuleInfo> savedModules) 
-			throws NoSuchModuleException, IOException, TypeStorageException {
-		if (savedModules.containsKey(moduleName))
+	private void saveIncludedModuleRecusive(File workDir, IncludeDependentPath parent, 
+			String moduleName, long version, Map<String, IncludeDependentPath> savedModules, 
+			Map<String, Long> moduleVersionRestrictions) 
+			throws NoSuchModuleException, IOException, TypeStorageException, SpecParseException {
+		ModuleInfo info = getModuleInfo(moduleName, version);
+		IncludeDependentPath currentPath = new IncludeDependentPath(info, parent);
+		Long restriction = moduleVersionRestrictions.get(moduleName);
+		if (restriction != null && version != restriction) 
+			throw new SpecParseException("Version of dependent module " + currentPath + " " +
+					"is not compatible with module version restriction: " + restriction);
+		if (savedModules.containsKey(moduleName)) {
+			IncludeDependentPath alreadyPath = savedModules.get(moduleName);
+			if (alreadyPath.info.getVersionTime() != currentPath.info.getVersionTime())
+				throw new SpecParseException("Incompatible module dependecies: " + alreadyPath + 
+						" and " + currentPath);
 			return;
+		}
 		String spec = getModuleSpecDocument(moduleName);
 		writeFile(spec, new File(workDir, moduleName + ".types"));
-		ModuleInfo info = getModuleInfo(moduleName);
-		savedModules.put(moduleName, info);
-		for (String included : info.getIncludedModuleNames())
-			saveIncludedModuleRecusive(workDir, included, savedModules);
+		savedModules.put(moduleName, currentPath);
+		for (Map.Entry<String, Long> entry : info.getIncludedModuleNameToVersion().entrySet()) {
+			String includedModule = entry.getKey();
+			long includedVersion = entry.getValue();
+			saveIncludedModuleRecusive(workDir, currentPath, includedModule, includedVersion, 
+					savedModules, moduleVersionRestrictions);
+		}
 	}
 	
 	private static void writeFile(String text, File f) throws IOException {
@@ -1397,6 +1479,34 @@ public class TypeDefinitionDB {
 			this.funcParsing = funcParsing;
 			this.notBackwardCompatible = notBackwardCompatible;
 			this.dependencies = dependencies;
+		}
+	}
+	
+	private static class IncludeDependentPath {
+		ModuleInfo info;
+		IncludeDependentPath parent;
+
+		public IncludeDependentPath() {
+			info = new ModuleInfo();
+			info.setModuleName("RootModule");
+		}
+		
+		public IncludeDependentPath(ModuleInfo info, IncludeDependentPath parent) {
+			this.info = info;
+			this.parent = parent;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder ret = new StringBuilder();
+			for (IncludeDependentPath cur = this; cur != null; cur = cur.parent) {
+				if (ret.length() > 0)
+					ret.append("<-");
+				ret.append(cur.info.getModuleName());
+				if (cur.info.getVersionTime() > 0)
+					ret.append('(').append(cur.info.getVersionTime()).append(')');
+			}
+			return ret.toString();
 		}
 	}
 }

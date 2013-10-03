@@ -58,9 +58,9 @@ public interface TypeStorage {
 
 	public void removeAllFuncRecords(String moduleName, String funcName) throws TypeStorageException;
 
-	public void writeModuleRecords(String moduleName, ModuleInfo info, String specDocument, long version) throws TypeStorageException;
+	public void writeModuleRecords(ModuleInfo info, String specDocument, long version) throws TypeStorageException;
 
-	public void initModuleInfoRecord(String moduleName, ModuleInfo info) throws TypeStorageException;
+	public void initModuleInfoRecord(ModuleInfo info) throws TypeStorageException;
 
 	public boolean removeTypeRecordsForVersion(String moduleName, String typeName, String version) throws TypeStorageException;
 

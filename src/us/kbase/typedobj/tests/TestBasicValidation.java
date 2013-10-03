@@ -14,6 +14,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +26,9 @@ import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -56,6 +60,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
  * @author msneddon
  *
  */
+@RunWith(value = Parameterized.class)
 public class TestBasicValidation {
 
 	/**
@@ -70,6 +75,8 @@ public class TestBasicValidation {
 	
 	private static TypedObjectValidator validator;
 	
+	private final static boolean VERBOSE = false;
+	
 	/*
 	 * structures to store info on each instance we wish to validate 
 	 */
@@ -78,26 +85,62 @@ public class TestBasicValidation {
 	private static List<TestInstanceInfo> invalidInstanceResources = new ArrayList <TestInstanceInfo> ();
 	
 	private static class TestInstanceInfo {
-		public TestInstanceInfo(String resourceName, String moduleName, String typeName) {
+		public TestInstanceInfo(String resourceName, String moduleName, String typeName, boolean isValid) {
 			this.resourceName = resourceName;
 			this.moduleName = moduleName;
 			this.typeName = typeName;
+			this.isValid = isValid;
 		}
 		public String resourceName;
 		public String moduleName;
 		public String typeName;
+		public boolean isValid;
 	}
+	
+	/**
+	 * As each test instance object is created, this sets which instance to actually test
+	 */
+	private int instanceNumber;
+	private boolean isValidInstance;
+	
+	public TestBasicValidation(Integer instanceNumber, Boolean isValidInstance) {
+		this.instanceNumber = instanceNumber.intValue();
+		this.isValidInstance = isValidInstance.booleanValue();
+	}
+	
+	
+	/**
+	 * This is invoked before anything else, so here we invoke the creation of the db
+	 * @return
+	 * @throws Exception 
+	 */
+	@Parameters
+	public static Collection<Object[]> assembleTestInstanceList() throws Exception {
+		prepareDb();
+		Object [][] instanceInfo = new Object[validInstanceResources.size()+invalidInstanceResources.size()][2];
+		for(int k=0; k<validInstanceResources.size(); k++) {
+			instanceInfo[k][0] = new Integer(k);
+			instanceInfo[k][1] = new Boolean(true);
+		}
+		for(int k=0; k<invalidInstanceResources.size(); k++) {
+			instanceInfo[k+validInstanceResources.size()][0] = new Integer(k);
+			instanceInfo[k+validInstanceResources.size()][1] = new Boolean(false);
+		}
+		
+		return Arrays.asList(instanceInfo);
+	}
+	
+	
+	
+	
 	
 	/**
 	 * Setup the typedef database, load and release the types in the simple specs, and
 	 * identify all the files containing instances to validate.
 	 * @throws Exception
 	 */
-	@BeforeClass
 	public static void prepareDb() throws Exception
 	{
-		System.out.println("setting up the typed obj database");
-		
 		//ensure test location is available
 		File dir = new File(TEST_DB_LOCATION);
 		if (dir.exists()) {
@@ -108,6 +151,8 @@ public class TestBasicValidation {
 			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
+		if(VERBOSE) System.out.println("setting up the typed obj database");
+		
 		// point the type definition db to point there
 		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), new UserInfoProviderForTests());
 		
@@ -115,7 +160,7 @@ public class TestBasicValidation {
 		validator = new TypedObjectValidator(db);
 	
 		
-		System.out.println("loading db with types");
+		if(VERBOSE) System.out.println("loading db with types");
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
@@ -134,19 +179,20 @@ public class TestBasicValidation {
 			db.releaseType(new TypeDefName("FBA." + typename), username);
 		}
 		
-		System.out.println("finding test instances");
+		if(VERBOSE) System.out.print("finding test instances: ");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
 			if(tokens.length!=5) { continue; }
 			if(tokens[3].equals("instance")) {
 				if(tokens[2].equals("valid")) {
-					validInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
+					validInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1],true));
 				} else if(tokens[2].equals("invalid")) {
-					invalidInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
+					invalidInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1],false));
 				}
 			}
 		}
+		if(VERBOSE) System.out.println(validInstanceResources.size()+" valid, "+invalidInstanceResources.size()+" invalid");
 	}
 	
 	//@After
@@ -156,43 +202,44 @@ public class TestBasicValidation {
 	public static void removeDb() throws IOException {
 		File dir = new File(TEST_DB_LOCATION);
 		FileUtils.deleteDirectory(dir);
-		System.out.println("\ndeleting typed obj database");
+		if(VERBOSE) System.out.println("deleting typed obj database");
 	}
 	
-	
+
 	@Test
-	public void testValidInstances() throws Exception {
+	public void testInstance() throws Exception {
 		
-		System.out.println("\ntesting valid instances ("+validInstanceResources.size()+" total)");
-		for(TestInstanceInfo instance : validInstanceResources) {
-			System.out.println("  -("+instance.resourceName+")");
+		
+		if(this.isValidInstance) {
+
+			// load the instance information
+			TestInstanceInfo instance = validInstanceResources.get(this.instanceNumber);
+			if(VERBOSE) System.out.println("  -VALID TEST ("+instance.resourceName+")");
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
-			TypedObjectValidationReport report = 
-				validator.validate(
-					instanceJson,
-					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-					);
-			
-			// print errors, if any before the assert to aid in testing
-			String [] mssgs = report.getErrorMessages();
-			for(int i=0; i<mssgs.length; i++) {
-				System.out.println("    ["+i+"]:"+mssgs[i]);
+			try {
+				TypedObjectValidationReport report = 
+					validator.validate(
+						instanceJson,
+						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+						);
+				
+				// print errors, if any before the assert to aid in testing
+				String [] mssgs = report.getErrorMessages();
+				for(int i=0; i<mssgs.length; i++) {
+					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs[i]);
+				}
+				
+				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
+			} catch (Exception e) {
+				//if an exception is thrown, the object did not validate, so we failed
+				fail("("+instance.resourceName+") does not validate, but should");
 			}
-			
-			assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
-		}
+		} else {
 
-		
-		
-	}
-
-	@Test
-	public void testInvalidInstances() throws Exception {
-		
-		System.out.println("\ntesting invalid instances ("+invalidInstanceResources.size()+" total)");
-		for(TestInstanceInfo instance : invalidInstanceResources) {
-			System.out.println("  -("+instance.resourceName+")");
+			// load the instance information
+			TestInstanceInfo instance = invalidInstanceResources.get(this.instanceNumber);
+			if(VERBOSE) System.out.println("  -INVALID TEST ("+instance.resourceName+")");
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
 			try {
@@ -202,16 +249,16 @@ public class TestBasicValidation {
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 						);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
-				String [] mssgs = report.getErrorMessages();
-				for(int i=0; i<mssgs.length; i++) {
-					System.out.println("    ["+i+"]:"+mssgs[i]);
-				}
+
 			} catch (Exception e) {
 				//if an exception is thrown, it must be an InstanceValidationException
 				//we are not testing if an incorrect module name or type name is given here
-				assertEquals("InstanceValidationException",e.getClass().getSimpleName());
+				if(! e.getClass().getSimpleName().equals("InstanceValidationException")) {
+					fail("  -("+instance.resourceName+") did not validate successfully, but exception thrown was '"+e.getClass().getSimpleName()+"' and not 'InstanceValidationException'");
+				}
 			}
 		}
+		if(VERBOSE) System.out.println("      PASS.");
 	}
 	
 	
