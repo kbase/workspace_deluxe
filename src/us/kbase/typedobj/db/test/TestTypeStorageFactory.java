@@ -34,6 +34,8 @@ public class TestTypeStorageFactory {
 						} else if (name.equals("removeAllTypeStorageListeners")) {
 							lsts.clear();
 							return null;
+						} else if (name.equals("getInnerStorage")) {
+							return inner;
 						} else {
 							for (TypeStorageListener lst : lsts)
 								lst.onMethodStart(name, args);

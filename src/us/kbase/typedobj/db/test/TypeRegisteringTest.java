@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SemanticVersion;
@@ -53,13 +55,18 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
+				test.testSimple();
+				test.testDescr();
+				test.testBackward();
+				test.testRollback();
 				test.testRestrict();
+				//test.testIndeces();
 			} finally {
-				//test.cleanupAfter();
+				test.cleanupAfter();
 			}
 		}
 	}
-	
+
 	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
 		useMongo = useMongoParam;
 		File dir = new File("temp_files");
@@ -262,6 +269,46 @@ public class TypeRegisteringTest {
 		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
 				Collections.<String>emptyList(), adminUser, false, 
 				restrict("Common", commonVer1, "Middle", middleVer1));
+	}
+	
+	public void testIndeces() throws Exception {
+		long time = System.currentTimeMillis();
+		String regulationSpec = loadSpec("backward", "Regulation");
+		initModule("Regulation", adminUser);
+		long initVer = db.getLastModuleVersion("Regulation");
+		db.registerModule(regulationSpec, Arrays.asList("sequence_pos1", "gene", "sequence_pos2", 
+				"binding_site"), adminUser);
+		long regVer = db.getLastModuleVersion("Regulation");
+		MongoTypeStorage mts = (MongoTypeStorage)storage.getInnerStorage();
+		for (int i = 0; i < 1000; i++) {
+			mts.copyModuleVersion("Regulation", regVer, regVer + 1 + i);
+		}
+		System.out.println("Preparation time: " + (System.currentTimeMillis() - time));
+		time = System.currentTimeMillis();
+		List<Long> versions = db.getAllModuleVersions("Regulation");
+		for (long ver : versions) {
+			if (ver == initVer)
+				continue;
+			db.getModuleSpecDocument("Regulation", ver);
+			ModuleInfo info = db.getModuleInfo("Regulation", ver);
+			int refCount = 0;
+			for (String type : info.getTypes().keySet()) {
+				TypeDefId typeDef = new TypeDefId(info.getModuleName() + "." + type, 
+						info.getTypes().get(type).getTypeVersion());
+				db.getJsonSchemaDocument(typeDef);
+				db.getTypeParsingDocument(typeDef);
+				refCount += db.getTypeRefsByDep(typeDef).size();
+			}
+			Assert.assertEquals(3, refCount);
+			refCount = 0;
+			for (String func : info.getFuncs().keySet()) {
+				String funcVer = info.getFuncs().get(func).getFuncVersion();
+				db.getFuncParsingDocument(info.getModuleName(), func, funcVer);
+				refCount += db.getFuncRefsByDep(info.getModuleName(), func, funcVer).size();
+			}
+			Assert.assertEquals(2, refCount);
+		}
+		System.out.println("Search time: " + (System.currentTimeMillis() - time));
 	}
 	
 	private Map<String, Long> restrict(Object... params) {

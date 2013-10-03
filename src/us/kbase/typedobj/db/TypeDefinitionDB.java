@@ -310,11 +310,16 @@ public class TypeDefinitionDB {
 		throw new NoSuchFuncException("Unable to locate function: '"+moduleName+"."+funcName+"'" + 
 				(version == null ? "" : (" for version " + version)));
 	}
-	
+
 	public List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
+		return getAllRegisteredTypes(moduleName, getLastModuleVersion(moduleName));
+	}
+	
+	public List<String> getAllRegisteredTypes(String moduleName, long moduleVersion) 
+			throws NoSuchModuleException, TypeStorageException {
 		List<String> ret = new ArrayList<String>();
-		for (TypeInfo typeInfo : getModuleInfo(moduleName).getTypes().values())
+		for (TypeInfo typeInfo : getModuleInfo(moduleName, moduleVersion).getTypes().values())
 			if (typeInfo.isSupported())
 				ret.add(typeInfo.getTypeName());
 		return ret;
@@ -827,17 +832,17 @@ public class TypeDefinitionDB {
 		return storage.getAllRegisteredModules();
 	}
 	
-	public Set<RefInfo> getTypeRefsByDep(AbsoluteTypeDefId depTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByDep(TypeDefId depTypeDef) throws TypeStorageException {
 		String depModule = depTypeDef.getType().getModule();
 		String depType = depTypeDef.getType().getName();
-		String version = depTypeDef.getVerString();
+		String version = findTypeVersion(depTypeDef).toString();
 		return storage.getTypeRefsByDep(depModule, depType, version);
 	}
 	
-	public Set<RefInfo> getTypeRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = refTypeDef.getVerString();
+		String version = findTypeVersion(refTypeDef).toString();
 		return storage.getTypeRefsByRef(refModule, refType, version);
 	}
 	
@@ -846,10 +851,10 @@ public class TypeDefinitionDB {
 		return storage.getFuncRefsByDep(depModule, depFunc, version);
 	}
 	
-	public Set<RefInfo> getFuncRefsByRef(AbsoluteTypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = refTypeDef.getVerString();
+		String version = findTypeVersion(refTypeDef).toString();
 		return storage.getFuncRefsByRef(refModule, refType, version);
 	}
 	
@@ -861,8 +866,8 @@ public class TypeDefinitionDB {
 	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
-		//throw new IllegalStateException("Type definition db was created without approval queue, " +
-		//		"please use registerModule without request.");
+		if (storage.checkModuleExist(moduleName))
+			throw new TypeStorageException("Module " + moduleName + " was already registered");
 		storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
 	}
 	

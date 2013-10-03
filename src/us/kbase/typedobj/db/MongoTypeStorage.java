@@ -1,5 +1,6 @@
 package us.kbase.typedobj.db;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,10 +31,42 @@ public class MongoTypeStorage implements TypeStorage {
 	public static final String TABLE_FUNC_REFS = "func_refs";
 	public static final String TABLE_TYPE_REFS = "type_refs";
 
-	public static final int MAX_REQUESTS_BY_USER = 10;
+	public static final int MAX_REQUESTS_BY_USER = 30;
 	
 	public MongoTypeStorage(DB db) {
 		jdb = new Jongo(db);
+		ensureIndeces();
+	}
+	
+	private void ensureIndeces() {
+		MongoCollection reqs = jdb.getCollection(TABLE_MODULE_REQUEST);
+		reqs.ensureIndex("{moduleName:1}", "{unique:false}");
+		reqs.ensureIndex("{ownerUserId:1}", "{unique:false}");
+		MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
+		vers.ensureIndex("{moduleName:1}", "{unique:true}");
+		MongoCollection owns = jdb.getCollection(TABLE_MODULE_OWNER);
+		owns.ensureIndex("{moduleName:1,ownerUserId:1}", "{unique:true}");
+		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+		infos.ensureIndex("{moduleName:1,versionTime:1}", "{unique:true}");
+		MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
+		specs.ensureIndex("{moduleName:1,versionTime:1}", "{unique:true}");
+		MongoCollection tschs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+		tschs.ensureIndex("{moduleName:1,typeName:1,version:1}", "{unique:true}");
+		tschs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
+		MongoCollection tprs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
+		tprs.ensureIndex("{moduleName:1,typeName:1,version:1}", "{unique:true}");
+		tprs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
+		MongoCollection fprs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
+		fprs.ensureIndex("{moduleName:1,funcName:1,version:1}", "{unique:true}");
+		fprs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
+		MongoCollection frefs = jdb.getCollection(TABLE_FUNC_REFS);
+		frefs.ensureIndex("{depModule:1,depName:1,depVersion:1}", "{unique:false}");
+		frefs.ensureIndex("{refModule:1,refName:1,refVersion:1}", "{unique:false}");
+		frefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
+		MongoCollection trefs = jdb.getCollection(TABLE_TYPE_REFS);
+		trefs.ensureIndex("{depModule:1,depName:1,depVersion:1}", "{unique:false}");
+		trefs.ensureIndex("{refModule:1,refName:1,refVersion:1}", "{unique:false}");
+		trefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
 	}
 	
 	@Override
@@ -64,17 +97,6 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Module " + moduleName + " is not registered");
 		return ret;
 	}
-
-	/*private void printModuleInfo(String moduleName, Long ret) throws TypeStorageException {
-		List<Long> versions = getAllModuleVersions(moduleName);
-		System.out.println("MongoTypeStorage: all module [" + moduleName + "] versions: " + versions);
-		try {
-			String infoText = new ObjectMapper().writeValueAsString(getModuleInfoRecord(moduleName, ret));
-			System.out.println("MongoTypeStorage: module [" + moduleName + "] info for version " +ret + ": " + infoText);
-		} catch (Exception e) {
-			throw new TypeStorageException(e);
-		}
-	}*/
 	
 	@Override
 	public boolean checkModuleExist(String moduleName) throws TypeStorageException {
@@ -147,7 +169,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		MongoCollection refs = jdb.getCollection(TABLE_FUNC_REFS);
-		return Sets.newTreeSet(refs.find("{depModule:#,depName:#,depVersion:#}",
+		return Sets.newTreeSet(refs.find("{refModule:#,refName:#,refVersion:#}",
 				refModule, refType, version).as(RefInfo.class));
 	}
 	
@@ -327,12 +349,14 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void writeModuleVersion(String moduleName, long version) throws TypeStorageException {
 		MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-		// TODO: it should be rewritten without deletion
-		vers.remove("{moduleName:#}", moduleName);
-		ModuleVersion ver = new ModuleVersion();
-		ver.setModuleName(moduleName);
-		ver.setVersionTime(version);
-		vers.insert(ver);
+		if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
+			ModuleVersion ver = new ModuleVersion();
+			ver.setModuleName(moduleName);
+			ver.setVersionTime(version);
+			vers.insert(ver);
+		} else {
+			vers.update("{moduleName:#}", moduleName).with("{$set: {versionTime: #}}", version);
+		}
 	}
 
 	@Override
@@ -393,11 +417,13 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addNewModuleRegistrationRequest(String moduleName, String userId)
 			throws TypeStorageException {
 		MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-		int prevCount = Lists.newArrayList(recs.find("{moduleName:#,ownerUserId:#}", 
-				moduleName, userId).as(OwnerInfo.class)).size();
+		int prevCount = Lists.newArrayList(recs.find("{ownerUserId:#}", 
+				userId).as(OwnerInfo.class)).size();
 		if (prevCount >= MAX_REQUESTS_BY_USER)
 			throw new TypeStorageException("User " + userId + " has maximal count " +
 					"of requests: " + MAX_REQUESTS_BY_USER);
+		if (recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class) != null)
+			throw new TypeStorageException("Registration of module " + moduleName + " was already requested");
 		OwnerInfo rec = new OwnerInfo();
 		rec.setOwnerUserId(userId);
 		rec.setWithChangeOwnersPrivilege(true);
@@ -428,7 +454,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
 			throws TypeStorageException {
 		MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-		List<OwnerInfo> owners = Lists.newArrayList(recs.find().as(OwnerInfo.class));
+		List<OwnerInfo> owners = Lists.newArrayList(recs.find("{moduleName:#}", moduleName).as(OwnerInfo.class));
 		Map<String, OwnerInfo> ret = new HashMap<String, OwnerInfo>();
 		for (OwnerInfo oi : owners)
 			ret.put(oi.getOwnerUserId(), oi);
@@ -485,6 +511,70 @@ public class MongoTypeStorage implements TypeStorage {
 		jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
 		if (versionToSwitchTo != getLastModuleVersion(moduleName))
 			writeModuleVersion(moduleName, versionToSwitchTo);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public void copyModuleVersion(String moduleName, long version, long versionCopy) throws TypeStorageException {
+		long versionCopyD = versionCopy - version;
+		Set<RefInfo> typeRefs = Sets.newTreeSet(jdb.getCollection(TABLE_TYPE_REFS).find("{depModule:#,depModuleVersion:#}",
+				moduleName, version).as(RefInfo.class));
+		for (RefInfo ri : typeRefs) {
+			ri.setDepModuleVersion(versionCopy);
+			ri.setDepVersion(versionCopyD + ri.getDepVersion());
+			if (ri.getRefModule().equals(moduleName))
+				ri.setRefVersion(versionCopyD + ri.getRefVersion());				
+		}
+		Set<RefInfo> funcRefs = Sets.newTreeSet(jdb.getCollection(TABLE_FUNC_REFS).find("{depModule:#,depModuleVersion:#}",
+				moduleName, version).as(RefInfo.class));
+		for (RefInfo ri : funcRefs) {
+			ri.setDepModuleVersion(versionCopy);
+			ri.setDepVersion(versionCopyD + ri.getDepVersion());
+			if (ri.getRefModule().equals(moduleName))
+				ri.setRefVersion(versionCopyD + ri.getRefVersion());				
+		}
+		addRefs(typeRefs, funcRefs);
+		////////////////////////////////////// Type schemas
+		MongoCollection schemas = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+		Map[] schArr = load(schemas, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
+		for (Map tr : schArr) {
+			tr.put("moduleVersion", versionCopy);
+			tr.put("version", "" + versionCopyD + tr.get("version"));
+			tr.remove("_id");
+		}
+		schemas.insert((Object[])schArr);
+		////////////////////////////////////// Type schemas
+		MongoCollection typePrs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
+		Map[] typePrsArr = load(typePrs, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
+		for (Map tr : typePrsArr) {
+			tr.put("moduleVersion", versionCopy);
+			tr.put("version", "" + versionCopyD + tr.get("version"));
+			tr.remove("_id");
+		}
+		typePrs.insert((Object[])typePrsArr);
+		////////////////////////////////////// Type schemas
+		MongoCollection funcPrs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
+		Map[] funcPrsArr = load(funcPrs, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
+		for (Map tr : funcPrsArr) {
+			tr.put("moduleVersion", versionCopy);
+			tr.put("version", "" + versionCopyD + tr.get("version"));
+			tr.remove("_id");
+		}
+		funcPrs.insert((Object[])funcPrsArr);
+		String spec = getModuleSpecRecord(moduleName, version);
+		ModuleInfo info = getModuleInfoRecord(moduleName, version);
+		for (String type : info.getTypes().keySet())
+			info.getTypes().get(type).setTypeVersion(versionCopyD + info.getTypes().get(type).getTypeVersion());
+		for (String func : info.getFuncs().keySet())
+			info.getFuncs().get(func).setFuncVersion(versionCopyD + info.getFuncs().get(func).getFuncVersion());
+		info.setVersionTime(versionCopy);
+		writeModuleRecords(info, spec, versionCopy);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> T[] load(MongoCollection col, String query, Class<T> type, Object... params) {
+		List<T> list = Lists.newArrayList(col.find(query, params).as(type));
+		T[] ret = (T[])Array.newInstance(type, list.size());
+		return list.toArray(ret);
 	}
 	
 	public static class ModuleSpec {
