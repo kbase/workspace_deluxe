@@ -109,7 +109,7 @@ public class TypeDefinitionDB {
 		}
 		this.uip = uip;
 	}
-		
+	
 	/**
 	 * Given a module and a type name, return true if the type exists, false otherwise
 	 * @param moduleName
@@ -135,6 +135,43 @@ public class TypeDefinitionDB {
 		return getJsonSchemaDocument(new TypeDefId(type));
 	}
 
+	/**
+	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
+	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
+	 * objects for better performance, this is the method we would need to extend.
+	 * @param moduleName
+	 * @param typeName
+	 * @return
+	 * @throws NoSuchTypeException
+	 */
+	public JsonSchema getJsonSchema(final TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
+	{
+		String jsonSchemaDocument = getJsonSchemaDocument(typeDefId);
+		try {
+			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
+			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
+		} catch (Exception e) {
+			throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
+					"was not a valid or readable JSON document",e);
+		}
+	}
+	
+	public JsonSchema getJsonSchema(final TypeDefId typeDefId, AbsoluteTypeDefId typeDefIdFound)
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
+	{
+		String jsonSchemaDocument = getJsonSchemaDocument(typeDefId, typeDefIdFound);
+		try {
+			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
+			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
+		} catch (Exception e) {
+			throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
+					"was not a valid or readable JSON document",e);
+		}
+	}
+	
+	
+	
 	/**
 	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
 	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
@@ -276,6 +313,13 @@ public class TypeDefinitionDB {
 		return new SemanticVersion(ti.getTypeVersion());
 	}
 	
+	
+	
+	public String getJsonSchemaDocument(final TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getJsonSchemaDocument(typeDefId,null);
+	}
+	
 	/**
 	 * Given a moduleName, a typeName and version, return the JSON Schema document for the type. If 
 	 * version parameter is null (no version number is specified) then the latest version is used for
@@ -286,7 +330,7 @@ public class TypeDefinitionDB {
 	 * @return JSON Schema document as a String
 	 * @throws NoSuchTypeException
 	 */
-	public String getJsonSchemaDocument(TypeDefId typeDef)
+	public String getJsonSchemaDocument(final TypeDefId typeDef, AbsoluteTypeDefId typeDefIdFound)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		String moduleName = typeDef.getType().getModule();
 		String typeName = typeDef.getType().getName();
@@ -298,6 +342,7 @@ public class TypeDefinitionDB {
 		String ret = storage.getTypeSchemaRecord(moduleName, typeName, schemaDocumentVer.toString());
 		if (ret == null)
 			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		typeDefIdFound = new AbsoluteTypeDefId(new TypeDefName(moduleName,typeName),schemaDocumentVer.getMajor(),schemaDocumentVer.getMajor());
 		return ret;
 	}
 

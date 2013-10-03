@@ -51,6 +51,8 @@ public class Workspaces {
 	//TODO set description
 	//TODO garbage collection - make a static thread that calls a gc() method
 	
+	//TODO length limits on all incoming strings
+	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
 	private final Database db;
