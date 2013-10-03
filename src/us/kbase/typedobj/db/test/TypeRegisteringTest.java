@@ -39,6 +39,7 @@ import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
@@ -55,12 +56,13 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				test.testSimple();
-				test.testDescr();
-				test.testBackward();
-				test.testRollback();
-				test.testRestrict();
+				//test.testSimple();
+				//test.testDescr();
+				//test.testBackward();
+				//test.testRollback();
+				//test.testRestrict();
 				//test.testIndeces();
+				test.testMD5();
 			} finally {
 				test.cleanupAfter();
 			}
@@ -80,7 +82,7 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests());
+		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser));
 	}
 	
 	@Parameters
@@ -99,8 +101,8 @@ public class TypeRegisteringTest {
 	
 	@Before
 	public void cleanupBefore() throws Exception {
-		storage.removeAllData();
 		storage.removeAllTypeStorageListeners();
+		storage.removeAllData();
 	}
 	
 	@After
@@ -110,10 +112,16 @@ public class TypeRegisteringTest {
 	
 	@Test
 	public void testSimple() throws Exception {
-		String user = adminUser;
+		String user = "Owner";
 		String taxonomySpec = loadSpec("simple", "Taxonomy");
 		initModule("Taxonomy", user);
 		readOnlyMode();
+		try {
+			db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), "Nobody", true);
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage().equals("User Nobody is not in list of owners of module Taxonomy"));
+		}
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), user, true);
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
@@ -309,6 +317,32 @@ public class TypeRegisteringTest {
 			Assert.assertEquals(2, refCount);
 		}
 		System.out.println("Search time: " + (System.currentTimeMillis() - time));
+	}
+	
+	@Test
+	public void testMD5() throws Exception {
+		initModule("Common", adminUser);
+		db.registerModule(loadSpec("md5", "Common"), Arrays.asList("common_struct"), adminUser);
+		initModule("Upper", adminUser);
+		db.registerModule(loadSpec("md5", "Upper"), Arrays.asList("upper_struct"), adminUser);
+		String common1hash = db.getModuleMD5("Common");
+		String upper1hash = db.getModuleMD5("Upper");
+		db.registerModule(loadSpec("md5", "Common", "2"), adminUser);
+		db.refreshModule("Upper", adminUser);
+		String common2hash = db.getModuleMD5("Common");
+		Assert.assertFalse(common1hash.equals(common2hash));
+		String upper2hash = db.getModuleMD5("Upper");
+		Assert.assertFalse(upper1hash.equals(upper2hash));
+		Assert.assertEquals(db.getLastModuleVersion("Upper"), 
+				(long)db.findModuleVersionByMD5("Upper", upper2hash));
+		db.registerModule(loadSpec("md5", "Common", "3"), Arrays.asList("unused_struct"), adminUser);
+		db.refreshModule("Upper", adminUser);
+		String common3hash = db.getModuleMD5("Common");
+		Assert.assertFalse(common2hash.equals(common3hash));
+		String upper3hash = db.getModuleMD5("Upper");
+		Assert.assertTrue(upper2hash.equals(upper3hash));
+		Assert.assertEquals(db.getLastModuleVersion("Common"), 
+				(long)db.findModuleVersionByMD5("Common", common3hash));
 	}
 	
 	private Map<String, Long> restrict(Object... params) {

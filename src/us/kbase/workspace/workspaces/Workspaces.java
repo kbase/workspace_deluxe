@@ -12,6 +12,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -312,7 +313,7 @@ public class Workspaces {
 	
 	public void compileTypeSpec(final WorkspaceUser user,
 			final String typespec, final List<TypeDefName> types) throws
-			SpecParseException, TypeStorageException {
+			SpecParseException, TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
 		//TODO return the versions of the types that were updated
 		//TODO dry run method
 		//TODO update module method

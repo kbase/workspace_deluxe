@@ -9,7 +9,11 @@ public class ModuleInfo {
 	private Map<String, TypeInfo> types = new LinkedHashMap<String, TypeInfo>();
 	private Map<String, FuncInfo> funcs = new LinkedHashMap<String, FuncInfo>();
 	private String description;
+	private String md5hash;
 	private long versionTime;
+	
+	public ModuleInfo() {
+	}
 	
 	public String getModuleName() {
 		return moduleName;
@@ -50,6 +54,14 @@ public class ModuleInfo {
 	
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	public String getMd5hash() {
+		return md5hash;
+	}
+	
+	public void setMd5hash(String md5hash) {
+		this.md5hash = md5hash;
 	}
 	
 	public long getVersionTime() {

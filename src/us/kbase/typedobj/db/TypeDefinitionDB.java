@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.cfg.ValidationConfiguration;
@@ -966,25 +968,27 @@ public class TypeDefinitionDB {
 
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			String userId) throws SpecParseException, 
-			TypeStorageException {
+			TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
 		return registerModule(specDocument, Collections.<String>emptyList(), userId);
 	}
 
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, String userId) throws SpecParseException, 
-			TypeStorageException {
+			TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
 		return registerModule(specDocument, typesToSave, Collections.<String>emptyList(), userId);
 	}
 	
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId) 
-					throws SpecParseException, TypeStorageException {
+					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
+					NoSuchModuleException {
 		return registerModule(specDocument, typesToSave, typesToUnregister, userId, false);
 	}
 
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
-			boolean dryMode) throws SpecParseException, TypeStorageException {
+			boolean dryMode) throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
+			NoSuchModuleException {
 		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
 				Collections.<String, Long>emptyMap());
 	}
@@ -992,32 +996,35 @@ public class TypeDefinitionDB {
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
-					throws SpecParseException, TypeStorageException {
+					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
+					NoSuchModuleException {
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			String userId) throws SpecParseException, 
-			TypeStorageException, NoSuchModuleException {
+			TypeStorageException, NoSuchModuleException, NoSuchPrivilegeException {
 		return refreshModule(moduleName, Collections.<String>emptyList(), userId);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			List<String> typesToSave, String userId) throws SpecParseException, 
-			TypeStorageException, NoSuchModuleException {
+			TypeStorageException, NoSuchModuleException, NoSuchPrivilegeException {
 		return refreshModule(moduleName, typesToSave, Collections.<String>emptyList(), userId);
 	}
 	
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId) 
-					throws SpecParseException, TypeStorageException, NoSuchModuleException {
+					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
+					NoSuchPrivilegeException {
 		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, false);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
-			boolean dryMode) throws SpecParseException, TypeStorageException, NoSuchModuleException {
+			boolean dryMode) throws SpecParseException, TypeStorageException, NoSuchModuleException, 
+			NoSuchPrivilegeException {
 		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, dryMode, 
 				Collections.<String, Long>emptyMap());
 	}
@@ -1025,7 +1032,8 @@ public class TypeDefinitionDB {
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
-					throws SpecParseException, TypeStorageException, NoSuchModuleException {
+					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
+					NoSuchPrivilegeException {
 		String specDocument = getModuleSpecDocument(moduleName);
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
@@ -1109,12 +1117,9 @@ public class TypeDefinitionDB {
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
-					throws SpecParseException, TypeStorageException {
+					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
-		//System.out.println("----------------------------------------------");
-		//System.out.println("Spec-file:");
-		//System.out.println(specDocument);
 		String moduleName = null;
 		long transactionStartTime = -1;
 		try {
@@ -1123,16 +1128,11 @@ public class TypeDefinitionDB {
 			KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 					moduleVersionRestrictions);
 			moduleName = module.getModuleName();
-			boolean isNew = !isValidModule(moduleName);
-			if (isNew) {
-				checkModuleRegistered(moduleName);
-				if (storage.checkModuleSpecRecordExist(moduleName, storage.getLastModuleVersion(moduleName)))
-					throw new IllegalStateException("Module " + moduleName + " was already uploaded");
-				//if (!storage.checkModuleExist(moduleName))
-				//	autoGenerateModuleInfo(moduleName, userId);
-			}
+			checkModuleRegistered(moduleName);
 			checkUserIsOwnerOrAdmin(moduleName, userId);
 			ModuleInfo info = getModuleInfo(moduleName);
+			boolean isNew = !storage.checkModuleSpecRecordExist(moduleName, info.getVersionTime());
+			info.setMd5hash(DigestUtils.md5Hex(mapper.writeValueAsString(module.getData())));
 			info.setDescription(module.getComment());
 			Map<String, Long> includedModuleNameToVersion = new LinkedHashMap<String, Long>();
 			for (String iModule : includedModules)
@@ -1253,6 +1253,10 @@ public class TypeDefinitionDB {
 				transactionStartTime = -1;
 			}
 			return ret;
+		} catch (NoSuchModuleException ex) {
+			throw ex;
+		} catch (NoSuchPrivilegeException ex) {
+			throw ex;
 		} catch (TypeStorageException ex) {
 			throw ex;
 		} catch (SpecParseException ex) {
@@ -1516,7 +1520,27 @@ public class TypeDefinitionDB {
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		return getFuncParsingDocument(moduleName, funcName, version).getComment();
 	}
+
+	public String getModuleMD5(String moduleName) 
+			throws NoSuchModuleException, TypeStorageException {
+		return getModuleInfo(moduleName).getMd5hash();
+	}
+
+	public String getModuleMD5(String moduleName, long version) 
+			throws TypeStorageException, NoSuchModuleException {
+		return getModuleInfo(moduleName, version).getMd5hash();
+	}
 	
+	public Long findModuleVersionByMD5(String moduleName, String md5) 
+			throws NoSuchModuleException, TypeStorageException {
+		for (long version : getAllModuleVersions(moduleName)) {
+			ModuleInfo info = getModuleInfo(moduleName, version);
+			if (md5.equals(info.getMd5hash()))
+				return version;
+		}
+		return null;
+	}
+
 	private static class ComponentChange {
 		boolean isType;
 		boolean isDeletion;

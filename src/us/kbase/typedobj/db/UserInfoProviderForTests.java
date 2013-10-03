@@ -1,9 +1,20 @@
 package us.kbase.typedobj.db;
 
 public class UserInfoProviderForTests implements UserInfoProvider {
+	private String adminUser;
+
+	public UserInfoProviderForTests() {
+	}
+	
+	public UserInfoProviderForTests(String admin) {
+		this.adminUser = admin;
+	}
+	
 	@Override
 	public boolean isAdmin(String userId) {
-		return true;
+		if (adminUser == null)
+			return true;
+		return adminUser.equals(userId);
 	}
 	
 	@Override
