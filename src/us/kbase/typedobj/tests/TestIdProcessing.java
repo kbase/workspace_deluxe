@@ -27,7 +27,6 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,9 +45,24 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 
 
 /**
+ * Tests that ensure IDs are properly extracted from typed object instances, and that IDs
+ * can be relabeled properly.  Test files which specify test cases are specified
+ * in us.kbase.typedobj.tests.files.t2.  Temporary test files are stored in 
+ * test/typedobj_temp_test_files.  Running this test will blow away any files you have
+ * saved to 
  * 
- * @author msneddon
+ * To add new tests of the ID processing machinery, add files named in the format:
+ *   [ModuleName].[TypeName].instance.[label] 
+ *        - json encoding of a valid type instance
+ *   [ModuleName].[TypeName].instance.[label].ids
+ *        - json formatted file listing IDs that must be found in the instance, and
+ *          new names for each of the IDs as needed.  Tests will check the the specified
+ *          ids are all found in the instance, and that the instance contains no extra
+ *          ids.  If the same ID is used multiple times in an instance, then it must
+ *          by listed multiple times in this structure!  See existing files for an
+ *          example of the json structure you need to use.
  *
+ * @author msneddon
  */
 @RunWith(value = Parameterized.class)
 public class TestIdProcessing {
@@ -57,16 +71,20 @@ public class TestIdProcessing {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t2";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t2";
+	
+	/**
+	 * relative location to find the input files
+	 */
 	private final static String TEST_RESOURCE_LOCATION = "files/t2/";
 	
 
 	private static TypeDefinitionDB db;
 	private static TypedObjectValidator validator;
 	
-	
-	
-	// the list of instances to test
+	/**
+	 * List to stash the handle to the test case files
+	 */
 	private static List<TestInstanceInfo> instanceResources = new ArrayList <TestInstanceInfo> ();
 	
 	private static class TestInstanceInfo {
@@ -82,7 +100,9 @@ public class TestIdProcessing {
 	
 	
 	
-	
+	/**
+	 * As each test instance object is created, this sets which instance to actually test
+	 */
 	private TestInstanceInfo instance;
 	
 	public TestIdProcessing(TestInstanceInfo tii) {
@@ -120,7 +140,6 @@ public class TestIdProcessing {
 	 */
 	public static void prepareDb() throws Exception
 	{
-		System.out.println("setting up the typed obj database");
 		
 		//ensure test location is available
 		File dir = new File(TEST_DB_LOCATION);
@@ -132,6 +151,7 @@ public class TestIdProcessing {
 			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
+		System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
 		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), new UserInfoProviderForTests());
 		
@@ -146,17 +166,17 @@ public class TestIdProcessing {
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
 		db.approveModuleRegistrationRequest(username, "KB", username);
 		db.registerModule(kbSpec ,kb_types, username);
-		//for(String typename : kb_types) {
-		//	db.releaseType("KB", typename, username);
-		//}
+		for(String typename : kb_types) {
+			db.releaseType(new TypeDefName("KB." + typename), username);
+		}
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
 		db.approveModuleRegistrationRequest(username, "FBA", username);
 		db.registerModule(fbaSpec ,fba_types, username);
-		//for(String typename : fba_types) {
-		//	db.releaseType("FBA", typename, username);
-		//}
+		for(String typename : fba_types) {
+			db.releaseType(new TypeDefName("FBA." + typename), username);
+		}
 		
 		System.out.println("finding test instances\n");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
@@ -174,7 +194,7 @@ public class TestIdProcessing {
 	public static void removeDb() throws IOException {
 		File dir = new File(TEST_DB_LOCATION);
 		FileUtils.deleteDirectory(dir);
-		System.out.println("\ndeleting typed obj database");
+		System.out.println("deleting typed obj database");
 	}
 	
 	
@@ -229,10 +249,6 @@ public class TestIdProcessing {
 			assertTrue("  -("+instance.resourceName+") needed to extract id '"+pair.getKey()+"' "+n_refs_remaining+" more times",
 					n_refs_remaining == 0);
 		}
-		
-		
-		
-		
 	}
 
 	

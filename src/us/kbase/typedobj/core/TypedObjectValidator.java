@@ -122,8 +122,8 @@ public final class TypedObjectValidator {
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
-		AbsoluteTypeDefId typeDefIdFound = null;
-		final JsonSchema schema = typeDefDB.getJsonSchema(typeDefId, typeDefIdFound);
+		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
+		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
 		// Actually perform the validation and return the report
 		ProcessingReport report;
@@ -134,7 +134,7 @@ public final class TypedObjectValidator {
 					"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
 		}
 		
-		return new TypedObjectValidationReport(report, typeDefIdFound);
+		return new TypedObjectValidationReport(report, absoluteTypeDefDB);
 	}
 
 	/**
@@ -152,8 +152,8 @@ public final class TypedObjectValidator {
 	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
-		AbsoluteTypeDefId typeDefIdFound = null;
-		final JsonSchema schema = typeDefDB.getJsonSchema(typeDefId, typeDefIdFound);
+		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
+		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
 		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
 		for(JsonNode j : instanceRootNodes) {
@@ -165,7 +165,7 @@ public final class TypedObjectValidator {
 				throw new InstanceValidationException(
 				"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
 			}
-			reportList.add(new TypedObjectValidationReport(report, typeDefIdFound));
+			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB));
 		}
 		return reportList;
 	}

@@ -45,10 +45,11 @@ import us.kbase.typedobj.core.validatorconfig.ValidationConfigurationFactory;
 import us.kbase.typedobj.exceptions.*;
 
 /**
- * This abstract base class provides methods/interface for retrieving a JSON Schema document and
- * JSON Schema validators for typed objects.
+ * This class is the primary interface for storing and retrieving versioned typed
+ * object definitions and association meta information.
  * 
  * @author msneddon
+ * @author rsutormin
  *
  */
 public class TypeDefinitionDB {
@@ -61,8 +62,7 @@ public class TypeDefinitionDB {
 	protected JsonSchemaFactory jsonSchemaFactory; 
 	
 	/**
-	 * The Jackson ObjectMapper which can translate a raw Json Schema document to
-	 * a JsonTree that can be handled by the validator.
+	 * The Jackson ObjectMapper which can translate a raw Json Schema document to a JsonTree
 	 */
 	protected ObjectMapper mapper;
 	
@@ -81,17 +81,23 @@ public class TypeDefinitionDB {
 		}
 	}
 	
+
 	/**
-	 * Set up a new DB pointing to the specified db folder.  The contents
-	 * should have a separate folder for each module named with the module
-	 * name, and in each folder a set of .json files with json schema
-	 * documents named the same as the type names.
-	 * @param storage low level storage object
+	 * Set up a new DB pointing to the specified storage object
+	 * @param storage
+	 * @param uip
 	 */
 	public TypeDefinitionDB(TypeStorage storage, UserInfoProvider uip) {
 		this(storage, null, uip);
 	}
 	
+	/**
+	 * Setup a new DB handle pointing to the specified storage object, using the
+	 * specified location when processing temporary type compiler files.
+	 * @param storage
+	 * @param tempDir
+	 * @param uip
+	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir, UserInfoProvider uip) {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
@@ -108,43 +114,101 @@ public class TypeDefinitionDB {
 		this.uip = uip;
 	}
 	
+	
 	/**
-	 * Given a module and a type name, return true if the type exists, false otherwise
-	 * @param moduleName
-	 * @param typeName
-	 * @return true if valid, false otherwise
-	 * @throws TypeStorageException 
-	 */
-	public boolean isValidType(TypeDefName type) throws TypeStorageException {
-		return isValidType(new TypeDefId(type));
-	}
-		
-	/**
-	 * Given a moduleName and typeName, return the JSON Schema document for the type. No version
-	 * number is specified, so the latest version on record is always the schema returned if the
-	 * underlying Json Schema database supports versioned typed objects.
-	 * @param moduleName
-	 * @param typeName
-	 * @return JSON Schema document as a String
-	 * @throws NoSuchTypeException
-	 */
-	public String getJsonSchemaDocument(TypeDefName type) 
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return getJsonSchemaDocument(new TypeDefId(type));
-	}
-
-	/**
-	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
-	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
-	 * objects for better performance, this is the method we would need to extend.
-	 * @param moduleName
-	 * @param typeName
+	 * Retrieve a Json Schema Document for the most recent version of the typed object specified
+	 * @param typeDefName
 	 * @return
 	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws TypeStorageException
+	 */
+	public String getJsonSchemaDocument(final TypeDefName typeDefName) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		return getJsonSchemaDocument(new TypeDefId(typeDefName));
+	}
+	
+	/**
+	 * Retrieve a Json Schema Document for the typed object specified.  If no version numbers
+	 * are indicated, the latest version is returned.  If the major version only is specified,
+	 * then the latest version that is backwards compatible with the major version is returned.
+	 * If exact major/minor version numbers are given, that is the exact version that is returned.
+	 * @param typeDefId
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws TypeStorageException
+	 */
+	public String getJsonSchemaDocument(final TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		// first make sure that the json schema document can be found
+		AbsoluteTypeDefId absTypeDefId = resolveTypeDefId(typeDefId);
+		String moduleName = absTypeDefId.getType().getModule();
+		String typeName = absTypeDefId.getType().getName();
+		// second retrieve the document if it is available
+		SemanticVersion schemaDocumentVer = new SemanticVersion(absTypeDefId.getMajorVersion(), absTypeDefId.getMinorVersion());
+		String ret = storage.getTypeSchemaRecord(moduleName,typeName,schemaDocumentVer.toString());
+		if (ret == null)
+			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		return ret;
+	}
+	
+	/**
+	 * Given a typeDefId that may not be valid or have major/minor versions defined,
+	 * attempt to lookup if a specific type definition can be resolved in the database.
+	 * If a specific type definition is found, it is returned; else an exception is thrown.
+	 * @param typeDefId
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws TypeStorageException
+	 */
+	public AbsoluteTypeDefId resolveTypeDefId(final TypeDefId typeDefId) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		String moduleName = typeDefId.getType().getModule();
+		String typeName = typeDefId.getType().getName();
+		checkModule(moduleName);
+		SemanticVersion schemaDocumentVer = findTypeVersion(typeDefId);
+		if (schemaDocumentVer == null)
+			throwNoSuchTypeException(moduleName, typeName, null);
+		String ret = storage.getTypeSchemaRecord(moduleName,typeName,schemaDocumentVer.toString());
+		if (ret == null)
+			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		// TODO: use this instead, but not yet supported with Mongo Storage backend
+		//if(!storage.checkTypeSchemaRecordExists(moduleName, typeName, schemaDocumentVer.toString()))
+		//	throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		return new AbsoluteTypeDefId(new TypeDefName(moduleName,typeName),schemaDocumentVer.getMajor(),schemaDocumentVer.getMinor());
+	}
+	
+	/**
+	 * Retrieve a Json Schema object that can be used for json validation for the most recent
+	 * version of the typed object specified
+	 * @param typeDefName
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException
+	 */
+	public JsonSchema getJsonSchema(TypeDefName typeDefName)
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
+		return getJsonSchema(new TypeDefId(typeDefName));
+	}
+	
+	/**
+	 * Retrieve a Json Schema objec tha can be used for json validation for the typed object specified.
+	 * If no version numbers are indicated, the latest version is returned.  If the major version only
+	 * is specified, then the latest version that is backwards compatible with the major version is returned.
+	 * If exact major/minor version numbers are given, that is the exact version that is returned.
+	 * @param typeDefId
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException
 	 */
 	public JsonSchema getJsonSchema(final TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
-	{
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
 		String jsonSchemaDocument = getJsonSchemaDocument(typeDefId);
 		try {
 			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
@@ -155,50 +219,20 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public JsonSchema getJsonSchema(final TypeDefId typeDefId, AbsoluteTypeDefId typeDefIdFound)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
-	{
-		String jsonSchemaDocument = getJsonSchemaDocument(typeDefId, typeDefIdFound);
-		try {
-			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
-			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
-		} catch (Exception e) {
-			throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
-					"was not a valid or readable JSON document",e);
-		}
-	}
-	
-	
-	
 	/**
-	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
-	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
-	 * objects for better performance, this is the method we would need to extend.
-	 * @param moduleName
-	 * @param typeName
+	 * Convert a Json Schema Document into a Json Schema object that can be used for json validation.
+	 * @param jsonSchemaDocument
 	 * @return
-	 * @throws NoSuchTypeException
+	 * @throws BadJsonSchemaDocumentException
+	 * @throws TypeStorageException
 	 */
-	public JsonSchema getJsonSchema(TypeDefName type)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
-	{
-		// first we retrieve the Json Schema document, this can throw a NoSuchTypeException
-		String jsonSchemaDocument = getJsonSchemaDocument(type);
-		
-		// next we parse the document into a JsonSchema using our jsonSchemaFactory
-		// if there are problems, we catch and throw up an error indicating a bad document
-		return jsonSchemaFromString(type.getModule(), type.getName(), jsonSchemaDocument);
-	}
-
-	protected JsonSchema jsonSchemaFromString(String moduleName,
-			String typeName, String jsonSchemaDocument)
+	protected JsonSchema jsonSchemaFromString(String jsonSchemaDocument)
 			throws BadJsonSchemaDocumentException, TypeStorageException {
 		try {
 			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
 			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
 		} catch (Exception e) {
-			throw new BadJsonSchemaDocumentException("schema for typed object '"+moduleName+"."+typeName+"' " +
-					"was not a valid or readable JSON document",e);
+			throw new BadJsonSchemaDocumentException("string was not a valid or readable JSON Schema document",e);
 		}
 	}
 	
@@ -240,21 +274,31 @@ public class TypeDefinitionDB {
 			throw new NoSuchModuleException("Module wasn't registered: " + moduleName);
 	}
 
+
+	
 	/**
-	 * Given a module, a typeName and version, return true if the type exists, false otherwise.
-	 * If version parameter is null (no version number is specified) then the latest version is 
-	 * used for checking schema.
-	 * @param moduleName
-	 * @param typeName
-	 * @param version
+	 * Determine if the type is registered and valid.
+	 * @param typeDefName
 	 * @return true if valid, false otherwise
+	 * @throws TypeStorageException
 	 */
-	public boolean isValidType(TypeDefId typeDef) throws TypeStorageException {
-		String moduleName = typeDef.getType().getModule();
-		String typeName = typeDef.getType().getName();
+	public boolean isValidType(TypeDefName typeDefName) throws TypeStorageException {
+		return isValidType(new TypeDefId(typeDefName));
+	}
+	
+	/**
+	 * Determines if the type is registered and valid.  If version numbers are set, the specific version
+	 * specified must also resolve to a valid type definition. 
+	 * @param typeDef
+	 * @return true if valid, false otherwise
+	 * @throws TypeStorageException
+	 */
+	public boolean isValidType(TypeDefId typeDefId) throws TypeStorageException {
+		String moduleName = typeDefId.getType().getModule();
+		String typeName = typeDefId.getType().getName();
 		if (!isValidModule(moduleName))
 			return false;
-		SemanticVersion ver = findTypeVersion(typeDef);
+		SemanticVersion ver = findTypeVersion(typeDefId);
 		if (ver == null)
 			return false;
 		return storage.checkTypeSchemaRecordExists(moduleName, typeName, ver.toString());
@@ -312,38 +356,8 @@ public class TypeDefinitionDB {
 	}
 	
 	
-	
-	public String getJsonSchemaDocument(final TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return getJsonSchemaDocument(typeDefId,null);
-	}
-	
-	/**
-	 * Given a moduleName, a typeName and version, return the JSON Schema document for the type. If 
-	 * version parameter is null (no version number is specified) then the latest version is used for
-	 * the schema returned if the underlying Json Schema database supports versioned typed objects.
-	 * @param moduleName
-	 * @param typeName
-	 * @param version
-	 * @return JSON Schema document as a String
-	 * @throws NoSuchTypeException
-	 */
-	public String getJsonSchemaDocument(final TypeDefId typeDef, AbsoluteTypeDefId typeDefIdFound)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		String moduleName = typeDef.getType().getModule();
-		String typeName = typeDef.getType().getName();
-		checkModule(moduleName);
-		// first make sure that the json schema document can be found
-		SemanticVersion schemaDocumentVer = findTypeVersion(typeDef);
-		if (schemaDocumentVer == null)
-			throwNoSuchTypeException(moduleName, typeName, null);
-		String ret = storage.getTypeSchemaRecord(moduleName, typeName, schemaDocumentVer.toString());
-		if (ret == null)
-			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
-		typeDefIdFound = new AbsoluteTypeDefId(new TypeDefName(moduleName,typeName),schemaDocumentVer.getMajor(),schemaDocumentVer.getMajor());
-		return ret;
-	}
 
+	
 	protected void throwNoSuchTypeException(String moduleName, String typeName,
 			String version) throws NoSuchTypeException {
 		throw new NoSuchTypeException("Unable to locate type: '"+moduleName+"."+typeName+"'" + 
@@ -1168,7 +1182,7 @@ public class TypeDefinitionDB {
 							continue;
 						String jsonSchemaDocument = typeToSchema.get(type.getName());
 						Set<RefInfo> dependencies = extractTypeRefs(type, moduleToInfo, newRegisteredTypes);
-						jsonSchemaFromString(info.getModuleName(), type.getName(), jsonSchemaDocument);
+						jsonSchemaFromString(jsonSchemaDocument);
 						boolean notBackwardCompatible = (change == Change.notCompatible);
 						comps.add(new ComponentChange(true, false, type.getName(), jsonSchemaDocument, type, null, 
 								notBackwardCompatible, dependencies));
