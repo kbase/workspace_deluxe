@@ -107,7 +107,7 @@ public class TypeDefinitionDB {
 		}
 		this.uip = uip;
 	}
-		
+	
 	/**
 	 * Given a module and a type name, return true if the type exists, false otherwise
 	 * @param moduleName
@@ -133,6 +133,29 @@ public class TypeDefinitionDB {
 		return getJsonSchemaDocument(new TypeDefId(type));
 	}
 
+	/**
+	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
+	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
+	 * objects for better performance, this is the method we would need to extend.
+	 * @param moduleName
+	 * @param typeName
+	 * @return
+	 * @throws NoSuchTypeException
+	 */
+	public JsonSchema getJsonSchema(TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException
+	{
+		String jsonSchemaDocument = getJsonSchemaDocument(typeDefId);
+		try {
+			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
+			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
+		} catch (Exception e) {
+			throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
+					"was not a valid or readable JSON document",e);
+		}
+	}
+	
+	
 	/**
 	 * The default implementation for getting a JsonSchema object that can be used as a validator.  This
 	 * method creates a new JsonSchema object on each call.  If we implement caching of the validator
