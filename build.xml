@@ -28,7 +28,7 @@
 
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-78bc050.jar"/>
+    <include name="kbase/auth/kbase-auth-1380822374-1728bbd.jar"/>
     <include name="jackson/jackson-annotations-2.2.3.jar"/>
     <include name="jackson/jackson-core-2.2.3.jar"/>
     <include name="jackson/jackson-databind-2.2.3.jar"/>
