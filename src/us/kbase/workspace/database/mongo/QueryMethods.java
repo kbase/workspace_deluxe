@@ -398,12 +398,12 @@ public class QueryMethods {
 		final Map<Integer, Map<User, Permission>> wsidToPerms =
 				new HashMap<Integer, Map<User, Permission>>();
 		for (final DBObject m: res) {
-			final int wsid = (int) m.get(Fields.ACL_WSID);
+			final int wsid = (Integer) m.get(Fields.ACL_WSID);
 			if (!wsidToPerms.containsKey(wsid)) {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
 			}
 			wsidToPerms.get(wsid).put(getUser((String) m.get(Fields.ACL_USER)),
-					Permission.fromInt((int) m.get(Fields.ACL_PERM)));
+					Permission.fromInt((Integer) m.get(Fields.ACL_PERM)));
 		}
 		final Map<ResolvedMongoWSID, Map<User, Permission>> ret =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();

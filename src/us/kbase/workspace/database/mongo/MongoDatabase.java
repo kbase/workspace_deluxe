@@ -417,7 +417,7 @@ public class MongoDatabase implements Database {
 		final Map<WorkspaceIdentifier, Map<String, Object>> res =
 				query.queryWorkspacesByIdentifier(wsis, FLDS_WS_ID_DEL);
 		for (final WorkspaceIdentifier wsi: res.keySet()) {
-			if (!allowDeleted && (boolean) res.get(wsi).get(Fields.WS_DEL)) {
+			if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 				throw new NoSuchWorkspaceException("Workspace " +
 						wsi.getIdentifierString() + " is deleted");
 			}
@@ -570,7 +570,7 @@ public class MongoDatabase implements Database {
 				FLDS_WS_ID_NAME_OWNER_MODDATE);
 		final Map<User, Permission> res = getUserAndGlobalPermission(user,
 				m);
-		return new MongoWSMeta((int) ws.get(Fields.WS_ID),
+		return new MongoWSMeta((Integer) ws.get(Fields.WS_ID),
 				(String) ws.get(Fields.WS_NAME),
 				new WorkspaceUser((String) ws.get(Fields.WS_OWNER)),
 				(Date) ws.get(Fields.WS_MODDATE), res.get(user),
@@ -622,7 +622,7 @@ public class MongoDatabase implements Database {
 				final Map<String, Object> pointer =
 						retobjs.get(queryobjs.get(o));
 				goodIds.put(o, new ObjID((String) pointer.get(Fields.PTR_NAME),
-						(int) pointer.get(Fields.PTR_ID)));
+							 (Integer) pointer.get(Fields.PTR_ID)));
 			}
 		}
 		return goodIds;
@@ -643,7 +643,7 @@ public class MongoDatabase implements Database {
 		//TODO save datainstance/provenance
 		final int ver;
 		try {
-			ver = (int) wsjongo.getCollection(COL_WORKSPACE_PTRS)
+			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
 					.with(M_SAVEINS_WTH)
@@ -915,7 +915,7 @@ public class MongoDatabase implements Database {
 		saveData(wsidmongo, packages);
 		final int lastid;
 			try {
-				lastid = (int) wsjongo.getCollection(COL_WORKSPACES)
+				lastid = (Integer) wsjongo.getCollection(COL_WORKSPACES)
 						.findAndModify(M_SAVE_QRY, wsidmongo.getID())
 						.returnNew().with(M_SAVE_WTH, newobjects)
 						.projection(M_SAVE_PROJ)
@@ -1121,7 +1121,7 @@ public class MongoDatabase implements Database {
 		//of same object required
 		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
 			final Map<String, Object> pointer = qres.get(o);
-			if ((boolean) pointer.get(Fields.PTR_DEL)) {
+			if ((Boolean) pointer.get(Fields.PTR_DEL)) {
 				throw new NoSuchObjectException(String.format(
 						"Object %s in workspace %s has been deleted",
 						o.getIdentifierString(),
@@ -1134,7 +1134,7 @@ public class MongoDatabase implements Database {
 					new HashMap<Integer, Map<String,Object>>();
 			int maxver = -1;
 			for (final Map<String, Object> m: listver) {
-				final int ver = (int) m.get(Fields.PTR_VER_VER);
+				final int ver = (Integer) m.get(Fields.PTR_VER_VER);
 				if (ver > maxver) {
 					maxver = ver;
 				}
@@ -1150,7 +1150,7 @@ public class MongoDatabase implements Database {
 			final Map<String, Object> pointer, final Integer version,
 			final String workspaceIdentifier, final String objectIdentifier)
 			throws NoSuchObjectException {
-		final int maxver = (int) pointer.get(FKFLD_MAXVER);
+		final int maxver = (Integer) pointer.get(FKFLD_MAXVER);
 		final int ver;
 		if (version == null) {
 			if (maxver < 1) {
@@ -1175,14 +1175,14 @@ public class MongoDatabase implements Database {
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) verpoint.get(Fields.PTR_VER_META);
 		return new MongoObjectUserMeta(
-				(int) pointer.get(Fields.PTR_ID),
+				(Integer) pointer.get(Fields.PTR_ID),
 				(String) pointer.get(Fields.PTR_NAME),
 				(String) verpoint.get(Fields.PTR_VER_TYPE),
 				(Date) verpoint.get(Fields.PTR_VER_CREATEDATE), ver,
 				new WorkspaceUser((String) verpoint.get(Fields.PTR_VER_CREATEBY)),
-				new ResolvedMongoWSID((int) pointer.get(Fields.PTR_WS_ID)),
+				new ResolvedMongoWSID((Integer) pointer.get(Fields.PTR_WS_ID)),
 				(String) verpoint.get(Fields.PTR_VER_CHKSUM),
-				(int) verpoint.get(Fields.PTR_VER_SIZE),
+				(Integer) verpoint.get(Fields.PTR_VER_SIZE),
 				metaMongoArrayToHash(meta));
 	}
 	

@@ -49,7 +49,7 @@ public class ShockBackendTest {
 		int majorver = 0;
 		int minorver = 1;
 		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName(mod, type), majorver, minorver);
-		Map<String, Object> subdata = new HashMap<>(); //subdata not used here
+		Map<String, Object> subdata = new HashMap<String,Object>(); //subdata not used here
 		String data = "this is some data";
 		TypeData td = new TypeData(data, wt, new ResolvedMongoWSID(3), subdata);
 		MD5 tdmd = new MD5(td.getChksum());

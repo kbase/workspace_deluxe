@@ -118,7 +118,7 @@
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
-    <javac destdir="${classes}" includeantruntime="false"
+    <javac destdir="${classes}" includeantruntime="false" target="1.6" source="1.6"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
       <src path="${common-src}"/>
@@ -217,7 +217,7 @@
   </target>
 	
   <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
-    <javac destdir="${test}" srcdir="${test}" includeantruntime="false"
+    <javac destdir="${test}" srcdir="${test}" includeantruntime="false" target="1.6" source="1.6"
           debug="true" classpathref="test.client.import.classpath" />
     <junit>
       <classpath refid="test.client.import.classpath"/>
