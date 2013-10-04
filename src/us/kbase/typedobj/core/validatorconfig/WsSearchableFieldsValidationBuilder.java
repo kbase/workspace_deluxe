@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.NodeType;
@@ -91,15 +92,15 @@ public class WsSearchableFieldsValidationBuilder {
 		private WsSearchableFieldsDigester() {
 			// The Digester must declare the types of nodes that it can operate on.  In this case,
 			// the searchable fields can only be marked for a typed object
-	        super(WsSearchableFieldsValidationBuilder.keyword, NodeType.OBJECT);
-	    }
+			super(WsSearchableFieldsValidationBuilder.keyword, NodeType.OBJECT);
+		}
 
-	    @Override
-	    public JsonNode digest(final JsonNode schema) {
-	    	// we don't really care about the context in this case, we just want the array
-	        // containing the list of searchable fields
-	        return schema.findValue(WsSearchableFieldsValidationBuilder.keyword);
-	    }
+		@Override
+		public JsonNode digest(final JsonNode schema) {
+			// we don't really care about the context in this case, we just want the array
+			// containing the list of searchable fields
+			return schema.findValue(WsSearchableFieldsValidationBuilder.keyword);
+		}
 	}
 	
 	
@@ -115,18 +116,21 @@ public class WsSearchableFieldsValidationBuilder {
 		 */
 		private ArrayList<String> fieldList;
 		
+		private ArrayNode fields;
+		
 		public WsSearchableFieldsKeywordValidator(final JsonNode digest) {
 			super(WsSearchableFieldsValidationBuilder.keyword);
-			fieldList = new ArrayList<String>(20); // a starting size of 20 **should** be usually big enough
-			Iterator <JsonNode> iter = digest.elements();
-			while(iter.hasNext()) {
-				fieldList.add(iter.next().asText());
-			}
+			fields = (ArrayNode) digest;
+			//fieldList = new ArrayList<String>(20); // a starting size of 20 **should** be usually big enough
+			//Iterator <JsonNode> iter = digest.elements();
+			//while(iter.hasNext()) {
+			//	fieldList.add(iter.next().asText());
+			//}
 		}
 
 		/**
-		 * Performs the actual validation of the instance, which in this case simply
-		 * @todo add validation to make sure ID is in the proper format
+		 * the validation has only the single purpose of placing the field information into
+		 * the processing message so
 		 */
 		@Override
 		public void validate(
@@ -136,32 +140,30 @@ public class WsSearchableFieldsValidationBuilder {
 				final FullData data)
 						throws ProcessingException
 		{
-			// get the node we are looking at and the SchemaTree 
-			JsonNode node = data.getInstance().getNode();
-			SchemaTree schemaLocation = data.getSchema();
+			
+			// get the node we are looking at
+			//JsonNode node = data.getInstance().getNode();
 			
 			// extract out everything specified as a field
-			ObjectMapper mapper = new ObjectMapper();
-			ObjectNode extract = mapper.createObjectNode();
+			//ObjectMapper mapper = new ObjectMapper();
+			//ObjectNode extract = mapper.createObjectNode();
+			//ArrayNode fields = mapper.createArrayNode();
 			
-			for(int k=0; k<fieldList.size(); k++) {
-				String field_name = fieldList.get(k);
+			//for(int k=0; k<fieldList.size(); k++) {
+			//	String field_name = fieldList.get(k);
 				
 				// here is where a field name may be split to reference nested fields
 				// but for now we don't support this
 				//field_name.split(".");
 				
-				JsonNode value = node.findValue(field_name);
-				if(value != null) {
-					extract.put(field_name, value);
-				}
-			}
-			
+				
+			//}
+			//
 			
 			// assemble the subset object for return
 			ProcessingMessage pm = new ProcessingMessage()
 											.setMessage("ws-searchable-fields-subset")
-											.put("value", extract);
+											.put("fields", fields);
 			report.info(pm);
 	    	
 			

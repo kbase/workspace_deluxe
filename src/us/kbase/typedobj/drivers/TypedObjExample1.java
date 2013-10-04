@@ -7,13 +7,19 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.github.fge.jackson.jsonpointer.JsonNodeResolver;
+import com.github.fge.jackson.jsonpointer.ReferenceToken;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.typedobj.core.IdReference;
@@ -47,20 +53,23 @@ public class TypedObjExample1 {
 		
 		
 		// SET KB_TOP in environment before running this; delete the files in the db dir if you want to recreate the db
+		String username = "wstester1";
 		if(allModules.isEmpty()) {
-			String username = "wstester1";
 			db.approveModuleRegistrationRequest(username, "KB", username);
 			db.approveModuleRegistrationRequest(username, "FBA", username);
-			String kbSpec = loadResourceFile("../tests/files/t1/KB.spec");
-			db.registerModule(kbSpec, Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id"), username);
-			String fbaSpec = loadResourceFile("../tests/files/t1/FBA.spec");
-			db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
-		}
+			String kbSpec = loadResourceFile("../tests/files/t3/KB.spec");
+			db.registerModule(kbSpec, Arrays.asList("Feature","Genome"), username);
+			//String fbaSpec = loadResourceFile("../tests/files/t1/FBA.spec");
+			//db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
+		} 
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);
 		
-		String instance1 = "{\"id\":\"g.1\",\"name\":\"myGenome\",\"sequence\":\"gataca\",\"feature_ids\":[\"cds.8\",\"cds.99\"]}";
+		String instance1 = 
+				("{`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`,"
+				+ "`feature_ids`:[`f1`,`f2`],`length_of_features`:{`f1`:11,`f2`:22},"
+				+ "`regulators`:{`f1`:[`f2`]} }").replace('`', '"');
 		
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instance1RootNode;
@@ -72,13 +81,15 @@ public class TypedObjExample1 {
 		
 		TypedObjectValidationReport report = validator.validate(instance1RootNode, new TypeDefId(new TypeDefName("KB", "Genome")));
 		
-		List<IdReference> idRefList = report.getListOfIdReferenceObjects();
-		
-		for(IdReference idRef: idRefList) {
-			System.out.println(idRef);
+		List<List<IdReference>> idRefLists = report.getListOfIdReferenceObjects();
+		for(List<IdReference> idRefList : idRefLists) {
+			for(IdReference idRef: idRefList) {
+				System.out.println(idRef);
+			}
 		}
 		
 		System.out.println(report);
+		
 		
 		//////////////////////////////////////
 		ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
@@ -88,7 +99,14 @@ public class TypedObjExample1 {
 		System.out.println(s.toString());
 		s.reset();
 		
+		// set the replacement ids
+		Map <String,String> absoluteIdRefMapping = new HashMap<String,String>();
+		absoluteIdRefMapping.put("f1", "f1.abs");
+		absoluteIdRefMapping.put("f2", "f2.abs");
+		absoluteIdRefMapping.put("kb|f/1", "bad_id");
+		report.setAbsoluteIdReferences(absoluteIdRefMapping);
 		
+		// relabel, take a look at the results
 		validator.relableToAbsoluteIds(instance1RootNode, report);
 		System.out.println("renamed:");
 		writer.writeValue(s, instance1RootNode);
@@ -96,13 +114,14 @@ public class TypedObjExample1 {
 		s.flush();
 		s.reset();
 		
+		// extract just the subset
 		JsonNode indexableSubset = validator.extractWsSearchableSubset(instance1RootNode, report);
 		System.out.println("subset:");
 		writer.writeValue(s, indexableSubset);
 		System.out.println(s.toString());
 		s.close();
-
 	}
+	
 	
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test

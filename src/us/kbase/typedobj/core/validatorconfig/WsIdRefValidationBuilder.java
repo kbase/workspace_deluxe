@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
@@ -28,7 +29,7 @@ import com.github.fge.msgsimple.source.MessageSource;
 
 
 /**
- * This class wraps everything required to identify kb-id-reference fields.
+ * This class wraps everything required to identify kb-id-reference fields in instances.
  * @author msneddon
  */
 public class WsIdRefValidationBuilder {
@@ -114,60 +115,63 @@ public class WsIdRefValidationBuilder {
 		 */
 		private JsonNode validTypedObjectNames;
 		
-	    public WsIdRefKeywordValidator(final JsonNode digest) {
-	        super(WsIdRefValidationBuilder.keyword);
-	        validTypedObjectNames = digest;
-	    }
+		public WsIdRefKeywordValidator(final JsonNode digest) {
+			super(WsIdRefValidationBuilder.keyword);
+			validTypedObjectNames = digest;
+		}
 
-	    /**
-	     * Performs the actual validation of the instance, which in this case simply
-	     * @todo add validation to make sure ID is in the proper format
-	     */
-	    @Override
-	    public void validate(
-	    		final Processor<FullData, FullData> processor,
-	    		final ProcessingReport report,
-	    		final MessageBundle bundle,
-	    		final FullData data)
-	    				throws ProcessingException
-	    {
-	    	// get the node we are looking at and the SchemaTree 
-	    	JsonNode node = data.getInstance().getNode();
-	    	SchemaTree schemaLocation = data.getSchema();
-	    	
-	    	//if the node type is a string, extract out the ID and associate it with
-	    	//the valid typed object names
-	    	if(node.getNodeType() == JsonNodeType.STRING) {
-	    		ProcessingMessage pm = new ProcessingMessage()
+		/**
+		* Performs the actual validation of the instance, which in this case simply
+		* TODO add validation to make sure ID is in the proper format
+		*/
+		@Override
+		public void validate(
+				final Processor<FullData, FullData> processor,
+				final ProcessingReport report,
+				final MessageBundle bundle,
+				final FullData data)
+						throws ProcessingException
+		{
+			// get the node we are looking at and the SchemaTree (schema tree no longer necessary)
+			JsonNode node = data.getInstance().getNode();
+			//SchemaTree schemaLocation = data.getSchema();
+			//JsonPointer jp = schemaLocation.getPointer();
+			
+			//if the node type is a string, extract out the ID and associate it with
+			//the valid typed object names
+			if(node.getNodeType() == JsonNodeType.STRING) {
+				ProcessingMessage pm = new ProcessingMessage()
 										.setMessage(WsIdRefValidationBuilder.keyword)
 										.put("id", node.textValue())
 										.put("type", validTypedObjectNames)
-		    							.put("location",schemaLocation.getPointer());
-	    		report.info(pm);
-	    	}
-	    	// if the node is a mapping, then we need to extract the field names (which are
-	    	// the keys of the mapping) and save each one to the report
-	    	else if(node.getNodeType() == JsonNodeType.OBJECT) {
-	    		Iterator<Entry<String, JsonNode>> fields= node.fields();
-	    		while(fields.hasNext()) {
-	    			Entry<String,JsonNode> f = fields.next();
-			    	ProcessingMessage pm = new ProcessingMessage()
+										.put("location",data.getInstance().getPointer())
+										.put("is-mapping-key",BooleanNode.FALSE) ;
+				report.info(pm);
+			}
+			// if the node is a mapping, then we need to extract the field names (which are
+			// the keys of the mapping) and save each one to the report
+			else if(node.getNodeType() == JsonNodeType.OBJECT) {
+				Iterator<Entry<String, JsonNode>> fields= node.fields();
+				while(fields.hasNext()) {
+					Entry<String,JsonNode> f = fields.next();
+					ProcessingMessage pm = new ProcessingMessage()
 											.setMessage(WsIdRefValidationBuilder.keyword)
 											.put("id", f.getKey())
 											.put("type", validTypedObjectNames)
-			    							.put("location",schemaLocation.getPointer());
+											.put("location",data.getInstance().getPointer())
+											.put("is-mapping-key",BooleanNode.TRUE);
 					report.info(pm);
-	    		}
-	    	}
-	    	
-	    	// for now, this method never fails.
-	    	return;
-	    }
+				}
+			}
+			
+			// for now, this method never fails.
+			return;
+		}
 
-	    @Override
-	    public String toString() {
-	        return "WsIdRefKeywordValidator set to validate:" + validTypedObjectNames;
-	    }
+		@Override
+		public String toString() {
+			return "WsIdRefKeywordValidator set to validate:" + validTypedObjectNames;
+		}
 	}
 	
 	
@@ -200,7 +204,6 @@ public class WsIdRefValidationBuilder {
 		{
 			// When constructing, the name for the keyword must be provided along with the allowed type for the value
 			super(WsIdRefValidationBuilder.keyword, NodeType.ARRAY);
-			//System.err.println("creating a syntax checker");
 		}
 		
 		@Override

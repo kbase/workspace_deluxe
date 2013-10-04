@@ -3,6 +3,7 @@ test module for type validation with annotations
 */
 module KB {
 
+
 	/*
 	@id_reference
 	*/
@@ -21,29 +22,24 @@ module KB {
 	/*
 	*/
 	typedef structure {
-		string id;
-		string name;
-		string type;
-		int length;
-	} Feature;
-
-	/*
-	@ws_searchable id feature_ids
-	*/
-	typedef structure {
-		string id;
 		string name;
 		string sequence;
-		list <feature_id> feature_ids;
-	} Genome;
+	} Feature;
+
+	
 
 	/*
+	@ws_searchable name feature_ids
 	*/
 	typedef structure {
 		string name;
-		string annotation;
+		string sequence;
+		feature_id bestFeature;
 		list <feature_id> feature_ids;
-	} FeatureGroup;
+		mapping <feature_id, int> length_of_features;
+		mapping <feature_id,list<feature_id>> regulators;
+	} Genome;
+
 
 
 };
