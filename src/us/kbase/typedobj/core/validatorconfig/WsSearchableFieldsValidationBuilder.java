@@ -114,18 +114,11 @@ public class WsSearchableFieldsValidationBuilder {
 		 * Store the digested Json Schema node, which has already been digested to include
 		 * a list of fields we have to extract
 		 */
-		private ArrayList<String> fieldList;
-		
 		private ArrayNode fields;
 		
 		public WsSearchableFieldsKeywordValidator(final JsonNode digest) {
 			super(WsSearchableFieldsValidationBuilder.keyword);
 			fields = (ArrayNode) digest;
-			//fieldList = new ArrayList<String>(20); // a starting size of 20 **should** be usually big enough
-			//Iterator <JsonNode> iter = digest.elements();
-			//while(iter.hasNext()) {
-			//	fieldList.add(iter.next().asText());
-			//}
 		}
 
 		/**
@@ -140,39 +133,16 @@ public class WsSearchableFieldsValidationBuilder {
 				final FullData data)
 						throws ProcessingException
 		{
-			
-			// get the node we are looking at
-			//JsonNode node = data.getInstance().getNode();
-			
-			// extract out everything specified as a field
-			//ObjectMapper mapper = new ObjectMapper();
-			//ObjectNode extract = mapper.createObjectNode();
-			//ArrayNode fields = mapper.createArrayNode();
-			
-			//for(int k=0; k<fieldList.size(); k++) {
-			//	String field_name = fieldList.get(k);
-				
-				// here is where a field name may be split to reference nested fields
-				// but for now we don't support this
-				//field_name.split(".");
-				
-				
-			//}
-			//
-			
 			// assemble the subset object for return
-			ProcessingMessage pm = new ProcessingMessage()
-											.setMessage("ws-searchable-fields-subset")
-											.put("fields", fields);
-			report.info(pm);
-	    	
-			
-	    	return;
-	    }
+			report.info(new ProcessingMessage()
+								.setMessage("ws-searchable-fields-subset")
+								.put("fields", fields)
+								);
+		}
 
 	    @Override
 	    public String toString() {
-	        return "WsSearchableFieldsKeywordValidator set to validate:" + fieldList;
+	        return "WsSearchableFieldsKeywordValidator set to validate:" + fields;
 	    }
 	}
 	

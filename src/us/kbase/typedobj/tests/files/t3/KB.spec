@@ -30,6 +30,7 @@ module KB {
 
 	/*
 	@ws_searchable name feature_ids
+	@ws_searchable keys_of regulators
 	*/
 	typedef structure {
 		string name;

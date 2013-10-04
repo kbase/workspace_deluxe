@@ -181,15 +181,13 @@ public class TypedObjectValidationReport {
 	
 	@Override
 	public String toString() {
-		// temp hack, just return what the processing report says
-		//@TODO make nicer string version of TypedObjectValidationReport
 		StringBuilder mssg = new StringBuilder();
 		mssg.append("TYPED OBJECT VALIDATION REPORT\n");
 		mssg.append(" -validated instance against: '"+validationTypeDefId.getTypeString()+"'\n");
 		mssg.append(" -status: ");
 		if(this.isInstanceValid()) {
 			mssg.append("pass\n");
-			mssg.append(" -id refs extracted: "+getListOfIdReferenceObjects().size());
+			mssg.append(" -id refs extracted: "+simpleIdList.length);
 		}
 		else {
 			String [] errs = this.getErrorMessages();

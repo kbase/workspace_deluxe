@@ -1,15 +1,9 @@
 package us.kbase.typedobj.core.validatorconfig;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -114,15 +108,11 @@ public class WsSearchableKeysValidationBuilder {
 		 * Store the digested Json Schema node, which has already been digested to include
 		 * a list of fields we have to extract
 		 */
-		private ArrayList<String> fieldList;
+		private ArrayNode fields;
 		
 		public WsSearchableKeysKeywordValidator(final JsonNode digest) {
 			super(WsSearchableKeysValidationBuilder.keyword);
-			fieldList = new ArrayList<String>(digest.size());
-			Iterator <JsonNode> iter = digest.elements();
-			while(iter.hasNext()) {
-				fieldList.add(iter.next().asText());
-			}
+			fields = (ArrayNode) digest;
 		}
 
 		/**
@@ -137,42 +127,16 @@ public class WsSearchableKeysValidationBuilder {
 				final FullData data)
 						throws ProcessingException
 		{
-			// get the node we are looking at and the SchemaTree 
-			JsonNode node = data.getInstance().getNode();
-			
-			// extract out everything specified as a field
-			ObjectMapper mapper = new ObjectMapper();
-			ObjectNode keys_of = mapper.createObjectNode();
-			
-			for(int k=0; k<fieldList.size(); k++) {
-				String field_name = fieldList.get(k);
-				
-				// here is where a field name may be split to reference  keys_of nested fields
-				// but for now we don't support this
-				//field_name.split(".");
-				
-				JsonNode kbase_mapping = node.findValue(field_name);
-				Iterator <String> keys = kbase_mapping.fieldNames();
-				ArrayNode keys_list = mapper.createArrayNode();
-				while(keys.hasNext()) {
-					String key = keys.next();
-					keys_list.add(key);
-				}
-				keys_of.put(field_name, keys_list);
-			}
-			
 			// assemble the subset object for return
-			ProcessingMessage pm = new ProcessingMessage()
-											.setMessage("ws-searchable-keys-subset")
-											.put("keys_of", keys_of);
-			report.info(pm);
-			
-			return;
+			report.info(new ProcessingMessage()
+							.setMessage("ws-searchable-keys-subset")
+							.put("keys_of", fields)
+							);
 		}
 
 		@Override
 		public String toString() {
-			return "WsSearchableFieldsKeywordValidator set to validate:" + fieldList;
+			return "WsSearchableFieldsKeywordValidator set to validate:" + fields;
 		}
 	}
 	

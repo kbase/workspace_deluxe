@@ -260,11 +260,13 @@ public final class TypedObjectValidator {
 	
 	
 	
-	
+	/**
+	 * 
+	 * @param instanceRootNode
+	 * @param report
+	 * @return
+	 */
 	public JsonNode extractWsSearchableSubset(JsonNode instanceRootNode, TypedObjectValidationReport report) {
-		
-		// current method uses the data stashed by the report
-		// TODO double check that any updates to instanceRootNode get propagated via the report....
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode subset = mapper.createObjectNode();
 		Iterator<ProcessingMessage> mssgs = report.getRawProcessingReport().iterator();
@@ -278,17 +280,26 @@ public final class TypedObjectValidator {
 					subset.put(fieldName, instanceRootNode.findValue(fieldName));
 				}
 			} else if( m.getMessage().compareTo("ws-searchable-keys-subset") == 0 ) {
-				//JsonNode fieldsSubset = m.asJson().get("keys_of");
-				//Iterator<String> fieldNames = fieldsSubset.fieldNames();
-				//while(fieldNames.hasNext()) {
-				//	String fieldName = fieldNames.next();
-				//	subset.put(fieldName, fieldsSubset.findValue(fieldName));
-				//}
+				ArrayNode fields = (ArrayNode) m.asJson().get("keys_of");
+				Iterator<JsonNode> fieldNames = fields.elements();
+				while(fieldNames.hasNext()) {
+					String fieldName = fieldNames.next().asText();
+					JsonNode mapping = instanceRootNode.findValue(fieldName);
+					if(!mapping.isObject()) {
+						//might want to error out here instead of passing
+						continue;
+					}
+					ArrayNode keys = mapper.createArrayNode();
+					Iterator<String> keyIter = mapping.fieldNames();
+					while(keyIter.hasNext()) {
+						keys.add(keyIter.next());
+					}
+					subset.put(fieldName, keys);
+				}
 			}
 		}
 		return subset;
 	}
-	
-	
+
 
 }
