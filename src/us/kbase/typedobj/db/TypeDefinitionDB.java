@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -344,21 +345,16 @@ public class TypeDefinitionDB {
 		} catch (NoSuchModuleException e) {
 			return null;
 		}
-		return findLastTypeVersion(mi, typeName, withNoLongerSupported);
+		return findLastTypeVersion(mi, typeName, withNoLongerSupported, false);
 	}
 	
 	private SemanticVersion findLastTypeVersion(ModuleInfo module, String typeName, 
-			boolean withNoLongerSupported) {
+			boolean withNoLongerSupported, boolean withUnreleased) {
 		TypeInfo ti = module.getTypes().get(typeName);
-		if (ti == null || !(ti.isSupported() || withNoLongerSupported))
+		if (ti == null || !(ti.isSupported() || withNoLongerSupported) || ti.getTypeVersion() == null)
 			return null;
-		if (ti.getTypeVersion() == null)
-			return null;
-		return new SemanticVersion(ti.getTypeVersion());
+		return new SemanticVersion(withUnreleased ? ti.getTypeVersion() : ti.getReleaseVersion());
 	}
-	
-	
-
 	
 	protected void throwNoSuchTypeException(String moduleName, String typeName,
 			String version) throws NoSuchTypeException {
@@ -422,12 +418,14 @@ public class TypeDefinitionDB {
 		SemanticVersion version = getIncrementedVersion(mi, ti.getTypeName(),
 				notBackwardCompatible);
 		ti.setTypeVersion(version.toString());
+		if (version.getMajor() == 0 || ti.getReleaseVersion() == null)
+			ti.setReleaseVersion(version.toString());
 		return saveType(mi, ti, jsonSchemaDocument, specParsing, dependencies, newModuleVersion);
 	}
 
 	protected SemanticVersion getIncrementedVersion(ModuleInfo mi, String typeName,
 			boolean notBackwardCompatible) {
-		SemanticVersion version = findLastTypeVersion(mi, typeName, true);
+		SemanticVersion version = findLastTypeVersion(mi, typeName, true, true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
 		} else {
@@ -496,68 +494,101 @@ public class TypeDefinitionDB {
 					moduleName);
 		return owners.get(userId).isWithChangeOwnersPrivilege();
 	}
+
+	public TypeDefId releaseType(TypeDefName type, String userId) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		return releaseModule(type.getModule(), Arrays.asList(type.getName()), false, userId).get(0);
+	}
 	
 	/**
-	 * Change major version from 0 to 1.
+	 * Change major version of every registered type to 1.0 for types of version 0.x or set releaseVersion to currentVersion.
 	 * @param moduleName
-	 * @param typeName
+	 * @param types
+	 * @param releaseFunctions
 	 * @param userId
-	 * @return new version
-	 * @throws NoSuchTypeException when current major version isn't 0
-	 * @throws NoSuchPrivilegeException 
+	 * @return new versions of types
 	 */
-	public String releaseType(TypeDefName type, String userId)
+	public List<TypeDefId> releaseModule(String moduleName, String userId)
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		try {
+			return releaseModule(moduleName, getAllRegisteredTypes(moduleName), true, userId);
+		} catch (NoSuchTypeException ex) {
+			throw new IllegalStateException("Couldn't be because of type list selection");
+		}
+	}
+	
+	/**
+	 * Change major version of type from list to 1.0 for types of version 0.x or set releaseVersion to currentVersion.
+	 * @param moduleName
+	 * @param types
+	 * @param releaseFunctions
+	 * @param userId
+	 * @return new versions of types
+	 */
+	public List<TypeDefId> releaseModule(String moduleName, List<String> types, boolean releaseFunctions, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		String moduleName = type.getModule();
-		String typeName = type.getName();
+		try {
+			return releaseModule(moduleName, types, releaseFunctions ? getAllRegisteredFuncs(moduleName) : 
+				Collections.<String>emptyList(), userId);
+		} catch (NoSuchFuncException ex) {
+			throw new IllegalStateException("Couldn't be because of function list selection");
+		}
+	}
+	
+	public List<TypeDefId> releaseModule(String moduleName, List<String> types, List<String> funcs, String userId)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException, NoSuchFuncException {
+		if (types.size() == 0)
+			return null;
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo info = getModuleInfo(moduleName);
-		SemanticVersion curVersion = findLastTypeVersion(info, typeName, false);
-		if (curVersion == null)
-			throwNoSuchTypeException(moduleName, typeName, null);
-		if (curVersion.getMajor() != 0)
-			throwNoSuchTypeException(moduleName, typeName, "0.x");
-		String jsonSchemaDocument = getJsonSchemaDocument(type);
-		KbTypedef specParsing = getTypeParsingDocument(type);
-		Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString());
-		SemanticVersion ret = releaseVersion;
+		for (String type : types)
+			if (findLastTypeVersion(info, type, false, true) == null)
+				throwNoSuchTypeException(moduleName, type, null);
+		for (String func : funcs)
+			if (findLastFuncVersion(info, func, false, true) == null)
+				throwNoSuchFuncException(moduleName, func, null);
 		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
+		List<TypeDefId> ret = new ArrayList<TypeDefId>();
 		try {
-			TypeInfo ti = info.getTypes().get(typeName);
-			ti.setTypeVersion(ret.toString());
+			Set<RefInfo> newTypeRefs = new TreeSet<RefInfo>();
+			Set<RefInfo> newFuncRefs = new TreeSet<RefInfo>();
+			for (String type : types) {
+				String typeName = type;
+				TypeInfo ti = info.getTypes().get(typeName);
+				SemanticVersion curVersion = new SemanticVersion(ti.getTypeVersion());
+				SemanticVersion newVersion = curVersion.getMajor() == 0 ? releaseVersion : curVersion;
+				ti.setTypeVersion(newVersion.toString());
+				ti.setReleaseVersion(ti.getTypeVersion());
+				if (curVersion.getMajor() == 0) {
+					String jsonSchemaDocument = getJsonSchemaDocument(new TypeDefId(moduleName + "." + type, curVersion.toString()));
+					KbTypedef specParsing = getTypeParsingDocument(new TypeDefId(moduleName + "." + type, curVersion.toString()));
+					Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, curVersion.toString());
+					saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
+					newTypeRefs.addAll(deps);
+				}
+				ret.add(new TypeDefId(moduleName + "." + type, ti.getReleaseVersion()));
+			}
+			for (String funcName : funcs) {
+				FuncInfo fi = info.getFuncs().get(funcName);
+				SemanticVersion curVersion = new SemanticVersion(fi.getFuncVersion());
+				SemanticVersion newVersion = curVersion.getMajor() == 0 ? releaseVersion : curVersion;
+				fi.setFuncVersion(newVersion.toString());
+				fi.setReleaseVersion(fi.getFuncVersion());
+				if (curVersion.getMajor() == 0) {
+					KbFuncdef specParsing = getFuncParsingDocument(moduleName, funcName, curVersion.toString());
+					Set<RefInfo> deps = storage.getFuncRefsByDep(moduleName, funcName, curVersion.toString());
+					saveFunc(info, fi, specParsing, deps, transactionStartTime);
+					newFuncRefs.addAll(deps);
+				}
+			}
 			writeModuleInfo(info, transactionStartTime);
-			saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
-			storage.addRefs(deps, new TreeSet<RefInfo>());
+			storage.addRefs(newTypeRefs, newFuncRefs);
 			transactionStartTime = -1;
 		} finally {
 			if (transactionStartTime > 0)
 				rollbackModuleTransaction(moduleName, transactionStartTime);
 		}
-		return ret.toString();
-	}
-	
-	public void removeTypeForAllVersions(TypeDefName type, String userId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		String moduleName = type.getModule();
-		String typeName = type.getName();
-		checkUserIsOwnerOrAdmin(moduleName, userId);
-		ModuleInfo info = getModuleInfo(moduleName);
-		if (!info.getTypes().containsKey(typeName))
-			throwNoSuchTypeException(moduleName, typeName, null);
-		info.getTypes().remove(typeName);
-		writeModuleInfo(info, storage.generateNewModuleVersion(moduleName));
-		storage.removeAllTypeRecords(moduleName, typeName);
-	}
-
-	public void removeFuncForAllVersions(String moduleName, String funcName, String userId)
-			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		checkUserIsOwnerOrAdmin(moduleName, userId);
-		ModuleInfo info = getModuleInfo(moduleName);
-		if (!info.getFuncs().containsKey(funcName))
-			throwNoSuchFuncException(moduleName, funcName, null);
-		info.getTypes().remove(funcName);
-		writeModuleInfo(info, storage.generateNewModuleVersion(moduleName));
-		storage.removeAllFuncRecords(moduleName, funcName);
+		return ret;
 	}
 	
 	/**
@@ -656,23 +687,20 @@ public class TypeDefinitionDB {
 		return ret;
 	}
 
-	private SemanticVersion findLastFuncVersion(String moduleName, String funcName, 
-			boolean withNotSupported) throws TypeStorageException {
+	private SemanticVersion findLastFuncVersion(String moduleName, String funcName) throws TypeStorageException {
 		try {
-			return findLastFuncVersion(getModuleInfo(moduleName), funcName, withNotSupported);
+			return findLastFuncVersion(getModuleInfo(moduleName), funcName, false, false);
 		} catch (NoSuchModuleException e) {
 			return null;
 		}
 	}
 		
 	private SemanticVersion findLastFuncVersion(ModuleInfo mi, String funcName, 
-			boolean withNotSupported) {
+			boolean withNotSupported, boolean withUnreleased) {
 		FuncInfo fi = mi.getFuncs().get(funcName);
-		if (fi == null || !(fi.isSupported() || withNotSupported))
+		if (fi == null || !(fi.isSupported() || withNotSupported) || fi.getFuncVersion() == null)
 			return null;
-		if (fi.getFuncVersion() == null)
-			return null;
-		return new SemanticVersion(fi.getFuncVersion());
+		return new SemanticVersion(withUnreleased ? fi.getFuncVersion() : fi.getReleaseVersion());
 	}
 
 	/**
@@ -685,7 +713,7 @@ public class TypeDefinitionDB {
 	public String getLatestFuncVersion(String moduleName, String funcName)
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
-		SemanticVersion ret = findLastFuncVersion(moduleName, funcName, false);
+		SemanticVersion ret = findLastFuncVersion(moduleName, funcName);
 		if (ret == null)
 			throwNoSuchFuncException(moduleName, funcName, null);
 		return ret.toString();
@@ -707,7 +735,7 @@ public class TypeDefinitionDB {
 	private String saveFunc(ModuleInfo mi, FuncInfo fi, KbFuncdef specParsingDocument, 
 			boolean notBackwardCompatible, Set<RefInfo> dependencies, long newModuleVersion) 
 					throws NoSuchModuleException, TypeStorageException {
-		SemanticVersion version = findLastFuncVersion(mi, fi.getFuncName(), true);
+		SemanticVersion version = findLastFuncVersion(mi, fi.getFuncName(), true, true);
 		if (version == null) {
 			version = new SemanticVersion(0, 1);
 		} else {
@@ -722,6 +750,8 @@ public class TypeDefinitionDB {
 			version = new SemanticVersion(major, minor);
 		}
 		fi.setFuncVersion(version.toString());
+		if (version.getMajor() == 0 || fi.getReleaseVersion() == null)
+			fi.setReleaseVersion(version.toString());
 		return saveFunc(mi, fi, specParsingDocument, dependencies, newModuleVersion);
 	}
 		
@@ -760,15 +790,7 @@ public class TypeDefinitionDB {
 		return getFuncParsingDocument(moduleName, funcName, null);
 	}
 
-	/**
-	 * Change major version from 0 to 1.
-	 * @param moduleName
-	 * @param funcName
-	 * @return new version
-	 * @throws NoSuchPrivilegeException 
-	 * @throws NoSuchTypeException when current major version isn't 0
-	 */
-	public String releaseFunc(String moduleName, String funcName, String userId) 
+	/*public String releaseFunc(String moduleName, String funcName, String userId) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		SemanticVersion curVersion = findLastFuncVersion(moduleName, funcName, false);
@@ -793,13 +815,13 @@ public class TypeDefinitionDB {
 				rollbackModuleTransaction(moduleName, transactionStartTime);
 		}
 		return ret.toString();
-	}
+	}*/
 	
 	public KbFuncdef getFuncParsingDocument(String moduleName, String funcName,
 			String version) throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
 		checkModule(moduleName);
 		SemanticVersion curVersion = version == null ? 
-				findLastFuncVersion(moduleName, funcName, false) : new SemanticVersion(version);
+				findLastFuncVersion(moduleName, funcName) : new SemanticVersion(version);
 		if (curVersion == null)
 			throwNoSuchFuncException(moduleName, funcName, null);
 		String ret = storage.getFuncParseRecord(moduleName, funcName, curVersion.toString());
@@ -827,23 +849,14 @@ public class TypeDefinitionDB {
 	}
 	
 	public void stopTypeSupport(TypeDefName type, String userId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, 
+			NoSuchPrivilegeException, SpecParseException {
 		String moduleName = type.getModule();
 		String typeName = type.getName();
-		checkUserIsOwnerOrAdmin(moduleName, userId);
-		ModuleInfo mi = getModuleInfo(moduleName);
-		long transactionStartTime = storage.generateNewModuleVersion(moduleName);
-		try {
-			writeModuleInfo(mi, transactionStartTime);
-			stopTypeSupport(mi, typeName, transactionStartTime);
-			transactionStartTime = -1;
-		} finally {
-			if (transactionStartTime > 0)
-				rollbackModuleTransaction(moduleName, transactionStartTime);
-		}
+		refreshModule(moduleName, Collections.<String>emptyList(), Arrays.asList(typeName), userId);
 	}
 	
-	public void removeTypeVersion(AbsoluteTypeDefId typeDef, String userId) 
+	/*public void removeTypeVersion(AbsoluteTypeDefId typeDef, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(typeDef.getType().getModule(), userId);
 		checkModule(typeDef.getType().getModule());
@@ -851,7 +864,7 @@ public class TypeDefinitionDB {
 				typeDef.getVerString()))
 			throwNoSuchTypeException(typeDef.getType().getModule(), typeDef.getType().getName(), 
 					typeDef.getVerString());
-	}
+	}*/
 	
 	private void stopFuncSupport(ModuleInfo info, String funcName, long newModuleVersion) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException {
@@ -864,7 +877,7 @@ public class TypeDefinitionDB {
 		fi.setSupported(false);
 	}
 	
-	public void stopFuncSupport(String moduleName, String funcName, String userId)
+	/*public void stopFuncSupport(String moduleName, String funcName, String userId)
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		ModuleInfo mi = getModuleInfo(moduleName);
@@ -877,7 +890,7 @@ public class TypeDefinitionDB {
 			if (transactionStartTime > 0)
 				rollbackModuleTransaction(moduleName, transactionStartTime);
 		}
-	}
+	}*/
 	
 	public void removeModule(String moduleName, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
@@ -1352,13 +1365,15 @@ public class TypeDefinitionDB {
 
 	private Change findFuncChange(ModuleInfo info, KbFuncdef newFunc) 
 			throws NoSuchFuncException, NoSuchModuleException, TypeStorageException, SpecParseException {
-		if (!info.getFuncs().containsKey(newFunc.getName()))
+		if (!info.getFuncs().containsKey(newFunc.getName())) {
 			return Change.notCompatible;
+		}
 		FuncInfo fi = info.getFuncs().get(newFunc.getName());
 		KbFuncdef oldFunc = getFuncParsingDocument(info.getModuleName(), fi.getFuncName(), fi.getFuncVersion());
 		if (oldFunc.getParameters().size() != newFunc.getParameters().size() ||
-				oldFunc.getReturnType().size() != newFunc.getReturnType().size())
+				oldFunc.getReturnType().size() != newFunc.getReturnType().size()) {
 			return Change.notCompatible;
+		}
 		Change ret = Change.noChange;
 		for (int pos = 0; pos < oldFunc.getParameters().size(); pos++) {
 			KbParameter oldParam = oldFunc.getParameters().get(pos);

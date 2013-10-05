@@ -31,6 +31,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.FuncInfo;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
@@ -56,7 +57,7 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				//test.testSimple();
+				test.testSimple();
 				//test.testDescr();
 				//test.testBackward();
 				//test.testRollback();
@@ -125,24 +126,21 @@ public class TypeRegisteringTest {
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), user, true);
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
-		releaseType("Taxonomy", "taxon", user);
+		releaseModule("Taxonomy", user);
 		String sequenceSpec = loadSpec("simple", "Sequence");
 		initModule("Sequence", user);
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);
-		releaseType("Sequence", "sequence_id", user);
-		releaseType("Sequence", "sequence_pos", user);
+		releaseModule("Sequence", user);
 		String annotationSpec = loadSpec("simple", "Annotation");
 		initModule("Annotation", user);
 		db.registerModule(annotationSpec, Arrays.asList("genome", "gene"), user);
-		releaseType("Annotation", "genome", user);
-		releaseType("Annotation", "gene", user);
+		releaseModule("Annotation", user);
 		checkTypeDep("Annotation", "gene", "Sequence", "sequence_pos", null, true);
 		String regulationSpec = loadSpec("simple", "Regulation");
 		initModule("Regulation", user);
 		db.registerModule(regulationSpec, Arrays.asList("regulator", "binding_site"), user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "0.1", true);
-		releaseType("Regulation", "regulator", user);
-		releaseType("Regulation", "binding_site", user);
+		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 		String reg2spec = loadSpec("simple", "Regulation", "2");
 		readOnlyMode();
@@ -156,6 +154,7 @@ public class TypeRegisteringTest {
 		Assert.assertTrue(changes.get(new TypeDefName("Regulation.regulator")).isUnregistered());
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
+		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
 		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
@@ -179,17 +178,15 @@ public class TypeRegisteringTest {
 		String regulationSpec = loadSpec("backward", "Regulation");
 		initModule("Regulation", adminUser);
 		db.registerModule(regulationSpec, Arrays.asList("gene", "binding_site"), adminUser);
-		releaseType("Regulation", "gene", adminUser);
-		releaseType("Regulation", "binding_site", adminUser);
-		db.releaseFunc("Regulation", "get_gene_descr", adminUser);
-		db.releaseFunc("Regulation", "get_nearest_binding_sites", adminUser);
-		db.releaseFunc("Regulation", "get_regulated_genes", adminUser);
+		db.releaseModule("Regulation", adminUser);
+		checkTypeVer("Regulation", "binding_site", "1.0");
 		String reg2spec = loadSpec("backward", "Regulation", "2");
 		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(), 
 				Collections.<String>emptyList(), adminUser);
 		Assert.assertEquals(2, changes.size());
 		Assert.assertEquals("1.1", changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
 		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		db.releaseModule("Regulation", adminUser);
 		checkFuncVer("Regulation", "get_gene_descr", "2.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "2.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "1.1");
@@ -199,6 +196,7 @@ public class TypeRegisteringTest {
 		Assert.assertEquals(2, changes3.size());
 		Assert.assertEquals("1.2", changes3.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
 		Assert.assertEquals("3.0", changes3.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		db.releaseModule("Regulation", adminUser);
 		checkFuncVer("Regulation", "get_gene_descr", "2.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "3.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "1.2");
@@ -208,6 +206,7 @@ public class TypeRegisteringTest {
 		Assert.assertEquals(2, changes4.size());
 		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
 		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		db.releaseModule("Regulation", adminUser);
 		checkFuncVer("Regulation", "get_gene_descr", "3.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
@@ -360,7 +359,11 @@ public class TypeRegisteringTest {
 				ret.remove(key);
 		return "" + ret;
 	}
-	
+
+	private void checkTypeVer(String module, String typeName, String version) throws Exception {
+		Assert.assertEquals(version, db.getLatestTypeVersion(new TypeDefName(module, typeName)));
+	}
+
 	private void checkFuncVer(String module, String funcName, String version) throws Exception {
 		Assert.assertEquals(version, db.getLatestFuncVersion(module, funcName));
 	}
@@ -402,8 +405,8 @@ public class TypeRegisteringTest {
 		db.approveModuleRegistrationRequest(adminUser, moduleName, user);
 	}
 	
-	private void releaseType(String module, String type, String user) throws Exception {
-		db.releaseType(new TypeDefName(module + "." + type), user);
+	private void releaseModule(String module, String user) throws Exception {
+		db.releaseModule(module, user);
 	}
 	
 	private String loadSpec(String testName, String specName) throws Exception {
