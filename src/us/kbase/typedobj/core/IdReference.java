@@ -2,30 +2,38 @@ package us.kbase.typedobj.core;
 
 import java.util.List;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 
 /**
  * Stores an ID reference
  */
 public class IdReference {
 
-	protected String location;
+	protected ArrayNode location;
 	protected String idReference;
 	protected List <TypeDefId> validTypes;
 	protected String absoluteIdReference;
+	protected boolean isMappingKey;
 	
 	
 	
-	public IdReference(String location, String idReference, List <TypeDefId>validTypes) {
+	public IdReference(ArrayNode location, String idReference, List <TypeDefId>validTypes,boolean isMappingKey) {
 		this.location=location;
 		this.idReference=idReference;
 		this.validTypes=validTypes;
 		this.absoluteIdReference=null;
+		this.isMappingKey=isMappingKey;
 	}
 	
 	/**
 	 * Get the ID 
 	 */
 	public String getIdReference() { return idReference; }
+	
+	public ArrayNode getLocation() { return location; }
+	
+	public boolean isMappingKey() { return isMappingKey; }
 	
 	/**
 	 * For now, we only permit checking of TypeDefName is in the list, which means we
@@ -46,6 +54,10 @@ public class IdReference {
 		this.absoluteIdReference = absoluteIdReference;
 	}
 	
+	public String getAbsoluteId() {
+		return this.absoluteIdReference;
+	}
+	
 	@Override
 	public String toString() {
 		String validTypeStr = "";
@@ -58,7 +70,7 @@ public class IdReference {
 			validTypeStr += "]";
 		}
 			
-		return "ID: "+idReference+" (type:"+validTypeStr+",loc:"+location+")";
+		return "ID: "+idReference+" (type:"+validTypeStr+",loc:"+location+",key?="+isMappingKey+")";
 	}
 	
 }

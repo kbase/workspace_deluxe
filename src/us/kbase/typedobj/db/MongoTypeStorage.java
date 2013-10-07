@@ -562,10 +562,14 @@ public class MongoTypeStorage implements TypeStorage {
 		funcPrs.insert((Object[])funcPrsArr);
 		String spec = getModuleSpecRecord(moduleName, version);
 		ModuleInfo info = getModuleInfoRecord(moduleName, version);
-		for (String type : info.getTypes().keySet())
+		for (String type : info.getTypes().keySet()) {
 			info.getTypes().get(type).setTypeVersion(versionCopyD + info.getTypes().get(type).getTypeVersion());
-		for (String func : info.getFuncs().keySet())
+			info.getTypes().get(type).setReleaseVersion(versionCopyD + info.getTypes().get(type).getReleaseVersion());
+		}
+		for (String func : info.getFuncs().keySet()) {
 			info.getFuncs().get(func).setFuncVersion(versionCopyD + info.getFuncs().get(func).getFuncVersion());
+			info.getFuncs().get(func).setReleaseVersion(versionCopyD + info.getFuncs().get(func).getReleaseVersion());
+		}
 		info.setVersionTime(versionCopy);
 		writeModuleRecords(info, spec, versionCopy);
 	}

@@ -4,6 +4,7 @@ public class TypeInfo {
 	private String typeName;
 	private String typeVersion;
 	private boolean isSupported = true;
+	private String releaseVersion;
 	
 	public String getTypeName() {
 		return typeName;
@@ -27,5 +28,13 @@ public class TypeInfo {
 	
 	public void setSupported(boolean isSupported) {
 		this.isSupported = isSupported;
+	}
+	
+	public String getReleaseVersion() {
+		return releaseVersion;
+	}
+	
+	public void setReleaseVersion(String releaseVersion) {
+		this.releaseVersion = releaseVersion;
 	}
 }

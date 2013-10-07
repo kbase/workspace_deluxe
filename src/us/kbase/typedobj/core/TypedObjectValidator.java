@@ -6,7 +6,9 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.report.ProcessingMessage;
@@ -181,42 +183,123 @@ public final class TypedObjectValidator {
 	 */
 	public void relableToAbsoluteIds(JsonNode instanceRootNode, TypedObjectValidationReport report) {
 		
-		//@TODO implement
+		// we first extract the full list of Id References 
+		List <List<IdReference>> refList = report.getListOfIdReferenceObjects();
 		
-		
-		return;
+		// traverse them in reverse depth order
+		for(int depth=refList.size()-1; depth>=0; depth--) {
+			List<IdReference> idsAtDepth = refList.get(depth);
+			//doesn't matter the order if we are all at the same depth
+			for(IdReference ref : idsAtDepth) {
+				//System.out.println("Looking at:"+ref.getIdReference()+" at "+ref.getLocation());
+				//if there is nothing to relabel, then we can just quit
+				String absId = ref.getAbsoluteId();
+				if(absId==null) { continue; }
+				if(ref.isMappingKey()) {
+					relabelMappingKeyNode(instanceRootNode, ref.getLocation(),ref.getIdReference(),absId);
+				} else {
+					relabelTextNode(instanceRootNode,ref.getLocation(),absId);
+				}
+			}
+		}
 	}
 	
 	
 	
+	protected void relabelTextNode(JsonNode root, ArrayNode location, String newString) {
+		//traverse to the parent of the field we want to change
+		JsonNode parent = root;
+		for(int depth=0; depth<location.size()-1; depth++) {
+			if(parent.isArray()) {
+				parent = parent.get(location.get(depth).asInt());
+			} else if(parent.isObject()) {
+				parent = parent.get(location.get(depth).asText());
+			}
+		}
+		// figure out whether the TextNode target is in an array or an object, and set
+		// the new value accordingly
+		if(parent.isArray()) {
+			ArrayNode parentArray = (ArrayNode) parent;
+			parentArray.set(location.get(location.size()-1).asInt(), new TextNode(newString));
+		} else if(parent.isObject()) {
+			ObjectNode parentObject = (ObjectNode) parent;
+			parent = parentObject.set(location.get(location.size()-1).asText(), new TextNode(newString));
+		} else {
+			// we should probably throw an exception here...
+		}
+	}
+	
+	protected void relabelMappingKeyNode(JsonNode root, ArrayNode location, String currentMappingKey, String newString) {
+		//traverse all the way to the mapping we want to change
+		JsonNode mapping = root;
+		for(int depth=0; depth<location.size(); depth++) {
+			if(mapping.isArray()) {
+				mapping = mapping.get(location.get(depth).asInt());
+			} else if(mapping.isObject()) {
+				mapping = mapping.get(location.get(depth).asText());
+			}
+		}
+		// the mapping object we find MUST be an object
+		if(mapping.isObject()) {
+			ObjectNode mappingObj = (ObjectNode) mapping;
+			// do the swap
+			JsonNode value = mappingObj.remove(currentMappingKey);
+			if(mappingObj.has(newString)) {
+				// if the key was already added, then we gots a problem- the user was very likely trying to change two different
+				// id references to the same newString, which can't work because in a mapping keys must be unique.  Overwriting
+				// here would result in loss of data, so we must abort.
+				
+			}
+			mappingObj.put(newString, value);
+		} else {
+			// we should probably throw an exception here...
+		}
+	}
+	
+	
+	
+	
+	
+	/**
+	 * 
+	 * @param instanceRootNode
+	 * @param report
+	 * @return
+	 */
 	public JsonNode extractWsSearchableSubset(JsonNode instanceRootNode, TypedObjectValidationReport report) {
-		
-		// current method uses the data stashed by the report
-		//@TODO double check that any updates to instanceRootNode get propagated via the report....
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode subset = mapper.createObjectNode();
 		Iterator<ProcessingMessage> mssgs = report.getRawProcessingReport().iterator();
 		while(mssgs.hasNext()) {
 			ProcessingMessage m = mssgs.next();
 			if( m.getMessage().compareTo("ws-searchable-fields-subset") == 0 ) {
-				JsonNode fieldsSubset = m.asJson().get("value");
-				Iterator<String> fieldNames = fieldsSubset.fieldNames();
+				ArrayNode fields = (ArrayNode)m.asJson().get("fields");
+				Iterator<JsonNode> fieldNames = fields.elements();
 				while(fieldNames.hasNext()) {
-					String fieldName = fieldNames.next();
-					subset.put(fieldName, fieldsSubset.findValue(fieldName));
+					String fieldName = fieldNames.next().asText();
+					subset.put(fieldName, instanceRootNode.findValue(fieldName));
 				}
 			} else if( m.getMessage().compareTo("ws-searchable-keys-subset") == 0 ) {
-				JsonNode fieldsSubset = m.asJson().get("keys_of");
-				Iterator<String> fieldNames = fieldsSubset.fieldNames();
+				ArrayNode fields = (ArrayNode) m.asJson().get("keys_of");
+				Iterator<JsonNode> fieldNames = fields.elements();
 				while(fieldNames.hasNext()) {
-					String fieldName = fieldNames.next();
-					subset.put(fieldName, fieldsSubset.findValue(fieldName));
+					String fieldName = fieldNames.next().asText();
+					JsonNode mapping = instanceRootNode.findValue(fieldName);
+					if(!mapping.isObject()) {
+						//might want to error out here instead of passing
+						continue;
+					}
+					ArrayNode keys = mapper.createArrayNode();
+					Iterator<String> keyIter = mapping.fieldNames();
+					while(keyIter.hasNext()) {
+						keys.add(keyIter.next());
+					}
+					subset.put(fieldName, keys);
 				}
 			}
 		}
 		return subset;
 	}
-	
-	
+
 
 }
