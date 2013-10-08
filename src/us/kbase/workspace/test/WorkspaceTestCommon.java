@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import us.kbase.common.mongo.exceptions.InvalidHostException;
+import us.kbase.common.test.TestException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -83,10 +84,9 @@ public class WorkspaceTestCommon {
 			mPwd = null;
 		}
 		if (mUser == null ^ mPwd == null) {
-			System.err.println(String.format("Must provide both %s and %s ",
+			throw new TestException(String.format("Must provide both %s and %s ",
 					M_USER, M_PWD) + "params for testing if authentication " + 
 					"is to be used");
-			System.exit(1);
 		}
 		System.out.print("Mongo auth params are user: " + mUser + " pwd: ");
 		if (mPwd != null && mPwd.length() > 0) {
@@ -121,8 +121,7 @@ public class WorkspaceTestCommon {
 		String mPwd = getMongoPwd();
 		System.out.print(String.format("Destroying mongo database %s at %s...",
 				db, getHost()));
-		mongoClient.dropDatabase(db);
-		System.out.println(" buhbye.");
+//		mongoClient.dropDatabase(db);
 		DB mdb;
 		try {
 			mdb = mongoClient.getDB(db);
@@ -133,6 +132,19 @@ public class WorkspaceTestCommon {
 			throw new TestException("Error connecting to mongodb test instance: "
 					+ men.getCause().getLocalizedMessage());
 		}
+		try {
+			for (String name: mdb.getCollectionNames()) {
+				if (!name.startsWith("system.")) {
+					mdb.getCollection(name).drop();
+				}
+			}
+		} catch (MongoException me) {
+			throw new TestException("\nCould not delete the database. Please grant " + 
+					"read/write access to the database or correct the credentials:\n" +
+					me.getLocalizedMessage());
+		}
+		System.out.println(" buhbye.");
+		
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", getTypeDB());
 		if (type == GRIDFS) {
