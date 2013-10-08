@@ -112,16 +112,15 @@ public class WorkspaceTestCommon {
 	public static DB destroyAndSetupDB(int num, String type, String shockuser)
 			throws InvalidHostException, UnknownHostException, TestException {
 		buildMongo();
-		String dbname = num == 1 ? DB1 : DB2;
-		String db = System.getProperty(dbname);
+		String db = num == 1 ? getDB1() : getDB2();
 		if (db == null) {
-			throw new TestException("The property " + dbname + " is not set.");
+			throw new TestException("The property " + (num == 1 ? DB1 : DB2) +
+					" is not set.");
 		}
 		String mUser = getMongoUser();
 		String mPwd = getMongoPwd();
 		System.out.print(String.format("Destroying mongo database %s at %s...",
 				db, getHost()));
-//		mongoClient.dropDatabase(db);
 		DB mdb;
 		try {
 			mdb = mongoClient.getDB(db);
