@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 
@@ -43,6 +45,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
 public class TypeRegisteringTest {
@@ -77,13 +80,27 @@ public class TypeRegisteringTest {
 			dir.mkdir();
 		TypeStorage innerStorage;
 		if (useMongo) {
-			innerStorage = new MongoTypeStorage(new MongoClient("localhost", 
-					MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(getTestDbName()));
+			innerStorage = new MongoTypeStorage(createMongoDbConnection());
 		} else {
 			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
 		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser));
+	}
+	
+	public static DB createMongoDbConnection() throws UnknownHostException {
+		String host = System.getProperty(WorkspaceTestCommon.HOST);
+		if (host == null)
+			host = "localhost";
+		String db = System.getProperty(WorkspaceTestCommon.DB1);
+		if (db == null)
+			db = "test";
+		DB mdb = new MongoClient(host, MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(db);
+		String mUser = System.getProperty(WorkspaceTestCommon.M_USER);
+		String mPwd = System.getProperty(WorkspaceTestCommon.M_PWD);
+		if (mUser != null)
+			mdb.authenticate(mUser, mPwd.toCharArray());
+		return mdb;
 	}
 	
 	@Parameters
@@ -92,14 +109,7 @@ public class TypeRegisteringTest {
 				{false}, {true}
 		});
 	}
-	
-	private static String getTestDbName() {
-		String ret = System.getProperty("test.mongo.db1");
-		if (ret == null)
-			ret = "test";
-		return ret;
-	}
-	
+		
 	@Before
 	public void cleanupBefore() throws Exception {
 		storage.removeAllTypeStorageListeners();

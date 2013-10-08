@@ -42,11 +42,7 @@ public class HighLoadParallelTest {
 		if (!dir.exists())
 			dir.mkdir();
 		if (useMongo) {
-			String testDb = System.getProperty("test.mongo.db1");
-			if (testDb == null)
-				testDb = "test";
-			storage = new MongoTypeStorage(new MongoClient("localhost", 
-					MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(testDb));
+			storage = new MongoTypeStorage(TypeRegisteringTest.createMongoDbConnection());
 		} else {
 			storage = new FileTypeStorage(dir.getAbsolutePath());
 		}
