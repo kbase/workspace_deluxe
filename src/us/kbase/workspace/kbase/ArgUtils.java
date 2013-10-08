@@ -28,6 +28,7 @@ public class ArgUtils {
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	
+	//TODO use common version
 	public static void checkAddlArgs(final Map<String, Object> addlargs,
 			@SuppressWarnings("rawtypes") final Class clazz) {
 		if (addlargs.isEmpty()) {
@@ -39,6 +40,7 @@ public class ArgUtils {
 				StringUtils.join(addlargs.keySet(), " ")));
 	}
 
+	//TODO use common version
 	public static String formatDate(final Date d) {
 		if (d == null) {
 			return null;

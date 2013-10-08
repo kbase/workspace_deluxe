@@ -57,6 +57,7 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
 //TODO test vs. auth'd mongo
+//TODO remove all created shock nodes
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
