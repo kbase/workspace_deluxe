@@ -3,18 +3,16 @@ package us.kbase.common.service;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.TokenFormatException;
+import us.kbase.auth.TokenExpiredException;
 
 import java.net.*;
 import java.io.*;
 import java.util.*;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.xml.bind.DatatypeConverter;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,24 +25,27 @@ public class JsonClientCaller {
 	private char[] password = null;
 	private AuthToken accessToken = null;
 	private boolean isAuthAllowedForHttp = false;
-	private static final String APP_JSON = "application/json";
 	
-	private static Map<String, AuthToken> user2token = Collections.synchronizedMap(new HashMap<String, AuthToken>());
-
 	public JsonClientCaller(URL url) {
 		serviceUrl = url;
 		mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	}
 
-	public JsonClientCaller(URL url, AuthToken accessToken) {
+	public JsonClientCaller(URL url, AuthToken accessToken) throws UnauthorizedException, IOException {
 		this(url);
 		this.accessToken = accessToken;
+		try {
+			AuthService.validateToken(accessToken);
+		} catch (TokenExpiredException ex) {
+			throw new UnauthorizedException("Token validation failed", ex);
+		}
 	}
 
-	public JsonClientCaller(URL url, String user, String password) {
+	public JsonClientCaller(URL url, String user, String password) throws UnauthorizedException, IOException {
 		this(url);
 		this.user = user;
 		this.password = password.toCharArray();
+		accessToken = requestTokenFromKBase(user, this.password);
 	}
 
 	public boolean isAuthAllowedForHttp() {
@@ -59,108 +60,38 @@ public class JsonClientCaller {
 		HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
 		conn.setDoOutput(true);
 		conn.setRequestMethod("POST");
-		if (authRequired || user != null || accessToken != null) {
+		if (authRequired || accessToken != null) {
 			if (!(conn instanceof HttpsURLConnection || isAuthAllowedForHttp)) {
-				throw new IllegalStateException("RPC method required authentication shouldn't be called through unsecured http, " +
-						"use https instead or call setAuthAllowedForHttp(true) for your client");
+				throw new UnauthorizedException("RPC method required authentication shouldn't " +
+						"be called through unsecured http, use https instead or call " +
+						"setAuthAllowedForHttp(true) for your client");
 			}
-			if (accessToken == null) {
+			if (accessToken == null || accessToken.isExpired()) {
 				if (user == null) {
-					if (authRequired)
-						throw new IllegalStateException("RPC method requires authentication but neither user nor token was set");
-				} else {
-					accessToken = user2token.get(user);
-					if (accessToken != null && accessToken.isExpired()) {
-						user2token.remove(user);
-						accessToken = null;
-					}
 					if (accessToken == null) {
-						try {
-							accessToken = requestTokenFromKBase(user, password);
-						} catch (IOException ex) {
-							try {
-								accessToken = requestTokenFromGlobus(user, password);
-							} catch (IOException e2) {
-								if (authRequired)
-									throw e2;
-							}
-						}
-						if (accessToken != null)
-							user2token.put(user, accessToken);
+						throw new UnauthorizedException("RPC method requires authentication but neither " +
+								"user nor token was set");
+					} else {
+						throw new UnauthorizedException("Token is expired and can not be reloaded " +
+								"because user wasn't set");
 					}
 				}
+				accessToken = requestTokenFromKBase(user, password);
 			}
-			if (accessToken != null)
-				conn.setRequestProperty("Authorization", accessToken.toString());
+			conn.setRequestProperty("Authorization", accessToken.toString());
 		}
 		return conn;
 	}
 	
 	public static AuthToken requestTokenFromKBase(String user, char[] password)
-			throws IOException, UnauthorizedException {
-		AuthToken token;
+			throws UnauthorizedException, IOException {
 		try {
-			token = AuthService.login(user, new String(password)).getToken();
+			return AuthService.login(user, new String(password)).getToken();
 		} catch (AuthException ex) {
 			throw new UnauthorizedException("Could not authenticate user", ex);
 		}
-		return token;
 	}
-	
-	private static AuthToken requestTokenFromGlobus(String user, char[] password) throws 
-			IOException {
-		String authUrl = "https://nexus.api.globusonline.org/goauth/token?grant_type=client_credentials&client_id=rsutormin";
-		HttpURLConnection authConn = (HttpURLConnection)new URL(authUrl).openConnection();
-		String credential = DatatypeConverter.printBase64Binary((user + ":" + new String(password)).getBytes());
-		authConn.setRequestMethod("POST");
-		authConn.setRequestProperty("Content-Type", APP_JSON);
-		authConn.setRequestProperty  ("Authorization", "Basic " + credential);
-		authConn.setDoOutput(true);
-		checkReturnCode(authConn);
-		InputStream is = authConn.getInputStream();
-		BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-		StringBuilder response = new StringBuilder(); 
-		while(true) {
-			String line = rd.readLine();
-			if (line == null)
-				break;
-			response.append(line);
-			response.append('\n');
-		}
-		rd.close();
-		ObjectMapper mapper = new ObjectMapper();
-		JsonParser parser = mapper.getFactory().createParser(new ByteArrayInputStream(response.toString().getBytes()));
-		LinkedHashMap<String, Object> respMap = parser.readValueAs(new TypeReference<LinkedHashMap<String, Object>>() {});
-		AuthToken token = null;
-		try {
-			token = new AuthToken((String)respMap.get("access_token"));
-		} catch (TokenFormatException tfe) {
-			throw new RuntimeException("Globus is handing out bad tokens, something is badly wrong");
-		}
-		return token;
-	}
-
-	private static void checkReturnCode(HttpURLConnection conn) throws IOException {
-		int responseCode = conn.getResponseCode();
-		if (responseCode >= 300) {
-			StringBuilder sb = new StringBuilder();
-			InputStream is = conn.getErrorStream();
-			if (is == null)
-				is = conn.getInputStream();
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
-			while (true) {
-				String line = br.readLine();
-				if (line == null)
-					break;
-				if (sb.length() > 0)
-					sb.append("\n");
-				sb.append(line);
-			}
-			br.close();
-			throw new IllegalStateException("Wrong server response: code=" + responseCode + ", error_message=" + sb);
-		}
-	}
-	
+		
 	public <ARG, RET> RET jsonrpcCall(String method, ARG arg,
 			TypeReference<RET> cls, boolean ret, boolean authRequired)
 			throws IOException, JsonClientException {

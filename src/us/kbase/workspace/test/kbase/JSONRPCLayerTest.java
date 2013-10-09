@@ -30,6 +30,7 @@ import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
+import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
@@ -218,7 +219,7 @@ public class JSONRPCLayerTest {
 		try {
 			CLIENT_NO_AUTH.createWorkspace(new CreateWorkspaceParams().withWorkspace("noauth"));
 			fail("created workspace without auth");
-		} catch (IllegalStateException e) {
+		} catch (UnauthorizedException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("RPC method requires authentication but neither user nor token was set"));
 		}
