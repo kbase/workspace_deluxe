@@ -76,4 +76,9 @@ public class ObjectData {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public java.lang.String toString() {
+        return ((((((("ObjectData"+" [data=")+ data)+", meta=")+ meta)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

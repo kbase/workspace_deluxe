@@ -78,4 +78,9 @@ public class WorkspaceIdentity {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((("WorkspaceIdentity"+" [workspace=")+ workspace)+", id=")+ id)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

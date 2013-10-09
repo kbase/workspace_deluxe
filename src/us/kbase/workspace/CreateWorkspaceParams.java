@@ -99,4 +99,9 @@ public class CreateWorkspaceParams {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((((("CreateWorkspaceParams"+" [workspace=")+ workspace)+", globalread=")+ globalread)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

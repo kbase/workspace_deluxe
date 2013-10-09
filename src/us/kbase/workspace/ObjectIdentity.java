@@ -159,4 +159,9 @@ public class ObjectIdentity {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((((((((((("ObjectIdentity"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

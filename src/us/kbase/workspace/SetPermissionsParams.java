@@ -118,4 +118,9 @@ public class SetPermissionsParams {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((((((("SetPermissionsParams"+" [workspace=")+ workspace)+", id=")+ id)+", newPermission=")+ newPermission)+", users=")+ users)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

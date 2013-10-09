@@ -49,6 +49,9 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  */
 public class JSONRPCLayerTest {
 	
+	//TODO copy over improvements from user state service
+	//TODO consolidate tests
+	
 	private static WorkspaceServer SERVER = null;
 	private static WorkspaceClient CLIENT1 = null;
 	private static String USERNOEMAIL = null;

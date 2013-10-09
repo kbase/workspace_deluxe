@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,31 +18,54 @@ public class UObject {
 		
 	private static ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	
+	/**
+	 * @return instance of UObject created from Jackson tree parsed from JSON text
+	 */
+	public static UObject fromJsonString(String json) {
+		return new UObject(transformStringToJackson(json));
+	}
+	
+	/**
+	 * Creates instance of UObject from Jackson tree, POJO, Map, List or scalar.
+	 */
 	public UObject(Object obj) {
 		userObj = obj;
 	}
 
+	/**
+	 * @return true in case UObject was created from Jackson tree rather 
+	 * than from plain maps, lists, scalars and POJOs 
+	 */
 	public boolean isJsonNode() {
 		return userObj instanceof JsonNode;
 	}
-	
+
+	/**
+	 * @return Jackson tree representation of this object
+	 */
 	public JsonNode asJsonNode() {
 		if (isJsonNode())
 			return (JsonNode)userObj;
 		return transformObjectToJackson(userObj);
 	}
 	
-	public Object getUserObject() {
+	Object getUserObject() {
 		return userObj;
 	}
 	
+	/**
+	 * @return true in case this object is list of something
+	 */
 	public boolean isList() {
 		if (isJsonNode())
 			return asJsonNode().isArray();
 		return userObj instanceof List;
 	}
-		
-	public List<UObject> asList() throws JsonProcessingException {
+
+	/**
+	 * @return list representation of this object
+	 */
+	public List<UObject> asList() {
 		List<UObject> ret = new ArrayList<UObject>();
 		if (isJsonNode()) {
 			JsonNode root = asJsonNode();
@@ -57,6 +80,9 @@ public class UObject {
 		return ret;
 	}
 	
+	/**
+	 * @return true in case this object is mapping of something
+	 */
 	public boolean isMap() {
 		if (isJsonNode()) {
 			return asJsonNode().isObject();
@@ -64,7 +90,10 @@ public class UObject {
 		return userObj instanceof Map;
 	}
 	
-	public Map<String, UObject> asMap() throws JsonProcessingException {
+	/**
+	 * @return map representation of this object
+	 */
+	public Map<String, UObject> asMap() {
 		Map<String, UObject> ret = new LinkedHashMap<String, UObject>();
 		if (isJsonNode()) {
 			JsonNode root = asJsonNode();
@@ -81,38 +110,56 @@ public class UObject {
 		return ret;
 	}
 	
+	/**
+	 * @return true in case this object is integer
+	 */
 	public boolean isInteger() {
 		if (isJsonNode())
 			return asJsonNode().isInt();
 		return userObj instanceof Integer;
 	}
 	
+	/**
+	 * @return true in case this object is text
+	 */
 	public boolean isString() {
 		if (isJsonNode())
 			return asJsonNode().isTextual();
 		return userObj instanceof String;
 	}
 
+	/**
+	 * @return true in case this object is floating
+	 */
 	public boolean isDouble() {
 		if (isJsonNode())
 			return asJsonNode().isDouble();
 		return userObj instanceof Double;
 	}
 
+	/**
+	 * @return true in case this object is boolean
+	 */
 	public boolean isBoolean() {
 		if (isJsonNode())
 			return asJsonNode().isBoolean();
 		return userObj instanceof Boolean;
 	}
 
+	/**
+	 * @return true in case this object is null
+	 */
 	public boolean isNull() {
 		if (isJsonNode())
 			return asJsonNode().isNull();
 		return userObj == null;
 	}
 	
+	/**
+	 * @return scalar representation of this object
+	 */
 	@SuppressWarnings("unchecked")
-	public <T> T asScalar() throws JsonProcessingException {
+	public <T> T asScalar() {
 		if (isJsonNode()) {
 			JsonNode root = asJsonNode();
 			Object ret = null;
@@ -132,49 +179,85 @@ public class UObject {
 		return (T)userObj;
 	}
 
-	public <T> T asInstance() throws JsonProcessingException {
+	/**
+	 * @return POJO representation of this object
+	 */
+	public <T> T asInstance() {
 		return asClassInstance(new TypeReference<T>() {});
 	}
 
-	public <T> T asClassInstance(Class<T> retType) throws JsonProcessingException {
+	/**
+	 * @return POJO representation of this object of type retType
+	 */
+	public <T> T asClassInstance(Class<T> retType) {
 		if (isJsonNode())
 			return transformJacksonToObject(asJsonNode(), retType);
 		return transformObjectToObject(userObj, retType);
 	}
 
-	public <T> T asClassInstance(TypeReference<T> retType) throws JsonProcessingException {
+	/**
+	 * @return POJO representation of this object of type retType
+	 */
+	public <T> T asClassInstance(TypeReference<T> retType) {
 		if (isJsonNode())
 			return transformJacksonToObject(asJsonNode(), retType);
 		return transformObjectToObject(userObj, retType);
 	}
 
-	public static <T> T transformObjectToObject(Object obj, Class<T> retType) throws JsonProcessingException {
-		//return transformJacksonToObject(transformObjectToJackson(obj), retType);
+	/**
+	 * @return JSON text representation of this object
+	 */
+	public String toJsonString() {
+		if (isJsonNode())
+			return transformJacksonToString(asJsonNode());
+		return transformObjectToString(getUserObject());
+	}
+
+	@Override
+	public String toString() {
+		return "UObject [userObj=" + (isJsonNode() ? toJsonString() : ("" + userObj)) + "]";
+	}
+	
+	/**
+	 * Helper method for transformation POJO into POJO of another type.
+	 */
+	public static <T> T transformObjectToObject(Object obj, Class<T> retType) {
+		return transformStringToObject(transformObjectToString(obj), retType);
+	}
+
+	/**
+	 * Helper method for transformation JSON text into POJO.
+	 */
+	public static <T> T transformStringToObject(String json, Class<T> retType) {
 		try {
-			StringWriter sw = new StringWriter();
-			mapper.writeValue(sw, obj);
-			sw.close();
-			T ret = mapper.readValue(sw.toString(), retType);
-			return ret;
+			return mapper.readValue(json, retType);
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
 
-	public static <T> T transformObjectToObject(Object obj, TypeReference<T> retType) throws JsonProcessingException {
-		//return transformJacksonToObject(transformObjectToJackson(obj), retType);
+	/**
+	 * Helper method for transformation POJO into POJO of another type.
+	 */
+	public static <T> T transformObjectToObject(Object obj, TypeReference<T> retType) {
+		return transformStringToObject(transformObjectToString(obj), retType);
+	}
+
+	/**
+	 * Helper method for transformation JSON text into POJO.
+	 */
+	public static <T> T transformStringToObject(String json, TypeReference<T> retType) {
 		try {
-			StringWriter sw = new StringWriter();
-			mapper.writeValue(sw, obj);
-			sw.close();
-			T ret = mapper.readValue(sw.toString(), retType);
-			return ret;
+			return mapper.readValue(json, retType);
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
 
-	public static <T> T transformJacksonToObject(JsonNode node, Class<T> retType) throws JsonProcessingException {
+	/**
+	 * Helper method for transformation Jackson tree into POJO.
+	 */
+	public static <T> T transformJacksonToObject(JsonNode node, Class<T> retType) {
 		try {
 			T ret = mapper.readValue(mapper.treeAsTokens(node), retType);
 			return ret;
@@ -183,7 +266,10 @@ public class UObject {
 		}
 	}
 
-	public static <T> T transformJacksonToObject(JsonNode node, TypeReference<T> retType) throws JsonProcessingException {
+	/**
+	 * Helper method for transformation Jackson tree into POJO.
+	 */
+	public static <T> T transformJacksonToObject(JsonNode node, TypeReference<T> retType) {
 		try {
 			T ret = mapper.readValue(mapper.treeAsTokens(node), retType);
 			return ret;
@@ -191,19 +277,50 @@ public class UObject {
 			throw new IllegalStateException(ex);
 		}
 	}
+
+	/**
+	 * Helper method for transformation POJO into JSON text.
+	 */
+	public static String transformObjectToString(Object obj) {
+		try {
+			StringWriter sw = new StringWriter();
+			mapper.writeValue(sw, obj);
+			sw.close();
+			return sw.toString();
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	/**
+	 * Helper method for transformation Jackson tree into JSON text.
+	 */
+	public static String transformJacksonToString(JsonNode node) {
+		try {
+			StringWriter sw = new StringWriter();
+			JsonGenerator gen = mapper.getFactory().createGenerator(sw);
+			mapper.writeTree(gen, node);
+			sw.close();
+			return sw.toString();
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
 	
-	/*public static String transformJacksonToString(JsonNode node) throws JsonProcessingException {
-		JsonGenerator gen = mapper.
-		mapper.writeTree(jgen, node);
-	}*/
-	
+	/**
+	 * Helper method for transformation POJO into Jackson tree.
+	 */
 	public static JsonNode transformObjectToJackson(Object obj) {
 		//return mapper.valueToTree(obj);
+		return transformStringToJackson(transformObjectToString(obj));
+	}
+
+	/**
+	 * Helper method for transformation JSON text into Jackson tree.
+	 */
+	public static JsonNode transformStringToJackson(String json) {
 		try {
-			StringWriter sw = new StringWriter();
-			mapper.writeValue(sw, obj);
-			sw.close();
-			return mapper.readTree(sw.toString());
+			return mapper.readTree(json);
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
 		}
