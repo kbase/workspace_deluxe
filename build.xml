@@ -186,11 +186,6 @@
     <junit failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
-      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
-    </junit>
-    <junit failureproperty="test.failed">
-      <classpath refid="test.classpath"/>
-      <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
@@ -207,6 +202,7 @@
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
+      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
       <test name="us.kbase.shock.client.test.ShockTests"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
