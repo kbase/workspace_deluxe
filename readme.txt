@@ -21,7 +21,8 @@ SETUP
 5a) fill in the the test.cfg config file in ./test
 5b) make test
 6) make deploy
-7) /kb/deployment/services/Workspace/start_service
+7) fill in deploy.cfg and set KB_DEPLOYMENT_CONFIG appropriately
+8) /kb/deployment/services/Workspace/start_service
 
 If the server doesn't start up correctly, check /var/log/syslog and
 /kb/runtime/glassfish3/glassfish/domains/domain1/logs/server.log 

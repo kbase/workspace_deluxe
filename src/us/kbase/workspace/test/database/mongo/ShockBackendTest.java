@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import com.mongodb.DB;
 
+import us.kbase.common.test.TestException;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -22,6 +23,7 @@ import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -39,7 +41,12 @@ public class ShockBackendTest {
 		final DB mongo = WorkspaceTestCommon.destroyAndSetupDB(1, "shock", u1);
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing workspace shock backend pointed at: " + url);
-		sb = new ShockBackend(mongo.getCollection("shockData"), url, u1, p1);
+		try {
+			sb = new ShockBackend(mongo.getCollection("shockData"), url, u1, p1);
+		} catch (BlobStoreAuthorizationException bsae) {
+			throw new TestException("Unable to login with test.user1: " + u1 +
+					"\nPlease check the credentials in the test configuration.", bsae);
+		}
 	}
 	
 	@Test

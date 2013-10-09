@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,8 +14,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.swing.JFrame;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -699,7 +698,7 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
-		Object data = new JFrame();
+		Object data = new StringReader("foo");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);

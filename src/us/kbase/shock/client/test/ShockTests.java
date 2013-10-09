@@ -20,10 +20,12 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.auth.TokenExpiredException;
+import us.kbase.common.test.TestException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
@@ -63,9 +65,26 @@ public class ShockTests {
 		String p2 = System.getProperty("test.pwd2");
 		String uno = System.getProperty("test.user.noemail");
 		String pno = System.getProperty("test.pwd.noemail");
-		noverifiedemail = AuthService.login(uno, pno);
-		otherguy = AuthService.login(u2, p2);
-		AuthToken t1 = AuthService.login(u1, p1).getToken();
+		
+		try {
+			noverifiedemail = AuthService.login(uno, pno);
+		} catch (AuthException ae) {
+			throw new TestException("Unable to login with test.user.noemail: " + uno +
+					"\nPlease check the credentials in the test configuration.", ae);
+		}
+		try {
+			otherguy = AuthService.login(u2, p2);
+		} catch (AuthException ae) {
+			throw new TestException("Unable to login with test.user2: " + u2 +
+					"\nPlease check the credentials in the test configuration.", ae);
+		}
+		AuthToken t1;
+		try {
+			t1 = AuthService.login(u1, p1).getToken();
+		} catch (AuthException ae) {
+			throw new TestException("Unable to login with test.user1: " + u1 +
+					"\nPlease check the credentials in the test configuration.", ae);
+		}
 		AuthToken t2 = otherguy.getToken();
 		try {
 			bsc1 = new BasicShockClient(url, t1);
@@ -391,7 +410,7 @@ public class ShockTests {
 		sn.delete();
 	}
 	
-	public void checkListLengthIfNotNull(@SuppressWarnings("rawtypes") List list,
+	private void checkListLengthIfNotNull(@SuppressWarnings("rawtypes") List list,
 			int length) {
 		if (list != null) {
 			assertTrue(String.format("only %d user in new acl", length),
