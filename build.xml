@@ -186,6 +186,11 @@
     <junit failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
+      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
+    </junit>
+    <junit failureproperty="test.failed">
+      <classpath refid="test.classpath"/>
+      <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
@@ -199,19 +204,14 @@
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user.noemail" value="${test.user.noemail}"/>
       <sysproperty key="test.pwd.noemail" value="${test.pwd.noemail}"/>
-      <test name="us.kbase.shock.client.test.ShockTests"/>
-      <test name="us.kbase.workspace.database.mongo.test.ShockBackendTest"/>
-      <test name="us.kbase.workspace.database.mongo.test.GridFSBackendTest"/>
-      <test name="us.kbase.workspace.workspaces.test.TestWorkspaces"/>
-      <test name="us.kbase.workspace.kbase.test.JSONRPCLayerTest"/>
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
-    </junit>
-    <junit failureproperty="test.failed">
-      <classpath refid="test.classpath"/>
-      <formatter type="plain" usefile="false" />
-      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
+      <test name="us.kbase.shock.client.test.ShockTests"/>
+      <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
+      <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
+      <test name="us.kbase.workspace.test.workspaces.TestWorkspaces"/>
+      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>

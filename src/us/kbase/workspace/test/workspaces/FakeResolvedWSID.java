@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces.test;
+package us.kbase.workspace.test.workspaces;
 
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 

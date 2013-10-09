@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces.test;
+package us.kbase.workspace.test.workspaces;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNull;
