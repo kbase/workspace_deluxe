@@ -207,10 +207,6 @@
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
-    </junit>
-    <junit failureproperty="test.failed">
-      <classpath refid="test.classpath"/>
-      <formatter type="plain" usefile="false" />
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
