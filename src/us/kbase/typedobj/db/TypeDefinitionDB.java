@@ -173,7 +173,7 @@ public class TypeDefinitionDB {
 		checkModule(moduleName);
 		SemanticVersion schemaDocumentVer = findTypeVersion(typeDefId);
 		if (schemaDocumentVer == null)
-			throwNoSuchTypeException(moduleName, typeName, null);
+			throwNoSuchTypeException(typeDefId);
 		String ret = storage.getTypeSchemaRecord(moduleName,typeName,schemaDocumentVer.toString());
 		if (ret == null)
 			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
@@ -360,6 +360,10 @@ public class TypeDefinitionDB {
 			String version) throws NoSuchTypeException {
 		throw new NoSuchTypeException("Unable to locate type: '"+moduleName+"."+typeName+"'" + 
 				(version == null ? "" : (" for version " + version)));
+	}
+
+	protected void throwNoSuchTypeException(TypeDefId typeDef) throws NoSuchTypeException {
+		throw new NoSuchTypeException("Unable to locate type: " + typeDef.getTypeString());
 	}
 
 	protected void throwNoSuchFuncException(String moduleName, String funcName,
@@ -608,7 +612,7 @@ public class TypeDefinitionDB {
 		checkModule(moduleName);
 		SemanticVersion documentVer = findTypeVersion(typeDef);
 		if (documentVer == null)
-			throwNoSuchTypeException(moduleName, typeName, null);
+			throwNoSuchTypeException(typeDef);
 		String ret = storage.getTypeParseRecord(moduleName, typeName, documentVer.toString());
 		if (ret == null)
 			throw new NoSuchTypeException("Unable to read type parse record: '"+moduleName+"."+typeName+"'");
@@ -906,34 +910,65 @@ public class TypeDefinitionDB {
 		return storage.getAllRegisteredModules();
 	}
 	
-	public Set<RefInfo> getTypeRefsByDep(TypeDefId depTypeDef) throws TypeStorageException {
+	private String getTypeVersion(TypeDefId typeDef) 
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		checkModule(typeDef.getType().getModule());
+		SemanticVersion ret = findTypeVersion(typeDef);
+		if (ret == null)
+			throwNoSuchTypeException(typeDef);
+		return ret.toString();
+	}
+
+	public Set<RefInfo> getTypeRefsByDep(TypeDefId depTypeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		String depModule = depTypeDef.getType().getModule();
 		String depType = depTypeDef.getType().getName();
-		String version = findTypeVersion(depTypeDef).toString();
+		String version = getTypeVersion(depTypeDef);
 		return storage.getTypeRefsByDep(depModule, depType, version);
 	}
 	
-	public Set<RefInfo> getTypeRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getTypeRefsByRef(TypeDefId refTypeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = findTypeVersion(refTypeDef).toString();
+		String version = getTypeVersion(refTypeDef);
 		return storage.getTypeRefsByRef(refModule, refType, version);
 	}
-	
+
+	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc) 
+			throws TypeStorageException {
+		return storage.getFuncRefsByDep(depModule, depFunc, null);
+	}
+
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, 
-			String version) throws TypeStorageException {
+			String version) throws TypeStorageException, NoSuchModuleException, NoSuchFuncException {
+		checkModule(depModule);
+		if (version == null) {
+			SemanticVersion sVer = findLastFuncVersion(depModule, depFunc);
+			if (sVer == null)
+				throwNoSuchFuncException(depModule, depFunc, version);
+			version = sVer.toString();
+		}
 		return storage.getFuncRefsByDep(depModule, depFunc, version);
 	}
 	
-	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) throws TypeStorageException {
+	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		String refModule = refTypeDef.getType().getModule();
 		String refType = refTypeDef.getType().getName();
-		String version = findTypeVersion(refTypeDef).toString();
+		String version = getTypeVersion(refTypeDef);
 		return storage.getFuncRefsByRef(refModule, refType, version);
 	}
 	
-	private File createTempDir() {
-		File ret = new File(parentTempDir, "temp_" + System.currentTimeMillis());
+	private synchronized File createTempDir() {
+		long suffix = System.currentTimeMillis();
+		File ret;
+		while (true) {
+			ret = new File(parentTempDir, "temp_" + suffix);
+			if (!ret.exists())
+				break;
+			suffix++;
+		}
 		ret.mkdirs();
 		return ret;
 	}

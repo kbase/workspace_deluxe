@@ -9,9 +9,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbParameter;
 import us.kbase.kidl.KbScalar;
@@ -26,6 +23,9 @@ import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchTypeException;
 
 public class HighLoadParallelTest {
 	private static TypeStorage storage = null;
@@ -87,6 +87,30 @@ public class HighLoadParallelTest {
 			try {
 				while (true) {
 					List<String> allModuleNames = db.getAllRegisteredModules();
+					for (String module : allModuleNames) {
+						try {
+							for (String type : db.getAllRegisteredTypes(module)) {
+								try {
+									TypeDefName tdn = new TypeDefName(module, type);
+									db.getJsonSchema(tdn);
+									db.getTypeParsingDocument(tdn);
+									db.getFuncRefsByRef(new TypeDefId(tdn));
+								} catch (NoSuchTypeException ex) {
+									System.err.println(ex.getMessage());
+								}
+							}
+							for (String func : db.getAllRegisteredFuncs(module)) {
+								try {
+									db.getFuncParsingDocument(module, func);
+									db.getFuncRefsByDep(module, func, db.getLatestFuncVersion(module, func));
+								} catch (NoSuchFuncException ex) {
+									System.err.println(ex.getMessage());
+								}
+							}
+						} catch (NoSuchModuleException ex) {
+							ex.printStackTrace();
+						}
+					}
 					String moduleName = allModuleNames.get(threadNum * modulePerThreadCount + 
 							rndInt(threadNum, RndStage.moduleSelection, modulePerThreadCount));
 					Map<String, TypeDescr> typesToSave = new LinkedHashMap<String, TypeDescr>();
