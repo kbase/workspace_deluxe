@@ -134,6 +134,11 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "Tuple9 [e1=" + e1 + ", e2=" + e2 + ", e3=" + e3 + ", e4=" + e4 + ", e5=" + e5 + ", e6=" + e6 + ", e7=" + e7 + ", e8=" + e8 + ", e9=" + e9 + "]";
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;

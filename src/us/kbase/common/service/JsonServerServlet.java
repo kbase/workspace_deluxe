@@ -18,10 +18,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -55,7 +53,6 @@ public class JsonServerServlet extends HttpServlet {
 	final private static String KB_DEP = "KB_DEPLOYMENT_CONFIG";
 	final private static String KB_SERVNAME = "KB_SERVICE_NAME";
 	protected Map<String, String> config = new HashMap<String, String>();
-	private static ThreadLocal<RpcInfo> rpcInfo = new ThreadLocal<RpcInfo>();
 	private Server jettyServer = null;
 	private Integer jettyPort = null;
 	private boolean startupFailed = false;
@@ -160,68 +157,25 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	public void logErr(String message) {
-		logErr(new Exception(message), findCaller());
+		userLogger.logErr(message);
 	}
 
 	public void logErr(Throwable err) {
-		logErr(err, findCaller());
-	}
-	
-	private void logErr(Throwable err, String caller) {
-		List<String> messages = new ArrayList<String>();
-		StackTraceElement[] st = err.getStackTrace();
-		int firstPos = 0;
-		String packageName = "us.kbase";
-		String className = JsonServerServlet.class.getName();
-		for (; firstPos < st.length; firstPos++) {
-			if (st[firstPos].getClassName().equals(className))
-				continue;
-			break;
-		}
-		int lastPos = st.length - 1;
-		for (; lastPos > firstPos; lastPos--) {
-			if (st[lastPos].getClassName().startsWith(packageName) && 
-					!st[lastPos].getClassName().equals(className))
-				break;
-		}
-		messages.add("Traceback (most recent call last):");
-		for (int pos = lastPos; pos >= firstPos; pos--) {
-			messages.add("Class \"" + st[pos].getClassName() + "\", file \"" + st[pos].getFileName() + 
-					"\", line " + st[pos].getLineNumber() + ", in " + st[pos].getMethodName());
-		}
-		String errorPrefix = err.getClass().equals(Exception.class) ? "Error: " :
-			(err.getClass().getName() + ": ");
-		messages.add(errorPrefix + err.getMessage());
-		userLogger.log(LOG_LEVEL_ERR, caller, messages.toArray(new String[messages.size()]));
+		userLogger.logErr(err);
 	}
 	
 	public void logInfo(String message) {
-		userLogger.log(LOG_LEVEL_INFO, findCaller(), message);
+		userLogger.logInfo(message);
 	}
 	
 	public void logDebug(String message) {
-		userLogger.log(LOG_LEVEL_DEBUG, findCaller(), message);
+		userLogger.logDebug(message);
 	}
 	
 	public void logDebug(String message, int debugLevelFrom1to3) {
-		if (debugLevelFrom1to3 < 1 || debugLevelFrom1to3 > 3)
-			throw new IllegalStateException("Wrong debug log level, it should be between 1 and 3");
-		userLogger.log(LOG_LEVEL_DEBUG + (debugLevelFrom1to3 - 1), findCaller(), message);
+		userLogger.logDebug(message, debugLevelFrom1to3);
 	}
 
-	public static String findCaller() {
-		StackTraceElement[] st = Thread.currentThread().getStackTrace();
-		String packageName = "us.kbase";
-		String className = JsonServerServlet.class.getName();
-		for (int pos = 0; pos < st.length; pos++) {
-			if (st[pos].getClassName().equals(className) ||
-					!st[pos].getClassName().startsWith(packageName))
-				continue;
-			return st[pos].getClassName();
-		}
-		throw new IllegalStateException();
-	}
-	
 	public int getLogLevel() {
 		return userLogger.getLogLevel();
 	}
@@ -239,9 +193,11 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		JsonServerSyslog.RpcInfo info = JsonServerSyslog.getCurrentRpcInfo().reset();
+		info.setIp(request.getRemoteAddr());
 		response.setContentType(APP_JSON);
 		OutputStream output	= response.getOutputStream();
-		getCurrentRpcInfo().reset();
+		JsonServerSyslog.getCurrentRpcInfo().reset();
 		if (startupFailed) {
 			writeError(response, -32603, "The server did not start up properly. Please check the log files for the cause.", output);
 			return;
@@ -250,9 +206,10 @@ public class JsonServerServlet extends HttpServlet {
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		JsonServerSyslog.RpcInfo info = JsonServerSyslog.getCurrentRpcInfo().reset();
+		info.setIp(request.getRemoteAddr());
 		response.setContentType(APP_JSON);
 		OutputStream output	= response.getOutputStream();
-		RpcInfo info = getCurrentRpcInfo().reset();
 		String rpcName = null;
 		AuthToken userProfile = null;
 		try {
@@ -266,17 +223,17 @@ public class JsonServerServlet extends HttpServlet {
 			}
 			JsonNode idNode = node.get("id");
 			try {
-				info.id = idNode == null || node.isNull() ? null : idNode.asText();
+				info.setId(idNode == null || node.isNull() ? null : idNode.asText());
 			} catch (Exception ex) {}
 			JsonNode methodNode = node.get("method");
 			ArrayNode paramsNode = (ArrayNode)node.get("params");
 			rpcName = (methodNode!=null && !methodNode.isNull()) ? methodNode.asText() : null;
 			if (rpcName.contains(".")) {
 				int pos = rpcName.indexOf('.');
-				info.module = rpcName.substring(0, pos);
-				info.method = rpcName.substring(pos + 1);
+				info.setModule(rpcName.substring(0, pos));
+				info.setMethod(rpcName.substring(pos + 1));
 			} else {
-				info.method = rpcName;
+				info.setMethod(rpcName);
 			}
 			Method rpcMethod = rpcCache.get(rpcName);
 			if (rpcMethod == null) {
@@ -291,7 +248,7 @@ public class JsonServerServlet extends HttpServlet {
 					try {
 						userProfile = validateToken(token);
 						if (userProfile != null)
-							info.user = userProfile.getClientId();
+							info.setUser(userProfile.getClientId());
 					} catch (Throwable ex) {
 						writeError(response, -32400, "Token validation failed: " + ex.getMessage(), output);
 						return;
@@ -329,7 +286,6 @@ public class JsonServerServlet extends HttpServlet {
 				if (ex instanceof InvocationTargetException && ex.getCause() != null) {
 					ex = ex.getCause();
 				}
-				logErr(ex, getClass().getName());
 				writeError(response, -32500, ex, output);
 				return;
 			}
@@ -346,16 +302,7 @@ public class JsonServerServlet extends HttpServlet {
 			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", output);	
 		}
 	}
-	
-	public static RpcInfo getCurrentRpcInfo() {
-		RpcInfo ret = rpcInfo.get();
-		if (ret == null) {
-			ret = new RpcInfo();
-			rpcInfo.set(ret);
-		}
-		return ret;
-	}
-	
+		
 	private static AuthToken validateToken(String token) throws Exception {
 		if (token == null)
 			throw new IllegalStateException("Token is not defined in http request header");
@@ -371,16 +318,18 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	private void writeError(HttpServletResponse response, int code, String message, OutputStream output) {
+		sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), message);
 		writeError(response, code, message, null, output);
 	}
 	
 	private void writeError(HttpServletResponse response, int code, Throwable ex, OutputStream output) {
+		sysLogger.logErr(ex, getClass().getName());
 		StringWriter sw = new StringWriter();
 		ex.printStackTrace(new PrintWriter(sw));
 		String errorMessage = ex.getLocalizedMessage();
 		if (errorMessage == null)
 			errorMessage = ex.getMessage();
-		writeError(response, code, ex.getLocalizedMessage(), sw.toString(), output);
+		writeError(response, code, errorMessage, sw.toString(), output);
 	}
 	
 	private void writeError(HttpServletResponse response, int code, String message, String data, OutputStream output) {
@@ -393,17 +342,16 @@ public class JsonServerServlet extends HttpServlet {
 		error.put("error", data);
 		ret.put("version", "1.1");
 		ret.put("error", error);
-		String id = getCurrentRpcInfo().getId();
+		String id = JsonServerSyslog.getCurrentRpcInfo().getId();
 		if (id != null)
 			ret.put("id", id);
 		try {
 			ByteArrayOutputStream bais = new ByteArrayOutputStream();
 			mapper.writeValue(bais, ret);
 			bais.close();
-			byte[] bytes = bais.toByteArray();
-			String logMessage = new String(bytes);
-			sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), logMessage);
-			output.write(bytes);
+			//String logMessage = new String(bytes);
+			//sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), logMessage);
+			output.write(bais.toByteArray());
 			output.flush();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -525,37 +473,6 @@ public class JsonServerServlet extends HttpServlet {
 			if (isClosed)
 				return;
 			inner.write(b, off, len);
-		}
-	}
-	
-	public static class RpcInfo {
-		private String id;
-		private String module;
-		private String method;
-		private String user;
-		
-		private RpcInfo reset() {
-			id = null;
-			module = null;
-			method = null;
-			user = null;
-			return this;
-		}
-		
-		public String getId() {
-			return id;
-		}
-		
-		public String getModule() {
-			return module;
-		}
-		
-		public String getMethod() {
-			return method;
-		}
-		
-		public String getUser() {
-			return user;
 		}
 	}
 }

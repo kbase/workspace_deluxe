@@ -200,4 +200,9 @@ public class ObjectSaveData {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public java.lang.String toString() {
+        return ((((((((((((((((((("ObjectSaveData"+" [type=")+ type)+", data=")+ data)+", name=")+ name)+", objid=")+ objid)+", metadata=")+ metadata)+", provenance=")+ provenance)+", tver=")+ tver)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

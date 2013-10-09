@@ -292,4 +292,9 @@ public class ProvenanceAction {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", description=")+ description)+", inputWsObjects=")+ inputWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }

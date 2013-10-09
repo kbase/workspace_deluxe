@@ -99,4 +99,9 @@ public class SaveObjectsParams {
         this.additionalProperties.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return ((((((((("SaveObjectsParams"+" [workspace=")+ workspace)+", id=")+ id)+", objects=")+ objects)+", additionalProperties=")+ additionalProperties)+"]");
+    }
+
 }
