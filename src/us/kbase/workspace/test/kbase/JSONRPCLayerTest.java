@@ -123,7 +123,7 @@ public class JSONRPCLayerTest {
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server on port " + port);
 		System.out.println("Starting tests");
-		//TODO when the java client throws errors at the constructor, just do error checking there
+		//TODO WAIT DEP when the java client throws errors at the constructor, just do error checking there
 		//for now, do a separate auth step so tests can fail immediately
 		try {
 			AuthService.login(USER1, p1);
