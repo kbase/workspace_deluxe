@@ -160,6 +160,7 @@
       source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
+      <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/"/>
       <fileset refid="client-jdoc-files"/>
     </javadoc>
   </target>
