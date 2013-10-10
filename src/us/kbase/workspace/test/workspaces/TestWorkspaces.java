@@ -50,7 +50,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.test.TestException;
+import us.kbase.common.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
