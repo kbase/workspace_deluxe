@@ -90,7 +90,7 @@ public class ShockTests {
 			bsc1 = new BasicShockClient(url, t1);
 			bsc2 = new BasicShockClient(url, t2);
 		} catch (IOException ioe) {
-			throw new ShockTestException("Couldn't set up shock client: " +
+			throw new TestException("Couldn't set up shock client: " +
 					ioe.getLocalizedMessage());
 		}
 		bscNoAuth = new BasicShockClient(url);
