@@ -13,6 +13,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
+import us.kbase.common.service.UnauthorizedException;
 
 /**
  * <p>Original spec-file module name: Workspace</p>
@@ -50,19 +51,19 @@ public class WorkspaceClient {
         caller = new JsonClientCaller(url);
     }
 
-    public WorkspaceClient(URL url, AuthToken token) {
+    public WorkspaceClient(URL url, AuthToken token) throws UnauthorizedException, IOException {
         caller = new JsonClientCaller(url, token);
     }
 
-    public WorkspaceClient(URL url, String user, String password) {
+    public WorkspaceClient(URL url, String user, String password) throws UnauthorizedException, IOException {
         caller = new JsonClientCaller(url, user, password);
     }
 
-    public WorkspaceClient(AuthToken token) {
+    public WorkspaceClient(AuthToken token) throws UnauthorizedException, IOException {
         caller = new JsonClientCaller(DEFAULT_URL, token);
     }
 
-    public WorkspaceClient(String user, String password) {
+    public WorkspaceClient(String user, String password) throws UnauthorizedException, IOException {
         caller = new JsonClientCaller(DEFAULT_URL, user, password);
     }
 

@@ -22,14 +22,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
+import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
@@ -123,22 +122,18 @@ public class JSONRPCLayerTest {
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server on port " + port);
 		System.out.println("Starting tests");
-		//TODO WAIT DEP when the java client throws errors at the constructor, just do error checking there
-		//for now, do a separate auth step so tests can fail immediately
 		try {
-			AuthService.login(USER1, p1);
-		} catch (AuthException ae) {
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
-					"\nPlease check the credentials in the test configuration.", ae);
+					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			AuthService.login(USER2, p2);
-		} catch (AuthException ae) {
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
-					"\nPlease check the credentials in the test configuration.", ae);
+					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
-		CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
@@ -218,7 +213,7 @@ public class JSONRPCLayerTest {
 		try {
 			CLIENT_NO_AUTH.createWorkspace(new CreateWorkspaceParams().withWorkspace("noauth"));
 			fail("created workspace without auth");
-		} catch (IllegalStateException e) {
+		} catch (UnauthorizedException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("RPC method requires authentication but neither user nor token was set"));
 		}
