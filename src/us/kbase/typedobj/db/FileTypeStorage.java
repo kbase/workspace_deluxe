@@ -585,6 +585,8 @@ public class FileTypeStorage implements TypeStorage {
 		Map<String, Long> ret = new TreeMap<String, Long>();
 		for (File f1 : dbFolder.listFiles()) {
 			if (f1.isFile()) {
+				if (!f1.getName().endsWith(".json"))
+					continue;
 				try {
 					List<?> list = mapper.readValue(f1, List.class);
 					ret.put(f1.getName(), (long)list.size());
