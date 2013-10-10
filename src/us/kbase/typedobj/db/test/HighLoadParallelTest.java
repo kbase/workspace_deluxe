@@ -85,30 +85,23 @@ public class HighLoadParallelTest {
 		public void run() {
 			int lastObjectNum = 0;
 			try {
-				while (true) {
+				long time = System.currentTimeMillis();
+				for (int iter = 0; iter < 400; iter++) {
 					List<String> allModuleNames = db.getAllRegisteredModules();
 					for (String module : allModuleNames) {
-						try {
-							for (String type : db.getAllRegisteredTypes(module)) {
-								try {
-									TypeDefName tdn = new TypeDefName(module, type);
-									db.getJsonSchema(tdn);
-									db.getTypeParsingDocument(tdn);
-									db.getFuncRefsByRef(new TypeDefId(tdn));
-								} catch (NoSuchTypeException ex) {
-									System.err.println(ex.getMessage());
-								}
-							}
-							for (String func : db.getAllRegisteredFuncs(module)) {
-								try {
-									db.getFuncParsingDocument(module, func);
-									db.getFuncRefsByDep(module, func, db.getLatestFuncVersion(module, func));
-								} catch (NoSuchFuncException ex) {
-									System.err.println(ex.getMessage());
-								}
-							}
-						} catch (NoSuchModuleException ex) {
-							ex.printStackTrace();
+						for (String type : db.getAllRegisteredTypes(module)) {
+							try {
+								TypeDefName tdn = new TypeDefName(module, type);
+								db.getJsonSchema(tdn);
+								db.getTypeParsingDocument(tdn);
+								db.getFuncRefsByRef(new TypeDefId(tdn));
+							} catch (NoSuchTypeException ignore) {}
+						}
+						for (String func : db.getAllRegisteredFuncs(module)) {
+							try {
+								db.getFuncParsingDocument(module, func);
+								db.getFuncRefsByDep(module, func, db.getLatestFuncVersion(module, func));
+							} catch (NoSuchFuncException ignore) {}
 						}
 					}
 					String moduleName = allModuleNames.get(threadNum * modulePerThreadCount + 
@@ -232,8 +225,19 @@ public class HighLoadParallelTest {
 					db.registerModule(specSb.toString(), newTypes, adminUser);
 					db.releaseModule(moduleName, adminUser);
 					System.out.println("After change in module " + moduleName + ": " + getStorageObjects());
+					if ((iter + 1) % 100 == 0) {
+						long timeDiff = System.currentTimeMillis() - time;
+						long iterTime = timeDiff / (iter + 1);
+						System.err.println("O------------------------------------------------------------");
+						System.err.println("| Thread " + threadNum + ": iter=" + (iter + 1) + ", time=" + timeDiff + " ms.," +
+								" iterTime=" + iterTime + " ms.");
+						System.err.println("O------------------------------------------------------------");
+					}
 				}
 			} catch (Throwable ex) {
+				try {
+					Thread.sleep(20000);
+				} catch (InterruptedException ignore) {}
 				ex.printStackTrace();
 				System.exit(1);
 			}
