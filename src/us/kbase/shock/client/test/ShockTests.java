@@ -50,12 +50,6 @@ public class ShockTests {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		//TODO query server to determine whether unauthed read is allowed and modify tests appropriately
-		/*
-			If the Shock server is configured to allow anonymous read this query will not return an error:
-			http://<shockurl>:<shockAPIport>/node/
-			But, if anonymous read is turned off, this query will return the error: "No Authorization".
-		 */
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing shock clients pointed at: " + url);
@@ -78,17 +72,20 @@ public class ShockTests {
 			throw new TestException("Unable to login with test.user2: " + u2 +
 					"\nPlease check the credentials in the test configuration.", ae);
 		}
-		AuthToken t1;
+		AuthUser user1;
 		try {
-			t1 = AuthService.login(u1, p1).getToken();
+			user1 = AuthService.login(u1, p1);
 		} catch (AuthException ae) {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", ae);
 		}
-		AuthToken t2 = otherguy.getToken();
+		if (user1.getEmail().equals(otherguy.getEmail())) {
+			throw new TestException("The email addresses of test.user1 and " + 
+					"test.user2 are the same. Please provide test users with different email addresses.");
+		}
 		try {
-			bsc1 = new BasicShockClient(url, t1);
-			bsc2 = new BasicShockClient(url, t2);
+			bsc1 = new BasicShockClient(url, user1.getToken());
+			bsc2 = new BasicShockClient(url, otherguy.getToken());
 		} catch (IOException ioe) {
 			throw new TestException("Couldn't set up shock client: " +
 					ioe.getLocalizedMessage());
@@ -426,8 +423,9 @@ public class ShockTests {
 			sn.setReadable(noverifiedemail);
 			fail("set a node readable using an unverified email");
 		} catch (UnvalidatedEmailException uee) {
-			assertThat("wrong exception string for unverified email", uee.toString(),
-					is("us.kbase.shock.client.exceptions.UnvalidatedEmailException: User noemail's email address is not validated"));
+			assertThat("wrong exception string for unverified email", uee.getLocalizedMessage(),
+					is(String.format("User %s's email address is not validated",
+					noverifiedemail.getUserId())));
 		}
 		sn.setReadable(otherguy);
 		checkAuthAndDelete(sn, bsc2, 2);
@@ -440,8 +438,9 @@ public class ShockTests {
 			bsc1.setNodeReadable(sn.getId(), noverifiedemail);
 			fail("set a node readable using an unverified email");
 		} catch (UnvalidatedEmailException uee) {
-			assertThat("wrong exception string for unverified email", uee.toString(),
-					is("us.kbase.shock.client.exceptions.UnvalidatedEmailException: User noemail's email address is not validated"));
+			assertThat("wrong exception string for unverified email", uee.getLocalizedMessage(),
+					is(String.format("User %s's email address is not validated",
+					noverifiedemail.getUserId())));
 		}
 		bsc1.setNodeReadable(sn.getId(), otherguy);
 		checkAuthAndDelete(sn, bsc2, 2);
