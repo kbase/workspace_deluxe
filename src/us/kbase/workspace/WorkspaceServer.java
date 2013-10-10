@@ -10,7 +10,7 @@ import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
 
 //BEGIN_HEADER
-import static us.kbase.workspace.kbase.ArgUtils.checkAddlArgs;
+import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;

@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.util.Util.xorNameId;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ public class KBaseIdentifierFactory {
 
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
-		ArgUtils.checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
+		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
 	}
 	
@@ -86,7 +87,7 @@ public class KBaseIdentifierFactory {
 	
 	public static ObjectIdentifier processObjectIdentifier(
 			final ObjectIdentity oi) {
-		ArgUtils.checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
+		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			verifyRefOnly(oi);
 			final String ref = oi.getRef();
