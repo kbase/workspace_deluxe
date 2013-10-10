@@ -1,6 +1,6 @@
 package us.kbase.typedobj.core;
 
-import static us.kbase.typedobj.util.TypeUtils.checkString;
+import static us.kbase.common.utils.StringUtils.checkString;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

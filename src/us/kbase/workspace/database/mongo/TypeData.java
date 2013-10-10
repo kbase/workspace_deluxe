@@ -1,6 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.typedobj.util.TypeUtils.checkString;
+import static us.kbase.common.utils.StringUtils.checkString;
 
 import java.util.ArrayList;
 import java.util.List;
