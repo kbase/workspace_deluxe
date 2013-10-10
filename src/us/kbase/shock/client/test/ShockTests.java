@@ -296,6 +296,7 @@ public class ShockTests {
 			assertThat("no file exc string incorrect", snfe.toString(), 
 					is("us.kbase.shock.client.exceptions.ShockNoFileException: 400 Node has no file"));
 		}
+		sn.delete();
 	}
 	
 	@Test

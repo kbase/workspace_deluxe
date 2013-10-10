@@ -22,6 +22,7 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
@@ -66,7 +67,7 @@ public class ShockBackend implements BlobStore {
 	
 	private AuthToken getToken() throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		AuthUser u = null;
+		final AuthUser u;
 		try {
 			u = AuthService.login(user, password);
 		} catch (AuthException ae) {
@@ -105,7 +106,7 @@ public class ShockBackend implements BlobStore {
 			//go ahead, need to save
 		}
 		checkAuth();
-		ShockNode sn = null;
+		final ShockNode sn;
 		try {
 			sn = client.addNode(data.getBytes(), "workspace_" + md5.getMD5());
 		} catch (TokenExpiredException ete) {
@@ -145,7 +146,7 @@ public class ShockBackend implements BlobStore {
 			BlobStoreCommunicationException, NoSuchBlobException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
-		DBObject ret;
+		final DBObject ret;
 		try {
 			ret = mongoCol.findOne(query);
 		} catch (MongoException me) {
@@ -165,7 +166,7 @@ public class ShockBackend implements BlobStore {
 		checkAuth();
 		final String node = getNode(md5);
 		
-		String ret = null;
+		final String ret;
 		try {
 			ret = new String(client.getFile(new ShockNodeId(node)));
 		} catch (TokenExpiredException ete) {
@@ -186,7 +187,7 @@ public class ShockBackend implements BlobStore {
 	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		checkAuth();
-		String node;
+		final String node;
 		try {
 			node = getNode(md5);
 		} catch (NoSuchBlobException nb) {
@@ -211,6 +212,24 @@ public class ShockBackend implements BlobStore {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		mongoCol.remove(query);
+	}
+	
+	/**
+	 * this is for testing purposes only - leave Shock in the state we found it
+	 */
+	public void removeAllBlobs() throws BlobStoreCommunicationException,
+			BlobStoreAuthorizationException {
+		final DBCursor ret;
+		try {
+			ret = mongoCol.find();
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not read from the mongo database", me);
+		}
+		for (final DBObject o: ret) {
+			removeBlob(new MD5((String) o.get(Fields.SHOCK_CHKSUM)));
+		}
+		
 	}
 
 	@Override

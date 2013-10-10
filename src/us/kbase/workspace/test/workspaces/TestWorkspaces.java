@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.StringReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,6 +24,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
 
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
@@ -45,6 +48,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -55,7 +59,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
-//TODO remove all created shock nodes
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -64,6 +67,8 @@ public class TestWorkspaces {
 	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
+	
+	public static ShockBackend sbe;
 	
 	public static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	public static final WorkspaceUser AUSER = new WorkspaceUser("a");
@@ -80,13 +85,19 @@ public class TestWorkspaces {
 		});
 	}
 	
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+		System.out.println("deleting all shock nodes");
+		sbe.removeAllBlobs();
+	}
+	
 	public final Workspaces ws;
 	
 	public static void setUpWorkspaces() throws Exception {
 		String shockuser = System.getProperty("test.user.noemail");
 		String shockpwd = System.getProperty("test.pwd.noemail");
 		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
-		WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
+		DB data2 = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
@@ -106,7 +117,8 @@ public class TestWorkspaces {
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
 		TEST_WORKSPACES[1] = new Workspaces(shock);
 		assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
-		
+		sbe = new ShockBackend(data2.getCollection("shockData"),
+				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
 		for (int i = 0; i < 17; i++) {
 			LONG_TEXT += LONG_TEXT_PART;
 		}
