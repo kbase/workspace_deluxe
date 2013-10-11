@@ -36,6 +36,7 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.FuncInfo;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SemanticVersion;
 import us.kbase.typedobj.db.TypeChange;
@@ -60,13 +61,14 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				test.testSimple();
+				//test.testSimple();
 				//test.testDescr();
 				//test.testBackward();
 				//test.testRollback();
 				//test.testRestrict();
 				//test.testIndeces();
-				test.testMD5();
+				//test.testMD5();
+				test.testRegistration();
 			} finally {
 				test.cleanupAfter();
 			}
@@ -354,6 +356,22 @@ public class TypeRegisteringTest {
 				(long)db.findModuleVersionByMD5("Common", common3hash));
 	}
 	
+	@Test
+	public void testRegistration() throws Exception {
+		for (int item = 0; item < 2; item++) {
+			db.requestModuleRegistration("NewModule", adminUser);
+			List<OwnerInfo> list = db.getNewModuleRegistrationRequests(adminUser);
+			Assert.assertEquals(1, list.size());
+			Assert.assertEquals("NewModule", list.get(0).getModuleName());
+			if (item == 0) {
+				db.refuseModuleRegistrationRequest(adminUser, "NewModule");
+			} else {
+				db.approveModuleRegistrationRequest(adminUser, "NewModule");
+			}
+			Assert.assertEquals(0, db.getNewModuleRegistrationRequests(adminUser).size());
+		}		
+	}
+	
 	private Map<String, Long> restrict(Object... params) {
 		Map<String, Long> restrictions = new HashMap<String, Long>();
 		for (int i = 0; i < params.length / 2; i++) {
@@ -412,7 +430,7 @@ public class TypeRegisteringTest {
 
 	private void initModule(String moduleName, String user) throws Exception {
 		db.requestModuleRegistration(moduleName, user);
-		db.approveModuleRegistrationRequest(adminUser, moduleName, user);
+		db.approveModuleRegistrationRequest(adminUser, moduleName);
 	}
 	
 	private void releaseModule(String module, String user) throws Exception {

@@ -27,7 +27,9 @@ public interface TypeStorage {
 	public List<String> getAllRegisteredModules() throws TypeStorageException;
 
 	public List<OwnerInfo> getNewModuleRegistrationRequests() throws TypeStorageException;
-	
+
+	public String getOwnerForNewModuleRegistrationRequest(String moduleName) throws TypeStorageException;
+
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName) throws TypeStorageException;
 
 	public boolean checkTypeSchemaRecordExists(String moduleName, String typeName, String version) throws TypeStorageException;

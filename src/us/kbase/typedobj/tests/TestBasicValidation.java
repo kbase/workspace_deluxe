@@ -165,7 +165,7 @@ public class TestBasicValidation {
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
-		db.approveModuleRegistrationRequest(username, "KB", username);
+		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
 		for(String typename : kb_types) {
 			db.releaseType(new TypeDefName("KB." + typename), username);
@@ -173,7 +173,7 @@ public class TestBasicValidation {
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
-		db.approveModuleRegistrationRequest(username, "FBA", username);
+		db.approveModuleRegistrationRequest(username, "FBA");
 		db.registerModule(fbaSpec ,fba_types, username);
 		for(String typename : fba_types) {
 			db.releaseType(new TypeDefName("FBA." + typename), username);

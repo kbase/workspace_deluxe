@@ -54,7 +54,7 @@ public class HighLoadParallelTest {
 			String moduleName = "TestModule" + (i + 1);
 			String specDocument = "module " + moduleName + "{\n};\n";
 			db.requestModuleRegistration(moduleName, adminUser);
-			db.approveModuleRegistrationRequest(adminUser, moduleName, adminUser);
+			db.approveModuleRegistrationRequest(adminUser, moduleName);
 			db.registerModule(specDocument, adminUser);
 		}
 		for (int i = 0; i < threadCount; i++) {

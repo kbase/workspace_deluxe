@@ -97,6 +97,12 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public void addNewModuleRegistrationRequest(String moduleName, String userId)
 			throws TypeStorageException {
+		for (OwnerInfo oi : requests) {
+			if (oi.getModuleName().equals(moduleName))
+				throw new TypeStorageException("Registration of module " + moduleName + " was already requested");
+		}
+		if (checkModuleExist(moduleName))
+			throw new TypeStorageException("Module " + moduleName + " was already registered");
 		OwnerInfo oi = new OwnerInfo();
 		oi.setOwnerUserId(userId);
 		oi.setWithChangeOwnersPrivilege(true);
@@ -120,6 +126,15 @@ public class FileTypeStorage implements TypeStorage {
 	public List<OwnerInfo> getNewModuleRegistrationRequests()
 			throws TypeStorageException {
 		return copy(requests);
+	}
+	
+	@Override
+	public String getOwnerForNewModuleRegistrationRequest(String moduleName)
+			throws TypeStorageException {
+		for (OwnerInfo oi : requests)
+			if (oi.getModuleName().equals(moduleName))
+				return oi.getOwnerUserId();
+		throw new TypeStorageException("There is no request for module " + moduleName);
 	}
 	
 	@Override

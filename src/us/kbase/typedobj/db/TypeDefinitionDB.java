@@ -171,6 +171,10 @@ public class TypeDefinitionDB {
 	private void requestReadLock(String moduleName) throws NoSuchModuleException, TypeStorageException {
 		if (!storage.checkModuleExist(moduleName))
 			throw new NoSuchModuleException(moduleName);
+		requestReadLockNM(moduleName);
+	}
+		
+	private void requestReadLockNM(String moduleName) throws TypeStorageException {
 		int lrl = getLocalReadLocks(moduleName);
 		if (lrl == 0) {
 			final ModuleState ms = getModuleState(moduleName);
@@ -1248,18 +1252,18 @@ public class TypeDefinitionDB {
 	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
-		if (storage.checkModuleExist(moduleName))
-			throw new TypeStorageException("Module " + moduleName + " was already registered");
-		storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
+		requestReadLockNM(moduleName);
+		try {
+			storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
+		} finally {
+			releaseReadLock(moduleName);
+		}
 	}
 	
-	public OwnerInfo getNextNewModuleRegistrationRequest(String adminUserId) 
+	public List<OwnerInfo> getNewModuleRegistrationRequests(String adminUserId) 
 			throws NoSuchPrivilegeException, TypeStorageException {
 		checkAdmin(adminUserId);
-		List<OwnerInfo> list = storage.getNewModuleRegistrationRequests();
-		if (list.size() == 0)
-			return null;
-		return list.get(0);
+		return storage.getNewModuleRegistrationRequests();
 	}
 
 	private void checkAdmin(String adminUserId)
@@ -1268,11 +1272,12 @@ public class TypeDefinitionDB {
 			throw new NoSuchPrivilegeException("User " + adminUserId + " should be administrator");
 	}
 	
-	public void approveModuleRegistrationRequest(String adminUserId, String newModuleName, 
-			String newOwnerUserId) throws TypeStorageException, NoSuchPrivilegeException {
+	public void approveModuleRegistrationRequest(String adminUserId, String newModuleName) 
+			throws TypeStorageException, NoSuchPrivilegeException {
 		checkAdmin(adminUserId);
 		requestWriteLock(newModuleName);
 		try {
+			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
 			autoGenerateModuleInfo(newModuleName, newOwnerUserId);
 			storage.removeNewModuleRegistrationRequest(newModuleName, newOwnerUserId);
 			// TODO: send notification to e-mail of requesting user
@@ -1280,7 +1285,20 @@ public class TypeDefinitionDB {
 			releaseWriteLock(newModuleName);
 		}
 	}
-	
+
+	public void refuseModuleRegistrationRequest(String adminUserId, String newModuleName) 
+			throws TypeStorageException, NoSuchPrivilegeException {
+		checkAdmin(adminUserId);
+		requestWriteLock(newModuleName);
+		try {
+			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
+			storage.removeNewModuleRegistrationRequest(newModuleName, newOwnerUserId);
+			// TODO: send notification to e-mail of requesting user
+		} finally {
+			releaseWriteLock(newModuleName);
+		}
+	}
+
 	private void autoGenerateModuleInfo(String moduleName, String ownerUserId) throws TypeStorageException {
 		if (storage.checkModuleExist(moduleName))
 			throw new IllegalStateException("Module " + moduleName + " was already registered");

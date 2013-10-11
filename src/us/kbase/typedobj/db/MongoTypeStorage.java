@@ -424,11 +424,23 @@ public class MongoTypeStorage implements TypeStorage {
 					"of requests: " + MAX_REQUESTS_BY_USER);
 		if (recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class) != null)
 			throw new TypeStorageException("Registration of module " + moduleName + " was already requested");
+		if (checkModuleExist(moduleName))
+			throw new TypeStorageException("Module " + moduleName + " was already registered");
 		OwnerInfo rec = new OwnerInfo();
 		rec.setOwnerUserId(userId);
 		rec.setWithChangeOwnersPrivilege(true);
 		rec.setModuleName(moduleName);
 		recs.insert(rec);
+	}
+	
+	@Override
+	public String getOwnerForNewModuleRegistrationRequest(String moduleName)
+			throws TypeStorageException {
+		MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
+		OwnerInfo ret = recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class);
+		if (ret == null)
+			throw new TypeStorageException("There is no request for module " + moduleName);
+		return ret.getOwnerUserId();
 	}
 	
 	@Override
