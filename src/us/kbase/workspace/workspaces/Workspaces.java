@@ -315,6 +315,7 @@ public class Workspaces {
 	
 	//TODO list module names / by owner / with versions
 	//TODO list module types by module & version
+	//TODO specify temp directory for spec compilation
 	
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {

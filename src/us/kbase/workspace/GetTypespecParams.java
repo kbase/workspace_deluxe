@@ -35,7 +35,7 @@ public class GetTypespecParams {
     @JsonProperty("mod")
     private String mod;
     @JsonProperty("ver")
-    private Integer ver;
+    private String ver;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("mod")
@@ -54,16 +54,16 @@ public class GetTypespecParams {
     }
 
     @JsonProperty("ver")
-    public Integer getVer() {
+    public String getVer() {
         return ver;
     }
 
     @JsonProperty("ver")
-    public void setVer(Integer ver) {
+    public void setVer(String ver) {
         this.ver = ver;
     }
 
-    public GetTypespecParams withVer(Integer ver) {
+    public GetTypespecParams withVer(String ver) {
         this.ver = ver;
         return this;
     }
