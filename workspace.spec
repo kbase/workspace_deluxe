@@ -457,14 +457,14 @@ module Workspace {
 	authentication required;
 	
 	/* Request ownership of a module name. */
-	funcdef request_module_ownership(modulename module) returns();
+	funcdef request_module_ownership(modulename mod) returns();
 	
 	/* Parameters for the compile_typespec function.
 	
 		Required parameters:
 		One of:
 		typespec spec - the new typespec to compile.
-		modulename module - the module to recompile.
+		modulename mod - the module to recompile.
 		
 		Optional parameters:
 		boolean dryrun - Return, but do not save, the results of compiling the 
@@ -483,7 +483,7 @@ module Workspace {
 	*/
 	typedef structure {
 		typespec spec;
-		modulename module;
+		modulename mod;
 		list<typename> new_types;
 		list<typename> remove_types;
 		mapping<modulename, spec_version> dependencies;
@@ -497,18 +497,21 @@ module Workspace {
 	/* Parameters for the get_typespec function.
 	
 		Required parameters:
-		modulename module - the name of the module to retrieve.
+		modulename mod - the name of the module to retrieve.
 		
 		Optional parameters:
 		spec_version ver - the version of the module to retrieve. Defaults to
 			the latest version.
 	*/
-	typdef structure {
-		moudlename module;
+	typedef structure {
+		modulename mod;
 		spec_version ver;
 	} GetTypespecParams;
 	
-	authentication optional;
+	authentication none;
+	
+	/* List all typespec modules. */
+	funcdef list_modules() returns(list<modulename> modules);
 	
 	/* Get a typespec. */
 	funcdef get_typespec(GetTypespecParams params) returns(typespec spec);

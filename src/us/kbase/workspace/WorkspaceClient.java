@@ -13,6 +13,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
+import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 
 /**
@@ -81,7 +82,7 @@ public class WorkspaceClient {
      * Creates a new workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams}
-     * @return   parameter "metadata" of original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 6: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" is acceptable.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time, e.g. 2012-12-17T23:24:06.), parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
+     * @return   parameter "metadata" of original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 6: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" is acceptable.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -99,7 +100,7 @@ public class WorkspaceClient {
      * Get a workspace's metadata.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @return   parameter "meta" of original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 6: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" is acceptable.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time, e.g. 2012-12-17T23:24:06.), parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
+     * @return   parameter "meta" of original type "workspace_metadata" (Meta data associated with a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 6: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" is acceptable.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -170,7 +171,7 @@ public class WorkspaceClient {
      * it.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams}
-     * @return   parameter "meta" of list of original type "object_metadata" (Metadata associated with an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 9: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time, e.g. 2012-12-17T23:24:06.), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer
+     * @return   parameter "meta" of list of original type "object_metadata" (Metadata associated with an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 9: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -206,7 +207,7 @@ public class WorkspaceClient {
      * Get object metadata from the workspace.
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
-     * @return   parameter "meta" of list of original type "object_metadata_full" (Metadata associated with an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta metadata - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time, e.g. 2012-12-17T23:24:06.), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "meta" of list of original type "object_metadata_full" (Metadata associated with an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta metadata - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -233,7 +234,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, false);
+        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, true);
     }
 
     /**
@@ -251,7 +252,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, false);
+        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, true);
     }
 
     /**
@@ -267,7 +268,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, false);
+        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, true);
     }
 
     /**
@@ -285,6 +286,110 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, false);
+        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: request_module_ownership</p>
+     * <pre>
+     * Request ownership of a module name.
+     * </pre>
+     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void requestModuleOwnership(String mod) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(mod);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.request_module_ownership", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: compile_typespec</p>
+     * <pre>
+     * Compile a new typespec or recompile an existing typespec.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.CompileTypespecParams CompileTypespecParams}
+     * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.) to original type "jsonschema" (The JSON Schema for a type.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public Map<String,String> compileTypespec(CompileTypespecParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.compile_typespec", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: list_modules</p>
+     * <pre>
+     * List all typespec modules.
+     * </pre>
+     * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<String> listModules() throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
+        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_typespec</p>
+     * <pre>
+     * Get a typespec.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetTypespecParams GetTypespecParams}
+     * @return   parameter "spec" of original type "typespec" (A KBase Interface Definition Language (KIDL) typespec.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public String getTypespec(GetTypespecParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
+        List<String> res = caller.jsonrpcCall("Workspace.get_typespec", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_jsonschema</p>
+     * <pre>
+     * Get JSON schema for a type.
+     * </pre>
+     * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.)
+     * @return   parameter "schema" of original type "jsonschema" (The JSON Schema for a type.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public String getJsonschema(String type) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(type);
+        TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
+        List<String> res = caller.jsonrpcCall("Workspace.get_jsonschema", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: administer</p>
+     * <pre>
+     * The administration interface.
+     * </pre>
+     * @param   command   instance of unspecified object
+     * @return   parameter "response" of unspecified object
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public UObject administer(UObject command) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(command);
+        TypeReference<List<UObject>> retType = new TypeReference<List<UObject>>() {};
+        List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true);
+        return res.get(0);
     }
 }

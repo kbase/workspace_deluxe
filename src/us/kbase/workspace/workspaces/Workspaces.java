@@ -377,4 +377,8 @@ public class Workspaces {
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		return typedb.getJsonSchemaDocument(type);
 	}
+	
+	public List<String> listModules() throws TypeStorageException {
+		return typedb.getAllRegisteredModules();
+	}
 }

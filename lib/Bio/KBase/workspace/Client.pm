@@ -1118,7 +1118,7 @@ sub delete_objects
 {
     my($self, @args) = @_;
 
-# Authentication: optional
+# Authentication: required
 
     if ((my $n = @args) != 1)
     {
@@ -1224,7 +1224,7 @@ sub undelete_objects
 {
     my($self, @args) = @_;
 
-# Authentication: optional
+# Authentication: required
 
     if ((my $n = @args) != 1)
     {
@@ -1303,7 +1303,6 @@ ws_id is an int
 =item Description
 
 Delete a workspace. All objects contained in the workspace are deleted.
-Running this command on a deleted workspace has no effect.
 
 =back
 
@@ -1313,7 +1312,7 @@ sub delete_workspace
 {
     my($self, @args) = @_;
 
-# Authentication: optional
+# Authentication: required
 
     if ((my $n = @args) != 1)
     {
@@ -1393,8 +1392,7 @@ ws_id is an int
 
 Undelete a workspace. All objects contained in the workspace are
 undeleted, regardless of their state at the time the workspace was
-deleted. Running this command on a workspace that is not deleted has
-no effect.
+deleted.
 
 =back
 
@@ -1404,7 +1402,7 @@ sub undelete_workspace
 {
     my($self, @args) = @_;
 
-# Authentication: optional
+# Authentication: required
 
     if ((my $n = @args) != 1)
     {
@@ -1446,6 +1444,519 @@ sub undelete_workspace
 
 
 
+=head2 request_module_ownership
+
+  $obj->request_module_ownership($mod)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$mod is a Workspace.modulename
+modulename is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$mod is a Workspace.modulename
+modulename is a string
+
+
+=end text
+
+=item Description
+
+Request ownership of a module name.
+
+=back
+
+=cut
+
+sub request_module_ownership
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function request_module_ownership (received $n, expecting 1)");
+    }
+    {
+	my($mod) = @args;
+
+	my @_bad_arguments;
+        (!ref($mod)) or push(@_bad_arguments, "Invalid type for argument 1 \"mod\" (value was \"$mod\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to request_module_ownership:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'request_module_ownership');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.request_module_ownership",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'request_module_ownership',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method request_module_ownership",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'request_module_ownership',
+				       );
+    }
+}
+
+
+
+=head2 compile_typespec
+
+  $return = $obj->compile_typespec($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.CompileTypespecParams
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+CompileTypespecParams is a reference to a hash where the following keys are defined:
+	spec has a value which is a Workspace.typespec
+	mod has a value which is a Workspace.modulename
+	new_types has a value which is a reference to a list where each element is a Workspace.typename
+	remove_types has a value which is a reference to a list where each element is a Workspace.typename
+	dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+	dryrun has a value which is a Workspace.boolean
+typespec is a string
+modulename is a string
+typename is a string
+spec_version is an int
+boolean is an int
+type_string is a string
+jsonschema is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.CompileTypespecParams
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+CompileTypespecParams is a reference to a hash where the following keys are defined:
+	spec has a value which is a Workspace.typespec
+	mod has a value which is a Workspace.modulename
+	new_types has a value which is a reference to a list where each element is a Workspace.typename
+	remove_types has a value which is a reference to a list where each element is a Workspace.typename
+	dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+	dryrun has a value which is a Workspace.boolean
+typespec is a string
+modulename is a string
+typename is a string
+spec_version is an int
+boolean is an int
+type_string is a string
+jsonschema is a string
+
+
+=end text
+
+=item Description
+
+Compile a new typespec or recompile an existing typespec.
+
+=back
+
+=cut
+
+sub compile_typespec
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function compile_typespec (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to compile_typespec:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'compile_typespec');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.compile_typespec",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'compile_typespec',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method compile_typespec",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'compile_typespec',
+				       );
+    }
+}
+
+
+
+=head2 list_modules
+
+  $modules = $obj->list_modules()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$modules is a reference to a list where each element is a Workspace.modulename
+modulename is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$modules is a reference to a list where each element is a Workspace.modulename
+modulename is a string
+
+
+=end text
+
+=item Description
+
+List all typespec modules.
+
+=back
+
+=cut
+
+sub list_modules
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_modules (received $n, expecting 0)");
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_modules",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_modules',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_modules",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_modules',
+				       );
+    }
+}
+
+
+
+=head2 get_typespec
+
+  $spec = $obj->get_typespec($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.GetTypespecParams
+$spec is a Workspace.typespec
+GetTypespecParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	ver has a value which is a Workspace.spec_version
+modulename is a string
+spec_version is an int
+typespec is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.GetTypespecParams
+$spec is a Workspace.typespec
+GetTypespecParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	ver has a value which is a Workspace.spec_version
+modulename is a string
+spec_version is an int
+typespec is a string
+
+
+=end text
+
+=item Description
+
+Get a typespec.
+
+=back
+
+=cut
+
+sub get_typespec
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_typespec (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_typespec:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_typespec');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_typespec",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_typespec',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_typespec",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_typespec',
+				       );
+    }
+}
+
+
+
+=head2 get_jsonschema
+
+  $schema = $obj->get_jsonschema($type)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$type is a Workspace.type_string
+$schema is a Workspace.jsonschema
+type_string is a string
+jsonschema is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$type is a Workspace.type_string
+$schema is a Workspace.jsonschema
+type_string is a string
+jsonschema is a string
+
+
+=end text
+
+=item Description
+
+Get JSON schema for a type.
+
+=back
+
+=cut
+
+sub get_jsonschema
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_jsonschema (received $n, expecting 1)");
+    }
+    {
+	my($type) = @args;
+
+	my @_bad_arguments;
+        (!ref($type)) or push(@_bad_arguments, "Invalid type for argument 1 \"type\" (value was \"$type\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_jsonschema:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_jsonschema');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_jsonschema",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_jsonschema',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_jsonschema",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_jsonschema',
+				       );
+    }
+}
+
+
+
+=head2 administer
+
+  $response = $obj->administer($command)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$command is an UnspecifiedObject, which can hold any non-null object
+$response is an UnspecifiedObject, which can hold any non-null object
+
+</pre>
+
+=end html
+
+=begin text
+
+$command is an UnspecifiedObject, which can hold any non-null object
+$response is an UnspecifiedObject, which can hold any non-null object
+
+
+=end text
+
+=item Description
+
+The administration interface.
+
+=back
+
+=cut
+
+sub administer
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function administer (received $n, expecting 1)");
+    }
+    {
+	my($command) = @args;
+
+	my @_bad_arguments;
+        (defined $command) or push(@_bad_arguments, "Invalid type for argument 1 \"command\" (value was \"$command\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to administer:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'administer');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.administer",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'administer',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method administer",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'administer',
+				       );
+    }
+}
+
+
+
 sub version {
     my ($self) = @_;
     my $result = $self->{client}->call($self->{url}, {
@@ -1457,16 +1968,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'undelete_workspace',
+                method_name => 'administer',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method undelete_workspace",
+            error => "Error invoking method administer",
             status_line => $self->{client}->status_line,
-            method_name => 'undelete_workspace',
+            method_name => 'administer',
         );
     }
 }
@@ -1672,7 +2183,10 @@ a string
 
 =item Description
 
-A time, e.g. 2012-12-17T23:24:06.
+A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference
+in time to UTC in the format +/-HHMM, eg:
+        2012-12-17T23:24:06-5000 (EST time)
+        2013-04-03T08:56:32+0000 (UTC time)
 
 
 =item Definition
@@ -2596,6 +3110,270 @@ meta has a value which is a Workspace.object_metadata_full
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 meta has a value which is a Workspace.object_metadata_full
+
+
+=end text
+
+=back
+
+
+
+=head2 typespec
+
+=over 4
+
+
+
+=item Description
+
+A KBase Interface Definition Language (KIDL) typespec.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 modulename
+
+=over 4
+
+
+
+=item Description
+
+The module name of a KIDL typespec.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 typename
+
+=over 4
+
+
+
+=item Description
+
+The name of a type in a KIDL typespec module.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 spec_version
+
+=over 4
+
+
+
+=item Description
+
+The version of a typespec.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+an int
+</pre>
+
+=end html
+
+=begin text
+
+an int
+
+=end text
+
+=back
+
+
+
+=head2 jsonschema
+
+=over 4
+
+
+
+=item Description
+
+The JSON Schema for a type.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 CompileTypespecParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the compile_typespec function.
+
+        Required parameters:
+        One of:
+        typespec spec - the new typespec to compile.
+        modulename mod - the module to recompile.
+        
+        Optional parameters:
+        boolean dryrun - Return, but do not save, the results of compiling the 
+                spec. Default true. Set to false for making permanent changes.
+        list<typename> new_types - types in the spec to make available in the
+                workspace service. When compiling a spec for the first time, if
+                this argument is empty no types will be made available. Previously
+                available types remain so upon recompilation of a spec or
+                compilation of a new spec.
+        list<typename> remove_types - no longer make these types available in
+                the workspace service for the new version of the spec. This does
+                not remove versions of types previously compiled.
+        mapping<modulename, spec_version> dependencies - By default, the
+                latest versions of spec dependencies will be included when
+                compiling a spec. Specific versions can be specified here.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+spec has a value which is a Workspace.typespec
+mod has a value which is a Workspace.modulename
+new_types has a value which is a reference to a list where each element is a Workspace.typename
+remove_types has a value which is a reference to a list where each element is a Workspace.typename
+dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+dryrun has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+spec has a value which is a Workspace.typespec
+mod has a value which is a Workspace.modulename
+new_types has a value which is a reference to a list where each element is a Workspace.typename
+remove_types has a value which is a reference to a list where each element is a Workspace.typename
+dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+dryrun has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetTypespecParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the get_typespec function.
+
+        Required parameters:
+        modulename mod - the name of the module to retrieve.
+        
+        Optional parameters:
+        spec_version ver - the version of the module to retrieve. Defaults to
+                the latest version.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+ver has a value which is a Workspace.spec_version
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+ver has a value which is a Workspace.spec_version
 
 
 =end text
