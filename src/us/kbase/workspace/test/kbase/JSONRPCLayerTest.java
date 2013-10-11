@@ -60,7 +60,10 @@ public class JSONRPCLayerTest {
 	private static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	private static SimpleDateFormat DATE_FORMAT =
-			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+	static {
+		DATE_FORMAT.setLenient(false);
+	}
 	
 	private static class ServerThread extends Thread {
 		
