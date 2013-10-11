@@ -55,7 +55,9 @@ public class TypedObjExample1 {
 		// SET KB_TOP in environment before running this; delete the files in the db dir if you want to recreate the db
 		String username = "wstester1";
 		if(allModules.isEmpty()) {
+			db.requestModuleRegistration("KB", username);
 			db.approveModuleRegistrationRequest(username, "KB");
+			db.requestModuleRegistration("FBA", username);
 			db.approveModuleRegistrationRequest(username, "FBA");
 			String kbSpec = loadResourceFile("../tests/files/t3/KB.spec");
 			db.registerModule(kbSpec, Arrays.asList("Feature","Genome"), username);

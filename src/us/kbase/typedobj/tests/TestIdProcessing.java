@@ -164,6 +164,7 @@ public class TestIdProcessing {
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
+		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
 		for(String typename : kb_types) {
@@ -172,6 +173,7 @@ public class TestIdProcessing {
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
+		db.requestModuleRegistration("FBA", username);
 		db.approveModuleRegistrationRequest(username, "FBA");
 		db.registerModule(fbaSpec ,fba_types, username);
 		for(String typename : fba_types) {
