@@ -140,7 +140,7 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
 			throws TypeStorageException {
-		Map<String, OwnerInfo> ret = new HashMap<String, OwnerInfo>();
+		Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 		for (OwnerInfo oi : owners) {
 			if (oi.getModuleName().equals(moduleName))
 				ret.put(oi.getOwnerUserId(), copy(oi));
@@ -148,6 +148,17 @@ public class FileTypeStorage implements TypeStorage {
 		return ret;
 	}
 	
+	@Override
+	public Map<String, OwnerInfo> getModulesForOwner(String userId)
+			throws TypeStorageException {
+		Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
+		for (OwnerInfo oi : owners) {
+			if (oi.getOwnerUserId().equals(userId))
+				ret.put(oi.getModuleName(), copy(oi));
+		}
+		return ret;
+	}
+
 	@Override
 	public void removeNewModuleRegistrationRequest(String moduleName,
 			String userId) throws TypeStorageException {

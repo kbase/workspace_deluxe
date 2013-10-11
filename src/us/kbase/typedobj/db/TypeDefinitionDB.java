@@ -1532,7 +1532,7 @@ public class TypeDefinitionDB {
 									notBackwardCompatible, dependencies));
 							TypeDefName typeDefName = new TypeDefName(info.getModuleName(), type.getName());
 							SemanticVersion newVer = getIncrementedVersion(info, type.getName(), notBackwardCompatible);
-							ret.put(typeDefName, new TypeChange(false, new TypeDefId(typeDefName, newVer.getMajor(), 
+							ret.put(typeDefName, new TypeChange(false, new AbsoluteTypeDefId(typeDefName, newVer.getMajor(), 
 									newVer.getMinor()), jsonSchemaDocument));
 						}
 					} else if (comp instanceof KbFuncdef) {
@@ -1895,6 +1895,10 @@ public class TypeDefinitionDB {
 		}
 	}
 
+	public List<String> getModulesByOwner(String userId) throws TypeStorageException {
+		return new ArrayList<String>(storage.getModulesForOwner(userId).keySet());
+	}
+	
 	private static class ComponentChange {
 		boolean isType;
 		boolean isDeletion;

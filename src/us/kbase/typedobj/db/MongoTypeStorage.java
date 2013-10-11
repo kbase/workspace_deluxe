@@ -40,12 +40,13 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void ensureIndeces() {
 		MongoCollection reqs = jdb.getCollection(TABLE_MODULE_REQUEST);
-		reqs.ensureIndex("{moduleName:1}", "{unique:false}");
+		reqs.ensureIndex("{moduleName:1,ownerUserId:1}", "{unique:true}");
 		reqs.ensureIndex("{ownerUserId:1}", "{unique:false}");
 		MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
 		vers.ensureIndex("{moduleName:1}", "{unique:true}");
 		MongoCollection owns = jdb.getCollection(TABLE_MODULE_OWNER);
 		owns.ensureIndex("{moduleName:1,ownerUserId:1}", "{unique:true}");
+		owns.ensureIndex("{ownerUserId:1}", "{unique:false}");
 		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
 		infos.ensureIndex("{moduleName:1,versionTime:1}", "{unique:true}");
 		MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
@@ -549,7 +550,7 @@ public class MongoTypeStorage implements TypeStorage {
 		try {
 			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
 			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{moduleName:#}", moduleName).as(OwnerInfo.class));
-			Map<String, OwnerInfo> ret = new HashMap<String, OwnerInfo>();
+			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getOwnerUserId(), oi);
 			return ret;
@@ -557,7 +558,22 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
+	@Override
+	public Map<String, OwnerInfo> getModulesForOwner(String userId)
+			throws TypeStorageException {
+		try {
+			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
+			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{ownerUserId:#}", userId).as(OwnerInfo.class));
+			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
+			for (OwnerInfo oi : owners)
+				ret.put(oi.getModuleName(), oi);
+			return ret;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+
 	@Override
 	public void removeNewModuleRegistrationRequest(String moduleName,
 			String userId) throws TypeStorageException {

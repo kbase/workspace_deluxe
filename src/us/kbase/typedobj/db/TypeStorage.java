@@ -50,6 +50,8 @@ public interface TypeStorage {
 
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
 	
+	public Map<String, OwnerInfo> getModulesForOwner(String userId) throws TypeStorageException;
+
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
 	public void writeTypeSchemaRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;

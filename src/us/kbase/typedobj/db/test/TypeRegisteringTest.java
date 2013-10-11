@@ -138,6 +138,7 @@ public class TypeRegisteringTest {
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
 		releaseModule("Taxonomy", user);
+		Assert.assertEquals("Taxonomy", db.getModulesByOwner(user).get(0));
 		Assert.assertTrue(db.isValidType(new TypeDefName("Taxonomy", "taxon")));
 		Assert.assertFalse(db.isValidType(new TypeDefName("Taxonomy", "taxon2")));
 		String sequenceSpec = loadSpec("simple", "Sequence");

@@ -1,13 +1,13 @@
 package us.kbase.typedobj.db;
 
-import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 
 public class TypeChange {
 	private boolean unregistered;
-	private TypeDefId typeVersion;
+	private AbsoluteTypeDefId typeVersion;
 	private String jsonSchema;
 	
-	public TypeChange(boolean unregistered, TypeDefId typeVersion, String jsonSchema) {
+	public TypeChange(boolean unregistered, AbsoluteTypeDefId typeVersion, String jsonSchema) {
 		this.unregistered = unregistered;
 		this.typeVersion = typeVersion;
 		this.jsonSchema = jsonSchema;
@@ -17,7 +17,7 @@ public class TypeChange {
 		return unregistered;
 	}
 	
-	public TypeDefId getTypeVersion() {
+	public AbsoluteTypeDefId getTypeVersion() {
 		return typeVersion;
 	}
 	
