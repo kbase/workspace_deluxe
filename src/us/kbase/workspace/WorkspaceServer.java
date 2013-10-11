@@ -69,6 +69,8 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
+	
+	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
@@ -199,9 +201,10 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			p = translatePermission(params.getGlobalread());
 		}
-		final WorkspaceMetaData meta = ws.createWorkspace(getUser(authPart), params.getWorkspace(),
-				p.equals(Permission.READ), params.getDescription());
-		returnVal = ArgUtils.wsMetaToTuple(meta);
+		final WorkspaceMetaData meta = ws.createWorkspace(getUser(authPart),
+				params.getWorkspace(), p.equals(Permission.READ),
+				params.getDescription());
+		returnVal = au.wsMetaToTuple(meta);
         //END create_workspace
         return returnVal;
     }
@@ -219,8 +222,9 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple6<Integer, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_metadata
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(getUser(authPart), wksp);
-		returnVal = ArgUtils.wsMetaToTuple(meta);
+		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(
+				getUser(authPart), wksp);
+		returnVal = au.wsMetaToTuple(meta);
         //END get_workspace_metadata
         return returnVal;
     }
@@ -290,7 +294,8 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_permissions
 		returnVal = new HashMap<String, String>(); 
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final Map<User, Permission> acls = ws.getPermissions(getUser(authPart), wksp);
+		final Map<User, Permission> acls = ws.getPermissions(
+				getUser(authPart), wksp);
 		for (User acl: acls.keySet()) {
 			returnVal.put(acl.getUser(), translatePermission(acls.get(acl)));
 		}
@@ -361,7 +366,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		
 		List<ObjectMetaData> meta = ws.saveObjects(getUser(authPart), wsi, woc); 
-		returnVal = ArgUtils.objMetaToTuple(meta);
+		returnVal = au.objMetaToTuple(meta);
         //END save_objects
         return returnVal;
     }
@@ -379,7 +384,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = ArgUtils.translateObjectData(
+		returnVal = au.translateObjectData(
 				ws.getObjects(getUser(authPart), loi));
         //END get_objects
         return returnVal;
@@ -398,7 +403,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> returnVal = null;
         //BEGIN get_object_metadata
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = ArgUtils.objUserMetaToTuple(
+		returnVal = au.objUserMetaToTuple(
 				ws.getObjectMetaData(getUser(authPart), loi));
         //END get_object_metadata
         return returnVal;

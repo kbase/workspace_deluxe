@@ -3,9 +3,7 @@ package us.kbase.workspace.kbase;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +11,7 @@ import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple6;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.UTCDateFormat;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -23,17 +22,17 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.workspaces.Provenance;
 
+/**
+ * not thread safe
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ArgUtils {
 	
-	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+	//simple date formats aren't synchronized
+	private final UTCDateFormat dateFormat = new UTCDateFormat();
 	
-	//TODO use common version
-	public static String formatDate(final Date d) {
-		if (d == null) {
-			return null;
-		}
-		return DATE_FORMAT.format(d);
-	}
+	public ArgUtils() {}
 	
 	public static Provenance processProvenance(final String user,
 			final List<ProvenanceAction> actions) {
@@ -55,18 +54,18 @@ public class ArgUtils {
 		return p;
 	}
 	
-	public static Tuple6<Integer, String, String, String, String, String>
+	public Tuple6<Integer, String, String, String, String, String>
 			wsMetaToTuple (final WorkspaceMetaData meta) {
 		return new Tuple6<Integer, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())
 				.withE3(meta.getOwner().getUser())
-				.withE4(formatDate(meta.getModDate()))
+				.withE4(dateFormat.formatDate(meta.getModDate()))
 				.withE5(translatePermission(meta.getUserPermission())) 
 				.withE6(translatePermission(meta.isGloballyReadable()));
 	}
 	
-	public static List<Tuple9<Integer, String, String, String, Integer, String,
+	public List<Tuple9<Integer, String, String, String, Integer, String,
 			Integer, String, Integer>>
 			objMetaToTuple (final List<ObjectMetaData> meta) {
 		
@@ -82,7 +81,7 @@ public class ArgUtils {
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
-					.withE4(formatDate(m.getCreatedDate()))
+					.withE4(dateFormat.formatDate(m.getCreatedDate()))
 					.withE5(m.getVersion())
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
@@ -92,7 +91,7 @@ public class ArgUtils {
 		return ret;
 }
 	
-	public static Tuple10<Integer, String, String, String, Integer, String,
+	public Tuple10<Integer, String, String, String, Integer, String,
 			Integer, String, Integer, Map<String, String>>
 			objUserMetaToTuple (final ObjectUserMetaData meta) {
 		final List<ObjectUserMetaData> m = new ArrayList<ObjectUserMetaData>();
@@ -100,7 +99,7 @@ public class ArgUtils {
 		return objUserMetaToTuple(m).get(0);
 	}
 	
-	public static List<Tuple10<Integer, String, String, String, Integer, String,
+	public List<Tuple10<Integer, String, String, String, Integer, String,
 			Integer, String, Integer, Map<String, String>>>
 			objUserMetaToTuple (final List<ObjectUserMetaData> meta) {
 		
@@ -116,7 +115,7 @@ public class ArgUtils {
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
-					.withE4(formatDate(m.getCreatedDate()))
+					.withE4(dateFormat.formatDate(m.getCreatedDate()))
 					.withE5(m.getVersion())
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
@@ -134,7 +133,7 @@ public class ArgUtils {
 		return new WorkspaceUser(token.getUserName());
 	}
 	
-	public static List<ObjectData> translateObjectData(
+	public List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
