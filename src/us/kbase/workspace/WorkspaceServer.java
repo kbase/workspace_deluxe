@@ -43,6 +43,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoDatabase;
 import us.kbase.workspace.kbase.ArgUtils;
+import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
@@ -84,6 +85,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static Map<String, String> wsConfig = null;
 	
 	private final Workspaces ws;
+	private final WorkspaceAdministration wsadmin;
 	
 	private Database getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd) {
@@ -153,6 +155,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (failed) {
 			fail("Server startup failed - all calls will error out.");
 			ws = null;
+			wsadmin = null;
 		} else {
 			final String user = wsConfig.get(USER);
 			final String pwd = wsConfig.get(PWD);
@@ -172,10 +175,12 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;
+				wsadmin = null;
 			} else {
 				System.out.println(String.format("Initialized %s backend", db.getBackendType()));
 				logInfo(String.format("Initialized %s backend", db.getBackendType()));
 				ws = new Workspaces(db);
+				wsadmin = new WorkspaceAdministration(ws);
 			}
 		}
         //END_CONSTRUCTOR
@@ -486,6 +491,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.request_module_ownership")
     public void requestModuleOwnership(String mod, AuthToken authPart) throws Exception {
         //BEGIN request_module_ownership
+		ws.requestModuleRegistration(getUser(authPart), mod);
         //END request_module_ownership
     }
 
@@ -502,6 +508,21 @@ public class WorkspaceServer extends JsonServerServlet {
         Map<String,String> returnVal = null;
         //BEGIN compile_typespec
         //END compile_typespec
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: list_modules</p>
+     * <pre>
+     * List all typespec modules.
+     * </pre>
+     * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
+     */
+    @JsonServerMethod(rpc = "Workspace.list_modules")
+    public List<String> listModules() throws Exception {
+        List<String> returnVal = null;
+        //BEGIN list_modules
+        //END list_modules
         return returnVal;
     }
 
@@ -549,6 +570,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public UObject administer(UObject command, AuthToken authPart) throws Exception {
         UObject returnVal = null;
         //BEGIN administer
+        returnVal = new UObject(wsadmin.runCommand(authPart, command.asInstance()));
         //END administer
         return returnVal;
     }

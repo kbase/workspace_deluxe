@@ -324,6 +324,22 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: list_modules</p>
+     * <pre>
+     * List all typespec modules.
+     * </pre>
+     * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<String> listModules() throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
+        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_typespec</p>
      * <pre>
      * Get a typespec.

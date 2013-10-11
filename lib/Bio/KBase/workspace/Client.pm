@@ -1632,6 +1632,75 @@ sub compile_typespec
 
 
 
+=head2 list_modules
+
+  $modules = $obj->list_modules()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$modules is a reference to a list where each element is a Workspace.modulename
+modulename is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$modules is a reference to a list where each element is a Workspace.modulename
+modulename is a string
+
+
+=end text
+
+=item Description
+
+List all typespec modules.
+
+=back
+
+=cut
+
+sub list_modules
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_modules (received $n, expecting 0)");
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_modules",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_modules',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_modules",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_modules',
+				       );
+    }
+}
+
+
+
 =head2 get_typespec
 
   $spec = $obj->get_typespec($params)

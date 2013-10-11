@@ -510,6 +510,9 @@ module Workspace {
 	
 	authentication none;
 	
+	/* List all typespec modules. */
+	funcdef list_modules() returns(list<modulename> modules);
+	
 	/* Get a typespec. */
 	funcdef get_typespec(GetTypespecParams params) returns(typespec spec);
 	
