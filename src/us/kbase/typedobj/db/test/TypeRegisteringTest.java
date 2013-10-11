@@ -33,7 +33,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
-import us.kbase.typedobj.db.FuncInfo;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.OwnerInfo;
@@ -61,14 +60,14 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				//test.testSimple();
+				test.testSimple();
 				//test.testDescr();
 				//test.testBackward();
 				//test.testRollback();
 				//test.testRestrict();
 				//test.testIndeces();
 				//test.testMD5();
-				test.testRegistration();
+				//test.testRegistration();
 			} finally {
 				test.cleanupAfter();
 			}
@@ -139,6 +138,8 @@ public class TypeRegisteringTest {
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
 		releaseModule("Taxonomy", user);
+		Assert.assertTrue(db.isValidType(new TypeDefName("Taxonomy", "taxon")));
+		Assert.assertFalse(db.isValidType(new TypeDefName("Taxonomy", "taxon2")));
 		String sequenceSpec = loadSpec("simple", "Sequence");
 		initModule("Sequence", user);
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);

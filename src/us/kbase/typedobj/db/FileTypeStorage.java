@@ -260,32 +260,6 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public void removeTypeRefs(String depModule, String depType, String version) throws TypeStorageException {
-		Set<RefInfo> ret = new TreeSet<RefInfo>();
-		for (RefInfo ri : typeRefs) {
-			if (ri.getDepModule().equals(depModule) && ri.getDepName().equals(depType) &&
-					ri.getDepVersion().equals(version))
-				continue;
-			ret.add(ri);
-		}
-		typeRefs = ret;
-		saveRefs(typeRefs, getTypeRefFile());
-	}
-
-	@Override
-	public void removeFuncRefs(String depModule, String depFunc, String version) throws TypeStorageException {
-		Set<RefInfo> ret = new TreeSet<RefInfo>();
-		for (RefInfo ri : funcRefs) {
-			if (ri.getDepModule().equals(depModule) && ri.getDepName().equals(depFunc) &&
-					ri.getDepVersion().equals(version))
-				continue;
-			ret.add(ri);
-		}
-		funcRefs = ret;
-		saveRefs(funcRefs, getFuncRefFile());
-	}
-
-	@Override
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs) throws TypeStorageException {
 		this.typeRefs.addAll(copy(typeRefs));
 		this.funcRefs.addAll(copy(funcRefs));
@@ -430,20 +404,6 @@ public class FileTypeStorage implements TypeStorage {
 		writeFile(getTypeParseFile(moduleName, typeName, version, moduleVersion), document);
 	}
 	
-	@Override
-	public void removeAllTypeRecords(String moduleName, String typeName) {
-		for (File f : getModuleDir(moduleName).listFiles())
-			if (f.isFile() && f.getName().startsWith("type." + typeName))
-				f.delete();
-	}
-	
-	@Override
-	public void removeAllFuncRecords(String moduleName, String funcName) {
-		for (File f : getModuleDir(moduleName).listFiles())
-			if (f.isFile() && f.getName().startsWith("func." + funcName))
-				f.delete();
-	}
-	
 	private File getModuleSpecFile(String moduleName, long time) {
 		return new File(getModuleDir(moduleName), "module." + time + ".spec");
 	}
@@ -535,19 +495,7 @@ public class FileTypeStorage implements TypeStorage {
 		}
 		return null;
 	}
-	
-	@Override
-	public boolean removeTypeRecordsForVersion(String moduleName,
-			String typeName, String version) throws TypeStorageException {
-		File f1 = getTypeSchemaFile(moduleName, typeName, version);
-		if (!f1.exists())
-			return false;
-		File f2 = getTypeParseFile(moduleName, typeName, version);
-		f1.delete();
-		f2.delete();
-		return true;
-	}
-	
+		
 	private List<String> findFileMidParts(String moduleName, String prefix, String suffix) {
 		List<String> ret = new ArrayList<String>();
 		for (File f : findFiles(moduleName, prefix, suffix))

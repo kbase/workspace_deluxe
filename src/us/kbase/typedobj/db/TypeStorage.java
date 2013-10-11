@@ -56,24 +56,14 @@ public interface TypeStorage {
 
 	public void writeTypeParseRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
 
-	public void removeAllTypeRecords(String moduleName, String typeName) throws TypeStorageException;
-
-	public void removeAllFuncRecords(String moduleName, String funcName) throws TypeStorageException;
-
 	public void writeModuleRecords(ModuleInfo info, String specDocument, long version) throws TypeStorageException;
 
 	public void initModuleInfoRecord(ModuleInfo info) throws TypeStorageException;
-
-	public boolean removeTypeRecordsForVersion(String moduleName, String typeName, String version) throws TypeStorageException;
 
 	public void writeFuncParseRecord(String moduleName, String funcName, String version, long moduleVersion,
 			String parseText) throws TypeStorageException;
 
 	public void removeModule(String moduleName) throws TypeStorageException;
-
-	public void removeTypeRefs(String depModule, String depType, String version) throws TypeStorageException;
-
-	public void removeFuncRefs(String depModule, String depFunc, String version) throws TypeStorageException;
 
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs) throws TypeStorageException;
 
