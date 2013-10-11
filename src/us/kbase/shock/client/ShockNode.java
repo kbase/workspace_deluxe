@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 // last modified is a particular pain since null is represented as '-' so you
 // can't just deserialize to a Date
 @JsonIgnoreProperties({"relatives", "type", "indexes", "tags", "linkages",
-	"created_on", "last_modified"})
+	"created_on", "last_modified", "public"})
 public class ShockNode extends ShockData {
 
 	private Map<String, Object> attributes;

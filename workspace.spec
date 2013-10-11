@@ -43,7 +43,12 @@ module Workspace {
 	/* Login name of a KBase user account. */
 	typedef string username;
 	
-	/* A time, e.g. 2012-12-17T23:24:06. */
+	/* 
+		A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference
+		in time to UTC in the format +/-HHMM, eg:
+			2012-12-17T23:24:06-5000 (EST time)
+			2013-04-03T08:56:32+0000 (UTC time)
+	*/
 	typedef string timestamp;
 	
 	/* A type id.
