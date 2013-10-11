@@ -161,7 +161,8 @@ public class MongoDatabase implements Database {
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase())),
-								new UserInfoProviderForTests()));
+								new UserInfoProviderForTests("workspaceadmin")));
+							//TODO UIPFT is temporary, roman's working on permanent sol'n
 		ensureIndexes();
 	}
 
@@ -181,7 +182,8 @@ public class MongoDatabase implements Database {
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
-								new UserInfoProviderForTests()));
+								new UserInfoProviderForTests("workspaceadmin")));
+								//TODO UIPFT is temporary, roman's working on permanent sol'n
 		ensureIndexes();
 	}
 	

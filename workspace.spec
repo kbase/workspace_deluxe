@@ -408,7 +408,9 @@ module Workspace {
 	*/
 	funcdef get_object_metadata(list<ObjectIdentity> object_ids)
 		returns (list<object_metadata_full> meta);
-		
+	
+	authentication required;
+	
 	/* 
 		Delete objects. All versions of an object are deleted, regardless of
 		the version specified in the ObjectIdentity. If an object is already
@@ -434,4 +436,87 @@ module Workspace {
 		deleted.
 	*/
 	funcdef undelete_workspace(WorkspaceIdentity wsi) returns();
+	
+	/* **************** Type registering functions ******************** */
+	
+	/* A KBase Interface Definition Language (KIDL) typespec. */
+	typedef string typespec;
+	 
+	/* The module name of a KIDL typespec. */
+	typedef string modulename;
+	
+	/* The name of a type in a KIDL typespec module. */
+	typedef string typename;
+	
+	/* The version of a typespec. */
+	typedef int spec_version;
+	
+	/* The JSON Schema for a type. */
+	typedef string jsonschema;
+	
+	authentication required;
+	
+	/* Request ownership of a module name. */
+	funcdef request_module_ownership(modulename module) returns();
+	
+	/* Parameters for the compile_typespec function.
+	
+		Required parameters:
+		One of:
+		typespec spec - the new typespec to compile.
+		modulename module - the module to recompile.
+		
+		Optional parameters:
+		boolean dryrun - Return, but do not save, the results of compiling the 
+			spec. Default true. Set to false for making permanent changes.
+		list<typename> new_types - types in the spec to make available in the
+			workspace service. When compiling a spec for the first time, if
+			this argument is empty no types will be made available. Previously
+			available types remain so upon recompilation of a spec or
+			compilation of a new spec.
+		list<typename> remove_types - no longer make these types available in
+			the workspace service for the new version of the spec. This does
+			not remove versions of types previously compiled.
+		mapping<modulename, spec_version> dependencies - By default, the
+			latest versions of spec dependencies will be included when
+			compiling a spec. Specific versions can be specified here.
+	*/
+	typedef structure {
+		typespec spec;
+		modulename module;
+		list<typename> new_types;
+		list<typename> remove_types;
+		mapping<modulename, spec_version> dependencies;
+		boolean dryrun;
+	} CompileTypespecParams;
+	
+	/* Compile a new typespec or recompile an existing typespec. */
+	funcdef compile_typespec(CompileTypespecParams params)
+		returns(mapping<type_string, jsonschema>);
+	
+	/* Parameters for the get_typespec function.
+	
+		Required parameters:
+		modulename module - the name of the module to retrieve.
+		
+		Optional parameters:
+		spec_version ver - the version of the module to retrieve. Defaults to
+			the latest version.
+	*/
+	typdef structure {
+		moudlename module;
+		spec_version ver;
+	} GetTypespecParams;
+	
+	authentication optional;
+	
+	/* Get a typespec. */
+	funcdef get_typespec(GetTypespecParams params) returns(typespec spec);
+	
+	/* Get JSON schema for a type. */
+	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
+
+	/* The administration interface. */
+	funcdef administer(UnspecifiedObject command)
+		returns(UnspecifiedObject response) authentication required;
 };

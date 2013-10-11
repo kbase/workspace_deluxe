@@ -10,6 +10,8 @@ import java.util.Set;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.db.OwnerInfo;
+import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
@@ -301,6 +303,7 @@ public class Workspaces {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
+	//TODO tests for module registration/update etc.
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
@@ -308,34 +311,70 @@ public class Workspaces {
 					" module already exists");
 		}
 		typedb.requestModuleRegistration(module, user.getUser());
-		//TODO need some way to confirm the reg
 	}
 	
-	public void compileTypeSpec(final WorkspaceUser user,
-			final String typespec, final List<TypeDefName> types) throws
-			SpecParseException, TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
-		//TODO return the versions of the types that were updated
-		//TODO dry run method
-		//TODO update module method
-		final List<String> typestr = new ArrayList<String>();
-		for (TypeDefName t: types) {
-			typestr.add(t.getTypeString());
-		}
-		typedb.registerModule(typespec, typestr, user.getUser());
-	}
+	//TODO list module names / by owner / with versions
+	//TODO list module types by module & version
 	
-	public String getTypeSpec(final String module) throws NoSuchModuleException,
+	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
+		try {
+			return typedb.getNewModuleRegistrationRequests("workspaceadmin");
+		} catch (NoSuchPrivilegeException nspe) {
+			throw new RuntimeException(
+					"Something is broken in the administration system", nspe);
+		}
+	}
+	
+	public void resolveModuleRegistration(final String module,
+			final boolean approve)
+			throws TypeStorageException {
+		//TODO deal with administrators
+		try {
+			if (approve) {
+				typedb.approveModuleRegistrationRequest("workspaceadmin", module);
+			} else {
+				typedb.refuseModuleRegistrationRequest("workspaceadmin", module);
+			}
+		} catch (NoSuchPrivilegeException nspe) {
+			throw new RuntimeException(
+					"Something is broken in the administration system", nspe);
+		}
+	}
+	
+	//TODO should return the version as well?
+	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
+			final WorkspaceUser user, final String typespec,
+			final List<String> newtypes, final List<String> removeTypes,
+			final Map<String, Long> moduleVers, boolean dryRun)
+			throws SpecParseException, TypeStorageException,
+			NoSuchPrivilegeException, NoSuchModuleException {
+		return typedb.registerModule(typespec, newtypes, removeTypes,
+				user.getUser(), dryRun, moduleVers);
+	}
+	
+	public Map<TypeDefName, TypeChange> compileTypeSpec(
+			final WorkspaceUser user, final String module,
+			final List<String> newtypes, final List<String> removeTypes,
+			final Map<String, Long> moduleVers, boolean dryRun)
+			throws SpecParseException, TypeStorageException,
+			NoSuchPrivilegeException, NoSuchModuleException {
+		return typedb.refreshModule(module, newtypes, removeTypes,
+				user.getUser(), dryRun, moduleVers);
+	}
+	
+	public String getTypeSpec(final String module)
+			throws NoSuchModuleException, TypeStorageException {
 		return typedb.getModuleSpecDocument(module);
+	}
+	
+	public String getTypeSpec(final String module, final long version)
+			throws NoSuchModuleException, TypeStorageException {
+		return typedb.getModuleSpecDocument(module, version);
 	}
 	
 	public String getJsonSchema(final TypeDefId type) throws
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		if (type.isAbsolute()) {
-			return typedb.getJsonSchemaDocument(new AbsoluteTypeDefId(type.getType(),
-					type.getMajorVersion(), type.getMinorVersion()));
-		} else {
-			return typedb.getJsonSchemaDocument(type.getType());
-		}
+		return typedb.getJsonSchemaDocument(type);
 	}
 }

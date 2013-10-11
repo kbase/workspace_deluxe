@@ -1,6 +1,6 @@
 package us.kbase.typedobj.core;
 
-public class AbsoluteTypeDefId extends TypeDefId{
+public class AbsoluteTypeDefId extends TypeDefId {
 
 	public AbsoluteTypeDefId(TypeDefName type, int majorVersion,
 			int minorVersion) {
