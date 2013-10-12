@@ -509,8 +509,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> compileTypespec(CompileTypespecParams params, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN compile_typespec
-		checkAddlArgs(params.getAdditionalProperties(),
-				CompileTypespecParams.class);
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		if (!(params.getMod() == null) ^ (params.getSpec() == null)) {
 			throw new IllegalArgumentException(
 					"Must provide either a spec or module name");
@@ -563,6 +562,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<String> returnVal = null;
         //BEGIN list_modules
 		returnVal = ws.listModules();
+		//TODO by user
         //END list_modules
         return returnVal;
     }
@@ -579,6 +579,22 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getTypespec(GetTypespecParams params) throws Exception {
         String returnVal = null;
         //BEGIN get_typespec
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (params.getMod() == null) {
+			throw new IllegalArgumentException("Must provide a module name");
+		}
+		if (params.getVer() != null) {
+			final long ver;
+			try {
+				ver = Long.parseLong(params.getVer());
+			} catch (NumberFormatException nfe) {
+				throw new IllegalArgumentException("Version " + params.getVer()
+						+ " is not valid");
+			}
+			returnVal = ws.getTypeSpec(params.getMod(), ver);
+		} else {
+			returnVal = ws.getTypeSpec(params.getMod());
+		}
         //END get_typespec
         return returnVal;
     }
@@ -595,6 +611,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getJsonschema(String type) throws Exception {
         String returnVal = null;
         //BEGIN get_jsonschema
+		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type));
         //END get_jsonschema
         return returnVal;
     }
@@ -611,7 +628,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public UObject administer(UObject command, AuthToken authPart) throws Exception {
         UObject returnVal = null;
         //BEGIN administer
-        returnVal = new UObject(wsadmin.runCommand(authPart, command.asInstance()));
+		returnVal = new UObject(wsadmin.runCommand(authPart,
+				command.asInstance()));
         //END administer
         return returnVal;
     }
