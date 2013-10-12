@@ -308,7 +308,8 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: compile_typespec</p>
      * <pre>
-     * Compile a new typespec or recompile an existing typespec.
+     * Compile a new typespec or recompile an existing typespec. 
+     * Also see the release_types function.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CompileTypespecParams CompileTypespecParams}
      * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.) to original type "jsonschema" (The JSON Schema for a type.)
@@ -320,6 +321,24 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
         List<Map<String,String>> res = caller.jsonrpcCall("Workspace.compile_typespec", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: release_types</p>
+     * <pre>
+     * Release a type or types.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ReleaseTypesParams ReleaseTypesParams}
+     * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<String> releaseTypes(ReleaseTypesParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
+        List<List<String>> res = caller.jsonrpcCall("Workspace.release_types", args, retType, true, true);
         return res.get(0);
     }
 

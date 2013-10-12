@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -500,7 +501,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: compile_typespec</p>
      * <pre>
-     * Compile a new typespec or recompile an existing typespec.
+     * Compile a new typespec or recompile an existing typespec. 
+     * Also see the release_types function.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CompileTypespecParams CompileTypespecParams}
      * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.) to original type "jsonschema" (The JSON Schema for a type.)
@@ -509,6 +511,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> compileTypespec(CompileTypespecParams params, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN compile_typespec
+		//TODO improve parse errors, don't need include path, currentlyCompiled
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		if (!(params.getMod() == null) ^ (params.getSpec() == null)) {
 			throw new IllegalArgumentException(
@@ -539,7 +542,8 @@ public class WorkspaceServer extends JsonServerServlet {
 					deps, params.getDryrun() != 0);
 		} else {
 			res = ws.compileNewTypeSpec(getUser(authPart), params.getSpec(),
-					add, rem, deps, params.getDryrun() == null ? true : params.getDryrun() != 0);
+					add, rem, deps, params.getDryrun() == null ?
+							true : params.getDryrun() != 0);
 		}
 		returnVal = new HashMap<String, String>();
 		for (final TypeChange tc: res.values()) {
@@ -547,6 +551,43 @@ public class WorkspaceServer extends JsonServerServlet {
 					tc.getJsonSchema());
 		}
         //END compile_typespec
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: release_types</p>
+     * <pre>
+     * Release a type or types.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ReleaseTypesParams ReleaseTypesParams}
+     * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.)
+     */
+    @JsonServerMethod(rpc = "Workspace.release_types")
+    public List<String> releaseTypes(ReleaseTypesParams params, AuthToken authPart) throws Exception {
+        List<String> returnVal = null;
+        //BEGIN release_types
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (!(params.getMod() == null ^ params.getType() == null)) {
+			throw new IllegalArgumentException(
+					"Must provide either a module or a type name");
+		}
+		returnVal = new LinkedList<String>();
+		if (params.getType() != null) {
+			returnVal.add(ws.releaseType(getUser(authPart),
+					new TypeDefName(params.getType())).getTypeString());
+		} else {
+			final List<TypeDefId> ret;
+			if (params.getTypes() == null || params.getTypes().isEmpty()) {
+				ret = ws.releaseTypes(getUser(authPart), params.getMod());
+			} else {
+				ret = ws.releaseTypes(getUser(authPart), params.getMod(),
+						params.getTypes());
+			}
+			for (final TypeDefId t: ret) {
+				returnVal.add(t.getTypeString());
+			}
+		}
+        //END release_types
         return returnVal;
     }
 

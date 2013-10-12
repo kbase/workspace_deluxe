@@ -490,9 +490,45 @@ module Workspace {
 		boolean dryrun;
 	} CompileTypespecParams;
 	
-	/* Compile a new typespec or recompile an existing typespec. */
+	/* Compile a new typespec or recompile an existing typespec. 
+		Also see the release_types function.
+	*/
 	funcdef compile_typespec(CompileTypespecParams params)
 		returns(mapping<type_string, jsonschema>);
+		
+	/* Parameters for the release_types function. 
+	
+		Releases the most recent version of a type or types. Releasing a
+		type does two things:
+		1) If the type's major version is 0, it is changed to 1. A major
+			version of 0 implies that the type is in development and may have
+			backwards compatible changes from minor version to minor version.
+			Once a type is released, backwards incompatible changes always
+			cause a major version increment.
+		2) This version of the type becomes the default version, and if a 
+			specific version is not supplied in a function call, this version
+			will be used. This means that newer, unreleased versions of the
+			type may be skipped.
+		
+		Required parameters:
+		One of:
+		modulename mod - releases all the types for this module
+		type_id type - releases this type.
+		
+		Optional parameters:
+		list<string> types - if a module is specified, specify here the types
+			to release. Default is all types if no or an empty list is passed.
+			If type is specified this argument is ignored.
+	*/
+	typedef structure {
+		modulename mod;
+		type_id type;
+		list<string> types;
+	} ReleaseTypesParams;
+	
+	/* Release a type or types. */
+	funcdef release_types(ReleaseTypesParams params)
+		returns(list<type_string> types);
 	
 	authentication none;
 	

@@ -3,6 +3,7 @@ package us.kbase.workspace.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
@@ -316,6 +318,7 @@ public class Workspaces {
 	//TODO list module names / by owner / with versions
 	//TODO list module types by module & version
 	//TODO specify temp directory for spec compilation
+	//TODO are types released per major version?
 	
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
@@ -362,6 +365,32 @@ public class Workspaces {
 			NoSuchPrivilegeException, NoSuchModuleException {
 		return typedb.refreshModule(module, newtypes, removeTypes,
 				user.getUser(), dryRun, moduleVers);
+	}
+	
+	public TypeDefId releaseType(final WorkspaceUser user,
+			final TypeDefName type)
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, NoSuchPrivilegeException {
+		return typedb.releaseType(type, user.getUser());
+	}
+	
+	public List<TypeDefId> releaseTypes(final WorkspaceUser user,
+			final String module)
+			throws NoSuchModuleException, TypeStorageException,
+			NoSuchPrivilegeException {
+		return typedb.releaseModule(module, user.getUser());
+	}
+	
+	public List<TypeDefId> releaseTypes(final WorkspaceUser user,
+			final String module, final List<String> types)
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, NoSuchPrivilegeException {
+		try {
+			return typedb.releaseModule(module, types,
+					new LinkedList<String>(), user.getUser());
+		} catch (NoSuchFuncException nsfe) {
+			throw new RuntimeException("Something is broken", nsfe);
+		}
 	}
 	
 	public String getTypeSpec(final String module)

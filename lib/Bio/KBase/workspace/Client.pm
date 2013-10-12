@@ -1547,7 +1547,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 typespec is a string
 modulename is a string
 typename is a string
-spec_version is an int
+spec_version is a string
 boolean is an int
 type_string is a string
 jsonschema is a string
@@ -1570,7 +1570,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 typespec is a string
 modulename is a string
 typename is a string
-spec_version is an int
+spec_version is a string
 boolean is an int
 type_string is a string
 jsonschema is a string
@@ -1580,7 +1580,8 @@ jsonschema is a string
 
 =item Description
 
-Compile a new typespec or recompile an existing typespec.
+Compile a new typespec or recompile an existing typespec. 
+Also see the release_types function.
 
 =back
 
@@ -1626,6 +1627,100 @@ sub compile_typespec
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method compile_typespec",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'compile_typespec',
+				       );
+    }
+}
+
+
+
+=head2 release_types
+
+  $types = $obj->release_types($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.ReleaseTypesParams
+$types is a reference to a list where each element is a Workspace.type_string
+ReleaseTypesParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_id
+	types has a value which is a reference to a list where each element is a string
+modulename is a string
+type_id is a string
+type_string is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.ReleaseTypesParams
+$types is a reference to a list where each element is a Workspace.type_string
+ReleaseTypesParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_id
+	types has a value which is a reference to a list where each element is a string
+modulename is a string
+type_id is a string
+type_string is a string
+
+
+=end text
+
+=item Description
+
+Release a type or types.
+
+=back
+
+=cut
+
+sub release_types
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function release_types (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to release_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'release_types');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.release_types",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'release_types',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method release_types",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'release_types',
 				       );
     }
 }
@@ -1718,7 +1813,7 @@ GetTypespecParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-spec_version is an int
+spec_version is a string
 typespec is a string
 
 </pre>
@@ -1733,7 +1828,7 @@ GetTypespecParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-spec_version is an int
+spec_version is a string
 typespec is a string
 
 
@@ -3227,14 +3322,14 @@ The version of a typespec.
 =begin html
 
 <pre>
-an int
+a string
 </pre>
 
 =end html
 
 =begin text
 
-an int
+a string
 
 =end text
 
@@ -3330,6 +3425,67 @@ new_types has a value which is a reference to a list where each element is a Wor
 remove_types has a value which is a reference to a list where each element is a Workspace.typename
 dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 dryrun has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 ReleaseTypesParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the release_types function. 
+
+        Releases the most recent version of a type or types. Releasing a
+        type does two things:
+        1) If the type's major version is 0, it is changed to 1. A major
+                version of 0 implies that the type is in development and may have
+                backwards compatible changes from minor version to minor version.
+                Once a type is released, backwards incompatible changes always
+                cause a major version increment.
+        2) This version of the type becomes the default version, and if a 
+                specific version is not supplied in a function call, this version
+                will be used. This means that newer, unreleased versions of the
+                type may be skipped.
+        
+        Required parameters:
+        One of:
+        modulename mod - releases all the types for this module
+        type_id type - releases this type.
+        
+        Optional parameters:
+        list<string> types - if a module is specified, specify here the types
+                to release. Default is all types. If type is specified this
+                argument is ignored.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_id
+types has a value which is a reference to a list where each element is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_id
+types has a value which is a reference to a list where each element is a string
 
 
 =end text
