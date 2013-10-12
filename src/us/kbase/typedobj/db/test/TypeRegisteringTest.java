@@ -60,7 +60,7 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				test.testSimple();
+				//test.testSimple();
 				//test.testDescr();
 				//test.testBackward();
 				//test.testRollback();
@@ -68,6 +68,7 @@ public class TypeRegisteringTest {
 				//test.testIndeces();
 				//test.testMD5();
 				//test.testRegistration();
+				test.testError();
 			} finally {
 				test.cleanupAfter();
 			}
@@ -372,6 +373,17 @@ public class TypeRegisteringTest {
 			}
 			Assert.assertEquals(0, db.getNewModuleRegistrationRequests(adminUser).size());
 		}		
+	}
+	
+	@Test
+	public void testError() throws Exception {
+		initModule("Test", adminUser);
+		try {
+			db.registerModule(loadSpec("error", "Test"), Arrays.asList("bebebe"), adminUser);
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("bebebe"));
+		}
 	}
 	
 	private Map<String, Long> restrict(Object... params) {
