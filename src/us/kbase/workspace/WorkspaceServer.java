@@ -31,6 +31,8 @@ import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.db.TypeChange;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -507,6 +509,43 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> compileTypespec(CompileTypespecParams params, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN compile_typespec
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (!(params.getMod() == null) ^ (params.getSpec() == null)) {
+			throw new IllegalArgumentException(
+					"Must provide either a spec or module name");
+		}
+		final Map<String, Long> deps = new HashMap<String, Long>();
+		if (params.getDependencies() != null) {
+			for (final String module: params.getDependencies().keySet()) {
+				try {
+					deps.put(module, Long.parseLong(
+							params.getDependencies().get(module)));
+				} catch (NumberFormatException nfe) {
+					throw new IllegalArgumentException(String.format(
+							"Version %s for module %s is invalid", module,
+							params.getDependencies().get(module)));
+				}
+			}
+		}
+		final List<String> add = params.getNewTypes() != null ?
+				params.getNewTypes() : new ArrayList<String>();
+		final List<String> rem = params.getRemoveTypes() != null ?
+				params.getRemoveTypes() : new ArrayList<String>();
+		final Map<TypeDefName, TypeChange> res;
+		if (params.getMod() != null) {
+			 res = ws.compileTypeSpec(
+					getUser(authPart), params.getMod(),
+					params.getNewTypes(), params.getRemoveTypes(),
+					deps, params.getDryrun() != 0);
+		} else {
+			res = ws.compileNewTypeSpec(getUser(authPart), params.getSpec(),
+					add, rem, deps, params.getDryrun() == null ? true : params.getDryrun() != 0);
+		}
+		returnVal = new HashMap<String, String>();
+		for (final TypeChange tc: res.values()) {
+			returnVal.put(tc.getTypeVersion().getTypeString(),
+					tc.getJsonSchema());
+		}
         //END compile_typespec
         return returnVal;
     }
@@ -522,6 +561,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<String> listModules() throws Exception {
         List<String> returnVal = null;
         //BEGIN list_modules
+		returnVal = ws.listModules();
+		//TODO by user
         //END list_modules
         return returnVal;
     }
@@ -538,6 +579,22 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getTypespec(GetTypespecParams params) throws Exception {
         String returnVal = null;
         //BEGIN get_typespec
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (params.getMod() == null) {
+			throw new IllegalArgumentException("Must provide a module name");
+		}
+		if (params.getVer() != null) {
+			final long ver;
+			try {
+				ver = Long.parseLong(params.getVer());
+			} catch (NumberFormatException nfe) {
+				throw new IllegalArgumentException("Version " + params.getVer()
+						+ " is not valid");
+			}
+			returnVal = ws.getTypeSpec(params.getMod(), ver);
+		} else {
+			returnVal = ws.getTypeSpec(params.getMod());
+		}
         //END get_typespec
         return returnVal;
     }
@@ -554,6 +611,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getJsonschema(String type) throws Exception {
         String returnVal = null;
         //BEGIN get_jsonschema
+		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type));
         //END get_jsonschema
         return returnVal;
     }
@@ -570,7 +628,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public UObject administer(UObject command, AuthToken authPart) throws Exception {
         UObject returnVal = null;
         //BEGIN administer
-        returnVal = new UObject(wsadmin.runCommand(authPart, command.asInstance()));
+		returnVal = new UObject(wsadmin.runCommand(authPart,
+				command.asInstance()));
         //END administer
         return returnVal;
     }

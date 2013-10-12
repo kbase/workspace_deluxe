@@ -60,9 +60,9 @@ public class CompileTypespecParams {
     @JsonProperty("remove_types")
     private List<java.lang.String> removeTypes = new ArrayList<java.lang.String>();
     @JsonProperty("dependencies")
-    private Map<String, Integer> dependencies;
+    private Map<String, String> dependencies;
     @JsonProperty("dryrun")
-    private java.lang.Integer dryrun;
+    private Integer dryrun;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("spec")
@@ -126,31 +126,31 @@ public class CompileTypespecParams {
     }
 
     @JsonProperty("dependencies")
-    public Map<String, Integer> getDependencies() {
+    public Map<String, String> getDependencies() {
         return dependencies;
     }
 
     @JsonProperty("dependencies")
-    public void setDependencies(Map<String, Integer> dependencies) {
+    public void setDependencies(Map<String, String> dependencies) {
         this.dependencies = dependencies;
     }
 
-    public CompileTypespecParams withDependencies(Map<String, Integer> dependencies) {
+    public CompileTypespecParams withDependencies(Map<String, String> dependencies) {
         this.dependencies = dependencies;
         return this;
     }
 
     @JsonProperty("dryrun")
-    public java.lang.Integer getDryrun() {
+    public Integer getDryrun() {
         return dryrun;
     }
 
     @JsonProperty("dryrun")
-    public void setDryrun(java.lang.Integer dryrun) {
+    public void setDryrun(Integer dryrun) {
         this.dryrun = dryrun;
     }
 
-    public CompileTypespecParams withDryrun(java.lang.Integer dryrun) {
+    public CompileTypespecParams withDryrun(Integer dryrun) {
         this.dryrun = dryrun;
         return this;
     }

@@ -81,13 +81,16 @@ def _read_inifile( file=os.environ.get('KB_DEPLOYMENT_CONFIG',os.environ['HOME']
 
 class ServerError(Exception):
 
-    def __init__(self, name, code, message):
+    def __init__(self, name, code, message, data=None, error=None):
         self.name = name
         self.code = code
         self.message = '' if message is None else message
+        self.data = data or error or ''
+        # data = JSON RPC 2.0, error = 1.1
 
     def __str__(self):
-        return self.name + ': ' + str(self.code) + '. ' + self.message
+        return self.name + ': ' + str(self.code) + '. ' + self.message + \
+            '\n' + self.data
         
 class JSONObjectEncoder(json.JSONEncoder):
   

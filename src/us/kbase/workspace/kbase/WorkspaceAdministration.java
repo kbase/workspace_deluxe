@@ -14,7 +14,8 @@ public class WorkspaceAdministration {
 	
 	//TODO add remove admin users in mongo
 	
-	private final Set<String> admins = new HashSet<String>(); //TODO temp storage for admins, remove
+	//TODO temp storage for admins, remove
+	private final Set<String> admins = new HashSet<String>(); 
 	
 	public WorkspaceAdministration(final Workspaces ws) {
 		this.ws = ws;

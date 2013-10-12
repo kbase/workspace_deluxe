@@ -449,7 +449,7 @@ module Workspace {
 	typedef string typename;
 	
 	/* The version of a typespec. */
-	typedef int spec_version;
+	typedef string spec_version;
 	
 	/* The JSON Schema for a type. */
 	typedef string jsonschema;
@@ -494,6 +494,11 @@ module Workspace {
 	funcdef compile_typespec(CompileTypespecParams params)
 		returns(mapping<type_string, jsonschema>);
 	
+	authentication none;
+	
+	/* List all typespec modules. */
+	funcdef list_modules() returns(list<modulename> modules);
+	
 	/* Parameters for the get_typespec function.
 	
 		Required parameters:
@@ -507,11 +512,6 @@ module Workspace {
 		modulename mod;
 		spec_version ver;
 	} GetTypespecParams;
-	
-	authentication none;
-	
-	/* List all typespec modules. */
-	funcdef list_modules() returns(list<modulename> modules);
 	
 	/* Get a typespec. */
 	funcdef get_typespec(GetTypespecParams params) returns(typespec spec);
