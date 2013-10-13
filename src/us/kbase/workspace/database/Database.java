@@ -13,6 +13,8 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.workspaces.ResolvedSaveObject;
 
 public interface Database {
+	
+	public String getTypeDBAdmin();
 
 	public String getBackendType();
 	

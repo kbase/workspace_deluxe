@@ -107,11 +107,11 @@ public class TestWorkspaces {
 		Database gfs = null;
 		Database shock = null;
 		if (mUser != null) {
-			gfs = new MongoDatabase(host, db1, shockpwd, mUser, mPwd);
-			shock = new MongoDatabase(host, db2, shockpwd, mUser, mPwd);
+			gfs = new MongoDatabase(host, db1, shockpwd, null, mUser, mPwd);
+			shock = new MongoDatabase(host, db2, shockpwd, null, mUser, mPwd);
 		} else {
-			gfs = new MongoDatabase(host, db1, shockpwd);
-			shock = new MongoDatabase(host, db2, shockpwd);
+			gfs = new MongoDatabase(host, db1, shockpwd, null);
+			shock = new MongoDatabase(host, db2, shockpwd, null);
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs);
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));

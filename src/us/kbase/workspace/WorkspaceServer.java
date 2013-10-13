@@ -34,6 +34,7 @@ import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.TypeChange;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Database;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -81,6 +82,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String DB = "mongodb-database";
 	//required backend param:
 	private static final String BACKEND_SECRET = "backend-secret"; 
+	//type db param:
+	private static final String TYPEDB_DIR = "temp-dir";
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
@@ -91,12 +94,13 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private Database getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd) {
+			final String secret, final String tempdir, final String user,
+			final String pwd) {
 		try {
 			if (user != null) {
-				return new MongoDatabase(host, dbs, secret, user, pwd);
+				return new MongoDatabase(host, dbs, secret, tempdir, user, pwd);
 			} else {
-				return new MongoDatabase(host, dbs, secret);
+				return new MongoDatabase(host, dbs, secret, tempdir);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -112,6 +116,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (WorkspaceDBException uwde) {
 			fail("The workspace database is invalid: " +
 					uwde.getLocalizedMessage());
+		} catch (TypeStorageException tse) {
+			fail("There was a problem setting up the type storage system: " +
+					tse.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -174,7 +181,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			final Database db = getDB(host, dbs, secret, user, pwd);
+			final Database db = getDB(host, dbs, secret,
+					wsConfig.get(TYPEDB_DIR), user, pwd);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;

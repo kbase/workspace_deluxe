@@ -94,8 +94,10 @@ public class TypeDefinitionDB {
 	 * Set up a new DB pointing to the specified storage object
 	 * @param storage
 	 * @param uip
+	 * @throws TypeStorageException 
 	 */
-	public TypeDefinitionDB(TypeStorage storage, UserInfoProvider uip) {
+	public TypeDefinitionDB(TypeStorage storage, UserInfoProvider uip)
+			throws TypeStorageException {
 		this(storage, null, uip);
 	}
 	
@@ -105,8 +107,10 @@ public class TypeDefinitionDB {
 	 * @param storage
 	 * @param tempDir
 	 * @param uip
+	 * @throws TypeStorageException 
 	 */
-	public TypeDefinitionDB(TypeStorage storage, File tempDir, UserInfoProvider uip) {
+	public TypeDefinitionDB(TypeStorage storage, File tempDir,
+			UserInfoProvider uip) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
@@ -118,6 +122,21 @@ public class TypeDefinitionDB {
 			this.parentTempDir = new File(".");
 		} else {
 			this.parentTempDir = tempDir;
+			if (parentTempDir.exists()) {
+				if (!parentTempDir.isDirectory()) {
+					throw new TypeStorageException("Requested temp dir "
+							+ parentTempDir + " is not a directory");
+				}
+			} else {
+				boolean success = parentTempDir.mkdirs();
+				if (!success) {
+					if (!parentTempDir.isDirectory()) {
+						throw new TypeStorageException(
+								"Could not create requested temp dir "
+						+ parentTempDir);
+					}
+				}
+			}
 		}
 		this.uip = uip;
 	}

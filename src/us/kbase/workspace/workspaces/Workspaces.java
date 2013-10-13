@@ -323,7 +323,7 @@ public class Workspaces {
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
 		try {
-			return typedb.getNewModuleRegistrationRequests("workspaceadmin");
+			return typedb.getNewModuleRegistrationRequests(db.getTypeDBAdmin());
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
 					"Something is broken in the administration system", nspe);
@@ -333,12 +333,13 @@ public class Workspaces {
 	public void resolveModuleRegistration(final String module,
 			final boolean approve)
 			throws TypeStorageException {
-		//TODO deal with administrators
 		try {
 			if (approve) {
-				typedb.approveModuleRegistrationRequest("workspaceadmin", module);
+				typedb.approveModuleRegistrationRequest(db.getTypeDBAdmin(),
+						module);
 			} else {
-				typedb.refuseModuleRegistrationRequest("workspaceadmin", module);
+				typedb.refuseModuleRegistrationRequest(db.getTypeDBAdmin(),
+						module);
 			}
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
