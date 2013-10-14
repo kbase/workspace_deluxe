@@ -14,8 +14,6 @@ import us.kbase.workspace.workspaces.ResolvedSaveObject;
 
 public interface WorkspaceDatabase {
 	
-	public String getTypeDBAdmin();
-
 	public String getBackendType();
 	
 	public TypedObjectValidator getTypeValidator();

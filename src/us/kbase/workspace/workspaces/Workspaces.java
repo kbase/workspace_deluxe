@@ -58,6 +58,8 @@ public class Workspaces {
 	
 	//TODO length limits on all incoming strings
 	
+	//TODO git submodule for typecomp, tests and service need to set path and perl5lib
+	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
 	private final WorkspaceDatabase db;
@@ -318,13 +320,11 @@ public class Workspaces {
 	
 	//TODO list module names / by owner / with versions
 	//TODO list module types by module & version
-	//TODO specify temp directory for spec compilation
-	//TODO are types released per major version?
 	
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
 		try {
-			return typedb.getNewModuleRegistrationRequests(db.getTypeDBAdmin());
+			return typedb.getNewModuleRegistrationRequests(null);
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
 					"Something is broken in the administration system", nspe);
@@ -336,11 +336,9 @@ public class Workspaces {
 			throws TypeStorageException {
 		try {
 			if (approve) {
-				typedb.approveModuleRegistrationRequest(db.getTypeDBAdmin(),
-						module);
+				typedb.approveModuleRegistrationRequest(null, module);
 			} else {
-				typedb.refuseModuleRegistrationRequest(db.getTypeDBAdmin(),
-						module);
+				typedb.refuseModuleRegistrationRequest(null, module);
 			}
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
