@@ -687,7 +687,7 @@ public class TypeDefinitionDB {
 		return owners.get(userId).isWithChangeOwnersPrivilege();
 	}
 
-	public TypeDefId releaseType(TypeDefName type, String userId) 
+	public AbsoluteTypeDefId releaseType(TypeDefName type, String userId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		return releaseModule(type.getModule(), Arrays.asList(type.getName()), false, userId).get(0);
 	}
@@ -700,7 +700,7 @@ public class TypeDefinitionDB {
 	 * @param userId
 	 * @return new versions of types
 	 */
-	public List<TypeDefId> releaseModule(String moduleName, String userId)
+	public List<AbsoluteTypeDefId> releaseModule(String moduleName, String userId)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		try {
 			return releaseModule(moduleName, getAllRegisteredTypes(moduleName), true, userId);
@@ -717,7 +717,7 @@ public class TypeDefinitionDB {
 	 * @param userId
 	 * @return new versions of types
 	 */
-	public List<TypeDefId> releaseModule(String moduleName, List<String> types, boolean releaseFunctions, String userId)
+	public List<AbsoluteTypeDefId> releaseModule(String moduleName, List<String> types, boolean releaseFunctions, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		try {
 			return releaseModule(moduleName, types, releaseFunctions ? getAllRegisteredFuncs(moduleName) : 
@@ -727,7 +727,7 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public List<TypeDefId> releaseModule(String moduleName, List<String> types, List<String> funcs, String userId)
+	public List<AbsoluteTypeDefId> releaseModule(String moduleName, List<String> types, List<String> funcs, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException, NoSuchFuncException {
 		requestWriteLock(moduleName);
 		try {
@@ -742,7 +742,7 @@ public class TypeDefinitionDB {
 				if (findLastFuncVersion(info, func, false, true) == null)
 					throwNoSuchFuncException(moduleName, func, null);
 			long transactionStartTime = storage.generateNewModuleVersion(moduleName);
-			List<TypeDefId> ret = new ArrayList<TypeDefId>();
+			List<AbsoluteTypeDefId> ret = new ArrayList<AbsoluteTypeDefId>();
 			try {
 				Set<RefInfo> newTypeRefs = new TreeSet<RefInfo>();
 				Set<RefInfo> newFuncRefs = new TreeSet<RefInfo>();
@@ -760,7 +760,7 @@ public class TypeDefinitionDB {
 						saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
 						newTypeRefs.addAll(deps);
 					}
-					ret.add(new TypeDefId(moduleName + "." + type, ti.getReleaseVersion()));
+					ret.add(new AbsoluteTypeDefId(new TypeDefName(moduleName, type), newVersion.getMajor(), newVersion.getMinor()));
 				}
 				for (String funcName : funcs) {
 					FuncInfo fi = info.getFuncs().get(funcName);

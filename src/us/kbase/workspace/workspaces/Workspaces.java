@@ -374,14 +374,14 @@ public class Workspaces {
 		return typedb.releaseType(type, user.getUser());
 	}
 	
-	public List<TypeDefId> releaseTypes(final WorkspaceUser user,
+	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
 			final String module)
 			throws NoSuchModuleException, TypeStorageException,
 			NoSuchPrivilegeException {
 		return typedb.releaseModule(module, user.getUser());
 	}
 	
-	public List<TypeDefId> releaseTypes(final WorkspaceUser user,
+	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
 			final String module, final List<String> types)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, NoSuchPrivilegeException {

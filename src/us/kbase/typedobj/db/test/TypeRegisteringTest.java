@@ -62,7 +62,7 @@ public class TypeRegisteringTest {
 			try {
 				//test.testSimple();
 				//test.testDescr();
-				//test.testBackward();
+				test.testBackward();
 				//test.testRollback();
 				//test.testRestrict();
 				//test.testIndeces();
@@ -221,6 +221,8 @@ public class TypeRegisteringTest {
 		Assert.assertEquals(2, changes4.size());
 		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
 		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		checkTypeVer("Regulation", "binding_site", "3.0");
+		Assert.assertEquals("4.0", db.releaseType(new TypeDefName("Regulation", "binding_site"), adminUser).getVerString());
 		db.releaseModule("Regulation", adminUser);
 		checkFuncVer("Regulation", "get_gene_descr", "3.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
@@ -383,6 +385,12 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("bebebe"));
+		}
+		try {
+			db.registerModule(loadSpec("error", "DoubleModule"), adminUser);
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("only one"));
 		}
 	}
 	

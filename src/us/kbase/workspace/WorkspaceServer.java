@@ -579,7 +579,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			returnVal.add(ws.releaseType(getUser(authPart),
 					new TypeDefName(params.getType())).getTypeString());
 		} else {
-			final List<TypeDefId> ret;
+			final List<AbsoluteTypeDefId> ret;
 			if (params.getTypes() == null || params.getTypes().isEmpty()) {
 				ret = ws.releaseTypes(getUser(authPart), params.getMod());
 			} else {
