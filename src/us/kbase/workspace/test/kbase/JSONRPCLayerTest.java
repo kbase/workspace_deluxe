@@ -45,9 +45,9 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  * These tests are specifically for testing the JSON-RPC communications between
  * the client, up to the invocation of the {@link us.kbase.workspace.workspaces.Workspaces}
  * methods. As such they do not test the full functionality of the Workspaces methods;
- * {@link us.kbase.workspace.workspaces.test.TestWorkspaces} handles that. This means
+ * {@link us.kbase.workspace.testworkspaces.TestWorkspaces} handles that. This means
  * that only one backend (the simplest gridFS backend) is tested here, while TestWorkspaces
- * tests all backends and {@link us.kbase.workspace.database.Database} implementations.
+ * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
 public class JSONRPCLayerTest {
 	

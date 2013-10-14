@@ -36,7 +36,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.Permission;
@@ -46,7 +46,7 @@ import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
-import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.workspaces.Provenance;
@@ -94,14 +94,14 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final Workspaces ws;
 	private final WorkspaceAdministration wsadmin;
 	
-	private Database getDB(final String host, final String dbs,
+	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String tempdir, final String user,
 			final String pwd) {
 		try {
 			if (user != null) {
-				return new MongoDatabase(host, dbs, secret, tempdir, user, pwd);
+				return new MongoWorkspaceDB(host, dbs, secret, tempdir, user, pwd);
 			} else {
-				return new MongoDatabase(host, dbs, secret, tempdir);
+				return new MongoWorkspaceDB(host, dbs, secret, tempdir);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -182,7 +182,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			final Database db = getDB(host, dbs, secret,
+			final WorkspaceDatabase db = getDB(host, dbs, secret,
 					wsConfig.get(TYPEDB_DIR), user, pwd);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
@@ -529,6 +529,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Map<String, Long> deps = new HashMap<String, Long>();
 		if (params.getDependencies() != null) {
 			for (final String module: params.getDependencies().keySet()) {
+				//TODO remove new Long when TC uses Longs everywhere
 				deps.put(module, new Long(params.getDependencies().get(module)));
 			}
 		}
@@ -622,7 +623,6 @@ public class WorkspaceServer extends JsonServerServlet {
         ModuleInfo returnVal = null;
         //BEGIN get_module_info
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		System.out.println(params);
 		if (!(params.getMod() == null ^ params.getType() == null)) {
 			throw new IllegalArgumentException(
 					"Must provide either a module name or a type");
@@ -631,6 +631,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (params.getType() != null) {
 			mi = ws.getModuleInfo(TypeDefId.fromTypeString(params.getType()));
 		} else if (params.getVer() != null) {
+			//TODO remove new Long when TC uses longs vs. ints
 			mi = ws.getModuleInfo(params.getMod(), new Long(params.getVer()));
 		} else {
 			mi = ws.getModuleInfo(params.getMod());

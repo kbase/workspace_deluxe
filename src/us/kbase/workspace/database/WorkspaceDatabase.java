@@ -12,7 +12,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.workspaces.ResolvedSaveObject;
 
-public interface Database {
+public interface WorkspaceDatabase {
 	
 	public String getTypeDBAdmin();
 

@@ -40,7 +40,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -81,7 +81,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 @RunWith(Enclosed.class)
-public class MongoDatabase implements Database {
+public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//TODO handle hidden objects - changes most methods
 	//TODO query user metadata
@@ -151,7 +151,7 @@ public class MongoDatabase implements Database {
 		INDEXES.put(COL_WORKSPACE_PTRS, wsPtr);
 	}
 
-	public MongoDatabase(final String host, final String database,
+	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String typeDBdir)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
@@ -171,7 +171,7 @@ public class MongoDatabase implements Database {
 		ensureIndexes();
 	}
 
-	public MongoDatabase(final String host, final String database,
+	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String typeDBdir,
 			final String user, final String password)
 			throws UnknownHostException, IOException,
@@ -1323,7 +1323,7 @@ public class MongoDatabase implements Database {
 		
 		//screwy tests for methods that can't be tested in a black box manner
 	
-		private static MongoDatabase testdb;
+		private static MongoWorkspaceDB testdb;
 		
 		@BeforeClass
 		public static void setUpClass() throws Exception {
@@ -1333,9 +1333,9 @@ public class MongoDatabase implements Database {
 			String mUser = WorkspaceTestCommon.getMongoUser();
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
 			if (mUser == null || mUser == "") {
-				testdb = new MongoDatabase(host, db1, "foo", null);
+				testdb = new MongoWorkspaceDB(host, db1, "foo", null);
 			} else {
-				testdb = new MongoDatabase(host, db1, "foo", null, mUser, mPwd);
+				testdb = new MongoWorkspaceDB(host, db1, "foo", null, mUser, mPwd);
 			}
 		}
 		

@@ -21,7 +21,7 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -60,10 +60,10 @@ public class Workspaces {
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
-	private final Database db;
+	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
 	
-	public Workspaces(Database db) {
+	public Workspaces(WorkspaceDatabase db) {
 		if (db == null) {
 			throw new NullPointerException("db");
 		}
@@ -405,9 +405,7 @@ public class Workspaces {
 	}
 	
 	//TODO workspace IDs should be longs
-	//TODO bug for get mod info - return what I need
 	//TODO version collection. To refs stored with each version pointer for prov and normal refs. ref counts for from references. 
-	//TODO Database -> WorkspaceDatabase. MongoDatabase -> WorkspaceMongoDB.
 	
 	public ModuleInfo getModuleInfo(String module)
 			throws NoSuchModuleException, TypeStorageException {
@@ -419,7 +417,6 @@ public class Workspaces {
 			final us.kbase.typedobj.db.ModuleInfo moduleInfo,
 			final String spec)
 			throws NoSuchModuleException, TypeStorageException {
-		// TODO Auto-generated method stub
 		final Map<AbsoluteTypeDefId, String> typeToJSON =
 				new HashMap<AbsoluteTypeDefId, String>();
 		for (final TypeInfo t: moduleInfo.getTypes().values()) {
@@ -444,7 +441,6 @@ public class Workspaces {
 		//TODO should return user and spec
 		return getModuleInfo(typedb.getModuleInfo(module, version),
 				typedb.getModuleSpecDocument(module, version));
-		//TODO need way to get user from module
 	}
 
 	public ModuleInfo getModuleInfo(TypeDefId type) {

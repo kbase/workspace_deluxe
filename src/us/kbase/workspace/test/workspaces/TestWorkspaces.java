@@ -29,7 +29,7 @@ import com.mongodb.DB;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.Database;
+import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -47,7 +47,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.database.mongo.MongoDatabase;
+import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestException;
@@ -104,14 +104,14 @@ public class TestWorkspaces {
 		String db1 = WorkspaceTestCommon.getDB1();
 		String db2 = WorkspaceTestCommon.getDB2();
 		
-		Database gfs = null;
-		Database shock = null;
+		WorkspaceDatabase gfs = null;
+		WorkspaceDatabase shock = null;
 		if (mUser != null) {
-			gfs = new MongoDatabase(host, db1, shockpwd, null, mUser, mPwd);
-			shock = new MongoDatabase(host, db2, shockpwd, null, mUser, mPwd);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, null, mUser, mPwd);
+			shock = new MongoWorkspaceDB(host, db2, shockpwd, null, mUser, mPwd);
 		} else {
-			gfs = new MongoDatabase(host, db1, shockpwd, null);
-			shock = new MongoDatabase(host, db2, shockpwd, null);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, null);
+			shock = new MongoWorkspaceDB(host, db2, shockpwd, null);
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs);
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
