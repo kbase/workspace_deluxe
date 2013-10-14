@@ -345,14 +345,16 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: list_modules</p>
      * <pre>
-     * List all typespec modules.
+     * List typespec modules.
      * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListModulesParams ListModulesParams}
      * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<String> listModules() throws IOException, JsonClientException {
+    public List<String> listModules(ListModulesParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
+        args.add(params);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
         List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false);
         return res.get(0);

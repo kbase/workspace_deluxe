@@ -1729,7 +1729,7 @@ sub release_types
 
 =head2 list_modules
 
-  $modules = $obj->list_modules()
+  $modules = $obj->list_modules($params)
 
 =over 4
 
@@ -1738,7 +1738,11 @@ sub release_types
 =begin html
 
 <pre>
+$params is a Workspace.ListModulesParams
 $modules is a reference to a list where each element is a Workspace.modulename
+ListModulesParams is a reference to a hash where the following keys are defined:
+	owner has a value which is a Workspace.username
+username is a string
 modulename is a string
 
 </pre>
@@ -1747,7 +1751,11 @@ modulename is a string
 
 =begin text
 
+$params is a Workspace.ListModulesParams
 $modules is a reference to a list where each element is a Workspace.modulename
+ListModulesParams is a reference to a hash where the following keys are defined:
+	owner has a value which is a Workspace.username
+username is a string
 modulename is a string
 
 
@@ -1755,7 +1763,7 @@ modulename is a string
 
 =item Description
 
-List all typespec modules.
+List typespec modules.
 
 =back
 
@@ -1767,10 +1775,21 @@ sub list_modules
 
 # Authentication: none
 
-    if ((my $n = @args) != 0)
+    if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function list_modules (received $n, expecting 0)");
+							       "Invalid argument count for function list_modules (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_modules:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_modules');
+	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
@@ -3506,6 +3525,44 @@ a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
 type has a value which is a Workspace.type_id
 types has a value which is a reference to a list where each element is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 ListModulesParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the list_modules() function.
+
+        Optional parameters:
+        username owner - only list modules owned by this user.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+owner has a value which is a Workspace.username
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+owner has a value which is a Workspace.username
 
 
 =end text

@@ -398,8 +398,12 @@ public class Workspaces {
 		return typedb.getJsonSchemaDocument(type);
 	}
 	
-	public List<String> listModules() throws TypeStorageException {
-		return typedb.getAllRegisteredModules();
+	public List<String> listModules(WorkspaceUser user)
+			throws TypeStorageException {
+		if (user == null) {
+			return typedb.getAllRegisteredModules();
+		}
+		return typedb.getModulesByOwner(user.getUser());
 	}
 	
 	//TODO workspace IDs should be longs

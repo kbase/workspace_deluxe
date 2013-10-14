@@ -597,15 +597,20 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_modules</p>
      * <pre>
-     * List all typespec modules.
+     * List typespec modules.
      * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListModulesParams ListModulesParams}
      * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
      */
     @JsonServerMethod(rpc = "Workspace.list_modules")
-    public List<String> listModules() throws Exception {
+    public List<String> listModules(ListModulesParams params) throws Exception {
         List<String> returnVal = null;
         //BEGIN list_modules
-		returnVal = ws.listModules();
+		WorkspaceUser user = null;
+		if (params.getOwner() != null) {
+			user = new WorkspaceUser(params.getOwner());
+		}
+		returnVal = ws.listModules(user);
 		//TODO by user
         //END list_modules
         return returnVal;

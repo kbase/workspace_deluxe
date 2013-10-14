@@ -659,10 +659,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def list_modules(self, ):
+    def list_modules(self, params):
 
         arg_hash = { 'method': 'Workspace.list_modules',
-                     'params': [],
+                     'params': [params],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }

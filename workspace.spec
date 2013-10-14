@@ -532,8 +532,18 @@ module Workspace {
 	
 	authentication none;
 	
-	/* List all typespec modules. */
-	funcdef list_modules() returns(list<modulename> modules);
+	/* Parameters for the list_modules() function.
+	
+		Optional parameters:
+		username owner - only list modules owned by this user.
+	*/
+	typedef structure {
+		username owner;
+	} ListModulesParams;
+	
+	/* List typespec modules. */
+	funcdef list_modules(ListModulesParams params)
+		returns(list<modulename> modules);
 	
 	/* Parameters for the get_module_info function.
 	
