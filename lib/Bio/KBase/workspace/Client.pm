@@ -1547,7 +1547,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 typespec is a string
 modulename is a string
 typename is a string
-spec_version is a string
+spec_version is an int
 boolean is an int
 type_string is a string
 jsonschema is a string
@@ -1570,7 +1570,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 typespec is a string
 modulename is a string
 typename is a string
-spec_version is a string
+spec_version is an int
 boolean is an int
 type_string is a string
 jsonschema is a string
@@ -1796,9 +1796,9 @@ sub list_modules
 
 
 
-=head2 get_typespec
+=head2 get_module_info
 
-  $spec = $obj->get_typespec($params)
+  $info = $obj->get_module_info($params)
 
 =over 4
 
@@ -1807,14 +1807,24 @@ sub list_modules
 =begin html
 
 <pre>
-$params is a Workspace.GetTypespecParams
-$spec is a Workspace.typespec
-GetTypespecParams is a reference to a hash where the following keys are defined:
+$params is a Workspace.GetModuleInfoParams
+$info is a Workspace.ModuleInfo
+GetModuleInfoParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_string
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-spec_version is a string
+type_string is a string
+spec_version is an int
+ModuleInfo is a reference to a hash where the following keys are defined:
+	owner has a value which is a Workspace.username
+	ver has a value which is a Workspace.spec_version
+	spec has a value which is a Workspace.typespec
+	description has a value which is a string
+	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+username is a string
 typespec is a string
+jsonschema is a string
 
 </pre>
 
@@ -1822,27 +1832,37 @@ typespec is a string
 
 =begin text
 
-$params is a Workspace.GetTypespecParams
-$spec is a Workspace.typespec
-GetTypespecParams is a reference to a hash where the following keys are defined:
+$params is a Workspace.GetModuleInfoParams
+$info is a Workspace.ModuleInfo
+GetModuleInfoParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_string
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-spec_version is a string
+type_string is a string
+spec_version is an int
+ModuleInfo is a reference to a hash where the following keys are defined:
+	owner has a value which is a Workspace.username
+	ver has a value which is a Workspace.spec_version
+	spec has a value which is a Workspace.typespec
+	description has a value which is a string
+	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+username is a string
 typespec is a string
+jsonschema is a string
 
 
 =end text
 
 =item Description
 
-Get a typespec.
+
 
 =back
 
 =cut
 
-sub get_typespec
+sub get_module_info
 {
     my($self, @args) = @_;
 
@@ -1851,7 +1871,7 @@ sub get_typespec
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function get_typespec (received $n, expecting 1)");
+							       "Invalid argument count for function get_module_info (received $n, expecting 1)");
     }
     {
 	my($params) = @args;
@@ -1859,29 +1879,29 @@ sub get_typespec
 	my @_bad_arguments;
         (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to get_typespec:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to get_module_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'get_typespec');
+								   method_name => 'get_module_info');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.get_typespec",
+	method => "Workspace.get_module_info",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'get_typespec',
+					       method_name => 'get_module_info',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_typespec",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_module_info",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'get_typespec',
+					    method_name => 'get_module_info',
 				       );
     }
 }
@@ -3322,14 +3342,14 @@ The version of a typespec.
 =begin html
 
 <pre>
-a string
+an int
 </pre>
 
 =end html
 
 =begin text
 
-a string
+an int
 
 =end text
 
@@ -3395,7 +3415,7 @@ Parameters for the compile_typespec function.
                 the workspace service for the new version of the spec. This does
                 not remove versions of types previously compiled.
         mapping<modulename, spec_version> dependencies - By default, the
-                latest versions of spec dependencies will be included when
+                latest released versions of spec dependencies will be included when
                 compiling a spec. Specific versions can be specified here.
 
 
@@ -3462,8 +3482,8 @@ Parameters for the release_types function.
         
         Optional parameters:
         list<string> types - if a module is specified, specify here the types
-                to release. Default is all types. If type is specified this
-                argument is ignored.
+                to release. Default is all types if no or an empty list is passed.
+                If type is specified this argument is ignored.
 
 
 =item Definition
@@ -3494,7 +3514,7 @@ types has a value which is a reference to a list where each element is a string
 
 
 
-=head2 GetTypespecParams
+=head2 GetModuleInfoParams
 
 =over 4
 
@@ -3502,14 +3522,17 @@ types has a value which is a reference to a list where each element is a string
 
 =item Description
 
-Parameters for the get_typespec function.
+Parameters for the get_module_info function.
 
         Required parameters:
+        One of:
         modulename mod - the name of the module to retrieve.
+        type_string type - the module information will be retrieved for the
+                module with the associated type.
         
         Optional parameters:
         spec_version ver - the version of the module to retrieve. Defaults to
-                the latest version.
+                the latest version. If a type is provided this argument is ignored.
 
 
 =item Definition
@@ -3519,6 +3542,7 @@ Parameters for the get_typespec function.
 <pre>
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_string
 ver has a value which is a Workspace.spec_version
 
 </pre>
@@ -3529,7 +3553,58 @@ ver has a value which is a Workspace.spec_version
 
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_string
 ver has a value which is a Workspace.spec_version
+
+
+=end text
+
+=back
+
+
+
+=head2 ModuleInfo
+
+=over 4
+
+
+
+=item Description
+
+Information about a module.
+
+        username owner - the owner of the module.
+        spec_version ver - the version of the module.
+        typespec spec - the typespec.
+        string description - the description of the module from the typespec.
+        mapping<type_string, jsonschema> types - the types associated with this
+                module and their JSON schema.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+owner has a value which is a Workspace.username
+ver has a value which is a Workspace.spec_version
+spec has a value which is a Workspace.typespec
+description has a value which is a string
+types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+owner has a value which is a Workspace.username
+ver has a value which is a Workspace.spec_version
+spec has a value which is a Workspace.typespec
+description has a value which is a string
+types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 
 
 =end text

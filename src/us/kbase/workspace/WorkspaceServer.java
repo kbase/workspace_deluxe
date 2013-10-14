@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.TypeChange;
@@ -528,14 +529,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Map<String, Long> deps = new HashMap<String, Long>();
 		if (params.getDependencies() != null) {
 			for (final String module: params.getDependencies().keySet()) {
-				try {
-					deps.put(module, Long.parseLong(
-							params.getDependencies().get(module)));
-				} catch (NumberFormatException nfe) {
-					throw new IllegalArgumentException(String.format(
-							"Version %s for module %s is invalid", module,
-							params.getDependencies().get(module)));
-				}
+				deps.put(module, new Long(params.getDependencies().get(module)));
 			}
 		}
 		final List<String> add = params.getNewTypes() != null ?
@@ -617,34 +611,42 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
-     * <p>Original spec-file function name: get_typespec</p>
+     * <p>Original spec-file function name: get_module_info</p>
      * <pre>
-     * Get a typespec.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.GetTypespecParams GetTypespecParams}
-     * @return   parameter "spec" of original type "typespec" (A KBase Interface Definition Language (KIDL) typespec.)
+     * @param   params   instance of type {@link us.kbase.workspace.GetModuleInfoParams GetModuleInfoParams}
+     * @return   parameter "info" of type {@link us.kbase.workspace.ModuleInfo ModuleInfo}
      */
-    @JsonServerMethod(rpc = "Workspace.get_typespec")
-    public String getTypespec(GetTypespecParams params) throws Exception {
-        String returnVal = null;
-        //BEGIN get_typespec
+    @JsonServerMethod(rpc = "Workspace.get_module_info")
+    public ModuleInfo getModuleInfo(GetModuleInfoParams params) throws Exception {
+        ModuleInfo returnVal = null;
+        //BEGIN get_module_info
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (params.getMod() == null) {
-			throw new IllegalArgumentException("Must provide a module name");
+		System.out.println(params);
+		if (!(params.getMod() == null ^ params.getType() == null)) {
+			throw new IllegalArgumentException(
+					"Must provide either a module name or a type");
 		}
-		if (params.getVer() != null) {
-			final long ver;
-			try {
-				ver = Long.parseLong(params.getVer());
-			} catch (NumberFormatException nfe) {
-				throw new IllegalArgumentException("Version " + params.getVer()
-						+ " is not valid");
-			}
-			returnVal = ws.getTypeSpec(params.getMod(), ver);
+		final us.kbase.workspace.workspaces.ModuleInfo mi;
+		if (params.getType() != null) {
+			mi = ws.getModuleInfo(TypeDefId.fromTypeString(params.getType()));
+		} else if (params.getVer() != null) {
+			mi = ws.getModuleInfo(params.getMod(), new Long(params.getVer()));
 		} else {
-			returnVal = ws.getTypeSpec(params.getMod());
+			mi = ws.getModuleInfo(params.getMod());
 		}
-        //END get_typespec
+		final Map<String, String> types = new HashMap<String, String>();
+		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
+			types.put(t.getTypeString(), mi.getTypes().get(t));
+		}
+		returnVal = new ModuleInfo()
+				.withDescription(mi.getDescription())
+				//TODO remove the null crap when getModuleInfo is improved
+				.withOwner(mi.getOwner() == null ? null : mi.getOwner().getUser())
+				.withSpec(mi.getTypespec())
+				.withVer(3) //(mi.getVersion()) //TODO fix this when Longs replace Ints in TC
+				.withTypes(types);
+        //END get_module_info
         return returnVal;
     }
 

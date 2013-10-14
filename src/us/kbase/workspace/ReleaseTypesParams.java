@@ -36,8 +36,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         
  *         Optional parameters:
  *         list<string> types - if a module is specified, specify here the types
- *                 to release. Default is all types. If type is specified this
- *                 argument is ignored.
+ *                 to release. Default is all types if no or an empty list is passed.
+ *                 If type is specified this argument is ignored.
  * </pre>
  * 
  */

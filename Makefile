@@ -40,6 +40,7 @@ build-docs: build-libs
 	@echo "**Expect two warnings for javadoc build, that's normal**"
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
 	rm -f pod2htmd.tmp
+	cp $(SERVICE).spec docs/.
 
 compile: compile-typespec compile-java
 
@@ -72,7 +73,6 @@ test-service:
 
 test-scripts:
 	@echo "no scripts to test"
-
 	
 deploy: deploy-client deploy-service
 

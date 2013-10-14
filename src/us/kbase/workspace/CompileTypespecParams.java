@@ -34,7 +34,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 the workspace service for the new version of the spec. This does
  *                 not remove versions of types previously compiled.
  *         mapping<modulename, spec_version> dependencies - By default, the
- *                 latest versions of spec dependencies will be included when
+ *                 latest released versions of spec dependencies will be included when
  *                 compiling a spec. Specific versions can be specified here.
  * </pre>
  * 
@@ -60,9 +60,9 @@ public class CompileTypespecParams {
     @JsonProperty("remove_types")
     private List<java.lang.String> removeTypes = new ArrayList<java.lang.String>();
     @JsonProperty("dependencies")
-    private Map<String, String> dependencies;
+    private Map<String, Integer> dependencies;
     @JsonProperty("dryrun")
-    private Integer dryrun;
+    private java.lang.Integer dryrun;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("spec")
@@ -126,31 +126,31 @@ public class CompileTypespecParams {
     }
 
     @JsonProperty("dependencies")
-    public Map<String, String> getDependencies() {
+    public Map<String, Integer> getDependencies() {
         return dependencies;
     }
 
     @JsonProperty("dependencies")
-    public void setDependencies(Map<String, String> dependencies) {
+    public void setDependencies(Map<String, Integer> dependencies) {
         this.dependencies = dependencies;
     }
 
-    public CompileTypespecParams withDependencies(Map<String, String> dependencies) {
+    public CompileTypespecParams withDependencies(Map<String, Integer> dependencies) {
         this.dependencies = dependencies;
         return this;
     }
 
     @JsonProperty("dryrun")
-    public Integer getDryrun() {
+    public java.lang.Integer getDryrun() {
         return dryrun;
     }
 
     @JsonProperty("dryrun")
-    public void setDryrun(Integer dryrun) {
+    public void setDryrun(java.lang.Integer dryrun) {
         this.dryrun = dryrun;
     }
 
-    public CompileTypespecParams withDryrun(Integer dryrun) {
+    public CompileTypespecParams withDryrun(java.lang.Integer dryrun) {
         this.dryrun = dryrun;
         return this;
     }

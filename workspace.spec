@@ -449,7 +449,7 @@ module Workspace {
 	typedef string typename;
 	
 	/* The version of a typespec. */
-	typedef string spec_version;
+	typedef int spec_version;
 	
 	/* The JSON Schema for a type. */
 	typedef string jsonschema;
@@ -478,7 +478,7 @@ module Workspace {
 			the workspace service for the new version of the spec. This does
 			not remove versions of types previously compiled.
 		mapping<modulename, spec_version> dependencies - By default, the
-			latest versions of spec dependencies will be included when
+			latest released versions of spec dependencies will be included when
 			compiling a spec. Specific versions can be specified here.
 	*/
 	typedef structure {
@@ -535,25 +535,48 @@ module Workspace {
 	/* List all typespec modules. */
 	funcdef list_modules() returns(list<modulename> modules);
 	
-	/* Parameters for the get_typespec function.
+	/* Parameters for the get_module_info function.
 	
 		Required parameters:
+		One of:
 		modulename mod - the name of the module to retrieve.
+		type_string type - the module information will be retrieved for the
+			module with the associated type.
 		
 		Optional parameters:
 		spec_version ver - the version of the module to retrieve. Defaults to
-			the latest version.
+			the latest version. If a type is provided this argument is ignored.
 	*/
 	typedef structure {
 		modulename mod;
+		type_string type;
 		spec_version ver;
-	} GetTypespecParams;
+	} GetModuleInfoParams;
 	
-	/* Get a typespec. */
-	funcdef get_typespec(GetTypespecParams params) returns(typespec spec);
+	/* Information about a module.
 	
+		username owner - the owner of the module.
+		spec_version ver - the version of the module.
+		typespec spec - the typespec.
+		string description - the description of the module from the typespec.
+		mapping<type_string, jsonschema> types - the types associated with this
+			module and their JSON schema.
+	*/
+	typedef structure {
+		username owner;
+		spec_version ver;
+		typespec spec;
+		string description;
+		mapping<type_string, jsonschema> types;
+	} ModuleInfo;
+	
+	funcdef get_module_info(GetModuleInfoParams params)
+		returns(ModuleInfo info);
+		
 	/* Get JSON schema for a type. */
 	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
+		
+	/* TODO get module versions by module, get modules by owner */
 
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)

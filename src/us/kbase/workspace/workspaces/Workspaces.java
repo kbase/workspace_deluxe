@@ -14,6 +14,7 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.db.TypeInfo;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
@@ -394,16 +395,6 @@ public class Workspaces {
 		}
 	}
 	
-	public String getTypeSpec(final String module)
-			throws NoSuchModuleException, TypeStorageException {
-		return typedb.getModuleSpecDocument(module);
-	}
-	
-	public String getTypeSpec(final String module, final long version)
-			throws NoSuchModuleException, TypeStorageException {
-		return typedb.getModuleSpecDocument(module, version);
-	}
-	
 	public String getJsonSchema(final TypeDefId type) throws
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		return typedb.getJsonSchemaDocument(type);
@@ -411,5 +402,54 @@ public class Workspaces {
 	
 	public List<String> listModules() throws TypeStorageException {
 		return typedb.getAllRegisteredModules();
+	}
+	
+	//TODO workspace IDs should be longs
+	//TODO bug for get mod info - return what I need
+	//TODO version collection. To refs stored with each version pointer for prov and normal refs. ref counts for from references. 
+	//TODO Database -> WorkspaceDatabase. MongoDatabase -> WorkspaceMongoDB.
+	
+	public ModuleInfo getModuleInfo(String module)
+			throws NoSuchModuleException, TypeStorageException {
+		return getModuleInfo(typedb.getModuleInfo(module),
+				typedb.getModuleSpecDocument(module));
+	}
+
+	private ModuleInfo getModuleInfo(
+			final us.kbase.typedobj.db.ModuleInfo moduleInfo,
+			final String spec)
+			throws NoSuchModuleException, TypeStorageException {
+		// TODO Auto-generated method stub
+		final Map<AbsoluteTypeDefId, String> typeToJSON =
+				new HashMap<AbsoluteTypeDefId, String>();
+		for (final TypeInfo t: moduleInfo.getTypes().values()) {
+			//TODO remove this when getModuleInfo is improved
+			final AbsoluteTypeDefId id = AbsoluteTypeDefId.fromTypeId(
+					new TypeDefId(moduleInfo.getModuleName() + "." +
+							t.getTypeName(), t.getTypeVersion()));
+			try {
+				typeToJSON.put(id, typedb.getJsonSchemaDocument(id));
+			} catch (NoSuchTypeException nste) {
+				throw new RuntimeException("Things are broken in type DB land");
+			}
+		}
+		//TODO need way to get user from module
+		return new ModuleInfo(spec, null, moduleInfo.getVersionTime(),
+				moduleInfo.getDescription(), typeToJSON);
+	}
+
+	public ModuleInfo getModuleInfo(String module, Long version)
+			throws NoSuchModuleException, TypeStorageException {
+		//TODO should return list of abdtypeids w/ json mappings
+		//TODO should return user and spec
+		return getModuleInfo(typedb.getModuleInfo(module, version),
+				typedb.getModuleSpecDocument(module, version));
+		//TODO need way to get user from module
+	}
+
+	public ModuleInfo getModuleInfo(TypeDefId type) {
+		// TODO Auto-generated method stub
+		// TODO need a way to get a module name/ver from type 
+		return null;
 	}
 }

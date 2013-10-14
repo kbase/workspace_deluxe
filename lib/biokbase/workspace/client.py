@@ -694,9 +694,9 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_typespec(self, params):
+    def get_module_info(self, params):
 
-        arg_hash = { 'method': 'Workspace.get_typespec',
+        arg_hash = { 'method': 'Workspace.get_module_info',
                      'params': [params],
                      'version': '1.1',
                      'id': str(random.random())[2:]

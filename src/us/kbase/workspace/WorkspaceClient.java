@@ -359,20 +359,19 @@ public class WorkspaceClient {
     }
 
     /**
-     * <p>Original spec-file function name: get_typespec</p>
+     * <p>Original spec-file function name: get_module_info</p>
      * <pre>
-     * Get a typespec.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.GetTypespecParams GetTypespecParams}
-     * @return   parameter "spec" of original type "typespec" (A KBase Interface Definition Language (KIDL) typespec.)
+     * @param   params   instance of type {@link us.kbase.workspace.GetModuleInfoParams GetModuleInfoParams}
+     * @return   parameter "info" of type {@link us.kbase.workspace.ModuleInfo ModuleInfo}
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public String getTypespec(GetTypespecParams params) throws IOException, JsonClientException {
+    public ModuleInfo getModuleInfo(GetModuleInfoParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.get_typespec", args, retType, true, false);
+        TypeReference<List<ModuleInfo>> retType = new TypeReference<List<ModuleInfo>>() {};
+        List<ModuleInfo> res = caller.jsonrpcCall("Workspace.get_module_info", args, retType, true, false);
         return res.get(0);
     }
 
