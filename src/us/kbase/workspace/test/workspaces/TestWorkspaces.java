@@ -158,7 +158,7 @@ public class TestWorkspaces {
 	}
 	
 	private void checkWSMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
-			Permission perm, boolean globalread, int id, Date moddate) {
+			Permission perm, boolean globalread, long id, Date moddate) {
 		checkWSMeta(meta, owner, name, perm, globalread);
 		assertThat("ws id correct", meta.getId(), is(id));
 		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
@@ -176,7 +176,7 @@ public class TestWorkspaces {
 	public void testCreateWorkspaceAndGetMeta() throws Exception {
 		WorkspaceMetaData meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
 		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false);
-		int id = meta.getId();
+		long id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
 		meta = ws.getWorkspaceMetaData(SOMEUSER, new WorkspaceIdentifier(id));
@@ -442,8 +442,8 @@ public class TestWorkspaces {
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
 	}
 	
-	private void checkObjMeta(ObjectMetaData meta, int id, String name, String type,
-			int version, WorkspaceUser user, int wsid, String chksum, int size) {
+	private void checkObjMeta(ObjectMetaData meta, long id, String name, String type,
+			int version, WorkspaceUser user, long wsid, String chksum, long size) {
 		if (meta instanceof ObjectUserMetaData) {
 			throw new TestException("missed testing meta");
 		}
@@ -458,9 +458,9 @@ public class TestWorkspaces {
 		assertThat("Object size is correct", meta.getSize(), is(size));
 	}
 	
-	private void checkObjMeta(ObjectUserMetaData meta, int id,
+	private void checkObjMeta(ObjectUserMetaData meta, long id,
 			String name, String type, int version, WorkspaceUser user,
-			int wsid, String chksum, int size, Map<String, String> usermeta) {
+			long wsid, String chksum, long size, Map<String, String> usermeta) {
 		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
 		assertThat("Object id correct", meta.getObjectId(), is(id));
 		assertThat("Object name is correct", meta.getObjectName(), is(name));
@@ -481,8 +481,8 @@ public class TestWorkspaces {
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
 		ws.createWorkspace(foo, read.getIdentifierString(), true, null);
 		ws.createWorkspace(foo, priv.getIdentifierString(), false, null);
-		int readid = ws.getWorkspaceMetaData(foo, read).getId();
-		int privid = ws.getWorkspaceMetaData(foo, priv).getId();
+		long readid = ws.getWorkspaceMetaData(foo, read).getId();
+		long privid = ws.getWorkspaceMetaData(foo, priv).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -728,7 +728,7 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
-		int readid = ws.getWorkspaceMetaData(foo, read).getId();
+		long readid = ws.getWorkspaceMetaData(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
 		JsonNode savedata = mapper.valueToTree(data);
@@ -906,20 +906,20 @@ public class TestWorkspaces {
 	}
 	
 	private void testCreate(WorkspaceIdentifier goodWs, String name,
-			Integer id) {
+			Long id) {
 		ObjectIdentifier.create(goodWs, name, id);
 		WorkspaceObjectID.create(name, id);
 		
 	}
 	
 	
-	private void testCreateVer(WorkspaceIdentifier goodWs, String name, Integer id,
+	private void testCreateVer(WorkspaceIdentifier goodWs, String name, Long id,
 			Integer ver) {
 		ObjectIdentifier.create(goodWs, name, id, ver);
 	}
 	
 	private void testCreate(WorkspaceIdentifier badWS, String name,
-			Integer id, String exception) {
+			Long id, String exception) {
 		try {
 			ObjectIdentifier.create(badWS, name, id);
 			fail("Initialized invalid object id");
@@ -937,7 +937,7 @@ public class TestWorkspaces {
 	}
 	
 	private void testCreateVer(WorkspaceIdentifier badWS, String name,
-			Integer id, Integer ver, String exception) {
+			Long id, Integer ver, String exception) {
 		try {
 			ObjectIdentifier.create(badWS, name, id, ver);
 			fail("Initialized invalid object id");
@@ -976,16 +976,16 @@ public class TestWorkspaces {
 		testObjectIdentifier(goodWs, 0, 1, "Object id must be > 0");
 		testObjectIdentifier(goodWs, 1, 0, "Object version must be > 0");
 		testCreate(goodWs, "f|o.A-1_2", null);
-		testCreate(goodWs, null, 1);
+		testCreate(goodWs, null, 1L);
 		testCreate(null, "boo", null, "wsi cannot be null");
 		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
-		testCreate(goodWs, "boo", 1, "Must provide one and only one of object name (was: boo) or id (was: 1)");
+		testCreate(goodWs, "boo", 1L, "Must provide one and only one of object name (was: boo) or id (was: 1)");
 		testCreateVer(goodWs, "boo", null, 1);
-		testCreateVer(goodWs, null, 1, 1);
+		testCreateVer(goodWs, null, 1L, 1);
 		testCreateVer(goodWs, "boo", null, null);
-		testCreateVer(goodWs, null, 1, null);
+		testCreateVer(goodWs, null, 1L, null);
 		testCreateVer(goodWs, "boo", null, 0, "Object version must be > 0");
-		testCreateVer(goodWs, null, 1, 0, "Object version must be > 0");
+		testCreateVer(goodWs, null, 1L, 0, "Object version must be > 0");
 		testRef("foo/bar");
 		testRef("foo/bar/1");
 		testRef("foo/bar/1/2", "Illegal number of separators / in object name reference foo/bar/1/2");
@@ -1005,7 +1005,7 @@ public class TestWorkspaces {
 	public void deleteUndelete() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
-		int wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
+		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();

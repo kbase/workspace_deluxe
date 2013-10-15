@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,56 +38,56 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class SetPermissionsParams {
 
     @JsonProperty("workspace")
-    private String workspace;
+    private java.lang.String workspace;
     @JsonProperty("id")
-    private Integer id;
+    private Long id;
     @JsonProperty("new_permission")
-    private String newPermission;
+    private java.lang.String newPermission;
     @JsonProperty("users")
-    private List<String> users = new ArrayList<String>();
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private List<String> users;
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("workspace")
-    public String getWorkspace() {
+    public java.lang.String getWorkspace() {
         return workspace;
     }
 
     @JsonProperty("workspace")
-    public void setWorkspace(String workspace) {
+    public void setWorkspace(java.lang.String workspace) {
         this.workspace = workspace;
     }
 
-    public SetPermissionsParams withWorkspace(String workspace) {
+    public SetPermissionsParams withWorkspace(java.lang.String workspace) {
         this.workspace = workspace;
         return this;
     }
 
     @JsonProperty("id")
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
     @JsonProperty("id")
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public SetPermissionsParams withId(Integer id) {
+    public SetPermissionsParams withId(Long id) {
         this.id = id;
         return this;
     }
 
     @JsonProperty("new_permission")
-    public String getNewPermission() {
+    public java.lang.String getNewPermission() {
         return newPermission;
     }
 
     @JsonProperty("new_permission")
-    public void setNewPermission(String newPermission) {
+    public void setNewPermission(java.lang.String newPermission) {
         this.newPermission = newPermission;
     }
 
-    public SetPermissionsParams withNewPermission(String newPermission) {
+    public SetPermissionsParams withNewPermission(java.lang.String newPermission) {
         this.newPermission = newPermission;
         return this;
     }
@@ -109,17 +108,17 @@ public class SetPermissionsParams {
     }
 
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
+    public java.lang.String toString() {
         return ((((((((((("SetPermissionsParams"+" [workspace=")+ workspace)+", id=")+ id)+", newPermission=")+ newPermission)+", users=")+ users)+", additionalProperties=")+ additionalProperties)+"]");
     }
 

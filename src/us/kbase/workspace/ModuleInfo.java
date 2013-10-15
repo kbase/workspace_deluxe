@@ -38,7 +38,7 @@ public class ModuleInfo {
     @JsonProperty("owner")
     private java.lang.String owner;
     @JsonProperty("ver")
-    private Integer ver;
+    private Long ver;
     @JsonProperty("spec")
     private java.lang.String spec;
     @JsonProperty("description")
@@ -63,16 +63,16 @@ public class ModuleInfo {
     }
 
     @JsonProperty("ver")
-    public Integer getVer() {
+    public Long getVer() {
         return ver;
     }
 
     @JsonProperty("ver")
-    public void setVer(Integer ver) {
+    public void setVer(Long ver) {
         this.ver = ver;
     }
 
-    public ModuleInfo withVer(Integer ver) {
+    public ModuleInfo withVer(Long ver) {
         this.ver = ver;
         return this;
     }

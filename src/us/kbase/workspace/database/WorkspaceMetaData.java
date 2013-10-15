@@ -6,7 +6,7 @@ import java.util.Date;
 
 public interface WorkspaceMetaData {
 	
-	public int getId();
+	public long getId();
 	public String getName();
 	public WorkspaceUser getOwner();
 	public Date getModDate();

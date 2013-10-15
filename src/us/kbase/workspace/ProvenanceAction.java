@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,87 +76,87 @@ import us.kbase.common.service.UObject;
 public class ProvenanceAction {
 
     @JsonProperty("time")
-    private String time;
+    private java.lang.String time;
     @JsonProperty("service")
-    private String service;
+    private java.lang.String service;
     @JsonProperty("service_ver")
-    private Integer serviceVer;
+    private Long serviceVer;
     @JsonProperty("method")
-    private String method;
+    private java.lang.String method;
     @JsonProperty("method_params")
-    private List<UObject> methodParams = new ArrayList<UObject>();
+    private List<UObject> methodParams;
     @JsonProperty("script")
-    private String script;
+    private java.lang.String script;
     @JsonProperty("script_ver")
-    private Integer scriptVer;
+    private Long scriptVer;
     @JsonProperty("script_command_line")
-    private String scriptCommandLine;
+    private java.lang.String scriptCommandLine;
     @JsonProperty("description")
-    private String description;
+    private java.lang.String description;
     @JsonProperty("input_ws_objects")
-    private List<ObjectIdentity> inputWsObjects = new ArrayList<ObjectIdentity>();
+    private List<ObjectIdentity> inputWsObjects;
     @JsonProperty("intermediate_incoming")
-    private List<String> intermediateIncoming = new ArrayList<String>();
+    private List<String> intermediateIncoming;
     @JsonProperty("intermediate_outgoing")
-    private List<String> intermediateOutgoing = new ArrayList<String>();
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private List<String> intermediateOutgoing;
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("time")
-    public String getTime() {
+    public java.lang.String getTime() {
         return time;
     }
 
     @JsonProperty("time")
-    public void setTime(String time) {
+    public void setTime(java.lang.String time) {
         this.time = time;
     }
 
-    public ProvenanceAction withTime(String time) {
+    public ProvenanceAction withTime(java.lang.String time) {
         this.time = time;
         return this;
     }
 
     @JsonProperty("service")
-    public String getService() {
+    public java.lang.String getService() {
         return service;
     }
 
     @JsonProperty("service")
-    public void setService(String service) {
+    public void setService(java.lang.String service) {
         this.service = service;
     }
 
-    public ProvenanceAction withService(String service) {
+    public ProvenanceAction withService(java.lang.String service) {
         this.service = service;
         return this;
     }
 
     @JsonProperty("service_ver")
-    public Integer getServiceVer() {
+    public Long getServiceVer() {
         return serviceVer;
     }
 
     @JsonProperty("service_ver")
-    public void setServiceVer(Integer serviceVer) {
+    public void setServiceVer(Long serviceVer) {
         this.serviceVer = serviceVer;
     }
 
-    public ProvenanceAction withServiceVer(Integer serviceVer) {
+    public ProvenanceAction withServiceVer(Long serviceVer) {
         this.serviceVer = serviceVer;
         return this;
     }
 
     @JsonProperty("method")
-    public String getMethod() {
+    public java.lang.String getMethod() {
         return method;
     }
 
     @JsonProperty("method")
-    public void setMethod(String method) {
+    public void setMethod(java.lang.String method) {
         this.method = method;
     }
 
-    public ProvenanceAction withMethod(String method) {
+    public ProvenanceAction withMethod(java.lang.String method) {
         this.method = method;
         return this;
     }
@@ -178,61 +177,61 @@ public class ProvenanceAction {
     }
 
     @JsonProperty("script")
-    public String getScript() {
+    public java.lang.String getScript() {
         return script;
     }
 
     @JsonProperty("script")
-    public void setScript(String script) {
+    public void setScript(java.lang.String script) {
         this.script = script;
     }
 
-    public ProvenanceAction withScript(String script) {
+    public ProvenanceAction withScript(java.lang.String script) {
         this.script = script;
         return this;
     }
 
     @JsonProperty("script_ver")
-    public Integer getScriptVer() {
+    public Long getScriptVer() {
         return scriptVer;
     }
 
     @JsonProperty("script_ver")
-    public void setScriptVer(Integer scriptVer) {
+    public void setScriptVer(Long scriptVer) {
         this.scriptVer = scriptVer;
     }
 
-    public ProvenanceAction withScriptVer(Integer scriptVer) {
+    public ProvenanceAction withScriptVer(Long scriptVer) {
         this.scriptVer = scriptVer;
         return this;
     }
 
     @JsonProperty("script_command_line")
-    public String getScriptCommandLine() {
+    public java.lang.String getScriptCommandLine() {
         return scriptCommandLine;
     }
 
     @JsonProperty("script_command_line")
-    public void setScriptCommandLine(String scriptCommandLine) {
+    public void setScriptCommandLine(java.lang.String scriptCommandLine) {
         this.scriptCommandLine = scriptCommandLine;
     }
 
-    public ProvenanceAction withScriptCommandLine(String scriptCommandLine) {
+    public ProvenanceAction withScriptCommandLine(java.lang.String scriptCommandLine) {
         this.scriptCommandLine = scriptCommandLine;
         return this;
     }
 
     @JsonProperty("description")
-    public String getDescription() {
+    public java.lang.String getDescription() {
         return description;
     }
 
     @JsonProperty("description")
-    public void setDescription(String description) {
+    public void setDescription(java.lang.String description) {
         this.description = description;
     }
 
-    public ProvenanceAction withDescription(String description) {
+    public ProvenanceAction withDescription(java.lang.String description) {
         this.description = description;
         return this;
     }
@@ -283,17 +282,17 @@ public class ProvenanceAction {
     }
 
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
+    public java.lang.String toString() {
         return ((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", description=")+ description)+", inputWsObjects=")+ inputWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", additionalProperties=")+ additionalProperties)+"]");
     }
 

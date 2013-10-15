@@ -41,7 +41,7 @@ public class GetModuleInfoParams {
     @JsonProperty("type")
     private String type;
     @JsonProperty("ver")
-    private Integer ver;
+    private Long ver;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("mod")
@@ -75,16 +75,16 @@ public class GetModuleInfoParams {
     }
 
     @JsonProperty("ver")
-    public Integer getVer() {
+    public Long getVer() {
         return ver;
     }
 
     @JsonProperty("ver")
-    public void setVer(Integer ver) {
+    public void setVer(Long ver) {
         this.ver = ver;
     }
 
-    public GetModuleInfoParams withVer(Integer ver) {
+    public GetModuleInfoParams withVer(Long ver) {
         this.ver = ver;
         return this;
     }

@@ -7,7 +7,7 @@ public class ObjectIDResolvedWSNoVer {
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
-	private final Integer id;
+	private final Long id;
 	
 	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
 			final String name) {
@@ -21,7 +21,7 @@ public class ObjectIDResolvedWSNoVer {
 	}
 	
 	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
-			final int id) {
+			final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -59,7 +59,7 @@ public class ObjectIDResolvedWSNoVer {
 		return name;
 	}
 
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 

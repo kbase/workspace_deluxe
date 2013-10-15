@@ -28,14 +28,14 @@ public class KBaseIdentifierFactory {
 	}
 	
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
-			final String workspace, final Integer id) {
+			final String workspace, final Long id) {
 		xorNameId(workspace, id, "workspace");
 		if (id != null) {
 			return new WorkspaceIdentifier(id);
 		}
 		Matcher m = KB_WS_ID.matcher(workspace);
 		if (m.find()) {
-			return new WorkspaceIdentifier(new Integer(m.group(1)));
+			return new WorkspaceIdentifier(new Long(m.group(1)));
 		}
 		return new WorkspaceIdentifier(workspace);
 	}
@@ -104,9 +104,18 @@ public class KBaseIdentifierFactory {
 			}
 			return ObjectIdentifier.parseObjectReference(ref);
 		}
+		final Integer ver;
+		if (oi.getVer() != null) {
+			if (oi.getVer().longValue() > Integer.MAX_VALUE) {
+				throw new IllegalArgumentException("Maximum object version is "
+						+ Integer.MAX_VALUE);
+			}
+			ver = (int) oi.getVer().longValue();
+		} else {
+			ver = null;
+		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				oi.getWorkspace(), oi.getWsid());
-		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(),
-				oi.getVer());
+		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(), ver);
 	}
 }

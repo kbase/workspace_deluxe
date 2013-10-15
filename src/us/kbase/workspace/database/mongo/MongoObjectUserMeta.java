@@ -11,10 +11,10 @@ public class MongoObjectUserMeta extends MongoObjectMeta implements
 	
 	final private Map<String, String> userMeta;
 	
-	MongoObjectUserMeta(final int id, final String name,
+	MongoObjectUserMeta(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
-			final String chksum, final int size,
+			final String chksum, final long size,
 			final Map<String, String> userMeta) {
 		super(id, name, typeString, createdDate, version, creator, workspaceid,
 				chksum, size);

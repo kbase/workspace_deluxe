@@ -6,7 +6,7 @@ public class ObjectIDResolvedWS {
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
-	private final Integer id;
+	private final Long id;
 	private final Integer version;
 	
 	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name) {
@@ -34,7 +34,7 @@ public class ObjectIDResolvedWS {
 		this.version = version;
 	}
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id) {
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -47,7 +47,7 @@ public class ObjectIDResolvedWS {
 		this.version = null;
 	}
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, int id, int version) {
+	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, long id, int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -71,7 +71,7 @@ public class ObjectIDResolvedWS {
 		return name;
 	}
 
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 

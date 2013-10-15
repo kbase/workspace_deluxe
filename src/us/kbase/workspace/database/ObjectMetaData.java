@@ -5,14 +5,14 @@ import java.util.Date;
 
 public interface ObjectMetaData {
 	
-	public int getObjectId();
+	public long getObjectId();
 	public String getObjectName();
 	public String getTypeString();
-	public int getSize();
+	public long getSize();
 	public Date getCreatedDate();
 	public int getVersion();
 	public WorkspaceUser getCreator();
-	public int getWorkspaceId();
+	public long getWorkspaceId();
 	public String getCheckSum();
 	public int hashCode();
 	public boolean equals(Object obj);

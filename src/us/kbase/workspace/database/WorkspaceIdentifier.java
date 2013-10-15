@@ -12,7 +12,7 @@ public class WorkspaceIdentifier {
 	private final static Pattern INVALID_WS_NAMES = 
 			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "]");
 
-	private final Integer id;
+	private final Long id;
 	private final String wsname;
 	
 	public WorkspaceIdentifier(String wsname) {
@@ -30,7 +30,7 @@ public class WorkspaceIdentifier {
 		this.wsname = wsname;
 	}
 	
-	public WorkspaceIdentifier(int id) {
+	public WorkspaceIdentifier(long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("Workspace id must be > 0");
 		}
@@ -74,7 +74,7 @@ public class WorkspaceIdentifier {
 		}
 	}
 	
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 

@@ -48,13 +48,13 @@ public class ObjectIdentity {
     @JsonProperty("workspace")
     private String workspace;
     @JsonProperty("wsid")
-    private Integer wsid;
+    private Long wsid;
     @JsonProperty("name")
     private String name;
     @JsonProperty("objid")
-    private Integer objid;
+    private Long objid;
     @JsonProperty("ver")
-    private Integer ver;
+    private Long ver;
     @JsonProperty("ref")
     private String ref;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -75,16 +75,16 @@ public class ObjectIdentity {
     }
 
     @JsonProperty("wsid")
-    public Integer getWsid() {
+    public Long getWsid() {
         return wsid;
     }
 
     @JsonProperty("wsid")
-    public void setWsid(Integer wsid) {
+    public void setWsid(Long wsid) {
         this.wsid = wsid;
     }
 
-    public ObjectIdentity withWsid(Integer wsid) {
+    public ObjectIdentity withWsid(Long wsid) {
         this.wsid = wsid;
         return this;
     }
@@ -105,31 +105,31 @@ public class ObjectIdentity {
     }
 
     @JsonProperty("objid")
-    public Integer getObjid() {
+    public Long getObjid() {
         return objid;
     }
 
     @JsonProperty("objid")
-    public void setObjid(Integer objid) {
+    public void setObjid(Long objid) {
         this.objid = objid;
     }
 
-    public ObjectIdentity withObjid(Integer objid) {
+    public ObjectIdentity withObjid(Long objid) {
         this.objid = objid;
         return this;
     }
 
     @JsonProperty("ver")
-    public Integer getVer() {
+    public Long getVer() {
         return ver;
     }
 
     @JsonProperty("ver")
-    public void setVer(Integer ver) {
+    public void setVer(Long ver) {
         this.ver = ver;
     }
 
-    public ObjectIdentity withVer(Integer ver) {
+    public ObjectIdentity withVer(Long ver) {
         this.ver = ver;
         return this;
     }

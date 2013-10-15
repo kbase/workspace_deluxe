@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +38,9 @@ public class SaveObjectsParams {
     @JsonProperty("workspace")
     private String workspace;
     @JsonProperty("id")
-    private Integer id;
+    private Long id;
     @JsonProperty("objects")
-    private List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+    private List<ObjectSaveData> objects;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -60,16 +59,16 @@ public class SaveObjectsParams {
     }
 
     @JsonProperty("id")
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
     @JsonProperty("id")
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public SaveObjectsParams withId(Integer id) {
+    public SaveObjectsParams withId(Long id) {
         this.id = id;
         return this;
     }
