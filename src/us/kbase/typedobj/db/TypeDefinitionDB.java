@@ -1899,16 +1899,33 @@ public class TypeDefinitionDB {
 		return getModuleInfo(moduleName, version).getMd5hash();
 	}
 	
-	public Long findModuleVersionByMD5(String moduleName, String md5) 
+	public ModuleDefId findModuleVersionByMD5(String moduleName, String md5) 
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
 		try {
 			for (long version : getAllModuleVersions(moduleName)) {
 				ModuleInfo info = getModuleInfoNL(moduleName, version);
 				if (md5.equals(info.getMd5hash()))
-					return version;
+					return new ModuleDefId(moduleName, version);
 			}
 			return null;
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+	
+	public List<ModuleDefId> findModuleVersionsByTypeVersion(TypeDefId typeDef) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
+		String moduleName = typeDef.getType().getModule();
+		requestReadLock(moduleName);
+		try {
+			typeDef = resolveTypeDefId(typeDef);
+			List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+			Set<Long> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
+					typeDef.getType().getName(), typeDef.getVerString());
+			for (long moduleVersion : moduleVersions)
+				ret.add(new ModuleDefId(moduleName, moduleVersion));
+			return ret;
 		} finally {
 			releaseReadLock(moduleName);
 		}

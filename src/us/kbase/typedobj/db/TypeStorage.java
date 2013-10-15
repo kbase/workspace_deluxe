@@ -52,6 +52,8 @@ public interface TypeStorage {
 	
 	public Map<String, OwnerInfo> getModulesForOwner(String userId) throws TypeStorageException;
 
+	public Set<Long> getModuleVersionsForTypeVersion(String moduleName, String typeName, String typeVersion) throws TypeStorageException;
+
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
 	public void writeTypeSchemaRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
