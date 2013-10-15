@@ -1,6 +1,5 @@
 package us.kbase.workspace.workspaces;
 
-import java.util.List;
 import java.util.Map;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;

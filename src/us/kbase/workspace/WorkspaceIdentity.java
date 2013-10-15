@@ -35,7 +35,7 @@ public class WorkspaceIdentity {
     @JsonProperty("workspace")
     private String workspace;
     @JsonProperty("id")
-    private Integer id;
+    private Long id;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -54,16 +54,16 @@ public class WorkspaceIdentity {
     }
 
     @JsonProperty("id")
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
     @JsonProperty("id")
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public WorkspaceIdentity withId(Integer id) {
+    public WorkspaceIdentity withId(Long id) {
         this.id = id;
         return this;
     }

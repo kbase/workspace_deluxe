@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +55,13 @@ public class CompileTypespecParams {
     @JsonProperty("mod")
     private java.lang.String mod;
     @JsonProperty("new_types")
-    private List<java.lang.String> newTypes = new ArrayList<java.lang.String>();
+    private List<String> newTypes;
     @JsonProperty("remove_types")
-    private List<java.lang.String> removeTypes = new ArrayList<java.lang.String>();
+    private List<String> removeTypes;
     @JsonProperty("dependencies")
-    private Map<String, Integer> dependencies;
+    private Map<String, Long> dependencies;
     @JsonProperty("dryrun")
-    private java.lang.Integer dryrun;
+    private java.lang.Long dryrun;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("spec")
@@ -96,61 +95,61 @@ public class CompileTypespecParams {
     }
 
     @JsonProperty("new_types")
-    public List<java.lang.String> getNewTypes() {
+    public List<String> getNewTypes() {
         return newTypes;
     }
 
     @JsonProperty("new_types")
-    public void setNewTypes(List<java.lang.String> newTypes) {
+    public void setNewTypes(List<String> newTypes) {
         this.newTypes = newTypes;
     }
 
-    public CompileTypespecParams withNewTypes(List<java.lang.String> newTypes) {
+    public CompileTypespecParams withNewTypes(List<String> newTypes) {
         this.newTypes = newTypes;
         return this;
     }
 
     @JsonProperty("remove_types")
-    public List<java.lang.String> getRemoveTypes() {
+    public List<String> getRemoveTypes() {
         return removeTypes;
     }
 
     @JsonProperty("remove_types")
-    public void setRemoveTypes(List<java.lang.String> removeTypes) {
+    public void setRemoveTypes(List<String> removeTypes) {
         this.removeTypes = removeTypes;
     }
 
-    public CompileTypespecParams withRemoveTypes(List<java.lang.String> removeTypes) {
+    public CompileTypespecParams withRemoveTypes(List<String> removeTypes) {
         this.removeTypes = removeTypes;
         return this;
     }
 
     @JsonProperty("dependencies")
-    public Map<String, Integer> getDependencies() {
+    public Map<String, Long> getDependencies() {
         return dependencies;
     }
 
     @JsonProperty("dependencies")
-    public void setDependencies(Map<String, Integer> dependencies) {
+    public void setDependencies(Map<String, Long> dependencies) {
         this.dependencies = dependencies;
     }
 
-    public CompileTypespecParams withDependencies(Map<String, Integer> dependencies) {
+    public CompileTypespecParams withDependencies(Map<String, Long> dependencies) {
         this.dependencies = dependencies;
         return this;
     }
 
     @JsonProperty("dryrun")
-    public java.lang.Integer getDryrun() {
+    public java.lang.Long getDryrun() {
         return dryrun;
     }
 
     @JsonProperty("dryrun")
-    public void setDryrun(java.lang.Integer dryrun) {
+    public void setDryrun(java.lang.Long dryrun) {
         this.dryrun = dryrun;
     }
 
-    public CompileTypespecParams withDryrun(java.lang.Integer dryrun) {
+    public CompileTypespecParams withDryrun(java.lang.Long dryrun) {
         this.dryrun = dryrun;
         return this;
     }

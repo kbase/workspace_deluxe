@@ -8,14 +8,14 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoWSMeta implements WorkspaceMetaData {
 	
-	final private int id;
+	final private long id;
 	final private String name;
 	final private WorkspaceUser owner;
 	final private Date modDate;
 	final private Permission userPermission;
 	final private boolean globalRead;
 	
-	MongoWSMeta(int id, String name, WorkspaceUser owner, Date modDate,
+	MongoWSMeta(long id, String name, WorkspaceUser owner, Date modDate,
 			Permission userPermission, boolean globalRead) {
 		this.id = id;
 		this.name = name;
@@ -27,7 +27,7 @@ public class MongoWSMeta implements WorkspaceMetaData {
 	}
 
 	@Override
-	public int getId() {
+	public long getId() {
 		return id;
 	}
 

@@ -269,7 +269,7 @@ public class JsonServerServlet extends HttpServlet {
 				Type paramType = rpcMethod.getGenericParameterTypes()[typePos];
 				PlainTypeRef paramJavaType = new PlainTypeRef(paramType);
 				try {
-					methodValues[typePos] = mapper.readValue(mapper.treeAsTokens(jsonData), paramJavaType);
+					methodValues[typePos] = mapper.readValue(new JsonTreeTraversingParser(jsonData, mapper), paramJavaType);
 				} catch (Exception ex) {
 					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", output);	
 					return;

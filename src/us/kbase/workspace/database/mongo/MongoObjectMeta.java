@@ -7,21 +7,21 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoObjectMeta implements ObjectMetaData {
 	
-	final private int id;
+	final private long id;
 	final private String name;
 	final private String type;
 	final private Date createdDate;
 	final private int version;
 	final private WorkspaceUser creator;
-	final private int workspaceId;
+	final private long workspaceId;
 	final private String chksum;
-	final private int size;
+	final private long size;
 	
-	MongoObjectMeta(final int id, final String name,
+	MongoObjectMeta(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
 			final String chksum,
-			final int size) {
+			final long size) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
@@ -36,7 +36,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	}
 
 	@Override
-	public int getObjectId() {
+	public long getObjectId() {
 		return id;
 	}
 
@@ -66,7 +66,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	}
 
 	@Override
-	public int getWorkspaceId() {
+	public long getWorkspaceId() {
 		return workspaceId;
 	}
 
@@ -77,7 +77,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	
 	
 	@Override
-	public int getSize() {
+	public long getSize() {
 		return size;
 	}
 

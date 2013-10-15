@@ -33,7 +33,7 @@ public class ObjectData {
     @JsonProperty("data")
     private UObject data;
     @JsonProperty("meta")
-    private Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta;
+    private Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -52,16 +52,16 @@ public class ObjectData {
     }
 
     @JsonProperty("meta")
-    public Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> getMeta() {
+    public Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> getMeta() {
         return meta;
     }
 
     @JsonProperty("meta")
-    public void setMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta) {
+    public void setMeta(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta) {
         this.meta = meta;
     }
 
-    public ObjectData withMeta(Tuple10 <Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> meta) {
+    public ObjectData withMeta(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta) {
         this.meta = meta;
         return this;
     }

@@ -60,12 +60,12 @@ public class QueryMethods {
 			queryWorkspacesByResolvedID(final Set<ResolvedMongoWSID> rwsiset,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final Map<Integer, ResolvedMongoWSID> ids =
-				new HashMap<Integer, ResolvedMongoWSID>();
+		final Map<Long, ResolvedMongoWSID> ids =
+				new HashMap<Long, ResolvedMongoWSID>();
 		for (ResolvedMongoWSID r: rwsiset) {
 			ids.put(r.getID(), r);
 		}
-		final Map<Integer, Map<String, Object>> idres;
+		final Map<Long, Map<String, Object>> idres;
 		try {
 			idres = queryWorkspacesByID(ids.keySet(), fields);
 		} catch (NoSuchWorkspaceException nswe) {
@@ -75,7 +75,7 @@ public class QueryMethods {
 		}
 		final Map<ResolvedMongoWSID, Map<String, Object>> ret =
 				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
-		for (Integer id: idres.keySet()) {
+		for (final Long id: idres.keySet()) {
 			ret.put(ids.get(id), idres.get(id));
 		}
 		return ret;
@@ -93,8 +93,8 @@ public class QueryMethods {
 			queryWorkspacesByIdentifier(final Set<WorkspaceIdentifier> wsiset,
 			final Set<String> fields) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		final Map<Integer, WorkspaceIdentifier> ids =
-				new HashMap<Integer, WorkspaceIdentifier>();
+		final Map<Long, WorkspaceIdentifier> ids =
+				new HashMap<Long, WorkspaceIdentifier>();
 		final Map<String, WorkspaceIdentifier> names =
 				new HashMap<String, WorkspaceIdentifier>();
 		for (WorkspaceIdentifier wsi: wsiset) {
@@ -107,9 +107,9 @@ public class QueryMethods {
 		//could do an or here but hardly seems worth it
 		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
 				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
-		final Map<Integer, Map<String, Object>> idres = queryWorkspacesByID(
+		final Map<Long, Map<String, Object>> idres = queryWorkspacesByID(
 				ids.keySet(), fields);
-		for (Integer id: idres.keySet()) {
+		for (final Long id: idres.keySet()) {
 			ret.put(ids.get(id), idres.get(id));
 		}
 		final Map<String, Map<String, Object>> nameres = queryWorkspacesByName(
@@ -153,31 +153,31 @@ public class QueryMethods {
 		return result;
 	}
 	
-	Map<String, Object> queryWorkspace(final Integer id,
+	Map<String, Object> queryWorkspace(final long id,
 			final Set<String> fields) throws NoSuchWorkspaceException,
 			WorkspaceCommunicationException {
-		Set<Integer> idset = new HashSet<Integer>();
+		Set<Long> idset = new HashSet<Long>();
 		idset.add(id);
 		return queryWorkspacesByID(idset, fields).get(id);
 	}	
 	
-	Map<Integer, Map<String, Object>> queryWorkspacesByID(
-			final Set<Integer> wsids, final Set<String> fields) throws
+	Map<Long, Map<String, Object>> queryWorkspacesByID(
+			final Set<Long> wsids, final Set<String> fields) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		if (wsids.isEmpty()) {
-			return new HashMap<Integer, Map<String, Object>>();
+			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.WS_ID);
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection, String.format(
 				"{%s: {$in: [%s]}}", Fields.WS_ID,
 				StringUtils.join(wsids, ", ")), fields);
-		final Map<Integer, Map<String, Object>> result =
-				new HashMap<Integer, Map<String, Object>>();
+		final Map<Long, Map<String, Object>> result =
+				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			result.put((Integer) m.get(Fields.WS_ID), m);
+			result.put((Long) m.get(Fields.WS_ID), m);
 		}
-		for (Integer id: wsids) {
+		for (final Long id: wsids) {
 			if (!result.containsKey(id)) {
 				throw new NoSuchWorkspaceException(String.format(
 						"No workspace with id %s exists", id));
@@ -200,9 +200,9 @@ public class QueryMethods {
 			NoSuchObjectException, WorkspaceCommunicationException {
 		
 		final Map<ResolvedMongoWSID,
-				Map<Integer, ObjectIDResolvedWSNoVer>> ids = 
+				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
 						new HashMap<ResolvedMongoWSID,
-								Map<Integer, ObjectIDResolvedWSNoVer>>();
+								Map<Long, ObjectIDResolvedWSNoVer>>();
 		final Map<ResolvedMongoWSID,
 				Map<String, ObjectIDResolvedWSNoVer>> names = 
 						new HashMap<ResolvedMongoWSID,
@@ -219,7 +219,7 @@ public class QueryMethods {
 			} else {
 				if (ids.get(rwsi) == null) {
 					ids.put(rwsi,
-							new HashMap<Integer, ObjectIDResolvedWSNoVer>());
+							new HashMap<Long, ObjectIDResolvedWSNoVer>());
 				}
 				ids.get(rwsi).put(o.getId(), o);
 			}
@@ -231,10 +231,10 @@ public class QueryMethods {
 		//workspace at a time. If profiling shows this is slow investigate
 		//further
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
-			final Map<Integer, Map<String, Object>> idres = 
+			final Map<Long, Map<String, Object>> idres = 
 					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
 							versionfields, exceptOnMissing);
-			for (final Integer id: idres.keySet()) {
+			for (final Long id: idres.keySet()) {
 				ret.put(ids.get(rwsi).get(id), idres.get(id));
 			}
 		}
@@ -277,25 +277,25 @@ public class QueryMethods {
 		return result;
 	}
 	
-	Map<Integer, Map<String, Object>> queryObjectsByID(
-			final ResolvedMongoWSID rwsi, final Set<Integer> ids,
+	Map<Long, Map<String, Object>> queryObjectsByID(
+			final ResolvedMongoWSID rwsi, final Set<Long> ids,
 			final Set<String> fields, final Set<String> versionfields,
 			final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (ids.isEmpty()) {
-			return new HashMap<Integer, Map<String, Object>>();
+			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.PTR_ID);
 		final List<Map<String, Object>> queryres = queryObjects(
 				String.format("{%s: %s, %s: {$in: [%s]}}", Fields.PTR_WS_ID,
 				rwsi.getID(), Fields.PTR_ID,
 				StringUtils.join(ids, ", ")), fields, versionfields);
-		final Map<Integer, Map<String, Object>> result =
-				new HashMap<Integer, Map<String, Object>>();
+		final Map<Long, Map<String, Object>> result =
+				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			result.put((Integer) m.get("id"), m);
+			result.put((Long) m.get("id"), m);
 		}
-		for (Integer id: ids) {
+		for (final Long id: ids) {
 			if (exceptOnMissing && !result.containsKey(id)) {
 				throw new NoSuchObjectException(String.format(
 						"No object with id %s exists in workspace %s", id,
@@ -365,7 +365,7 @@ public class QueryMethods {
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
 		final DBObject iddb = new BasicDBObject();
-		final Set<Integer> wsids = new HashSet<Integer>();
+		final Set<Long> wsids = new HashSet<Long>();
 		for (final ResolvedMongoWSID r: rwsis) {
 			wsids.add(r.getID());
 		}
@@ -395,10 +395,10 @@ public class QueryMethods {
 					"There was a problem communicating with the database", me);
 		}
 		
-		final Map<Integer, Map<User, Permission>> wsidToPerms =
-				new HashMap<Integer, Map<User, Permission>>();
+		final Map<Long, Map<User, Permission>> wsidToPerms =
+				new HashMap<Long, Map<User, Permission>>();
 		for (final DBObject m: res) {
-			final int wsid = (Integer) m.get(Fields.ACL_WSID);
+			final long wsid = (Long) m.get(Fields.ACL_WSID);
 			if (!wsidToPerms.containsKey(wsid)) {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
 			}

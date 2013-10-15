@@ -12,7 +12,7 @@ public class ObjectIdentifier {
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
-	private final Integer id;
+	private final Long id;
 	private final Integer version;
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, String name) {
@@ -40,7 +40,7 @@ public class ObjectIdentifier {
 		this.version = version;
 	}
 	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, int id) {
+	public ObjectIdentifier(WorkspaceIdentifier wsi, long id) {
 		if (wsi == null) {
 			throw new IllegalArgumentException("wsi cannot be null");
 		}
@@ -53,7 +53,7 @@ public class ObjectIdentifier {
 		this.version = null;
 	}
 	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, int id, int version) {
+	public ObjectIdentifier(WorkspaceIdentifier wsi, long id, int version) {
 		if (wsi == null) {
 			throw new IllegalArgumentException("wsi cannot be null");
 		}
@@ -77,7 +77,7 @@ public class ObjectIdentifier {
 		return name;
 	}
 
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 
@@ -115,12 +115,12 @@ public class ObjectIdentifier {
 	}
 	
 	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
-			final String name, final Integer id) {
+			final String name, final Long id) {
 		return create(wsi, name, id, null);
 	}
 	
 	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
-			final String name, final Integer id, final Integer ver) {
+			final String name, final Long id, final Integer ver) {
 		xorNameId(name, id, "object");
 		if (name != null) {
 			if (ver == null) {

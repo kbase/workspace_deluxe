@@ -54,9 +54,9 @@ public class ArgUtils {
 		return p;
 	}
 	
-	public Tuple6<Integer, String, String, String, String, String>
+	public Tuple6<Long, String, String, String, String, String>
 			wsMetaToTuple (final WorkspaceMetaData meta) {
-		return new Tuple6<Integer, String, String, String, String, String>()
+		return new Tuple6<Long, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())
 				.withE3(meta.getOwner().getUser())
@@ -65,24 +65,24 @@ public class ArgUtils {
 				.withE6(translatePermission(meta.isGloballyReadable()));
 	}
 	
-	public List<Tuple9<Integer, String, String, String, Integer, String,
-			Integer, String, Integer>>
+	public List<Tuple9<Long, String, String, String, Long, String,
+			Long, String, Long>>
 			objMetaToTuple (final List<ObjectMetaData> meta) {
 		
 		//oh the humanity
-		final List<Tuple9<Integer, String, String, String, Integer, String,
-			Integer, String, Integer>> ret = 
-			new ArrayList<Tuple9<Integer, String, String, String, Integer,
-			String, Integer, String, Integer>>();
+		final List<Tuple9<Long, String, String, String, Long, String,
+				Long, String, Long>> ret = 
+			new ArrayList<Tuple9<Long, String, String, String, Long,
+			String, Long, String, Long>>();
 		
 		for (ObjectMetaData m: meta) {
-			ret.add(new Tuple9<Integer, String, String, String, Integer,
-					String, Integer, String, Integer>()
+			ret.add(new Tuple9<Long, String, String, String, Long,
+					String, Long, String, Long>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
 					.withE4(dateFormat.formatDate(m.getCreatedDate()))
-					.withE5(m.getVersion())
+					.withE5(new Long(m.getVersion()))
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())
@@ -91,32 +91,32 @@ public class ArgUtils {
 		return ret;
 }
 	
-	public Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, String>>
+	public Tuple10<Long, String, String, String, Long, String,
+			Long, String, Long, Map<String, String>>
 			objUserMetaToTuple (final ObjectUserMetaData meta) {
 		final List<ObjectUserMetaData> m = new ArrayList<ObjectUserMetaData>();
 		m.add(meta);
 		return objUserMetaToTuple(m).get(0);
 	}
 	
-	public List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, String>>>
+	public List<Tuple10<Long, String, String, String, Long, String,
+			Long, String, Long, Map<String, String>>>
 			objUserMetaToTuple (final List<ObjectUserMetaData> meta) {
 		
 		//oh the humanity
-		final List<Tuple10<Integer, String, String, String, Integer, String,
-			Integer, String, Integer, Map<String, String>>> ret = 
-			new ArrayList<Tuple10<Integer, String, String, String, Integer,
-			String, Integer, String, Integer, Map<String, String>>>();
+		final List<Tuple10<Long, String, String, String, Long, String,
+			Long, String, Long, Map<String, String>>> ret = 
+			new ArrayList<Tuple10<Long, String, String, String, Long,
+			String, Long, String, Long, Map<String, String>>>();
 		
 		for (ObjectUserMetaData m: meta) {
-			ret.add(new Tuple10<Integer, String, String, String, Integer,
-					String, Integer, String, Integer, Map<String, String>>()
+			ret.add(new Tuple10<Long, String, String, String, Long,
+					String, Long, String, Long, Map<String, String>>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
 					.withE4(dateFormat.formatDate(m.getCreatedDate()))
-					.withE5(m.getVersion())
+					.withE5(new Long(m.getVersion()))
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getCheckSum())

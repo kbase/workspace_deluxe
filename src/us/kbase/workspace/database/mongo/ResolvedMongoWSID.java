@@ -4,9 +4,9 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 
 public class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	
-	private final int id;
+	private final long id;
 	
-	public ResolvedMongoWSID(int id) {
+	public ResolvedMongoWSID(long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("ID must be >0");
 		}
@@ -14,7 +14,7 @@ public class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	}
 
 	@Override
-	public int getID() {
+	public long getID() {
 		return id;
 	}
 
@@ -27,7 +27,7 @@ public class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + id;
+		result = prime * result + (int) (id ^ (id >>> 32));
 		return result;
 	}
 

@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,15 +58,15 @@ public class ObjectSaveData {
     @JsonProperty("name")
     private java.lang.String name;
     @JsonProperty("objid")
-    private Integer objid;
+    private Long objid;
     @JsonProperty("metadata")
     private Map<String, String> metadata;
     @JsonProperty("provenance")
-    private List<ProvenanceAction> provenance = new ArrayList<ProvenanceAction>();
+    private List<ProvenanceAction> provenance;
     @JsonProperty("tver")
     private java.lang.String tver;
     @JsonProperty("hidden")
-    private Integer hidden;
+    private Long hidden;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("type")
@@ -116,16 +115,16 @@ public class ObjectSaveData {
     }
 
     @JsonProperty("objid")
-    public Integer getObjid() {
+    public Long getObjid() {
         return objid;
     }
 
     @JsonProperty("objid")
-    public void setObjid(Integer objid) {
+    public void setObjid(Long objid) {
         this.objid = objid;
     }
 
-    public ObjectSaveData withObjid(Integer objid) {
+    public ObjectSaveData withObjid(Long objid) {
         this.objid = objid;
         return this;
     }
@@ -176,16 +175,16 @@ public class ObjectSaveData {
     }
 
     @JsonProperty("hidden")
-    public Integer getHidden() {
+    public Long getHidden() {
         return hidden;
     }
 
     @JsonProperty("hidden")
-    public void setHidden(Integer hidden) {
+    public void setHidden(Long hidden) {
         this.hidden = hidden;
     }
 
-    public ObjectSaveData withHidden(Integer hidden) {
+    public ObjectSaveData withHidden(Long hidden) {
         this.hidden = hidden;
         return this;
     }

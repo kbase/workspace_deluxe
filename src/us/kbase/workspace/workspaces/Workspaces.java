@@ -308,7 +308,7 @@ public class Workspaces {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
-	//TODO tests for module registration/update etc.
+	//TODO tests for module registration/compile/list/update etc.
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
@@ -367,7 +367,7 @@ public class Workspaces {
 				user.getUser(), dryRun, moduleVers);
 	}
 	
-	public TypeDefId releaseType(final WorkspaceUser user,
+	public AbsoluteTypeDefId releaseType(final WorkspaceUser user,
 			final TypeDefName type)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, NoSuchPrivilegeException {

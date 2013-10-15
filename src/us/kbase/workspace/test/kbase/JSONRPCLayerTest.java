@@ -154,17 +154,17 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void createWSandCheck() throws Exception {
-		Tuple6<Integer, String, String, String, String, String> meta =
+		Tuple6<Long, String, String, String, String, String> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
-		Tuple6<Integer, String, String, String, String, String> metaget =
+		Tuple6<Long, String, String, String, String, String> metaget =
 				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity()
 						.withWorkspace("foo"));
 		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
 		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
-		for (Tuple6<Integer, String, String, String, String, String> m:
+		for (Tuple6<Long, String, String, String, String, String> m:
 				Arrays.asList(meta, metaget)) {
 			assertThat("ws name correct", m.getE2(), is("foo"));
 			assertThat("user name correct", m.getE3(), is(USER1));
@@ -361,7 +361,7 @@ public class JSONRPCLayerTest {
 		String ws = "idproc";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
 				.withDescription("foo"));
-		Tuple6<Integer, String, String, String, String, String> meta =
+		Tuple6<Long, String, String, String, String, String> meta =
 				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace(ws));
 		//these should work
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
@@ -391,7 +391,7 @@ public class JSONRPCLayerTest {
 		}
 		
 		try {
-			CLIENT1.setPermissions(new SetPermissionsParams().withId(-1)
+			CLIENT1.setPermissions(new SetPermissionsParams().withId(-1L)
 					.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 			fail("able to specify workspace by id and name");
 		} catch (ServerException e) {
@@ -455,13 +455,13 @@ public class JSONRPCLayerTest {
 		objects.get(0).setAdditionalProperties("wugga", "boo");
 		saveBadObject(objects, "Unexpected arguments in ObjectSaveData: wugga");
 		
-		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1));
+		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1L));
 		saveBadObject(objects, "Must provide one and only one of object name (was: myname) or id (was: 1)");
 		
 		objects.set(0, new ObjectSaveData().withName("myname+"));
 		saveBadObject(objects, "Illegal character in object name myname+: +");
 		
-		objects.set(0, new ObjectSaveData().withObjid(0));
+		objects.set(0, new ObjectSaveData().withObjid(0L));
 		saveBadObject(objects, "Object id must be > 0");
 		
 		objects.set(0, new ObjectSaveData());
@@ -493,7 +493,7 @@ public class JSONRPCLayerTest {
 	public void saveAndGetObjects() throws Exception {
 		
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget"));
-		int wsid = CLIENT1.getWorkspaceMetadata(
+		long wsid = CLIENT1.getWorkspaceMetadata(
 				new WorkspaceIdentity().withWorkspace("saveget")).getE1();
 		
 		//save some objects to get
@@ -527,7 +527,7 @@ public class JSONRPCLayerTest {
 				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
 				.withName("foo")); 
 		
-		List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> retmet =
+		List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> retmet =
 				CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(3));
@@ -539,7 +539,7 @@ public class JSONRPCLayerTest {
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
-				.withObjid(2));
+				.withObjid(2L));
 		
 		retmet = CLIENT1.saveObjects(soc);
 		
@@ -550,10 +550,10 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.1"));
 		loi.add(new ObjectIdentity().withRef(wsid + ".2.1"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(1));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2).withVer(1));
-		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1));
-		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(1));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(1L));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
 		checkSavedObjects(loi, 2, "2", "Genome.Wugga-2.0", 1, USER1,
 				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
@@ -563,17 +563,17 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + ".2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2"));
-		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L));
 		// w/ versions
 		loi.add(new ObjectIdentity().withRef("saveget/2/2"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + ".2.2"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(2));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2).withVer(2));
-		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2));
-		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2).withVer(2));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(2L));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(2L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 		
 		checkSavedObjects(loi, 2, "2", "Wiggle.Wugga-2.1", 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
@@ -608,10 +608,10 @@ public class JSONRPCLayerTest {
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object name: 2");
 		
-		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withObjid(2));
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withObjid(2L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object id: 2");
 
-		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withVer(2));
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withVer(2L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. version: 2");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWorkspace("saveget"));
@@ -620,7 +620,7 @@ public class JSONRPCLayerTest {
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace id: " + wsid);
 		
-		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid).withWorkspace("saveget").withVer(2));
+		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid).withWorkspace("saveget").withVer(2L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace: saveget workspace id: " + wsid + " version: 2");
 		
 		ObjectIdentity oi = new ObjectIdentity().withRef("saveget/1");
@@ -628,10 +628,10 @@ public class JSONRPCLayerTest {
 		loi.set(2, oi);
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2));
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1));
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object id must be > 0");
 		
 	}
@@ -654,8 +654,8 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
-	private void checkSavedObjects(List<ObjectIdentity> loi, int id, String name,
-			String type, int ver, String user, int wsid, String chksum, int size,
+	private void checkSavedObjects(List<ObjectIdentity> loi, long id, String name,
+			String type, int ver, String user, long wsid, String chksum, long size,
 			Map<String, String> meta, Map<String, Object> data) throws Exception {
 		List<ObjectData> retdata = CLIENT1.getObjects(loi);
 		assertThat("num data correct", retdata.size(), is(loi.size()));
@@ -664,21 +664,21 @@ public class JSONRPCLayerTest {
 					chksum, size, meta, data);
 		}
 		
-		List<Tuple10<Integer, String, String, String, Integer, String, Integer,
-				String, Integer, Map<String, String>>> retusermeta =
+		List<Tuple10<Long, String, String, String, Long, String, Long, String,
+				Long, Map<String, String>>> retusermeta =
 				CLIENT1.getObjectMetadata(loi);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
-		for (Tuple10<Integer, String, String, String, Integer, String, Integer,
-				String, Integer, Map<String, String>> o: retusermeta) {
+		for (Tuple10<Long, String, String, String, Long, String, Long,
+				String, Long, Map<String, String>> o: retusermeta) {
 			checkUserMeta(o, id, name, type, ver, user, wsid,
 					chksum, size, meta);
 		}
 	}
 
-	private void checkData(ObjectData retdata, int id, String name,
-			String typeString, int ver, String user, int wsid, String chksum,
-			int size, Map<String, String> meta, Map<String, Object> data) 
+	private void checkData(ObjectData retdata, long id, String name,
+			String typeString, int ver, String user, long wsid, String chksum,
+			long size, Map<String, String> meta, Map<String, Object> data) 
 			throws Exception {
 		
 		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
@@ -688,16 +688,16 @@ public class JSONRPCLayerTest {
 	}
 
 	private void checkUserMeta(
-			Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String, String>> usermeta,
-			int id, String name, String typeString, int ver, String user,
-			int wsid, String chksum, int size, Map<String, String> meta)
+			Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> usermeta,
+			long id, String name, String typeString, int ver, String user,
+			long wsid, String chksum, long size, Map<String, String> meta)
 			throws Exception {
 		
 		assertThat("id is correct", usermeta.getE1(), is(id));
 		assertThat("name is correct", usermeta.getE2(), is(name));
 		assertThat("type is correct", usermeta.getE3(), is(typeString));
 		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
-		assertThat("version is correct", usermeta.getE5(), is(ver));
+		assertThat("version is correct", (int) usermeta.getE5().longValue(), is(ver));
 		assertThat("user is correct", usermeta.getE6(), is(user));
 		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
 		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
@@ -705,15 +705,15 @@ public class JSONRPCLayerTest {
 		assertThat("meta is correct", usermeta.getE10(), is(meta));
 	}
 	private void checkMeta(
-			Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer> usermeta,
-			int id, String name, String typeString, int ver, String user,
-			int wsid, String chksum, int size) throws Exception {
+			Tuple9<Long, String, String, String, Long, String, Long, String, Long> usermeta,
+			long id, String name, String typeString, int ver, String user,
+			long wsid, String chksum, long size) throws Exception {
 		
 		assertThat("id is correct", usermeta.getE1(), is(id));
 		assertThat("name is correct", usermeta.getE2(), is(name));
 		assertThat("type is correct", usermeta.getE3(), is(typeString));
 		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
-		assertThat("version is correct", usermeta.getE5(), is(ver));
+		assertThat("version is correct", (int) usermeta.getE5().longValue(), is(ver));
 		assertThat("user is correct", usermeta.getE6(), is(user));
 		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
 		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
@@ -725,7 +725,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
-		int wsid = CLIENT1.getWorkspaceMetadata(wsi).getE1();
+		long wsid = CLIENT1.getWorkspaceMetadata(wsi).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();

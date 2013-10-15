@@ -23,11 +23,11 @@ public class TypeData {
 	private AbsoluteTypeDefId type = null;
 	
 	//these attributes are actually saved in mongo
-	private List<Integer> ws;
+	private List<Long> ws;
 	private String chksum;
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
-	private int size;
+	private long size;
 	private int minver;
 	
 	public TypeData(final String data, final AbsoluteTypeDefId type,
@@ -43,7 +43,7 @@ public class TypeData {
 		}
 		this.data = data;
 		this.type = type;
-		this.ws = new ArrayList<Integer>();
+		this.ws = new ArrayList<Long>();
 		this.ws.add(firstWorkspace.getID());
 		this.subdata = subdata;
 		this.size = data.length();
@@ -64,7 +64,7 @@ public class TypeData {
 		return chksum;
 	}
 	
-	public int getSize() {
+	public long getSize() {
 		return size;
 	}
 	

@@ -11,7 +11,7 @@ public class WorkspaceObjectID {
 			Pattern.compile("[^\\w\\|._-]");
 	
 	private final String name;
-	private final Integer id;
+	private final Long id;
 	
 	public WorkspaceObjectID(String name) {
 		checkObjectName(name);
@@ -19,7 +19,7 @@ public class WorkspaceObjectID {
 		this.id = null;
 	}
 	
-	public WorkspaceObjectID(int id) {
+	public WorkspaceObjectID(long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("Object id must be > 0");
 		}
@@ -31,7 +31,7 @@ public class WorkspaceObjectID {
 		return name;
 	}
 
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 	
@@ -43,7 +43,7 @@ public class WorkspaceObjectID {
 	}
 	
 	public static WorkspaceObjectID create(final String name, 
-			final Integer id) {
+			final Long id) {
 		xorNameId(name, id, "object");
 		if (name != null) {
 			return new WorkspaceObjectID(name);

@@ -1,7 +1,6 @@
 
 package us.kbase.workspace;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,39 +50,39 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class ReleaseTypesParams {
 
     @JsonProperty("mod")
-    private String mod;
+    private java.lang.String mod;
     @JsonProperty("type")
-    private String type;
+    private java.lang.String type;
     @JsonProperty("types")
-    private List<String> types = new ArrayList<String>();
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private List<String> types;
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("mod")
-    public String getMod() {
+    public java.lang.String getMod() {
         return mod;
     }
 
     @JsonProperty("mod")
-    public void setMod(String mod) {
+    public void setMod(java.lang.String mod) {
         this.mod = mod;
     }
 
-    public ReleaseTypesParams withMod(String mod) {
+    public ReleaseTypesParams withMod(java.lang.String mod) {
         this.mod = mod;
         return this;
     }
 
     @JsonProperty("type")
-    public String getType() {
+    public java.lang.String getType() {
         return type;
     }
 
     @JsonProperty("type")
-    public void setType(String type) {
+    public void setType(java.lang.String type) {
         this.type = type;
     }
 
-    public ReleaseTypesParams withType(String type) {
+    public ReleaseTypesParams withType(java.lang.String type) {
         this.type = type;
         return this;
     }
@@ -104,17 +103,17 @@ public class ReleaseTypesParams {
     }
 
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
+    public java.lang.String toString() {
         return ((((((((("ReleaseTypesParams"+" [mod=")+ mod)+", type=")+ type)+", types=")+ types)+", additionalProperties=")+ additionalProperties)+"]");
     }
 

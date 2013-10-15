@@ -86,11 +86,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple6<Integer, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws IOException, JsonClientException {
+    public Tuple6<Long, String, String, String, String, String> createWorkspace(CreateWorkspaceParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<Tuple6<Integer, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Integer, String, String, String, String, String>>>() {};
-        List<Tuple6<Integer, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
+        TypeReference<List<Tuple6<Long, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Long, String, String, String, String, String>>>() {};
+        List<Tuple6<Long, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
         return res.get(0);
     }
 
@@ -104,11 +104,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple6<Integer, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public Tuple6<Long, String, String, String, String, String> getWorkspaceMetadata(WorkspaceIdentity wsi) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
-        TypeReference<List<Tuple6<Integer, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Integer, String, String, String, String, String>>>() {};
-        List<Tuple6<Integer, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.get_workspace_metadata", args, retType, true, false);
+        TypeReference<List<Tuple6<Long, String, String, String, String, String>>> retType = new TypeReference<List<Tuple6<Long, String, String, String, String, String>>>() {};
+        List<Tuple6<Long, String, String, String, String, String>> res = caller.jsonrpcCall("Workspace.get_workspace_metadata", args, retType, true, false);
         return res.get(0);
     }
 
@@ -171,15 +171,15 @@ public class WorkspaceClient {
      * it.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.SaveObjectsParams SaveObjectsParams}
-     * @return   parameter "meta" of list of original type "object_metadata" (Metadata associated with an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 9: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer
+     * @return   parameter "meta" of list of original type "object_metadata" (Metadata associated with an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 9: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Long
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>>> retType = new TypeReference<List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>>>() {};
-        List<List<Tuple9<Integer, String, String, String, Integer, String, Integer, String, Integer>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>>> retType = new TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>>>() {};
+        List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
         return res.get(0);
     }
 
@@ -207,15 +207,15 @@ public class WorkspaceClient {
      * Get object metadata from the workspace.
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
-     * @return   parameter "meta" of list of original type "object_metadata_full" (Metadata associated with an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta metadata - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Integer, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Integer, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "meta" of list of original type "object_metadata_full" (Metadata associated with an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp create_date - the creation date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta metadata - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.), parameter "create_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-5000 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public List<Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String,String>>> getObjectMetadata(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
-        TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>>>() {};
-        List<List<Tuple10<Integer, String, String, String, Integer, String, Integer, String, Integer, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
+        TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String,String>>>>>() {};
+        List<List<Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_metadata", args, retType, true, false);
         return res.get(0);
     }
 

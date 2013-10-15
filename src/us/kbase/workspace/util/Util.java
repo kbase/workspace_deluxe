@@ -2,7 +2,7 @@ package us.kbase.workspace.util;
 
 public class Util {
 	
-	public static void xorNameId(final String name, final Integer id, 
+	public static void xorNameId(final String name, final Long id, 
 			final String type) {
 		if (!(name == null ^ id == null)) {
 			throw new IllegalArgumentException(String.format(
