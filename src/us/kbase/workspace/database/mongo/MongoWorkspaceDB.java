@@ -230,7 +230,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return j.getCollection(COL_WS_CNT)
 				.findAndModify(String.format("{%s: #}",
 						Fields.CNT_ID), Fields.CNT_ID_VAL)
-				.upsert().returnNew().with("{$inc: {" + Fields.CNT_NUM + ": 1}}")
+				.upsert().returnNew()
+				.with("{$inc: {" + Fields.CNT_NUM + ": #}}", 1L)
 				.projection(String.format("{%s: 1, %s: 0}",
 						Fields.CNT_NUM, Fields.MONGO_ID));
 	}
@@ -328,19 +329,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final Object c; 
+		final long count; 
 		try {
-			c = updateWScounter.as(DBObject.class)
-					.get(Fields.CNT_NUM);
+			count = ((Number) updateWScounter.as(DBObject.class)
+					.get(Fields.CNT_NUM)).longValue();
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		final Long count;
-		if (c instanceof Integer) {
-			count = new Long((Integer) c);
-		} else {
-			count = (Long) c;
 		}
 		final DBObject ws = new BasicDBObject();
 		ws.put(Fields.WS_OWNER, user.getUser());
@@ -349,7 +344,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_MODDATE, moddate);
 		ws.put(Fields.WS_NAME, wsname);
 		ws.put(Fields.WS_DEL, false);
-		ws.put(Fields.WS_NUMPTR, 0);
+		ws.put(Fields.WS_NUMPTR, 0L);
 		ws.put(Fields.WS_DESC, description);
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
@@ -774,7 +769,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.PTR_WS_ID, wsid.getID());
 		dbo.put(Fields.PTR_ID, objectid);
-		dbo.put(Fields.PTR_VCNT, 0);
+		dbo.put(Fields.PTR_VCNT, 0); //Integer
 		dbo.put(Fields.PTR_NAME, newName);
 		//deleted handled in saveObjectInstance()
 		dbo.put(Fields.PTR_HIDE, false); //TODO hidden, also set hidden when not creating pointer from scratch
@@ -925,22 +920,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
 		saveData(wsidmongo, packages);
-		final Object c;
+		final long lastid;
 		try {
-			c = wsjongo.getCollection(COL_WORKSPACES)
+			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
 					.findAndModify(M_SAVE_QRY, wsidmongo.getID())
-					.returnNew().with(M_SAVE_WTH, newobjects)
+					.returnNew().with(M_SAVE_WTH, (long) newobjects)
 					.projection(M_SAVE_PROJ)
-					.as(DBObject.class).get(Fields.WS_NUMPTR);
+					.as(DBObject.class).get(Fields.WS_NUMPTR)).longValue();
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		final long lastid;
-		if (c instanceof Integer) {
-			lastid = new Long((Integer) c);
-		} else {
-			lastid = (Long) c;
 		}
 		//TODO batch updates when everything known to be ok
 		long newid = lastid - newobjects + 1;

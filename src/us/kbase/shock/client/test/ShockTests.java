@@ -60,18 +60,21 @@ public class ShockTests {
 		String uno = System.getProperty("test.user.noemail");
 		String pno = System.getProperty("test.pwd.noemail");
 		
+		System.out.println("Logging in users");
 		try {
 			noverifiedemail = AuthService.login(uno, pno);
 		} catch (AuthException ae) {
 			throw new TestException("Unable to login with test.user.noemail: " + uno +
 					"\nPlease check the credentials in the test configuration.", ae);
 		}
+		System.out.println("Logged in user w/o verified email");
 		try {
 			otherguy = AuthService.login(u2, p2);
 		} catch (AuthException ae) {
 			throw new TestException("Unable to login with test.user2: " + u2 +
 					"\nPlease check the credentials in the test configuration.", ae);
 		}
+		System.out.println("Logged in user2");
 		AuthUser user1;
 		try {
 			user1 = AuthService.login(u1, p1);
@@ -79,6 +82,7 @@ public class ShockTests {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", ae);
 		}
+		System.out.println("Logged in user1");
 		if (user1.getEmail().equals(otherguy.getEmail())) {
 			throw new TestException("The email addresses of test.user1 and " + 
 					"test.user2 are the same. Please provide test users with different email addresses.");
@@ -91,6 +95,7 @@ public class ShockTests {
 					ioe.getLocalizedMessage());
 		}
 		bscNoAuth = new BasicShockClient(url);
+		System.out.println("Set up shock clients");
 	}
 	
 	@Test

@@ -633,6 +633,11 @@ public class JSONRPCLayerTest {
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object id must be > 0");
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(0L));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object version must be > 0");
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
+		
 		
 	}
 	
