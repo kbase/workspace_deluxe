@@ -586,7 +586,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				ret = ws.releaseTypes(getUser(authPart), params.getMod(),
 						params.getTypes());
 			}
-			for (final TypeDefId t: ret) {
+			for (final AbsoluteTypeDefId t: ret) {
 				returnVal.add(t.getTypeString());
 			}
 		}
@@ -611,7 +611,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			user = new WorkspaceUser(params.getOwner());
 		}
 		returnVal = ws.listModules(user);
-		//TODO by user
         //END list_modules
         return returnVal;
     }
