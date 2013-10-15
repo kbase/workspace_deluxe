@@ -296,6 +296,37 @@ public class TypeDefinitionDB {
 		return ret;
 	}
 	
+	private long findModuleVersion(ModuleDefId moduleDef) throws NoSuchModuleException, TypeStorageException {
+		if (moduleDef.getVersion() == null)
+			return storage.getLastModuleVersion(moduleDef.getModuleName());
+		long version = moduleDef.getVersion();
+		if (!storage.checkModuleInfoRecordExist(moduleDef.getModuleName(), version))
+			throw new NoSuchModuleException("There is no information about module " + moduleDef.getModuleName() + 
+					" for version " + version);
+		return version;
+	}
+	
+	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef) 
+			throws NoSuchModuleException, TypeStorageException {
+		String moduleName = moduleDef.getModuleName();
+		requestReadLock(moduleName);
+		try {
+			long moduleVersion = findModuleVersion(moduleDef);
+			ModuleInfo info = storage.getModuleInfoRecord(moduleName, moduleVersion);
+			Map<AbsoluteTypeDefId, String> ret = new HashMap<AbsoluteTypeDefId, String>();
+			for (TypeInfo ti : info.getTypes().values()) {
+				String typeVersionText = ti.getReleaseVersion();
+				String jsonSchema = storage.getTypeSchemaRecord(moduleName, ti.getTypeName(), typeVersionText);
+				SemanticVersion typeVer = new SemanticVersion(typeVersionText);
+				ret.put(new AbsoluteTypeDefId(new TypeDefName(moduleName, ti.getTypeName()), 
+						typeVer.getMajor(), typeVer.getMinor()), jsonSchema);
+			}
+			return ret;
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+	
 	/**
 	 * Given a typeDefId that may not be valid or have major/minor versions defined,
 	 * attempt to lookup if a specific type definition can be resolved in the database.
@@ -692,6 +723,16 @@ public class TypeDefinitionDB {
 		return releaseModule(type.getModule(), Arrays.asList(type.getName()), false, userId).get(0);
 	}
 	
+	public List<String> getModuleOwners(String moduleName) throws NoSuchModuleException, TypeStorageException {
+		requestReadLock(moduleName);
+		try {
+			checkModuleRegistered(moduleName);
+			return new ArrayList<String>(storage.getOwnersForModule(moduleName).keySet());
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+	
 	/**
 	 * Change major version of every registered type to 1.0 for types of version 0.x or set releaseVersion to currentVersion.
 	 * @param moduleName
@@ -856,7 +897,7 @@ public class TypeDefinitionDB {
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
 		try {
-			return getModuleSpecDocument(moduleName, storage.getLastModuleVersion(moduleName));
+			return storage.getModuleSpecRecord(moduleName, storage.getLastModuleVersion(moduleName));
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -868,6 +909,18 @@ public class TypeDefinitionDB {
 		try {
 			checkModule(moduleName);
 			return storage.getModuleSpecRecord(moduleName, version);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
+	public String getModuleSpecDocument(ModuleDefId moduleDef) 
+			throws NoSuchModuleException, TypeStorageException {
+		String moduleName = moduleDef.getModuleName();
+		requestReadLock(moduleName);
+		try {
+			checkModule(moduleName);
+			return storage.getModuleSpecRecord(moduleName, findModuleVersion(moduleDef));
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -903,7 +956,18 @@ public class TypeDefinitionDB {
 			releaseReadLock(moduleName);
 		}
 	}
-	
+
+	public ModuleInfo getModuleInfo(ModuleDefId moduleDef) 
+			throws NoSuchModuleException, TypeStorageException {
+		String moduleName = moduleDef.getModuleName();
+		requestReadLock(moduleName);
+		try {
+			return getModuleInfoNL(moduleName, findModuleVersion(moduleDef));
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
 	public long getLastModuleVersion(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
@@ -1919,7 +1983,7 @@ public class TypeDefinitionDB {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			typeDef = resolveTypeDefId(typeDef);
+			typeDef = resolveTypeDefIdNL(typeDef);
 			List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
 			Set<Long> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
 					typeDef.getType().getName(), typeDef.getVerString());
