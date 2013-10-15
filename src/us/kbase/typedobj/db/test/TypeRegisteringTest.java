@@ -65,12 +65,12 @@ public class TypeRegisteringTest {
 				test.testBackward();
 				//test.testRollback();
 				//test.testRestrict();
-				//test.testIndeces();
+				//test.testIndexes();
 				//test.testMD5();
 				//test.testRegistration();
-				test.testError();
+				//test.testError();
 			} finally {
-				test.cleanupAfter();
+				//test.cleanupAfter();
 			}
 		}
 	}
@@ -222,7 +222,9 @@ public class TypeRegisteringTest {
 		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
 		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
 		checkTypeVer("Regulation", "binding_site", "3.0");
+		Assert.assertEquals(2, db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "3.0")).size());
 		Assert.assertEquals("4.0", db.releaseType(new TypeDefName("Regulation", "binding_site"), adminUser).getVerString());
+		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "4.0")).size());
 		db.releaseModule("Regulation", adminUser);
 		checkFuncVer("Regulation", "get_gene_descr", "3.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
@@ -295,7 +297,11 @@ public class TypeRegisteringTest {
 				restrict("Common", commonVer1, "Middle", middleVer1));
 	}
 	
-	public void testIndeces() throws Exception {
+	/**
+	 * It's not Unit test. It measures execution time (with indexes and without).
+	 * @throws Exception
+	 */
+	public void testIndexes() throws Exception {
 		long time = System.currentTimeMillis();
 		String regulationSpec = loadSpec("backward", "Regulation");
 		initModule("Regulation", adminUser);
@@ -350,7 +356,7 @@ public class TypeRegisteringTest {
 		String upper2hash = db.getModuleMD5("Upper");
 		Assert.assertFalse(upper1hash.equals(upper2hash));
 		Assert.assertEquals(db.getLastModuleVersion("Upper"), 
-				(long)db.findModuleVersionByMD5("Upper", upper2hash));
+				(long)db.findModuleVersionByMD5("Upper", upper2hash).getVersion());
 		db.registerModule(loadSpec("md5", "Common", "3"), Arrays.asList("unused_struct"), adminUser);
 		db.refreshModule("Upper", adminUser);
 		String common3hash = db.getModuleMD5("Common");
@@ -358,7 +364,7 @@ public class TypeRegisteringTest {
 		String upper3hash = db.getModuleMD5("Upper");
 		Assert.assertTrue(upper2hash.equals(upper3hash));
 		Assert.assertEquals(db.getLastModuleVersion("Common"), 
-				(long)db.findModuleVersionByMD5("Common", common3hash));
+				(long)db.findModuleVersionByMD5("Common", common3hash).getVersion());
 	}
 	
 	@Test

@@ -2,11 +2,11 @@ package us.kbase.typedobj.db;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -245,7 +245,7 @@ public class MongoTypeStorage implements TypeStorage {
 	protected <T> List<T> getProjection(MongoCollection infos,
 			String whereCondition, String selectField, Class<T> type, Object... params)
 			throws TypeStorageException {
-		ArrayList<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
+		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
 				"{" + selectField + ":1}").as(Map.class));
 		List<T> ret = new ArrayList<T>();
 		for (Map<?,?> item : data) {
@@ -453,6 +453,24 @@ public class MongoTypeStorage implements TypeStorage {
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(document);
 			recs.save(rec);
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	@Override
+	public Set<Long> getModuleVersionsForTypeVersion(String moduleName, String typeName, 
+			String typeVersion) throws TypeStorageException {
+		try {
+			if (typeName.contains("'"))
+				throw new TypeStorageException("Type names with symbol ['] are not supperted");
+			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+			List<ModuleInfo> infoList = Lists.newArrayList(infoCol.find(
+					"{'types." + typeName + ".releaseVersion':'" + typeVersion + "'}").as(ModuleInfo.class));
+			Set<Long> ret = new TreeSet<Long>();
+			for (ModuleInfo info: infoList)
+				ret.add(info.getVersionTime());
+			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}

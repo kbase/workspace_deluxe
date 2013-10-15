@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -304,8 +303,12 @@ public class FileTypeStorage implements TypeStorage {
 		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".json");
 	}
 
+	private List<File> getTypeSchemaFiles(String moduleName, String typeName, String version) throws TypeStorageException {
+		return findFiles(moduleName, "type." + typeName + "." + version + "-", ".json");
+	}
+
 	private File getTypeSchemaFile(String moduleName, String typeName, String version) throws TypeStorageException {
-		List<File> ret = findFiles(moduleName, "type." + typeName + "." + version + "-", ".json");
+		List<File> ret = getTypeSchemaFiles(moduleName, typeName, version);
 		if (ret.isEmpty())
 			throw new TypeStorageException("No type schema file was found for: " + moduleName + "." + typeName + "." + version);
 		return ret.get(0);
@@ -325,8 +328,12 @@ public class FileTypeStorage implements TypeStorage {
 		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".prs");
 	}
 
+	private List<File> getTypeParseFiles(String moduleName, String typeName, String version) throws TypeStorageException {
+		return findFiles(moduleName, "type." + typeName + "." + version + "-", ".prs");
+	}
+	
 	private File getTypeParseFile(String moduleName, String typeName, String version) throws TypeStorageException {
-		List<File> ret = findFiles(moduleName, "type." + typeName + "." + version + "-", ".prs");
+		List<File> ret = getTypeParseFiles(moduleName, typeName, version);
 		if (ret.isEmpty())
 			throw new TypeStorageException("No type parsing file was found for: " + moduleName + "." + typeName + "." + version);
 		return ret.get(0);
@@ -406,12 +413,16 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {
+		for (File f : getTypeSchemaFiles(moduleName, typeName, version))
+			f.delete();
 		writeFile(getTypeSchemaFile(moduleName, typeName, version, moduleVersion), document);
 	}
 	
 	@Override
 	public void writeTypeParseRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {
+		for (File f : getTypeParseFiles(moduleName, typeName, version))
+			f.delete();
 		writeFile(getTypeParseFile(moduleName, typeName, version, moduleVersion), document);
 	}
 	
@@ -485,8 +496,12 @@ public class FileTypeStorage implements TypeStorage {
 		return new File(new File(getModuleDir(moduleName), "func." + funcName).getAbsolutePath() + "." + version + "-" + moduleVersion + ".prs");
 	}
 
+	private List<File> getFuncParseFiles(String moduleName, String funcName, String version) throws TypeStorageException {
+		return findFiles(moduleName, "func." + funcName + "." + version + "-", ".prs");
+	}
+	
 	private File getFuncParseFile(String moduleName, String funcName, String version) throws TypeStorageException {
-		List<File> ret = findFiles(moduleName, "func." + funcName + "." + version + "-", ".prs");
+		List<File> ret = getFuncParseFiles(moduleName, funcName, version);
 		if (ret.isEmpty())
 			throw new TypeStorageException("No function parsing file was found for: " + moduleName + "." + funcName + "." + version);
 		return ret.get(0);
@@ -495,6 +510,8 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public void writeFuncParseRecord(String moduleName, String funcName,
 			String version, long moduleVersion, String parseText) throws TypeStorageException {
+		for (File f : getFuncParseFiles(moduleName, funcName, version))
+			f.delete();
 		writeFile(getFuncParseFile(moduleName, funcName, version, moduleVersion), parseText);
 	}
 	
@@ -609,5 +626,17 @@ public class FileTypeStorage implements TypeStorage {
 			info.delete();
 		if (versionToSwitchTo != getLastModuleVersion(moduleName))
 			throw new TypeStorageException("Last module version should be: " + versionToSwitchTo);
+	}
+	
+	@Override
+	public Set<Long> getModuleVersionsForTypeVersion(String moduleName,
+			String typeName, String typeVersion) throws TypeStorageException {
+		Set<Long> ret = new TreeSet<Long>();
+		for (Long moduleVersion : getAllModuleVersions(moduleName)) {
+			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
+			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getReleaseVersion().equals(typeVersion))
+				ret.add(moduleVersion);
+		}
+		return ret;
 	}
 }
