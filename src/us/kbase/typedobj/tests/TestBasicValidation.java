@@ -24,7 +24,6 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -94,6 +93,7 @@ public class TestBasicValidation {
 		public String resourceName;
 		public String moduleName;
 		public String typeName;
+		@SuppressWarnings("unused")
 		public boolean isValid;
 	}
 	

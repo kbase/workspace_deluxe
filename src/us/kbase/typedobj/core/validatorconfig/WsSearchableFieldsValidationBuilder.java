@@ -1,15 +1,9 @@
 package us.kbase.typedobj.core.validatorconfig;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -183,7 +177,7 @@ public class WsSearchableFieldsValidationBuilder {
 			// we have to confirm that all the nodes are 
 			
 			
-		    final JsonNode node = getNode(tree);
+//		    final JsonNode node = getNode(tree);
 //			System.err.println(node.asDouble());
 //			System.err.println("pointers");
 //			Iterator<JsonPointer> i = pointers.iterator();
