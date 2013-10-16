@@ -80,6 +80,7 @@ public class TypeDefinitionDB {
 	private final Object moduleStateLock = new Object(); 
 	private final Map<String, ModuleState> moduleStates = new HashMap<String, ModuleState>();
 	private final ThreadLocal<Map<String,Integer>> localReadLocks = new ThreadLocal<Map<String,Integer>>(); 
+	private final String kbTopPath;
 	
 	enum Change {
 		noChange, backwardCompatible, notCompatible;
@@ -100,6 +101,11 @@ public class TypeDefinitionDB {
 			throws TypeStorageException {
 		this(storage, null, uip);
 	}
+
+	public TypeDefinitionDB(TypeStorage storage, File tempDir,
+			UserInfoProvider uip) throws TypeStorageException {
+		this(storage, tempDir, uip, null);
+	}
 	
 	/**
 	 * Setup a new DB handle pointing to the specified storage object, using the
@@ -110,7 +116,7 @@ public class TypeDefinitionDB {
 	 * @throws TypeStorageException 
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			UserInfoProvider uip) throws TypeStorageException {
+			UserInfoProvider uip, String kbTopPath) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
@@ -139,6 +145,7 @@ public class TypeDefinitionDB {
 			}
 		}
 		this.uip = uip;
+		this.kbTopPath = kbTopPath;
 	}
 	
 	
@@ -1539,7 +1546,7 @@ public class TypeDefinitionDB {
 			}
 			for (IncludeDependentPath path : moduleToPath.values())
 				moduleToInfo.put(path.info.getModuleName(), path.info);
-			List<KbService> services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema);
+			List<KbService> services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema, kbTopPath);
 			if (services.size() != 1)
 				throw new SpecParseException("Spec-file should consist of only one service");
 			if (services.get(0).getModules().size() != 1)
