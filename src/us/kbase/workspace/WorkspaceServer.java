@@ -49,6 +49,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
@@ -96,13 +97,15 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String tempdir, final String user,
-			final String pwd) {
+			final String secret, final String kidlpath, final String tempdir,
+			final String user, final String pwd) {
 		try {
 			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, tempdir, user, pwd);
+				return new MongoWorkspaceDB(host, dbs, secret, kidlpath,
+						tempdir, user, pwd);
 			} else {
-				return new MongoWorkspaceDB(host, dbs, secret, tempdir);
+				return new MongoWorkspaceDB(host, dbs, secret, kidlpath,
+						tempdir);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -169,6 +172,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			ws = null;
 			wsadmin = null;
 		} else {
+			final String kidlpath = new Util().getKIDLpath();
 			final String user = wsConfig.get(USER);
 			final String pwd = wsConfig.get(PWD);
 			String params = "";
@@ -184,7 +188,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
 			final WorkspaceDatabase db = getDB(host, dbs, secret,
-					wsConfig.get(TYPEDB_DIR), user, pwd);
+					kidlpath, wsConfig.get(TYPEDB_DIR), user, pwd);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;

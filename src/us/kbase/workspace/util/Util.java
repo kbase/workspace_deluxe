@@ -1,7 +1,7 @@
 package us.kbase.workspace.util;
 
 public class Util {
-	
+	//TODO move to kbase
 	public static void xorNameId(final String name, final Long id, 
 			final String type) {
 		if (!(name == null ^ id == null)) {
