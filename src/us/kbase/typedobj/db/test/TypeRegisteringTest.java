@@ -33,6 +33,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.OwnerInfo;
@@ -60,9 +61,9 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				//test.testSimple();
+				test.testSimple();
 				//test.testDescr();
-				test.testBackward();
+				//test.testBackward();
 				//test.testRollback();
 				//test.testRestrict();
 				//test.testIndexes();
@@ -158,6 +159,7 @@ public class TypeRegisteringTest {
 		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", "1.0", true);
 		String reg2spec = loadSpec("simple", "Regulation", "2");
+		Map<AbsoluteTypeDefId, String> typeToJsonSchema1 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
 		readOnlyMode();
 		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"), 
 				Collections.<String>emptyList(), user, true);
@@ -174,6 +176,11 @@ public class TypeRegisteringTest {
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
 		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
+		Map<AbsoluteTypeDefId, String> typeToJsonSchema2 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
+		String json1 = typeToJsonSchema1.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 1, 0));
+		String json2 = typeToJsonSchema2.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
+		Assert.assertNotNull(json2);
+		Assert.assertFalse(json1.equals(json2));
 	}
 	
 	@Test
@@ -365,6 +372,7 @@ public class TypeRegisteringTest {
 		Assert.assertTrue(upper2hash.equals(upper3hash));
 		Assert.assertEquals(db.getLastModuleVersion("Common"), 
 				(long)db.findModuleVersionByMD5("Common", common3hash).getVersion());
+		Assert.assertEquals(common3hash, db.getModuleInfo(new ModuleDefId("Common")).getMd5hash());
 	}
 	
 	@Test
