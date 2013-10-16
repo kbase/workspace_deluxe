@@ -11,10 +11,10 @@ import java.util.Set;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.TypeInfo;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
@@ -318,8 +318,7 @@ public class Workspaces {
 		typedb.requestModuleRegistration(module, user.getUser());
 	}
 	
-	//TODO list module names / by owner / with versions
-	//TODO list module types by module & version
+	//TODO list module versions
 	
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
@@ -408,40 +407,14 @@ public class Workspaces {
 	
 	//TODO version collection. To refs stored with each version pointer for prov and normal refs. ref counts for from references. 
 	
-	public ModuleInfo getModuleInfo(String module)
+	public ModuleInfo getModuleInfo(final ModuleDefId module)
 			throws NoSuchModuleException, TypeStorageException {
-		return getModuleInfo(typedb.getModuleInfo(module),
-				typedb.getModuleSpecDocument(module));
-	}
-
-	private ModuleInfo getModuleInfo(
-			final us.kbase.typedobj.db.ModuleInfo moduleInfo,
-			final String spec)
-			throws NoSuchModuleException, TypeStorageException {
-		final Map<AbsoluteTypeDefId, String> typeToJSON =
-				new HashMap<AbsoluteTypeDefId, String>();
-		for (final TypeInfo t: moduleInfo.getTypes().values()) {
-			//TODO remove this when getModuleInfo is improved
-			final AbsoluteTypeDefId id = AbsoluteTypeDefId.fromTypeId(
-					new TypeDefId(moduleInfo.getModuleName() + "." +
-							t.getTypeName(), t.getTypeVersion()));
-			try {
-				typeToJSON.put(id, typedb.getJsonSchemaDocument(id));
-			} catch (NoSuchTypeException nste) {
-				throw new RuntimeException("Things are broken in type DB land");
-			}
-		}
-		//TODO need way to get user from module
-		return new ModuleInfo(spec, null, moduleInfo.getVersionTime(),
-				moduleInfo.getDescription(), typeToJSON);
-	}
-
-	public ModuleInfo getModuleInfo(String module, Long version)
-			throws NoSuchModuleException, TypeStorageException {
-		//TODO should return list of abdtypeids w/ json mappings
-		//TODO should return user and spec
-		return getModuleInfo(typedb.getModuleInfo(module, version),
-				typedb.getModuleSpecDocument(module, version));
+		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
+				typedb.getModuleInfo(module);
+		return new ModuleInfo(typedb.getModuleSpecDocument(module),
+				typedb.getModuleOwners(module.getModuleName()),
+				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
+				typedb.getJsonSchemasForAllTypes(module));
 	}
 
 	public ModuleInfo getModuleInfo(TypeDefId type) {

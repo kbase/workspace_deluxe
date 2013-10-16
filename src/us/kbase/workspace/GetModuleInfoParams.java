@@ -16,14 +16,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Parameters for the get_module_info function.
  *         Required parameters:
- *         One of:
  *         modulename mod - the name of the module to retrieve.
- *         type_string type - the module information will be retrieved for the
- *                 module with the associated type.
  *         
  *         Optional parameters:
  *         spec_version ver - the version of the module to retrieve. Defaults to
- *                 the latest version. If a type is provided this argument is ignored.
+ *                 the latest version.
  * </pre>
  * 
  */
@@ -31,15 +28,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "mod",
-    "type",
     "ver"
 })
 public class GetModuleInfoParams {
 
     @JsonProperty("mod")
     private String mod;
-    @JsonProperty("type")
-    private String type;
     @JsonProperty("ver")
     private Long ver;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -56,21 +50,6 @@ public class GetModuleInfoParams {
 
     public GetModuleInfoParams withMod(String mod) {
         this.mod = mod;
-        return this;
-    }
-
-    @JsonProperty("type")
-    public String getType() {
-        return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public GetModuleInfoParams withType(String type) {
-        this.type = type;
         return this;
     }
 
@@ -101,7 +80,7 @@ public class GetModuleInfoParams {
 
     @Override
     public String toString() {
-        return ((((((((("GetModuleInfoParams"+" [mod=")+ mod)+", type=")+ type)+", ver=")+ ver)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("GetModuleInfoParams"+" [mod=")+ mod)+", ver=")+ ver)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

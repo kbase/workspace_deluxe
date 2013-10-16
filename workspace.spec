@@ -548,24 +548,20 @@ module Workspace {
 	/* Parameters for the get_module_info function.
 	
 		Required parameters:
-		One of:
 		modulename mod - the name of the module to retrieve.
-		type_string type - the module information will be retrieved for the
-			module with the associated type.
 		
 		Optional parameters:
 		spec_version ver - the version of the module to retrieve. Defaults to
-			the latest version. If a type is provided this argument is ignored.
+			the latest version.
 	*/
 	typedef structure {
 		modulename mod;
-		type_string type;
 		spec_version ver;
 	} GetModuleInfoParams;
 	
 	/* Information about a module.
 	
-		username owner - the owner of the module.
+		list<username> owners - the owners of the module.
 		spec_version ver - the version of the module.
 		typespec spec - the typespec.
 		string description - the description of the module from the typespec.
@@ -573,7 +569,7 @@ module Workspace {
 			module and their JSON schema.
 	*/
 	typedef structure {
-		username owner;
+		list<username> owners;
 		spec_version ver;
 		typespec spec;
 		string description;

@@ -1830,19 +1830,18 @@ $params is a Workspace.GetModuleInfoParams
 $info is a Workspace.ModuleInfo
 GetModuleInfoParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
-	type has a value which is a Workspace.type_string
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-type_string is a string
 spec_version is an int
 ModuleInfo is a reference to a hash where the following keys are defined:
-	owner has a value which is a Workspace.username
+	owners has a value which is a reference to a list where each element is a Workspace.username
 	ver has a value which is a Workspace.spec_version
 	spec has a value which is a Workspace.typespec
 	description has a value which is a string
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 username is a string
 typespec is a string
+type_string is a string
 jsonschema is a string
 
 </pre>
@@ -1855,19 +1854,18 @@ $params is a Workspace.GetModuleInfoParams
 $info is a Workspace.ModuleInfo
 GetModuleInfoParams is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
-	type has a value which is a Workspace.type_string
 	ver has a value which is a Workspace.spec_version
 modulename is a string
-type_string is a string
 spec_version is an int
 ModuleInfo is a reference to a hash where the following keys are defined:
-	owner has a value which is a Workspace.username
+	owners has a value which is a reference to a list where each element is a Workspace.username
 	ver has a value which is a Workspace.spec_version
 	spec has a value which is a Workspace.typespec
 	description has a value which is a string
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 username is a string
 typespec is a string
+type_string is a string
 jsonschema is a string
 
 
@@ -3582,14 +3580,11 @@ owner has a value which is a Workspace.username
 Parameters for the get_module_info function.
 
         Required parameters:
-        One of:
         modulename mod - the name of the module to retrieve.
-        type_string type - the module information will be retrieved for the
-                module with the associated type.
         
         Optional parameters:
         spec_version ver - the version of the module to retrieve. Defaults to
-                the latest version. If a type is provided this argument is ignored.
+                the latest version.
 
 
 =item Definition
@@ -3599,7 +3594,6 @@ Parameters for the get_module_info function.
 <pre>
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
-type has a value which is a Workspace.type_string
 ver has a value which is a Workspace.spec_version
 
 </pre>
@@ -3610,7 +3604,6 @@ ver has a value which is a Workspace.spec_version
 
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
-type has a value which is a Workspace.type_string
 ver has a value which is a Workspace.spec_version
 
 
@@ -3630,7 +3623,7 @@ ver has a value which is a Workspace.spec_version
 
 Information about a module.
 
-        username owner - the owner of the module.
+        list<username> owners - the owners of the module.
         spec_version ver - the version of the module.
         typespec spec - the typespec.
         string description - the description of the module from the typespec.
@@ -3644,7 +3637,7 @@ Information about a module.
 
 <pre>
 a reference to a hash where the following keys are defined:
-owner has a value which is a Workspace.username
+owners has a value which is a reference to a list where each element is a Workspace.username
 ver has a value which is a Workspace.spec_version
 spec has a value which is a Workspace.typespec
 description has a value which is a string
@@ -3657,7 +3650,7 @@ types has a value which is a reference to a hash where the key is a Workspace.ty
 =begin text
 
 a reference to a hash where the following keys are defined:
-owner has a value which is a Workspace.username
+owners has a value which is a reference to a list where each element is a Workspace.username
 ver has a value which is a Workspace.spec_version
 spec has a value which is a Workspace.typespec
 description has a value which is a string

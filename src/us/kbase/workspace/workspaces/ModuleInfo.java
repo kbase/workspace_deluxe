@@ -1,24 +1,24 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.List;
 import java.util.Map;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.workspace.database.WorkspaceUser;
 
 public class ModuleInfo {
 	
 	private final String typespec;
-	private final WorkspaceUser owner;
+	private final List<String> owners;
 	private final Long version;
 	private final String description;
 	private final Map<AbsoluteTypeDefId, String> types;
 	
-	ModuleInfo(final String typespec, final WorkspaceUser owner,
+	ModuleInfo(final String typespec, final List<String> owners,
 			final Long version, final String description,
 			final Map<AbsoluteTypeDefId, String> types) {
 		//skip null checking, probably not needed
 		this.typespec = typespec;
-		this.owner = owner;
+		this.owners = owners;
 		this.version = version;
 		this.description = description;
 		this.types = types;
@@ -28,8 +28,8 @@ public class ModuleInfo {
 		return typespec;
 	}
 
-	public WorkspaceUser getOwner() {
-		return owner;
+	public List<String> getOwners() {
+		return owners;
 	}
 
 	public Long getVersion() {
@@ -46,7 +46,7 @@ public class ModuleInfo {
 
 	@Override
 	public String toString() {
-		return "ModuleInfo [typespec=" + typespec + ", owner=" + owner
+		return "ModuleInfo [typespec=" + typespec + ", owners=" + owners
 				+ ", version=" + version + ", description=" + description
 				+ ", types=" + types + "]";
 	}

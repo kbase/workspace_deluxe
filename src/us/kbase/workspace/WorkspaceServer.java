@@ -34,6 +34,7 @@ import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -621,26 +622,25 @@ public class WorkspaceServer extends JsonServerServlet {
         ModuleInfo returnVal = null;
         //BEGIN get_module_info
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (!(params.getMod() == null ^ params.getType() == null)) {
+		if (params.getMod() == null) {
 			throw new IllegalArgumentException(
-					"Must provide either a module name or a type");
+					"Must provide a module name");
 		}
-		final us.kbase.workspace.workspaces.ModuleInfo mi;
-		if (params.getType() != null) {
-			mi = ws.getModuleInfo(TypeDefId.fromTypeString(params.getType()));
-		} else if (params.getVer() != null) {
-			mi = ws.getModuleInfo(params.getMod(), params.getVer());
+		final ModuleDefId module;
+		if (params.getVer() != null) {
+			module = new ModuleDefId(params.getMod(), params.getVer());
 		} else {
-			mi = ws.getModuleInfo(params.getMod());
+			module = new ModuleDefId(params.getMod());
 		}
+		final us.kbase.workspace.workspaces.ModuleInfo mi =
+				ws.getModuleInfo(module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
 			types.put(t.getTypeString(), mi.getTypes().get(t));
 		}
 		returnVal = new ModuleInfo()
 				.withDescription(mi.getDescription())
-				//TODO remove the null crap when getModuleInfo is improved
-				.withOwner(mi.getOwner() == null ? null : mi.getOwner().getUser())
+				.withOwners(mi.getOwners())
 				.withSpec(mi.getTypespec())
 				.withVer(mi.getVersion())
 				.withTypes(types);

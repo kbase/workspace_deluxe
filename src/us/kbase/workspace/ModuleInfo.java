@@ -2,6 +2,7 @@
 package us.kbase.workspace;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -15,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ModuleInfo</p>
  * <pre>
  * Information about a module.
- *         username owner - the owner of the module.
+ *         list<username> owners - the owners of the module.
  *         spec_version ver - the version of the module.
  *         typespec spec - the typespec.
  *         string description - the description of the module from the typespec.
@@ -27,7 +28,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "owner",
+    "owners",
     "ver",
     "spec",
     "description",
@@ -35,8 +36,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 public class ModuleInfo {
 
-    @JsonProperty("owner")
-    private java.lang.String owner;
+    @JsonProperty("owners")
+    private List<String> owners;
     @JsonProperty("ver")
     private Long ver;
     @JsonProperty("spec")
@@ -47,18 +48,18 @@ public class ModuleInfo {
     private Map<String, String> types;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
-    @JsonProperty("owner")
-    public java.lang.String getOwner() {
-        return owner;
+    @JsonProperty("owners")
+    public List<String> getOwners() {
+        return owners;
     }
 
-    @JsonProperty("owner")
-    public void setOwner(java.lang.String owner) {
-        this.owner = owner;
+    @JsonProperty("owners")
+    public void setOwners(List<String> owners) {
+        this.owners = owners;
     }
 
-    public ModuleInfo withOwner(java.lang.String owner) {
-        this.owner = owner;
+    public ModuleInfo withOwners(List<String> owners) {
+        this.owners = owners;
         return this;
     }
 
@@ -134,7 +135,7 @@ public class ModuleInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ModuleInfo"+" [owner=")+ owner)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
