@@ -5,6 +5,7 @@ module KB {
 
 
 	/*
+	this is an id that can point to any ws object
 	@id_reference
 	*/
 	typedef string kbid;

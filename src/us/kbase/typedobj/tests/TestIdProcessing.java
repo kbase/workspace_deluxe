@@ -35,6 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.typedobj.core.IdReference;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -180,7 +181,7 @@ public class TestIdProcessing {
 			db.releaseType(new TypeDefName("FBA." + typename), username);
 		}
 		
-		System.out.println("finding test instances\n");
+		System.out.println("finding test instances");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
@@ -203,15 +204,17 @@ public class TestIdProcessing {
 	@Test
 	public void testValidInstances() throws Exception
 	{
-		//read the 
+		ObjectMapper mapper = new ObjectMapper();
+		
+		//read the instance data
 		System.out.println("  -("+instance.resourceName+")");
 		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
-
+		JsonNode instanceRootNode = mapper.readTree(instanceJson);
+		
 		// read the ids file, which provides the list of ids we expect to extract from the instance
 		String idsJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".ids");
-		ObjectMapper mapper = new ObjectMapper();
-		JsonNode instanceRootNode = mapper.readTree(idsJson);
-		JsonNode expectedIds = instanceRootNode.get("ids-expected");
+		JsonNode idsRootNode = mapper.readTree(idsJson);
+		JsonNode expectedIds = idsRootNode.get("ids-expected");
 		Iterator <JsonNode> it = expectedIds.iterator();
 		Map <String,Integer> expectedIdList = new HashMap<String,Integer>();
 		while(it.hasNext()) {
@@ -236,6 +239,7 @@ public class TestIdProcessing {
 		
 		// check that all expected Ids are in fact found
 		String [] foundIdRefs = report.getListOfIdReferences();
+		List<List<IdReference>> fullIdList = report.getListOfIdReferenceObjects();
 		for(int k=0; k<foundIdRefs.length; k++) {
 			assertTrue("  -("+instance.resourceName+") extracted id "+foundIdRefs[k]+" that should not have been extracted",
 					expectedIdList.containsKey(foundIdRefs[k]));
@@ -251,8 +255,45 @@ public class TestIdProcessing {
 			assertTrue("  -("+instance.resourceName+") needed to extract id '"+pair.getKey()+"' "+n_refs_remaining+" more times",
 					n_refs_remaining == 0);
 		}
+		
+		
+		// now we relabel the ids
+		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
+		JsonNode newIds = idsRootNode.get("ids-expected");
+		Iterator<String> fieldNames = newIds.fieldNames();
+		while(fieldNames.hasNext()) {
+			String originalId = fieldNames.next();
+			String absoluteId = newIds.get(originalId).asText();
+			absoluteIdMapping.put(originalId, absoluteId);
+		}
+		report.setAbsoluteIdReferences(absoluteIdMapping);
+		validator.relableToAbsoluteIds(instanceRootNode, report);
+		
+		// now we revalidate the instance, and ensure that the labels have been renamed
+		TypedObjectValidationReport report2 = validator.validate(instanceRootNode, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
+		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
+		
+		String [] relabeledIds = report2.getListOfIdReferences();
+		
+		//there should be the same number as before, of course!
+		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.length, foundIdRefs.length);
+		
+		
+		// make sure every id that was found originally 
+		for(List<IdReference> refList : fullIdList) {
+			for(IdReference ref : refList) {
+				checkInstanceId(ref,instanceRootNode);
+			}
+		}
+		
+		
 	}
 
+	private void checkInstanceId(IdReference oldRef,JsonNode relabeledRoot) {
+		
+	}
+	
+	
 	
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test
@@ -324,6 +365,7 @@ public class TestIdProcessing {
 					result.add(entry);
 				}
 			}
+			jar.close();
 			return result.toArray(new String[result.size()]);
 		}
 		throw new UnsupportedOperationException("Cannot list files for URL "+dirURL);
