@@ -36,9 +36,11 @@ init:
 	git submodule init
 	git submodule update
 	mkdir -p bin
+	mkdir -p classes
 	echo "export PATH=$(DEPLOY_RUNTIME)/bin" > bin/compile_typespec
 	echo "export PERL5LIB=$(DIR)/typecomp/lib" >> bin/compile_typespec
 	echo "perl $(DIR)/typecomp/scripts/compile_typespec.pl \"\$$@\"" >> bin/compile_typespec 
+	echo $(DIR) > classes/kidlinit
 	chmod a+x bin/compile_typespec
 
 build-libs:
@@ -106,6 +108,8 @@ deploy-scripts:
 deploy-service: deploy-service-libs deploy-service-scripts
 
 deploy-service-libs:
+	echo $(SERVICE_DIR) > classes/kidlinit
+	$(ANT) buildwar
 	mkdir -p $(SERVICE_DIR)
 	cp dist/$(WAR) $(SERVICE_DIR)
 	cp -r typecomp $(SERVICE_DIR)
