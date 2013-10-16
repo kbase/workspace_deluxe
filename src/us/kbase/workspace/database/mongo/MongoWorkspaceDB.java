@@ -711,7 +711,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//TODO make all projections not include _id unless specified
 	
 	private static final String M_UNIQ_NAME_QRY = String.format(
-			"{%s: #, %s: {$regex: '^#'}}", Fields.PTR_WS_ID, Fields.PTR_NAME);
+			"{%s: #, %s: {$regex: '^#(-\\\\d+)?$'}}", Fields.PTR_WS_ID,
+			Fields.PTR_NAME);
 	private static final String M_UNIQ_NAME_PROJ = String.format(
 			"{%s: 1, %s: 0}", Fields.PTR_NAME, Fields.MONGO_ID);
 	
