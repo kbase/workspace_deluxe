@@ -9,10 +9,6 @@ import us.kbase.typedobj.core.validatorconfig.WsIdRefValidationBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import com.github.fge.jackson.jsonpointer.JsonNodeResolver;
-import com.github.fge.jackson.jsonpointer.JsonPointer;
-import com.github.fge.jackson.jsonpointer.ReferenceToken;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
@@ -31,6 +27,9 @@ public class TypedObjectValidationReport {
 	 * tunable parameter for initializing the list of IDs; we may get minor performance gains by tweaking this
 	 */
 	private final static int EXPECTED_NUMBER_OF_IDS = 25;
+	/**
+	 * tunable parameter for initializing the list of IDs; we may get minor performance gains by tweaking this
+	 */
 	private final static int EXPECTED_OBJ_DEPTH = 5;
 	
 	/**
@@ -39,7 +38,7 @@ public class TypedObjectValidationReport {
 	protected ProcessingReport processingReport;
 	
 	/**
-	 * This is the ID of the type definition used in validation - it is absolute so you always have full version info
+	 * This is the ID of the type definition used in validation - it is an AbsoluteTypeDefId so you always have full version info
 	 */
 	private final AbsoluteTypeDefId validationTypeDefId;
 	
@@ -161,7 +160,7 @@ public class TypedObjectValidationReport {
 	
 	/**
 	 * Set the absolute ID References as specified in the absoluteIdRefMapping (original ids
-	 * are keys, replacement absolute IDs are values).  Note that you can only replace an
+	 * are keys, replacement absolute IDs are values).
 	 */
 	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) {
 		if(!idRefListIsBuilt) {
@@ -177,28 +176,6 @@ public class TypedObjectValidationReport {
 			}
 		}
 	}
-	
-	
-	@Override
-	public String toString() {
-		StringBuilder mssg = new StringBuilder();
-		mssg.append("TYPED OBJECT VALIDATION REPORT\n");
-		mssg.append(" -validated instance against: '"+validationTypeDefId.getTypeString()+"'\n");
-		mssg.append(" -status: ");
-		if(this.isInstanceValid()) {
-			mssg.append("pass\n");
-			mssg.append(" -id refs extracted: "+simpleIdList.length);
-		}
-		else {
-			String [] errs = this.getErrorMessages();
-			mssg.append("fail ("+errs.length+" error(s))\n");
-			for(int k=0; k<errs.length; k++) {
-				mssg.append(" -["+(k+1)+"]:"+errs[k]);
-			}
-		}
-		return mssg.toString();
-	}
-	
 	
 	
 	/**
@@ -248,10 +225,25 @@ public class TypedObjectValidationReport {
 	
 	
 	
-	
-	
-	
-	
+	@Override
+	public String toString() {
+		StringBuilder mssg = new StringBuilder();
+		mssg.append("TYPED OBJECT VALIDATION REPORT\n");
+		mssg.append(" -validated instance against: '"+validationTypeDefId.getTypeString()+"'\n");
+		mssg.append(" -status: ");
+		if(this.isInstanceValid()) {
+			mssg.append("pass\n");
+			mssg.append(" -id refs extracted: "+simpleIdList.length);
+		}
+		else {
+			String [] errs = this.getErrorMessages();
+			mssg.append("fail ("+errs.length+" error(s))\n");
+			for(int k=0; k<errs.length; k++) {
+				mssg.append(" -["+(k+1)+"]:"+errs[k]);
+			}
+		}
+		return mssg.toString();
+	}
 	
 	
 }

@@ -176,12 +176,15 @@ public final class TypedObjectValidator {
 	
 	/**
 	 * Given the original JsonNode instance and a report from a validation, convert all ID references in the JsonNode
-	 * to the absolute reference set in the report.
+	 * to the absolute reference set in the report.  The update happens in place, so if you need to preserve the
+	 * original ids or original data, you should deep copy the instance object first.  The report and original listing
+	 * of ids is unchanged by this operation, so in principle you can change the ids multiple times by updating the
+	 * absoluteIdMapping in the report and rerunning this method.
 	 * @param instanceRootNode
 	 * @param report
 	 * @return
 	 */
-	public void relableToAbsoluteIds(JsonNode instanceRootNode, TypedObjectValidationReport report) {
+	public void relableToAbsoluteIds(JsonNode instanceRootNode, final TypedObjectValidationReport report) {
 		
 		// we first extract the full list of Id References 
 		List <List<IdReference>> refList = report.getListOfIdReferenceObjects();
@@ -261,12 +264,16 @@ public final class TypedObjectValidator {
 	
 	
 	/**
-	 * 
+	 * Given the validation report and the instance root node, extract the searchable subset as indicated
+	 * by the json schema used when validating.  If the validation did not pass, meaning the instance is
+	 * not valid, then null is returned.
 	 * @param instanceRootNode
 	 * @param report
 	 * @return
 	 */
 	public JsonNode extractWsSearchableSubset(JsonNode instanceRootNode, TypedObjectValidationReport report) {
+		if(!report.isInstanceValid()) return null;
+		
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode subset = mapper.createObjectNode();
 		Iterator<ProcessingMessage> mssgs = report.getRawProcessingReport().iterator();
