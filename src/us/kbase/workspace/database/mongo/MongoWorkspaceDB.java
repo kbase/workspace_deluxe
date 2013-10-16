@@ -833,7 +833,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
-			final ResolvedMongoWSID rwsi,
 			final List<ResolvedSaveObject> objects) {
 		//this method must maintain the order of the objects
 		int objnum = 1;
@@ -857,7 +856,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, o.getType(), rwsi, null); //TODO add subdata
+			pkg.td = new TypeData(json, o.getType(), null); //TODO add subdata
 			ret.add(pkg);
 			objnum++;
 		}
@@ -883,7 +882,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
 		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
-				wsidmongo, objects);
+				objects);
 		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
 				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
 		int newobjects = 0;
@@ -958,11 +957,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final String M_SVDTA_QRY = String.format("{%s: #}",
-			Fields.TYPE_CHKSUM);
-	private static final String M_SVDTA_WTH = String.format(
-			"{$addToSet: {%s: #}}", Fields.TYPE_WS);
-	
 	//TODO break this up
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
@@ -1005,15 +999,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<TypeData> newdata = new ArrayList<TypeData>();
 			for (String md5: chksum.keySet()) {
 				if (existChksum.contains(md5)) {
-					try { //TODO need a test for this once admin stuff is ready
-						wsjongo.getCollection(col)
-								.update(M_SVDTA_QRY, md5)
-								.with(M_SVDTA_WTH, workspaceid.getID());
-					} catch (MongoException me) {
-						throw new WorkspaceCommunicationException(
-								"There was a problem communicating with the database",
-								me);
-					}
 					continue;
 				}
 				newdata.add(chksum.get(md5));
@@ -1034,13 +1019,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				wsjongo.getCollection(col).insert((Object[]) newdata.toArray(
 						new TypeData[newdata.size()]));
 			} catch (MongoException.DuplicateKey dk) {
-				//dammit, someone just inserted this data
-				//we'll have to go one by one doing upserts
-				for (TypeData td: newdata) {
-					final DBObject ckquery = new BasicDBObject();
-					query.put(Fields.TYPE_CHKSUM, td.getChksum());
-					wsmongo.getCollection(col).update(ckquery, td.getSafeUpdate(), true, false);
-				}
+				//At least one of the data objects was just inserted by another
+				//thread, which is fine - do nothing
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
 						"There was a problem communicating with the database", me);
@@ -1355,7 +1335,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo.resolve(at, wo.getData());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, rwsi , data);
+			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
