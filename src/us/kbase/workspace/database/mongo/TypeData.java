@@ -19,16 +19,14 @@ public class TypeData {
 	
 	@JsonIgnore
 	private String data = null;
-	@JsonIgnore
-	private AbsoluteTypeDefId type = null;
 	
 	//these attributes are actually saved in mongo
+	private String type = null;
 	private List<Long> ws;
 	private String chksum;
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private long size;
-	private int minver;
 	
 	public TypeData(final String data, final AbsoluteTypeDefId type,
 			final ResolvedMongoWSID firstWorkspace,
@@ -42,13 +40,12 @@ public class TypeData {
 			throw new IllegalArgumentException("firstWorkspace cannot be null");
 		}
 		this.data = data;
-		this.type = type;
+		this.type = type.getTypeString();
 		this.ws = new ArrayList<Long>();
 		this.ws.add(firstWorkspace.getID());
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chksum = DigestUtils.md5Hex(data);
-		this.minver = type.getMinorVersion();
 		
 	}
 
@@ -57,7 +54,7 @@ public class TypeData {
 	}
 	
 	public AbsoluteTypeDefId getType() {
-		return type;
+		return AbsoluteTypeDefId.fromAbsoluteTypeString(type);
 	}
 	
 	public String getChksum() {
@@ -81,15 +78,15 @@ public class TypeData {
 		setOnIns.put("chksum", getChksum());
 		setOnIns.put("subdata", subdata);
 		setOnIns.put("size", getSize());
-		setOnIns.put("version", minver);
+		setOnIns.put("type", type);
 		dbo.put("$setOnInsert", setOnIns);
 		return dbo;
 	}
 
 	@Override
 	public String toString() {
-		return "TypeData [data=" + data + ", type=" + type + ", workspaces="
-				+ ws + ", chksum=" + chksum + ", subdata=" + subdata
-				+ ", size=" + size + ", version=" + minver + "]";
+		return "TypeData [data=" + data + ", type=" + type + ", ws=" + ws
+				+ ", chksum=" + chksum + ", subdata=" + subdata + ", size="
+				+ size + "]";
 	}
 }
