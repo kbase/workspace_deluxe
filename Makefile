@@ -15,6 +15,8 @@ TOP_DIR =  $(shell python -c "import os.path as p; print p.abspath('../..')")
 
 TOP_DIR_NAME = $(shell basename $(TOP_DIR))
 
+DIR = $(shell pwd)
+
 ifeq ($(TOP_DIR_NAME), dev_container)
 include $(TOP_DIR)/tools/Makefile.common
 endif
@@ -33,6 +35,11 @@ default: init build-libs build-docs
 init:
 	git submodule init
 	git submodule update
+	mkdir -p bin
+	echo "export PATH=$(DEPLOY_RUNTIME)/bin" > bin/compile_typespec
+	echo "export PERL5LIB=$(DIR)/typecomp/lib" >> bin/compile_typespec
+	echo "perl $(DIR)/typecomp/scripts/compile_typespec.pl \"\$$@\"" >> bin/compile_typespec 
+	chmod a+x bin/compile_typespec
 
 build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
@@ -101,6 +108,12 @@ deploy-service: deploy-service-libs deploy-service-scripts
 deploy-service-libs:
 	mkdir -p $(SERVICE_DIR)
 	cp dist/$(WAR) $(SERVICE_DIR)
+	cp -r typecomp $(SERVICE_DIR)
+	mkdir -p $(SERVICE_DIR)/bin
+	echo "export PATH=$(DEPLOY_RUNTIME)/bin" > $(SERVICE_DIR)/bin/compile_typespec
+	echo "export PERL5LIB=$(SERVICE_DIR)/typecomp/lib" >> $(SERVICE_DIR)/bin/compile_typespec
+	echo "perl $(SERVICE_DIR)/typecomp/scripts/compile_typespec.pl \"\$$@\"" >> $(SERVICE_DIR)/bin/compile_typespec
+	chmod a+x $(SERVICE_DIR)/bin/compile_typespec
 	echo $(GITCOMMIT) > $(SERVICE_DIR)/$(SERVICE).serverdist
 	echo $(TAGS) >> $(SERVICE_DIR)/$(SERVICE).serverdist
 	
@@ -121,4 +134,5 @@ undeploy:
 clean:
 	-rm -rf docs
 	-rm -rf dist
+	-rm -rf bin
 	@#TODO remove lib once files are generated on the fly
