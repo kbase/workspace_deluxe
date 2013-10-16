@@ -61,7 +61,7 @@ public class TypeRegisteringTest {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			test.cleanupBefore();
 			try {
-				test.testSimple();
+				//test.testSimple();
 				//test.testDescr();
 				//test.testBackward();
 				//test.testRollback();
@@ -69,7 +69,7 @@ public class TypeRegisteringTest {
 				//test.testIndexes();
 				//test.testMD5();
 				//test.testRegistration();
-				//test.testError();
+				test.testError();
 			} finally {
 				//test.cleanupAfter();
 			}
@@ -400,11 +400,20 @@ public class TypeRegisteringTest {
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("bebebe"));
 		}
+		initModule("DoubleModule", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "DoubleModule"), adminUser);
 			Assert.fail();
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("only one"));
+		}
+		initModule("Empty", adminUser);
+		try {
+			db.registerModule("module Empty {};", Collections.<String>emptyList(), Collections.<String>emptyList(),
+					adminUser, false, Collections.<String,Long>emptyMap(), -1L);
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Concurrent modification: previous module version is "));
 		}
 	}
 	

@@ -782,6 +782,8 @@ public class TypeDefinitionDB {
 			for (String func : funcs)
 				if (findLastFuncVersion(info, func, false, true) == null)
 					throwNoSuchFuncException(moduleName, func, null);
+			info.setUploadUserId(userId);
+			info.setUploadMethod("releaseModule");
 			long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 			List<AbsoluteTypeDefId> ret = new ArrayList<AbsoluteTypeDefId>();
 			try {
@@ -1185,7 +1187,9 @@ public class TypeDefinitionDB {
 			NoSuchPrivilegeException, SpecParseException {
 		String moduleName = type.getModule();
 		String typeName = type.getName();
-		refreshModule(moduleName, Collections.<String>emptyList(), Arrays.asList(typeName), userId);
+		saveModule(getModuleSpecDocument(moduleName), Collections.<String>emptySet(), 
+				new HashSet<String>(Arrays.asList(typeName)), userId, false, 
+				Collections.<String,Long>emptyMap(), null, "stopTypeSupport");
 	}
 	
 	/*public void removeTypeVersion(AbsoluteTypeDefId typeDef, String userId) 
@@ -1423,8 +1427,18 @@ public class TypeDefinitionDB {
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
 					NoSuchModuleException {
+		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
+				moduleVersionRestrictions, null);
+	}
+	
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion) 
+					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
+					NoSuchModuleException {
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
-				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
+				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
+				prevModuleVersion, "registerModule");
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
@@ -1461,7 +1475,8 @@ public class TypeDefinitionDB {
 					NoSuchPrivilegeException {
 		String specDocument = getModuleSpecDocument(moduleName);
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
-				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions);
+				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
+				null, "refreshModule");
 	}
 
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) 
@@ -1541,8 +1556,9 @@ public class TypeDefinitionDB {
 	
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
-			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
-					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, NoSuchModuleException {
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
+			String uploadMethod) throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
+			NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		String moduleName = null;
@@ -1552,11 +1568,17 @@ public class TypeDefinitionDB {
 		KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 				moduleVersionRestrictions);
 		moduleName = module.getModuleName();
+		checkModuleRegistered(moduleName);
+		checkUserIsOwnerOrAdmin(moduleName, userId);
+		if (prevModuleVersion != null) {
+			long realPrevVersion = storage.getLastModuleVersion(moduleName);
+			if (realPrevVersion != prevModuleVersion)
+				throw new SpecParseException("Concurrent modification: previous module version is " + 
+						realPrevVersion + " (but should be " + prevModuleVersion + ")");
+		}
 		requestWriteLock(moduleName);
 		try {
 			try {
-				checkModuleRegistered(moduleName);
-				checkUserIsOwnerOrAdmin(moduleName, userId);
 				ModuleInfo info = getModuleInfoNL(moduleName);
 				boolean isNew = !storage.checkModuleSpecRecordExist(moduleName, info.getVersionTime());
 				info.setMd5hash(DigestUtils.md5Hex(mapper.writeValueAsString(module.getData())));
@@ -1565,6 +1587,8 @@ public class TypeDefinitionDB {
 				for (String iModule : includedModules)
 					includedModuleNameToVersion.put(iModule, moduleToInfo.get(iModule).getVersionTime());
 				info.setIncludedModuleNameToVersion(includedModuleNameToVersion);
+				info.setUploadUserId(userId);
+				info.setUploadMethod(uploadMethod);
 				Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 				if (typeToSchema == null)
 					throw new SpecParseException("Json schema generation was missed for module: " + moduleName);
@@ -1681,8 +1705,6 @@ public class TypeDefinitionDB {
 				}
 				return ret;
 			} catch (NoSuchModuleException ex) {
-				throw ex;
-			} catch (NoSuchPrivilegeException ex) {
 				throw ex;
 			} catch (TypeStorageException ex) {
 				throw ex;

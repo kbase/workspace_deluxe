@@ -11,6 +11,8 @@ public class ModuleInfo {
 	private String description;
 	private String md5hash;
 	private long versionTime;
+	private String uploadUserId;
+	private String uploadMethod;
 	
 	public ModuleInfo() {
 	}
@@ -70,5 +72,21 @@ public class ModuleInfo {
 	
 	public void setVersionTime(long versionTime) {
 		this.versionTime = versionTime;
+	}
+	
+	public String getUploadUserId() {
+		return uploadUserId;
+	}
+	
+	public void setUploadUserId(String uploadUserId) {
+		this.uploadUserId = uploadUserId;
+	}
+	
+	public String getUploadMethod() {
+		return uploadMethod;
+	}
+	
+	public void setUploadMethod(String uploadMethod) {
+		this.uploadMethod = uploadMethod;
 	}
 }
