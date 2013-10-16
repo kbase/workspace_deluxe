@@ -480,6 +480,11 @@ module Workspace {
 		mapping<modulename, spec_version> dependencies - By default, the
 			latest released versions of spec dependencies will be included when
 			compiling a spec. Specific versions can be specified here.
+		spec_version prev_ver - the id of the previous version of the typespec.
+			An error will be thrown if this is set and prev_ver is not the
+			most recent version of the typespec. This prevents overwriting of
+			changes made since retrieving a spec and compiling an edited spec.
+			This argument is ignored if a modulename is passed.
 	*/
 	typedef structure {
 		typespec spec;
@@ -488,6 +493,7 @@ module Workspace {
 		list<typename> remove_types;
 		mapping<modulename, spec_version> dependencies;
 		boolean dryrun;
+		spec_version prev_ver;
 	} CompileTypespecParams;
 	
 	/* Compile a new typespec or recompile an existing typespec. 
@@ -544,6 +550,34 @@ module Workspace {
 	/* List typespec modules. */
 	funcdef list_modules(ListModulesParams params)
 		returns(list<modulename> modules);
+	
+	/* Parameters for the list_module_versions function.
+	
+		Required arguments:
+		One of:
+		modulename mod - returns all versions of the module.
+		type_string type - returns all versions of the module associated with
+			the type.
+	*/
+	typedef structure {
+		modulename mod;
+		type_string type;
+	} ListModuleVersionsParams;
+	
+	/* A set of versions from a module.
+	
+		modulename mod - the name of the module.
+		list<spec_version> - a set or subset of versions associated with the
+			module.
+	*/
+	typedef structure {
+		modulename mod;
+		list<spec_version> vers;
+	} ModuleVersions;
+	
+	/* List typespec module versions. */
+	funcdef list_module_versions(ListModuleVersionsParams params)
+		 returns(ModuleVersions vers);
 	
 	/* Parameters for the get_module_info function.
 	

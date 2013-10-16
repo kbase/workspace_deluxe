@@ -1544,6 +1544,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 	remove_types has a value which is a reference to a list where each element is a Workspace.typename
 	dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	dryrun has a value which is a Workspace.boolean
+	prev_ver has a value which is a Workspace.spec_version
 typespec is a string
 modulename is a string
 typename is a string
@@ -1567,6 +1568,7 @@ CompileTypespecParams is a reference to a hash where the following keys are defi
 	remove_types has a value which is a reference to a list where each element is a Workspace.typename
 	dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	dryrun has a value which is a Workspace.boolean
+	prev_ver has a value which is a Workspace.spec_version
 typespec is a string
 modulename is a string
 typename is a string
@@ -1809,6 +1811,104 @@ sub list_modules
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_modules",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'list_modules',
+				       );
+    }
+}
+
+
+
+=head2 list_module_versions
+
+  $vers = $obj->list_module_versions($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.ListModuleVersionsParams
+$vers is a Workspace.ModuleVersions
+ListModuleVersionsParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_string
+modulename is a string
+type_string is a string
+ModuleVersions is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	vers has a value which is a reference to a list where each element is a Workspace.spec_version
+spec_version is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.ListModuleVersionsParams
+$vers is a Workspace.ModuleVersions
+ListModuleVersionsParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	type has a value which is a Workspace.type_string
+modulename is a string
+type_string is a string
+ModuleVersions is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	vers has a value which is a reference to a list where each element is a Workspace.spec_version
+spec_version is an int
+
+
+=end text
+
+=item Description
+
+List typespec module versions.
+
+=back
+
+=cut
+
+sub list_module_versions
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_module_versions (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_module_versions:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_module_versions');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_module_versions",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_module_versions',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_module_versions",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_module_versions',
 				       );
     }
 }
@@ -3434,6 +3534,11 @@ Parameters for the compile_typespec function.
         mapping<modulename, spec_version> dependencies - By default, the
                 latest released versions of spec dependencies will be included when
                 compiling a spec. Specific versions can be specified here.
+        spec_version prev_ver - the id of the previous version of the typespec.
+                An error will be thrown if this is set and prev_ver is not the
+                most recent version of the typespec. This prevents overwriting of
+                changes made since retrieving a spec and compiling an edited spec.
+                This argument is ignored if a modulename is passed.
 
 
 =item Definition
@@ -3448,6 +3553,7 @@ new_types has a value which is a reference to a list where each element is a Wor
 remove_types has a value which is a reference to a list where each element is a Workspace.typename
 dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 dryrun has a value which is a Workspace.boolean
+prev_ver has a value which is a Workspace.spec_version
 
 </pre>
 
@@ -3462,6 +3568,7 @@ new_types has a value which is a reference to a list where each element is a Wor
 remove_types has a value which is a reference to a list where each element is a Workspace.typename
 dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 dryrun has a value which is a Workspace.boolean
+prev_ver has a value which is a Workspace.spec_version
 
 
 =end text
@@ -3561,6 +3668,90 @@ owner has a value which is a Workspace.username
 
 a reference to a hash where the following keys are defined:
 owner has a value which is a Workspace.username
+
+
+=end text
+
+=back
+
+
+
+=head2 ListModuleVersionsParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the list_module_versions function.
+
+        Required arguments:
+        One of:
+        modulename mod - returns all versions of the module.
+        type_string type - returns all versions of the module associated with
+                the type.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+type has a value which is a Workspace.type_string
+
+
+=end text
+
+=back
+
+
+
+=head2 ModuleVersions
+
+=over 4
+
+
+
+=item Description
+
+A set of versions from a module.
+
+        modulename mod - the name of the module.
+        list<spec_version> - a set or subset of versions associated with the
+                module.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+vers has a value which is a reference to a list where each element is a Workspace.spec_version
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+vers has a value which is a reference to a list where each element is a Workspace.spec_version
 
 
 =end text

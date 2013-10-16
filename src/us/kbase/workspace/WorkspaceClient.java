@@ -361,6 +361,24 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: list_module_versions</p>
+     * <pre>
+     * List typespec module versions.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListModuleVersionsParams ListModuleVersionsParams}
+     * @return   parameter "vers" of type {@link us.kbase.workspace.ModuleVersions ModuleVersions}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public ModuleVersions listModuleVersions(ListModuleVersionsParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<ModuleVersions>> retType = new TypeReference<List<ModuleVersions>>() {};
+        List<ModuleVersions> res = caller.jsonrpcCall("Workspace.list_module_versions", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_module_info</p>
      * <pre>
      * </pre>

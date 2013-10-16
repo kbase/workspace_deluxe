@@ -24,4 +24,10 @@ public class TypeChange {
 	public String getJsonSchema() {
 		return jsonSchema;
 	}
+
+	@Override
+	public String toString() {
+		return "TypeChange [unregistered=" + unregistered + ", typeVersion="
+				+ typeVersion + ", jsonSchema=" + jsonSchema + "]";
+	}
 }

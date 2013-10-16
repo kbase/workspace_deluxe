@@ -541,12 +541,14 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			res = ws.compileNewTypeSpec(getUser(authPart), params.getSpec(),
 					add, rem, deps, params.getDryrun() == null ? true :
-						params.getDryrun() != 0);
+						params.getDryrun() != 0, params.getPrevVer());
 		}
 		returnVal = new HashMap<String, String>();
 		for (final TypeChange tc: res.values()) {
-			returnVal.put(tc.getTypeVersion().getTypeString(),
-					tc.getJsonSchema());
+			if (!tc.isUnregistered()) {
+				returnVal.put(tc.getTypeVersion().getTypeString(),
+						tc.getJsonSchema());
+			}
 		}
         //END compile_typespec
         return returnVal;
@@ -601,12 +603,45 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<String> listModules(ListModulesParams params) throws Exception {
         List<String> returnVal = null;
         //BEGIN list_modules
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		WorkspaceUser user = null;
 		if (params.getOwner() != null) {
 			user = new WorkspaceUser(params.getOwner());
 		}
 		returnVal = ws.listModules(user);
         //END list_modules
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: list_module_versions</p>
+     * <pre>
+     * List typespec module versions.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListModuleVersionsParams ListModuleVersionsParams}
+     * @return   parameter "vers" of type {@link us.kbase.workspace.ModuleVersions ModuleVersions}
+     */
+    @JsonServerMethod(rpc = "Workspace.list_module_versions")
+    public ModuleVersions listModuleVersions(ListModuleVersionsParams params) throws Exception {
+        ModuleVersions returnVal = null;
+        //BEGIN list_module_versions
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (!(params.getMod() == null ^ params.getType() == null)) {
+			throw new IllegalArgumentException(
+					"Must provide either a module name or a type");
+		}
+		final List<Long> vers;
+		final String module;
+		if (params.getMod() != null) {
+			vers = ws.getModuleVersions(params.getMod());
+			module = params.getMod();
+		} else {
+			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
+			vers = ws.getModuleVersions(type);
+			module = type.getType().getModule();
+		}
+		returnVal = new ModuleVersions().withMod(module).withVers(vers);
+        //END list_module_versions
         return returnVal;
     }
 

@@ -318,8 +318,6 @@ public class Workspaces {
 		typedb.requestModuleRegistration(module, user.getUser());
 	}
 	
-	//TODO list module versions
-	
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
 		try {
@@ -349,11 +347,12 @@ public class Workspaces {
 	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
 			final WorkspaceUser user, final String typespec,
 			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, boolean dryRun)
+			final Map<String, Long> moduleVers, final boolean dryRun,
+			final Long previousVer)
 			throws SpecParseException, TypeStorageException,
 			NoSuchPrivilegeException, NoSuchModuleException {
 		return typedb.registerModule(typespec, newtypes, removeTypes,
-				user.getUser(), dryRun, moduleVers);
+				user.getUser(), dryRun, moduleVers, previousVer);
 	}
 	
 	public Map<TypeDefName, TypeChange> compileTypeSpec(
@@ -416,10 +415,21 @@ public class Workspaces {
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
 				typedb.getJsonSchemasForAllTypes(module));
 	}
-
-	public ModuleInfo getModuleInfo(TypeDefId type) {
-		// TODO Auto-generated method stub
-		// TODO need a way to get a module name/ver from type 
-		return null;
+	
+	public List<Long> getModuleVersions(final String module)
+			throws NoSuchModuleException, TypeStorageException {
+		return typedb.getAllModuleVersions(module);
+	}
+	
+	public List<Long> getModuleVersions(final TypeDefId type) 
+			throws NoSuchModuleException, TypeStorageException,
+			NoSuchTypeException {
+		final List<ModuleDefId> mods =
+				typedb.findModuleVersionsByTypeVersion(type);
+		final List<Long> vers = new ArrayList<Long>();
+		for (final ModuleDefId m: mods) {
+			vers.add(m.getVersion());
+		}
+		return vers;
 	}
 }

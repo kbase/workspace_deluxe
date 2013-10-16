@@ -35,6 +35,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         mapping<modulename, spec_version> dependencies - By default, the
  *                 latest released versions of spec dependencies will be included when
  *                 compiling a spec. Specific versions can be specified here.
+ *         spec_version prev_ver - the id of the previous version of the typespec.
+ *                 An error will be thrown if this is set and prev_ver is not the
+ *                 most recent version of the typespec. This prevents overwriting of
+ *                 changes made since retrieving a spec and compiling an edited spec.
+ *                 This argument is ignored if a modulename is passed.
  * </pre>
  * 
  */
@@ -46,7 +51,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "new_types",
     "remove_types",
     "dependencies",
-    "dryrun"
+    "dryrun",
+    "prev_ver"
 })
 public class CompileTypespecParams {
 
@@ -62,6 +68,8 @@ public class CompileTypespecParams {
     private Map<String, Long> dependencies;
     @JsonProperty("dryrun")
     private java.lang.Long dryrun;
+    @JsonProperty("prev_ver")
+    private java.lang.Long prevVer;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("spec")
@@ -154,6 +162,21 @@ public class CompileTypespecParams {
         return this;
     }
 
+    @JsonProperty("prev_ver")
+    public java.lang.Long getPrevVer() {
+        return prevVer;
+    }
+
+    @JsonProperty("prev_ver")
+    public void setPrevVer(java.lang.Long prevVer) {
+        this.prevVer = prevVer;
+    }
+
+    public CompileTypespecParams withPrevVer(java.lang.Long prevVer) {
+        this.prevVer = prevVer;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -166,7 +189,7 @@ public class CompileTypespecParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((("CompileTypespecParams"+" [spec=")+ spec)+", mod=")+ mod)+", newTypes=")+ newTypes)+", removeTypes=")+ removeTypes)+", dependencies=")+ dependencies)+", dryrun=")+ dryrun)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("CompileTypespecParams"+" [spec=")+ spec)+", mod=")+ mod)+", newTypes=")+ newTypes)+", removeTypes=")+ removeTypes)+", dependencies=")+ dependencies)+", dryrun=")+ dryrun)+", prevVer=")+ prevVer)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
