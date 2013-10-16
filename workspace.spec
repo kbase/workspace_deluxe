@@ -616,8 +616,6 @@ module Workspace {
 	/* Get JSON schema for a type. */
 	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
 		
-	/* TODO get module versions by module, get modules by owner */
-
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
 		returns(UnspecifiedObject response) authentication required;
