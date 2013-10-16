@@ -28,7 +28,11 @@ ANT = ant
 # make sure our make test works
 .PHONY : test
 
-default: build-libs build-docs
+default: init build-libs build-docs
+
+init:
+	git submodule init
+	git submodule update
 
 build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
