@@ -2,12 +2,12 @@ package us.kbase.typedobj.core;
 
 public class AbsoluteTypeDefId extends TypeDefId {
 
-	public AbsoluteTypeDefId(TypeDefName type, int majorVersion,
-			int minorVersion) {
+	public AbsoluteTypeDefId(final TypeDefName type, final int majorVersion,
+			final int minorVersion) {
 		super(type, majorVersion, minorVersion);
 	}
 	
-	public static AbsoluteTypeDefId fromTypeId(TypeDefId type) {
+	public static AbsoluteTypeDefId fromTypeId(final TypeDefId type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -18,7 +18,8 @@ public class AbsoluteTypeDefId extends TypeDefId {
 				type.getMinorVersion());
 	}
 	
-	public static AbsoluteTypeDefId fromTypeId(TypeDefId type, int minorVersion) {
+	public static AbsoluteTypeDefId fromTypeId(final TypeDefId type,
+			final int minorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -30,12 +31,16 @@ public class AbsoluteTypeDefId extends TypeDefId {
 				minorVersion);
 	}
 	
-	public static AbsoluteTypeDefId fromTypeId(TypeDefId type, int majorVersion,
-			int minorVersion) {
+	public static AbsoluteTypeDefId fromTypeId(final TypeDefId type,
+			final int majorVersion, final int minorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
 		return new AbsoluteTypeDefId(type.getType(), majorVersion, minorVersion);
+	}
+	
+	public static AbsoluteTypeDefId fromAbsoluteTypeString(final String type) {
+		return fromTypeId(TypeDefId.fromTypeString(type));
 	}
 	
 	@Override

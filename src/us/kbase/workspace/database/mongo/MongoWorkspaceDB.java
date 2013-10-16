@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
@@ -1049,8 +1050,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private String getTypeCollection(final AbsoluteTypeDefId type) {
-		return "type-" + type.getType().getTypeString() + "-" +
+		final String t = type.getType().getTypeString() + "-" +
 				type.getMajorVersion();
+		return "type_" + DigestUtils.md5Hex(t);
 	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(

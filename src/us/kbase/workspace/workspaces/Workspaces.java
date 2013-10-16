@@ -406,7 +406,6 @@ public class Workspaces {
 		return typedb.getModulesByOwner(user.getUser());
 	}
 	
-	//TODO workspace IDs should be longs
 	//TODO version collection. To refs stored with each version pointer for prov and normal refs. ref counts for from references. 
 	
 	public ModuleInfo getModuleInfo(String module)

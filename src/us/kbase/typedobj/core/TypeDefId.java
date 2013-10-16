@@ -14,7 +14,8 @@ public class TypeDefId {
 	final Integer majorVersion;
 	final Integer minorVersion;
 
-	public TypeDefId(TypeDefName type, int majorVersion, int minorVersion) {
+	public TypeDefId(final TypeDefName type, final int majorVersion,
+			final int minorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -26,7 +27,7 @@ public class TypeDefId {
 		this.minorVersion = minorVersion;
 	}
 	
-	public TypeDefId(TypeDefName type, int majorVersion) {
+	public TypeDefId(final TypeDefName type, final int majorVersion) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -38,7 +39,7 @@ public class TypeDefId {
 		this.minorVersion = null;
 	}
 	
-	public TypeDefId(TypeDefName type) {
+	public TypeDefId(final TypeDefName type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
@@ -50,7 +51,7 @@ public class TypeDefId {
 	private static final String TYPE_VER_ERR = 
 			"Type version string %s could not be parsed to a version";
 	
-	public TypeDefId(String moduletype, String typeversion) {
+	public TypeDefId(final String moduletype, final String typeversion) {
 		checkString(moduletype, "Moduletype");
 		if (typeversion != null && typeversion.equals("")) {
 			throw new IllegalArgumentException("Typeversion cannot be an empty string");
@@ -90,11 +91,11 @@ public class TypeDefId {
 		}
 	}
 	
-	public TypeDefId(String moduletype) {
+	public TypeDefId(final String moduletype) {
 		this(moduletype, null);
 	}
 	
-	public static TypeDefId fromTypeString(String typestring) {
+	public static TypeDefId fromTypeString(final String typestring) {
 		checkString(typestring, "Typestring");
 		final String[] ts = typestring.split(TYPE_VER_SEP);
 		if (ts.length == 1) {
