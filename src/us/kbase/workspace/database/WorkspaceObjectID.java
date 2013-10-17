@@ -1,6 +1,6 @@
 package us.kbase.workspace.database;
 
-import static us.kbase.workspace.kbase.ArgUtils.xorNameId;
+import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
