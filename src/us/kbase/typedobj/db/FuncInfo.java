@@ -4,7 +4,6 @@ public class FuncInfo {
 	private String funcName;
 	private String funcVersion;
 	private boolean isSupported = true;
-	private String releaseVersion;
 	
 	public String getFuncName() {
 		return funcName;
@@ -28,13 +27,5 @@ public class FuncInfo {
 	
 	public void setSupported(boolean isSupported) {
 		this.isSupported = isSupported;
-	}
-	
-	public String getReleaseVersion() {
-		return releaseVersion;
-	}
-	
-	public void setReleaseVersion(String releaseVersion) {
-		this.releaseVersion = releaseVersion;
 	}
 }

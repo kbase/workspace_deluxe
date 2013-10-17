@@ -32,9 +32,11 @@ public class ModuleDefId {
 	
 	@Override
 	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
 		if (!(obj instanceof ModuleDefId))
 			return false;
-		return super.equals(obj);
+		return toString().equals(obj.toString());
 	}
 	
 	@Override
