@@ -2,6 +2,7 @@ package us.kbase.typedobj.db;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,7 +97,7 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public long getLastModuleVersion(String moduleName) throws TypeStorageException {
+	public long getLastReleasedModuleVersion(String moduleName) throws TypeStorageException {
 		Long ret = getLastModuleVersionOrNull(moduleName);
 		if (ret == null)
 			throw new TypeStorageException("Module " + moduleName + " is not registered");
@@ -112,7 +113,7 @@ public class MongoTypeStorage implements TypeStorage {
 		try {
 			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
 			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
-			return ret == null ? null : ret.versionTime;
+			return ret == null ? null : ret.releasedVersionTime;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -232,10 +233,15 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public List<Long> getAllModuleVersions(String moduleName) throws TypeStorageException {
+	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
 			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infos, "{moduleName:#}", "versionTime", Long.class, moduleName);
+			List<Long> list = getProjection(infos, "{moduleName:#}", "versionTime", Long.class, moduleName);
+			long releaseVer = getLastReleasedModuleVersion(moduleName);
+			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
+			for (long ver : list)
+				ret.put(ver, ver <= releaseVer);
+			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -258,11 +264,19 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
+	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
 		try {
 			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			return getProjection(schemas, "{moduleName:#,typeName:#}", "version", String.class, 
+			List<String> list = getProjection(schemas, "{moduleName:#,typeName:#}", "version", String.class, 
 					moduleName, typeName);
+			ModuleInfo releaseInfo = getModuleInfoRecord(moduleName, getLastReleasedModuleVersion(moduleName));
+			SemanticVersion releaseTypeVer = null;
+			if (releaseInfo.getTypes().containsKey(typeName))
+				releaseTypeVer = new SemanticVersion(releaseInfo.getTypes().get(typeName).getTypeVersion());
+			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
+			for (String typeVer : list)
+				ret.put(typeVer, releaseTypeVer != null && new SemanticVersion(typeVer).compareTo(releaseTypeVer) <= 0);
+			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -270,11 +284,10 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	@Override
 	public long generateNewModuleVersion(String moduleName) throws TypeStorageException {
-		List<Long> data = getAllModuleVersions(moduleName);
 		long ret = System.currentTimeMillis();
-		for (long value : data)
-			if (ret <= value)
-				ret = value + 1;
+		Long value = getLastModuleVersionWithUnreleasedOrNull(moduleName);
+		if (value != null && ret <= value)
+			ret = value + 1;
 		return ret;
 	}
 	
@@ -397,6 +410,7 @@ public class MongoTypeStorage implements TypeStorage {
 				ModuleVersion ver = new ModuleVersion();
 				ver.setModuleName(moduleName);
 				ver.setVersionTime(version);
+				ver.setReleasedVersionTime(version);
 				vers.insert(ver);
 			} else {
 				vers.update("{moduleName:#}", moduleName).with("{$set: {versionTime: #}}", version);
@@ -466,10 +480,12 @@ public class MongoTypeStorage implements TypeStorage {
 				throw new TypeStorageException("Type names with symbol ['] are not supperted");
 			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
 			List<ModuleInfo> infoList = Lists.newArrayList(infoCol.find(
-					"{'types." + typeName + ".releaseVersion':'" + typeVersion + "'}").as(ModuleInfo.class));
+					"{'types." + typeName + ".typeVersion':'" + typeVersion + "'}").as(ModuleInfo.class));
+			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			Set<Long> ret = new TreeSet<Long>();
 			for (ModuleInfo info: infoList)
-				ret.add(info.getVersionTime());
+				if (info.getVersionTime() <= releaseVer)
+					ret.add(info.getVersionTime());
 			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -652,10 +668,49 @@ public class MongoTypeStorage implements TypeStorage {
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
-		if (versionToSwitchTo != getLastModuleVersion(moduleName))
+		if (versionToSwitchTo != getLastModuleVersionWithUnreleased(moduleName))
 			writeModuleVersion(moduleName, versionToSwitchTo);
 	}
 
+	@Override
+	public long getLastModuleVersionWithUnreleased(String moduleName)
+			throws TypeStorageException {
+		Long ret = getLastModuleVersionWithUnreleasedOrNull(moduleName);
+		if (ret == null)
+			throw new TypeStorageException("Module" + moduleName + " was not registered");
+		return ret;
+	}
+	
+	private Long getLastModuleVersionWithUnreleasedOrNull(String moduleName)
+			throws TypeStorageException {
+		try {
+			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
+			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			if (ret == null)
+				return null;
+			return ret.versionTime;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	@Override
+	public void setModuleReleaseVersion(String moduleName, long version)
+			throws TypeStorageException {
+		try {
+			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
+				throw new TypeStorageException("Module" + moduleName + " was not registered");
+			} else {
+				vers.update("{moduleName:#}", moduleName).with("{$set: {releasedVersionTime: #}}", version);
+			}
+		} catch (TypeStorageException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void copyModuleVersion(String moduleName, long version, long versionCopy) throws TypeStorageException {
 		long versionCopyD = versionCopy - version;
@@ -707,11 +762,9 @@ public class MongoTypeStorage implements TypeStorage {
 		ModuleInfo info = getModuleInfoRecord(moduleName, version);
 		for (String type : info.getTypes().keySet()) {
 			info.getTypes().get(type).setTypeVersion(versionCopyD + info.getTypes().get(type).getTypeVersion());
-			info.getTypes().get(type).setReleaseVersion(versionCopyD + info.getTypes().get(type).getReleaseVersion());
 		}
 		for (String func : info.getFuncs().keySet()) {
 			info.getFuncs().get(func).setFuncVersion(versionCopyD + info.getFuncs().get(func).getFuncVersion());
-			info.getFuncs().get(func).setReleaseVersion(versionCopyD + info.getFuncs().get(func).getReleaseVersion());
 		}
 		info.setVersionTime(versionCopy);
 		writeModuleRecords(info, spec, versionCopy);
@@ -757,6 +810,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public static class ModuleVersion {
 		private String moduleName;
 		private long versionTime;
+		private long releasedVersionTime;
 		
 		public String getModuleName() {
 			return moduleName;
@@ -772,6 +826,14 @@ public class MongoTypeStorage implements TypeStorage {
 		
 		public void setVersionTime(long versionTime) {
 			this.versionTime = versionTime;
+		}
+		
+		public long getReleasedVersionTime() {
+			return releasedVersionTime;
+		}
+		
+		public void setReleasedVersionTime(long releasedVersionTime) {
+			this.releasedVersionTime = releasedVersionTime;
 		}
 	}
 	

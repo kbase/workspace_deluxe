@@ -559,39 +559,35 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
-     * <p>Original spec-file function name: release_types</p>
+     * <p>Original spec-file function name: release_module</p>
      * <pre>
-     * Release a type or types.
+     * Release a module for general use of its types.
+     * Releases the most recent version of a module. Releasing a module does
+     * two things to the module's types:
+     * 1) If a type's major version is 0, it is changed to 1. A major
+     *         version of 0 implies that the type is in development and may have
+     *         backwards incompatible changes from minor version to minor version.
+     *         Once a type is released, backwards incompatible changes always
+     *         cause a major version increment.
+     * 2) This version of the type becomes the default version, and if a 
+     *         specific version is not supplied in a function call, this version
+     *         will be used. This means that newer, unreleased versions of the
+     *         type may be skipped.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.ReleaseTypesParams ReleaseTypesParams}
+     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
      * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.)
      */
-    @JsonServerMethod(rpc = "Workspace.release_types")
-    public List<String> releaseTypes(ReleaseTypesParams params, AuthToken authPart) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.release_module")
+    public List<String> releaseModule(String mod, AuthToken authPart) throws Exception {
         List<String> returnVal = null;
-        //BEGIN release_types
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (!(params.getMod() == null ^ params.getType() == null)) {
-			throw new IllegalArgumentException(
-					"Must provide either a module or a type name");
-		}
+        //BEGIN release_module
 		returnVal = new LinkedList<String>();
-		if (params.getType() != null) {
-			returnVal.add(ws.releaseType(getUser(authPart),
-					new TypeDefName(params.getType())).getTypeString());
-		} else {
-			final List<AbsoluteTypeDefId> ret;
-			if (params.getTypes() == null || params.getTypes().isEmpty()) {
-				ret = ws.releaseTypes(getUser(authPart), params.getMod());
-			} else {
-				ret = ws.releaseTypes(getUser(authPart), params.getMod(),
-						params.getTypes());
-			}
-			for (final AbsoluteTypeDefId t: ret) {
-				returnVal.add(t.getTypeString());
-			}
+		final List<AbsoluteTypeDefId> ret = ws.releaseTypes(getUser(authPart),
+				mod);
+		for (final AbsoluteTypeDefId t: ret) {
+			returnVal.add(t.getTypeString());
 		}
-        //END release_types
+        //END release_module
         return returnVal;
     }
 

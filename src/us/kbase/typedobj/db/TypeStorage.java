@@ -3,6 +3,7 @@ package us.kbase.typedobj.db;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
@@ -10,9 +11,11 @@ public interface TypeStorage {
 
 	public boolean checkModuleExist(String moduleName) throws TypeStorageException;
 
-	public long getLastModuleVersion(String moduleName) throws TypeStorageException;
+	public long getLastReleasedModuleVersion(String moduleName) throws TypeStorageException;
 
-	public List<Long> getAllModuleVersions(String moduleName) throws TypeStorageException;
+	public long getLastModuleVersionWithUnreleased(String moduleName) throws TypeStorageException;
+
+	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException;
 
 	public long generateNewModuleVersion(String moduleName) throws TypeStorageException;
 
@@ -42,7 +45,7 @@ public interface TypeStorage {
 
 	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
 
-	public List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException;
+	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException;
 	
 	public String getFuncParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
@@ -80,6 +83,8 @@ public interface TypeStorage {
 	public void removeOwnerFromModule(String moduleName, String userId) throws TypeStorageException;
 
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName, long versionToDelete, long versionToSwitchTo) throws TypeStorageException;
+	
+	public void setModuleReleaseVersion(String moduleName, long version) throws TypeStorageException;
 	
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	

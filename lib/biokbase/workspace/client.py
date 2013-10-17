@@ -624,10 +624,10 @@ class Workspace:
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def release_types(self, params):
+    def release_module(self, mod):
 
-        arg_hash = { 'method': 'Workspace.release_types',
-                     'params': [params],
+        arg_hash = { 'method': 'Workspace.release_module',
+                     'params': [mod],
                      'version': '1.1',
                      'id': str(random.random())[2:]
                      }

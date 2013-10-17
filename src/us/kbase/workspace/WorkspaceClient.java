@@ -325,20 +325,31 @@ public class WorkspaceClient {
     }
 
     /**
-     * <p>Original spec-file function name: release_types</p>
+     * <p>Original spec-file function name: release_module</p>
      * <pre>
-     * Release a type or types.
+     * Release a module for general use of its types.
+     * Releases the most recent version of a module. Releasing a module does
+     * two things to the module's types:
+     * 1) If a type's major version is 0, it is changed to 1. A major
+     *         version of 0 implies that the type is in development and may have
+     *         backwards incompatible changes from minor version to minor version.
+     *         Once a type is released, backwards incompatible changes always
+     *         cause a major version increment.
+     * 2) This version of the type becomes the default version, and if a 
+     *         specific version is not supplied in a function call, this version
+     *         will be used. This means that newer, unreleased versions of the
+     *         type may be skipped.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.ReleaseTypesParams ReleaseTypesParams}
+     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
      * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]. See type_id and type_ver.)
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<String> releaseTypes(ReleaseTypesParams params) throws IOException, JsonClientException {
+    public List<String> releaseModule(String mod) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(params);
+        args.add(mod);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
-        List<List<String>> res = caller.jsonrpcCall("Workspace.release_types", args, retType, true, true);
+        List<List<String>> res = caller.jsonrpcCall("Workspace.release_module", args, retType, true, true);
         return res.get(0);
     }
 

@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -315,11 +316,16 @@ public class FileTypeStorage implements TypeStorage {
 	}
 
 	@Override
-	public List<String> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
-		List<String> ret = new ArrayList<String>();
+	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
+		Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
+		ModuleInfo info = getModuleInfoRecord(moduleName, getLastReleasedModuleVersion(moduleName));
+		SemanticVersion releaseTypeVer = null;
+		if (info.getTypes().containsKey(typeName)) {
+			releaseTypeVer = new SemanticVersion(info.getTypes().get(typeName).getTypeVersion());
+		}
 		for (String text : findFileMidParts(moduleName, "type." + typeName + ".", ".json")) {
 			text = text.substring(0, text.indexOf('-'));
-			ret.add(text);
+			ret.put(text, releaseTypeVer != null && new SemanticVersion(text).compareTo(releaseTypeVer) <= 0);
 		}
 		return ret;
 	}
@@ -534,37 +540,62 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public List<Long> getAllModuleVersions(String moduleName)
+	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName)
 			throws TypeStorageException {
 		Set<Long> ret = new TreeSet<Long>();
 		for (String text : findFileMidParts(moduleName, "module.", ".info"))
 			ret.add(Long.parseLong(text));
 		for (String text : findFileMidParts(moduleName, "module.", ".spec"))
 			ret.add(Long.parseLong(text));
-		return new ArrayList<Long>(ret);
+		long releaseVer = getLastReleasedModuleVersion(moduleName);
+		TreeMap<Long, Boolean> map = new TreeMap<Long, Boolean>();
+		for (long ver : ret)
+			map.put(ver, ver <= releaseVer);
+		return map;
+	}
+	
+	private File getModuleReleaseVersionFile(String moduleName) {
+		return new File(getModuleDir(moduleName), "module.release.version");
 	}
 	
 	@Override
-	public long getLastModuleVersion(String moduleName) throws TypeStorageException {
-		List<Long> ret = getAllModuleVersions(moduleName);
+	public long getLastReleasedModuleVersion(String moduleName) throws TypeStorageException {
+		File f = getModuleReleaseVersionFile(moduleName);
+		if (!f.exists())
+			throw new TypeStorageException("No version information for module: " + moduleName);
+		String text = readFile(f);
+		if (text.endsWith("\n"))
+			text = text.substring(0, text.length() - 1);
+		return Long.parseLong(text.trim());
+	}
+	
+	@Override
+	public void setModuleReleaseVersion(String moduleName, long version)
+			throws TypeStorageException {
+		writeFile(getModuleReleaseVersionFile(moduleName), "" + version);
+	}
+
+	@Override
+	public long getLastModuleVersionWithUnreleased(String moduleName)
+			throws TypeStorageException {
+		TreeMap<Long, Boolean> ret = (TreeMap<Long, Boolean>)getAllModuleVersions(moduleName);
 		if (ret.isEmpty())
 			throw new TypeStorageException("No version information for module: " + moduleName);
-		return ret.get(ret.size() - 1);
+		return ret.lastKey();
 	}
 	
 	@Override
 	public boolean checkModuleExist(String moduleName) throws TypeStorageException {
 		if (!getModuleDir(moduleName).exists())
 			return false;
-		List<Long> ret = getAllModuleVersions(moduleName);
-		return !ret.isEmpty();
+		return !getAllModuleVersions(moduleName).isEmpty();
 	}
 	
 	@Override
 	public long generateNewModuleVersion(String moduleName) throws TypeStorageException {
 		long ret = System.currentTimeMillis();
 		if (checkModuleExist(moduleName)) {
-			long lastVersion = getLastModuleVersion(moduleName);
+			long lastVersion = getLastModuleVersionWithUnreleased(moduleName);
 			if (ret <= lastVersion)
 				ret = lastVersion + 1;
 		}
@@ -624,7 +655,7 @@ public class FileTypeStorage implements TypeStorage {
 		File info = getModuleInfoFile(moduleName, versionToDelete);
 		if (info.exists())
 			info.delete();
-		if (versionToSwitchTo != getLastModuleVersion(moduleName))
+		if (versionToSwitchTo != getLastModuleVersionWithUnreleased(moduleName))
 			throw new TypeStorageException("Last module version should be: " + versionToSwitchTo);
 	}
 	
@@ -632,9 +663,12 @@ public class FileTypeStorage implements TypeStorage {
 	public Set<Long> getModuleVersionsForTypeVersion(String moduleName,
 			String typeName, String typeVersion) throws TypeStorageException {
 		Set<Long> ret = new TreeSet<Long>();
-		for (Long moduleVersion : getAllModuleVersions(moduleName)) {
+		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
+			if (!entry.getValue())
+				continue;
+			long moduleVersion = entry.getKey();
 			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
-			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getReleaseVersion().equals(typeVersion))
+			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getTypeVersion().equals(typeVersion))
 				ret.add(moduleVersion);
 		}
 		return ret;
