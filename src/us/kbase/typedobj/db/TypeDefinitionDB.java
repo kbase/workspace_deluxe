@@ -1687,11 +1687,13 @@ public class TypeDefinitionDB {
 			try {
 				ModuleInfo info = getModuleInfoNL(moduleName, realPrevVersion);
 				boolean isNew = !storage.checkModuleSpecRecordExist(moduleName, info.getVersionTime());
+				String prevMd5 = info.getMd5hash();
 				info.setMd5hash(DigestUtils.md5Hex(mapper.writeValueAsString(module.getData())));
 				info.setDescription(module.getComment());
 				Map<String, Long> includedModuleNameToVersion = new LinkedHashMap<String, Long>();
 				for (String iModule : includedModules)
 					includedModuleNameToVersion.put(iModule, moduleToInfo.get(iModule).getVersionTime());
+				Map<String, Long> prevIncludes = info.getIncludedModuleNameToVersion();
 				info.setIncludedModuleNameToVersion(includedModuleNameToVersion);
 				info.setUploadUserId(userId);
 				info.setUploadMethod(uploadMethod);
@@ -1781,6 +1783,13 @@ public class TypeDefinitionDB {
 					if (!allNewFuncs.contains(funcName)) {
 						comps.add(new ComponentChange(false, true, funcName, null, null, null, false, null));
 					}
+				}
+				if (prevMd5 != null && prevMd5.equals(info.getMd5hash()) && prevIncludes.isEmpty() && 
+						info.getIncludedModuleNameToVersion().isEmpty() && comps.isEmpty()) {
+					String prevSpec = storage.getModuleSpecRecord(moduleName, info.getVersionTime());
+					if (prevSpec.equals(specDocument))
+						throw new SpecParseException("There is no difference between previous and current versions of " +
+								"module " + moduleName);
 				}
 				if (!dryMode) {
 					Set<RefInfo> createdTypeRefs = new TreeSet<RefInfo>();
