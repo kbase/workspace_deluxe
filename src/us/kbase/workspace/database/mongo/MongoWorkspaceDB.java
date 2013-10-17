@@ -93,7 +93,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WS_CNT = "workspaceCounter";
 	private static final String COL_WORKSPACES = "workspaces";
 	private static final String COL_WS_ACLS = "workspaceACLs";
-	private static final String COL_WORKSPACE_PTRS = "workspacePointers";
+	private static final String COL_WORKSPACE_PTRS = "workspaceObjects";
+	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_SHOCK = "shockData";
 	private static final User allUsers = new AllUsers('*');
 	
@@ -139,16 +140,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find objects by workspace id & name
 		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_NAME), Arrays.asList(IDX_UNIQ));
 		//find object by workspace id & object id
-		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID,
-				Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_VER), Arrays.asList(IDX_UNIQ));
-		//find objects by legacy UUID
-		wsPtr.put(Arrays.asList(Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_UUID),
-				Arrays.asList(IDX_UNIQ, IDX_SPARSE));
-		//determine whether a particular object references this object
-		wsPtr.put(Arrays.asList(Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_REF),
-				Arrays.asList("")); //TODO this might be a bad idea
-		//TODO deletion and creation dates for search?
+		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID), Arrays.asList(IDX_UNIQ));
 		INDEXES.put(COL_WORKSPACE_PTRS, wsPtr);
+		
+		//workspace pointer version indexes
+		Map<List<String>, List<String>> wsVer = new HashMap<List<String>, List<String>>();
+		//find versions
+		wsVer.put(Arrays.asList(Fields.VER_WS_ID, Fields.VER_ID,
+				Fields.VER_VER), Arrays.asList(IDX_UNIQ));
+		//find versions by data object
+		wsVer.put(Arrays.asList(Fields.VER_TYPE, Fields.VER_CHKSUM), Arrays.asList(""));
+		//find objects by legacy UUID
+		wsVer.put(Arrays.asList(Fields.VER_UUID), Arrays.asList(IDX_SPARSE));
+		//determine whether a particular object references this object
+		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList("")); //TODO this might be a bad idea
+		//TODO deletion and creation dates for search?
+		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
