@@ -46,6 +46,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
@@ -95,7 +96,7 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser));
+		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser),new Util().getKIDLpath());
 	}
 	
 	public static DB createMongoDbConnection() throws UnknownHostException {

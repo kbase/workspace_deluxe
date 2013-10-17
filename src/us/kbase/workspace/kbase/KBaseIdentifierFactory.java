@@ -1,7 +1,7 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
-import static us.kbase.workspace.util.Util.xorNameId;
+import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -67,6 +67,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.ResolvedSaveObject;
@@ -151,7 +152,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, final String typeDBdir)
+			final String backendSecret, final String kidlpath,
+			final String typeDBdir)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
 		wsmongo = GetMongoDB.getDB(host, database);
@@ -166,13 +168,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase())),
 								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null)));
+								new UserInfoProviderForTests(null), kidlpath));
 		ensureIndexes();
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, final String typeDBdir,
-			final String user, final String password)
+			final String backendSecret, final String kidlpath,
+			final String typeDBdir, final String user, final String password)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException {
@@ -189,7 +191,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
 								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null)));
+								new UserInfoProviderForTests(null), kidlpath));
 		ensureIndexes();
 	}
 	
@@ -1309,10 +1311,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			String db1 = WorkspaceTestCommon.getDB1();
 			String mUser = WorkspaceTestCommon.getMongoUser();
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
+			final String kidlpath = new Util().getKIDLpath();
 			if (mUser == null || mUser == "") {
-				testdb = new MongoWorkspaceDB(host, db1, "foo", null);
+				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", null);
 			} else {
-				testdb = new MongoWorkspaceDB(host, db1, "foo", null, mUser, mPwd);
+				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", null,
+						mUser, mPwd);
 			}
 		}
 		

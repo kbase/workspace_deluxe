@@ -54,11 +54,9 @@ public class Workspaces {
 	//TODO get object changes since date (based on type collection and pointers collection
 	//TODO set global read
 	//TODO set description
-	//TODO garbage collection - make a static thread that calls a gc() method
+	//TODO garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object
 	
 	//TODO length limits on all incoming strings
-	
-	//TODO git submodule for typecomp, tests and service need to set path and perl5lib
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	

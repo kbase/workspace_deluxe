@@ -1,7 +1,6 @@
 package us.kbase.typedobj.drivers;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -16,11 +15,6 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import com.github.fge.jackson.jsonpointer.JsonNodeResolver;
-import com.github.fge.jackson.jsonpointer.ReferenceToken;
-import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.typedobj.core.IdReference;
 import us.kbase.typedobj.core.TypeDefName;

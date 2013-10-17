@@ -50,6 +50,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.Provenance;
@@ -103,15 +104,18 @@ public class TestWorkspaces {
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
 		String db1 = WorkspaceTestCommon.getDB1();
 		String db2 = WorkspaceTestCommon.getDB2();
+		final String kidlpath = new Util().getKIDLpath();
 		
 		WorkspaceDatabase gfs = null;
 		WorkspaceDatabase shock = null;
 		if (mUser != null) {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, null, mUser, mPwd);
-			shock = new MongoWorkspaceDB(host, db2, shockpwd, null, mUser, mPwd);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null,
+					mUser, mPwd);
+			shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null,
+					mUser, mPwd);
 		} else {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, null);
-			shock = new MongoWorkspaceDB(host, db2, shockpwd, null);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null);
+			shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null);
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs);
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));

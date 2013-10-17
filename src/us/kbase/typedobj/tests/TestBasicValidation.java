@@ -24,7 +24,6 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +36,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.workspace.kbase.Util;
 
 
 /**
@@ -68,6 +68,7 @@ public class TestBasicValidation {
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
 	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
+	private final static String TEST_TEMP_LOCATION = "test/typedobj_test_files/temp";
 	
 	private final static String TEST_RESOURCE_LOCATION = "files/t1/";
 	
@@ -94,6 +95,7 @@ public class TestBasicValidation {
 		public String resourceName;
 		public String moduleName;
 		public String typeName;
+		@SuppressWarnings("unused")
 		public boolean isValid;
 	}
 	
@@ -154,7 +156,11 @@ public class TestBasicValidation {
 		if(VERBOSE) System.out.println("setting up the typed obj database");
 		
 		// point the type definition db to point there
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), new UserInfoProviderForTests());
+		File tempdir = new File("temp_files");
+		if (!dir.exists())
+			dir.mkdir();
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
+		
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
