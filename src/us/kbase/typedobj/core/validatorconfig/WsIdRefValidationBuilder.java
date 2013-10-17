@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
-import com.github.fge.jsonschema.exceptions.ExceptionProvider;
-import com.github.fge.jsonschema.exceptions.InvalidSchemaException;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.keyword.digest.AbstractDigester;
 import com.github.fge.jsonschema.keyword.digest.Digester;
@@ -187,14 +185,14 @@ public class WsIdRefValidationBuilder {
 		private static final SyntaxChecker INSTANCE = new WsIdRefSyntaxChecker();
 		
 		/* this tells us what exceptions to throw if we run into an invalid schema */
-		private static final ExceptionProvider EXCEPTION_PROVIDER
-			= new ExceptionProvider()
-		{
-			@Override
-			public ProcessingException doException(final ProcessingMessage message) {
-				return new InvalidSchemaException(message);
-			}
-		};
+//		private static final ExceptionProvider EXCEPTION_PROVIDER
+//			= new ExceptionProvider()
+//		{
+//			@Override
+//			public ProcessingException doException(final ProcessingMessage message) {
+//				return new InvalidSchemaException(message);
+//			}
+//		};
 		
 		public static SyntaxChecker getInstance() {
 			return INSTANCE;
