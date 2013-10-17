@@ -44,6 +44,8 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 
+import us.kbase.workspace.kbase.Util;
+
 
 /**
  * Tests that ensure IDs are properly extracted from typed object instances, and that IDs
@@ -154,7 +156,11 @@ public class TestIdProcessing {
 		
 		System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), new UserInfoProviderForTests());
+		File tempdir = new File("temp_files");
+		if (!dir.exists())
+			dir.mkdir();
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
+		
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
