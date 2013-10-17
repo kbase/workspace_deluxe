@@ -363,30 +363,11 @@ public class Workspaces {
 				user.getUser(), dryRun, moduleVers);
 	}
 	
-	public AbsoluteTypeDefId releaseType(final WorkspaceUser user,
-			final TypeDefName type)
-			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, NoSuchPrivilegeException {
-		return typedb.releaseType(type, user.getUser());
-	}
-	
 	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
 			final String module)
 			throws NoSuchModuleException, TypeStorageException,
 			NoSuchPrivilegeException {
 		return typedb.releaseModule(module, user.getUser());
-	}
-	
-	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
-			final String module, final List<String> types)
-			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, NoSuchPrivilegeException {
-		try {
-			return typedb.releaseModule(module, types,
-					new LinkedList<String>(), user.getUser());
-		} catch (NoSuchFuncException nsfe) {
-			throw new RuntimeException("Something is broken", nsfe);
-		}
 	}
 	
 	public String getJsonSchema(final TypeDefId type) throws
