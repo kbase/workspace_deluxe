@@ -1635,9 +1635,9 @@ sub compile_typespec
 
 
 
-=head2 release_types
+=head2 release_module
 
-  $types = $obj->release_types($params)
+  $types = $obj->release_module($mod)
 
 =over 4
 
@@ -1646,14 +1646,9 @@ sub compile_typespec
 =begin html
 
 <pre>
-$params is a Workspace.ReleaseTypesParams
+$mod is a Workspace.modulename
 $types is a reference to a list where each element is a Workspace.type_string
-ReleaseTypesParams is a reference to a hash where the following keys are defined:
-	mod has a value which is a Workspace.modulename
-	type has a value which is a Workspace.type_id
-	types has a value which is a reference to a list where each element is a string
 modulename is a string
-type_id is a string
 type_string is a string
 
 </pre>
@@ -1662,14 +1657,9 @@ type_string is a string
 
 =begin text
 
-$params is a Workspace.ReleaseTypesParams
+$mod is a Workspace.modulename
 $types is a reference to a list where each element is a Workspace.type_string
-ReleaseTypesParams is a reference to a hash where the following keys are defined:
-	mod has a value which is a Workspace.modulename
-	type has a value which is a Workspace.type_id
-	types has a value which is a reference to a list where each element is a string
 modulename is a string
-type_id is a string
 type_string is a string
 
 
@@ -1677,13 +1667,25 @@ type_string is a string
 
 =item Description
 
-Release a type or types.
+Release a module for general use of its types.
+
+Releases the most recent version of a module. Releasing a module does
+two things to the module's types:
+1) If a type's major version is 0, it is changed to 1. A major
+        version of 0 implies that the type is in development and may have
+        backwards incompatible changes from minor version to minor version.
+        Once a type is released, backwards incompatible changes always
+        cause a major version increment.
+2) This version of the type becomes the default version, and if a 
+        specific version is not supplied in a function call, this version
+        will be used. This means that newer, unreleased versions of the
+        type may be skipped.
 
 =back
 
 =cut
 
-sub release_types
+sub release_module
 {
     my($self, @args) = @_;
 
@@ -1692,37 +1694,37 @@ sub release_types
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function release_types (received $n, expecting 1)");
+							       "Invalid argument count for function release_module (received $n, expecting 1)");
     }
     {
-	my($params) = @args;
+	my($mod) = @args;
 
 	my @_bad_arguments;
-        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        (!ref($mod)) or push(@_bad_arguments, "Invalid type for argument 1 \"mod\" (value was \"$mod\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to release_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to release_module:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'release_types');
+								   method_name => 'release_module');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.release_types",
+	method => "Workspace.release_module",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'release_types',
+					       method_name => 'release_module',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method release_types",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method release_module",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'release_types',
+					    method_name => 'release_module',
 				       );
     }
 }
@@ -3569,67 +3571,6 @@ remove_types has a value which is a reference to a list where each element is a 
 dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 dryrun has a value which is a Workspace.boolean
 prev_ver has a value which is a Workspace.spec_version
-
-
-=end text
-
-=back
-
-
-
-=head2 ReleaseTypesParams
-
-=over 4
-
-
-
-=item Description
-
-Parameters for the release_types function. 
-
-        Releases the most recent version of a type or types. Releasing a
-        type does two things:
-        1) If the type's major version is 0, it is changed to 1. A major
-                version of 0 implies that the type is in development and may have
-                backwards compatible changes from minor version to minor version.
-                Once a type is released, backwards incompatible changes always
-                cause a major version increment.
-        2) This version of the type becomes the default version, and if a 
-                specific version is not supplied in a function call, this version
-                will be used. This means that newer, unreleased versions of the
-                type may be skipped.
-        
-        Required parameters:
-        One of:
-        modulename mod - releases all the types for this module
-        type_id type - releases this type.
-        
-        Optional parameters:
-        list<string> types - if a module is specified, specify here the types
-                to release. Default is all types if no or an empty list is passed.
-                If type is specified this argument is ignored.
-
-
-=item Definition
-
-=begin html
-
-<pre>
-a reference to a hash where the following keys are defined:
-mod has a value which is a Workspace.modulename
-type has a value which is a Workspace.type_id
-types has a value which is a reference to a list where each element is a string
-
-</pre>
-
-=end html
-
-=begin text
-
-a reference to a hash where the following keys are defined:
-mod has a value which is a Workspace.modulename
-type has a value which is a Workspace.type_id
-types has a value which is a reference to a list where each element is a string
 
 
 =end text

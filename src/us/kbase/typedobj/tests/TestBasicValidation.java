@@ -174,18 +174,14 @@ public class TestBasicValidation {
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
-		for(String typename : kb_types) {
-			db.releaseType(new TypeDefName("KB." + typename), username);
-		}
+		db.releaseModule("KB", username);
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
 		db.requestModuleRegistration("FBA", username);
 		db.approveModuleRegistrationRequest(username, "FBA");
 		db.registerModule(fbaSpec ,fba_types, username);
-		for(String typename : fba_types) {
-			db.releaseType(new TypeDefName("FBA." + typename), username);
-		}
+		db.releaseModule("FBA", username);
 		
 		if(VERBOSE) System.out.print("finding test instances: ");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
