@@ -516,7 +516,7 @@ module Workspace {
 			will be used. This means that newer, unreleased versions of the
 			type may be skipped.
 	*/
-	funcdef release_types(modulename mod) returns(list<type_string> types);
+	funcdef release_module(modulename mod) returns(list<type_string> types);
 	
 	authentication none;
 	
