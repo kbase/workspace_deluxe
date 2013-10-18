@@ -188,16 +188,15 @@ public class QueryMethods {
 	
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields, final Set<String> versionfields) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
-		return queryObjects(objectIDs, fields, versionfields, true);
+			final Set<String> fields)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		return queryObjects(objectIDs, fields, true);
 	}
 
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
+			final Set<String> fields, final boolean exceptOnMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
 		
 		final Map<ResolvedMongoWSID,
 				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
@@ -233,7 +232,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
 			final Map<Long, Map<String, Object>> idres = 
 					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
-							versionfields, exceptOnMissing);
+							exceptOnMissing);
 			for (final Long id: idres.keySet()) {
 				ret.put(ids.get(rwsi).get(id), idres.get(id));
 			}
@@ -241,7 +240,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final Map<String, Map<String, Object>> nameres = 
 					queryObjectsByName(rwsi, names.get(rwsi).keySet(), fields,
-							versionfields, exceptOnMissing);
+							exceptOnMissing);
 			for (final String name: nameres.keySet()) {
 				ret.put(names.get(rwsi).get(name), nameres.get(name));
 			}
@@ -251,17 +250,17 @@ public class QueryMethods {
 	
 	Map<String, Map<String, Object>> queryObjectsByName(
 			final ResolvedMongoWSID rwsi, final Set<String> names,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
+			final Set<String> fields, final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (names.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
 		}
 		fields.add(Fields.PTR_NAME);
-		final List<Map<String, Object>> queryres = queryObjects(
+		final List<Map<String, Object>> queryres = queryCollection(
+				pointerCollection,
 				String.format("{%s: %s, %s: {$in: [\"%s\"]}}", Fields.PTR_WS_ID,
 				rwsi.getID(), Fields.PTR_NAME,
-				StringUtils.join(names, "\", \"")), fields, versionfields);
+				StringUtils.join(names, "\", \"")), fields);
 		final Map<String, Map<String, Object>> result =
 				new HashMap<String, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -279,17 +278,17 @@ public class QueryMethods {
 	
 	Map<Long, Map<String, Object>> queryObjectsByID(
 			final ResolvedMongoWSID rwsi, final Set<Long> ids,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
+			final Set<String> fields,final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (ids.isEmpty()) {
 			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.PTR_ID);
-		final List<Map<String, Object>> queryres = queryObjects(
+		final List<Map<String, Object>> queryres = queryCollection(
+				pointerCollection,
 				String.format("{%s: %s, %s: {$in: [%s]}}", Fields.PTR_WS_ID,
 				rwsi.getID(), Fields.PTR_ID,
-				StringUtils.join(ids, ", ")), fields, versionfields);
+				StringUtils.join(ids, ", ")), fields);
 		final Map<Long, Map<String, Object>> result =
 				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -305,17 +304,17 @@ public class QueryMethods {
 		return result;
 	}
 	
-	List<Map<String, Object>> queryObjects(final String query,
-			final Set<String> fields, final Set<String> versionfields) throws
-			WorkspaceCommunicationException {
-		if (versionfields != null) {
-			for (final String field: versionfields) {
-				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
-				
-			}
-		}
-		return queryCollection(pointerCollection, query, fields);
-	}
+//	List<Map<String, Object>> queryObjects(final String query,
+//			final Set<String> fields, final Set<String> versionfields) throws
+//			WorkspaceCommunicationException {
+//		if (versionfields != null) {
+//			for (final String field: versionfields) {
+//				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
+//				
+//			}
+//		}
+//		return queryCollection(pointerCollection, query, fields);
+//	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
 			final String query, final Set<String> fields) throws

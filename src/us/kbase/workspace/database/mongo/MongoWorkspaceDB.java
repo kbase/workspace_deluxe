@@ -627,7 +627,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try { 
 			retobjs = query.queryObjects(
 					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
-					FLDS_PTR_ID_NAME, new HashSet<String>(), false);
+					FLDS_PTR_ID_NAME, false);
 		} catch (NoSuchObjectException nsoe) {
 			throw new RuntimeException(
 					"Threw a NoSuchObjectException when explicitly told not to");
@@ -784,7 +784,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		dbo.put(Fields.PTR_NAME, newName);
 		//deleted handled in saveObjectInstance()
 		dbo.put(Fields.PTR_HIDE, false); //TODO hidden, also set hidden when not creating pointer from scratch
-		dbo.put(Fields.PTR_VERS, new ArrayList<Object>());
 		try {
 			//maybe could speed things up with batch inserts but dealing with
 			//errors would really suck
@@ -1218,7 +1217,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ObjectIDResolvedWSNoVer> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
-				query.queryObjects(objectIDs, FLDS_PTR_ID, null);
+				query.queryObjects(objectIDs, FLDS_PTR_ID);
 		final Map<ObjectIDResolvedWSNoVer, Long> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Long>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
