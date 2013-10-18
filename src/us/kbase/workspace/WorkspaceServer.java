@@ -83,6 +83,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
+	//startup workspace admin user
+	private static final String WSADMIN = "ws-admin";
 	//required backend param:
 	private static final String BACKEND_SECRET = "backend-secret"; 
 	//type db param:
@@ -198,6 +200,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo(String.format("Initialized %s backend", db.getBackendType()));
 				ws = new Workspaces(db);
 				wsadmin = new WorkspaceAdministration(ws);
+				wsadmin.addAdministrator(wsConfig.get(WSADMIN));
 			}
 		}
         //END_CONSTRUCTOR
