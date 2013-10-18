@@ -63,11 +63,11 @@ public class TypeRegisteringTest {
 			String[] methods = {
 					//"testSimple",
 					//"testDescr",
-					"testBackward",
-					"testRollback",
-					"testRestrict",
-					"testMD5",
-					"testRegistration",
+					//"testBackward",
+					//"testRollback",
+					//"testRestrict",
+					//"testMD5",
+					//"testRegistration",
 					"testError",
 			};
 			for (String method : methods) {
@@ -441,6 +441,13 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("Concurrent modification: previous module version is "));
+		}
+		initModule("Common", adminUser);
+		db.registerModule(loadSpec("error", "Common"), adminUser);
+		try {
+			db.registerModule(loadSpec("error", "Common"), adminUser);
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage().contains("There is no difference"));
 		}
 	}
 	
