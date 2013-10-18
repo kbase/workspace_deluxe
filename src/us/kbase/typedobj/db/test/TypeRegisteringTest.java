@@ -57,17 +57,17 @@ public class TypeRegisteringTest {
 	private static String adminUser = "admin";
 
 	public static void main(String[] args) throws Exception {
-		boolean[] storageParams = {true};  //false, true};
+		boolean[] storageParams = {false, true};
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-					//"testSimple",
-					//"testDescr",
-					//"testBackward",
-					//"testRollback",
-					//"testRestrict",
-					//"testMD5",
-					//"testRegistration",
+					"testSimple",
+					"testDescr",
+					"testBackward",
+					"testRollback",
+					"testRestrict",
+					"testMD5",
+					"testRegistration",
 					"testError",
 			};
 			for (String method : methods) {
@@ -181,7 +181,7 @@ public class TypeRegisteringTest {
 		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
-		Assert.assertEquals(4, db.getAllModuleVersions("Regulation").size());
+		Assert.assertEquals(2, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
 		Map<AbsoluteTypeDefId, String> typeToJsonSchema2 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
 		String json1 = typeToJsonSchema1.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 1, 0));
@@ -238,6 +238,7 @@ public class TypeRegisteringTest {
 		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
 		checkTypeVer("Regulation", "binding_site", "3.0");
 		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "3.0")).size());
+		Assert.assertEquals(3, db.getAllModuleVersions("Regulation").size());
 		List<AbsoluteTypeDefId> releaseVers = db.releaseModule("Regulation", adminUser);
 		String bindingSiteTypeVer = null;
 		for (AbsoluteTypeDefId typeDef : releaseVers) {
@@ -245,11 +246,17 @@ public class TypeRegisteringTest {
 				bindingSiteTypeVer = typeDef.getVerString();
 		}
 		Assert.assertEquals("4.0", bindingSiteTypeVer);
-		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "4.0")).size());
+		List<ModuleDefId> verList1 = db.findModuleVersionsByTypeVersion(TypeDefId.fromTypeString("Regulation.binding_site"));
+		Assert.assertEquals(1, verList1.size());
+		long lastRegVer = db.getLastModuleVersion("Regulation");
+		Assert.assertEquals(lastRegVer, (long)verList1.get(0).getVersion());
+		List<ModuleDefId> verList2 = db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "4.0"));
+		Assert.assertEquals(1, verList2.size());
+		Assert.assertEquals(lastRegVer, (long)verList2.get(0).getVersion());
 		checkFuncVer("Regulation", "get_gene_descr", "3.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
-		Assert.assertEquals(5, db.getAllModuleVersions("Regulation").size());
+		Assert.assertEquals(4, db.getAllModuleVersions("Regulation").size());
 	}
 	
 	@Test
@@ -317,9 +324,13 @@ public class TypeRegisteringTest {
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("Version of dependent module Common"));
 		}
-		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
-				Collections.<String>emptyList(), adminUser, false, 
+		Map<TypeDefName, TypeChange> ret = db.registerModule(loadSpec("restrict", "Upper"), 
+				Arrays.asList("upper_struct"), Collections.<String>emptyList(), adminUser, false, 
 				restrict("Common", commonVer1, "Middle", middleVer1));
+		Assert.assertEquals(1, ret.size());
+		Assert.assertEquals(ret.get(new TypeDefName("Upper.upper_struct")).getTypeVersion().getVerString(), "0.1");
+		db.releaseModule("Upper", adminUser);
+		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Upper.upper_struct", "1")).size());
 	}
 	
 	/**
@@ -375,14 +386,12 @@ public class TypeRegisteringTest {
 		db.registerModule(loadSpec("md5", "Upper"), Arrays.asList("upper_struct"), adminUser);
 		db.releaseModule("Upper", adminUser);
 		String common1hash = db.getModuleMD5("Common");
-		System.out.println("common1hash=" + common1hash);
 		String upper1hash = db.getModuleMD5("Upper");
 		db.registerModule(loadSpec("md5", "Common", "2"), adminUser);
 		db.releaseModule("Common", adminUser);
 		db.refreshModule("Upper", adminUser);
 		db.releaseModule("Upper", adminUser);
 		String common2hash = db.getModuleMD5("Common");
-		System.out.println("common2hash=" + common2hash);
 		Assert.assertFalse(common1hash.equals(common2hash));
 		String upper2hash = db.getModuleMD5("Upper");
 		Assert.assertFalse(upper1hash.equals(upper2hash));
@@ -393,7 +402,6 @@ public class TypeRegisteringTest {
 		db.refreshModule("Upper", adminUser);
 		db.releaseModule("Upper", adminUser);
 		String common3hash = db.getModuleMD5("Common");
-		System.out.println("common3hash=" + common3hash);
 		Assert.assertFalse(common2hash.equals(common3hash));
 		String upper3hash = db.getModuleMD5("Upper");
 		Assert.assertTrue(upper2hash.equals(upper3hash));

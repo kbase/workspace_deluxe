@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -33,6 +34,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public static final String TABLE_TYPE_REFS = "type_refs";
 
 	public static final int MAX_REQUESTS_BY_USER = 30;
+	
+	private static final Pattern dotSep = Pattern.compile(Pattern.quote("."));
 	
 	public MongoTypeStorage(DB db) {
 		jdb = new Jongo(db);
@@ -236,11 +239,12 @@ public class MongoTypeStorage implements TypeStorage {
 	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
 			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			List<Long> list = getProjection(infos, "{moduleName:#}", "versionTime", Long.class, moduleName);
+			Map<Long, Boolean> map = getProjection(infos, "{moduleName:#}", "versionTime", Long.class, 
+					"released", Boolean.class, moduleName);
 			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
-			for (long ver : list)
-				ret.put(ver, ver <= releaseVer);
+			for (long ver : map.keySet())
+				ret.put(ver, ver <= releaseVer && map.get(ver));
 			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -262,20 +266,54 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 		return ret;
 	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected <KT, VT> Map<KT, VT> getProjection(MongoCollection infos, String whereCondition, 
+			String keySelectField, Class<KT> keyType, String valueSelectField, Class<VT> valueType, 
+			Object... params) throws TypeStorageException {
+		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
+				"{'" + keySelectField + "':1,'" + valueSelectField + "':1}").as(Map.class));
+		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
+		for (Map<?,?> item : data) {
+			Object key = getMongoProp(item, keySelectField);
+			if (key == null || !(keyType.isInstance(key)))
+				throw new TypeStorageException("Key is wrong: " + key);
+			Object value = getMongoProp(item, valueSelectField);
+			if (value == null || !(valueType.isInstance(value)))
+				throw new TypeStorageException("Value is wrong: " + value);
+			ret.put((KT)key, (VT)value);
+		}
+		return ret;
+	}
 	
+	private static Object getMongoProp(Map<?,?> data, String propWithDots) {
+		String[] parts = dotSep.split(propWithDots);
+		Object value = null;
+		for (String part : parts) {
+			if (value != null) {
+				data = (Map<?,?>)value;
+			}
+			value = data.get(part);
+		}
+		return value;
+	}
+
 	@Override
 	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
 		try {
-			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			List<String> list = getProjection(schemas, "{moduleName:#,typeName:#}", "version", String.class, 
+			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> typeMap = getProjection(schemas, "{moduleName:#,'types." + typeName + ".typeName':#}", 
+					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class, 
 					moduleName, typeName);
-			ModuleInfo releaseInfo = getModuleInfoRecord(moduleName, getLastReleasedModuleVersion(moduleName));
-			SemanticVersion releaseTypeVer = null;
-			if (releaseInfo.getTypes().containsKey(typeName))
-				releaseTypeVer = new SemanticVersion(releaseInfo.getTypes().get(typeName).getTypeVersion());
+			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
 			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
-			for (String typeVer : list)
-				ret.put(typeVer, releaseTypeVer != null && new SemanticVersion(typeVer).compareTo(releaseTypeVer) <= 0);
+			for (Map.Entry<Long, String> entry : typeMap.entrySet()) {
+				long moduleVer = entry.getKey();
+				String typeVer = entry.getValue();
+				boolean prevTypeRet = ret.containsKey(typeVer) ? ret.get(typeVer) : false;
+				boolean newTypeRet = moduleMap.get(moduleVer);
+				ret.put(typeVer, prevTypeRet || newTypeRet);
+			}
 			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -473,20 +511,15 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public Set<Long> getModuleVersionsForTypeVersion(String moduleName, String typeName, 
+	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName, 
 			String typeVersion) throws TypeStorageException {
 		try {
 			if (typeName.contains("'"))
 				throw new TypeStorageException("Type names with symbol ['] are not supperted");
 			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			List<ModuleInfo> infoList = Lists.newArrayList(infoCol.find(
-					"{'types." + typeName + ".typeVersion':'" + typeVersion + "'}").as(ModuleInfo.class));
-			long releaseVer = getLastReleasedModuleVersion(moduleName);
-			Set<Long> ret = new TreeSet<Long>();
-			for (ModuleInfo info: infoList)
-				if (info.getVersionTime() <= releaseVer)
-					ret.add(info.getVersionTime());
-			return ret;
+			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#}", 
+					"versionTime", Long.class, "released", Boolean.class, 
+					moduleName, typeVersion);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -702,6 +735,8 @@ public class MongoTypeStorage implements TypeStorage {
 			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
 				throw new TypeStorageException("Module" + moduleName + " was not registered");
 			} else {
+				MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+				infos.update("{moduleName:#, versionTime:#}", moduleName, version).with("{$set: {released: #}}", true);
 				vers.update("{moduleName:#}", moduleName).with("{$set: {releasedVersionTime: #}}", version);
 			}
 		} catch (TypeStorageException e) {

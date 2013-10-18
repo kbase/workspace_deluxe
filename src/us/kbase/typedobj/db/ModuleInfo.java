@@ -13,6 +13,7 @@ public class ModuleInfo {
 	private long versionTime;
 	private String uploadUserId;
 	private String uploadMethod;
+	private boolean released;
 	
 	public ModuleInfo() {
 	}
@@ -88,5 +89,13 @@ public class ModuleInfo {
 	
 	public void setUploadMethod(String uploadMethod) {
 		this.uploadMethod = uploadMethod;
+	}
+	
+	public boolean getReleased() {
+		return released;
+	}
+	
+	public void setReleased(boolean isReleased) {
+		this.released = isReleased;
 	}
 }

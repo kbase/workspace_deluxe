@@ -1333,6 +1333,7 @@ public class TypeDefinitionDB {
 			throw new IllegalStateException("Module " + moduleName + " was already registered");
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleName(moduleName);
+		info.setReleased(true);
 		storage.initModuleInfoRecord(info);
 		storage.addOwnerToModule(moduleName, ownerUserId, true);
 		storage.setModuleReleaseVersion(moduleName, info.getVersionTime());
@@ -1534,6 +1535,7 @@ public class TypeDefinitionDB {
 				info.setIncludedModuleNameToVersion(includedModuleNameToVersion);
 				info.setUploadUserId(userId);
 				info.setUploadMethod(uploadMethod);
+				info.setReleased(false);
 				Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 				if (typeToSchema == null)
 					throw new SpecParseException("Json schema generation was missed for module: " + moduleName);
@@ -1958,12 +1960,21 @@ public class TypeDefinitionDB {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
+			boolean withUnreleased = typeDef.isAbsolute();
 			typeDef = resolveTypeDefIdNL(typeDef);
 			List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
-			Set<Long> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
+			Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
 					typeDef.getType().getName(), typeDef.getVerString());
-			for (long moduleVersion : moduleVersions)
-				ret.add(new ModuleDefId(moduleName, moduleVersion));
+			if (withUnreleased) {
+				for (boolean isReleased : moduleVersions.values()) 
+					if (isReleased) {
+						withUnreleased = false;
+						break;
+					}
+			}
+			for (long moduleVersion : moduleVersions.keySet()) 
+				if (withUnreleased || moduleVersions.get(moduleVersion))
+					ret.add(new ModuleDefId(moduleName, moduleVersion));
 			return ret;
 		} finally {
 			releaseReadLock(moduleName);

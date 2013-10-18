@@ -318,14 +318,15 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
 		Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
-		ModuleInfo info = getModuleInfoRecord(moduleName, getLastReleasedModuleVersion(moduleName));
-		SemanticVersion releaseTypeVer = null;
-		if (info.getTypes().containsKey(typeName)) {
-			releaseTypeVer = new SemanticVersion(info.getTypes().get(typeName).getTypeVersion());
-		}
-		for (String text : findFileMidParts(moduleName, "type." + typeName + ".", ".json")) {
-			text = text.substring(0, text.indexOf('-'));
-			ret.put(text, releaseTypeVer != null && new SemanticVersion(text).compareTo(releaseTypeVer) <= 0);
+		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
+			long moduleVersion = entry.getKey();
+			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
+			if (info.getTypes().containsKey(typeName)) {
+				String typeVer = info.getTypes().get(typeName).getTypeVersion();
+				boolean prevTypeRet = ret.containsKey(typeVer) ? ret.get(typeVer) : false;
+				boolean newTypeRet = entry.getValue();
+				ret.put(typeVer, prevTypeRet || newTypeRet);
+			}
 		}
 		return ret;
 	}
@@ -445,26 +446,24 @@ public class FileTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		info.setVersionTime(time);
 		writeFile(getModuleSpecFile(info.getModuleName(), time), specDocument);
+		writeModuleInfoRecord(info);
+	}
+	
+	private void writeModuleInfoRecord(ModuleInfo info) throws TypeStorageException {
 		String infoText;
 		try {
 			infoText = mapper.writeValueAsString(info);
 		} catch (JsonProcessingException e) {
 			throw new TypeStorageException(e);
 		}
-		writeFile(getModuleInfoFile(info.getModuleName(), time), infoText);
+		writeFile(getModuleInfoFile(info.getModuleName(), info.getVersionTime()), infoText);
 	}
 	
 	@Override
 	public void initModuleInfoRecord(ModuleInfo info) throws TypeStorageException {
 		long version = generateNewModuleVersion(info.getModuleName());
 		info.setVersionTime(version);
-		String infoText;
-		try {
-			infoText = mapper.writeValueAsString(info);
-		} catch (JsonProcessingException e) {
-			throw new TypeStorageException(e);
-		}
-		writeFile(getModuleInfoFile(info.getModuleName(), version), infoText);
+		writeModuleInfoRecord(info);
 	}
 	
 	@Override
@@ -549,8 +548,10 @@ public class FileTypeStorage implements TypeStorage {
 			ret.add(Long.parseLong(text));
 		long releaseVer = getLastReleasedModuleVersion(moduleName);
 		TreeMap<Long, Boolean> map = new TreeMap<Long, Boolean>();
-		for (long ver : ret)
-			map.put(ver, ver <= releaseVer);
+		for (long ver : ret) {
+			ModuleInfo info = getModuleInfoRecord(moduleName, ver);
+			map.put(ver, ver <= releaseVer && info.getReleased());
+		}
 		return map;
 	}
 	
@@ -572,6 +573,9 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public void setModuleReleaseVersion(String moduleName, long version)
 			throws TypeStorageException {
+		ModuleInfo info = getModuleInfoRecord(moduleName, version);
+		info.setReleased(true);
+		writeModuleInfoRecord(info);
 		writeFile(getModuleReleaseVersionFile(moduleName), "" + version);
 	}
 
@@ -660,16 +664,14 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public Set<Long> getModuleVersionsForTypeVersion(String moduleName,
+	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName,
 			String typeName, String typeVersion) throws TypeStorageException {
-		Set<Long> ret = new TreeSet<Long>();
+		Map<Long, Boolean> ret = new LinkedHashMap<Long, Boolean>();
 		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
-			if (!entry.getValue())
-				continue;
 			long moduleVersion = entry.getKey();
 			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
 			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getTypeVersion().equals(typeVersion))
-				ret.add(moduleVersion);
+				ret.put(moduleVersion, entry.getValue());
 		}
 		return ret;
 	}
