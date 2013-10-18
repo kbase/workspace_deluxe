@@ -23,6 +23,13 @@ public class WorkspaceAdministration {
 		admins.add("workspaceroot");
 	}
 
+	public void addAdministrator(String admin) {
+		if (admin == null || admin.equals("")) {
+			return;
+		}
+		admins.add(admin);
+	}
+	
 	public Object runCommand(AuthToken token, Object cmd)
 			throws TypeStorageException {
 		if (!admins.contains(token.getUserName())) {
@@ -44,6 +51,9 @@ public class WorkspaceAdministration {
 				approveModRequest((String) c.get("module"), false);
 				return null;
 			}
+			if ("listAdmins".equals(fn)) {
+				return admins;
+			}
 		}
 		throw new IllegalArgumentException(
 				"I don't know how to process the command:\n" + cmd);
@@ -57,5 +67,6 @@ public class WorkspaceAdministration {
 	private Object listModRequests() throws TypeStorageException {
 		return ws.listModuleRegistrationRequests();
 	}
+
 
 }
