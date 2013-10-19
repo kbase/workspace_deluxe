@@ -743,11 +743,11 @@ public class TestWorkspaces {
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 1, 2),
-				"No object with identifier '1' and version 2 exists in workspace " + readid);
+				"No object with id 1 (name myname) and version 2 exists in workspace " + readid);
 		getNonExistantObject(foo, new ObjectIdentifier(read, "myname2"),
 				"No object with name myname2 exists in workspace " + readid);
 		getNonExistantObject(foo, new ObjectIdentifier(read, "myname", 2),
-				"No object with identifier 'myname' and version 2 exists in workspace " + readid);
+				"No object with id 1 (name myname) and version 2 exists in workspace " + readid);
 	}
 
 	private void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
