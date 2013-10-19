@@ -43,7 +43,6 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
 import us.kbase.workspace.database.Permission;

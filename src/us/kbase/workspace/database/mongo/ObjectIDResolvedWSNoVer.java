@@ -1,6 +1,8 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.WorkspaceObjectID;
 
 //these class names are getting ridiculous, need to think of a better way
 public class ObjectIDResolvedWSNoVer {

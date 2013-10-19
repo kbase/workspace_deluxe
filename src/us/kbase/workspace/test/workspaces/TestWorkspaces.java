@@ -31,7 +31,6 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -48,6 +47,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+//import us.kbase.workspace.database.mongo.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.kbase.Util;
@@ -765,7 +765,7 @@ public class TestWorkspaces {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId);
-		new ObjectIDResolvedWSNoVer(fakews, goodId);
+//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new WorkspaceObjectID(goodId);
 	}
 	
@@ -773,7 +773,7 @@ public class TestWorkspaces {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId, version);
-		new ObjectIDResolvedWSNoVer(fakews, goodId);
+//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new WorkspaceObjectID(goodId);
 	}
 	
@@ -781,7 +781,7 @@ public class TestWorkspaces {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId);
-		new ObjectIDResolvedWSNoVer(fakews, goodId);
+//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new WorkspaceObjectID(goodId);
 	}
 	
@@ -789,7 +789,7 @@ public class TestWorkspaces {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId, version);
-		new ObjectIDResolvedWSNoVer(fakews, goodId);
+//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new WorkspaceObjectID(goodId);
 	}
 	
@@ -813,12 +813,12 @@ public class TestWorkspaces {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		try {
-			new ObjectIDResolvedWSNoVer(fakews, badId);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
+//		try {
+//			new ObjectIDResolvedWSNoVer(fakews, badId);
+//			fail("Initialized invalid object id");
+//		} catch (IllegalArgumentException e) {
+//			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+//		}
 		if (badWS != null) {
 			try {
 				new WorkspaceObjectID(badId);
@@ -871,12 +871,12 @@ public class TestWorkspaces {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		try {
-			new ObjectIDResolvedWSNoVer(fakews, badId);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
+//		try {
+//			new ObjectIDResolvedWSNoVer(fakews, badId);
+//			fail("Initialized invalid object id");
+//		} catch (IllegalArgumentException e) {
+//			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
+//		}
 		if (badWS != null) {
 			try {
 				new WorkspaceObjectID(badId);

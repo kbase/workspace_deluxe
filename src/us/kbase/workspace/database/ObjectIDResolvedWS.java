@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import us.kbase.workspace.database.mongo.ObjectIDResolvedWSNoVer;
 
 public class ObjectIDResolvedWS {
 	

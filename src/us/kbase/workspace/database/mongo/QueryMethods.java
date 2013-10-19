@@ -12,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.jongo.Jongo;
 
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
