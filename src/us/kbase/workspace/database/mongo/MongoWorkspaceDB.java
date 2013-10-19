@@ -653,7 +653,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.PTR_DEL, Fields.PTR_MODDATE);
 	
 	// save object in preexisting object container
-	private ObjectMetaData saveObjectInstance(final WorkspaceUser user,
+	private ObjectMetaData saveObjectVersion(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
@@ -760,7 +760,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ObjectMetaData saveObjectWithNewPointer(final WorkspaceUser user,
+	private ObjectMetaData saveObjectAndNewVersion(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid, final String name,
 			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
 		String newName = name;
@@ -787,21 +787,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//TODO is this a name or id clash? if the latter, something is broken
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
-				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
+				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
 			}
 			final ObjectIDNoWSNoVer o = pkg.wo.getObjectIdentifier();
 			final Map<ObjectIDNoWSNoVer, ObjID> objID = getObjectIDs(wsid,
 					new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
-				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
+				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
 			}
-			return saveObjectInstance(user, wsid, objID.get(o).id, pkg);
+			return saveObjectVersion(user, wsid, objID.get(o).id, pkg);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return saveObjectInstance(user, wsid, objectid, pkg);
+		//TODO don't call this, have the saveObject method call it
+		return saveObjectVersion(user, wsid, objectid, pkg);
 	}
 	
 	//TODO can get rid of this?
@@ -939,16 +940,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(saveObjectWithNewPointer(user, wsidmongo, newid++, null, p));
+				ret.add(saveObjectAndNewVersion(user, wsidmongo, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObjectInstance(user, wsidmongo, oi.getId(), p));
+				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObjectInstance(user, wsidmongo, objIDs.get(oi).id, p));
+				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).id, p));
 			} else if (seenNames.containsKey(oi.getName())) {
 				//we've already generated an id for this name
-				ret.add(saveObjectInstance(user, wsidmongo, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				final ObjectMetaData m = saveObjectWithNewPointer(user, wsidmongo,
+				final ObjectMetaData m = saveObjectAndNewVersion(user, wsidmongo,
 						newid++, oi.getName(), p);
 				ret.add(m);
 				seenNames.put(oi.getName(), m.getObjectId());
@@ -1147,13 +1148,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return resolveObjectIDs(objectIDs, true);
+		return resolveObjectIDs(objectIDs, true, true);
 	}
 	
 	//TODO temp function, unify functions
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
-			final boolean exceptIfDeleted)
+			final boolean exceptIfDeleted, final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer> nover =
 				new HashMap<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer>();
@@ -1163,7 +1164,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
 				query.queryObjects(
 						new HashSet<ObjectIDResolvedWSNoVer>(nover.values()),
-						FLDS_PTR_ID_NAME_DEL);
+						FLDS_PTR_ID_NAME_DEL, exceptIfMissing);
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
 		for (final ObjectIDResolvedWS oid: nover.keySet()) {
@@ -1189,32 +1190,42 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	//TODO rethink the 8 zillion object ID classes
-	private Map<ResolvedMongoWSID, List<Long>> getObjectIDsByWS(
-			final Set<ObjectIDResolvedWS> objectIDs,
-			final boolean exceptIfDeleted)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
-				resolveObjectIDs(objectIDs, exceptIfDeleted);
-		final Map<ResolvedMongoWSID, List<Long>> wsToIDs = 
-				new HashMap<ResolvedMongoWSID, List<Long>>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoWSID ws = query.convertResolvedID(
-					o.getWorkspaceIdentifier());
-			if (!wsToIDs.containsKey(ws)) {
-				wsToIDs.put(ws, new ArrayList<Long>());
-			}
-			wsToIDs.get(ws).add(ids.get(o).getId());
-		}
-		return wsToIDs;
-	}
+//	private Map<ResolvedMongoWSID, List<Long>> getObjectIDsByWS(
+//			final Set<ObjectIDResolvedWS> objectIDs,
+//			final boolean exceptIfDeleted)
+//			throws NoSuchObjectException, WorkspaceCommunicationException {
+//		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
+//				resolveObjectIDs(objectIDs, exceptIfDeleted, true);
+//		final Map<ResolvedMongoWSID, List<Long>> wsToIDs = 
+//				new HashMap<ResolvedMongoWSID, List<Long>>();
+//		for (final ObjectIDResolvedWS o: objectIDs) {
+//			final ResolvedMongoWSID ws = query.convertResolvedID(
+//					o.getWorkspaceIdentifier());
+//			if (!wsToIDs.containsKey(ws)) {
+//				wsToIDs.put(ws, new ArrayList<Long>());
+//			}
+//			wsToIDs.get(ws).add(ids.get(o).getId());
+//		}
+//		return wsToIDs;
+//	}
 
 	@Override
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, List<Long>> toModify = 
-				getObjectIDsByWS(objectIDs, delete);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
+				resolveObjectIDs(objectIDs, delete, true);
+		final Map<ResolvedMongoWSID, List<Long>> toModify =
+				new HashMap<ResolvedMongoWSID, List<Long>>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoWSID ws = query.convertResolvedID(
+					o.getWorkspaceIdentifier());
+			if (!toModify.containsKey(ws)) {
+				toModify.put(ws, new ArrayList<Long>());
+			}
+			toModify.get(ws).add(ids.get(o).getId());
+		}
+//				getObjectIDsByWS(objectIDs, delete);
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedMongoWSID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
@@ -1313,7 +1324,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-			ObjectMetaData md = testdb.saveObjectWithNewPointer(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
+			ObjectMetaData md = testdb.saveObjectAndNewVersion(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
 	}
