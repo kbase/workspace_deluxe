@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +23,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
+import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -35,15 +37,20 @@ public class QueryMethods {
 	private final AllUsers allUsers;
 	private final String workspaceCollection;
 	private final String pointerCollection;
+	private final String versionCollection;
 	private final String workspaceACLCollection;
 	
-	QueryMethods(DB wsmongo, AllUsers allUsers, String workspaceCollection,
-			String pointerCollection, String workspaceACLCollection) {
+	
+	QueryMethods(final DB wsmongo, final AllUsers allUsers,
+			final String workspaceCollection, final String pointerCollection,
+			final String versionCollection,
+			final String workspaceACLCollection) {
 		this.wsmongo = wsmongo;
 		wsjongo = new Jongo(wsmongo);
 		this.allUsers = allUsers;
 		this.workspaceCollection = workspaceCollection;
 		this.pointerCollection = pointerCollection;
+		this.versionCollection = versionCollection;
 		this.workspaceACLCollection = workspaceACLCollection;
 	}
 	
@@ -188,16 +195,15 @@ public class QueryMethods {
 	
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields, final Set<String> versionfields) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
-		return queryObjects(objectIDs, fields, versionfields, true);
+			final Set<String> fields)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		return queryObjects(objectIDs, fields, true);
 	}
 
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
+			final Set<String> fields, final boolean exceptOnMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
 		
 		final Map<ResolvedMongoWSID,
 				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
@@ -233,7 +239,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
 			final Map<Long, Map<String, Object>> idres = 
 					queryObjectsByID(rwsi, ids.get(rwsi).keySet(), fields,
-							versionfields, exceptOnMissing);
+							exceptOnMissing);
 			for (final Long id: idres.keySet()) {
 				ret.put(ids.get(rwsi).get(id), idres.get(id));
 			}
@@ -241,7 +247,7 @@ public class QueryMethods {
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final Map<String, Map<String, Object>> nameres = 
 					queryObjectsByName(rwsi, names.get(rwsi).keySet(), fields,
-							versionfields, exceptOnMissing);
+							exceptOnMissing);
 			for (final String name: nameres.keySet()) {
 				ret.put(names.get(rwsi).get(name), nameres.get(name));
 			}
@@ -251,17 +257,17 @@ public class QueryMethods {
 	
 	Map<String, Map<String, Object>> queryObjectsByName(
 			final ResolvedMongoWSID rwsi, final Set<String> names,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
+			final Set<String> fields, final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (names.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
 		}
 		fields.add(Fields.PTR_NAME);
-		final List<Map<String, Object>> queryres = queryObjects(
+		final List<Map<String, Object>> queryres = queryCollection(
+				pointerCollection,
 				String.format("{%s: %s, %s: {$in: [\"%s\"]}}", Fields.PTR_WS_ID,
 				rwsi.getID(), Fields.PTR_NAME,
-				StringUtils.join(names, "\", \"")), fields, versionfields);
+				StringUtils.join(names, "\", \"")), fields);
 		final Map<String, Map<String, Object>> result =
 				new HashMap<String, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -279,17 +285,17 @@ public class QueryMethods {
 	
 	Map<Long, Map<String, Object>> queryObjectsByID(
 			final ResolvedMongoWSID rwsi, final Set<Long> ids,
-			final Set<String> fields, final Set<String> versionfields,
-			final boolean exceptOnMissing) throws
+			final Set<String> fields,final boolean exceptOnMissing) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		if (ids.isEmpty()) {
 			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.PTR_ID);
-		final List<Map<String, Object>> queryres = queryObjects(
+		final List<Map<String, Object>> queryres = queryCollection(
+				pointerCollection,
 				String.format("{%s: %s, %s: {$in: [%s]}}", Fields.PTR_WS_ID,
 				rwsi.getID(), Fields.PTR_ID,
-				StringUtils.join(ids, ", ")), fields, versionfields);
+				StringUtils.join(ids, ", ")), fields);
 		final Map<Long, Map<String, Object>> result =
 				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -305,18 +311,157 @@ public class QueryMethods {
 		return result;
 	}
 	
-	List<Map<String, Object>> queryObjects(final String query,
-			final Set<String> fields, final Set<String> versionfields) throws
-			WorkspaceCommunicationException {
-		if (versionfields != null) {
-			for (final String field: versionfields) {
-				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
-				
+//	List<Map<String, Object>> queryObjects(final String query,
+//			final Set<String> fields, final Set<String> versionfields) throws
+//			WorkspaceCommunicationException {
+//		if (versionfields != null) {
+//			for (final String field: versionfields) {
+//				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
+//				
+//			}
+//		}
+//		return queryCollection(pointerCollection, query, fields);
+//	}
+	
+	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
+			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
+		//nested or queries are slow per the mongo docs so just query one
+		//workspace at a time. If profiling shows this is slow investigate
+		//further
+		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids = 
+			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
+		final Map<ResolvedMongoWSID, List<Long>> idsNoVer = 
+				new HashMap<ResolvedMongoWSID, List<Long>>();
+		
+		for (final ResolvedMongoObjectID o: objectIDs) {
+			final ResolvedMongoWSID rwsi =
+					convertResolvedID(o.getWorkspaceIdentifier());
+			if (o.getVersion() == null) {
+				if (idsNoVer.get(rwsi) == null) {
+					idsNoVer.put(rwsi, new LinkedList<Long>());
+				}
+				idsNoVer.get(rwsi).add(o.getId());
+			} else {
+				if (ids.get(rwsi) == null) {
+					ids.put(rwsi, new HashMap<Long, List<Integer>>());
+				}
+				if (ids.get(rwsi).get(o.getId()) == null) {
+					ids.get(rwsi).put(o.getId(), new LinkedList<Integer>());
+				}
+				ids.get(rwsi).get(o.getId()).add(o.getVersion());
 			}
 		}
-		return queryCollection(pointerCollection, query, fields);
+		
+		
+		final Map<ResolvedMongoWSID, Map<Long, Integer>> latestIds = 
+				new HashMap<ResolvedMongoWSID, Map<Long, Integer>>();
+		
+		for (final ResolvedMongoWSID rwsi: idsNoVer.keySet()) {
+			final Map<Long, Integer> latest =
+					getLatestVersions(rwsi, idsNoVer.get(rwsi));
+			latestIds.put(rwsi, latest);
+			if (ids.get(rwsi) == null) {
+				ids.put(rwsi, new HashMap<Long, List<Integer>>());
+			}
+			for (final Long oid: latest.keySet()) {
+				if (ids.get(rwsi).get(oid) == null) {
+					ids.get(rwsi).put(oid, new LinkedList<Integer>());
+				}
+				ids.get(rwsi).get(oid).add(latest.get(oid));
+			}
+		}
+		
+		// ws id, obj id, obj version, version data map
+		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
+				queryVersions(ids, fields);
+		
+		final Map<ResolvedMongoObjectID, Map<String, Object>> ret =
+				new HashMap<ResolvedMongoObjectID, Map<String,Object>>();
+		
+		for (final ResolvedMongoObjectID roi: objectIDs) {
+			if (roi.getVersion() == null) {
+				// this id is resolved so at least one version must exist
+				int latest = latestIds.get(roi.getWorkspaceIdentifier())
+						.get(roi.getId());
+				ret.put(roi, data.get(roi.getWorkspaceIdentifier())
+						.get(roi.getId()).get(latest));
+			} else {
+				final Map<String, Object> d = data.get(
+						roi.getWorkspaceIdentifier()).get(roi.getId())
+						.get(roi.getVersion());
+				if (d == null) {
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s exists in" +
+							" workspace %s", roi.getId(), roi.getName(), 
+							roi.getVersion(), 
+							roi.getWorkspaceIdentifier().getID()));
+				}
+				ret.put(roi, d);
+			}
+		}
+		return ret;
 	}
 	
+	private Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
+			queryVersions(final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids,
+			final Set<String> fields) throws WorkspaceCommunicationException {
+		fields.add(Fields.VER_ID);
+		fields.add(Fields.VER_VER);
+		//disgusting. need to do better.
+		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
+			ret = new HashMap<ResolvedMongoWSID, Map<Long,Map<Integer,Map<String,Object>>>>();
+		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
+			ret.put(rwsi, new HashMap<Long, Map<Integer, Map<String,Object>>>());
+			final List<DBObject> orquery = new LinkedList<DBObject>();
+			for (final Long objectID: ids.get(rwsi).keySet()) {
+				ret.get(rwsi).put(objectID,
+						new HashMap<Integer, Map<String, Object>>());
+				final DBObject q = new BasicDBObject(Fields.VER_VER,
+						new BasicDBObject("$in", ids.get(rwsi).get(objectID)));
+				q.put(Fields.VER_ID, objectID);
+				orquery.add(q);
+			}
+			final DBObject query = new BasicDBObject("$or", orquery);
+			query.put(Fields.VER_WS_ID, rwsi.getID());
+			final List<Map<String, Object>> res = queryCollection(
+					versionCollection, query.toString(), fields);
+			for (final Map<String, Object> r: res) {
+				final Long id = (Long) r.get(Fields.VER_ID);
+				final Integer ver = (Integer) r.get(Fields.VER_VER);
+				ret.get(rwsi).get(id).put(ver, r);
+			}
+		}
+		return ret;
+	}
+
+	private Map<Long, Integer> getLatestVersions(final ResolvedMongoWSID ws,
+			final List<Long> ids) throws WorkspaceCommunicationException {
+		final DBObject query = new BasicDBObject(
+				Fields.VER_ID, new BasicDBObject("$in", ids));
+		query.put(Fields.VER_WS_ID, ws.getID());
+		final DBObject group = new BasicDBObject(Fields.MONGO_ID,
+				"$" + Fields.VER_ID);
+		group.put(Fields.VER_VER,
+				new BasicDBObject("$max", "$" + Fields.VER_VER));
+		final AggregationOutput mret;
+		try {
+			mret = wsmongo.getCollection(versionCollection).aggregate(
+					new BasicDBObject("$match", query),
+					new BasicDBObject("$group", group));
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		final Map<Long, Integer> ret = new HashMap<Long, Integer>();
+		for (DBObject o: mret.results()) {
+			ret.put((Long) o.get(Fields.MONGO_ID),
+					(Integer) o.get(Fields.VER_VER));
+		}
+		return ret;
+	}
+
+
 	List<Map<String, Object>> queryCollection(final String collection,
 			final String query, final Set<String> fields) throws
 			WorkspaceCommunicationException {
@@ -443,6 +588,4 @@ public class QueryMethods {
 		}
 		return (ResolvedMongoWSID) rwsi;
 	}
-	
-
 }

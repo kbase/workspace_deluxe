@@ -93,7 +93,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WS_CNT = "workspaceCounter";
 	private static final String COL_WORKSPACES = "workspaces";
 	private static final String COL_WS_ACLS = "workspaceACLs";
-	private static final String COL_WORKSPACE_PTRS = "workspacePointers";
+	private static final String COL_WORKSPACE_PTRS = "workspaceObjects";
+	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_SHOCK = "shockData";
 	private static final User allUsers = new AllUsers('*');
 	
@@ -139,16 +140,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find objects by workspace id & name
 		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_NAME), Arrays.asList(IDX_UNIQ));
 		//find object by workspace id & object id
-		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID,
-				Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_VER), Arrays.asList(IDX_UNIQ));
-		//find objects by legacy UUID
-		wsPtr.put(Arrays.asList(Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_UUID),
-				Arrays.asList(IDX_UNIQ, IDX_SPARSE));
-		//determine whether a particular object references this object
-		wsPtr.put(Arrays.asList(Fields.PTR_VERS + Fields.FIELD_SEP + Fields.PTR_VER_REF),
-				Arrays.asList("")); //TODO this might be a bad idea
-		//TODO deletion and creation dates for search?
+		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID), Arrays.asList(IDX_UNIQ));
 		INDEXES.put(COL_WORKSPACE_PTRS, wsPtr);
+		
+		//workspace pointer version indexes
+		Map<List<String>, List<String>> wsVer = new HashMap<List<String>, List<String>>();
+		//find versions
+		wsVer.put(Arrays.asList(Fields.VER_WS_ID, Fields.VER_ID,
+				Fields.VER_VER), Arrays.asList(IDX_UNIQ));
+		//find versions by data object
+		wsVer.put(Arrays.asList(Fields.VER_TYPE, Fields.VER_CHKSUM), Arrays.asList(""));
+		//find objects by legacy UUID
+		wsVer.put(Arrays.asList(Fields.VER_UUID), Arrays.asList(IDX_SPARSE));
+		//determine whether a particular object references this object
+		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList("")); //TODO this might be a bad idea
+		//TODO deletion and creation dates for search?
+		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
@@ -159,7 +166,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
-				COL_WORKSPACE_PTRS, COL_WS_ACLS);
+				COL_WORKSPACE_PTRS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
@@ -181,7 +188,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
-				COL_WORKSPACE_PTRS, COL_WS_ACLS);
+				COL_WORKSPACE_PTRS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
@@ -620,7 +627,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try { 
 			retobjs = query.queryObjects(
 					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
-					FLDS_PTR_ID_NAME, new HashSet<String>(), false);
+					FLDS_PTR_ID_NAME, false);
 		} catch (NoSuchObjectException nsoe) {
 			throw new RuntimeException(
 					"Threw a NoSuchObjectException when explicitly told not to");
@@ -643,8 +650,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.PTR_WS_ID, Fields.PTR_ID);
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.PTR_VCNT, Fields.MONGO_ID);
-	private static final String M_SAVEINS_WTH = String.format("{$inc: {%s: 1}}",
-			Fields.PTR_VCNT);
+	private static final String M_SAVEINS_WTH = String.format(
+			"{$inc: {%s: 1}, $set: {%s: #, %s: #}}", Fields.PTR_VCNT,
+			Fields.PTR_DEL, Fields.PTR_MODDATE);
 	
 	// save object in preexisting object container
 	private ObjectMetaData saveObjectInstance(final WorkspaceUser user,
@@ -653,54 +661,57 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException {
 		//TODO save datainstance/provenance
 		final int ver;
+		final Date created = new Date();
 		try {
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
-					.with(M_SAVEINS_WTH)
+					.with(M_SAVEINS_WTH, false, created)
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
 					.get(Fields.PTR_VCNT);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final DBObject query = new BasicDBObject();
-		query.put(Fields.PTR_WS_ID, wsid.getID());
-		query.put(Fields.PTR_ID, objectid);
 		
 		final DBObject pointer = new BasicDBObject();
-		pointer.put(Fields.PTR_VER_VER, ver);
-		pointer.put(Fields.PTR_VER_CREATEBY, user.getUser());
-		pointer.put(Fields.PTR_VER_CHKSUM, pkg.td.getChksum());
+		pointer.put(Fields.VER_WS_ID, wsid.getID());
+		pointer.put(Fields.VER_ID, objectid);
+		pointer.put(Fields.VER_VER, ver);
+		pointer.put(Fields.VER_CREATEBY, user.getUser());
+		pointer.put(Fields.VER_CHKSUM, pkg.td.getChksum());
 		final List<Map<String, String>> meta = 
 				new ArrayList<Map<String, String>>();
 		if (pkg.wo.getUserMeta() != null) {
 			for (String key: pkg.wo.getUserMeta().keySet()) {
 				Map<String, String> m = new HashMap<String, String>();
-				m.put(Fields.PTR_VER_META_KEY, key);
-				m.put(Fields.PTR_VER_META_VALUE, pkg.wo.getUserMeta().get(key));
+				m.put(Fields.VER_META_KEY, key);
+				m.put(Fields.VER_META_VALUE, pkg.wo.getUserMeta().get(key));
 				meta.add(m);
 			}
 		}
-		pointer.put(Fields.PTR_VER_META, meta);
-		final Date created = new Date();
-		pointer.put(Fields.PTR_VER_CREATEDATE, created);
-		pointer.put(Fields.PTR_VER_REF, new ArrayList<Object>()); //TODO this might be a really bad idea
-		pointer.put(Fields.PTR_VER_PROV, null); //TODO add objectID
-		pointer.put(Fields.PTR_VER_TYPE, pkg.td.getType().getTypeString());
-		pointer.put(Fields.PTR_VER_SIZE, pkg.td.getSize());
-		pointer.put(Fields.PTR_VER_RVRT, null);
-		final DBObject versions = new BasicDBObject();
-		versions.put(Fields.PTR_VERS, pointer);
-		final DBObject update = new BasicDBObject();
-		update.put("$push", versions);
-		final DBObject deleted = new BasicDBObject();
-		deleted.put(Fields.PTR_DEL, false);
-		deleted.put(Fields.PTR_MODDATE, created);
-		update.put("$set", deleted);
+		pointer.put(Fields.VER_META, meta);
+		pointer.put(Fields.VER_CREATEDATE, created);
+		pointer.put(Fields.VER_REF, new ArrayList<Object>()); //TODO this might be a really bad idea
+		pointer.put(Fields.VER_PROV, null); //TODO add objectID
+		pointer.put(Fields.VER_TYPE, pkg.td.getType().getTypeString());
+		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
+		pointer.put(Fields.VER_RVRT, null);
+//		final DBObject versions = new BasicDBObject();
+//		versions.put(Fields.PTR_VERS, pointer);
+		
+//		final DBObject query = new BasicDBObject();
+//		query.put(Fields.PTR_WS_ID, wsid.getID());
+//		query.put(Fields.PTR_ID, objectid);
+//		final DBObject update = new BasicDBObject();
+//		update.put("$push", versions);
+//		final DBObject set = new BasicDBObject();
+//		set.put(Fields.PTR_DEL, false);
+//		set.put(Fields.PTR_MODDATE, created);
+//		update.put("$set", set);
 		
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_PTRS).update(query, update);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(pointer);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -777,7 +788,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		dbo.put(Fields.PTR_NAME, newName);
 		//deleted handled in saveObjectInstance()
 		dbo.put(Fields.PTR_HIDE, false); //TODO hidden, also set hidden when not creating pointer from scratch
-		dbo.put(Fields.PTR_VERS, new ArrayList<Object>());
 		try {
 			//maybe could speed things up with batch inserts but dealing with
 			//errors would really suck
@@ -1042,17 +1052,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
-				getPointerData(objectIDs);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+				resolveObjectIDs2(objectIDs);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						FLDS_VER_META);
+//		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
+//				getPointerData(new HashSet<ResolvedMongoObjectID>(oids.values()));
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
 		final Map<String, Object> chksumToData = new HashMap<String, Object>();
 		for (ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoObjectID roi = oids.get(o);
 			final MongoObjectUserMeta meta = generateUserMeta(
-					pointerData.get(o.withoutVersion()),
-					o.getVersion(), 
-					Long.toString(o.getWorkspaceIdentifier().getID()),
-					o.getIdentifierString());
+					roi, vers.get(roi));
+//					pointerData.get(o.withoutVersion()),
+//					o.getVersion(), 
+//					Long.toString(o.getWorkspaceIdentifier().getID()),
+//					o.getIdentifierString());
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
 						chksumToData.get(meta.getCheckSum()), meta));
@@ -1088,94 +1106,108 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final Set<String> FLDS_PTR_META =
-			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_WS_ID,
-			Fields.PTR_VCNT, Fields.PTR_DEL);
-	private static final Set<String> FLDS_PTR_META_VER = newHashSet(
-			Fields.PTR_VER_VER, Fields.PTR_VER_META, Fields.PTR_VER_TYPE,
-			Fields.PTR_VER_CREATEDATE, Fields.PTR_VER_CREATEBY,
-			Fields.PTR_VER_CHKSUM, Fields.PTR_VER_SIZE);
+//	private static final Set<String> FLDS_PTR_META =
+//			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_WS_ID,
+//			Fields.PTR_VCNT, Fields.PTR_DEL);
+//	private static final Set<String> FLDS_PTR_META_VER = newHashSet(
+//			Fields.PTR_VER_VER, Fields.PTR_VER_META, Fields.PTR_VER_TYPE,
+//			Fields.PTR_VER_CREATEDATE, Fields.PTR_VER_CREATEBY,
+//			Fields.PTR_VER_CHKSUM, Fields.PTR_VER_SIZE);
 	
-	private static final String FKFLD_MAXVER = "maxver";
+	private static final Set<String> FLDS_VER_META = newHashSet(
+			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
+			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
+			Fields.VER_CHKSUM, Fields.VER_SIZE);
+	
+//	private static final String FKFLD_MAXVER = "maxver";
 
-	private Map<ObjectIDResolvedWSNoVer, Map<String, Object>> getPointerData(
-			final Set<ObjectIDResolvedWS> objectIDs) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
-		final Set<ObjectIDResolvedWSNoVer> noVer =
-				new HashSet<ObjectIDResolvedWSNoVer>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
-			noVer.add(o.withoutVersion());
-		}
-		
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> qres =
-				query.queryObjects(noVer, FLDS_PTR_META, FLDS_PTR_META_VER);
-
-		//preprocess data structure for faster access if multiple versions
-		//of same object required
-		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
-			final Map<String, Object> pointer = qres.get(o);
-			if ((Boolean) pointer.get(Fields.PTR_DEL)) {
-				throw new NoSuchObjectException(String.format(
-						"Object %s in workspace %s has been deleted",
-						o.getIdentifierString(),
-						o.getWorkspaceIdentifier().getID()));
-			}
-			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> listver =
-					(List<Map<String, Object>>) pointer.get(Fields.PTR_VERS);
-			final Map<Integer, Map<String, Object>> versions =
-					new HashMap<Integer, Map<String,Object>>();
-			int maxver = -1;
-			for (final Map<String, Object> m: listver) {
-				final int ver = (Integer) m.get(Fields.PTR_VER_VER);
-				if (ver > maxver) {
-					maxver = ver;
-				}
-				versions.put(ver, m);
-			}
-			pointer.put(FKFLD_MAXVER, maxver);
-			pointer.put(Fields.PTR_VERS, versions);
-		}
-		return qres;
-	}
+//	private Map<ObjectIDResolvedWSNoVer, Map<String, Object>> getPointerData(
+//			final Set<ResolvedMongoObjectID> objectIDs) throws
+//			NoSuchObjectException, WorkspaceCommunicationException {
+//		final Set<ObjectIDResolvedWSNoVer> noVer =
+//				new HashSet<ObjectIDResolvedWSNoVer>();
+////		for (final ObjectIDResolvedWS o: objectIDs) {
+////			noVer.add(o.withoutVersion());
+////		}
+//		
+//		final Map<ResolvedMongoObjectID, Map<String, Object>> qres = 
+//				query.queryVersions(objectIDs, FLDS_VER_META);
+//		
+////		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> qres =
+////				query.queryObjects(noVer, FLDS_PTR_META, FLDS_PTR_META_VER);
+//
+//		//preprocess data structure for faster access if multiple versions
+//		//of same object required
+//		for (ObjectIDResolvedWSNoVer o: qres.keySet()) {
+//			final Map<String, Object> pointer = qres.get(o);
+//			if ((Boolean) pointer.get(Fields.PTR_DEL)) {
+//				throw new NoSuchObjectException(String.format(
+//						"Object %s in workspace %s has been deleted",
+//						o.getIdentifierString(),
+//						o.getWorkspaceIdentifier().getID()));
+//			}
+//			@SuppressWarnings("unchecked")
+//			final List<Map<String, Object>> listver =
+//					(List<Map<String, Object>>) pointer.get(Fields.PTR_VERS);
+//			final Map<Integer, Map<String, Object>> versions =
+//					new HashMap<Integer, Map<String,Object>>();
+//			int maxver = -1;
+//			for (final Map<String, Object> m: listver) {
+//				final int ver = (Integer) m.get(Fields.PTR_VER_VER);
+//				if (ver > maxver) {
+//					maxver = ver;
+//				}
+//				versions.put(ver, m);
+//			}
+//			pointer.put(FKFLD_MAXVER, maxver);
+//			pointer.put(Fields.PTR_VERS, versions);
+//		}
+//		return qres;
+//	}
 	
 	private MongoObjectUserMeta generateUserMeta(
-			final Map<String, Object> pointer, final Integer version,
-			final String workspaceIdentifier, final String objectIdentifier)
-			throws NoSuchObjectException {
-		final int maxver = (Integer) pointer.get(FKFLD_MAXVER);
-		final int ver;
-		if (version == null) {
-			if (maxver < 1) {
-				throw new NoSuchObjectException(String.format(
-						"No object with identifier '%s' exists in workspace %s",
-						objectIdentifier, workspaceIdentifier));
-			}
-			ver = maxver;
-		} else {
-			ver = version; //bad version error will be caught below
-		}
-		@SuppressWarnings("unchecked")
-		final Map<String, Object> verpoint = 
-				((Map<Integer, Map<String, Object>>)
-						pointer.get(Fields.PTR_VERS)).get(ver);
-		if (verpoint == null) { // it's been deleted //TODO test when garbage collection is implemented
-			throw new NoSuchObjectException(String.format(
-					"No object with identifier '%s' and version %s exists in workspace %s",
-					objectIdentifier, ver, workspaceIdentifier));
-		}
+			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
+//			final Map<String, Object> pointer, final Integer version,
+//			final String workspaceIdentifier, final String objectIdentifier)
+//			throws NoSuchObjectException {
+//		final int maxver = (Integer) pointer.get(FKFLD_MAXVER);
+//		final int ver;
+//		if (version == null) {
+//			if (maxver < 1) {
+//				throw new NoSuchObjectException(String.format(
+//						"No object with identifier '%s' exists in workspace %s",
+//						objectIdentifier, workspaceIdentifier));
+//			}
+//			ver = maxver;
+//		} else {
+//			ver = version; //bad version error will be caught below
+//		}
+//		@SuppressWarnings("unchecked")
+//		final Map<String, Object> verpoint = 
+//				((Map<Integer, Map<String, Object>>)
+//						pointer.get(Fields.PTR_VERS)).get(ver);
+//		if (verpoint == null) { // it's been deleted //TODO test when garbage collection is implemented
+//			throw new NoSuchObjectException(String.format(
+//					"No object with identifier '%s' and version %s exists in workspace %s",
+//					objectIdentifier, ver, workspaceIdentifier));
+//		}
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
-				(List<Map<String, String>>) verpoint.get(Fields.PTR_VER_META);
+				(List<Map<String, String>>) ver.get(Fields.VER_META);
 		return new MongoObjectUserMeta(
-				(Long) pointer.get(Fields.PTR_ID),
-				(String) pointer.get(Fields.PTR_NAME),
-				(String) verpoint.get(Fields.PTR_VER_TYPE),
-				(Date) verpoint.get(Fields.PTR_VER_CREATEDATE), ver,
-				new WorkspaceUser((String) verpoint.get(Fields.PTR_VER_CREATEBY)),
-				new ResolvedMongoWSID((Long) pointer.get(Fields.PTR_WS_ID)),
-				(String) verpoint.get(Fields.PTR_VER_CHKSUM),
-				(Long) verpoint.get(Fields.PTR_VER_SIZE),
+				roi.getId(),
+//				(Long) pointer.get(Fields.PTR_ID),
+				roi.getName(),
+//				(String) pointer.get(Fields.PTR_NAME),
+				(String) ver.get(Fields.VER_TYPE),
+				(Date) ver.get(Fields.VER_CREATEDATE),
+				(Integer) ver.get(Fields.VER_VER),
+//				ver,
+				new WorkspaceUser((String) ver.get(Fields.VER_CREATEBY)),
+				roi.getWorkspaceIdentifier(),
+//				new ResolvedMongoWSID((Long) pointer.get(Fields.PTR_WS_ID)),
+				(String) ver.get(Fields.VER_CHKSUM),
+				(Long) ver.get(Fields.VER_SIZE),
 				metaMongoArrayToHash(meta));
 	}
 	
@@ -1184,15 +1216,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
-				getPointerData(objectIDs);
+//		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> pointerData =
+//				getPointerData(objectIDs);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+				resolveObjectIDs2(objectIDs);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						FLDS_VER_META);
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
-			ret.put(o, generateUserMeta(pointerData.get(o.withoutVersion()),
-					o.getVersion(), 
-					Long.toString(o.getWorkspaceIdentifier().getID()),
-					o.getIdentifierString()));
+			final ResolvedMongoObjectID roi = oids.get(o);
+			ret.put(o, generateUserMeta(roi, vers.get(roi)));
+//			ret.put(o, generateUserMeta(pointerData.get(o.withoutVersion()),
+//					o.getVersion(), 
+//					Long.toString(o.getWorkspaceIdentifier().getID()),
+//					o.getIdentifierString()));
 		}
 		return ret;
 	}
@@ -1201,17 +1241,58 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<Map<String, String>> meta) {
 		final Map<String, String> ret = new HashMap<String, String>();
 		for (final Map<String, String> m: meta) {
-			ret.put(m.get(Fields.PTR_VER_META_KEY),
-					m.get(Fields.PTR_VER_META_VALUE));
+			ret.put(m.get(Fields.VER_META_KEY),
+					m.get(Fields.VER_META_VALUE));
 		}
 		return ret;
 	}
 	
+	private static final Set<String> FLDS_PTR_ID_NAME_DEL =
+			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL);
+	
+	//TODO temp function, unify functions
+	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs2(
+			final Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer> nover =
+				new HashMap<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			nover.put(o, o.withoutVersion());
+		}
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
+				query.queryObjects(
+						new HashSet<ObjectIDResolvedWSNoVer>(nover.values()),
+						FLDS_PTR_ID_NAME_DEL);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
+				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
+		for (final ObjectIDResolvedWS oid: nover.keySet()) {
+			if ((Boolean) ids.get(nover.get(oid)).get(Fields.PTR_DEL)) {
+				throw new NoSuchObjectException(String.format(
+						"Object %s in workspace %s has been deleted",
+						oid.getIdentifierString(),
+						oid.getWorkspaceIdentifier().getID()));
+			}
+			final ObjectIDResolvedWSNoVer o = nover.get(oid);
+			final String name = (String) ids.get(o).get(Fields.PTR_NAME);
+			final long id = (Long) ids.get(o).get(Fields.PTR_ID);
+			if (oid.getVersion() != null) {
+				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(
+						oid.getWorkspaceIdentifier()), name, id,
+						oid.getVersion().intValue()));
+			} else {
+				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(
+						oid.getWorkspaceIdentifier()), name, id));
+			}
+		}
+		return ret;
+	}
+	
+	//TODO return resolved Object id class. Try and get rid of the no ver class.
 	private Map<ObjectIDResolvedWSNoVer, Long> resolveObjectIDs(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
-				query.queryObjects(objectIDs, FLDS_PTR_ID, null);
+				query.queryObjects(objectIDs, FLDS_PTR_ID);
 		final Map<ObjectIDResolvedWSNoVer, Long> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Long>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
@@ -1220,6 +1301,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	//TODO rethink the 8 zillion object ID classes
 	private Map<ResolvedMongoWSID, List<Long>> getObjectIDsByWS(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
