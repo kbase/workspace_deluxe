@@ -1,7 +1,6 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
-import us.kbase.workspace.database.mongo.ObjectIDResolvedWSNoVer;
 
 public class ObjectIDResolvedWS {
 	
@@ -87,13 +86,6 @@ public class ObjectIDResolvedWS {
 		return "" + getId();
 	}
 	
-	public ObjectIDResolvedWSNoVer withoutVersion() {
-		if (name == null) {
-			return new ObjectIDResolvedWSNoVer(rwsi, id);
-		}
-		return new ObjectIDResolvedWSNoVer(rwsi, name);
-	}
-
 	@Override
 	public String toString() {
 		return "ObjectIDResolvedWS [rwsi=" + rwsi + ", name=" + name + ", id="

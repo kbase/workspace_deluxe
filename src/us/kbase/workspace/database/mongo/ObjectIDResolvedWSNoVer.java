@@ -1,6 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectID;
 
@@ -10,6 +11,15 @@ public class ObjectIDResolvedWSNoVer {
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final Long id;
+	
+	public ObjectIDResolvedWSNoVer(final ObjectIDResolvedWS oid) {
+		if (oid == null) {
+			throw new IllegalArgumentException("oid cannot be null");
+		}
+		rwsi = oid.getWorkspaceIdentifier();
+		name = oid.getName();
+		id = oid.getId();
+	}
 	
 	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
 			final String name) {
