@@ -1049,7 +1049,12 @@ public class TestWorkspaces {
 		failToGetDeletedObjects(foo, obj1, err);
 		failToGetDeletedObjects(foo, obj2, err);
 		
-		ws.setObjectsDeleted(foo, obj2, true); //should have no effect
+		try {
+			ws.setObjectsDeleted(foo, obj2, true); //should have no effect
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception", nsoe.getLocalizedMessage(),
+					is("Object obj in workspace " + wsid + " has been deleted"));
+		}
 		failToGetDeletedObjects(foo, objs, err);
 		failToGetDeletedObjects(foo, obj1, err);
 		failToGetDeletedObjects(foo, obj2, err);

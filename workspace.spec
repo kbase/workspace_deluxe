@@ -413,8 +413,7 @@ module Workspace {
 	
 	/* 
 		Delete objects. All versions of an object are deleted, regardless of
-		the version specified in the ObjectIdentity. If an object is already
-		deleted, no error is thrown.
+		the version specified in the ObjectIdentity.
 	*/
 	funcdef delete_objects(list<ObjectIdentity> object_ids) returns();
 	

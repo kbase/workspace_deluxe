@@ -311,18 +311,6 @@ public class QueryMethods {
 		return result;
 	}
 	
-//	List<Map<String, Object>> queryObjects(final String query,
-//			final Set<String> fields, final Set<String> versionfields) throws
-//			WorkspaceCommunicationException {
-//		if (versionfields != null) {
-//			for (final String field: versionfields) {
-//				fields.add(Fields.PTR_VERS + Fields.FIELD_SEP + field);
-//				
-//			}
-//		}
-//		return queryCollection(pointerCollection, query, fields);
-//	}
-	
 	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
 			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException, NoSuchObjectException {

@@ -21,7 +21,6 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -271,28 +270,16 @@ public class Workspaces {
 		return ret;
 	}
 	
-	private Set<ObjectIDResolvedWSNoVer> removeVersions(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission p, final String operation)
-					throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-					CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, p, operation);
-		final Set<ObjectIDResolvedWSNoVer> objectIDs =
-				new HashSet<ObjectIDResolvedWSNoVer>();
-		for (ObjectIDResolvedWS o: ws.values()) {
-			objectIDs.add(o.withoutVersion());
-		}
-		return objectIDs;
-	}
-	
 	public void setObjectsDeleted(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean delete)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
-		db.setObjectsDeleted(removeVersions(user, loi, Permission.WRITE,
-				(delete ? "" : "un") + "delete objects from"), delete);
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.WRITE,
+						(delete ? "" : "un") + "delete objects from");
+		db.setObjectsDeleted(new HashSet<ObjectIDResolvedWS>(ws.values()),
+				delete);
 	}
 
 	public void setWorkspaceDeleted(final WorkspaceUser user,

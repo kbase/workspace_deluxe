@@ -78,7 +78,7 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
-	public void setObjectsDeleted(Set<ObjectIDResolvedWSNoVer> objectIDs,
+	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
 			boolean delete) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
