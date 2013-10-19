@@ -51,7 +51,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -611,14 +611,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_PTR_ID_NAME =
 			newHashSet(Fields.PTR_ID, Fields.PTR_NAME);
 	
-	private Map<WorkspaceObjectID, ObjID> getObjectIDs(
+	private Map<ObjectIDNoWSNoVer, ObjID> getObjectIDs(
 			final ResolvedMongoWSID workspaceID,
-			final Set<WorkspaceObjectID> objects) throws
+			final Set<ObjectIDNoWSNoVer> objects) throws
 			WorkspaceCommunicationException {
 		
-		final Map<WorkspaceObjectID, ObjectIDResolvedWSNoVer> queryobjs = 
-				new HashMap<WorkspaceObjectID, ObjectIDResolvedWSNoVer>();
-		for (final WorkspaceObjectID o: objects) {
+		final Map<ObjectIDNoWSNoVer, ObjectIDResolvedWSNoVer> queryobjs = 
+				new HashMap<ObjectIDNoWSNoVer, ObjectIDResolvedWSNoVer>();
+		for (final ObjectIDNoWSNoVer o: objects) {
 			queryobjs.put(o, new ObjectIDResolvedWSNoVer(workspaceID, o));
 		}
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> retobjs;
@@ -631,9 +631,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"Threw a NoSuchObjectException when explicitly told not to");
 		}
 		
-		final Map<WorkspaceObjectID, ObjID> goodIds =
-				new HashMap<WorkspaceObjectID, ObjID>();
-		for (final WorkspaceObjectID o: objects) {
+		final Map<ObjectIDNoWSNoVer, ObjID> goodIds =
+				new HashMap<ObjectIDNoWSNoVer, ObjID>();
+		for (final ObjectIDNoWSNoVer o: objects) {
 			if (retobjs.containsKey(queryobjs.get(o))) {
 				final Map<String, Object> pointer =
 						retobjs.get(queryobjs.get(o));
@@ -789,9 +789,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//not much chance of this happening again, let's just recurse
 				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
 			}
-			final WorkspaceObjectID o = pkg.wo.getObjectIdentifier();
-			final Map<WorkspaceObjectID, ObjID> objID = getObjectIDs(wsid,
-					new HashSet<WorkspaceObjectID>(Arrays.asList(o)));
+			final ObjectIDNoWSNoVer o = pkg.wo.getObjectIdentifier();
+			final Map<ObjectIDNoWSNoVer, ObjID> objID = getObjectIDs(wsid,
+					new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
 				return saveObjectWithNewPointer(user, wsid, objectid, name, pkg);
@@ -824,7 +824,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		MAPPER_SORTED.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 	}
 	
-	private static String getObjectErrorId(final WorkspaceObjectID oi,
+	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
 		String objErrId = "#" + objcount;
 		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
@@ -883,11 +883,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
 		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				objects);
-		final Map<WorkspaceObjectID, List<ObjectSavePackage>> idToPkg =
-				new HashMap<WorkspaceObjectID, List<ObjectSavePackage>>();
+		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
+				new HashMap<ObjectIDNoWSNoVer, List<ObjectSavePackage>>();
 		int newobjects = 0;
 		for (final ObjectSavePackage p: packages) {
-			final WorkspaceObjectID o = p.wo.getObjectIdentifier();
+			final ObjectIDNoWSNoVer o = p.wo.getObjectIdentifier();
 			if (o != null) {
 //				names.add(p.wo.getObjectIdentifier());
 				if (idToPkg.get(o) == null) {
@@ -898,9 +898,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				newobjects++;
 			}
 		}
-		final Map<WorkspaceObjectID, ObjID> objIDs = getObjectIDs(wsidmongo,
+		final Map<ObjectIDNoWSNoVer, ObjID> objIDs = getObjectIDs(wsidmongo,
 				idToPkg.keySet());
-		for (WorkspaceObjectID o: idToPkg.keySet()) {
+		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				if (o.getId() != null) {
 					throw new NoSuchObjectException(
@@ -937,7 +937,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
-			final WorkspaceObjectID oi = p.wo.getObjectIdentifier();
+			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
 				ret.add(saveObjectWithNewPointer(user, wsidmongo, newid++, null, p));
 			} else if (oi.getId() != null) { //confirmed ok id
@@ -1304,7 +1304,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
-					new WorkspaceObjectID("testobj"),
+					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(at, wo.getData()));

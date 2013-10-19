@@ -8,21 +8,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
 public class WorkspaceSaveObject {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final int MAX_USER_META_SIZE = 16000;
 	
-	private final WorkspaceObjectID id;
+	private final ObjectIDNoWSNoVer id;
 	private final JsonNode data;
 	private final TypeDefId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceSaveObject(final WorkspaceObjectID id, final Object data,
+	public WorkspaceSaveObject(final ObjectIDNoWSNoVer id, final Object data,
 			final TypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden) {
 		if (id == null || data == null || type == null) {
@@ -84,7 +84,7 @@ public class WorkspaceSaveObject {
 		}
 	}
 
-	public WorkspaceObjectID getObjectIdentifier() {
+	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;
 	}
 

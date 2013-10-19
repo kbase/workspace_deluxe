@@ -39,7 +39,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -525,9 +525,9 @@ public class TestWorkspaces {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), savedata, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3"), savedata2, t, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("3-1"), savedata, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata2, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3-1"), savedata, t, meta, p, false));
 		objects.add(new WorkspaceSaveObject(savedata2, t, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, t, meta, p, false));
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
@@ -594,7 +594,7 @@ public class TestWorkspaces {
 		ws.saveObjects(foo, priv, objects);
 		
 		objects.clear();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID(2), savedata, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, t, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
 		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23);
@@ -652,7 +652,7 @@ public class TestWorkspaces {
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID("bigmeta"), savedata, t, meta, null, false)));
+					new ObjectIDNoWSNoVer("bigmeta"), savedata, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -660,7 +660,7 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID(3), savedata, t, meta, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, t, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -699,7 +699,7 @@ public class TestWorkspaces {
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID(3), savedata, t, null, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, t, null, null, false)));
 			fail("saved object with non-existant id");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
@@ -719,7 +719,7 @@ public class TestWorkspaces {
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new WorkspaceObjectID("jframe"), data, t, meta, null, false)));
+					new ObjectIDNoWSNoVer("jframe"), data, t, meta, null, false)));
 			fail("saved unserializable object");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -738,7 +738,7 @@ public class TestWorkspaces {
 		JsonNode savedata = mapper.valueToTree(data);
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("myname"), savedata, t, null, null, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"), savedata, t, null, null, false));
 		ws.saveObjects(foo, read, objects);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
@@ -766,7 +766,7 @@ public class TestWorkspaces {
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
-		new WorkspaceObjectID(goodId);
+		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	private void testObjectIdentifier(String goodId, int version) {
@@ -774,7 +774,7 @@ public class TestWorkspaces {
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
-		new WorkspaceObjectID(goodId);
+		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	private void testObjectIdentifier(int goodId) {
@@ -782,7 +782,7 @@ public class TestWorkspaces {
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
-		new WorkspaceObjectID(goodId);
+		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	private void testObjectIdentifier(int goodId, int version) {
@@ -790,7 +790,7 @@ public class TestWorkspaces {
 		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
 		new ObjectIDResolvedWS(fakews, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
-		new WorkspaceObjectID(goodId);
+		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	private void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
@@ -821,7 +821,7 @@ public class TestWorkspaces {
 //		}
 		if (badWS != null) {
 			try {
-				new WorkspaceObjectID(badId);
+				new ObjectIDNoWSNoVer(badId);
 				fail("Initialized invalid object id");
 			} catch (IllegalArgumentException e) {
 				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -879,7 +879,7 @@ public class TestWorkspaces {
 //		}
 		if (badWS != null) {
 			try {
-				new WorkspaceObjectID(badId);
+				new ObjectIDNoWSNoVer(badId);
 				fail("Initialized invalid object id");
 			} catch (IllegalArgumentException e) {
 				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -912,7 +912,7 @@ public class TestWorkspaces {
 	private void testCreate(WorkspaceIdentifier goodWs, String name,
 			Long id) {
 		ObjectIdentifier.create(goodWs, name, id);
-		WorkspaceObjectID.create(name, id);
+		ObjectIDNoWSNoVer.create(name, id);
 		
 	}
 	
@@ -932,7 +932,7 @@ public class TestWorkspaces {
 		}
 		if (badWS != null) {
 			try {
-				WorkspaceObjectID.create(name, id);
+				ObjectIDNoWSNoVer.create(name, id);
 				fail("Initialized invalid object id");
 			} catch (IllegalArgumentException e) {
 				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -1015,9 +1015,9 @@ public class TestWorkspaces {
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
 		data2.put("data", "2");
-		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false);
+		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, t, null, null, false);
 		ws.saveObjects(foo, read, Arrays.asList(sobj1,
-				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data2, t, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, t, null, null, false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
 		
@@ -1072,7 +1072,7 @@ public class TestWorkspaces {
 
 		//save should undelete
 		ws.saveObjects(foo, read, Arrays.asList(
-				new WorkspaceSaveObject(new WorkspaceObjectID("obj"), data1, t, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, t, null, null, false)));
 		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
 		idToData.put(o3, data1);
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());

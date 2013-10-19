@@ -1,6 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
 /**
  * name is resolved *at the time the database was accessed and is not further
@@ -13,6 +13,8 @@ import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
  * objects to change (as measured by the unique hashcode count, for example).
  * 
  * This is *not* the case for objects generated from different queries.
+ * 
+ * Versions are not resolved.
  * 
  * @author gaprice@lbl.gov
  *

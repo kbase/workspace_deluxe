@@ -3,20 +3,20 @@ package us.kbase.workspace.workspaces;
 import java.util.Map;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class ResolvedSaveObject {
 	
-	private final WorkspaceObjectID id;
+	private final ObjectIDNoWSNoVer id;
 	private final JsonNode data;
 	private final AbsoluteTypeDefId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	ResolvedSaveObject(final WorkspaceObjectID id,
+	ResolvedSaveObject(final ObjectIDNoWSNoVer id,
 			final JsonNode resolvedData, final AbsoluteTypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
 			final boolean hidden) {
@@ -45,7 +45,7 @@ public class ResolvedSaveObject {
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceObjectID getObjectIdentifier() {
+	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;
 	}
 

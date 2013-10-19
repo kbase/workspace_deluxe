@@ -5,7 +5,7 @@ import static us.kbase.workspace.database.Util.xorNameId;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WorkspaceObjectID {
+public class ObjectIDNoWSNoVer {
 	
 	private final static Pattern INVALID_OBJ_NAMES = 
 			Pattern.compile("[^\\w\\|._-]");
@@ -13,13 +13,13 @@ public class WorkspaceObjectID {
 	private final String name;
 	private final Long id;
 	
-	public WorkspaceObjectID(String name) {
+	public ObjectIDNoWSNoVer(String name) {
 		checkObjectName(name);
 		this.name = name;
 		this.id = null;
 	}
 	
-	public WorkspaceObjectID(long id) {
+	public ObjectIDNoWSNoVer(long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("Object id must be > 0");
 		}
@@ -42,13 +42,13 @@ public class WorkspaceObjectID {
 		return "" + getId();
 	}
 	
-	public static WorkspaceObjectID create(final String name, 
+	public static ObjectIDNoWSNoVer create(final String name, 
 			final Long id) {
 		xorNameId(name, id, "object");
 		if (name != null) {
-			return new WorkspaceObjectID(name);
+			return new ObjectIDNoWSNoVer(name);
 		}
-		return new WorkspaceObjectID(id);
+		return new ObjectIDNoWSNoVer(id);
 	}
 	
 	public static void checkObjectName(String name) {
@@ -84,10 +84,10 @@ public class WorkspaceObjectID {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof WorkspaceObjectID)) {
+		if (!(obj instanceof ObjectIDNoWSNoVer)) {
 			return false;
 		}
-		WorkspaceObjectID other = (WorkspaceObjectID) obj;
+		ObjectIDNoWSNoVer other = (ObjectIDNoWSNoVer) obj;
 		if (id == null) {
 			if (other.id != null) {
 				return false;

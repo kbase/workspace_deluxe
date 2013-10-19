@@ -44,7 +44,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceMetaData;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -352,9 +352,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			WorkspaceObjectID oi = null;
+			ObjectIDNoWSNoVer oi = null;
 			if (d.getName() != null || d.getObjid() != null) {
-				 oi = WorkspaceObjectID.create(d.getName(), d.getObjid());
+				 oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
 			}
 			String errprefix = "Object ";
 			if (oi == null) {

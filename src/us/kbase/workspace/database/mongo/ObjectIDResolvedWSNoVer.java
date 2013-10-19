@@ -1,9 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.WorkspaceObjectID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
 //these class names are getting ridiculous, need to think of a better way
 public class ObjectIDResolvedWSNoVer {
@@ -46,7 +46,7 @@ public class ObjectIDResolvedWSNoVer {
 	}
 	
 	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, 
-			final WorkspaceObjectID id) {
+			final ObjectIDNoWSNoVer id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
