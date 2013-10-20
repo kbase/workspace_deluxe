@@ -593,24 +593,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				res.containsKey(allUsers));
 	}
 	
-//	private static class ObjID {
-//		public String name;
-//		public long id;
-//		
-//		public ObjID(String name, long id) {
-//			this.name = name;
-//			this.id = id;
-//		}
-//
-//		@Override
-//		public String toString() {
-//			return "ObjID [name=" + name + ", id=" + id + "]";
-//		}
-//	}
-	
-//	private static final Set<String> FLDS_PTR_ID_NAME =
-//			newHashSet(Fields.PTR_ID, Fields.PTR_NAME);
-	
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
 			final ResolvedMongoWSID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects) throws
@@ -638,28 +620,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		return ret;
-		
-//		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> retobjs;
-//		try { 
-//			retobjs = query.queryObjects(
-//					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
-//					FLDS_PTR_ID_NAME, false);
-//		} catch (NoSuchObjectException nsoe) {
-//			throw new RuntimeException(
-//					"Threw a NoSuchObjectException when explicitly told not to");
-//		}
-//		
-//		final Map<ObjectIDNoWSNoVer, ObjID> goodIds =
-//				new HashMap<ObjectIDNoWSNoVer, ObjID>();
-//		for (final ObjectIDNoWSNoVer o: objects) {
-//			if (retobjs.containsKey(queryobjs.get(o))) {
-//				final Map<String, Object> pointer =
-//						retobjs.get(queryobjs.get(o));
-//				goodIds.put(o, new ObjID((String) pointer.get(Fields.PTR_NAME),
-//							 (Long) pointer.get(Fields.PTR_ID)));
-//			}
-//		}
-//		return goodIds;
 	}
 	
 	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
@@ -778,20 +738,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ObjectMetaData saveObjectAndNewVersion(final WorkspaceUser user,
-			final ResolvedMongoWSID wsid, final long objectid, final String name,
-			final ObjectSavePackage pkg) throws WorkspaceCommunicationException {
+	private ResolvedMongoObjectID saveObjectAndNewVersion(
+			final ResolvedMongoWSID wsid, final long objectid,
+			final String name)
+			throws WorkspaceCommunicationException {
 		String newName = name;
 		if (name == null) {
 			newName = generateUniqueNameForObject(wsid, objectid);
-			pkg.name = newName;
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.PTR_WS_ID, wsid.getID());
 		dbo.put(Fields.PTR_ID, objectid);
 		dbo.put(Fields.PTR_VCNT, 0); //Integer
 		dbo.put(Fields.PTR_NAME, newName);
-		//deleted handled in saveObjectInstance()
+		//deleted handled in saveObjectVersion()
 		dbo.put(Fields.PTR_HIDE, false); //TODO hidden, also set hidden when not creating pointer from scratch
 		try {
 			//maybe could speed things up with batch inserts but dealing with
@@ -805,23 +765,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//TODO is this a name or id clash? if the latter, something is broken
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
-				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
+				//and make a new name again
+				return saveObjectAndNewVersion(wsid, objectid, name);
 			}
-			final ObjectIDNoWSNoVer o = pkg.wo.getObjectIdentifier();
+			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
 			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
 					resolveObjectIDs(wsid,
 							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
-				//oh ffs, name deleted again, recurse
-				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
+				//oh ffs, name deleted again, try again
+				return saveObjectAndNewVersion(wsid, objectid, name);
 			}
-			return saveObjectVersion(user, wsid, objID.get(o).getId(), pkg);
+			//save version via the id associated with our name which already exists
+			return objID.get(o);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		//TODO don't call this, have the saveObject method call it
-		return saveObjectVersion(user, wsid, objectid, pkg);
+		return new ResolvedMongoObjectID(wsid, newName, objectid);
 	}
 	
 	//TODO can get rid of this?
@@ -951,15 +912,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		//TODO batch updates when everything known to be ok
 		long newid = lastid - newobjects + 1;
 		//todo get counts and numbers
+		//TODO 1) make all save objects 2) increment all 3) batch save versions
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
-				ret.add(saveObjectAndNewVersion(user, wsidmongo, newid++, null, p));
+				final ResolvedMongoObjectID obj =
+						saveObjectAndNewVersion(wsidmongo, newid++, null);
+				p.name = obj.getName();
+				ret.add(saveObjectVersion(user, wsidmongo, obj.getId(), p));
 			} else if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
@@ -968,10 +932,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//we've already generated an id for this name
 				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				final ObjectMetaData m = saveObjectAndNewVersion(user, wsidmongo,
-						newid++, oi.getName(), p);
-				ret.add(m);
-				seenNames.put(oi.getName(), m.getObjectId());
+				final ResolvedMongoObjectID obj =
+						saveObjectAndNewVersion(wsidmongo, newid++, oi.getName());
+				p.name = obj.getName();
+				seenNames.put(obj.getName(), obj.getId());
+				ret.add(saveObjectVersion(user, wsidmongo, obj.getId(), p));
 			}
 		}
 		return ret;
@@ -1326,7 +1291,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-			ObjectMetaData md = testdb.saveObjectAndNewVersion(new WorkspaceUser("u"), rwsi, 3, "testobj", pkg);
+			ResolvedMongoObjectID r = testdb.saveObjectAndNewVersion(rwsi, 3, "testobj");
+			pkg.name = r.getName();
+			ObjectMetaData md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.getId(), pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
 	}
