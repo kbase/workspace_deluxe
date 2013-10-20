@@ -988,7 +988,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
 			}
 			
-			//TODO what happens if a piece of data is deleted after pulling the existing chksums? pull workspaces field, if empty do an upsert just in case
 			final List<TypeData> newdata = new ArrayList<TypeData>();
 			for (String md5: chksum.keySet()) {
 				if (existChksum.contains(md5)) {
@@ -1098,7 +1097,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				metaMongoArrayToHash(meta));
 	}
 	
-	//TODO provide the workspace name for error purposes
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
@@ -1154,19 +1152,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
 		for (final ObjectIDResolvedWS oid: nover.keySet()) {
-			if (exceptIfDeleted && 
-					(Boolean) ids.get(nover.get(oid)).get(Fields.PTR_DEL)) {
-				throw new NoSuchObjectException(String.format(
-						"Object %s in workspace %s has been deleted",
-						oid.getIdentifierString(),
-						oid.getWorkspaceIdentifier().getID()));
-			}
 			final ObjectIDResolvedWSNoVer o = nover.get(oid);
 			if (!ids.containsKey(o)) {
 				continue; //exceptIfMissing was false, and some were missing
 			}
 			final String name = (String) ids.get(o).get(Fields.PTR_NAME);
 			final long id = (Long) ids.get(o).get(Fields.PTR_ID);
+			if (exceptIfDeleted && (Boolean) ids.get(o).get(Fields.PTR_DEL)) {
+				throw new NoSuchObjectException(String.format(
+						"Object %s (name %s) in workspace %s has been deleted",
+						id, name, oid.getWorkspaceIdentifier().getID()));
+			}
 			if (oid.getVersion() != null) {
 				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(
 						oid.getWorkspaceIdentifier()), name, id,

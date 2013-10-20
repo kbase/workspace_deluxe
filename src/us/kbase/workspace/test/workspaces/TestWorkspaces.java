@@ -1044,7 +1044,7 @@ public class TestWorkspaces {
 					is("User bar may not undelete objects from workspace deleteundelete"));
 		}
 		ws.setObjectsDeleted(foo, obj1, true);
-		String err = String.format("Object obj in workspace %s has been deleted", wsid);
+		String err = String.format("Object 1 (name obj) in workspace %s has been deleted", wsid);
 		failToGetDeletedObjects(foo, objs, err);
 		failToGetDeletedObjects(foo, obj1, err);
 		failToGetDeletedObjects(foo, obj2, err);
@@ -1053,7 +1053,7 @@ public class TestWorkspaces {
 			ws.setObjectsDeleted(foo, obj2, true); //should have no effect
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
-					is("Object obj in workspace " + wsid + " has been deleted"));
+					is("Object 1 (name obj) in workspace " + wsid + " has been deleted"));
 		}
 		failToGetDeletedObjects(foo, objs, err);
 		failToGetDeletedObjects(foo, obj1, err);

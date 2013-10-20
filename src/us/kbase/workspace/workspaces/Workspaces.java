@@ -46,6 +46,7 @@ public class Workspaces {
 	//TODO copy object(s)
 	//TODO move objects(s) ? needed?
 	//TODO revert object
+	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get object changes since date (based on type collection and pointers collection

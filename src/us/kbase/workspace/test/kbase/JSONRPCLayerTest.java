@@ -751,7 +751,7 @@ public class JSONRPCLayerTest {
 			fail("got deleted object");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object myname in workspace " + wsid + " has been deleted"));
+					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
 		}
 		CLIENT1.undeleteObjects(loi);
 		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
@@ -782,7 +782,7 @@ public class JSONRPCLayerTest {
 			fail("got deleted object");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object myname in workspace " + wsid + " has been deleted"));
+					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
 		}
 		CLIENT1.saveObjects(soc);
 		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
