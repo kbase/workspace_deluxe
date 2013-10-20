@@ -571,7 +571,8 @@ public class QueryMethods {
 	ResolvedMongoWSID convertResolvedID(ResolvedWorkspaceID rwsi) {
 		if (!(rwsi instanceof ResolvedMongoWSID)) {
 			throw new RuntimeException(
-					"Passed incorrect implementation of ResolvedWorkspaceID");
+					"Passed incorrect implementation of ResolvedWorkspaceID:" +
+					(rwsi == null ? null : rwsi.getClass()));
 		}
 		return (ResolvedMongoWSID) rwsi;
 	}

@@ -593,55 +593,73 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				res.containsKey(allUsers));
 	}
 	
-	private static class ObjID {
-		public String name;
-		public long id;
-		
-		public ObjID(String name, long id) {
-			this.name = name;
-			this.id = id;
-		}
-
-		@Override
-		public String toString() {
-			return "ObjID [name=" + name + ", id=" + id + "]";
-		}
-	}
+//	private static class ObjID {
+//		public String name;
+//		public long id;
+//		
+//		public ObjID(String name, long id) {
+//			this.name = name;
+//			this.id = id;
+//		}
+//
+//		@Override
+//		public String toString() {
+//			return "ObjID [name=" + name + ", id=" + id + "]";
+//		}
+//	}
 	
-	private static final Set<String> FLDS_PTR_ID_NAME =
-			newHashSet(Fields.PTR_ID, Fields.PTR_NAME);
+//	private static final Set<String> FLDS_PTR_ID_NAME =
+//			newHashSet(Fields.PTR_ID, Fields.PTR_NAME);
 	
-	private Map<ObjectIDNoWSNoVer, ObjID> getObjectIDs(
+	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
 			final ResolvedMongoWSID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects) throws
 			WorkspaceCommunicationException {
 		
-		final Map<ObjectIDNoWSNoVer, ObjectIDResolvedWSNoVer> queryobjs = 
-				new HashMap<ObjectIDNoWSNoVer, ObjectIDResolvedWSNoVer>();
+		final Map<ObjectIDNoWSNoVer, ObjectIDResolvedWS> queryobjs = 
+				new HashMap<ObjectIDNoWSNoVer, ObjectIDResolvedWS>();
 		for (final ObjectIDNoWSNoVer o: objects) {
-			queryobjs.put(o, new ObjectIDResolvedWSNoVer(workspaceID, o));
+			queryobjs.put(o, new ObjectIDResolvedWS(workspaceID, o));
 		}
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> retobjs;
-		try { 
-			retobjs = query.queryObjects(
-					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
-					FLDS_PTR_ID_NAME, false);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res;
+		try {
+			res = resolveObjectIDs(
+					new HashSet<ObjectIDResolvedWS>(queryobjs.values()),
+					false, false);
 		} catch (NoSuchObjectException nsoe) {
 			throw new RuntimeException(
 					"Threw a NoSuchObjectException when explicitly told not to");
 		}
-		
-		final Map<ObjectIDNoWSNoVer, ObjID> goodIds =
-				new HashMap<ObjectIDNoWSNoVer, ObjID>();
+		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> ret = 
+				new HashMap<ObjectIDNoWSNoVer, ResolvedMongoObjectID>();
 		for (final ObjectIDNoWSNoVer o: objects) {
-			if (retobjs.containsKey(queryobjs.get(o))) {
-				final Map<String, Object> pointer =
-						retobjs.get(queryobjs.get(o));
-				goodIds.put(o, new ObjID((String) pointer.get(Fields.PTR_NAME),
-							 (Long) pointer.get(Fields.PTR_ID)));
+			if (res.containsKey(queryobjs.get(o))) {
+				ret.put(o, res.get(queryobjs.get(o)));
 			}
 		}
-		return goodIds;
+		return ret;
+		
+//		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> retobjs;
+//		try { 
+//			retobjs = query.queryObjects(
+//					new HashSet<ObjectIDResolvedWSNoVer>(queryobjs.values()),
+//					FLDS_PTR_ID_NAME, false);
+//		} catch (NoSuchObjectException nsoe) {
+//			throw new RuntimeException(
+//					"Threw a NoSuchObjectException when explicitly told not to");
+//		}
+//		
+//		final Map<ObjectIDNoWSNoVer, ObjID> goodIds =
+//				new HashMap<ObjectIDNoWSNoVer, ObjID>();
+//		for (final ObjectIDNoWSNoVer o: objects) {
+//			if (retobjs.containsKey(queryobjs.get(o))) {
+//				final Map<String, Object> pointer =
+//						retobjs.get(queryobjs.get(o));
+//				goodIds.put(o, new ObjID((String) pointer.get(Fields.PTR_NAME),
+//							 (Long) pointer.get(Fields.PTR_ID)));
+//			}
+//		}
+//		return goodIds;
 	}
 	
 	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
@@ -790,13 +808,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
 			}
 			final ObjectIDNoWSNoVer o = pkg.wo.getObjectIdentifier();
-			final Map<ObjectIDNoWSNoVer, ObjID> objID = getObjectIDs(wsid,
-					new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
+			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
+					resolveObjectIDs(wsid,
+							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, recurse
 				return saveObjectAndNewVersion(user, wsid, objectid, name, pkg);
 			}
-			return saveObjectVersion(user, wsid, objID.get(o).id, pkg);
+			return saveObjectVersion(user, wsid, objID.get(o).getId(), pkg);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -899,8 +918,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				newobjects++;
 			}
 		}
-		final Map<ObjectIDNoWSNoVer, ObjID> objIDs = getObjectIDs(wsidmongo,
-				idToPkg.keySet());
+		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objIDs =
+				resolveObjectIDs(wsidmongo, idToPkg.keySet());
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				if (o.getId() != null) {
@@ -914,7 +933,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			} else {
 				for (ObjectSavePackage pkg: idToPkg.get(o)) {
-					pkg.name = objIDs.get(o).name;
+					pkg.name = objIDs.get(o).getName();
 				}
 			}
 		}
@@ -944,7 +963,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			} else if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).id, p));
+				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).getId(), p));
 			} else if (seenNames.containsKey(oi.getName())) {
 				//we've already generated an id for this name
 				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
@@ -1176,6 +1195,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						oid.getWorkspaceIdentifier().getID()));
 			}
 			final ObjectIDResolvedWSNoVer o = nover.get(oid);
+			if (!ids.containsKey(o)) {
+				continue; //exceptIfMissing was false, and some were missing
+			}
 			final String name = (String) ids.get(o).get(Fields.PTR_NAME);
 			final long id = (Long) ids.get(o).get(Fields.PTR_ID);
 			if (oid.getVersion() != null) {
@@ -1189,25 +1211,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return ret;
 	}
-	
-//	private Map<ResolvedMongoWSID, List<Long>> getObjectIDsByWS(
-//			final Set<ObjectIDResolvedWS> objectIDs,
-//			final boolean exceptIfDeleted)
-//			throws NoSuchObjectException, WorkspaceCommunicationException {
-//		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
-//				resolveObjectIDs(objectIDs, exceptIfDeleted, true);
-//		final Map<ResolvedMongoWSID, List<Long>> wsToIDs = 
-//				new HashMap<ResolvedMongoWSID, List<Long>>();
-//		for (final ObjectIDResolvedWS o: objectIDs) {
-//			final ResolvedMongoWSID ws = query.convertResolvedID(
-//					o.getWorkspaceIdentifier());
-//			if (!wsToIDs.containsKey(ws)) {
-//				wsToIDs.put(ws, new ArrayList<Long>());
-//			}
-//			wsToIDs.get(ws).add(ids.get(o).getId());
-//		}
-//		return wsToIDs;
-//	}
 
 	@Override
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
@@ -1225,7 +1228,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			toModify.get(ws).add(ids.get(o).getId());
 		}
-//				getObjectIDsByWS(objectIDs, delete);
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedMongoWSID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);

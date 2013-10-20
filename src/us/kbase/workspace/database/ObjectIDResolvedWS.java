@@ -9,7 +9,27 @@ public class ObjectIDResolvedWS {
 	private final Long id;
 	private final Integer version;
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name) {
+	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
+			final ObjectIDNoWSNoVer oid) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (oid == null) {
+			throw new IllegalArgumentException("oid cannot be null");
+		}
+		this.rwsi = rwsi;
+		if (oid.getId() == null) {
+			this.name = oid.getName();
+			this.id = null;
+		} else {
+			this.id = oid.getId();
+			this.name = null;
+		}
+		this.version = null;
+	}
+	
+	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
+			final String name) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -20,7 +40,8 @@ public class ObjectIDResolvedWS {
 		this.version = null;
 	}
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, String name, int version) {
+	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
+			final String name, final int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -34,7 +55,7 @@ public class ObjectIDResolvedWS {
 		this.version = version;
 	}
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, long id) {
+	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi, final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -47,7 +68,8 @@ public class ObjectIDResolvedWS {
 		this.version = null;
 	}
 	
-	public ObjectIDResolvedWS(ResolvedWorkspaceID rwsi, long id, int version) {
+	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi, final long id,
+			final int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -62,7 +84,7 @@ public class ObjectIDResolvedWS {
 		this.id = id;
 		this.version = version;
 	}
-	
+
 	public ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
