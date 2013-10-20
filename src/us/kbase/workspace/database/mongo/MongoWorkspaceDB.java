@@ -103,8 +103,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final FindAndModify updateWScounter;
 	private final TypedObjectValidator typeValidator;
 	
-	private final Map<TypeDefId, Boolean> typeIndexEnsured = 
-			new HashMap<TypeDefId, Boolean>();
+	private final Set<String> typeIndexEnsured = new HashSet<String>();
 	
 	//TODO constants class
 
@@ -175,6 +174,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								typeDBdir == null ? null : new File(typeDBdir),
 								new UserInfoProviderForTests(null), kidlpath));
 		ensureIndexes();
+		ensureTypeIndexes();
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
@@ -198,6 +198,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								typeDBdir == null ? null : new File(typeDBdir),
 								new UserInfoProviderForTests(null), kidlpath));
 		ensureIndexes();
+		ensureTypeIndexes();
 	}
 	
 	private void ensureIndexes() {
@@ -218,20 +219,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private void ensureTypeIndexes(final TypeDefId type) {
-		if (typeIndexEnsured.containsKey(type)) {
+	private void ensureTypeIndexes() {
+		for (final String col: wsmongo.getCollectionNames()) {
+			if (col.startsWith(TypeData.TYPE_COL_PREFIX)) {
+				ensureTypeIndex(col);
+			}
+		}
+	}
+	
+	private void ensureTypeIndex(final TypeDefId type) {
+		ensureTypeIndex(TypeData.getTypeCollection(type));
+	}
+
+	private void ensureTypeIndex(String col) {
+		if (typeIndexEnsured.contains(col)) {
 			return;
 		}
-		String col = TypeData.getTypeCollection(type);
 		final DBObject chksum = new BasicDBObject();
 		chksum.put(Fields.TYPE_CHKSUM, 1);
 		final DBObject unique = new BasicDBObject();
 		unique.put(IDX_UNIQ, 1);
 		wsmongo.getCollection(col).ensureIndex(chksum, unique);
-		final DBObject workspaces = new BasicDBObject();
-		workspaces.put(Fields.TYPE_WS, 1);
-		wsmongo.getCollection(col).ensureIndex(workspaces);
-		typeIndexEnsured.put(type, true);
+		typeIndexEnsured.add(col);
 	}
 	
 	private static FindAndModify buildCounterQuery(final Jongo j) {
@@ -954,7 +963,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkgByType.get(p.td.getType()).add(p);
 		}
 		for (final TypeDefId type: pkgByType.keySet()) {
-			ensureTypeIndexes(type); //TODO do this on adding type and on startup
+			ensureTypeIndex(type);
 			final String col = TypeData.getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
@@ -1012,12 +1021,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		//TODO save provenance as batch and add prov id to pkgs
 	}
-	
-//	private String getTypeCollection(final AbsoluteTypeDefId type) {
-//		final String t = type.getType().getTypeString() + "-" +
-//				type.getMajorVersion();
-//		return "type_" + DigestUtils.md5Hex(t);
-//	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			final Set<ObjectIDResolvedWS> objectIDs) throws

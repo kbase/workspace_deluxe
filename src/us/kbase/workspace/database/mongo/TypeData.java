@@ -15,6 +15,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class TypeData {
 	
 	@JsonIgnore
+	public static final String TYPE_COL_PREFIX = "type_";
+	
+	@JsonIgnore
 	private String data = null;
 	
 	//these attributes are actually saved in mongo
@@ -41,7 +44,7 @@ public class TypeData {
 	}
 	
 	public String getTypeCollection() {
-		return "type_" + DigestUtils.md5Hex(this.type);
+		return TYPE_COL_PREFIX + DigestUtils.md5Hex(this.type);
 	}
 	
 	public static String getTypeCollection(final TypeDefId type) {
@@ -51,7 +54,7 @@ public class TypeData {
 		}
 		final String t = type.getType().getTypeString() +
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
-		return "type_" + DigestUtils.md5Hex(t);
+		return TYPE_COL_PREFIX + DigestUtils.md5Hex(t);
 	}
 
 	public String getData() {
