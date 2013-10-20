@@ -4,9 +4,9 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class TypeDefId {
 	
-	private final static String TYPE_VER_SEP = "-";
-	private final static String TYPE_SEP = ".";
-	private final static String VER_SEP = ".";
+	public final static String TYPE_VER_SEP = "-";
+	public final static String TYPE_SEP = ".";
+	public final static String VER_SEP = ".";
 	private final static String TYPE_SEP_REGEX = "\\" + TYPE_SEP;
 	private final static String VER_SEP_REGEX = "\\" + VER_SEP;
 	

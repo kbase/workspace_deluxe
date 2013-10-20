@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
@@ -104,8 +103,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final FindAndModify updateWScounter;
 	private final TypedObjectValidator typeValidator;
 	
-	private final Map<AbsoluteTypeDefId, Boolean> typeIndexEnsured = 
-			new HashMap<AbsoluteTypeDefId, Boolean>();
+	private final Map<TypeDefId, Boolean> typeIndexEnsured = 
+			new HashMap<TypeDefId, Boolean>();
 	
 	//TODO constants class
 
@@ -219,11 +218,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private void ensureTypeIndexes(final AbsoluteTypeDefId type) {
+	private void ensureTypeIndexes(final TypeDefId type) {
 		if (typeIndexEnsured.containsKey(type)) {
 			return;
 		}
-		String col = getTypeCollection(type);
+		String col = TypeData.getTypeCollection(type);
 		final DBObject chksum = new BasicDBObject();
 		chksum.put(Fields.TYPE_CHKSUM, 1);
 		final DBObject unique = new BasicDBObject();
@@ -671,7 +670,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		pointer.put(Fields.VER_CREATEDATE, created);
 		pointer.put(Fields.VER_REF, new ArrayList<Object>()); //TODO this might be a really bad idea
 		pointer.put(Fields.VER_PROV, null); //TODO add objectID
-		pointer.put(Fields.VER_TYPE, pkg.td.getType().getTypeString());
+		pointer.put(Fields.VER_TYPE, pkg.wo.getType().getTypeString());
 		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
 		pointer.put(Fields.VER_RVRT, null);
 
@@ -682,7 +681,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"There was a problem communicating with the database", me);
 		}
 		return new MongoObjectMeta(objectid, pkg.name,
-				pkg.td.getType().getTypeString(), created, ver, user, wsid,
+				pkg.wo.getType().getTypeString(), created, ver, user, wsid,
 				pkg.td.getChksum(), pkg.td.getSize());
 	}
 	
@@ -946,17 +945,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
-		final Map<AbsoluteTypeDefId, List<ObjectSavePackage>> pkgByType =
-				new HashMap<AbsoluteTypeDefId, List<ObjectSavePackage>>();
+		final Map<TypeDefId, List<ObjectSavePackage>> pkgByType =
+				new HashMap<TypeDefId, List<ObjectSavePackage>>();
 		for (final ObjectSavePackage p: data) {
 			if (pkgByType.get(p.td.getType()) == null) {
 				pkgByType.put(p.td.getType(), new ArrayList<ObjectSavePackage>());
 			}
 			pkgByType.get(p.td.getType()).add(p);
 		}
-		for (final AbsoluteTypeDefId type: pkgByType.keySet()) {
+		for (final TypeDefId type: pkgByType.keySet()) {
 			ensureTypeIndexes(type); //TODO do this on adding type and on startup
-			final String col = getTypeCollection(type);
+			final String col = TypeData.getTypeCollection(type);
 			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
 			for (ObjectSavePackage p: pkgByType.get(type)) {
 				chksum.put(p.td.getChksum(), p.td);
@@ -1014,11 +1013,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO save provenance as batch and add prov id to pkgs
 	}
 	
-	private String getTypeCollection(final AbsoluteTypeDefId type) {
-		final String t = type.getType().getTypeString() + "-" +
-				type.getMajorVersion();
-		return "type_" + DigestUtils.md5Hex(t);
-	}
+//	private String getTypeCollection(final AbsoluteTypeDefId type) {
+//		final String t = type.getType().getTypeString() + "-" +
+//				type.getMajorVersion();
+//		return "type_" + DigestUtils.md5Hex(t);
+//	}
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			final Set<ObjectIDResolvedWS> objectIDs) throws

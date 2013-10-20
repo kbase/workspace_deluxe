@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -31,19 +32,34 @@ public class TypeData {
 			throw new IllegalArgumentException("type may not be null");
 		}
 		this.data = data;
-		this.type = type.getTypeString();
+		this.type = type.getType().getTypeString() +
+				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		this.size = data.length();
 		this.chksum = DigestUtils.md5Hex(data);
 		
+	}
+	
+	public String getTypeCollection() {
+		return "type_" + DigestUtils.md5Hex(this.type);
+	}
+	
+	public static String getTypeCollection(final TypeDefId type) {
+		if (type.getMajorVersion() == null) {
+			throw new IllegalArgumentException(
+					"Cannot get a type collection for a typedef without a major version");
+		}
+		final String t = type.getType().getTypeString() +
+				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
+		return "type_" + DigestUtils.md5Hex(t);
 	}
 
 	public String getData() {
 		return data;
 	}
 	
-	public AbsoluteTypeDefId getType() {
-		return AbsoluteTypeDefId.fromAbsoluteTypeString(type);
+	public TypeDefId getType() {
+		return TypeDefId.fromTypeString(type);
 	}
 	
 	public String getChksum() {
