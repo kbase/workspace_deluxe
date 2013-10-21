@@ -36,6 +36,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -391,7 +392,13 @@ public class WorkspaceServer extends JsonServerServlet {
 			count++;
 		}
 		
-		List<ObjectMetaData> meta = ws.saveObjects(getUser(authPart), wsi, woc); 
+		final List<ObjectMetaData> meta;
+		try {
+			meta = ws.saveObjects(getUser(authPart), wsi, woc); 
+		} catch (NoSuchModuleException nsme) {
+			throw new NoSuchModuleException("There is no type module " +
+					nsme.getLocalizedMessage(), nsme);
+		}
 		returnVal = au.objMetaToTuple(meta);
         //END save_objects
         return returnVal;

@@ -30,6 +30,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.workspace.CompileTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -64,6 +65,11 @@ public class JSONRPCLayerTest {
 	static {
 		DATE_FORMAT.setLenient(false);
 	}
+	
+	public static final String SAFE_TYPE_NAME = "SomeModule.AType";
+	public static final String SAFE_TYPE_VER = "0.1";
+	public static final String SAFE_TYPE_FULL = SAFE_TYPE_NAME + "-" +
+			SAFE_TYPE_VER;
 	
 	private static class ServerThread extends Thread {
 		
@@ -109,6 +115,7 @@ public class JSONRPCLayerTest {
 		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
 		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
 		ws.add("backend-secret", "");
+		ws.add("ws-admin", USER2);
 		ini.store(iniFile);
 		
 		//set up env
@@ -141,6 +148,16 @@ public class JSONRPCLayerTest {
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
 		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
+		//set up a basic type for test use that doesn't worry about type checking
+		CLIENT1.requestModuleOwnership("SomeModule");
+		Map<String, String> releasemod = new HashMap<String, String>();
+		releasemod.put("command", "approveModRequest");
+		releasemod.put("module", "SomeModule");
+		CLIENT2.administer(new UObject(releasemod));
+		CLIENT1.compileTypespec(new CompileTypespecParams()
+				.withDryrun(0L)
+				.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
+				.withNewTypes(Arrays.asList("AType")));
 	}
 	
 	@AfterClass
@@ -307,7 +324,7 @@ public class JSONRPCLayerTest {
 		
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
-				.withType("SomeRandom.Type"));
+				.withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER));
 		try {
 			CLIENT2.saveObjects(new SaveObjectsParams()
 				.withWorkspace("permspriv").withObjects(objects));
@@ -520,31 +537,34 @@ public class JSONRPCLayerTest {
 		}
 		
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType("Foo.Bar")); // will be "1"
+				.withMetadata(meta).withType(SAFE_TYPE_NAME)
+				.withTver(SAFE_TYPE_VER)); // will be "1"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType("Genome.Wugga").withTver("2")); // will be "2"
+				.withMetadata(meta).withType(SAFE_TYPE_NAME)
+				.withTver(SAFE_TYPE_VER)); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
+				.withMetadata(meta2).withType(SAFE_TYPE_NAME)
+				.withTver(SAFE_TYPE_VER)
 				.withName("foo")); 
 		
 		List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> retmet =
 				CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(3));
-		checkMeta(retmet.get(0), 1, "1", "Foo.Bar-0.0", 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(1), 2, "2", "Genome.Wugga-2.0", 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(2), 3, "foo", "Wiggle.Wugga-2.1", 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkMeta(retmet.get(0), 1, "1", SAFE_TYPE_FULL, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(1), 2, "2", SAFE_TYPE_FULL, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(2), 3, "foo", SAFE_TYPE_FULL, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType("Wiggle.Wugga").withTver("2.1")
+				.withMetadata(meta2).withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER)
 				.withObjid(2L));
 		
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
-		checkMeta(retmet.get(0), 2, "2", "Wiggle.Wugga-2.1", 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkMeta(retmet.get(0), 2, "2", SAFE_TYPE_FULL, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
@@ -554,7 +574,7 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
-		checkSavedObjects(loi, 2, "2", "Genome.Wugga-2.0", 1, USER1,
+		checkSavedObjects(loi, 2, "2", SAFE_TYPE_FULL, 1, USER1,
 				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
 		loi.clear();
@@ -575,7 +595,7 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 		
-		checkSavedObjects(loi, 2, "2", "Wiggle.Wugga-2.1", 2, USER1,
+		checkSavedObjects(loi, 2, "2", SAFE_TYPE_FULL, 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
 		try {
@@ -739,7 +759,7 @@ public class JSONRPCLayerTest {
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("delundel")
 				.withObjects(objects);
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withType("Foo.Bar").withName("myname"));
+				.withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER).withName("myname"));
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
 				.withRef("delundel/myname"));

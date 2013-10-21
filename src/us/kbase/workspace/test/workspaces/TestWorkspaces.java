@@ -76,6 +76,9 @@ public class TestWorkspaces {
 	public static final WorkspaceUser BUSER = new WorkspaceUser("b");
 	public static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	public static final AllUsers STARUSER = new AllUsers('*');
+	
+	public static final TypeDefId SAFE_TYPE =
+			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
@@ -125,6 +128,15 @@ public class TestWorkspaces {
 				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
 		for (int i = 0; i < 17; i++) {
 			LONG_TEXT += LONG_TEXT_PART;
+		}
+		//make a general spec that tests that don't worry about typechecking can use
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		for (Integer i: Arrays.asList(0,1)) {
+			TEST_WORKSPACES[i].requestModuleRegistration(foo, "SomeModule");
+			TEST_WORKSPACES[i].resolveModuleRegistration("SomeModule", true);
+			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
+					"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
+					Arrays.asList("AType"), null, null, false, null);
 		}
 	}
 	
@@ -500,7 +512,6 @@ public class TestWorkspaces {
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
 		Provenance p = new Provenance("kbasetest2");
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		
@@ -525,19 +536,19 @@ public class TestWorkspaces {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata2, t, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3-1"), savedata, t, meta, p, false));
-		objects.add(new WorkspaceSaveObject(savedata2, t, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(savedata, t, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata, SAFE_TYPE, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata2, SAFE_TYPE, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3-1"), savedata, SAFE_TYPE, meta, p, false));
+		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, p, false));
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjMeta(objmeta.get(0), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23);
-		checkObjMeta(objmeta.get(1), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24);
-		checkObjMeta(objmeta.get(2), 2, "3-1", t.getTypeString(), 1, foo, readid, chksum1, 23);
-		checkObjMeta(objmeta.get(3), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24);
-		checkObjMeta(objmeta.get(4), 4, "4", t.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(1), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24);
+		checkObjMeta(objmeta.get(2), 2, "3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(3), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24);
+		checkObjMeta(objmeta.get(4), 4, "4", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
@@ -554,30 +565,30 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, 3, 1));
 		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
 		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(foo, loi);
-		checkObjMeta(usermeta.get(0), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(1), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(2), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(3), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(4), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(5), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(6), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(7), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(8), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(9), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(10), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(11), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(0).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(1).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(2).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(3).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(4).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(5).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(6).getMeta(), 1, "3", t.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(7).getMeta(), 1, "3", t.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(8).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(9).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(10).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(11).getMeta(), 3, "3-2", t.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(0), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(1), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(2), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(3), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(4), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(5), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(6), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(7), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(8), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(9), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(10), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(11), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(0).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(1).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(2).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(3).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(4).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(5).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(6).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(7).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(8).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(9).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(10).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(11).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
 		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
@@ -594,12 +605,12 @@ public class TestWorkspaces {
 		ws.saveObjects(foo, priv, objects);
 		
 		objects.clear();
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, t, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23);
 		usermeta = ws.getObjectMetaData(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
-		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
+		checkObjMeta(usermeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
 		
 		ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
 		try {
@@ -619,9 +630,9 @@ public class TestWorkspaces {
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjMeta(usermeta.get(0), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		checkObjMeta(usermeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
 		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjMeta(retdata.get(0).getMeta(), 2, "3-1", t.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		checkObjMeta(retdata.get(0).getMeta(), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
 		try {
 			ws.saveObjects(bar, priv, objects);
@@ -632,7 +643,7 @@ public class TestWorkspaces {
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objmeta = ws.saveObjects(bar, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "3-1", t.getTypeString(), 3, bar, privid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
 	@Test
@@ -649,10 +660,9 @@ public class TestWorkspaces {
 		for (int i = 0; i < 18; i++) {
 			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
 		}
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("bigmeta"), savedata, t, meta, null, false)));
+					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -660,7 +670,7 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, t, meta, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, meta, null, false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -668,8 +678,8 @@ public class TestWorkspaces {
 		}
 		
 //		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, t, meta, null, false));
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, SAFE_TYPE, smallmeta, null, false));
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, SAFE_TYPE, meta, null, false));
 //		try {
 //			ws.saveObjects(foo, read, objects);
 //			fail("saved object with > 16Mb metadata");
@@ -678,8 +688,8 @@ public class TestWorkspaces {
 //					is("Metadata is > 16000 bytes"));
 //		}
 //		objects.clear();
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, t, smallmeta, null, false));
-//		objects.add(new WorkspaceSaveObject(savedata, t, meta, null, false));
+//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, SAFE_TYPE, smallmeta, null, false));
+//		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, null, false));
 //		try {
 //			ws.saveObjects(foo, read, objects);
 //			fail("saved object with > 16Mb metadata");
@@ -696,10 +706,9 @@ public class TestWorkspaces {
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		JsonNode savedata = mapper.valueToTree(data);
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, t, null, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, null, null, false)));
 			fail("saved object with non-existant id");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
@@ -716,10 +725,9 @@ public class TestWorkspaces {
 		Object data = new StringReader("foo");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("jframe"), data, t, meta, null, false)));
+					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE, meta, null, false)));
 			fail("saved unserializable object");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -736,9 +744,8 @@ public class TestWorkspaces {
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
 		JsonNode savedata = mapper.valueToTree(data);
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"), savedata, t, null, null, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"), savedata, SAFE_TYPE, null, null, false));
 		ws.saveObjects(foo, read, objects);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
@@ -1010,14 +1017,13 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
 		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
-		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
 		data2.put("data", "2");
-		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, t, null, null, false);
+		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, null, false);
 		ws.saveObjects(foo, read, Arrays.asList(sobj1,
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, t, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE, null, null, false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
 		
@@ -1072,7 +1078,7 @@ public class TestWorkspaces {
 
 		//save should undelete
 		ws.saveObjects(foo, read, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, t, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, null, false)));
 		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
 		idToData.put(o3, data1);
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());

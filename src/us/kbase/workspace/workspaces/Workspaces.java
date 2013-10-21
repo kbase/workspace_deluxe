@@ -10,10 +10,14 @@ import java.util.Set;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
@@ -204,7 +208,9 @@ public class Workspaces {
 			final List<WorkspaceSaveObject> objects) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
-			NoSuchWorkspaceException {
+			NoSuchWorkspaceException, NoSuchTypeException,
+			NoSuchModuleException, InstanceValidationException,
+			BadJsonSchemaDocumentException, TypeStorageException {
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
@@ -212,20 +218,31 @@ public class Workspaces {
 				"write to");
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
+		final TypedObjectValidator val = db.getTypeValidator();
 		//this method must maintain the order of the objects
-//		int objcount = 1;
+		//TODO tests for validation of objects
+		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
+			//TODO check size < 1 MB
+			final TypeDefId inctype = wo.getType();
+			final TypedObjectValidationReport rep;
+			try {
+				rep = val.validate(wo.getData(), inctype);
+			} catch (InstanceValidationException ive) {
+				throw new InstanceValidationException(
+						String.format("Error validating object #%s, id %s: %s",
+								objcount,
+								wo.getObjectIdentifier().getIdentifierString(),
+								ive.getLocalizedMessage()), ive);
+			}
+//			final String[] refs = rep.getListOfIdReferences();
+			
 //			final WorkspaceObjectID oi = wo.getObjectIdentifier();
 //			final String objErrId = getObjectErrorId(oi, objcount);
 //			final String objerrpunc = oi == null ? "" : ",";
-			 //TODO replace this with value returned from validator
-			final AbsoluteTypeDefId type = new AbsoluteTypeDefId(wo.getType().getType(),
-					wo.getType().getMajorVersion() == null ? 0 : wo.getType().getMajorVersion(),
-					wo.getType().getMinorVersion() == null ? 0 : wo.getType().getMinorVersion());
-			//TODO validate objects by type
-			//TODO get reference list by object
+			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
 			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
-//			objcount++;
+			objcount++;
 		}
 		//TODO resolve references (std resolve, resolve to IDs, no resolution)
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
