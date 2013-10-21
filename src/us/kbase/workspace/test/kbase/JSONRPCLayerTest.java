@@ -322,8 +322,10 @@ public class JSONRPCLayerTest {
 				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
 		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv")); //should work, now readable
 		
+		Map<String, String> data = new HashMap<String, String>();
+		data.put("foo", "bar");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
-		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
+		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER));
 		try {
 			CLIENT2.saveObjects(new SaveObjectsParams()

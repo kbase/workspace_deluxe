@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -23,6 +25,8 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -209,8 +213,9 @@ public class Workspaces {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, NoSuchTypeException,
-			NoSuchModuleException, InstanceValidationException,
-			BadJsonSchemaDocumentException, TypeStorageException {
+			NoSuchModuleException, TypeStorageException,
+			TypedObjectValidationException,
+			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
@@ -223,17 +228,16 @@ public class Workspaces {
 		//TODO tests for validation of objects
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
-			//TODO check size < 1 MB
-			final TypeDefId inctype = wo.getType();
-			final TypedObjectValidationReport rep;
-			try {
-				rep = val.validate(wo.getData(), inctype);
-			} catch (InstanceValidationException ive) {
-				throw new InstanceValidationException(
-						String.format("Error validating object #%s, id %s: %s",
-								objcount,
-								wo.getObjectIdentifier().getIdentifierString(),
-								ive.getLocalizedMessage()), ive);
+			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
+			final TypedObjectValidationReport rep =
+					val.validate(wo.getData(), wo.getType());
+			if (!rep.isInstanceValid()) {
+				final String[] e = rep.getErrorMessages();
+				final String err = StringUtils.join(e, "\n");
+				throw new TypedObjectValidationException(String.format(
+						"Object %s failed type checking:\n", objcount + 
+						(oid == null ? "" :
+						", id " + oid.getIdentifierString())) + err);
 			}
 //			final String[] refs = rep.getListOfIdReferences();
 			
@@ -244,6 +248,7 @@ public class Workspaces {
 			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
 			objcount++;
 		}
+		//TODO check size < 1 MB
 		//TODO resolve references (std resolve, resolve to IDs, no resolution)
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
 		//TODO rewrite references
