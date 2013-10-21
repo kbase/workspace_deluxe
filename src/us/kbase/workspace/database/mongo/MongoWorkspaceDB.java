@@ -920,9 +920,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		/*  alternate impl: 1) make all save objects 2) increment all version
+		 *  counters 3) batch save versions
+		 *  This probably won't help much. Firstly, saving the same object
+		 *  multiple times (e.g. save over the same object in the same
+		 *  saveObjects call) is going to be a rare op - who wants to do that?
+		 *  Hence batching up the version increments is probably not going to
+		 *  help much.
+		 *  Secondly, the write lock is on a per document basis, so batching
+		 *  writes has no effect on write locking.
+		 *  That means that the gain from batching writes is removal of the 
+		 *  flight time to/from the server between each object. This may
+		 *  be significant for many small objects, but is probably
+		 *  insignificant for a few objects, or many large objects.
+		 *  Summary: probably not worth the trouble and increase in code
+		 *  complexity.
+		 */
 		long newid = lastid - newobjects + 1;
-		//todo get counts and numbers
-		//TODO 1) make all save objects 2) increment all 3) batch save versions
 		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
@@ -970,8 +984,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				chksum.put(p.td.getChksum(), p.td);
 			}
 			final DBObject query = new BasicDBObject();
-			final DBObject inchk = new BasicDBObject();
-			inchk.put("$in", new ArrayList<String>(chksum.keySet()));
+			final DBObject inchk = new BasicDBObject(
+					"$in", new ArrayList<String>(chksum.keySet()));
 			query.put(Fields.TYPE_CHKSUM, inchk);
 			final DBObject proj = new BasicDBObject();
 			proj.put(Fields.TYPE_CHKSUM, 1);
@@ -1135,7 +1149,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return resolveObjectIDs(objectIDs, true, true);
 	}
 	
-	//TODO temp function, unify functions
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted, final boolean exceptIfMissing)

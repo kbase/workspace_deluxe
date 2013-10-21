@@ -31,6 +31,8 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
+	//TODO query multiple workspaces at once with $in operator and $ors for objects
+	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final AllUsers allUsers;
@@ -313,9 +315,7 @@ public class QueryMethods {
 	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
 			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
-		//nested or queries are slow per the mongo docs so just query one
-		//workspace at a time. If profiling shows this is slow investigate
-		//further
+
 		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids = 
 			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
 		final Map<ResolvedMongoWSID, List<Long>> idsNoVer = 
@@ -340,22 +340,18 @@ public class QueryMethods {
 			}
 		}
 		
-		
-		final Map<ResolvedMongoWSID, Map<Long, Integer>> latestIds = 
-				new HashMap<ResolvedMongoWSID, Map<Long, Integer>>();
+		final Map<ResolvedMongoWSID, Map<Long, Integer>> latestIds =
+				getLatestVersions(idsNoVer);
 		
 		for (final ResolvedMongoWSID rwsi: idsNoVer.keySet()) {
-			final Map<Long, Integer> latest =
-					getLatestVersions(rwsi, idsNoVer.get(rwsi));
-			latestIds.put(rwsi, latest);
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
 			}
-			for (final Long oid: latest.keySet()) {
+			for (final Long oid: latestIds.get(rwsi).keySet()) {
 				if (ids.get(rwsi).get(oid) == null) {
 					ids.get(rwsi).put(oid, new LinkedList<Integer>());
 				}
-				ids.get(rwsi).get(oid).add(latest.get(oid));
+				ids.get(rwsi).get(oid).add(latestIds.get(rwsi).get(oid));
 			}
 		}
 		
@@ -396,6 +392,9 @@ public class QueryMethods {
 		fields.add(Fields.VER_ID);
 		fields.add(Fields.VER_VER);
 		//disgusting. need to do better.
+		//nested or queries are slow per the mongo docs so just query one
+		//workspace at a time. If profiling shows this is slow investigate
+		//further
 		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
 			ret = new HashMap<ResolvedMongoWSID, Map<Long,Map<Integer,Map<String,Object>>>>();
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
@@ -421,14 +420,27 @@ public class QueryMethods {
 		}
 		return ret;
 	}
-
-	private Map<Long, Integer> getLatestVersions(final ResolvedMongoWSID ws,
-			final List<Long> ids) throws WorkspaceCommunicationException {
-		final DBObject query = new BasicDBObject(
-				Fields.VER_ID, new BasicDBObject("$in", ids));
-		query.put(Fields.VER_WS_ID, ws.getID());
-		final DBObject group = new BasicDBObject(Fields.MONGO_ID,
-				"$" + Fields.VER_ID);
+	
+	private Map<ResolvedMongoWSID, Map<Long, Integer>> getLatestVersions(
+			final Map<ResolvedMongoWSID, List<Long>> ids)
+			throws WorkspaceCommunicationException {
+		final Map<ResolvedMongoWSID, Map<Long, Integer>> ret =
+				new HashMap<ResolvedMongoWSID, Map<Long, Integer>>();
+		if (ids.isEmpty()) {
+			return ret;
+		}
+		final List<DBObject> orquery = new LinkedList<DBObject>();
+		for (final ResolvedMongoWSID wsid: ids.keySet()) {
+			final DBObject query = new BasicDBObject(
+					Fields.VER_ID, new BasicDBObject("$in", ids.get(wsid)));
+			query.put(Fields.VER_WS_ID, wsid.getID());
+			orquery.add(query);
+		}
+		final DBObject query = new BasicDBObject("$or", orquery);
+		final DBObject groupid = new BasicDBObject(
+				Fields.VER_WS_ID, "$" + Fields.VER_WS_ID);
+		groupid.put(Fields.VER_ID, "$" + Fields.VER_ID);
+		final DBObject group = new BasicDBObject(Fields.MONGO_ID, groupid);
 		group.put(Fields.VER_VER,
 				new BasicDBObject("$max", "$" + Fields.VER_VER));
 		final AggregationOutput mret;
@@ -440,14 +452,18 @@ public class QueryMethods {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final Map<Long, Integer> ret = new HashMap<Long, Integer>();
 		for (DBObject o: mret.results()) {
-			ret.put((Long) o.get(Fields.MONGO_ID),
+			final DBObject id = (DBObject) o.get(Fields.MONGO_ID);
+			final ResolvedMongoWSID rwsi = new ResolvedMongoWSID(
+					(Long) id.get(Fields.VER_WS_ID));
+			if (!ret.containsKey(rwsi)) {
+				ret.put(rwsi, new HashMap<Long, Integer>());
+			}
+			ret.get(rwsi).put((Long) id.get(Fields.VER_ID),
 					(Integer) o.get(Fields.VER_VER));
 		}
 		return ret;
 	}
-
 
 	List<Map<String, Object>> queryCollection(final String collection,
 			final String query, final Set<String> fields) throws
