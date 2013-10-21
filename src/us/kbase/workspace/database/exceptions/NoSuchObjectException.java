@@ -1,16 +1,25 @@
 package us.kbase.workspace.database.exceptions;
 
+import us.kbase.workspace.database.ObjectIdentifier;
+
 /** 
  * Thrown when the requested workspace doesn't exist.
  * @author gaprice@lbl.gov
  *
  */
-public class NoSuchObjectException extends WorkspaceDBException {
+public class NoSuchObjectException extends WorkspaceDBException { //InaccessibleObjectException {
 
 	private static final long serialVersionUID = 1L;
 	
-	public NoSuchObjectException() { super(); }
-	public NoSuchObjectException(String message) { super(message); }
-	public NoSuchObjectException(String message, Throwable cause) { super(message, cause); }
-	public NoSuchObjectException(Throwable cause) { super(cause); }
+	public NoSuchObjectException(final String message//,
+//			final ObjectIdentifier oi) {
+			) {
+		super(message); //, oi);
+	}
+	
+	public NoSuchObjectException(final String message,
+			//final ObjectIdentifier oi,
+			final Throwable cause) {
+		super(message, cause); //oi, cause);
+	}
 }

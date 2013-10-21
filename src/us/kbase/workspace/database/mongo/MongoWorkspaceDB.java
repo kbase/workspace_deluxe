@@ -443,7 +443,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final WorkspaceIdentifier wsi: res.keySet()) {
 			if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 				throw new NoSuchWorkspaceException("Workspace " +
-						wsi.getIdentifierString() + " is deleted");
+						wsi.getIdentifierString() + " is deleted", wsi);
 			}
 			ResolvedMongoWSID r = new ResolvedMongoWSID(
 					(Long) res.get(wsi).get(Fields.WS_ID));

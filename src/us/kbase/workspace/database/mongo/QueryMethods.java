@@ -153,7 +153,8 @@ public class QueryMethods {
 		for (String name: wsnames) {
 			if (!result.containsKey(name)) {
 				throw new NoSuchWorkspaceException(String.format(
-						"No workspace with name %s exists", name));
+						"No workspace with name %s exists", name),
+						new WorkspaceIdentifier(name));
 			}
 		}
 		return result;
@@ -186,7 +187,8 @@ public class QueryMethods {
 		for (final Long id: wsids) {
 			if (!result.containsKey(id)) {
 				throw new NoSuchWorkspaceException(String.format(
-						"No workspace with id %s exists", id));
+						"No workspace with id %s exists", id),
+						new WorkspaceIdentifier(id));
 			}
 		}
 		return result;

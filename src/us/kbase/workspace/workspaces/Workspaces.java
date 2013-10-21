@@ -3,6 +3,7 @@ package us.kbase.workspace.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,15 +87,44 @@ public class Workspaces {
 	
 	private void comparePermission(final WorkspaceUser user,
 			final Permission required, final Permission available,
-			final String workspace, final String operation) throws
+			final ObjectIdentifier oi, final String operation) throws
 			WorkspaceAuthorizationException {
+		final WorkspaceAuthorizationException wae =
+				comparePermission(user, required, available,
+						oi.getWorkspaceIdentifierString(), operation);
+		if (wae != null) {
+			wae.addDeniedCause(oi);
+			throw wae;
+		}
+	}
+	
+	private void comparePermission(final WorkspaceUser user,
+			final Permission required, final Permission available,
+			final WorkspaceIdentifier wsi, final String operation) throws
+			WorkspaceAuthorizationException {
+		final WorkspaceAuthorizationException wae =
+				comparePermission(user, required, available,
+						wsi.getIdentifierString(), operation);
+		if (wae != null) {
+			wae.addDeniedCause(wsi);
+			throw wae;
+		}
+	}
+	
+	private WorkspaceAuthorizationException comparePermission(
+			final WorkspaceUser user, final Permission required,
+			final Permission available, final String identifier,
+			final String operation) {
 		if(required.compareTo(available) > 0) {
 			final String err = user == null ?
 					"Anonymous users may not %s workspace %s" :
 					"User " + user.getUser() + " may not %s workspace %s";
-			throw new WorkspaceAuthorizationException(String.format(
-					err, operation, workspace));
+			final WorkspaceAuthorizationException wae = 
+					new WorkspaceAuthorizationException(String.format(
+					err, operation, identifier));
+			return wae;
 		}
+		return null;
 	}
 	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
@@ -113,7 +143,7 @@ public class Workspaces {
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
 				allowDeletedWorkspace);
 		comparePermission(user, perm, db.getPermission(user, wsid),
-				wsi.getIdentifierString(), operation);
+				wsi, operation);
 		return wsid;
 	}
 	
@@ -125,13 +155,20 @@ public class Workspaces {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
-		final Set<WorkspaceIdentifier> wsis =
-				new HashSet<WorkspaceIdentifier>();
+		//map is for error purposes only - only stores the most recent object
+		//associated with a workspace
+		final Map<WorkspaceIdentifier, ObjectIdentifier> wsis =
+				new HashMap<WorkspaceIdentifier, ObjectIdentifier>();
 		for (final ObjectIdentifier o: loi) {
-			wsis.add(o.getWorkspaceIdentifier());
+			wsis.put(o.getWorkspaceIdentifier(), o);
 		}
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(wsis);
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
+		try {
+				rwsis = db.resolveWorkspaces(wsis.keySet());
+		} catch (NoSuchWorkspaceException nswe) {
+			final WorkspaceIdentifier cause = nswe.getMissingWorkspace();
+			throw nswe; //TODO finish this, needs to throw correct exception with embedded object
+		}
 		final Map<ResolvedWorkspaceID, Permission> perms =
 				db.getPermissions(user,
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
@@ -139,8 +176,7 @@ public class Workspaces {
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
-			comparePermission(user, perm, perms.get(r),
-					o.getWorkspaceIdentifierString(), operation);
+			comparePermission(user, perm, perms.get(r), o, operation);
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
@@ -228,12 +264,34 @@ public class Workspaces {
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
-		final List<ResolvedSaveObject> saveobjs =
-				new ArrayList<ResolvedSaveObject>();
 		final TypedObjectValidator val = db.getTypeValidator();
+		class TempObjectData {
+			public WorkspaceSaveObject wo;
+			public TypedObjectValidationReport rep;
+			public int order;
+			
+			public TempObjectData(WorkspaceSaveObject wo,
+					TypedObjectValidationReport rep, int order) {
+				this.wo = wo;
+				this.rep = rep;
+				this.order = order;
+			}
+			
+		}
 		//this method must maintain the order of the objects
 		//TODO tests for validation of objects
+		final Map<String, ObjectIdentifier> refToOid =
+				new HashMap<String, ObjectIdentifier>();
+		//note this only contains the first object encountered with the ref.
+		// For error reporting purposes only
+		final Map<ObjectIdentifier, TempObjectData> oidToObject =
+				new HashMap<ObjectIdentifier, TempObjectData>();
+		final Map<WorkspaceSaveObject, TempObjectData> reports = 
+				new HashMap<WorkspaceSaveObject, TempObjectData>();
 		int objcount = 1;
+		
+		
+		//stage 1: validate & extract & parse references
 		for (WorkspaceSaveObject wo: objects) {
 			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
 			final String objerrid = getObjectErrorId(oid, objcount);
@@ -245,23 +303,47 @@ public class Workspaces {
 				throw new TypedObjectValidationException(String.format(
 						"Object %s failed type checking:\n", objerrid) + err);
 			}
-			final Map<String, ObjectIdentifier> refs =
-					new HashMap<String, ObjectIdentifier>();
+			final TempObjectData data = new TempObjectData(wo, rep, objcount);
 			for (final String ref: rep.getListOfIdReferences()) {
 				try {
-					refs.put(ref, refparse.parse(ref));
+					if (!refToOid.containsKey(ref)) {
+						final ObjectIdentifier oi = refparse.parse(ref);
+						refToOid.put(ref, oi);
+						oidToObject.put(oi, data);
+					}
 				} catch (IllegalArgumentException iae) {
 					throw new TypedObjectValidationException(String.format(
 							"Object %s has unparseable reference %s: %s",
 							objerrid, ref, iae.getLocalizedMessage(), iae));
 				}
 			}
+			reports.put(wo, data);
+		}
+		
+		//stage 2: resolve references and get types
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
+		if (!oidToObject.isEmpty()) {
+			try {
+					wsresolvedids = checkPerms(user,
+							new LinkedList<ObjectIdentifier>(oidToObject.keySet()),
+							Permission.READ, "read");
+			} catch (WorkspaceAuthorizationException wae) {
+				final ObjectIdentifier cause = wae.getDeniedObject();
+				final int order = oidToObject.get(cause).order;
+				
+				
+			}
+		} else {
+			wsresolvedids = new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		}
+		
+		final List<ResolvedSaveObject> saveobjs =
+				new ArrayList<ResolvedSaveObject>();
+		for (WorkspaceSaveObject wo: objects) {
 
-//			final WorkspaceObjectID oi = wo.getObjectIdentifier();
-//			final String objErrId = getObjectErrorId(oi, objcount);
-//			final String objerrpunc = oi == null ? "" : ",";
-			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
-			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
+			final AbsoluteTypeDefId type = reports.get(wo).rep
+					.getValidationTypeDefId();
+			saveobjs.add(wo.resolve(type, wo.getData()));//TODO rewrite data
 			objcount++;
 		}
 		//TODO check size < 1 MB
