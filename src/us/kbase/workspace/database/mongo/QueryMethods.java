@@ -19,7 +19,6 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
-import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.mongodb.AggregationOutput;
@@ -57,7 +56,7 @@ public class QueryMethods {
 	Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		Set<ResolvedMongoWSID> rwsiset = new HashSet<ResolvedMongoWSID>();
+		final Set<ResolvedMongoWSID> rwsiset = new HashSet<ResolvedMongoWSID>();
 		rwsiset.add(rwsi);
 		return queryWorkspacesByResolvedID(rwsiset, fields).get(rwsi);
 	}
@@ -71,34 +70,36 @@ public class QueryMethods {
 		for (ResolvedMongoWSID r: rwsiset) {
 			ids.put(r.getID(), r);
 		}
-		final Map<Long, Map<String, Object>> idres;
-		try {
-			idres = queryWorkspacesByID(ids.keySet(), fields);
-		} catch (NoSuchWorkspaceException nswe) {
-			throw new CorruptWorkspaceDBException(
-					"Workspace deleted from database: " + 
-					nswe.getLocalizedMessage());
-		}
+		final Map<Long, Map<String, Object>> idres =
+				queryWorkspacesByID(ids.keySet(), fields);
 		final Map<ResolvedMongoWSID, Map<String, Object>> ret =
 				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
-		for (final Long id: idres.keySet()) {
+		for (final Long id: ids.keySet()) {
+			if (!idres.containsKey(id)) {
+				throw new CorruptWorkspaceDBException(
+						"Resolved workspace unexpectedly deleted from database: "
+						+ id);
+			}
 			ret.put(ids.get(id), idres.get(id));
 		}
 		return ret;
 	}
 
-	Map<String, Object> queryWorkspace(final WorkspaceIdentifier wsi,
-			final Set<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
-		wsiset.add(wsi);
-		return queryWorkspacesByIdentifier(wsiset, fields).get(wsi);
-	}
+//	Map<String, Object> queryWorkspace(final WorkspaceIdentifier wsi,
+//			final Set<String> fields) throws WorkspaceCommunicationException {
+//		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
+//		wsiset.add(wsi);
+//		final Map<WorkspaceIdentifier, Map<String, Object>> ws =
+//				queryWorkspacesByIdentifier(wsiset, fields);
+//		if (!ws.containsKey(wsi)) {
+//			return null;
+//		}
+//		return ws.get(wsi);
+//	}
 	
 	Map<WorkspaceIdentifier, Map<String, Object>>
 			queryWorkspacesByIdentifier(final Set<WorkspaceIdentifier> wsiset,
-			final Set<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
+			final Set<String> fields) throws WorkspaceCommunicationException {
 		final Map<Long, WorkspaceIdentifier> ids =
 				new HashMap<Long, WorkspaceIdentifier>();
 		final Map<String, WorkspaceIdentifier> names =
@@ -126,17 +127,9 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	Map<String, Object> queryWorkspace(final String name,
-			final Set<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		Set<String> nameset = new HashSet<String>();
-		nameset.add(name);
-		return queryWorkspacesByName(nameset, fields).get(name);
-	}
-	
-	Map<String, Map<String, Object>> queryWorkspacesByName(
-			final Set<String> wsnames, final Set<String> fields) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
+	private Map<String, Map<String, Object>> queryWorkspacesByName(
+			final Set<String> wsnames, final Set<String> fields)
+			throws WorkspaceCommunicationException {
 		if (wsnames.isEmpty()) {
 			return new HashMap<String, Map<String, Object>>();
 		}
@@ -150,27 +143,12 @@ public class QueryMethods {
 		for (Map<String, Object> m: queryres) {
 			result.put((String) m.get(Fields.WS_NAME), m);
 		}
-		for (String name: wsnames) {
-			if (!result.containsKey(name)) {
-				throw new NoSuchWorkspaceException(String.format(
-						"No workspace with name %s exists", name),
-						new WorkspaceIdentifier(name));
-			}
-		}
 		return result;
 	}
 	
-	Map<String, Object> queryWorkspace(final long id,
-			final Set<String> fields) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException {
-		Set<Long> idset = new HashSet<Long>();
-		idset.add(id);
-		return queryWorkspacesByID(idset, fields).get(id);
-	}	
-	
-	Map<Long, Map<String, Object>> queryWorkspacesByID(
-			final Set<Long> wsids, final Set<String> fields) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
+	private Map<Long, Map<String, Object>> queryWorkspacesByID(
+			final Set<Long> wsids, final Set<String> fields)
+			throws WorkspaceCommunicationException {
 		if (wsids.isEmpty()) {
 			return new HashMap<Long, Map<String, Object>>();
 		}
@@ -183,13 +161,6 @@ public class QueryMethods {
 				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
 			result.put((Long) m.get(Fields.WS_ID), m);
-		}
-		for (final Long id: wsids) {
-			if (!result.containsKey(id)) {
-				throw new NoSuchWorkspaceException(String.format(
-						"No workspace with id %s exists", id),
-						new WorkspaceIdentifier(id));
-			}
 		}
 		return result;
 	}

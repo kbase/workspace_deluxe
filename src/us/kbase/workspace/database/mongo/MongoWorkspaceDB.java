@@ -373,11 +373,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setPermissionsForWorkspaceUsers(count, Arrays.asList(user),
-				Permission.OWNER, false);
+		setPermissionsForWorkspaceUsers(new ResolvedMongoWSID(count),
+				Arrays.asList(user), Permission.OWNER, false);
 		if (globalRead) {
-			setPermissions(count, Arrays.asList(allUsers), Permission.READ,
-					false);
+			setPermissions(new ResolvedMongoWSID(count),
+					Arrays.asList(allUsers), Permission.READ, false);
 		}
 		return new MongoWSMeta(count, wsname, user, moddate, Permission.OWNER,
 				globalRead);
@@ -440,7 +440,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<WorkspaceIdentifier, Map<String, Object>> res =
 				query.queryWorkspacesByIdentifier(wsis, FLDS_WS_ID_DEL);
-		for (final WorkspaceIdentifier wsi: res.keySet()) {
+		for (final WorkspaceIdentifier wsi: wsis) {
+			if (!res.containsKey(wsi)) {
+				throw new NoSuchWorkspaceException(String.format(
+						"No workspace with id %s exists", getWSErrorId(wsi)),
+						wsi);
+			}
 			if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 				throw new NoSuchWorkspaceException("Workspace " +
 						wsi.getIdentifierString() + " is deleted", wsi);
@@ -452,16 +457,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private static String getWSErrorId(final WorkspaceIdentifier wsi) {
+		if (wsi.getId() == null) {
+			return "name " + wsi.getName();
+		}
+		return "id" + wsi.getId();
+	}
+	
 	@Override
 	public void setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		setPermissionsForWorkspaceUsers(query.convertResolvedID(rwsi).getID(),
+		setPermissionsForWorkspaceUsers(query.convertResolvedID(rwsi),
 				users, perm, true);
 	}
 	
 	//wsid must exist as a workspace
-	private void setPermissionsForWorkspaceUsers(final long wsid,
+	private void setPermissionsForWorkspaceUsers(final ResolvedMongoWSID wsid,
 			final List<WorkspaceUser> users, final Permission perm, 
 			final boolean checkowner) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -479,19 +491,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.ACL_PERM);
 	
 	//wsid must exist as a workspace
-	private void setPermissions(final long wsid, final List<User> users,
+	private void setPermissions(final ResolvedMongoWSID wsid, final List<User> users,
 			final Permission perm, final boolean checkowner) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final WorkspaceUser owner;
 		if (checkowner) {
-			try {
-				owner = new WorkspaceUser((String) 
-						query.queryWorkspace(wsid, FLDS_WS_OWNER)
-						.get(Fields.WS_OWNER));
-			} catch (NoSuchWorkspaceException nswe) {
+			final Map<String, Object> ws =
+					query.queryWorkspace(wsid, FLDS_WS_OWNER);
+			if (ws == null) {
 				throw new CorruptWorkspaceDBException(String.format(
-						"Workspace %s was deleted from the database", wsid));
+						"Workspace %s was unexpectedly deleted from the database",
+						wsid.getID()));
 			}
+			owner = new WorkspaceUser((String) ws.get(Fields.WS_OWNER));
 		} else {
 			owner = null;
 		}
@@ -502,10 +514,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			try {
 				if (perm.equals(Permission.NONE)) {
 					wsjongo.getCollection(COL_WS_ACLS).remove(
-							M_PERMS_QRY, wsid, user.getUser());
+							M_PERMS_QRY, wsid.getID(), user.getUser());
 				} else {
 					wsjongo.getCollection(COL_WS_ACLS).update(
-							M_PERMS_QRY, wsid, user.getUser())
+							M_PERMS_QRY, wsid.getID(), user.getUser())
 							.upsert().with(M_PERMS_UPD, perm.getPermission());
 				}
 			} catch (MongoException me) {
@@ -863,8 +875,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
 			final ResolvedWorkspaceID rwsi,
-			final List<ResolvedSaveObject> objects) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
+			final List<ResolvedSaveObject> objects)
+			throws WorkspaceCommunicationException,
 			NoSuchObjectException {
 		//TODO break this up
 		//this method must maintain the order of the objects
