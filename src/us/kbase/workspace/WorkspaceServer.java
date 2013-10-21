@@ -50,6 +50,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
+import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.workspaces.Provenance;
@@ -199,7 +200,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			} else {
 				System.out.println(String.format("Initialized %s backend", db.getBackendType()));
 				logInfo(String.format("Initialized %s backend", db.getBackendType()));
-				ws = new Workspaces(db);
+				ws = new Workspaces(db, new KBaseReferenceParser());
 				wsadmin = new WorkspaceAdministration(ws);
 				wsadmin.addAdministrator(wsConfig.get(WSADMIN));
 			}

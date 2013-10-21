@@ -27,6 +27,7 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.ReferenceParser;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -68,13 +69,19 @@ public class Workspaces {
 	
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
+	private final ReferenceParser refparse;
 	
-	public Workspaces(WorkspaceDatabase db) {
+	public Workspaces(final WorkspaceDatabase db,
+			final ReferenceParser refparse) {
 		if (db == null) {
-			throw new NullPointerException("db");
+			throw new IllegalArgumentException("db cannot be null");
+		}
+		if (refparse == null) {
+			throw new IllegalArgumentException("refparse cannot be null");
 		}
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
+		this.refparse = refparse;
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -200,12 +207,12 @@ public class Workspaces {
 		return db.getBackendType();
 	}
 	
-//	private static String getObjectErrorId(final WorkspaceObjectID oi,
-//			final int objcount) {
-//		String objErrId = "#" + objcount;
-//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-//		return objErrId;
-//	}
+	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
+			final int objcount) {
+		String objErrId = "#" + objcount;
+		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+		return objErrId;
+	}
 	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
@@ -229,18 +236,27 @@ public class Workspaces {
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
+			final String objerrid = getObjectErrorId(oid, objcount);
 			final TypedObjectValidationReport rep =
 					val.validate(wo.getData(), wo.getType());
 			if (!rep.isInstanceValid()) {
 				final String[] e = rep.getErrorMessages();
 				final String err = StringUtils.join(e, "\n");
 				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objcount + 
-						(oid == null ? "" :
-						", id " + oid.getIdentifierString())) + err);
+						"Object %s failed type checking:\n", objerrid) + err);
 			}
-//			final String[] refs = rep.getListOfIdReferences();
-			
+			final Map<String, ObjectIdentifier> refs =
+					new HashMap<String, ObjectIdentifier>();
+			for (final String ref: rep.getListOfIdReferences()) {
+				try {
+					refs.put(ref, refparse.parse(ref));
+				} catch (IllegalArgumentException iae) {
+					throw new TypedObjectValidationException(String.format(
+							"Object %s has unparseable reference %s: %s",
+							objerrid, ref, iae.getLocalizedMessage(), iae));
+				}
+			}
+
 //			final WorkspaceObjectID oi = wo.getObjectIdentifier();
 //			final String objErrId = getObjectErrorId(oi, objcount);
 //			final String objerrpunc = oi == null ? "" : ",";

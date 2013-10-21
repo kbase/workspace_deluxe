@@ -240,15 +240,15 @@ public class TestIdProcessing {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		
 		// check that all expected Ids are in fact found
-		String [] foundIdRefs = report.getListOfIdReferences();
+		List<String> foundIdRefs = report.getListOfIdReferences();
 		List<List<IdReference>> fullIdList = report.getListOfIdReferenceObjects();
-		for(int k=0; k<foundIdRefs.length; k++) {
-			assertTrue("  -("+instance.resourceName+") extracted id "+foundIdRefs[k]+" that should not have been extracted",
-					expectedIdList.containsKey(foundIdRefs[k]));
-			int n_refs = expectedIdList.get(foundIdRefs[k]).intValue();
-			assertFalse("  -("+instance.resourceName+") extracted id "+foundIdRefs[k]+" too many times",
+		for(String ref: foundIdRefs) {
+			assertTrue("  -("+instance.resourceName+") extracted id "+ref+" that should not have been extracted",
+					expectedIdList.containsKey(ref));
+			int n_refs = expectedIdList.get(ref).intValue();
+			assertFalse("  -("+instance.resourceName+") extracted id "+ref+" too many times",
 					n_refs==0);
-			expectedIdList.put(foundIdRefs[k], new Integer(n_refs-1));
+			expectedIdList.put(ref, new Integer(n_refs-1));
 		}
 		Iterator<Map.Entry<String,Integer>> mapIter = expectedIdList.entrySet().iterator();
 		while(mapIter.hasNext()) {
@@ -275,10 +275,10 @@ public class TestIdProcessing {
 		TypedObjectValidationReport report2 = validator.validate(instanceRootNode, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
 		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
-		String [] relabeledIds = report2.getListOfIdReferences();
+		List<String> relabeledIds = report2.getListOfIdReferences();
 		
 		//there should be the same number as before, of course!
-		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.length, foundIdRefs.length);
+		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), foundIdRefs.size());
 		
 		
 		// make sure every id that was found originally 

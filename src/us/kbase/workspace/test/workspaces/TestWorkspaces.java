@@ -29,6 +29,7 @@ import com.mongodb.DB;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -120,9 +121,9 @@ public class TestWorkspaces {
 			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null);
 			shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null);
 		}
-		TEST_WORKSPACES[0] = new Workspaces(gfs);
+		TEST_WORKSPACES[0] = new Workspaces(gfs, new DefaultReferenceParser());
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
-		TEST_WORKSPACES[1] = new Workspaces(shock);
+		TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
 		assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
 		sbe = new ShockBackend(data2.getCollection("shockData"),
 				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);

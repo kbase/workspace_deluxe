@@ -90,19 +90,7 @@ public class KBaseIdentifierFactory {
 		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			verifyRefOnly(oi);
-			final String ref = oi.getRef();
-			final Matcher m = KB_OBJ_ID.matcher(ref);
-			if (m.matches()) {
-				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-						Integer.parseInt(m.group(1)));
-				final int obj = Integer.parseInt(m.group(2));
-				if (m.group(3) == null) {
-					return new ObjectIdentifier(wsi, obj);
-				}
-				return new ObjectIdentifier(wsi, obj,
-						Integer.parseInt(m.group(3)));
-			}
-			return ObjectIdentifier.parseObjectReference(ref);
+			return processObjectReference(oi.getRef());
 		}
 		final Integer ver;
 		if (oi.getVer() != null) {
@@ -117,5 +105,20 @@ public class KBaseIdentifierFactory {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				oi.getWorkspace(), oi.getWsid());
 		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(), ver);
+	}
+
+	public static ObjectIdentifier processObjectReference(final String ref) {
+		final Matcher m = KB_OBJ_ID.matcher(ref);
+		if (m.matches()) {
+			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+					Integer.parseInt(m.group(1)));
+			final int obj = Integer.parseInt(m.group(2));
+			if (m.group(3) == null) {
+				return new ObjectIdentifier(wsi, obj);
+			}
+			return new ObjectIdentifier(wsi, obj,
+					Integer.parseInt(m.group(3)));
+		}
+		return ObjectIdentifier.parseObjectReference(ref);
 	}
 }
