@@ -166,19 +166,17 @@ public class QueryMethods {
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
 			final Set<String> fields, final boolean exceptOnMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		
+		if (objectIDs.isEmpty()) {
+			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
+		}
 		final Map<ResolvedMongoWSID,
 				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
 						new HashMap<ResolvedMongoWSID,
 								Map<Long, ObjectIDResolvedWSNoVer>>();
-		final Map<ResolvedMongoWSID, Set<Long>> idsquery = 
-				new HashMap<ResolvedMongoWSID, Set<Long>>();
 		final Map<ResolvedMongoWSID,
 				Map<String, ObjectIDResolvedWSNoVer>> names = 
 						new HashMap<ResolvedMongoWSID,
 								Map<String, ObjectIDResolvedWSNoVer>>();
-		final Map<ResolvedMongoWSID, Set<String>> namesquery = 
-				new HashMap<ResolvedMongoWSID, Set<String>>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
 			final ResolvedMongoWSID rwsi =
 					convertResolvedID(o.getWorkspaceIdentifier());
@@ -186,139 +184,67 @@ public class QueryMethods {
 				if (names.get(rwsi) == null) {
 					names.put(rwsi,
 							new HashMap<String, ObjectIDResolvedWSNoVer>());
-					namesquery.put(rwsi, new HashSet<String>());
 				}
 				names.get(rwsi).put(o.getName(), o);
-				namesquery.get(rwsi).add(o.getName());
 			} else {
 				if (ids.get(rwsi) == null) {
 					ids.put(rwsi,
 							new HashMap<Long, ObjectIDResolvedWSNoVer>());
-					idsquery.put(rwsi, new HashSet<Long>());
 				}
 				ids.get(rwsi).put(o.getId(), o);
-				idsquery.get(rwsi).add(o.getId());
 			}
 		}
-			
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
-				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
 		
-		final Map<ResolvedMongoWSID, Map<String, Map<String, Object>>> nameres =
-				queryObjectsByName(namesquery, fields, exceptOnMissing);
-		final Map<ResolvedMongoWSID, Map<Long, Map<String, Object>>> idres =
-				queryObjectsByID(idsquery, fields, exceptOnMissing);
-		
-		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
-			if (!idres.containsKey(rwsi)) {
-				continue; //exceptOnMissing was false and one was missing
-			}
-			for (final Long id: idres.get(rwsi).keySet()) {
-				ret.put(ids.get(rwsi).get(id), idres.get(rwsi).get(id));
-			}
-		}
-		for (final ResolvedMongoWSID rwsi: names.keySet()) {
-			if (!nameres.containsKey(rwsi)) {
-				continue; //exceptOnMissing was false and one was missing
-			}
-			for (final String name: nameres.get(rwsi).keySet()) {
-				ret.put(names.get(rwsi).get(name), nameres.get(rwsi).get(name));
-			}
-		}
-		return ret;
-	}
-	
-	//TODO combine the methods below, it's a fucking or already
-	private Map<ResolvedMongoWSID, Map<String, Map<String, Object>>>
-			queryObjectsByName(
-			final Map<ResolvedMongoWSID, Set<String>> names,
-			final Set<String> fields, final boolean exceptOnMissing) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
-		if (names.isEmpty()) {
-			return new HashMap<ResolvedMongoWSID,
-					Map<String,Map<String,Object>>>();
-		}
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID,
 					rwsi.getID());
-			query.put(Fields.PTR_NAME, new BasicDBObject("$in", names.get(rwsi)));
+			query.put(Fields.PTR_NAME, new BasicDBObject(
+					"$in", names.get(rwsi).keySet()));
 			orquery.add(query);
 		}
+		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
+			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID,
+					rwsi.getID());
+			query.put(Fields.PTR_ID, new BasicDBObject(
+					"$in", ids.get(rwsi).keySet()));
+			orquery.add(query);
+		}
+		fields.add(Fields.PTR_ID);
 		fields.add(Fields.PTR_NAME);
 		fields.add(Fields.PTR_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
 				pointerCollection, new BasicDBObject("$or", orquery), fields);
-		final Map<ResolvedMongoWSID, Map<String, Map<String, Object>>> result =
-				new HashMap<ResolvedMongoWSID,
-					Map<String, Map<String, Object>>>();
+
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
+				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
 			final ResolvedMongoWSID rwsi =
 					new ResolvedMongoWSID((Long) m.get(Fields.PTR_WS_ID));
-			if (!result.containsKey(rwsi)) {
-				result.put(rwsi, new HashMap<String, Map<String, Object>>());
+			final String name = (String) m.get(Fields.PTR_NAME);
+			final Long id = (Long) m.get(Fields.PTR_ID);
+			if (names.containsKey(rwsi) && names.get(rwsi).containsKey(name)) {
+				ret.put(names.get(rwsi).get(name), m);
 			}
-			result.get(rwsi).put((String) m.get(Fields.PTR_NAME), m);
+			if (ids.containsKey(rwsi) && ids.get(rwsi).containsKey(id)) {
+				ret.put(ids.get(rwsi).get(id), m);
+			}
 		}
 		if (exceptOnMissing) {
-			for (final ResolvedMongoWSID rwsi: names.keySet()) {
-				for (String name: names.get(rwsi)) {
-					if (!result.containsKey(rwsi) ||
-							!result.get(rwsi).containsKey(name)) {
-						throw new NoSuchObjectException(String.format(
-								"No object with name %s exists in workspace %s",
-								name, rwsi.getID()));
+			for (final ObjectIDResolvedWSNoVer o: objectIDs) {
+				if (!ret.containsKey(o)) {
+					String err = "id";
+					if (o.getId() == null) {
+						err = "name";
 					}
+					throw new NoSuchObjectException(String.format(
+							"No object with %s %s exists in workspace %s",
+							err, o.getIdentifierString(),
+							o.getWorkspaceIdentifier().getID()));
 				}
 			}
 		}
-		return result;
-	}
-	
-	private Map<ResolvedMongoWSID, Map<Long, Map<String, Object>>>
-			queryObjectsByID(
-			final Map<ResolvedMongoWSID, Set<Long>> ids,
-			final Set<String> fields, final boolean exceptOnMissing) throws
-			NoSuchObjectException, WorkspaceCommunicationException {
-		if (ids.isEmpty()) {
-			return new HashMap<ResolvedMongoWSID,
-					Map<Long,Map<String,Object>>>();
-		}
-		final List<DBObject> orquery = new LinkedList<DBObject>();
-		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID,
-					rwsi.getID());
-			query.put(Fields.PTR_ID, new BasicDBObject("$in", ids.get(rwsi)));
-			orquery.add(query);
-		}
-		fields.add(Fields.PTR_ID);
-		fields.add(Fields.PTR_WS_ID);
-		final List<Map<String, Object>> queryres = queryCollection(
-				pointerCollection, new BasicDBObject("$or", orquery), fields);
-		final Map<ResolvedMongoWSID, Map<Long, Map<String, Object>>> result =
-				new HashMap<ResolvedMongoWSID,
-					Map<Long, Map<String, Object>>>();
-		for (Map<String, Object> m: queryres) {
-			final ResolvedMongoWSID rwsi =
-					new ResolvedMongoWSID((Long) m.get(Fields.PTR_WS_ID));
-			if (!result.containsKey(rwsi)) {
-				result.put(rwsi, new HashMap<Long, Map<String, Object>>());
-			}
-			result.get(rwsi).put((Long) m.get(Fields.PTR_ID), m);
-		}
-		if (exceptOnMissing) {
-			for (final ResolvedMongoWSID rwsi: ids.keySet()) {
-				for (Long id: ids.get(rwsi)) {
-					if (!result.containsKey(rwsi) ||
-							!result.get(rwsi).containsKey(id)) {
-						throw new NoSuchObjectException(String.format(
-								"No object with id %s exists in workspace %s",
-								id, rwsi.getID()));
-					}
-				}
-			}
-		}
-		return result;
+		return ret;
 	}
 	
 	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
