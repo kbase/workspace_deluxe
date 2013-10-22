@@ -295,6 +295,7 @@ public class QueryMethods {
 						roi.getWorkspaceIdentifier()).get(roi.getId())
 						.get(roi.getVersion());
 				if (d == null) {
+					//TODO don't throw errors here, throw in calling method
 					throw new NoSuchObjectException(String.format(
 							"No object with id %s (name %s) and version %s exists in" +
 							" workspace %s", roi.getId(), roi.getName(), 

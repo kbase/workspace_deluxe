@@ -1183,7 +1183,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					throw new NoSuchObjectException(String.format(
 							"No object with %s %s exists in workspace %s",
 							err, oid.getIdentifierString(),
-							oid.getWorkspaceIdentifier().getID()));
+							oid.getWorkspaceIdentifier().getID()), oid);
 				} else {
 					continue;
 				}
@@ -1193,7 +1193,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (exceptIfDeleted && (Boolean) ids.get(o).get(Fields.PTR_DEL)) {
 				throw new NoSuchObjectException(String.format(
 						"Object %s (name %s) in workspace %s has been deleted",
-						id, name, oid.getWorkspaceIdentifier().getID()));
+						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
 			if (oid.getVersion() != null) {
 				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(

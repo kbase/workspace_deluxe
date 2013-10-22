@@ -9,7 +9,7 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  * The underlying assumption of this class is all object IDs are unique and all
  * names are unique at the time of resolution. Therefore a set of
  * ResolvedObjectIDs constructed at the same time are all unique in name and id,
- * and removing one or the othre field would not cause the number of unique
+ * and removing one or the other field would not cause the number of unique
  * objects to change (as measured by the unique hashcode count, for example).
  * 
  * This is *not* the case for objects generated from different queries.
