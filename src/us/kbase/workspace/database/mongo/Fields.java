@@ -19,7 +19,7 @@ public class Fields {
 	
 	//workspace fields
 	public static final String WS_OWNER = "owner";
-	public static final String WS_ID = "id";
+	public static final String WS_ID = "ws";
 	public static final String WS_MODDATE = "moddate";
 	public static final String WS_NAME = "name";
 	public static final String WS_DEL = "del";
@@ -32,36 +32,37 @@ public class Fields {
 	public static final String ACL_USER = "user";
 	
 	//workspace pointer fields
+	public static final String PTR_WS_ID = "ws";
 	public static final String PTR_ID = "id";
 	public static final String PTR_NAME = "name";
-	public static final String PTR_WS_ID = "ws";
 	public static final String PTR_MODDATE = "moddate";
 	public static final String PTR_VCNT = "numver";
-	public static final String PTR_VERS = "vers";
 	public static final String PTR_DEL = "del";
 	public static final String PTR_HIDE = "hide";
 	
-	//workspace version fields (inside the PTR_VERS field)
-	public static final String PTR_VER_VER = "ver";
-	public static final String PTR_VER_CREATEBY = "createdby";
-	public static final String PTR_VER_CHKSUM = "chksum";
-	public static final String PTR_VER_CREATEDATE = "createdate";
-	public static final String PTR_VER_PROV = "provenance";
-	public static final String PTR_VER_REF = "reffedby";
-	public static final String PTR_VER_TYPE = "type";
-	public static final String PTR_VER_SIZE = "size";
-	public static final String PTR_VER_RVRT = "revert";
-	public static final String PTR_VER_UUID = "legacyUUID";
-	public static final String PTR_VER_META = "meta";
+	//workspace version fields
+	public static final String VER_WS_ID = "ws";
+	public static final String VER_ID = "id";
+	public static final String VER_VER = "ver";
+	public static final String VER_CREATEBY = "createdby";
+	public static final String VER_CHKSUM = "chksum";
+	public static final String VER_CREATEDATE = "createdate";
+	public static final String VER_PROV = "provenance";
+	public static final String VER_REF = "reffedby";
+	public static final String VER_TYPE = "type";
+	public static final String VER_SIZE = "size";
+	public static final String VER_RVRT = "revert";
+	public static final String VER_UUID = "legacyUUID";
+	public static final String VER_META = "meta";
 	//meta document key & value
-	public static final String PTR_VER_META_KEY = "k";
-	public static final String PTR_VER_META_VALUE = "v";
+	public static final String VER_META_KEY = "k";
+	public static final String VER_META_VALUE = "v";
 	
 	//type fields
 	public static final String TYPE_CHKSUM = "chksum";
 	public static final String TYPE_SIZE = "size";
 	public static final String TYPE_SUBDATA = "subdata";
-	public static final String TYPE_VER = "minver";
+	public static final String TYPE_TYPE = "type";
 	public static final String TYPE_WS = "ws";
 	
 	//shock fields

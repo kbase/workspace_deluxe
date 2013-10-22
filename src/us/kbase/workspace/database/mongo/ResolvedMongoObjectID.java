@@ -1,49 +1,51 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
-public class ObjectIDResolvedWS {
+/**
+ * name is resolved *at the time the database was accessed and is not further
+ * updated*
+ * 
+ * The underlying assumption of this class is all object IDs are unique and all
+ * names are unique at the time of resolution. Therefore a set of
+ * ResolvedObjectIDs constructed at the same time are all unique in name and id,
+ * and removing one or the other field would not cause the number of unique
+ * objects to change (as measured by the unique hashcode count, for example).
+ * 
+ * This is *not* the case for objects generated from different queries.
+ * 
+ * Versions are not resolved.
+ * 
+ * @author gaprice@lbl.gov
+ *
+ */
+public class ResolvedMongoObjectID {
 	
-	private final ResolvedWorkspaceID rwsi;
+	private final ResolvedMongoWSID rwsi;
 	private final String name;
 	private final Long id;
 	private final Integer version;
 	
-	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
-			final ObjectIDNoWSNoVer oid) {
+	ResolvedMongoObjectID(ResolvedMongoWSID rwsi, String name, long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
-		if (oid == null) {
-			throw new IllegalArgumentException("oid cannot be null");
-		}
-		this.rwsi = rwsi;
-		if (oid.getId() == null) {
-			this.name = oid.getName();
-			this.id = null;
-		} else {
-			this.id = oid.getId();
-			this.name = null;
-		}
-		this.version = null;
-	}
-	
-	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
-			final String name) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
+		if (id < 1) {
+			throw new IllegalArgumentException("id must be > 0");
 		}
 		checkObjectName(name);
 		this.rwsi = rwsi;
 		this.name = name;
-		this.id = null;
+		this.id = id;
 		this.version = null;
 	}
 	
-	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi,
-			final String name, final int version) {
+	ResolvedMongoObjectID(ResolvedMongoWSID rwsi, String name, long id, int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
+		}
+		if (id < 1) {
+			throw new IllegalArgumentException("id must be > 0");
 		}
 		checkObjectName(name);
 		if (version < 1) {
@@ -51,41 +53,11 @@ public class ObjectIDResolvedWS {
 		}
 		this.rwsi = rwsi;
 		this.name = name;
-		this.id = null;
-		this.version = version;
-	}
-	
-	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi, final long id) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
-		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
-		}
-		this.rwsi = rwsi;
-		this.name = null;
-		this.id = id;
-		this.version = null;
-	}
-	
-	public ObjectIDResolvedWS(final ResolvedWorkspaceID rwsi, final long id,
-			final int version) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
-		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
-		}
-		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
-		}
-		this.rwsi = rwsi;
-		this.name = null;
 		this.id = id;
 		this.version = version;
 	}
-
-	public ResolvedWorkspaceID getWorkspaceIdentifier() {
+	
+	public ResolvedMongoWSID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 
@@ -100,17 +72,10 @@ public class ObjectIDResolvedWS {
 	public Integer getVersion() {
 		return version;
 	}
-	
-	public String getIdentifierString() {
-		if (getId() == null) {
-			return getName();
-		}
-		return "" + getId();
-	}
-	
+
 	@Override
 	public String toString() {
-		return "ObjectIDResolvedWS [rwsi=" + rwsi + ", name=" + name + ", id="
+		return "ResolvedObjectID [rwsi=" + rwsi + ", name=" + name + ", id="
 				+ id + ", version=" + version + "]";
 	}
 
@@ -133,10 +98,10 @@ public class ObjectIDResolvedWS {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ObjectIDResolvedWS)) {
+		if (!(obj instanceof ResolvedMongoObjectID)) {
 			return false;
 		}
-		ObjectIDResolvedWS other = (ObjectIDResolvedWS) obj;
+		ResolvedMongoObjectID other = (ResolvedMongoObjectID) obj;
 		if (id == null) {
 			if (other.id != null) {
 				return false;

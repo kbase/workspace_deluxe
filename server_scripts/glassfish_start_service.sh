@@ -49,6 +49,7 @@ if [ $? -eq 0 ]; then
 else
     $asadmin create-http-listener --listeneraddress 0.0.0.0 --listenerport ${TARGET_PORT} --default-virtual-server server-${TARGET_PORT} --securityEnabled=false --acceptorthreads=${THREADPOOL_SIZE} http-listener-${TARGET_PORT}
     $asadmin set server.network-config.network-listeners.network-listener.http-listener-${TARGET_PORT}.thread-pool=thread-pool-${TARGET_PORT}
+    $asadmin set server.network-config.protocols.protocol.http-listener-${TARGET_PORT}.http.timeout-seconds=1800
 fi
 
 $asadmin list-applications | grep app-${TARGET_PORT} > /dev/null

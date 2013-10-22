@@ -16,12 +16,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: CompileTypespecParams</p>
  * <pre>
  * Parameters for the compile_typespec function.
- *         Required parameters:
+ *         Required arguments:
  *         One of:
  *         typespec spec - the new typespec to compile.
  *         modulename mod - the module to recompile.
  *         
- *         Optional parameters:
+ *         Optional arguments:
  *         boolean dryrun - Return, but do not save, the results of compiling the 
  *                 spec. Default true. Set to false for making permanent changes.
  *         list<typename> new_types - types in the spec to make available in the

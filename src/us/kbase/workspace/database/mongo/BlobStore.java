@@ -12,6 +12,15 @@ public interface BlobStore {
 	public String getBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
+	/**
+	 * Do not call removeBlob when saveBlob could be run by other threads or
+	 * applications. Doing so could result in an inconsistent state in the
+	 * database.
+	 * 
+	 * @param md5
+	 * @throws BlobStoreAuthorizationException
+	 * @throws BlobStoreCommunicationException
+	 */
 	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	

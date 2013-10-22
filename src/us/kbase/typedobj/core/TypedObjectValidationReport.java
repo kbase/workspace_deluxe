@@ -2,6 +2,7 @@ package us.kbase.typedobj.core;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -150,11 +151,16 @@ public class TypedObjectValidationReport {
 	 * Return a simple list of all fields that were flagged as ID References.
 	 * @return
 	 */	
-	public String [] getListOfIdReferences() {
+	public List<String> getListOfIdReferences() {
 		if(!idRefListIsBuilt) {
 			buildIdList();
 		}
-		return simpleIdList;
+		//TODO change simpleIdList to a List
+		final List<String> ids = new LinkedList<String>();
+		for (int i = 0; i < simpleIdList.length; i++) {
+			ids.add(simpleIdList[i]);
+		}
+		return ids;
 	}
 	
 	

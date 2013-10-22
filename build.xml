@@ -182,7 +182,8 @@
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
     <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
     <fail unless="test.mongo.db2" message="property test.mongo.db2 not set."/>
-    <fail unless="test.mongo.db.types" message="property test.mongo.db.types not set."/>
+    <fail unless="test.mongo.db.types1" message="property test.mongo.db.types1 not set."/>
+    <fail unless="test.mongo.db.types2" message="property test.mongo.db.types2 not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
     <fail unless="test.user2" message="property test.user2 not set."/>
@@ -203,7 +204,8 @@
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
       <sysproperty key="test.mongo.db2" value="${test.mongo.db2}"/>
-      <sysproperty key="test.mongo.db.types" value="${test.mongo.db.types}"/>
+      <sysproperty key="test.mongo.db.types1" value="${test.mongo.db.types1}"/>
+      <sysproperty key="test.mongo.db.types2" value="${test.mongo.db.types2}"/>
       <sysproperty key="test.mongo.user" value="${test.mongo.user}"/>
       <sysproperty key="test.mongo.pwd" value="${test.mongo.pwd}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>

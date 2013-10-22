@@ -1400,8 +1400,14 @@ public class TypeDefinitionDB {
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion) 
 					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
 					NoSuchModuleException {
+		final Set<String> unreg;
+		if (typesToUnregister == null) {
+			unreg = new HashSet<String>();
+		} else {
+			unreg = new HashSet<String>(typesToUnregister);
+		}
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
-				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
+				unreg, userId, dryMode, moduleVersionRestrictions, 
 				prevModuleVersion, "registerModule");
 	}
 

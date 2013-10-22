@@ -19,7 +19,8 @@ public class WorkspaceTestCommon {
 	
 	public static final String DB1 = "test.mongo.db1";
 	public static final String DB2 = "test.mongo.db2";
-	public static final String TYPEDB = "test.mongo.db.types";
+	public static final String TYPEDB1 = "test.mongo.db.types1";
+	public static final String TYPEDB2 = "test.mongo.db.types2";
 	public static final String HOST = "test.mongo.host";
 	public static final String M_USER = "test.mongo.user";
 	public static final String M_PWD = "test.mongo.pwd";
@@ -60,8 +61,11 @@ public class WorkspaceTestCommon {
 		return getProp(DB2);
 	}
 	
-	public static String getTypeDB() {
-		return getProp(TYPEDB);
+	public static String getTypeDB1() {
+		return getProp(TYPEDB1);
+	}
+	public static String getTypeDB2() {
+		return getProp(TYPEDB2);
 	}
 	
 	public static String getShockUrl() {
@@ -113,14 +117,49 @@ public class WorkspaceTestCommon {
 			throws InvalidHostException, UnknownHostException, TestException {
 		buildMongo();
 		String db = num == 1 ? getDB1() : getDB2();
+		String typedb = num == 1 ? getTypeDB1() : getTypeDB2();
 		if (db == null) {
 			throw new TestException("The property " + (num == 1 ? DB1 : DB2) +
 					" is not set.");
 		}
+		if (typedb == null) {
+			throw new TestException("The property " + (num == 1 ? TYPEDB1 :
+					TYPEDB2) + " is not set.");
+		}
 		String mUser = getMongoUser();
 		String mPwd = getMongoPwd();
-		System.out.print(String.format("Destroying mongo database %s at %s...",
+		System.out.print(String.format("Destroying mongo workspace database %s at %s...",
 				db, getHost()));
+		DB mdb = destroyDB(db, mUser, mPwd);
+		System.out.println(" buhbye.");
+		
+		System.out.print(String.format("Destroying mongo type database %s at %s...",
+				typedb, getHost()));
+		destroyDB(typedb, mUser, mPwd);
+		System.out.println(" buhbye.");
+		
+		DBObject dbo = new BasicDBObject();
+		dbo.put("type_db", typedb);
+		if (type == GRIDFS) {
+			dbo.put("backend", GRIDFS);
+		}
+		if (type == SHOCK) {
+			dbo.put("backend", SHOCK);
+			if (shockuser == null) {
+				throw new TestException("Shock user cannot be null");
+			}
+			dbo.put("shock_user", shockuser);
+			dbo.put("shock_location", getShockUrl());
+			System.out.println(String.format(
+					"Setting up shock with user %s and url %s", shockuser,
+					getShockUrl()));
+		}
+		mdb.getCollection("settings").insert(dbo);
+		System.out.println(String.format("Configured new %s backend.", type));
+		return mdb;
+	}
+
+	private static DB destroyDB(String db, String mUser, String mPwd) {
 		DB mdb;
 		try {
 			mdb = mongoClient.getDB(db);
@@ -142,26 +181,6 @@ public class WorkspaceTestCommon {
 					"read/write access to the database or correct the credentials:\n" +
 					me.getLocalizedMessage());
 		}
-		System.out.println(" buhbye.");
-		
-		DBObject dbo = new BasicDBObject();
-		dbo.put("type_db", getTypeDB());
-		if (type == GRIDFS) {
-			dbo.put("backend", GRIDFS);
-		}
-		if (type == SHOCK) {
-			dbo.put("backend", SHOCK);
-			if (shockuser == null) {
-				throw new TestException("Shock user cannot be null");
-			}
-			dbo.put("shock_user", shockuser);
-			dbo.put("shock_location", getShockUrl());
-			System.out.println(String.format(
-					"Setting up shock with user %s and url %s", shockuser,
-					getShockUrl()));
-		}
-		mdb.getCollection("settings").insert(dbo);
-		System.out.println(String.format("Configured new %s backend.", type));
 		return mdb;
 	}
 }

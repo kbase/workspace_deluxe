@@ -1,6 +1,9 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.WorkspaceObjectID.checkObjectName;
+import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
 //these class names are getting ridiculous, need to think of a better way
 public class ObjectIDResolvedWSNoVer {
@@ -9,7 +12,16 @@ public class ObjectIDResolvedWSNoVer {
 	private final String name;
 	private final Long id;
 	
-	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
+	ObjectIDResolvedWSNoVer(final ObjectIDResolvedWS oid) {
+		if (oid == null) {
+			throw new IllegalArgumentException("oid cannot be null");
+		}
+		this.rwsi = oid.getWorkspaceIdentifier();
+		this.name = oid.getName();
+		this.id = oid.getId();
+	}
+	
+	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
 			final String name) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
@@ -20,7 +32,7 @@ public class ObjectIDResolvedWSNoVer {
 		this.id = null;
 	}
 	
-	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
+	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
 			final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
@@ -33,8 +45,8 @@ public class ObjectIDResolvedWSNoVer {
 		this.id = id;
 	}
 	
-	public ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, 
-			final WorkspaceObjectID id) {
+	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, 
+			final ObjectIDNoWSNoVer id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}

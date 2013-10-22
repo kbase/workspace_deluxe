@@ -68,7 +68,6 @@ public class TestBasicValidation {
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
 	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
-	private final static String TEST_TEMP_LOCATION = "test/typedobj_test_files/temp";
 	
 	private final static String TEST_RESOURCE_LOCATION = "files/t1/";
 	

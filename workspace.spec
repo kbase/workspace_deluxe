@@ -46,29 +46,29 @@ module Workspace {
 	/* 
 		A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference
 		in time to UTC in the format +/-HHMM, eg:
-			2012-12-17T23:24:06-5000 (EST time)
+			2012-12-17T23:24:06-0500 (EST time)
 			2013-04-03T08:56:32+0000 (UTC time)
 	*/
 	typedef string timestamp;
 	
-	/* A type id.
-		References a type via the format [module].[typename] where the module
-		is the module name of the typespec containing the type and the typename
-		is the name assigned by a typedef statement.
-	*/
-	typedef string type_id;
-	
-	/* A type version.
-		Specifies the type version by the format [major].[minor] where 'major'
-		is the major (e.g. backward incompatible) version of the type as an
-		integer and 'minor' is the minor (e.g. backwards compatible) version
-		of the type as an integer.
-	*/
-	typedef string type_ver;
-	
 	/* A type string.
 		Specifies the type and its version in a single string in the format
-		[module].[typename]-[major].[minor]. See type_id and type_ver.
+		[module].[typename]-[major].[minor]:
+		
+		module - a string. The module name of the typespec containing the type.
+		typename - a string. The name of the type as assigned by the typedef
+			statement.
+		major - an integer. The major version of the type. A change in the
+			major version implies the type has changed in a non-backwards
+			compatible way.
+		minor - an integer. The minor version of the type. A change in the
+			minor version implies that the type has changed in a way that is
+			backwards compatible with previous type definitions.
+		
+		In many cases, the major and minor versions are optional, and if not
+		provided the most recent version will be used.
+		
+		Example: MyModule.MyType-3.1
 	*/
 	typedef string type_string;
 	
@@ -330,11 +330,12 @@ module Workspace {
 	
 	/* An object and associated data required for saving.
 	
-		Required parameters:
-		type_id type - the type of the object.
+		Required arguments:
+		type_string type - the type of the object. Omit the version information
+			to use the latest version.
 		UnspecifiedObject data - the object data.
 		
-		Optional parameters:
+		Optional arguments:
 		One of an object name or id. If no name or id is provided the name
 			will be set to the object id as a string, possibly with -\d+
 			appended if that object id already exists as a name.
@@ -343,20 +344,17 @@ module Workspace {
 		usermeta metadata - arbitrary user-supplied metadata for the object,
 			not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
-		type_ver tver - the version of the type. If the version or minor
-			version is not provided the latest version will be assumed.
 		boolean hidden - true if this object should not be listed when listing
 			workspace objects.
 	
 	*/
 	typedef structure {
-		type_id type;
+		type_string type;
 		UnspecifiedObject data;
 		obj_name name;
 		obj_id objid;
 		usermeta metadata;
 		list<ProvenanceAction> provenance;
-		type_ver tver;
 		boolean hidden;
 	} ObjectSaveData;
 	
@@ -413,8 +411,7 @@ module Workspace {
 	
 	/* 
 		Delete objects. All versions of an object are deleted, regardless of
-		the version specified in the ObjectIdentity. If an object is already
-		deleted, no error is thrown.
+		the version specified in the ObjectIdentity.
 	*/
 	funcdef delete_objects(list<ObjectIdentity> object_ids) returns();
 	
@@ -461,12 +458,12 @@ module Workspace {
 	
 	/* Parameters for the compile_typespec function.
 	
-		Required parameters:
+		Required arguments:
 		One of:
 		typespec spec - the new typespec to compile.
 		modulename mod - the module to recompile.
 		
-		Optional parameters:
+		Optional arguments:
 		boolean dryrun - Return, but do not save, the results of compiling the 
 			spec. Default true. Set to false for making permanent changes.
 		list<typename> new_types - types in the spec to make available in the
@@ -522,7 +519,7 @@ module Workspace {
 	
 	/* Parameters for the list_modules() function.
 	
-		Optional parameters:
+		Optional arguments:
 		username owner - only list modules owned by this user.
 	*/
 	typedef structure {
@@ -563,10 +560,10 @@ module Workspace {
 	
 	/* Parameters for the get_module_info function.
 	
-		Required parameters:
+		Required arguments:
 		modulename mod - the name of the module to retrieve.
 		
-		Optional parameters:
+		Optional arguments:
 		spec_version ver - the version of the module to retrieve. Defaults to
 			the latest version.
 	*/

@@ -3,25 +3,34 @@ package us.kbase.workspace.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.ReferenceParser;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
@@ -47,6 +56,7 @@ public class Workspaces {
 	//TODO copy object(s)
 	//TODO move objects(s) ? needed?
 	//TODO revert object
+	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get object changes since date (based on type collection and pointers collection
@@ -60,26 +70,61 @@ public class Workspaces {
 	
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
+	private final ReferenceParser refparse;
 	
-	public Workspaces(WorkspaceDatabase db) {
+	public Workspaces(final WorkspaceDatabase db,
+			final ReferenceParser refparse) {
 		if (db == null) {
-			throw new NullPointerException("db");
+			throw new IllegalArgumentException("db cannot be null");
+		}
+		if (refparse == null) {
+			throw new IllegalArgumentException("refparse cannot be null");
 		}
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
+		this.refparse = refparse;
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
 			final Permission required, final Permission available,
-			final String workspace, final String operation) throws
+			final ObjectIdentifier oi, final String operation) throws
 			WorkspaceAuthorizationException {
+		final WorkspaceAuthorizationException wae =
+				comparePermission(user, required, available,
+						oi.getWorkspaceIdentifierString(), operation);
+		if (wae != null) {
+			wae.addDeniedCause(oi);
+			throw wae;
+		}
+	}
+	
+	private void comparePermission(final WorkspaceUser user,
+			final Permission required, final Permission available,
+			final WorkspaceIdentifier wsi, final String operation) throws
+			WorkspaceAuthorizationException {
+		final WorkspaceAuthorizationException wae =
+				comparePermission(user, required, available,
+						wsi.getIdentifierString(), operation);
+		if (wae != null) {
+			wae.addDeniedCause(wsi);
+			throw wae;
+		}
+	}
+	
+	private WorkspaceAuthorizationException comparePermission(
+			final WorkspaceUser user, final Permission required,
+			final Permission available, final String identifier,
+			final String operation) {
 		if(required.compareTo(available) > 0) {
 			final String err = user == null ?
 					"Anonymous users may not %s workspace %s" :
 					"User " + user.getUser() + " may not %s workspace %s";
-			throw new WorkspaceAuthorizationException(String.format(
-					err, operation, workspace));
+			final WorkspaceAuthorizationException wae = 
+					new WorkspaceAuthorizationException(String.format(
+					err, operation, identifier));
+			return wae;
 		}
+		return null;
 	}
 	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
@@ -98,7 +143,7 @@ public class Workspaces {
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
 				allowDeletedWorkspace);
 		comparePermission(user, perm, db.getPermission(user, wsid),
-				wsi.getIdentifierString(), operation);
+				wsi, operation);
 		return wsid;
 	}
 	
@@ -110,13 +155,20 @@ public class Workspaces {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
-		final Set<WorkspaceIdentifier> wsis =
-				new HashSet<WorkspaceIdentifier>();
+		//map is for error purposes only - only stores the most recent object
+		//associated with a workspace
+		final Map<WorkspaceIdentifier, ObjectIdentifier> wsis =
+				new HashMap<WorkspaceIdentifier, ObjectIdentifier>();
 		for (final ObjectIdentifier o: loi) {
-			wsis.add(o.getWorkspaceIdentifier());
+			wsis.put(o.getWorkspaceIdentifier(), o);
 		}
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(wsis);
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
+		try {
+				rwsis = db.resolveWorkspaces(wsis.keySet());
+		} catch (NoSuchWorkspaceException nswe) {
+			final WorkspaceIdentifier cause = nswe.getMissingWorkspace();
+			throw nswe; //TODO finish this, needs to throw correct exception with embedded object
+		}
 		final Map<ResolvedWorkspaceID, Permission> perms =
 				db.getPermissions(user,
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
@@ -124,8 +176,7 @@ public class Workspaces {
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
-			comparePermission(user, perm, perms.get(r),
-					o.getWorkspaceIdentifierString(), operation);
+			comparePermission(user, perm, perms.get(r), o, operation);
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
@@ -192,41 +243,110 @@ public class Workspaces {
 		return db.getBackendType();
 	}
 	
-//	private static String getObjectErrorId(final WorkspaceObjectID oi,
-//			final int objcount) {
-//		String objErrId = "#" + objcount;
-//		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-//		return objErrId;
-//	}
+	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
+			final int objcount) {
+		String objErrId = "#" + objcount;
+		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
+		return objErrId;
+	}
 	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
 			final List<WorkspaceSaveObject> objects) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
-			NoSuchWorkspaceException {
+			NoSuchWorkspaceException, NoSuchTypeException,
+			NoSuchModuleException, TypeStorageException,
+			TypedObjectValidationException,
+			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
+		final TypedObjectValidator val = db.getTypeValidator();
+		class TempObjectData {
+			public WorkspaceSaveObject wo;
+			public TypedObjectValidationReport rep;
+			public int order;
+			
+			public TempObjectData(WorkspaceSaveObject wo,
+					TypedObjectValidationReport rep, int order) {
+				this.wo = wo;
+				this.rep = rep;
+				this.order = order;
+			}
+			
+		}
+		//this method must maintain the order of the objects
+		//TODO tests for validation of objects
+		final Map<String, ObjectIdentifier> refToOid =
+				new HashMap<String, ObjectIdentifier>();
+		//note this only contains the first object encountered with the ref.
+		// For error reporting purposes only
+		final Map<ObjectIdentifier, TempObjectData> oidToObject =
+				new HashMap<ObjectIdentifier, TempObjectData>();
+		final Map<WorkspaceSaveObject, TempObjectData> reports = 
+				new HashMap<WorkspaceSaveObject, TempObjectData>();
+		int objcount = 1;
+		
+		
+		//stage 1: validate & extract & parse references
+		for (WorkspaceSaveObject wo: objects) {
+			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
+			final String objerrid = getObjectErrorId(oid, objcount);
+			final TypedObjectValidationReport rep =
+					val.validate(wo.getData(), wo.getType());
+			if (!rep.isInstanceValid()) {
+				final String[] e = rep.getErrorMessages();
+				final String err = StringUtils.join(e, "\n");
+				throw new TypedObjectValidationException(String.format(
+						"Object %s failed type checking:\n", objerrid) + err);
+			}
+			final TempObjectData data = new TempObjectData(wo, rep, objcount);
+			for (final String ref: rep.getListOfIdReferences()) {
+				try {
+					if (!refToOid.containsKey(ref)) {
+						final ObjectIdentifier oi = refparse.parse(ref);
+						refToOid.put(ref, oi);
+						oidToObject.put(oi, data);
+					}
+				} catch (IllegalArgumentException iae) {
+					throw new TypedObjectValidationException(String.format(
+							"Object %s has unparseable reference %s: %s",
+							objerrid, ref, iae.getLocalizedMessage(), iae));
+				}
+			}
+			reports.put(wo, data);
+		}
+		
+		//stage 2: resolve references and get types
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
+		if (!oidToObject.isEmpty()) {
+			try {
+					wsresolvedids = checkPerms(user,
+							new LinkedList<ObjectIdentifier>(oidToObject.keySet()),
+							Permission.READ, "read");
+			} catch (WorkspaceAuthorizationException wae) {
+				final ObjectIdentifier cause = wae.getDeniedObject();
+				final int order = oidToObject.get(cause).order;
+				
+				
+			}
+		} else {
+			wsresolvedids = new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		}
+		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
-		//this method must maintain the order of the objects
-//		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
-//			final WorkspaceObjectID oi = wo.getObjectIdentifier();
-//			final String objErrId = getObjectErrorId(oi, objcount);
-//			final String objerrpunc = oi == null ? "" : ",";
-			 //TODO replace this with value returned from validator
-			final AbsoluteTypeDefId type = new AbsoluteTypeDefId(wo.getType().getType(),
-					wo.getType().getMajorVersion() == null ? 0 : wo.getType().getMajorVersion(),
-					wo.getType().getMinorVersion() == null ? 0 : wo.getType().getMinorVersion());
-			//TODO validate objects by type
-			//TODO get reference list by object
-			saveobjs.add(wo.resolve(type, wo.getData()));//TODO this goes below after resolving ids
-//			objcount++;
+
+			final AbsoluteTypeDefId type = reports.get(wo).rep
+					.getValidationTypeDefId();
+			saveobjs.add(wo.resolve(type, wo.getData()));//TODO rewrite data
+			objcount++;
 		}
+		//TODO check size < 1 MB
 		//TODO resolve references (std resolve, resolve to IDs, no resolution)
 		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
 		//TODO rewrite references
@@ -271,28 +391,16 @@ public class Workspaces {
 		return ret;
 	}
 	
-	private Set<ObjectIDResolvedWSNoVer> removeVersions(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission p, final String operation)
-					throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-					CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, p, operation);
-		final Set<ObjectIDResolvedWSNoVer> objectIDs =
-				new HashSet<ObjectIDResolvedWSNoVer>();
-		for (ObjectIDResolvedWS o: ws.values()) {
-			objectIDs.add(o.withoutVersion());
-		}
-		return objectIDs;
-	}
-	
 	public void setObjectsDeleted(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean delete)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchObjectException {
-		db.setObjectsDeleted(removeVersions(user, loi, Permission.WRITE,
-				(delete ? "" : "un") + "delete objects from"), delete);
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.WRITE,
+						(delete ? "" : "un") + "delete objects from");
+		db.setObjectsDeleted(new HashSet<ObjectIDResolvedWS>(ws.values()),
+				delete);
 	}
 
 	public void setWorkspaceDeleted(final WorkspaceUser user,
