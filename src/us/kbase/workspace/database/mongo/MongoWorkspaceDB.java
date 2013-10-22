@@ -490,7 +490,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_PERMS_UPD = String.format("{$set: {%s: #}}",
 			Fields.ACL_PERM);
 	
-	//wsid must exist as a workspace
 	private void setPermissions(final ResolvedMongoWSID wsid, final List<User> users,
 			final Permission perm, final boolean checkowner) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {

@@ -100,6 +100,9 @@ public class QueryMethods {
 	Map<WorkspaceIdentifier, Map<String, Object>>
 			queryWorkspacesByIdentifier(final Set<WorkspaceIdentifier> wsiset,
 			final Set<String> fields) throws WorkspaceCommunicationException {
+		if (wsiset.isEmpty()) {
+			return new HashMap<WorkspaceIdentifier, Map<String,Object>>();
+		}
 		final Map<Long, WorkspaceIdentifier> ids =
 				new HashMap<Long, WorkspaceIdentifier>();
 		final Map<String, WorkspaceIdentifier> names =
@@ -111,39 +114,33 @@ public class QueryMethods {
 				names.put(wsi.getName(), wsi);
 			}
 		}
-		//could do an or here but hardly seems worth it
-		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
-				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
-		final Map<Long, Map<String, Object>> idres = queryWorkspacesByID(
-				ids.keySet(), fields);
-		for (final Long id: idres.keySet()) {
-			ret.put(ids.get(id), idres.get(id));
+		final List<DBObject> orquery = new LinkedList<DBObject>();
+		if (!ids.isEmpty()) {
+			orquery.add(new BasicDBObject(Fields.WS_ID,
+					new BasicDBObject("$in", ids.keySet())));
 		}
-		final Map<String, Map<String, Object>> nameres = queryWorkspacesByName(
-				names.keySet(), fields);
-		for (String name: nameres.keySet()) {
-			ret.put(names.get(name), nameres.get(name));
-		}
-		return ret;
-	}
-	
-	private Map<String, Map<String, Object>> queryWorkspacesByName(
-			final Set<String> wsnames, final Set<String> fields)
-			throws WorkspaceCommunicationException {
-		if (wsnames.isEmpty()) {
-			return new HashMap<String, Map<String, Object>>();
+		if (!names.isEmpty()) {
+			orquery.add(new BasicDBObject(Fields.WS_NAME,
+					new BasicDBObject("$in", names.keySet())));
 		}
 		fields.add(Fields.WS_NAME);
-		final List<Map<String, Object>> queryres =
-				queryCollection(workspaceCollection,
-				String.format("{%s: {$in: [\"%s\"]}}", Fields.WS_NAME,
-				StringUtils.join(wsnames, "\", \"")), fields);
-		final Map<String, Map<String, Object>> result =
-				new HashMap<String, Map<String, Object>>();
-		for (Map<String, Object> m: queryres) {
-			result.put((String) m.get(Fields.WS_NAME), m);
+		fields.add(Fields.WS_ID);
+		final List<Map<String, Object>> res = queryCollection(
+				workspaceCollection, new BasicDBObject("$or", orquery), fields);
+		
+		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
+				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
+		for (final Map<String, Object> m: res) {
+			final String name = (String) m.get(Fields.WS_NAME);
+			final Long id = (Long) m.get(Fields.WS_ID);
+			if (names.containsKey(name)) {
+				ret.put(names.get(name), m);
+			}
+			if (ids.containsKey(id)) {
+				ret.put(ids.get(id), m);
+			}
 		}
-		return result;
+		return ret;
 	}
 	
 	private Map<Long, Map<String, Object>> queryWorkspacesByID(
@@ -163,13 +160,6 @@ public class QueryMethods {
 			result.put((Long) m.get(Fields.WS_ID), m);
 		}
 		return result;
-	}
-	
-	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
-			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return queryObjects(objectIDs, fields, true);
 	}
 
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
@@ -238,7 +228,8 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	Map<ResolvedMongoWSID, Map<String, Map<String, Object>>>
+	//TODO combine the methods below, it's a fucking or already
+	private Map<ResolvedMongoWSID, Map<String, Map<String, Object>>>
 			queryObjectsByName(
 			final Map<ResolvedMongoWSID, Set<String>> names,
 			final Set<String> fields, final boolean exceptOnMissing) throws
@@ -284,7 +275,7 @@ public class QueryMethods {
 		return result;
 	}
 	
-	Map<ResolvedMongoWSID, Map<Long, Map<String, Object>>>
+	private Map<ResolvedMongoWSID, Map<Long, Map<String, Object>>>
 			queryObjectsByID(
 			final Map<ResolvedMongoWSID, Set<Long>> ids,
 			final Set<String> fields, final boolean exceptOnMissing) throws
