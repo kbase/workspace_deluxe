@@ -15,10 +15,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetModuleInfoParams</p>
  * <pre>
  * Parameters for the get_module_info function.
- *         Required parameters:
+ *         Required arguments:
  *         modulename mod - the name of the module to retrieve.
  *         
- *         Optional parameters:
+ *         Optional arguments:
  *         spec_version ver - the version of the module to retrieve. Defaults to
  *                 the latest version.
  * </pre>

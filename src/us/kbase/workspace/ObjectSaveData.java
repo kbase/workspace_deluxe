@@ -17,11 +17,12 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ObjectSaveData</p>
  * <pre>
  * An object and associated data required for saving.
- *         Required parameters:
- *         type_id type - the type of the object.
+ *         Required arguments:
+ *         type_string type - the type of the object. Omit the version information
+ *                 to use the latest version.
  *         UnspecifiedObject data - the object data.
  *         
- *         Optional parameters:
+ *         Optional arguments:
  *         One of an object name or id. If no name or id is provided the name
  *                 will be set to the object id as a string, possibly with -\d+
  *                 appended if that object id already exists as a name.
@@ -30,8 +31,6 @@ import us.kbase.common.service.UObject;
  *         usermeta metadata - arbitrary user-supplied metadata for the object,
  *                 not to exceed 16kb.
  *         list<ProvenanceAction> provenance - provenance data for the object.
- *         type_ver tver - the version of the type. If the version or minor
- *                 version is not provided the latest version will be assumed.
  *         boolean hidden - true if this object should not be listed when listing
  *                 workspace objects.
  * </pre>
@@ -46,7 +45,6 @@ import us.kbase.common.service.UObject;
     "objid",
     "metadata",
     "provenance",
-    "tver",
     "hidden"
 })
 public class ObjectSaveData {
@@ -63,8 +61,6 @@ public class ObjectSaveData {
     private Map<String, String> metadata;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance;
-    @JsonProperty("tver")
-    private java.lang.String tver;
     @JsonProperty("hidden")
     private Long hidden;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -159,21 +155,6 @@ public class ObjectSaveData {
         return this;
     }
 
-    @JsonProperty("tver")
-    public java.lang.String getTver() {
-        return tver;
-    }
-
-    @JsonProperty("tver")
-    public void setTver(java.lang.String tver) {
-        this.tver = tver;
-    }
-
-    public ObjectSaveData withTver(java.lang.String tver) {
-        this.tver = tver;
-        return this;
-    }
-
     @JsonProperty("hidden")
     public Long getHidden() {
         return hidden;
@@ -201,7 +182,7 @@ public class ObjectSaveData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ObjectSaveData"+" [type=")+ type)+", data=")+ data)+", name=")+ name)+", objid=")+ objid)+", metadata=")+ metadata)+", provenance=")+ provenance)+", tver=")+ tver)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("ObjectSaveData"+" [type=")+ type)+", data=")+ data)+", name=")+ name)+", objid=")+ objid)+", metadata=")+ metadata)+", provenance=")+ provenance)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
