@@ -525,7 +525,11 @@ public class TypeRegisteringTest {
 			db.getAllRegisteredTypes(moduleName);
 			Assert.fail();
 		} catch (NoSuchModuleException ex) {}
-		db.getAllRegisteredTypes(moduleName, lastModVer);
+		try {
+			db.getAllRegisteredTypes(new ModuleDefId(moduleName));
+			Assert.fail();
+		} catch (NoSuchModuleException ex) {}
+		db.getAllRegisteredTypes(new ModuleDefId(moduleName, lastModVer));
 		try {
 			db.getLatestTypeVersion(new TypeDefName(moduleName, "regulator"));
 			Assert.fail();
@@ -564,7 +568,7 @@ public class TypeRegisteringTest {
 		} catch (NoSuchTypeException ex) {}
 		db.getFuncRefsByRef(new TypeDefId(moduleName + ".regulator", lastTypeVer));
 		try {
-			db.stopTypeSupport(new TypeDefName(moduleName, "regulator"), adminUser);
+			db.stopTypeSupport(new TypeDefName(moduleName, "regulator"), adminUser, "");
 			Assert.fail();
 		} catch (NoSuchModuleException ex) {}
 		//// Functions
@@ -608,7 +612,9 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (SpecParseException ex) {}
 		db.registerModule(loadSpec("stop", "Dependant"), Collections.<String>emptyList(), Collections.<String>emptyList(), 
-				adminUser, false, restrict(moduleName, lastModVer));
+				adminUser, false, restrict(moduleName, lastModVer), null, "Test message");
+		db.releaseModule("Dependant", adminUser);
+		Assert.assertEquals("Test message", db.getModuleInfo("Dependant").getUploadComment());
 	}
 
 	private Map<String, Long> restrict(Object... params) {
