@@ -18,7 +18,6 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
-import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.mongodb.AggregationOutput;
@@ -165,7 +164,7 @@ public class QueryMethods {
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
 			final Set<String> fields)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
+			throws WorkspaceCommunicationException {
 		if (objectIDs.isEmpty()) {
 			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
 		}
@@ -235,7 +234,7 @@ public class QueryMethods {
 	
 	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
 			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
-			throws WorkspaceCommunicationException, NoSuchObjectException {
+			throws WorkspaceCommunicationException {
 
 		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids = 
 			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
@@ -294,15 +293,9 @@ public class QueryMethods {
 				final Map<String, Object> d = data.get(
 						roi.getWorkspaceIdentifier()).get(roi.getId())
 						.get(roi.getVersion());
-				if (d == null) {
-					//TODO don't throw errors here, throw in calling method
-					throw new NoSuchObjectException(String.format(
-							"No object with id %s (name %s) and version %s exists in" +
-							" workspace %s", roi.getId(), roi.getName(), 
-							roi.getVersion(), 
-							roi.getWorkspaceIdentifier().getID()));
+				if (d != null) {
+					ret.put(roi, d);
 				}
-				ret.put(roi, d);
 			}
 		}
 		return ret;

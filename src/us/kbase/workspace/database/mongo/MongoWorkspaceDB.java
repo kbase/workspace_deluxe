@@ -757,7 +757,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
-	private ResolvedMongoObjectID saveObjectAndNewVersion(
+	private ResolvedMongoObjectID saveWorkspaceObject(
 			final ResolvedMongoWSID wsid, final long objectid,
 			final String name)
 			throws WorkspaceCommunicationException {
@@ -785,7 +785,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (name == null) {
 				//not much chance of this happening again, let's just recurse
 				//and make a new name again
-				return saveObjectAndNewVersion(wsid, objectid, name);
+				return saveWorkspaceObject(wsid, objectid, name);
 			}
 			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
 			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
@@ -793,7 +793,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, try again
-				return saveObjectAndNewVersion(wsid, objectid, name);
+				return saveWorkspaceObject(wsid, objectid, name);
 			}
 			//save version via the id associated with our name which already exists
 			return objID.get(o);
@@ -954,7 +954,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
 				final ResolvedMongoObjectID obj =
-						saveObjectAndNewVersion(wsidmongo, newid++, null);
+						saveWorkspaceObject(wsidmongo, newid++, null);
 				p.name = obj.getName();
 				ret.add(saveObjectVersion(user, wsidmongo, obj.getId(), p));
 			} else if (oi.getId() != null) { //confirmed ok id
@@ -966,7 +966,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
 				final ResolvedMongoObjectID obj =
-						saveObjectAndNewVersion(wsidmongo, newid++, oi.getName());
+						saveWorkspaceObject(wsidmongo, newid++, oi.getName());
 				p.name = obj.getName();
 				seenNames.put(obj.getName(), obj.getId());
 				ret.add(saveObjectVersion(user, wsidmongo, obj.getId(), p));
@@ -1061,6 +1061,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Object> chksumToData = new HashMap<String, Object>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
+			if (!vers.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists in" +
+						" workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), o);
+			}
 			final MongoObjectUserMeta meta = generateUserMeta(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
@@ -1136,6 +1143,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
+			if (!vers.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists in" +
+						" workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), o);
+			}
 			ret.put(o, generateUserMeta(roi, vers.get(roi)));
 		}
 		return ret;
@@ -1321,7 +1335,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-			ResolvedMongoObjectID r = testdb.saveObjectAndNewVersion(rwsi, 3, "testobj");
+			ResolvedMongoObjectID r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.getName();
 			ObjectMetaData md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.getId(), pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
