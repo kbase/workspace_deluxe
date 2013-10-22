@@ -13,6 +13,7 @@ import org.jongo.Jongo;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -178,7 +179,7 @@ public class QueryMethods {
 								Map<String, ObjectIDResolvedWSNoVer>>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
 			final ResolvedMongoWSID rwsi =
-					convertResolvedID(o.getWorkspaceIdentifier());
+					convertResolvedWSID(o.getWorkspaceIdentifier());
 			if (o.getId() == null) {
 				if (names.get(rwsi) == null) {
 					names.put(rwsi,
@@ -243,7 +244,7 @@ public class QueryMethods {
 		
 		for (final ResolvedMongoObjectID o: objectIDs) {
 			final ResolvedMongoWSID rwsi =
-					convertResolvedID(o.getWorkspaceIdentifier());
+					convertResolvedWSID(o.getWorkspaceIdentifier());
 			if (o.getVersion() == null) {
 				if (idsNoVer.get(rwsi) == null) {
 					idsNoVer.put(rwsi, new LinkedList<Long>());
@@ -530,12 +531,21 @@ public class QueryMethods {
 		}
 	}
 	
-	ResolvedMongoWSID convertResolvedID(ResolvedWorkspaceID rwsi) {
+	ResolvedMongoWSID convertResolvedWSID(ResolvedWorkspaceID rwsi) {
 		if (!(rwsi instanceof ResolvedMongoWSID)) {
 			throw new RuntimeException(
 					"Passed incorrect implementation of ResolvedWorkspaceID:" +
 					(rwsi == null ? null : rwsi.getClass()));
 		}
 		return (ResolvedMongoWSID) rwsi;
+	}
+	
+	ResolvedMongoObjectID convertResolvedObjID(ResolvedObjectID roi) {
+		if (!(roi instanceof ResolvedObjectID)) {
+			throw new RuntimeException(
+					"Passed incorrect implementation of ResolvedObjectID:" +
+					(roi == null ? null : roi.getClass()));
+		}
+		return (ResolvedMongoObjectID) roi;
 	}
 }

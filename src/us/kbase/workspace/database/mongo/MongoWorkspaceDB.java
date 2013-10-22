@@ -40,6 +40,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -402,7 +403,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public String getWorkspaceDescription(final ResolvedWorkspaceID rwsi) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException {
-		return (String) query.queryWorkspace(query.convertResolvedID(rwsi),
+		return (String) query.queryWorkspace(query.convertResolvedWSID(rwsi),
 				FLDS_WS_DESC).get(Fields.WS_DESC);
 	}
 	
@@ -443,7 +444,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final WorkspaceIdentifier wsi: wsis) {
 			if (!res.containsKey(wsi)) {
 				throw new NoSuchWorkspaceException(String.format(
-						"No workspace with id %s exists", getWSErrorId(wsi)),
+						"No workspace with %s exists", getWSErrorId(wsi)),
 						wsi);
 			}
 			if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
@@ -468,7 +469,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		setPermissionsForWorkspaceUsers(query.convertResolvedID(rwsi),
+		setPermissionsForWorkspaceUsers(query.convertResolvedWSID(rwsi),
 				users, perm, true);
 	}
 	
@@ -548,7 +549,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		users.add(allUsers);
 		final Set<ResolvedMongoWSID> rm = new HashSet<ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID r: rwsis) {
-			rm.add(query.convertResolvedID(r));
+			rm.add(query.convertResolvedWSID(r));
 		}
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms = 
 				query.queryPermissions(rm, users);
@@ -578,7 +579,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			users.add(user);
 		}
 		final Map<User, Permission> ret = query.queryPermissions(
-				query.convertResolvedID(rwsi), users);
+				query.convertResolvedWSID(rwsi), users);
 		if (!ret.containsKey(user)) {
 			ret.put(user, Permission.NONE);
 		}
@@ -589,7 +590,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Map<User, Permission> getAllPermissions(
 			final ResolvedWorkspaceID rwsi) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return query.queryPermissions(query.convertResolvedID(rwsi));
+		return query.queryPermissions(query.convertResolvedWSID(rwsi));
 	}
 
 	private static final Set<String> FLDS_WS_ID_NAME_OWNER_MODDATE = 
@@ -600,7 +601,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public WorkspaceMetaData getWorkspaceMetadata(final WorkspaceUser user,
 			final ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final ResolvedMongoWSID m = query.convertResolvedID(rwsi);
+		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
 		final Map<String, Object> ws = query.queryWorkspace(m,
 				FLDS_WS_ID_NAME_OWNER_MODDATE);
 		final Map<User, Permission> res = getUserAndGlobalPermission(user,
@@ -880,7 +881,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO break this up
 		//this method must maintain the order of the objects
 		
-		final ResolvedMongoWSID wsidmongo = query.convertResolvedID(rwsi);
+		final ResolvedMongoWSID wsidmongo = query.convertResolvedWSID(rwsi);
 		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				objects);
 		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
@@ -1210,11 +1211,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
 			if (oid.getVersion() != null) {
-				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(
+				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedWSID(
 						oid.getWorkspaceIdentifier()), name, id,
 						oid.getVersion().intValue()));
 			} else {
-				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedID(
+				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedWSID(
 						oid.getWorkspaceIdentifier()), name, id));
 			}
 		}
@@ -1230,7 +1231,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoWSID, List<Long>> toModify =
 				new HashMap<ResolvedMongoWSID, List<Long>>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoWSID ws = query.convertResolvedID(
+			final ResolvedMongoWSID ws = query.convertResolvedWSID(
 					o.getWorkspaceIdentifier());
 			if (!toModify.containsKey(ws)) {
 				toModify.put(ws, new ArrayList<Long>());
@@ -1279,7 +1280,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//there's a possibility of a race condition here if a workspace is
 		//deleted and undeleted or vice versa in a very short amount of time,
 		//but that seems so unlikely it's not worth the code
-		final ResolvedMongoWSID mrwsi = query.convertResolvedID(rwsi);
+		final ResolvedMongoWSID mrwsi = query.convertResolvedWSID(rwsi);
 		try {
 			wsjongo.getCollection(COL_WORKSPACES).update(
 							M_DELWS_UPD, mrwsi.getID())

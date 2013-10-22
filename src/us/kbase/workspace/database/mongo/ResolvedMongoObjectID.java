@@ -1,6 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
+import us.kbase.workspace.database.ResolvedObjectID;
 
 /**
  * name is resolved *at the time the database was accessed and is not further
@@ -19,7 +20,7 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  * @author gaprice@lbl.gov
  *
  */
-public class ResolvedMongoObjectID {
+public class ResolvedMongoObjectID implements ResolvedObjectID {
 	
 	private final ResolvedMongoWSID rwsi;
 	private final String name;

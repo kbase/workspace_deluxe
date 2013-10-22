@@ -339,13 +339,29 @@ public class Workspaces {
 							Permission.READ, "read");
 			} catch (InaccessibleObjectException ioe) {
 				final ObjectIdentifier cause = ioe.getInaccessibleObject();
-				final int order = oidToObject.get(cause).order;
-				
-				
+				String ref = null; //must be set correctly below
+				for (final String r: refToOid.keySet()) {
+					if (refToOid.get(r).equals(cause)) {
+						ref = r;
+						break;
+					}
+				}
+				final TempObjectData tod = oidToObject.get(cause);
+				final String objerrid = getObjectErrorId(
+						tod.wo.getObjectIdentifier(), tod.order);
+				throw new TypedObjectValidationException(String.format(
+						"Object %s has inaccessible reference %s: %s",
+						objerrid, ref, ioe.getLocalizedMessage(), ioe));
 			}
 		} else {
 			wsresolvedids = new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		}
+//		final Map<ObjectIDResolvedWS, Res>
+//		if (!wsresolvedids.isEmpty()) {
+//			try {
+//				
+//			}
+//		}
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
