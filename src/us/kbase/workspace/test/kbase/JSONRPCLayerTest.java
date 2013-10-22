@@ -773,7 +773,7 @@ public class JSONRPCLayerTest {
 			fail("got deleted object");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Workspace delundel is deleted"));
+					is("Object myname cannot be accessed: Workspace delundel is deleted"));
 		}
 		try {
 			CLIENT1.getWorkspaceDescription(wsi);
