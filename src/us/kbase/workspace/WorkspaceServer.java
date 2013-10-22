@@ -369,7 +369,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			TypeDefId t;
 			try {
-				t = new TypeDefId(d.getType(), d.getTver());
+				t = TypeDefId.fromTypeString(d.getType());
 			} catch (IllegalArgumentException iae) {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);

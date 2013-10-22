@@ -66,10 +66,7 @@ public class JSONRPCLayerTest {
 		DATE_FORMAT.setLenient(false);
 	}
 	
-	public static final String SAFE_TYPE_NAME = "SomeModule.AType";
-	public static final String SAFE_TYPE_VER = "0.1";
-	public static final String SAFE_TYPE_FULL = SAFE_TYPE_NAME + "-" +
-			SAFE_TYPE_VER;
+	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
 	
 	private static class ServerThread extends Thread {
 		
@@ -326,7 +323,7 @@ public class JSONRPCLayerTest {
 		data.put("foo", "bar");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER));
+				.withType(SAFE_TYPE));
 		try {
 			CLIENT2.saveObjects(new SaveObjectsParams()
 				.withWorkspace("permspriv").withObjects(objects));
@@ -491,18 +488,15 @@ public class JSONRPCLayerTest {
 		
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject("foo")));
-		saveBadObject(objects, "Object 1 type error: Moduletype cannot be null or the empty string");
+		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
 		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(""));
-		saveBadObject(objects, "Object 1 type error: Moduletype cannot be null or the empty string");
-		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("F.B").withTver(""));
-		saveBadObject(objects, "Object 1 type error: Typeversion cannot be an empty string");
+		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
 		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo"));
 		saveBadObject(objects, "Object 1 type error: Type foo could not be split into a module and name");
 		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar").withTver("1.2.3"));
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3"));
 		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
 		
 		//TODO provenance testing
@@ -539,34 +533,29 @@ public class JSONRPCLayerTest {
 		}
 		
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType(SAFE_TYPE_NAME)
-				.withTver(SAFE_TYPE_VER)); // will be "1"
+				.withMetadata(meta).withType(SAFE_TYPE)); // will be "1"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType(SAFE_TYPE_NAME)
-				.withTver(SAFE_TYPE_VER)); // will be "2"
+				.withMetadata(meta).withType(SAFE_TYPE)); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType(SAFE_TYPE_NAME)
-				.withTver(SAFE_TYPE_VER)
-				.withName("foo")); 
+				.withMetadata(meta2).withType(SAFE_TYPE).withName("foo")); 
 		
 		List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> retmet =
 				CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(3));
-		checkMeta(retmet.get(0), 1, "1", SAFE_TYPE_FULL, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(1), 2, "2", SAFE_TYPE_FULL, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(2), 3, "foo", SAFE_TYPE_FULL, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkMeta(retmet.get(0), 1, "1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(1), 2, "2", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER)
-				.withObjid(2L));
+				.withMetadata(meta2).withType(SAFE_TYPE).withObjid(2L));
 		
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
-		checkMeta(retmet.get(0), 2, "2", SAFE_TYPE_FULL, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkMeta(retmet.get(0), 2, "2", SAFE_TYPE, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
@@ -576,7 +565,7 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
-		checkSavedObjects(loi, 2, "2", SAFE_TYPE_FULL, 1, USER1,
+		checkSavedObjects(loi, 2, "2", SAFE_TYPE, 1, USER1,
 				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
 		loi.clear();
@@ -597,7 +586,7 @@ public class JSONRPCLayerTest {
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 		
-		checkSavedObjects(loi, 2, "2", SAFE_TYPE_FULL, 2, USER1,
+		checkSavedObjects(loi, 2, "2", SAFE_TYPE, 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
 		try {
@@ -761,7 +750,7 @@ public class JSONRPCLayerTest {
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("delundel")
 				.withObjects(objects);
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withType(SAFE_TYPE_NAME).withTver(SAFE_TYPE_VER).withName("myname"));
+				.withType(SAFE_TYPE).withName("myname"));
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
 				.withRef("delundel/myname"));
