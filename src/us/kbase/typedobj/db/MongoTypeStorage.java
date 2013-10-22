@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.jongo.Jongo;
@@ -166,10 +166,35 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public List<String> getAllRegisteredModules() throws TypeStorageException {
+	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
 		try {
 			MongoCollection infos = jdb.getCollection(TABLE_MODULE_VERSION);
-			return infos.distinct("moduleName").as(String.class);
+			Map<String, Boolean> map = getProjection(infos, "{}", "moduleName", String.class, "supported", Boolean.class);
+			Set<String> ret = new TreeSet<String>();
+			if (withUnsupported) {
+				ret.addAll(map.keySet());
+			} else {
+				for (String module : map.keySet())
+					if (map.get(module))
+						ret.add(module);
+			}
+			return ret;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	@Override
+	public boolean getModuleSupportedState(String moduleName)
+			throws TypeStorageException {
+		try {
+			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
+			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			if (ret == null)
+				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
+			return ret.isSupported();
+		} catch (TypeStorageException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -449,6 +474,7 @@ public class MongoTypeStorage implements TypeStorage {
 				ver.setModuleName(moduleName);
 				ver.setVersionTime(version);
 				ver.setReleasedVersionTime(version);
+				ver.setSupported(true);
 				vers.insert(ver);
 			} else {
 				vers.update("{moduleName:#}", moduleName).with("{$set: {versionTime: #}}", version);
@@ -812,6 +838,21 @@ public class MongoTypeStorage implements TypeStorage {
 		return list.toArray(ret);
 	}
 	
+	@Override
+	public void changeModuleSupportedState(String moduleName, boolean supported)
+			throws TypeStorageException {
+		try {
+			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null)
+				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
+			vers.update("{moduleName:#}", moduleName).with("{$set: {supported: #}}", supported);
+		} catch (TypeStorageException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
 	public static class ModuleSpec {
 		private String moduleName;
 		private String document;
@@ -846,6 +887,7 @@ public class MongoTypeStorage implements TypeStorage {
 		private String moduleName;
 		private long versionTime;
 		private long releasedVersionTime;
+		private boolean supported;
 		
 		public String getModuleName() {
 			return moduleName;
@@ -869,6 +911,14 @@ public class MongoTypeStorage implements TypeStorage {
 		
 		public void setReleasedVersionTime(long releasedVersionTime) {
 			this.releasedVersionTime = releasedVersionTime;
+		}
+		
+		public boolean isSupported() {
+			return supported;
+		}
+		
+		public void setSupported(boolean supported) {
+			this.supported = supported;
 		}
 	}
 	

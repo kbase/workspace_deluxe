@@ -27,7 +27,7 @@ public interface TypeStorage {
 
 	public ModuleInfo getModuleInfoRecord(String moduleName, long version) throws TypeStorageException;
 
-	public List<String> getAllRegisteredModules() throws TypeStorageException;
+	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException;
 
 	public List<OwnerInfo> getNewModuleRegistrationRequests() throws TypeStorageException;
 
@@ -56,6 +56,8 @@ public interface TypeStorage {
 	public Map<String, OwnerInfo> getModulesForOwner(String userId) throws TypeStorageException;
 
 	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName, String typeVersion) throws TypeStorageException;
+	
+	public boolean getModuleSupportedState(String moduleName) throws TypeStorageException;
 
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
@@ -85,6 +87,8 @@ public interface TypeStorage {
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName, long versionToDelete, long versionToSwitchTo) throws TypeStorageException;
 	
 	public void setModuleReleaseVersion(String moduleName, long version) throws TypeStorageException;
+	
+	public void changeModuleSupportedState(String moduleName, boolean supported) throws TypeStorageException;
 	
 	////////////////////////////////////// TESTING ///////////////////////////////////////////
 	

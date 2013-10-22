@@ -9,6 +9,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -306,8 +307,10 @@ public class TypeDefinitionDB {
 	}
 	
 	private long findModuleVersion(ModuleDefId moduleDef) throws NoSuchModuleException, TypeStorageException {
-		if (moduleDef.getVersion() == null)
+		if (moduleDef.getVersion() == null) {
+			checkModuleSupported(moduleDef.getModuleName());
 			return storage.getLastReleasedModuleVersion(moduleDef.getModuleName());
+		}
 		long version = moduleDef.getVersion();
 		if (!storage.checkModuleInfoRecordExist(moduleDef.getModuleName(), version))
 			throw new NoSuchModuleException("There is no information about module " + moduleDef.getModuleName() + 
@@ -471,8 +474,11 @@ public class TypeDefinitionDB {
 	private boolean isValidModuleNL(String moduleName, Long version) throws TypeStorageException {
 		if (!storage.checkModuleExist(moduleName))
 			return false;
-		if (version == null)
+		if (version == null) {
+			if (!isModuleSupported(moduleName))
+				return false;
 			version = storage.getLastReleasedModuleVersion(moduleName);
+		}
 		return storage.checkModuleInfoRecordExist(moduleName, version) && 
 				storage.checkModuleSpecRecordExist(moduleName, version);
 	}
@@ -541,6 +547,8 @@ public class TypeDefinitionDB {
 	private SemanticVersion findTypeVersion(TypeDefId typeDef) throws TypeStorageException {
 		if (typeDef.isAbsolute())
 			return new SemanticVersion(typeDef.getMajorVersion(), typeDef.getMinorVersion());
+		if (!isModuleSupported(typeDef.getType().getModule()))
+			return null;
 		if (typeDef.getMajorVersion() != null) {
 			Map<String, Boolean> versions = storage.getAllTypeVersions(typeDef.getType().getModule(), 
 					typeDef.getType().getName());
@@ -597,7 +605,8 @@ public class TypeDefinitionDB {
 
 	public List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
-		return getAllRegisteredTypes(moduleName, getLastModuleVersion(moduleName));
+		checkModuleSupported(moduleName);
+		return getAllRegisteredTypes(moduleName, getLatestModuleVersion(moduleName));
 	}
 	
 	public List<String> getAllRegisteredTypes(String moduleName, long moduleVersion) 
@@ -751,6 +760,7 @@ public class TypeDefinitionDB {
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		checkModuleRegistered(moduleName);
+		checkModuleSupported(moduleName);
 		long version = storage.getLastModuleVersionWithUnreleased(moduleName);
 		checkModule(moduleName, version);
 		ModuleInfo info = storage.getModuleInfoRecord(moduleName, version);
@@ -884,6 +894,7 @@ public class TypeDefinitionDB {
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
 		try {
+			checkModuleSupported(moduleName);
 			return storage.getModuleSpecRecord(moduleName, storage.getLastReleasedModuleVersion(moduleName));
 		} finally {
 			releaseReadLock(moduleName);
@@ -917,6 +928,7 @@ public class TypeDefinitionDB {
 
 	private ModuleInfo getModuleInfoNL(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
+		checkModuleSupported(moduleName);
 		return getModuleInfoNL(moduleName, storage.getLastReleasedModuleVersion(moduleName));
 	}
 	
@@ -957,18 +969,19 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	public long getLastModuleVersion(String moduleName) 
+	public long getLatestModuleVersion(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
+			checkModuleSupported(moduleName);
 			return storage.getLastReleasedModuleVersion(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
 	
-	public long getLastModuleVersionWithUnreleased(String moduleName, String userId) 
+	public long getLatestModuleVersionWithUnreleased(String moduleName, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		requestReadLock(moduleName);
@@ -985,17 +998,22 @@ public class TypeDefinitionDB {
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
-			TreeMap<Long, Boolean> map = storage.getAllModuleVersions(moduleName);
-			List<Long> ret = new ArrayList<Long>();
-			for (Map.Entry<Long, Boolean> enrty : map.entrySet())
-				if (enrty.getValue() && enrty.getKey() != map.firstKey())
-					ret.add(enrty.getKey());
-			return ret;
+			checkModuleSupported(moduleName);
+			return getAllModuleVersionsNL(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
-		
+
+	private List<Long> getAllModuleVersionsNL(String moduleName) throws TypeStorageException {
+		TreeMap<Long, Boolean> map = storage.getAllModuleVersions(moduleName);
+		List<Long> ret = new ArrayList<Long>();
+		for (Map.Entry<Long, Boolean> enrty : map.entrySet())
+			if (enrty.getValue() && enrty.getKey() != map.firstKey())
+				ret.add(enrty.getKey());
+		return ret;
+	}
+	
 	public List<String> getAllRegisteredFuncs(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		requestReadLock(moduleName);
@@ -1186,7 +1204,7 @@ public class TypeDefinitionDB {
 	 * @return all names of registered modules
 	 */
 	public List<String> getAllRegisteredModules() throws TypeStorageException {
-		return storage.getAllRegisteredModules();
+		return new ArrayList<String>(storage.getAllRegisteredModules(false));
 	}
 	
 	private String getTypeVersion(TypeDefId typeDef) 
@@ -1225,9 +1243,11 @@ public class TypeDefinitionDB {
 	}
 
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc) 
-			throws TypeStorageException, NoSuchModuleException {
+			throws TypeStorageException, NoSuchModuleException, NoSuchFuncException {
 		requestReadLock(depModule);
 		try {
+			checkModuleRegistered(depModule);
+			checkModuleSupported(depModule);
 			return storage.getFuncRefsByDep(depModule, depFunc, null);
 		} finally {
 			releaseReadLock(depModule);
@@ -1417,7 +1437,7 @@ public class TypeDefinitionDB {
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
 					NoSuchPrivilegeException {
-		String specDocument = getModuleSpecDocument(moduleName);
+		String specDocument = getModuleSpecDocument(moduleName, storage.getLastModuleVersionWithUnreleased(moduleName));
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
 				null, "refreshModule");
@@ -1468,7 +1488,7 @@ public class TypeDefinitionDB {
 	private KbModule compileSpecFile(String specDocument, List<String> includedModules,
 			Map<String, Map<String, String>> moduleToTypeToSchema,
 			Map<String, ModuleInfo> moduleToInfo, Map<String, Long> moduleVersionRestrictions) 
-					throws SpecParseException {
+					throws SpecParseException, NoSuchModuleException {
 		File tempDir = createTempDir();
 		try {
 			File specFile = new File(tempDir, "currentlyCompiled.spec");
@@ -1477,7 +1497,7 @@ public class TypeDefinitionDB {
 			for (String iModule : includedModules) {
 				Long iVersion = moduleVersionRestrictions.get(iModule);
 				if (iVersion == null)
-					iVersion = getLastModuleVersion(iModule);
+					iVersion = getLatestModuleVersion(iModule);
 				saveIncludedModuleRecusive(tempDir, new IncludeDependentPath(), iModule, iVersion, 
 						moduleToPath, moduleVersionRestrictions);
 			}
@@ -1489,6 +1509,8 @@ public class TypeDefinitionDB {
 			if (services.get(0).getModules().size() != 1)
 				throw new SpecParseException("Spec-file should consist of only one module");
 			return services.get(0).getModules().get(0);
+		} catch (NoSuchModuleException ex) {
+			throw ex;
 		} catch (SpecParseException ex) {
 			throw ex;
 		} catch (Exception ex) {
@@ -1513,6 +1535,7 @@ public class TypeDefinitionDB {
 				moduleVersionRestrictions);
 		moduleName = module.getModuleName();
 		checkModuleRegistered(moduleName);
+		checkModuleSupported(moduleName);
 		checkUserIsOwnerOrAdmin(moduleName, userId);
 		long realPrevVersion = storage.getLastModuleVersionWithUnreleased(moduleName);
 		if (prevModuleVersion != null) {
@@ -1861,7 +1884,7 @@ public class TypeDefinitionDB {
 						" and " + currentPath);
 			return;
 		}
-		String spec = getModuleSpecDocument(moduleName);
+		String spec = getModuleSpecDocument(moduleName, version);
 		writeFile(spec, new File(workDir, moduleName + ".types"));
 		savedModules.put(moduleName, currentPath);
 		for (Map.Entry<String, Long> entry : info.getIncludedModuleNameToVersion().entrySet()) {
@@ -1944,7 +1967,7 @@ public class TypeDefinitionDB {
 		requestReadLock(moduleName);
 		try {
 			Set<ModuleDefId> ret = new LinkedHashSet<ModuleDefId>();
-			for (long version : getAllModuleVersions(moduleName)) {
+			for (long version : getAllModuleVersionsNL(moduleName)) {
 				ModuleInfo info = getModuleInfoNL(moduleName, version);
 				if (md5.equals(info.getMd5hash()))
 					ret.add(new ModuleDefId(moduleName, version));
@@ -1982,7 +2005,50 @@ public class TypeDefinitionDB {
 	}
 
 	public List<String> getModulesByOwner(String userId) throws TypeStorageException {
-		return new ArrayList<String>(storage.getModulesForOwner(userId).keySet());
+		return filterNotsupportedModules(storage.getModulesForOwner(userId).keySet());
+	}
+
+	private List<String> filterNotsupportedModules(Collection<String> input) throws TypeStorageException {
+		List<String> ret = new ArrayList<String>();
+		Set<String> supported = new HashSet<String>(storage.getAllRegisteredModules(false));
+		for (String mod : input)
+			if (supported.contains(mod))
+				ret.add(mod);
+		return ret;
+	}
+	
+	private void checkModuleSupported(String moduleName) 
+			throws TypeStorageException, NoSuchModuleException {
+		if (!isModuleSupported(moduleName))
+			throw new NoSuchModuleException("Module " + moduleName + " is no longer supported");
+	}
+	
+	private boolean isModuleSupported(String moduleName) throws TypeStorageException {
+		return storage.getModuleSupportedState(moduleName);
+	}
+	
+	public void stopModuleSupport(String moduleName, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkModuleRegistered(moduleName);
+		checkAdmin(userId);
+		requestWriteLock(moduleName);
+		try {
+			storage.changeModuleSupportedState(moduleName, false);
+		} finally {
+			releaseWriteLock(moduleName);
+		}
+	}
+	
+	public void resumeModuleSupport(String moduleName, String userId)
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		checkModuleRegistered(moduleName);
+		checkAdmin(userId);
+		requestWriteLock(moduleName);
+		try {
+			storage.changeModuleSupportedState(moduleName, true);
+		} finally {
+			releaseWriteLock(moduleName);
+		}
 	}
 	
 	private static class ComponentChange {

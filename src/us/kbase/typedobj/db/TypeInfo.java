@@ -3,7 +3,7 @@ package us.kbase.typedobj.db;
 public class TypeInfo {
 	private String typeName;
 	private String typeVersion;
-	private boolean isSupported = true;
+	private boolean supported = true;
 	
 	public String getTypeName() {
 		return typeName;
@@ -22,10 +22,10 @@ public class TypeInfo {
 	}
 	
 	public boolean isSupported() {
-		return isSupported;
+		return supported;
 	}
 	
 	public void setSupported(boolean isSupported) {
-		this.isSupported = isSupported;
+		this.supported = isSupported;
 	}
 }

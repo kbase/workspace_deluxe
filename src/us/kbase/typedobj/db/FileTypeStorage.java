@@ -397,8 +397,19 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public List<String> getAllRegisteredModules() {
-		List<String> ret = new ArrayList<String>();
+	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
+		if (withUnsupported) {
+			return getAllRegisteredModules();
+		}
+		Set<String> ret = new TreeSet<String>();
+		for (String mod : getAllRegisteredModules())
+			if (getModuleSupportedState(mod))
+				ret.add(mod);
+		return ret;
+	}
+	
+	private Set<String> getAllRegisteredModules() {
+		Set<String> ret = new TreeSet<String>();
 		for (File sub : dbFolder.listFiles())
 			if (sub.isDirectory())
 				ret.add(sub.getName());
@@ -550,7 +561,7 @@ public class FileTypeStorage implements TypeStorage {
 		TreeMap<Long, Boolean> map = new TreeMap<Long, Boolean>();
 		for (long ver : ret) {
 			ModuleInfo info = getModuleInfoRecord(moduleName, ver);
-			map.put(ver, ver <= releaseVer && info.getReleased());
+			map.put(ver, ver <= releaseVer && info.isReleased());
 		}
 		return map;
 	}
@@ -567,6 +578,8 @@ public class FileTypeStorage implements TypeStorage {
 		String text = readFile(f);
 		if (text.endsWith("\n"))
 			text = text.substring(0, text.length() - 1);
+		if (text.indexOf('\t') > 0)
+			text = text.substring(0, text.indexOf('\t'));
 		return Long.parseLong(text.trim());
 	}
 	
@@ -576,9 +589,31 @@ public class FileTypeStorage implements TypeStorage {
 		ModuleInfo info = getModuleInfoRecord(moduleName, version);
 		info.setReleased(true);
 		writeModuleInfoRecord(info);
-		writeFile(getModuleReleaseVersionFile(moduleName), "" + version);
+		boolean supported = getModuleSupportedState(moduleName);
+		writeFile(getModuleReleaseVersionFile(moduleName), "" + version + "\t" + supported);
 	}
 
+	@Override
+	public boolean getModuleSupportedState(String moduleName)
+			throws TypeStorageException {
+		File f = getModuleReleaseVersionFile(moduleName);
+		if (!f.exists())
+			return true;
+		String text = readFile(f);
+		if (text.endsWith("\n"))
+			text = text.substring(0, text.length() - 1);
+		if (text.indexOf('\t') > 0)
+			text = text.substring(text.indexOf('\t') + 1);
+		return Boolean.parseBoolean(text.trim());
+	}
+	
+	@Override
+	public void changeModuleSupportedState(String moduleName, boolean supported)
+			throws TypeStorageException {
+		long version = getLastReleasedModuleVersion(moduleName);
+		writeFile(getModuleReleaseVersionFile(moduleName), "" + version + "\t" + supported);
+	}
+	
 	@Override
 	public long getLastModuleVersionWithUnreleased(String moduleName)
 			throws TypeStorageException {

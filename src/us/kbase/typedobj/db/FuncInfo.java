@@ -3,7 +3,7 @@ package us.kbase.typedobj.db;
 public class FuncInfo {
 	private String funcName;
 	private String funcVersion;
-	private boolean isSupported = true;
+	private boolean supported = true;
 	
 	public String getFuncName() {
 		return funcName;
@@ -22,10 +22,10 @@ public class FuncInfo {
 	}
 			
 	public boolean isSupported() {
-		return isSupported;
+		return supported;
 	}
 	
 	public void setSupported(boolean isSupported) {
-		this.isSupported = isSupported;
+		this.supported = isSupported;
 	}
 }
