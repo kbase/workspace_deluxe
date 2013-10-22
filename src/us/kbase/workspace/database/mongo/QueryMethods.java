@@ -164,7 +164,7 @@ public class QueryMethods {
 
 	Map<ObjectIDResolvedWSNoVer, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
-			final Set<String> fields, final boolean exceptOnMissing)
+			final Set<String> fields)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		if (objectIDs.isEmpty()) {
 			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
@@ -228,20 +228,6 @@ public class QueryMethods {
 			}
 			if (ids.containsKey(rwsi) && ids.get(rwsi).containsKey(id)) {
 				ret.put(ids.get(rwsi).get(id), m);
-			}
-		}
-		if (exceptOnMissing) {
-			for (final ObjectIDResolvedWSNoVer o: objectIDs) {
-				if (!ret.containsKey(o)) {
-					String err = "id";
-					if (o.getId() == null) {
-						err = "name";
-					}
-					throw new NoSuchObjectException(String.format(
-							"No object with %s %s exists in workspace %s",
-							err, o.getIdentifierString(),
-							o.getWorkspaceIdentifier().getID()));
-				}
 			}
 		}
 		return ret;

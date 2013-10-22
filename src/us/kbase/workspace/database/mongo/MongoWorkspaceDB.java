@@ -1172,13 +1172,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
 				query.queryObjects(
 						new HashSet<ObjectIDResolvedWSNoVer>(nover.values()),
-						FLDS_PTR_ID_NAME_DEL, exceptIfMissing);
+						FLDS_PTR_ID_NAME_DEL);
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
 		for (final ObjectIDResolvedWS oid: nover.keySet()) {
 			final ObjectIDResolvedWSNoVer o = nover.get(oid);
 			if (!ids.containsKey(o)) {
-				continue; //exceptIfMissing was false, and some were missing
+				if (exceptIfMissing) {
+					final String err = oid.getId() == null ? "name" : "id";
+					throw new NoSuchObjectException(String.format(
+							"No object with %s %s exists in workspace %s",
+							err, oid.getIdentifierString(),
+							oid.getWorkspaceIdentifier().getID()));
+				} else {
+					continue;
+				}
 			}
 			final String name = (String) ids.get(o).get(Fields.PTR_NAME);
 			final long id = (Long) ids.get(o).get(Fields.PTR_ID);
