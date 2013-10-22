@@ -606,20 +606,21 @@ public class TypeDefinitionDB {
 	public List<String> getAllRegisteredTypes(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		checkModuleSupported(moduleName);
-		return getAllRegisteredTypes(moduleName, getLatestModuleVersion(moduleName));
+		return getAllRegisteredTypes(new ModuleDefId(moduleName));
 	}
 	
-	public List<String> getAllRegisteredTypes(String moduleName, long moduleVersion) 
+	public List<String> getAllRegisteredTypes(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
-		requestReadLock(moduleName);
+		requestReadLock(moduleDef.getModuleName());
 		try {
 			List<String> ret = new ArrayList<String>();
-			for (TypeInfo typeInfo : getModuleInfoNL(moduleName, moduleVersion).getTypes().values())
+			for (TypeInfo typeInfo : getModuleInfoNL(moduleDef.getModuleName(), 
+					findModuleVersion(moduleDef)).getTypes().values())
 				if (typeInfo.isSupported())
 					ret.add(typeInfo.getTypeName());
 			return ret;
 		} finally {
-			releaseReadLock(moduleName);
+			releaseReadLock(moduleDef.getModuleName());
 		}
 	}
 	
@@ -1170,14 +1171,14 @@ public class TypeDefinitionDB {
 		ti.setSupported(false);
 	}
 	
-	public void stopTypeSupport(TypeDefName type, String userId)
+	public void stopTypeSupport(TypeDefName type, String userId, String uploadComment)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, 
 			NoSuchPrivilegeException, SpecParseException {
 		String moduleName = type.getModule();
 		String typeName = type.getName();
 		saveModule(getModuleSpecDocument(moduleName), Collections.<String>emptySet(), 
 				new HashSet<String>(Arrays.asList(typeName)), userId, false, 
-				Collections.<String,Long>emptyMap(), null, "stopTypeSupport");
+				Collections.<String,Long>emptyMap(), null, "stopTypeSupport", uploadComment);
 	}
 	
 	private void stopFuncSupport(ModuleInfo info, String funcName, long newModuleVersion) 
@@ -1394,12 +1395,21 @@ public class TypeDefinitionDB {
 		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
 				moduleVersionRestrictions, null);
 	}
-	
+
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion) 
 					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
 					NoSuchModuleException {
+		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
+				moduleVersionRestrictions, prevModuleVersion, "");
+	}
+	
+	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
+			String uploadComment) throws SpecParseException, TypeStorageException, 
+			NoSuchPrivilegeException, NoSuchModuleException {
 		final Set<String> unreg;
 		if (typesToUnregister == null) {
 			unreg = new HashSet<String>();
@@ -1408,7 +1418,7 @@ public class TypeDefinitionDB {
 		}
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				unreg, userId, dryMode, moduleVersionRestrictions, 
-				prevModuleVersion, "registerModule");
+				prevModuleVersion, "registerModule", uploadComment);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
@@ -1443,10 +1453,18 @@ public class TypeDefinitionDB {
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
 					NoSuchPrivilegeException {
+		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, dryMode, moduleVersionRestrictions, "");
+	}
+	
+	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
+			List<String> typesToSave, List<String> typesToUnregister, String userId, 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, String uploadComment) 
+					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
+					NoSuchPrivilegeException {
 		String specDocument = getModuleSpecDocument(moduleName, storage.getLastModuleVersionWithUnreleased(moduleName));
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
-				null, "refreshModule");
+				null, "refreshModule", uploadComment);
 	}
 
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) 
@@ -1529,8 +1547,8 @@ public class TypeDefinitionDB {
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
-			String uploadMethod) throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
-			NoSuchModuleException {
+			String uploadMethod, String uploadComment) throws SpecParseException, TypeStorageException, 
+			NoSuchPrivilegeException, NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
 		String moduleName = null;
@@ -1564,6 +1582,7 @@ public class TypeDefinitionDB {
 				info.setIncludedModuleNameToVersion(includedModuleNameToVersion);
 				info.setUploadUserId(userId);
 				info.setUploadMethod(uploadMethod);
+				info.setUploadComment(uploadComment == null ? "" : uploadComment);
 				info.setReleased(false);
 				Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
 				if (typeToSchema == null)
@@ -1947,7 +1966,12 @@ public class TypeDefinitionDB {
 			throws TypeStorageException, NoSuchModuleException {
 		return getModuleInfo(moduleName, version).getDescription();
 	}
-	
+
+	public String getModuleDescription(ModuleDefId moduleDef) 
+			throws TypeStorageException, NoSuchModuleException {
+		return getModuleInfo(moduleDef).getDescription();
+	}
+
 	public String getTypeDescription(TypeDefId typeDef) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		return getTypeParsingDocument(typeDef).getComment();
@@ -1966,6 +1990,11 @@ public class TypeDefinitionDB {
 	public String getModuleMD5(String moduleName, long version) 
 			throws TypeStorageException, NoSuchModuleException {
 		return getModuleInfo(moduleName, version).getMd5hash();
+	}
+	
+	public String getModuleMD5(ModuleDefId moduleDef) 
+			throws NoSuchModuleException, TypeStorageException {
+		return getModuleInfo(moduleDef).getMd5hash();
 	}
 	
 	public Set<ModuleDefId> findModuleVersionsByMD5(String moduleName, String md5) 
