@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -707,6 +708,40 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_jsonschema
 		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type));
         //END get_jsonschema
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: translate_from_MD5_types</p>
+     * <pre>
+     * Translation from types qualified with MD5 to their semantic versions
+     * </pre>
+     * @param   arg1   instance of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1) to list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     */
+    @JsonServerMethod(rpc = "Workspace.translate_from_MD5_types")
+    public Map<String,List<String>> translateFromMD5Types(List<String> arg1) throws Exception {
+        Map<String,List<String>> returnVal = null;
+        //BEGIN translate_from_MD5_types
+        returnVal = ws.translateFromMd5Types(arg1);
+        //END translate_from_MD5_types
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: translate_to_MD5_types</p>
+     * <pre>
+     * Translation from types qualified with semantic versions to their MD5'ed versions
+     * </pre>
+     * @param   arg1   instance of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1) to original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     */
+    @JsonServerMethod(rpc = "Workspace.translate_to_MD5_types")
+    public Map<String,String> translateToMD5Types(List<String> arg1) throws Exception {
+        Map<String,String> returnVal = null;
+        //BEGIN translate_to_MD5_types
+        returnVal = ws.translateToMd5Types(arg1);
+        //END translate_to_MD5_types
         return returnVal;
     }
 

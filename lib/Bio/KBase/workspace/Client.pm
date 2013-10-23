@@ -2104,6 +2104,170 @@ sub get_jsonschema
 
 
 
+=head2 translate_from_MD5_types
+
+  $return = $obj->translate_from_MD5_types($arg_1)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$arg_1 is a reference to a list where each element is a Workspace.type_string
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
+type_string is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$arg_1 is a reference to a list where each element is a Workspace.type_string
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
+type_string is a string
+
+
+=end text
+
+=item Description
+
+Translation from types qualified with MD5 to their semantic versions
+
+=back
+
+=cut
+
+sub translate_from_MD5_types
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function translate_from_MD5_types (received $n, expecting 1)");
+    }
+    {
+	my($arg_1) = @args;
+
+	my @_bad_arguments;
+        (ref($arg_1) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"arg_1\" (value was \"$arg_1\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to translate_from_MD5_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'translate_from_MD5_types');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.translate_from_MD5_types",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'translate_from_MD5_types',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method translate_from_MD5_types",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'translate_from_MD5_types',
+				       );
+    }
+}
+
+
+
+=head2 translate_to_MD5_types
+
+  $return = $obj->translate_to_MD5_types($arg_1)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$arg_1 is a reference to a list where each element is a Workspace.type_string
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
+type_string is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$arg_1 is a reference to a list where each element is a Workspace.type_string
+$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
+type_string is a string
+
+
+=end text
+
+=item Description
+
+Translation from types qualified with semantic versions to their MD5'ed versions
+
+=back
+
+=cut
+
+sub translate_to_MD5_types
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function translate_to_MD5_types (received $n, expecting 1)");
+    }
+    {
+	my($arg_1) = @args;
+
+	my @_bad_arguments;
+        (ref($arg_1) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"arg_1\" (value was \"$arg_1\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to translate_to_MD5_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'translate_to_MD5_types');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.translate_to_MD5_types",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'translate_to_MD5_types',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method translate_to_MD5_types",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'translate_to_MD5_types',
+				       );
+    }
+}
+
+
+
 =head2 administer
 
   $response = $obj->administer($command)

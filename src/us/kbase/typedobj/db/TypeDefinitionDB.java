@@ -548,11 +548,14 @@ public class TypeDefinitionDB {
 	private SemanticVersion findTypeVersion(TypeDefId typeDef) throws TypeStorageException {
 		if (typeDef.isAbsolute()) {
 			if (typeDef.getMd5() != null) {
-				String version = storage.getTypeVersionByMd5(typeDef.getType().getModule(), 
-						typeDef.getType().getName(), typeDef.getMd5().getMD5());
-				if (version == null)
-					return null;
-				return new SemanticVersion(version);
+				SemanticVersion ret = null;
+				for (String verText : storage.getTypeVersionsByMd5(typeDef.getType().getModule(), 
+						typeDef.getType().getName(), typeDef.getMd5().getMD5())) {
+					SemanticVersion version = new SemanticVersion(verText);
+					if (ret == null || ret.compareTo(version) < 0)
+						ret = version;
+				}
+				return ret;
 			}
 			return new SemanticVersion(typeDef.getMajorVersion(), typeDef.getMinorVersion());
 		}
@@ -595,7 +598,30 @@ public class TypeDefinitionDB {
 			releaseReadLock(moduleName);
 		}
 	}
-	
+
+	public List<AbsoluteTypeDefId> getTypeVersionsForMd5(TypeDefId typeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		if (typeDef.getMd5() == null)
+			throw new NoSuchTypeException("MD5 part is not defined for type " + typeDef.getTypeString());
+		String moduleName = typeDef.getType().getModule();
+		requestReadLock(moduleName);
+		try {
+			List<String> versions = storage.getTypeVersionsByMd5(moduleName, typeDef.getType().getName(), 
+					typeDef.getMd5().getMD5());
+			//Map<String, Boolean> map = storage.getAllTypeVersions(moduleName, typeDef.getType().getName());
+			List<AbsoluteTypeDefId> ret = new ArrayList<AbsoluteTypeDefId>();
+			for (String ver : versions) {
+				//if (map.get(ver) == null || !map.get(ver))
+				//	continue;
+				SemanticVersion sver = new SemanticVersion(ver);
+				ret.add(new AbsoluteTypeDefId(typeDef.getType(), sver.getMajor(), sver.getMinor()));
+			}
+			return ret;
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
 	private SemanticVersion findLastTypeVersion(String moduleName, String typeName, 
 			boolean withNoLongerSupported) throws TypeStorageException {
 		if (!isTypePresent(moduleName, typeName))
