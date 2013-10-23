@@ -78,7 +78,7 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 	
-	public Map<ObjectIDResolvedWS, TypeAndVersion> getObjectType(
+	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 

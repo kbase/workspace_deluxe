@@ -28,8 +28,9 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ReferenceParser;
-import us.kbase.workspace.database.TypeAndVersion;
+import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -350,7 +351,7 @@ public class Workspaces {
 			wsresolvedids = new HashMap<ObjectIdentifier,
 					ObjectIDResolvedWS>();
 		}
-		final Map<ObjectIDResolvedWS, TypeAndVersion> objtypes;
+		final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
 		if (!wsresolvedids.isEmpty()) {
 			try {
 				objtypes = db.getObjectType(
@@ -371,21 +372,19 @@ public class Workspaces {
 				throw tove;
 			}
 		} else {
-			objtypes = new HashMap<ObjectIDResolvedWS, TypeAndVersion>();
+			objtypes = new HashMap<ObjectIDResolvedWS, TypeAndReference>();
 		}
 		
 		oidToObject.clear();
 		
 		//rewrite references
-		final Map<String, String> newrefs = new HashMap<String, String>();
+		final Map<String, Reference> newrefs = new HashMap<String, Reference>();
 		final Map<String, AbsoluteTypeDefId> reftypes =
 				new HashMap<String, AbsoluteTypeDefId>();
 		for (final String ref: refToOid.keySet()) {
 			final ObjectIDResolvedWS roi = wsresolvedids.get(refToOid.get(ref));
-			final TypeAndVersion tv = objtypes.get(roi);
-			newrefs.put(ref, ObjectIdentifier.createObjectReference(
-					roi.getWorkspaceIdentifier().getID(), tv.getID(),
-					tv.getVersion()));
+			final TypeAndReference tv = objtypes.get(roi);
+			newrefs.put(ref, tv.getReference());
 			reftypes.put(ref, tv.getType());
 		}
 		wsresolvedids.clear();
@@ -398,12 +397,15 @@ public class Workspaces {
 		for (WorkspaceSaveObject wo: objects) {
 			final TypedObjectValidationReport rep = reports.get(wo).rep;
 			final int objnum = reports.get(wo).order;
-			final Set<String> refs = new HashSet<String>();
-			final Set<String> provrefs = new HashSet<String>(); //TODO provenance refs
+			final Map<String, String> replacerefs =
+					new HashMap<String, String>();
+			final Set<Reference> refs = new HashSet<Reference>();
+			final Set<Reference> provrefs = new HashSet<Reference>(); //TODO provenance refs
 			for (final String r: rep.getListOfIdReferences()) {
 				refs.add(newrefs.get(r));
+				replacerefs.put(r, newrefs.get(r).toString());
 			}
-			rep.setAbsoluteIdReferences(newrefs);
+			rep.setAbsoluteIdReferences(replacerefs);
 			//TODO typechecking for each object
 			//TODO pass in provenance references
 			final AbsoluteTypeDefId type = reports.get(wo).rep
@@ -412,11 +414,11 @@ public class Workspaces {
 			saveobjs.add(wo.resolve(type, wo.getData(), refs, provrefs));//TODO rewrite data
 			objcount++;
 		}
-		System.out.println(objects.getClass());
 		objects = null; // don't screw with the input, but release to gc
 		reports.clear();
 		reftypes.clear();
 		newrefs.clear();
+		//TODO make sure refs are mongo refs in mongo workspace db
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 

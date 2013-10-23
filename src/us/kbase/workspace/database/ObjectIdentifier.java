@@ -6,9 +6,9 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	private final static String REFERENCE_ID_SEP = ".";
+	public final static String REFERENCE_ID_SEP = ".";
 	private final static String REFERENCE_ID_SEP_REGEX = "\\" + REFERENCE_ID_SEP;
-	private final static String REFERENCE_NAME_SEP = "/"; //this cannot be a legal object/workspace char
+	public final static String REFERENCE_NAME_SEP = "/"; //this cannot be a legal object/workspace char
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;

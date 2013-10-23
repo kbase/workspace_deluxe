@@ -41,7 +41,8 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.TypeAndVersion;
+import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -690,8 +691,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		pointer.put(Fields.VER_META, meta);
 		pointer.put(Fields.VER_CREATEDATE, created);
-		pointer.put(Fields.VER_REF, pkg.wo.getRefs());
-		pointer.put(Fields.VER_PROVREF, pkg.wo.getProvRefs());
+		pointer.put(Fields.VER_REF, pkg.refs);
+		pointer.put(Fields.VER_PROVREF, pkg.provrefs);
 		pointer.put(Fields.VER_PROV, null); //TODO add objectID
 		pointer.put(Fields.VER_TYPE, pkg.wo.getType().getTypeString());
 		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
@@ -813,6 +814,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public ResolvedSaveObject wo;
 		public String name;
 		public TypeData td;
+		public Set<String> refs;
+		public Set<String> provrefs;
 		
 		@Override
 		public String toString() {
@@ -845,6 +848,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
+			Set<String> refs = new HashSet<String>();
+			for (final Reference r: o.getRefs()) {
+				if (!(r instanceof MongoReference)) {
+					throw new RuntimeException(
+							"Improper reference implementation: " +
+							(r == null ? null : r.getClass()));
+				}
+				refs.add(r.toString());
+			}
+			pkg.refs = refs;
+			//cannot do by combining in one set since a non-MongoReference
+			//could be overwritten by a MongoReference if they have the same
+			//hash
+			refs = new HashSet<String>();
+			for (final Reference r: o.getProvRefs()) {
+				if (!(r instanceof MongoReference)) {
+					throw new RuntimeException(
+							"Improper reference implementation: " +
+							(r == null ? null : r.getClass()));
+				}
+				refs.add(r.toString());
+			}
+			pkg.provrefs = refs;
 			pkg.wo = o;
 			final String json;
 			try {
@@ -856,6 +882,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Couldn't serialize data from object " +
 						getObjectErrorId(o.getObjectIdentifier(), objnum));
 			}
+			//TODO null out the object packages after this
 			//TODO add references to object version
 			//TODO when safe, increment reference counter on main object
 			//TODO check size < 1 GB
@@ -1132,10 +1159,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				metaMongoArrayToHash(meta));
 	}
 	
-	private static final Set<String> FLDS_VER_ID_TYPE = newHashSet(
-			Fields.VER_TYPE, Fields.VER_VER, Fields.VER_ID);
+	private static final Set<String> FLDS_VER_TYPE = newHashSet(
+			Fields.VER_TYPE, Fields.VER_VER);
 	
-	public Map<ObjectIDResolvedWS, TypeAndVersion> getObjectType(
+	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		//this method is a pattern - generalize somehow?
@@ -1144,9 +1171,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_ID_TYPE);
-		final Map<ObjectIDResolvedWS, TypeAndVersion> ret =
-				new HashMap<ObjectIDResolvedWS, TypeAndVersion>();
+						FLDS_VER_TYPE);
+		final Map<ObjectIDResolvedWS, TypeAndReference> ret =
+				new HashMap<ObjectIDResolvedWS, TypeAndReference>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
@@ -1156,11 +1183,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
-			ret.put(o, new TypeAndVersion(
+			ret.put(o, new TypeAndReference(
 					AbsoluteTypeDefId.fromAbsoluteTypeString(
-					(String) vers.get(roi).get(Fields.VER_TYPE)),
-					(Long) vers.get(roi).get(Fields.VER_ID),
-					(Integer) vers.get(roi).get(Fields.VER_VER)));
+							(String) vers.get(roi).get(Fields.VER_TYPE)),
+					new MongoReference(roi.getWorkspaceIdentifier().getID(),
+							roi.getId(),
+							(Integer) vers.get(roi).get(Fields.VER_VER))));
 		}
 		return ret;
 	}
@@ -1370,9 +1398,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-			wco.add(wo.resolve(at, wo.getData(), new HashSet<String>(), new HashSet<String>()));
+			wco.add(wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.wo = wo.resolve(at, wo.getData(), new HashSet<String>(), new HashSet<String>());
+			pkg.wo = wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

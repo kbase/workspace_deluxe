@@ -5,6 +5,7 @@ import java.util.Set;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.Reference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -16,14 +17,14 @@ public class ResolvedSaveObject {
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
-	private final Set<String> refs;
-	private Set<String> provrefs;
+	private final Set<Reference> refs;
+	private Set<Reference> provrefs;
 	
 	ResolvedSaveObject(final ObjectIDNoWSNoVer id,
 			final JsonNode resolvedData, final AbsoluteTypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
-			final boolean hidden, final Set<String> refs,
-			final Set<String> provenancerefs) {
+			final boolean hidden, final Set<Reference> refs,
+			final Set<Reference> provenancerefs) {
 		if (id == null || resolvedData == null || type == null || refs == null
 				|| provenancerefs == null) {
 			throw new IllegalArgumentException(
@@ -42,7 +43,7 @@ public class ResolvedSaveObject {
 	ResolvedSaveObject(final JsonNode resolvedData,
 			final AbsoluteTypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden, 
-			final Set<String> refs, final Set<String> provenancerefs) {
+			final Set<Reference> refs, final Set<Reference> provenancerefs) {
 		if (resolvedData == null || type == null || refs == null
 				|| provenancerefs == null) {
 			throw new IllegalArgumentException(
@@ -84,11 +85,11 @@ public class ResolvedSaveObject {
 		return hidden;
 	}
 
-	public Set<String> getRefs() {
+	public Set<Reference> getRefs() {
 		return refs;
 	}
 
-	public Set<String> getProvRefs() {
+	public Set<Reference> getProvRefs() {
 		return provrefs;
 	}
 
