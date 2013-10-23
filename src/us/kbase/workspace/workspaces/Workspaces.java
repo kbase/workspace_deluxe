@@ -406,12 +406,11 @@ public class Workspaces {
 				replacerefs.put(r, newrefs.get(r).toString());
 			}
 			rep.setAbsoluteIdReferences(replacerefs);
+			val.relableToAbsoluteIds(wo.getData(), rep);
 			//TODO typechecking for each object
 			//TODO pass in provenance references
-			final AbsoluteTypeDefId type = reports.get(wo).rep
-					.getValidationTypeDefId();
-			//TODO replace object in workspace object
-			saveobjs.add(wo.resolve(type, wo.getData(), refs, provrefs));//TODO rewrite data
+			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
+			saveobjs.add(wo.resolve(type, wo.getData(), refs, provrefs));
 			objcount++;
 		}
 		objects = null; // don't screw with the input, but release to gc

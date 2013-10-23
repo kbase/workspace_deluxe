@@ -184,7 +184,8 @@ public final class TypedObjectValidator {
 	 * @param report
 	 * @return
 	 */
-	public void relableToAbsoluteIds(JsonNode instanceRootNode, final TypedObjectValidationReport report) {
+	public void relableToAbsoluteIds(final JsonNode instanceRootNode,
+			final TypedObjectValidationReport report) {
 		
 		// we first extract the full list of Id References 
 		List <List<IdReference>> refList = report.getListOfIdReferenceObjects();
