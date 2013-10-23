@@ -261,6 +261,21 @@ public class Workspaces {
 		return objErrId;
 	}
 	
+	private class TempObjectData {
+		public WorkspaceSaveObject wo;
+		public TypedObjectValidationReport rep;
+		public int order;
+		
+		public TempObjectData(WorkspaceSaveObject wo,
+				TypedObjectValidationReport rep, int order) {
+			this.wo = wo;
+			this.rep = rep;
+			this.order = order;
+		}
+		
+	}
+
+	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
 			final List<WorkspaceSaveObject> objects) throws
@@ -276,19 +291,6 @@ public class Workspaces {
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
 		final TypedObjectValidator val = db.getTypeValidator();
-		class TempObjectData {
-			public WorkspaceSaveObject wo;
-			public TypedObjectValidationReport rep;
-			public int order;
-			
-			public TempObjectData(WorkspaceSaveObject wo,
-					TypedObjectValidationReport rep, int order) {
-				this.wo = wo;
-				this.rep = rep;
-				this.order = order;
-			}
-			
-		}
 		//this method must maintain the order of the objects
 		//TODO tests for validation of objects
 		final Map<String, ObjectIdentifier> refToOid =
@@ -339,20 +341,10 @@ public class Workspaces {
 							new LinkedList<ObjectIdentifier>(oidToObject.keySet()),
 							Permission.READ, "read");
 			} catch (InaccessibleObjectException ioe) {
-				final ObjectIdentifier cause = ioe.getInaccessibleObject();
-				String ref = null; //must be set correctly below
-				for (final String r: refToOid.keySet()) {
-					if (refToOid.get(r).equals(cause)) {
-						ref = r;
-						break;
-					}
-				}
-				final TempObjectData tod = oidToObject.get(cause);
-				final String objerrid = getObjectErrorId(
-						tod.wo.getObjectIdentifier(), tod.order);
-				throw new TypedObjectValidationException(String.format(
-						"Object %s has inaccessible reference %s: %s",
-						objerrid, ref, ioe.getLocalizedMessage(), ioe));
+				final TypedObjectValidationException tove =
+						generateInaccessibleObjectException(refToOid,
+								oidToObject, ioe, ioe.getInaccessibleObject());
+				throw tove;
 			}
 		} else {
 			wsresolvedids = new HashMap<ObjectIdentifier,
@@ -362,8 +354,7 @@ public class Workspaces {
 		if (!wsresolvedids.isEmpty()) {
 			try {
 				resolvedids = db.resolveObjects(
-						new HashSet<ObjectIDResolvedWS>(
-								wsresolvedids.values()));
+						new HashSet<ObjectIDResolvedWS>(wsresolvedids.values()));
 			} catch (NoSuchObjectException nsoe) {
 				final ObjectIDResolvedWS cause =
 						nsoe.getResolvedInaccessibleObject();
@@ -374,20 +365,10 @@ public class Workspaces {
 						break;
 					}
 				}
-				//trying to extract this to a method was a big mess
-				String ref = null; //must be set correctly below
-				for (final String r: refToOid.keySet()) {
-					if (refToOid.get(r).equals(oi)) {
-						ref = r;
-						break;
-					}
-				}
-				final TempObjectData tod = oidToObject.get(oi);
-				final String objerrid = getObjectErrorId(
-						tod.wo.getObjectIdentifier(), tod.order);
-				throw new TypedObjectValidationException(String.format(
-						"Object %s has inaccessible reference %s: %s",
-						objerrid, ref, nsoe.getLocalizedMessage(), nsoe));
+				final TypedObjectValidationException tove =
+						generateInaccessibleObjectException(refToOid,
+								oidToObject, nsoe, oi);
+				throw tove;
 			}
 		} else {
 			resolvedids = new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
@@ -409,6 +390,27 @@ public class Workspaces {
 		//TODO when safe, add references to references collection
 		//TODO replace object in workspace object
 		return db.saveObjects(user, rwsi, saveobjs);
+	}
+
+	private TypedObjectValidationException generateInaccessibleObjectException(
+			final Map<String, ObjectIdentifier> refToOid,
+			final Map<ObjectIdentifier, TempObjectData> oidToObject,
+			InaccessibleObjectException ioe, final ObjectIdentifier cause) {
+		String ref = null; //must be set correctly below
+		for (final String r: refToOid.keySet()) {
+			if (refToOid.get(r).equals(cause)) {
+				ref = r;
+				break;
+			}
+		}
+		final TempObjectData tod = oidToObject.get(cause);
+		final String objerrid = getObjectErrorId(
+				tod.wo.getObjectIdentifier(), tod.order);
+		final TypedObjectValidationException tove =
+				new TypedObjectValidationException(String.format(
+				"Object %s has inaccessible reference %s: %s",
+				objerrid, ref, ioe.getLocalizedMessage(), ioe));
+		return tove;
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
