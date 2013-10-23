@@ -40,6 +40,7 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.TypeAndReference;
@@ -1424,17 +1425,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-			//TODO readd when mike gives me a fake node
-//			wco.add(wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>()));
-//			ObjectSavePackage pkg = new ObjectSavePackage();
-//			pkg.wo = wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>());
-//			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-//			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
-//			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
-//			ResolvedMongoObjectID r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
-//			pkg.name = r.getName();
-//			ObjectMetaData md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.getId(), pkg);
-//			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
+			wco.add(wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+					new HashSet<Reference>(), new HashSet<Reference>()));
+			ObjectSavePackage pkg = new ObjectSavePackage();
+			pkg.wo = wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+					new HashSet<Reference>(), new HashSet<Reference>());
+			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
+			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
+			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
+			ResolvedMongoObjectID r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
+			pkg.name = r.getName();
+			ObjectMetaData md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.getId(), pkg);
+			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
 	}
 }
