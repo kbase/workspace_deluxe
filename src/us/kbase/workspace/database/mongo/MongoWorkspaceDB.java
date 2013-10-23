@@ -840,6 +840,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		int objnum = 1;
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
 		for (ResolvedSaveObject o: objects) {
+			if (o.getType().getMd5() != null) {
+				throw new RuntimeException("MD5 types are not accepted");
+			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = o;
 			final String json;

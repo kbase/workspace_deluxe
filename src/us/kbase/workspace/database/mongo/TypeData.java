@@ -34,6 +34,9 @@ public class TypeData {
 		if (type == null) {
 			throw new IllegalArgumentException("type may not be null");
 		}
+		if (type.getMd5() != null) {
+			throw new RuntimeException("MD5 types are not accepted");
+		}
 		this.data = data;
 		this.type = type.getType().getTypeString() +
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
@@ -48,6 +51,12 @@ public class TypeData {
 	}
 	
 	public static String getTypeCollection(final TypeDefId type) {
+		if (type == null) {
+			throw new IllegalArgumentException("type may not be null");
+		}
+		if (type.getMd5() != null) {
+			throw new RuntimeException("MD5 types are not accepted");
+		}
 		if (type.getMajorVersion() == null) {
 			throw new IllegalArgumentException(
 					"Cannot get a type collection for a typedef without a major version");
