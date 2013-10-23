@@ -96,8 +96,9 @@ public class TypeDefId {
 			try {
 				md5 = new MD5(typeversion); //safe to assume it's an MD5 at this point
 			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
-						typeversion) + ";" + iae.getLocalizedMessage());
+				throw new IllegalArgumentException(
+						"Type version string could not be parsed to a version: "
+						 + iae.getLocalizedMessage());
 			}
 			majorVersion = null;
 			minorVersion = null;

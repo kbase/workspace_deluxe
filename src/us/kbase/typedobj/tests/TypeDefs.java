@@ -13,6 +13,7 @@ import java.util.List;
 import org.junit.Test;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 
@@ -60,8 +61,16 @@ public class TypeDefs {
 		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
+		checkTypeIdFromString("foo.bar-1111111111111111111111111111111g",
+				"Type version string could not be parsed to a version: 1111111111111111111111111111111g is not a valid MD5 string");
 		
 		TypeDefName foobar = new TypeDefName("foo.bar");
+		try {
+			new TypeDefId(foobar, null);
+			fail("initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is("md5 cannot be null"));
+		}
 		assertThat("TypeDefName constructor of Mod.type parsed module name",foobar.getModule(),is("foo"));
 		assertThat("TypeDefName constructor of Mod.type parsed type name",foobar.getName(),is("bar"));
 		checkTypeDefNameFromString("foobar", "Illegal fullname of a typed object: foobar");
@@ -70,7 +79,9 @@ public class TypeDefs {
 		checkTypeDefNameFromString("foobar.", "Illegal fullname of a typed object: foobar.");
 		checkTypeDefNameFromString(".foobar", "Module cannot be null or the empty string");
 		
+		MD5 m = new MD5("a216f0dba216f0dba216f0dba216f0db");
 		assertTrue("absolute type", new TypeDefId(wst, 1, 1).isAbsolute());
+		assertTrue("absolute type", new TypeDefId(wst, m).isAbsolute());
 		assertFalse("absolute type", new TypeDefId(wst, 1).isAbsolute());
 		assertFalse("absolute type", new TypeDefId(wst).isAbsolute());
 		assertThat("check typestring", new TypeDefId(wst, 1, 1).getTypeString(),
@@ -82,11 +93,22 @@ public class TypeDefs {
 		assertNull("check verstring", new TypeDefId(wst).getVerString());
 		assertThat("check verstring", new TypeDefId(wst, 1).getVerString(), is("1"));
 		assertThat("check verstring", new TypeDefId(wst, 1, 1).getVerString(), is("1.1"));
+		
+		assertThat("get correct md5", new TypeDefId(foobar, m).getMd5(), is(m));
+		assertThat("get correct md5", new TypeDefId("foo.bar", m.getMD5()).getMd5(), is(m));
+		assertThat("get correct md5", TypeDefId.fromTypeString(
+				"foo.bar-" + m.getMD5()).getMd5(), is(m));
+		assertThat("get correct md5", TypeDefId.fromTypeString(
+				"foo.bar-" + m.getMD5()).getVerString(), is(m.getMD5()));
+		assertThat("get correct typestring", TypeDefId.fromTypeString(
+				"foo.bar-" + m.getMD5()).getTypeString(), is("foo.bar-" + m.getMD5()));
+		
 	}
 	
 	@Test
 	public void absType() throws Exception {
 		TypeDefName wst = new TypeDefName("foo", "bar");
+		MD5 m = new MD5("a216f0dba216f0dba216f0dba216f0db");
 		checkAbsType(null, 1, 0, "Type cannot be null");
 		checkAbsType(wst,  -1, 0, "Version numbers must be >= 0");
 		checkAbsType(wst,  0, -1, "Version numbers must be >= 0");
@@ -97,6 +119,7 @@ public class TypeDefs {
 		checkAbsTypeFromType(new TypeDefId(wst, 1), null, null, "Type must be absolute");
 		checkAbsTypeFromType(new TypeDefId(wst), null, 1, "Incoming type major version cannot be null");
 		assertTrue("absolute type", new AbsoluteTypeDefId(wst, 1, 1).isAbsolute());
+		assertTrue("absolute type", new AbsoluteTypeDefId(wst, m).isAbsolute());
 		List<AbsoluteTypeDefId> ids = Arrays.asList(new AbsoluteTypeDefId(wst, 1, 1),
 				AbsoluteTypeDefId.fromTypeId(new TypeDefId(wst, 1, 1)),
 				AbsoluteTypeDefId.fromTypeId(new TypeDefId(wst, 1), 1),
@@ -107,6 +130,13 @@ public class TypeDefs {
 		}
 		assertThat("check verstring", new AbsoluteTypeDefId(wst, 1, 1).getVerString(),
 				is("1.1"));
+		
+		try {
+			new AbsoluteTypeDefId(wst, null);
+			fail("initialized invalid type");
+		} catch (IllegalArgumentException e) {
+			assertThat("correct exception string", e.getLocalizedMessage(), is("md5 cannot be null"));
+		}
 	}
 	
 	private void checkTypeDefName(String module, String name, String exception) {
