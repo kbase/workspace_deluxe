@@ -1,4 +1,4 @@
-package us.kbase.workspace.database.mongo;
+package us.kbase.typedobj.core;
 
 import java.util.regex.Pattern;
 

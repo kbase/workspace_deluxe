@@ -13,9 +13,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.mongo.GridFSBackend;
-import us.kbase.workspace.database.mongo.MD5;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;

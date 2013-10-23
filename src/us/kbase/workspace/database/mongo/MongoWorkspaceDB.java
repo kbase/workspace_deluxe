@@ -32,6 +32,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;

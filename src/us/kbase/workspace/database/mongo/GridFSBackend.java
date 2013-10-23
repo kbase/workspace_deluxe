@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
 
+import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
