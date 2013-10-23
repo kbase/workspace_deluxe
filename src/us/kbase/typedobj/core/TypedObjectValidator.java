@@ -275,6 +275,15 @@ public final class TypedObjectValidator {
 	public JsonNode extractWsSearchableSubset(JsonNode instanceRootNode, TypedObjectValidationReport report) {
 		if(!report.isInstanceValid()) return null;
 		
+		// temporary hack until subset extraction is updated...
+		try {
+			report.getRawProcessingReport();
+		} catch (RuntimeException e) {
+			ObjectMapper mapper = new ObjectMapper();
+			ObjectNode subset = mapper.createObjectNode();
+			return subset;
+		}
+		
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode subset = mapper.createObjectNode();
 		Iterator<ProcessingMessage> mssgs = report.getRawProcessingReport().iterator();

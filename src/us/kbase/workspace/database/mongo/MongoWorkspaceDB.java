@@ -40,6 +40,7 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.TypeAndReference;
@@ -75,6 +76,7 @@ import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
@@ -98,6 +100,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_SHOCK = "shockData";
 	private static final User allUsers = new AllUsers('*');
+	
+	private static final long MAX_OBJECT_SIZE = 1000000000;
+	private static final long MAX_SUBDATA_SIZE = 15000000;
 	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -840,6 +845,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final List<ResolvedSaveObject> objects) {
+		//TODO go over entire save method and write more tests
 		//this method must maintain the order of the objects
 		int objnum = 1;
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
@@ -882,16 +888,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Couldn't serialize data from object " +
 						getObjectErrorId(o.getObjectIdentifier(), objnum));
 			}
+			if (json.length() > MAX_OBJECT_SIZE) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						MAX_OBJECT_SIZE));
+			}
+			final JsonNode sd = typeValidator.extractWsSearchableSubset(
+					pkg.wo.getData(), pkg.wo.getRep());
+			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s subdata size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						MAX_SUBDATA_SIZE));
+			}
+			final Map<String, Object> subdata;
+				try {
+					@SuppressWarnings("unchecked")
+					final Map<String, Object> subdata2 = (Map<String, Object>)
+							MAPPER_DEFAULT.treeToValue(sd, Map.class);
+					subdata = subdata2;
+				} catch (JsonProcessingException jpe) {
+					throw new RuntimeException(
+							"Should never get a JSON exception here", jpe);
+				}
 			//TODO null out the object packages after this
 			//TODO add references to object version
 			//TODO when safe, increment reference counter on main object
-			//TODO check size < 1 GB
-			//TODO get subdata (later)?
-			//TODO check subdata size < 15MB
 			//TODO change subdata disallowed chars - html encode (%)
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, o.getType(), null); //TODO add subdata
+			pkg.td = new TypeData(json, o.getType(), subdata);
 			ret.add(pkg);
 			objnum++;
 		}
@@ -1398,9 +1425,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-			wco.add(wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>()));
+			wco.add(wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+					new HashSet<Reference>(), new HashSet<Reference>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.wo = wo.resolve(at, wo.getData(), new HashSet<Reference>(), new HashSet<Reference>());
+			pkg.wo = wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+					new HashSet<Reference>(), new HashSet<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

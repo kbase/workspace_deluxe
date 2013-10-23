@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Reference;
 
@@ -17,18 +18,19 @@ public class ResolvedSaveObject {
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
+	private final TypedObjectValidationReport rep;
 	private final Set<Reference> refs;
 	private Set<Reference> provrefs;
 	
 	ResolvedSaveObject(final ObjectIDNoWSNoVer id,
 			final JsonNode resolvedData, final AbsoluteTypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
-			final boolean hidden, final Set<Reference> refs,
-			final Set<Reference> provenancerefs) {
-		if (id == null || resolvedData == null || type == null || refs == null
-				|| provenancerefs == null) {
+			final boolean hidden, final TypedObjectValidationReport rep,
+			final Set<Reference> refs, final Set<Reference> provenancerefs) {
+		if (id == null || resolvedData == null || type == null || rep == null ||
+				refs == null || provenancerefs == null) {
 			throw new IllegalArgumentException(
-					"Neither id, data, refs, provenancerefs nor type may be null");
+					"Neither id, data, rep, refs, provenancerefs nor type may be null");
 		}
 		this.id = id;
 		this.data = resolvedData;
@@ -36,6 +38,7 @@ public class ResolvedSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
+		this.rep = rep;
 		this.refs = refs;
 		this.provrefs = provenancerefs;
 	}
@@ -43,11 +46,12 @@ public class ResolvedSaveObject {
 	ResolvedSaveObject(final JsonNode resolvedData,
 			final AbsoluteTypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden, 
+			final TypedObjectValidationReport rep,
 			final Set<Reference> refs, final Set<Reference> provenancerefs) {
-		if (resolvedData == null || type == null || refs == null
+		if (resolvedData == null || type == null || rep == null || refs == null
 				|| provenancerefs == null) {
 			throw new IllegalArgumentException(
-					"Neither data, refs, provenancerefs nor type may be null");
+					"Neither data, rep, refs, provenancerefs nor type may be null");
 		}
 		this.id = null;
 		this.data = resolvedData;
@@ -55,6 +59,7 @@ public class ResolvedSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
+		this.rep = rep;
 		this.refs = refs;
 		this.provrefs = provenancerefs;
 	}
@@ -85,6 +90,10 @@ public class ResolvedSaveObject {
 		return hidden;
 	}
 
+	public TypedObjectValidationReport getRep() {
+		return rep;
+	}
+
 	public Set<Reference> getRefs() {
 		return refs;
 	}
@@ -97,7 +106,7 @@ public class ResolvedSaveObject {
 	public String toString() {
 		return "ResolvedSaveObject [id=" + id + ", data=" + data + ", type="
 				+ type + ", userMeta=" + userMeta + ", provenance="
-				+ provenance + ", hidden=" + hidden + ", refs=" + refs
-				+ ", provrefs=" + provrefs + "]";
+				+ provenance + ", hidden=" + hidden + ", rep=" + rep
+				+ ", refs=" + refs + ", provrefs=" + provrefs + "]";
 	}
 }
