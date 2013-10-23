@@ -45,6 +45,7 @@ import us.kbase.kidl.KbTypedef;
 import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.validatorconfig.ValidationConfigurationFactory;
@@ -548,7 +549,7 @@ public class TypeDefinitionDB {
 		if (typeDef.isAbsolute()) {
 			if (typeDef.getMd5() != null) {
 				String version = storage.getTypeVersionByMd5(typeDef.getType().getModule(), 
-						typeDef.getType().getName(), typeDef.getMd5());
+						typeDef.getType().getName(), typeDef.getMd5().getMD5());
 				if (version == null)
 					return null;
 				return new SemanticVersion(version);
@@ -587,8 +588,9 @@ public class TypeDefinitionDB {
 			SemanticVersion version = findTypeVersion(typeDef);
 			if (version == null)
 				throwNoSuchTypeException(typeDef);
-			return new AbsoluteTypeDefId(typeDef.getType(), storage.getTypeMd5(moduleName, 
-					typeDef.getType().getName(), version.toString()));
+			return new AbsoluteTypeDefId(typeDef.getType(),
+					new MD5(storage.getTypeMd5(moduleName, 
+					typeDef.getType().getName(), version.toString())));
 		} finally {
 			releaseReadLock(moduleName);
 		}

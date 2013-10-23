@@ -31,6 +31,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
@@ -538,7 +539,7 @@ public class TypeRegisteringTest {
 			db.getTypeMd5Version(new TypeDefId(new TypeDefName(moduleName, "regulator"))).getMd5();
 			Assert.fail();
 		} catch (NoSuchTypeException ex) {}
-		String typeMd5 = db.getTypeMd5Version(new TypeDefId(moduleName + ".regulator", lastTypeVer)).getMd5();
+		String typeMd5 = db.getTypeMd5Version(new TypeDefId(moduleName + ".regulator", lastTypeVer)).getMd5().getMD5();
 		Assert.assertNotNull(typeMd5);
 		try {
 			db.getJsonSchemaDocument(new TypeDefName(moduleName, "regulator"));
@@ -550,7 +551,8 @@ public class TypeRegisteringTest {
 		} catch (NoSuchTypeException ex) {}
 		String jsonSchema = db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer));
 		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", typeMd5)));
-		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(new AbsoluteTypeDefId(new TypeDefName(moduleName, "regulator"), typeMd5)));
+		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(
+				new AbsoluteTypeDefId(new TypeDefName(moduleName, "regulator"), new MD5(typeMd5))));
 		try {
 			db.getTypeParsingDocument(new TypeDefName(moduleName, "regulator"));
 			Assert.fail();

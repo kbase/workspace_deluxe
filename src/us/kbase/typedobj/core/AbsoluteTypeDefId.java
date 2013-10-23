@@ -7,7 +7,7 @@ public class AbsoluteTypeDefId extends TypeDefId {
 		super(type, majorVersion, minorVersion);
 	}
 
-	public AbsoluteTypeDefId(final TypeDefName type, final String md5) {
+	public AbsoluteTypeDefId(final TypeDefName type, final MD5 md5) {
 		super(type, md5);
 	}
 

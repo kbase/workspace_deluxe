@@ -13,7 +13,7 @@ public class TypeDefId {
 	protected final TypeDefName type;
 	protected final Integer majorVersion;
 	protected final Integer minorVersion;
-	protected final String md5;
+	protected final MD5 md5;
 
 	public TypeDefId(final TypeDefName type, final int majorVersion,
 			final int minorVersion) {
@@ -42,12 +42,12 @@ public class TypeDefId {
 		this.md5 = null;
 	}
 	
-	public TypeDefId(final TypeDefName type, final String md5) {
+	public TypeDefId(final TypeDefName type, final MD5 md5) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
 		}
-		if (md5.indexOf('.') >= 0 || md5.length() <= 10) {
-			throw new IllegalArgumentException("MD5 has wrong format");
+		if (md5 == null) {
+			throw new IllegalArgumentException("md5 cannot be null");
 		}
 		this.type = type;
 		this.majorVersion = null;
@@ -71,7 +71,8 @@ public class TypeDefId {
 	public TypeDefId(final String moduletype, final String typeversion) {
 		checkString(moduletype, "Moduletype");
 		if (typeversion != null && typeversion.equals("")) {
-			throw new IllegalArgumentException("Typeversion cannot be an empty string");
+			throw new IllegalArgumentException(
+					"Typeversion cannot be an empty string");
 		}
 		final String[] t = moduletype.split(TYPE_SEP_REGEX);
 		if (t.length != 2) {
@@ -91,8 +92,13 @@ public class TypeDefId {
 			throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
 					typeversion));
 		}
-		if (v.length == 1 && typeversion.length() > 10) {
-			md5 = typeversion;
+		if (v.length == 1 && typeversion.length() == 32) {
+			try {
+				md5 = new MD5(typeversion); //safe to assume it's an MD5 at this point
+			} catch (IllegalArgumentException iae) {
+				throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
+						typeversion) + ";" + iae.getLocalizedMessage());
+			}
 			majorVersion = null;
 			minorVersion = null;
 		} else {
@@ -146,7 +152,7 @@ public class TypeDefId {
 		return minorVersion;
 	}
 	
-	public String getMd5() {
+	public MD5 getMd5() {
 		return md5;
 	}
 	
@@ -165,7 +171,11 @@ public class TypeDefId {
 	
 	public String getVerString() {
 		if (majorVersion == null) {
-			return md5;
+			if (md5 != null) {
+				return md5.getMD5();
+			} else {
+				return null;
+			}
 		}
 		String t = "" + majorVersion;
 		if (minorVersion == null) {
