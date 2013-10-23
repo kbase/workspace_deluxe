@@ -31,7 +31,11 @@ public interface WorkspaceDatabase {
 	
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			Set<WorkspaceIdentifier> wsis, boolean allowDeleted)
-					throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
+	
+	public Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjects(
+			final Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 
 	public WorkspaceMetaData createWorkspace(WorkspaceUser owner, String wsname,
 			boolean globalread, String description) throws

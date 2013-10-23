@@ -28,6 +28,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ReferenceParser;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -354,14 +355,43 @@ public class Workspaces {
 						objerrid, ref, ioe.getLocalizedMessage(), ioe));
 			}
 		} else {
-			wsresolvedids = new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+			wsresolvedids = new HashMap<ObjectIdentifier,
+					ObjectIDResolvedWS>();
 		}
-//		final Map<ObjectIDResolvedWS, Res>
-//		if (!wsresolvedids.isEmpty()) {
-//			try {
-//				
-//			}
-//		}
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> resolvedids;
+		if (!wsresolvedids.isEmpty()) {
+			try {
+				resolvedids = db.resolveObjects(
+						new HashSet<ObjectIDResolvedWS>(
+								wsresolvedids.values()));
+			} catch (NoSuchObjectException nsoe) {
+				final ObjectIDResolvedWS cause =
+						nsoe.getResolvedInaccessibleObject();
+				ObjectIdentifier oi = null;
+				for (final ObjectIdentifier o: wsresolvedids.keySet()) {
+					if (wsresolvedids.get(o).equals(cause)) {
+						oi = o;
+						break;
+					}
+				}
+				//trying to extract this to a method was a big mess
+				String ref = null; //must be set correctly below
+				for (final String r: refToOid.keySet()) {
+					if (refToOid.get(r).equals(oi)) {
+						ref = r;
+						break;
+					}
+				}
+				final TempObjectData tod = oidToObject.get(oi);
+				final String objerrid = getObjectErrorId(
+						tod.wo.getObjectIdentifier(), tod.order);
+				throw new TypedObjectValidationException(String.format(
+						"Object %s has inaccessible reference %s: %s",
+						objerrid, ref, nsoe.getLocalizedMessage(), nsoe));
+			}
+		} else {
+			resolvedids = new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
+		}
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();

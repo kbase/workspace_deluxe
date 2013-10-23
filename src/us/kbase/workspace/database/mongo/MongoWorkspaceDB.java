@@ -1169,6 +1169,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_PTR_ID_NAME_DEL =
 			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL);
 	
+	public Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjects(
+			final Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res =
+				resolveObjectIDs(objectIDs);
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> ret =
+				new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
+		for (final ObjectIDResolvedWS o: res.keySet()) {
+			ret.put(o, res.get(o));
+		}
+		return ret;
+	}
+	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
