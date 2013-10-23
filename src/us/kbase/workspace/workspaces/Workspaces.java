@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -42,6 +41,7 @@ import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -150,8 +150,8 @@ public class Workspaces {
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final Permission perm, final String operation) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
+			WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
@@ -166,8 +166,11 @@ public class Workspaces {
 		try {
 				rwsis = db.resolveWorkspaces(wsis.keySet());
 		} catch (NoSuchWorkspaceException nswe) {
-			final WorkspaceIdentifier cause = nswe.getMissingWorkspace();
-			throw nswe; //TODO finish this, needs to throw correct exception with embedded object
+			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
+			throw new InaccessibleObjectException(String.format(
+					"Object %s cannot be accessed: %s",
+					obj.getIdentifierString(), nswe.getLocalizedMessage()),
+					obj, nswe);
 		}
 		final Map<ResolvedWorkspaceID, Permission> perms =
 				db.getPermissions(user,
@@ -176,7 +179,14 @@ public class Workspaces {
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
-			comparePermission(user, perm, perms.get(r), o, operation);
+			try {
+				comparePermission(user, perm, perms.get(r), o, operation);
+			} catch (WorkspaceAuthorizationException wae) {
+				throw new InaccessibleObjectException(String.format(
+						"Object %s cannot be accessed: %s",
+						o.getIdentifierString(), wae.getLocalizedMessage()),
+						o, wae);
+			}
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
@@ -327,15 +337,31 @@ public class Workspaces {
 					wsresolvedids = checkPerms(user,
 							new LinkedList<ObjectIdentifier>(oidToObject.keySet()),
 							Permission.READ, "read");
-			} catch (WorkspaceAuthorizationException wae) {
-				final ObjectIdentifier cause = wae.getDeniedObject();
-				final int order = oidToObject.get(cause).order;
-				
-				
+			} catch (InaccessibleObjectException ioe) {
+				final ObjectIdentifier cause = ioe.getInaccessibleObject();
+				String ref = null; //must be set correctly below
+				for (final String r: refToOid.keySet()) {
+					if (refToOid.get(r).equals(cause)) {
+						ref = r;
+						break;
+					}
+				}
+				final TempObjectData tod = oidToObject.get(cause);
+				final String objerrid = getObjectErrorId(
+						tod.wo.getObjectIdentifier(), tod.order);
+				throw new TypedObjectValidationException(String.format(
+						"Object %s has inaccessible reference %s: %s",
+						objerrid, ref, ioe.getLocalizedMessage(), ioe));
 			}
 		} else {
 			wsresolvedids = new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		}
+//		final Map<ObjectIDResolvedWS, Res>
+//		if (!wsresolvedids.isEmpty()) {
+//			try {
+//				
+//			}
+//		}
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
@@ -357,9 +383,8 @@ public class Workspaces {
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws
-			CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException,
-			NoSuchObjectException {
+			CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
@@ -375,9 +400,8 @@ public class Workspaces {
 	
 	public List<ObjectUserMetaData> getObjectMetaData(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws 
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, NoSuchObjectException,
-			CorruptWorkspaceDBException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, ObjectUserMetaData> meta = 
@@ -393,9 +417,8 @@ public class Workspaces {
 	
 	public void setObjectsDeleted(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean delete)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException,
-			NoSuchObjectException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.WRITE,
 						(delete ? "" : "un") + "delete objects from");

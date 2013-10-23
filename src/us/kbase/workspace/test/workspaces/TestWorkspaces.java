@@ -43,6 +43,7 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -617,17 +618,21 @@ public class TestWorkspaces {
 		try {
 			ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 			fail("Able to get obj meta from private workspace");
-		} catch (WorkspaceAuthorizationException auth) {
-			assertThat("correct exception message", auth.getLocalizedMessage(),
-					is("User bar may not read workspace saveobj"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 2 cannot be accessed: User bar may not read workspace saveobj"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(priv, 2)));
 		}
 		ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
 		try {
 			ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 			fail("Able to get obj data from private workspace");
-		} catch (WorkspaceAuthorizationException auth) {
-			assertThat("correct exception message", auth.getLocalizedMessage(),
-					is("User bar may not read workspace saveobj"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 2 cannot be accessed: User bar may not read workspace saveobj"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(priv, 2)));
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
@@ -1039,16 +1044,20 @@ public class TestWorkspaces {
 		try {
 			ws.setObjectsDeleted(new WorkspaceUser("bar"), obj1, true);
 			fail("deleted objects w/o auth");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("correct exception", e.getLocalizedMessage(),
-					is("User bar may not delete objects from workspace deleteundelete"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception", ioe.getLocalizedMessage(),
+					is("Object obj cannot be accessed: User bar may not delete objects from workspace deleteundelete"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(o1));
 		}
 		try {
 			ws.setObjectsDeleted(new WorkspaceUser("bar"), obj1, false);
 			fail("undeleted objects w/o auth");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("correct exception", e.getLocalizedMessage(),
-					is("User bar may not undelete objects from workspace deleteundelete"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception", ioe.getLocalizedMessage(),
+					is("Object obj cannot be accessed: User bar may not undelete objects from workspace deleteundelete"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(o1));
 		}
 		ws.setObjectsDeleted(foo, obj1, true);
 		String err = String.format("Object 1 (name obj) in workspace %s has been deleted", wsid);
@@ -1133,16 +1142,16 @@ public class TestWorkspaces {
 		try {
 			ws.getObjects(bar, objs);
 			fail("got objs from deleted workspace");
-		} catch (NoSuchWorkspaceException e) {
-			assertThat("correct exception msg", e.getLocalizedMessage(),
-					is("Workspace deleteundelete is deleted"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception msg", ioe.getLocalizedMessage(),
+					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		}
 		try {
 			ws.getObjectMetaData(bar, objs);
 			fail("got obj meta from deleted workspace");
-		} catch (NoSuchWorkspaceException e) {
-			assertThat("correct exception msg", e.getLocalizedMessage(),
-					is("Workspace deleteundelete is deleted"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception msg", ioe.getLocalizedMessage(),
+					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		}
 		try {
 			ws.saveObjects(bar, read, Arrays.asList(sobj1));
@@ -1153,9 +1162,11 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.setObjectsDeleted(bar, obj1, true);
-		} catch (NoSuchWorkspaceException e) {
-			assertThat("correct exception msg", e.getLocalizedMessage(),
-					is("Workspace deleteundelete is deleted"));
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception msg", ioe.getLocalizedMessage(),
+					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(o1));
 		}
 		ws.setWorkspaceDeleted(foo, read, false);
 		checkNonDeletedObjs(foo, idToData);
@@ -1169,8 +1180,7 @@ public class TestWorkspaces {
 
 	private void checkNonDeletedObjs(WorkspaceUser foo,
 			Map<ObjectIdentifier, Object> idToData) throws CorruptWorkspaceDBException,
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, NoSuchObjectException {
+			WorkspaceCommunicationException, InaccessibleObjectException {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
 		for (int i = 0; i < d.size(); i++) {
@@ -1180,8 +1190,7 @@ public class TestWorkspaces {
 	}
 
 	private void failToGetDeletedObjects(WorkspaceUser user,
-			List<ObjectIdentifier> objs, String exception) throws
-			CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			List<ObjectIdentifier> objs, String exception) throws Exception,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		try {
 			ws.getObjects(user, objs);
