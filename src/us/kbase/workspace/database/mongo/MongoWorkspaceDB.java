@@ -41,7 +41,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.TypeAndVersion;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectMetaData;
@@ -463,7 +463,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (wsi.getId() == null) {
 			return "name " + wsi.getName();
 		}
-		return "id" + wsi.getId();
+		return "id " + wsi.getId();
 	}
 	
 	@Override
@@ -1068,8 +1068,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
 				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists in" +
-						" workspace %s", roi.getId(), roi.getName(), 
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
@@ -1110,11 +1110,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final Set<String> FLDS_VER_META = newHashSet(
-			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
-			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
-			Fields.VER_CHKSUM, Fields.VER_SIZE);
-	
 	
 	private MongoObjectUserMeta generateUserMeta(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
@@ -1134,6 +1129,44 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				metaMongoArrayToHash(meta));
 	}
 	
+	private static final Set<String> FLDS_VER_ID_TYPE = newHashSet(
+			Fields.VER_TYPE, Fields.VER_VER, Fields.VER_ID);
+	
+	public Map<ObjectIDResolvedWS, TypeAndVersion> getObjectType(
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		//this method is a pattern - generalize somehow?
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+				resolveObjectIDs(objectIDs);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						FLDS_VER_ID_TYPE);
+		final Map<ObjectIDResolvedWS, TypeAndVersion> ret =
+				new HashMap<ObjectIDResolvedWS, TypeAndVersion>();
+		for (ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoObjectID roi = oids.get(o);
+			if (!vers.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), o);
+			}
+			ret.put(o, new TypeAndVersion(
+					AbsoluteTypeDefId.fromAbsoluteTypeString(
+					(String) vers.get(roi).get(Fields.VER_TYPE)),
+					(Long) vers.get(roi).get(Fields.VER_ID),
+					(Integer) vers.get(roi).get(Fields.VER_VER)));
+		}
+		return ret;
+	}
+	
+	private static final Set<String> FLDS_VER_META = newHashSet(
+			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
+			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
+			Fields.VER_CHKSUM, Fields.VER_SIZE);
+	
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
@@ -1150,8 +1183,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
 				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists in" +
-						" workspace %s", roi.getId(), roi.getName(), 
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
@@ -1172,19 +1205,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final Set<String> FLDS_PTR_ID_NAME_DEL =
 			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL);
-	
-	public Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjects(
-			final Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res =
-				resolveObjectIDs(objectIDs);
-		final Map<ObjectIDResolvedWS, ResolvedObjectID> ret =
-				new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
-		for (final ObjectIDResolvedWS o: res.keySet()) {
-			ret.put(o, res.get(o));
-		}
-		return ret;
-	}
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)

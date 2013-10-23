@@ -13,7 +13,6 @@ import org.jongo.Jongo;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -538,14 +537,5 @@ public class QueryMethods {
 					(rwsi == null ? null : rwsi.getClass()));
 		}
 		return (ResolvedMongoWSID) rwsi;
-	}
-	
-	ResolvedMongoObjectID convertResolvedObjID(ResolvedObjectID roi) {
-		if (!(roi instanceof ResolvedObjectID)) {
-			throw new RuntimeException(
-					"Passed incorrect implementation of ResolvedObjectID:" +
-					(roi == null ? null : roi.getClass()));
-		}
-		return (ResolvedMongoObjectID) roi;
 	}
 }

@@ -28,7 +28,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ReferenceParser;
-import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.TypeAndVersion;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -350,10 +350,10 @@ public class Workspaces {
 			wsresolvedids = new HashMap<ObjectIdentifier,
 					ObjectIDResolvedWS>();
 		}
-		final Map<ObjectIDResolvedWS, ResolvedObjectID> resolvedids;
+		final Map<ObjectIDResolvedWS, TypeAndVersion> objtypes;
 		if (!wsresolvedids.isEmpty()) {
 			try {
-				resolvedids = db.resolveObjects(
+				objtypes = db.getObjectType(
 						new HashSet<ObjectIDResolvedWS>(wsresolvedids.values()));
 			} catch (NoSuchObjectException nsoe) {
 				final ObjectIDResolvedWS cause =
@@ -371,8 +371,10 @@ public class Workspaces {
 				throw tove;
 			}
 		} else {
-			resolvedids = new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
+			objtypes = new HashMap<ObjectIDResolvedWS, TypeAndVersion>();
 		}
+		System.out.println(objtypes);
+		//TODO typechecking for each object
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();

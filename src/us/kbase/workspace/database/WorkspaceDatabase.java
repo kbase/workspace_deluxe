@@ -32,10 +32,6 @@ public interface WorkspaceDatabase {
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			Set<WorkspaceIdentifier> wsis, boolean allowDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
-	
-	public Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjects(
-			final Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException;
 
 	public WorkspaceMetaData createWorkspace(WorkspaceUser owner, String wsname,
 			boolean globalread, String description) throws
@@ -81,6 +77,10 @@ public interface WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
+	
+	public Map<ObjectIDResolvedWS, TypeAndVersion> getObjectType(
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException;
 
 	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
 			boolean delete) throws NoSuchObjectException,
