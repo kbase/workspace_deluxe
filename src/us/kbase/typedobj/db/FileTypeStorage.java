@@ -399,14 +399,15 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
-	public String getTypeVersionByMd5(String moduleName, String typeName,
+	public List<String> getTypeVersionsByMd5(String moduleName, String typeName,
 			String md5) throws TypeStorageException {
+		List<String> ret = new ArrayList<String>();
 		for (String version : getAllTypeVersions(moduleName, typeName).keySet()) {
 			String curMd5 = getTypeMd5(moduleName, typeName, version);
 			if (curMd5.equals(md5))
-				return version;
+				ret.add(version);
 		}
-		return null;
+		return ret;
 	}
 
 	

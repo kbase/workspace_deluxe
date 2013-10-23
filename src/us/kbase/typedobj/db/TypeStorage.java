@@ -41,7 +41,7 @@ public interface TypeStorage {
 
 	public String getTypeMd5(String moduleName, String typeName, String version) throws TypeStorageException;
 
-	public String getTypeVersionByMd5(String moduleName, String typeName, String md5) throws TypeStorageException;
+	public List<String> getTypeVersionsByMd5(String moduleName, String typeName, String md5) throws TypeStorageException;
 
 	public String getTypeParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 

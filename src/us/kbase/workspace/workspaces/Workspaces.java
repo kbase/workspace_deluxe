@@ -3,6 +3,7 @@ package us.kbase.workspace.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -600,5 +601,29 @@ public class Workspaces {
 			vers.add(m.getVersion());
 		}
 		return vers;
+	}
+
+	public HashMap<String, List<String>> translateFromMd5Types(List<String> md5TypeList) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		//return typedb.getTypeVersionsForMd5(md5TypeDef);
+		HashMap<String, List<String>> ret = new LinkedHashMap<String, List<String>>();
+        for (String md5TypeDef : md5TypeList) {
+        	List<AbsoluteTypeDefId> semantList = typedb.getTypeVersionsForMd5(TypeDefId.fromTypeString(md5TypeDef));
+        	List<String> retList = new ArrayList<String>();
+        	for (AbsoluteTypeDefId semantTypeDef : semantList)
+        		retList.add(semantTypeDef.getTypeString());
+        	ret.put(md5TypeDef, retList);
+        }
+        return ret;
+	}
+	
+	public Map<String,String> translateToMd5Types(List<String> semanticTypeList) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		HashMap<String, String> ret = new LinkedHashMap<String, String>();
+        for (String semantString : semanticTypeList) {
+        	TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
+        	ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef).getTypeString());
+        }
+        return ret;
 	}
 }

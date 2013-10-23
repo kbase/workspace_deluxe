@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import junit.framework.Assert;
+
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -139,6 +141,7 @@ public class TestWorkspaces {
 			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
 					"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 					Arrays.asList("AType"), null, null, false, null);
+			TEST_WORKSPACES[i].releaseTypes(foo, "SomeModule");
 		}
 	}
 	
@@ -1203,6 +1206,26 @@ public class TestWorkspaces {
 			fail("got deleted object's metadata");
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
+		}
+	}
+	
+	@Test
+	public void testTypeMd5s() throws Exception {
+		String typeDefName = "SomeModule.AType";
+		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName));
+		Assert.assertEquals(1, type2md5.size());
+		String md5TypeDef = type2md5.get(typeDefName);
+		Assert.assertNotNull(md5TypeDef);
+		Map<String, List<String>> md52semantic = ws.translateFromMd5Types(Arrays.asList(md5TypeDef));
+		Assert.assertEquals(1, md52semantic.size());
+		List<String> semList = md52semantic.get(md5TypeDef);
+		Assert.assertNotNull(semList);
+		Assert.assertEquals(2, semList.size());
+		for (String semText : semList) {
+			TypeDefId semTypeDef = TypeDefId.fromTypeString(semText);
+			Assert.assertEquals(typeDefName, semTypeDef.getType().getTypeString());
+			String verText = semTypeDef.getVerString();
+			Assert.assertTrue("0.1".equals(verText) || "1.0".equals(verText));
 		}
 	}
 }
