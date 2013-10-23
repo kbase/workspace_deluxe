@@ -6,7 +6,11 @@ public class AbsoluteTypeDefId extends TypeDefId {
 			final int minorVersion) {
 		super(type, majorVersion, minorVersion);
 	}
-	
+
+	public AbsoluteTypeDefId(final TypeDefName type, final String md5) {
+		super(type, md5);
+	}
+
 	public static AbsoluteTypeDefId fromTypeId(final TypeDefId type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
@@ -46,6 +50,6 @@ public class AbsoluteTypeDefId extends TypeDefId {
 	@Override
 	public String toString() {
 		return "AbsoluteTypeDefId [type=" + type + ", majorVersion=" +
-				majorVersion + ", minorVersion=" + minorVersion + "]";
+				majorVersion + ", minorVersion=" + minorVersion + ", md5=" + md5 + "]";
 	}
 }

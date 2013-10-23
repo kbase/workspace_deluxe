@@ -39,6 +39,10 @@ public interface TypeStorage {
 
 	public String getTypeSchemaRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
+	public String getTypeMd5(String moduleName, String typeName, String version) throws TypeStorageException;
+
+	public String getTypeVersionByMd5(String moduleName, String typeName, String md5) throws TypeStorageException;
+
 	public String getTypeParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
 	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType, String version) throws TypeStorageException;
@@ -61,7 +65,7 @@ public interface TypeStorage {
 
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
 	
-	public void writeTypeSchemaRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
+	public void writeTypeSchemaRecord(String moduleName, String typeName, String version, long moduleVersion, String document, String md5) throws TypeStorageException;
 
 	public void writeTypeParseRecord(String moduleName, String typeName, String version, long moduleVersion, String document) throws TypeStorageException;
 

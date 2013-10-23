@@ -545,8 +545,16 @@ public class TypeDefinitionDB {
 	}
 
 	private SemanticVersion findTypeVersion(TypeDefId typeDef) throws TypeStorageException {
-		if (typeDef.isAbsolute())
+		if (typeDef.isAbsolute()) {
+			if (typeDef.getMd5() != null) {
+				String version = storage.getTypeVersionByMd5(typeDef.getType().getModule(), 
+						typeDef.getType().getName(), typeDef.getMd5());
+				if (version == null)
+					return null;
+				return new SemanticVersion(version);
+			}
 			return new SemanticVersion(typeDef.getMajorVersion(), typeDef.getMinorVersion());
+		}
 		if (!isModuleSupported(typeDef.getType().getModule()))
 			return null;
 		if (typeDef.getMajorVersion() != null) {
@@ -566,6 +574,26 @@ public class TypeDefinitionDB {
 		return findLastTypeVersion(typeDef.getType().getModule(), typeDef.getType().getName(), false);
 	}
 
+	public AbsoluteTypeDefId getTypeMd5Version(TypeDefName typeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		return getTypeMd5Version(new TypeDefId(typeDef));
+	}
+	
+	public AbsoluteTypeDefId getTypeMd5Version(TypeDefId typeDef) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		String moduleName = typeDef.getType().getModule();
+		requestReadLock(moduleName);
+		try {
+			SemanticVersion version = findTypeVersion(typeDef);
+			if (version == null)
+				throwNoSuchTypeException(typeDef);
+			return new AbsoluteTypeDefId(typeDef.getType(), storage.getTypeMd5(moduleName, 
+					typeDef.getType().getName(), version.toString()));
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+	
 	private SemanticVersion findLastTypeVersion(String moduleName, String typeName, 
 			boolean withNoLongerSupported) throws TypeStorageException {
 		if (!isTypePresent(moduleName, typeName))
@@ -697,8 +725,9 @@ public class TypeDefinitionDB {
 				ri.setDepModuleVersion(newModuleVersion);
 				updateInternalRefVersion(ri, mi);
 			}
+		String md5 = DigestUtils.md5Hex(jsonSchemaDocument);
 		storage.writeTypeSchemaRecord(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), 
-				newModuleVersion, jsonSchemaDocument);
+				newModuleVersion, jsonSchemaDocument, md5);
 		writeTypeParsingFile(mi.getModuleName(), ti.getTypeName(), ti.getTypeVersion(), 
 				specParsing, newModuleVersion);
 		return ti.getTypeVersion();
@@ -1621,12 +1650,18 @@ public class TypeDefinitionDB {
 						KbTypedef type = (KbTypedef)comp;
 						allNewTypes.add(type.getName());
 						if (newRegisteredTypes.contains(type.getName())) {
-							if (typeToSchema.get(type.getName()) == null)
+							String jsonSchemaDocument = typeToSchema.get(type.getName());
+							if (jsonSchemaDocument == null)
 								throw new SpecParseException("Json schema wasn't generated for type: " + type.getName());
 							Change change = findTypeChange(info, type);
-							if (change == Change.noChange)
-								continue;
-							String jsonSchemaDocument = typeToSchema.get(type.getName());
+							if (change == Change.noChange) {
+								String prevJsonSchema = storage.getTypeSchemaRecord(moduleName, type.getName(), 
+										info.getTypes().get(type.getName()).getTypeVersion());
+								if (jsonSchemaDocument.equals(prevJsonSchema)) {
+									continue;
+								}
+								change = Change.backwardCompatible;
+							}
 							Set<RefInfo> dependencies = extractTypeRefs(type, moduleToInfo, newRegisteredTypes);
 							jsonSchemaFromString(jsonSchemaDocument);
 							boolean notBackwardCompatible = (change == Change.notCompatible);
