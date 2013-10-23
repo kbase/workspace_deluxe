@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Reference;
 
@@ -113,15 +114,16 @@ public class WorkspaceSaveObject {
 	}
 
 	public ResolvedSaveObject resolve(final AbsoluteTypeDefId type,
-			final JsonNode resolvedData, final Set<Reference> references,
+			final JsonNode resolvedData, final TypedObjectValidationReport rep,
+			final Set<Reference> references,
 			final Set<Reference> provenancerefs) {
 		if (id == null) {
 			return new ResolvedSaveObject(resolvedData, type, this.userMeta,
-					this.provenance, this.hidden, references, provenancerefs);
+					this.provenance, this.hidden, rep, references, provenancerefs);
 		} else {
 			return new ResolvedSaveObject(this.id, resolvedData, type,
-					this.userMeta, this.provenance, this.hidden, references,
-					provenancerefs);
+					this.userMeta, this.provenance, this.hidden, rep,
+					references, provenancerefs);
 		}
 	}
 	

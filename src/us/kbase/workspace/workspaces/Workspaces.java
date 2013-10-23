@@ -411,7 +411,7 @@ public class Workspaces {
 			//TODO typechecking for each object
 			//TODO pass in provenance references
 			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
-			saveobjs.add(wo.resolve(type, wo.getData(), refs, provrefs));
+			saveobjs.add(wo.resolve(type, wo.getData(), rep, refs, provrefs));
 			objcount++;
 		}
 		objects = null; // don't screw with the input, but release to gc
@@ -606,23 +606,23 @@ public class Workspaces {
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		//return typedb.getTypeVersionsForMd5(md5TypeDef);
 		HashMap<String, List<String>> ret = new LinkedHashMap<String, List<String>>();
-        for (String md5TypeDef : md5TypeList) {
-        	List<AbsoluteTypeDefId> semantList = typedb.getTypeVersionsForMd5(TypeDefId.fromTypeString(md5TypeDef));
-        	List<String> retList = new ArrayList<String>();
-        	for (AbsoluteTypeDefId semantTypeDef : semantList)
-        		retList.add(semantTypeDef.getTypeString());
-        	ret.put(md5TypeDef, retList);
-        }
-        return ret;
+		for (String md5TypeDef : md5TypeList) {
+			List<AbsoluteTypeDefId> semantList = typedb.getTypeVersionsForMd5(TypeDefId.fromTypeString(md5TypeDef));
+			List<String> retList = new ArrayList<String>();
+			for (AbsoluteTypeDefId semantTypeDef : semantList)
+				retList.add(semantTypeDef.getTypeString());
+			ret.put(md5TypeDef, retList);
+		}
+		return ret;
 	}
-	
+
 	public Map<String,String> translateToMd5Types(List<String> semanticTypeList) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		HashMap<String, String> ret = new LinkedHashMap<String, String>();
-        for (String semantString : semanticTypeList) {
-        	TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
-        	ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef).getTypeString());
-        }
-        return ret;
+		for (String semantString : semanticTypeList) {
+			TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
+			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef).getTypeString());
+		}
+		return ret;
 	}
 }
