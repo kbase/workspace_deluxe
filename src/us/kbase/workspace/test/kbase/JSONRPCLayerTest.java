@@ -16,6 +16,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import junit.framework.Assert;
+
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
@@ -155,6 +157,7 @@ public class JSONRPCLayerTest {
 				.withDryrun(0L)
 				.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 				.withNewTypes(Arrays.asList("AType")));
+		CLIENT1.releaseModule("SomeModule");
 	}
 	
 	@AfterClass
@@ -798,5 +801,16 @@ public class JSONRPCLayerTest {
 		CLIENT1.saveObjects(soc);
 		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
 				.asClassInstance(Object.class), is((Object) data));
+	}
+	
+	@Test
+	public void testTypeMD5() throws Exception {
+		String typeDefName = "SomeModule.AType";
+		Map<String,String> type2md5 = CLIENT1.translateToMD5Types(Arrays.asList(typeDefName));
+		String md5TypeDef = type2md5.get(typeDefName);
+		Assert.assertNotNull(md5TypeDef);
+		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
+		Assert.assertEquals(1, md52semantic.size());
+		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
 	}
 }
