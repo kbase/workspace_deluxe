@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -388,6 +390,27 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	@Override
+	public String getTypeMd5(String moduleName, String typeName, String version)
+			throws TypeStorageException {
+		String json = getTypeSchemaRecord(moduleName, typeName, version);
+		if (json == null)
+			throw new TypeStorageException("No json schema for type " + moduleName + "." + typeName + "." + version);
+		return DigestUtils.md5Hex(json);
+	}
+	
+	@Override
+	public String getTypeVersionByMd5(String moduleName, String typeName,
+			String md5) throws TypeStorageException {
+		for (String version : getAllTypeVersions(moduleName, typeName).keySet()) {
+			String curMd5 = getTypeMd5(moduleName, typeName, version);
+			if (curMd5.equals(md5))
+				return version;
+		}
+		return null;
+	}
+
+	
+	@Override
 	public String getTypeParseRecord(String moduleName, String typeName, String version) throws TypeStorageException {
 		File f = getTypeParseFile(moduleName, typeName, version);
 		if (f.exists() && f.isFile() && f.canRead()) {
@@ -430,12 +453,12 @@ public class FileTypeStorage implements TypeStorage {
 
 	@Override
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
-			String version, long moduleVersion, String document) throws TypeStorageException {
+			String version, long moduleVersion, String document, String md5) throws TypeStorageException {
 		for (File f : getTypeSchemaFiles(moduleName, typeName, version))
 			f.delete();
 		writeFile(getTypeSchemaFile(moduleName, typeName, version, moduleVersion), document);
 	}
-	
+		
 	@Override
 	public void writeTypeParseRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {

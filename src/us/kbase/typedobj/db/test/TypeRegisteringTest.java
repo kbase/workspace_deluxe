@@ -535,6 +535,12 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
+			db.getTypeMd5Version(new TypeDefId(new TypeDefName(moduleName, "regulator"))).getMd5();
+			Assert.fail();
+		} catch (NoSuchTypeException ex) {}
+		String typeMd5 = db.getTypeMd5Version(new TypeDefId(moduleName + ".regulator", lastTypeVer)).getMd5();
+		Assert.assertNotNull(typeMd5);
+		try {
 			db.getJsonSchemaDocument(new TypeDefName(moduleName, "regulator"));
 			Assert.fail();
 		} catch (NoSuchTypeException ex) {}
@@ -542,7 +548,9 @@ public class TypeRegisteringTest {
 			db.getJsonSchemaDocument(new TypeDefId(new TypeDefName(moduleName, "regulator")));
 			Assert.fail();
 		} catch (NoSuchTypeException ex) {}
-		db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer));
+		String jsonSchema = db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer));
+		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", typeMd5)));
+		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(new AbsoluteTypeDefId(new TypeDefName(moduleName, "regulator"), typeMd5)));
 		try {
 			db.getTypeParsingDocument(new TypeDefName(moduleName, "regulator"));
 			Assert.fail();
@@ -551,7 +559,9 @@ public class TypeRegisteringTest {
 			db.getTypeParsingDocument(new TypeDefId(new TypeDefName(moduleName, "regulator")));
 			Assert.fail();
 		} catch (NoSuchTypeException ex) {}
-		db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer));
+		Assert.assertTrue(
+				db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer)).getData().equals(
+				db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", typeMd5)).getData()));
 		try {
 			db.getTypeRefsByDep(new TypeDefId(new TypeDefName(moduleName, "regulator")));
 			Assert.fail();

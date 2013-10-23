@@ -10,9 +10,10 @@ public class TypeDefId {
 	private final static String TYPE_SEP_REGEX = "\\" + TYPE_SEP;
 	private final static String VER_SEP_REGEX = "\\" + VER_SEP;
 	
-	final TypeDefName type;
-	final Integer majorVersion;
-	final Integer minorVersion;
+	protected final TypeDefName type;
+	protected final Integer majorVersion;
+	protected final Integer minorVersion;
+	protected final String md5;
 
 	public TypeDefId(final TypeDefName type, final int majorVersion,
 			final int minorVersion) {
@@ -25,6 +26,7 @@ public class TypeDefId {
 		this.type = type;
 		this.majorVersion = majorVersion;
 		this.minorVersion = minorVersion;
+		this.md5 = null;
 	}
 	
 	public TypeDefId(final TypeDefName type, final int majorVersion) {
@@ -37,8 +39,22 @@ public class TypeDefId {
 		this.type = type;
 		this.majorVersion = majorVersion;
 		this.minorVersion = null;
+		this.md5 = null;
 	}
 	
+	public TypeDefId(final TypeDefName type, final String md5) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
+		if (md5.indexOf('.') >= 0 || md5.length() <= 10) {
+			throw new IllegalArgumentException("MD5 has wrong format");
+		}
+		this.type = type;
+		this.majorVersion = null;
+		this.minorVersion = null;
+		this.md5 = md5;
+	}
+
 	public TypeDefId(final TypeDefName type) {
 		if (type == null) {
 			throw new IllegalArgumentException("Type cannot be null");
@@ -46,6 +62,7 @@ public class TypeDefId {
 		this.type = type;
 		this.majorVersion = null;
 		this.minorVersion = null;
+		this.md5 = null;
 	}
 	
 	private static final String TYPE_VER_ERR = 
@@ -64,6 +81,7 @@ public class TypeDefId {
 		}
 		type = new TypeDefName(t[0], t[1]);
 		if (typeversion == null) {
+			md5 = null;
 			majorVersion = null;
 			minorVersion = null;
 			return;
@@ -73,21 +91,28 @@ public class TypeDefId {
 			throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
 					typeversion));
 		}
-		try {
-			majorVersion = Integer.parseInt(v[0]);
-		} catch (NumberFormatException ne) {
-			throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
-					typeversion));
-		}
-		if (v.length == 2) {
+		if (v.length == 1 && typeversion.length() > 10) {
+			md5 = typeversion;
+			majorVersion = null;
+			minorVersion = null;
+		} else {
+			md5 = null;
 			try {
-				minorVersion = Integer.parseInt(v[1]);
+				majorVersion = Integer.parseInt(v[0]);
 			} catch (NumberFormatException ne) {
 				throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
 						typeversion));
 			}
-		} else {
-			minorVersion = null;
+			if (v.length == 2) {
+				try {
+					minorVersion = Integer.parseInt(v[1]);
+				} catch (NumberFormatException ne) {
+					throw new IllegalArgumentException(String.format(TYPE_VER_ERR,
+							typeversion));
+				}
+			} else {
+				minorVersion = null;
+			}
 		}
 	}
 	
@@ -121,8 +146,12 @@ public class TypeDefId {
 		return minorVersion;
 	}
 	
+	public String getMd5() {
+		return md5;
+	}
+	
 	public boolean isAbsolute() {
-		return minorVersion != null;
+		return (minorVersion != null) || (md5 != null);
 	}
 	
 	public String getTypeString() {
@@ -136,7 +165,7 @@ public class TypeDefId {
 	
 	public String getVerString() {
 		if (majorVersion == null) {
-			return null;
+			return md5;
 		}
 		String t = "" + majorVersion;
 		if (minorVersion == null) {
@@ -151,6 +180,7 @@ public class TypeDefId {
 		int result = 1;
 		result = prime * result
 				+ ((majorVersion == null) ? 0 : majorVersion.hashCode());
+		result = prime * result + ((md5 == null) ? 0 : md5.hashCode());
 		result = prime * result
 				+ ((minorVersion == null) ? 0 : minorVersion.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
@@ -159,44 +189,40 @@ public class TypeDefId {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (!(obj instanceof TypeDefId)) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		TypeDefId other = (TypeDefId) obj;
 		if (majorVersion == null) {
-			if (other.majorVersion != null) {
+			if (other.majorVersion != null)
 				return false;
-			}
-		} else if (!majorVersion.equals(other.majorVersion)) {
+		} else if (!majorVersion.equals(other.majorVersion))
 			return false;
-		}
+		if (md5 == null) {
+			if (other.md5 != null)
+				return false;
+		} else if (!md5.equals(other.md5))
+			return false;
 		if (minorVersion == null) {
-			if (other.minorVersion != null) {
+			if (other.minorVersion != null)
 				return false;
-			}
-		} else if (!minorVersion.equals(other.minorVersion)) {
+		} else if (!minorVersion.equals(other.minorVersion))
 			return false;
-		}
 		if (type == null) {
-			if (other.type != null) {
+			if (other.type != null)
 				return false;
-			}
-		} else if (!type.equals(other.type)) {
+		} else if (!type.equals(other.type))
 			return false;
-		}
 		return true;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "TypeDefId [type=" + type + ", majorVersion=" + majorVersion
-				+ ", minorVersion=" + minorVersion + "]";
+				+ ", minorVersion=" + minorVersion + ", md5=" + md5 + "]";
 	}
 
 }
