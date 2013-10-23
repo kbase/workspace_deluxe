@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -274,11 +275,10 @@ public class Workspaces {
 		}
 		
 	}
-
 	
 	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
-			final List<WorkspaceSaveObject> objects) throws
+			List<WorkspaceSaveObject> objects) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, NoSuchTypeException,
@@ -302,7 +302,6 @@ public class Workspaces {
 		final Map<WorkspaceSaveObject, TempObjectData> reports = 
 				new HashMap<WorkspaceSaveObject, TempObjectData>();
 		int objcount = 1;
-		
 		
 		//stage 1: validate & extract & parse references
 		for (WorkspaceSaveObject wo: objects) {
@@ -333,6 +332,7 @@ public class Workspaces {
 			reports.put(wo, data);
 		}
 		
+		//TODO do the same for provenance references
 		//stage 2: resolve references and get types
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
 		if (!oidToObject.isEmpty()) {
@@ -373,24 +373,50 @@ public class Workspaces {
 		} else {
 			objtypes = new HashMap<ObjectIDResolvedWS, TypeAndVersion>();
 		}
-		System.out.println(objtypes);
-		//TODO typechecking for each object
+		
+		oidToObject.clear();
+		
+		//rewrite references
+		final Map<String, String> newrefs = new HashMap<String, String>();
+		final Map<String, AbsoluteTypeDefId> reftypes =
+				new HashMap<String, AbsoluteTypeDefId>();
+		for (final String ref: refToOid.keySet()) {
+			final ObjectIDResolvedWS roi = wsresolvedids.get(refToOid.get(ref));
+			final TypeAndVersion tv = objtypes.get(roi);
+			newrefs.put(ref, ObjectIdentifier.createObjectReference(
+					roi.getWorkspaceIdentifier().getID(), tv.getID(),
+					tv.getVersion()));
+			reftypes.put(ref, tv.getType());
+		}
+		wsresolvedids.clear();
+		objtypes.clear();
+		refToOid.clear();
+		
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
 		for (WorkspaceSaveObject wo: objects) {
-
+			final TypedObjectValidationReport rep = reports.get(wo).rep;
+			final int objnum = reports.get(wo).order;
+			final Set<String> refs = new HashSet<String>();
+			final Set<String> provrefs = new HashSet<String>(); //TODO provenance refs
+			for (final String r: rep.getListOfIdReferences()) {
+				refs.add(newrefs.get(r));
+			}
+			rep.setAbsoluteIdReferences(newrefs);
+			//TODO typechecking for each object
+			//TODO pass in provenance references
 			final AbsoluteTypeDefId type = reports.get(wo).rep
 					.getValidationTypeDefId();
-			saveobjs.add(wo.resolve(type, wo.getData()));//TODO rewrite data
+			//TODO replace object in workspace object
+			saveobjs.add(wo.resolve(type, wo.getData(), refs, provrefs));//TODO rewrite data
 			objcount++;
 		}
-		//TODO check size < 1 MB
-		//TODO resolve references (std resolve, resolve to IDs, no resolution)
-		//TODO make sure all object and provenance references exist aren't deleted, convert to perm refs - batch
-		//TODO rewrite references
-		//TODO when safe, add references to references collection
-		//TODO replace object in workspace object
+		System.out.println(objects.getClass());
+		objects = null; // don't screw with the input, but release to gc
+		reports.clear();
+		reftypes.clear();
+		newrefs.clear();
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 

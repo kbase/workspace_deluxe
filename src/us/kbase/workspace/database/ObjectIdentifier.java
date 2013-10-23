@@ -134,7 +134,16 @@ public class ObjectIdentifier {
 		return new ObjectIdentifier(wsi, id, ver);
 	}
 	
-	public static ObjectIdentifier parseObjectReference(String reference) {
+	public static String createObjectReference(final long workspace,
+			final long object, final int version) {
+		if (workspace < 1 || object < 1 || version < 1) {
+			throw new IllegalArgumentException("All arguments must be > 0");
+		}
+		return workspace + REFERENCE_ID_SEP + object + REFERENCE_ID_SEP +
+				version;
+	}
+	
+	public static ObjectIdentifier parseObjectReference(final String reference) {
 		checkString(reference, "reference");
 		if (reference.contains(REFERENCE_NAME_SEP)) {
 			final String[] r = reference.split(REFERENCE_NAME_SEP);

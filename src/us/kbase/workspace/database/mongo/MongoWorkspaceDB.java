@@ -690,7 +690,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		pointer.put(Fields.VER_META, meta);
 		pointer.put(Fields.VER_CREATEDATE, created);
-		pointer.put(Fields.VER_REF, new ArrayList<Object>()); //TODO this might be a really bad idea
+		pointer.put(Fields.VER_REF, pkg.wo.getRefs());
+		pointer.put(Fields.VER_PROVREF, pkg.wo.getProvRefs());
 		pointer.put(Fields.VER_PROV, null); //TODO add objectID
 		pointer.put(Fields.VER_TYPE, pkg.wo.getType().getTypeString());
 		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
@@ -855,10 +856,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Couldn't serialize data from object " +
 						getObjectErrorId(o.getObjectIdentifier(), objnum));
 			}
+			//TODO add references to object version
+			//TODO when safe, increment reference counter on main object
+			//TODO check size < 1 GB
 			//TODO get subdata (later)?
-			//TODO check subdata size
+			//TODO check subdata size < 15MB
 			//TODO change subdata disallowed chars - html encode (%)
-			//TODO when safe, add references to references collection
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(json, o.getType(), null); //TODO add subdata
@@ -1367,9 +1370,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-			wco.add(wo.resolve(at, wo.getData()));
+			wco.add(wo.resolve(at, wo.getData(), new HashSet<String>(), new HashSet<String>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.wo = wo.resolve(at, wo.getData());
+			pkg.wo = wo.resolve(at, wo.getData(), new HashSet<String>(), new HashSet<String>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

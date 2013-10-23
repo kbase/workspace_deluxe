@@ -48,7 +48,8 @@ public class Fields {
 	public static final String VER_CHKSUM = "chksum";
 	public static final String VER_CREATEDATE = "createdate";
 	public static final String VER_PROV = "provenance";
-	public static final String VER_REF = "reffedby";
+	public static final String VER_REF = "refs";
+	public static final String VER_PROVREF = "provrefs";
 	public static final String VER_TYPE = "type";
 	public static final String VER_SIZE = "size";
 	public static final String VER_RVRT = "revert";

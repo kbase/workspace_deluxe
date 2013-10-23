@@ -1,6 +1,7 @@
 package us.kbase.workspace.workspaces;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -111,13 +112,15 @@ public class WorkspaceSaveObject {
 	}
 
 	public ResolvedSaveObject resolve(final AbsoluteTypeDefId type,
-			final JsonNode resolvedData) {
+			final JsonNode resolvedData, final Set<String> references,
+			final Set<String> provenancerefs) {
 		if (id == null) {
 			return new ResolvedSaveObject(resolvedData, type, this.userMeta,
-					this.provenance, this.hidden);
+					this.provenance, this.hidden, references, provenancerefs);
 		} else {
 			return new ResolvedSaveObject(this.id, resolvedData, type,
-					this.userMeta, this.provenance, this.hidden);
+					this.userMeta, this.provenance, this.hidden, references,
+					provenancerefs);
 		}
 	}
 	
