@@ -139,7 +139,7 @@ public class ArgUtils {
 		for (final WorkspaceObjectData o: objects) {
 			ret.add(new ObjectData()
 					.withData(new UObject(o.getData()))
-					.withMeta(objUserMetaToTuple(o.getMeta())));
+					.withInfo(objUserMetaToTuple(o.getMeta())));
 		}
 		return ret;
 	}

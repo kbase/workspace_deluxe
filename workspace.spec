@@ -92,7 +92,7 @@ module Workspace {
 		ws_id id;
 	} WorkspaceIdentity;
 	
-	/* Meta data associated with a workspace.
+	/* Information about a workspace.
 	
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace.
@@ -104,7 +104,7 @@ module Workspace {
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		permission user_permission, permission globalread> workspace_metadata;
+		permission user_permission, permission globalread> workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */
 	typedef int obj_id;
@@ -165,7 +165,7 @@ module Workspace {
 		obj_ref ref;
 	} ObjectIdentity;
 	
-	/* Metadata associated with an object.
+	/* Information about an object.
 	
 		obj_id objid - the numerical id of the object.
 		obj_name name - the name of the object.
@@ -180,9 +180,9 @@ module Workspace {
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
-		ws_id wsid, string chsum, int size> object_metadata;
+		ws_id wsid, string chsum, int size> object_info;
 		
-	/* Metadata associated with an object, including user provided metadata.
+	/* Information about an object, including user provided metadata.
 	
 		obj_id objid - the numerical id of the object.
 		obj_name name - the name of the object.
@@ -193,14 +193,14 @@ module Workspace {
 		ws_id wsid - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
-		usermeta metadata - arbitrary user-supplied metadata about
+		usermeta meta - arbitrary user-supplied metadata about
 			the object.
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp create_date, int version, username created_by,
-		ws_id wsid, string chsum, int size, usermeta metadata>
-		object_metadata_full;
+		ws_id wsid, string chsum, int size, usermeta meta>
+		object_info_full;
 	
 	/* A provenance action.
 	
@@ -281,15 +281,15 @@ module Workspace {
 		Creates a new workspace.
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
-		(workspace_metadata metadata) authentication required;
+		(workspace_info info) authentication required;
 	
 	authentication optional;
 	
 	/*
-		Get a workspace's metadata.
+		Get information associated with a workspace.
 	*/
-	funcdef get_workspace_metadata(WorkspaceIdentity wsi)
-		returns (workspace_metadata meta);
+	funcdef get_workspace_info(WorkspaceIdentity wsi)
+		returns (workspace_info info);
 	
 	/* 
 		Get a workspace's description.
@@ -341,7 +341,7 @@ module Workspace {
 			appended if that object id already exists as a name.
 		obj_name name - the name of the object.
 		obj_id objid - the id of the object to save over.
-		usermeta metadata - arbitrary user-supplied metadata for the object,
+		usermeta meta - arbitrary user-supplied metadata for the object,
 			not to exceed 16kb.
 		list<ProvenanceAction> provenance - provenance data for the object.
 		boolean hidden - true if this object should not be listed when listing
@@ -353,7 +353,7 @@ module Workspace {
 		UnspecifiedObject data;
 		obj_name name;
 		obj_id objid;
-		usermeta metadata;
+		usermeta meta;
 		list<ProvenanceAction> provenance;
 		boolean hidden;
 	} ObjectSaveData;
@@ -380,17 +380,17 @@ module Workspace {
 		it.
 	*/
 	funcdef save_objects(SaveObjectsParams params)
-		returns (list<object_metadata> meta);
+		returns (list<object_info> info);
 	
-	/* The data and metadata for an object.
+	/* The data and supplemental info for an object.
 	
 		UnspecifiedObject data - the object's data.
-		object_metadata_full meta - metadata about the object.
+		object_info_full info - information about the object.
 		
 	*/
 	typedef structure {
 		UnspecifiedObject data;
-		object_metadata_full meta;
+		object_info_full info;
 	} ObjectData;
 	
 	authentication optional;
@@ -402,10 +402,10 @@ module Workspace {
 		returns (list<ObjectData> data);
 	
 	/* 
-		Get object metadata from the workspace.
+		Get information about an object from the workspace.
 	*/
-	funcdef get_object_metadata(list<ObjectIdentity> object_ids)
-		returns (list<object_metadata_full> meta);
+	funcdef get_object_info(list<ObjectIdentity> object_ids)
+		returns (list<object_info_full> info);
 	
 	authentication required;
 	

@@ -4,7 +4,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 
 public class TypeAndReference {
 	
-	//TODO return resolved reference instead, ws obj ver all required
 	//TODO rename all meta stuff too confusing with real metadata
 	
 	private AbsoluteTypeDefId type;

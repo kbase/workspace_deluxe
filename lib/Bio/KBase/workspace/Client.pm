@@ -81,7 +81,7 @@ sub new
 
 =head2 create_workspace
 
-  $metadata = $obj->create_workspace($params)
+  $info = $obj->create_workspace($params)
 
 =over 4
 
@@ -91,14 +91,14 @@ sub new
 
 <pre>
 $params is a Workspace.CreateWorkspaceParams
-$metadata is a Workspace.workspace_metadata
+$info is a Workspace.workspace_info
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_metadata is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 6 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -116,14 +116,14 @@ timestamp is a string
 =begin text
 
 $params is a Workspace.CreateWorkspaceParams
-$metadata is a Workspace.workspace_metadata
+$info is a Workspace.workspace_info
 CreateWorkspaceParams is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_metadata is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 6 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -191,9 +191,9 @@ sub create_workspace
 
 
 
-=head2 get_workspace_metadata
+=head2 get_workspace_info
 
-  $meta = $obj->get_workspace_metadata($wsi)
+  $info = $obj->get_workspace_info($wsi)
 
 =over 4
 
@@ -203,13 +203,13 @@ sub create_workspace
 
 <pre>
 $wsi is a Workspace.WorkspaceIdentity
-$meta is a Workspace.workspace_metadata
+$info is a Workspace.workspace_info
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_metadata is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 6 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -227,13 +227,13 @@ permission is a string
 =begin text
 
 $wsi is a Workspace.WorkspaceIdentity
-$meta is a Workspace.workspace_metadata
+$info is a Workspace.workspace_info
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_metadata is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 6 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -249,13 +249,13 @@ permission is a string
 
 =item Description
 
-Get a workspace's metadata.
+Get information associated with a workspace.
 
 =back
 
 =cut
 
-sub get_workspace_metadata
+sub get_workspace_info
 {
     my($self, @args) = @_;
 
@@ -264,7 +264,7 @@ sub get_workspace_metadata
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function get_workspace_metadata (received $n, expecting 1)");
+							       "Invalid argument count for function get_workspace_info (received $n, expecting 1)");
     }
     {
 	my($wsi) = @args;
@@ -272,29 +272,29 @@ sub get_workspace_metadata
 	my @_bad_arguments;
         (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to get_workspace_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to get_workspace_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'get_workspace_metadata');
+								   method_name => 'get_workspace_info');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.get_workspace_metadata",
+	method => "Workspace.get_workspace_info",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'get_workspace_metadata',
+					       method_name => 'get_workspace_info',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_workspace_metadata",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_workspace_info",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'get_workspace_metadata',
+					    method_name => 'get_workspace_info',
 				       );
     }
 }
@@ -583,7 +583,7 @@ sub get_permissions
 
 =head2 save_objects
 
-  $meta = $obj->save_objects($params)
+  $info = $obj->save_objects($params)
 
 =over 4
 
@@ -593,7 +593,7 @@ sub get_permissions
 
 <pre>
 $params is a Workspace.SaveObjectsParams
-$meta is a reference to a list where each element is a Workspace.object_metadata
+$info is a reference to a list where each element is a Workspace.object_info
 SaveObjectsParams is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -605,7 +605,7 @@ ObjectSaveData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
-	metadata has a value which is a Workspace.usermeta
+	meta has a value which is a Workspace.usermeta
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	hidden has a value which is a Workspace.boolean
 type_string is a string
@@ -637,7 +637,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 obj_ver is an int
 obj_ref is a string
 boolean is an int
-object_metadata is a reference to a list containing 9 items:
+object_info is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -656,7 +656,7 @@ username is a string
 =begin text
 
 $params is a Workspace.SaveObjectsParams
-$meta is a reference to a list where each element is a Workspace.object_metadata
+$info is a reference to a list where each element is a Workspace.object_info
 SaveObjectsParams is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -668,7 +668,7 @@ ObjectSaveData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
-	metadata has a value which is a Workspace.usermeta
+	meta has a value which is a Workspace.usermeta
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	hidden has a value which is a Workspace.boolean
 type_string is a string
@@ -700,7 +700,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 obj_ver is an int
 obj_ref is a string
 boolean is an int
-object_metadata is a reference to a list containing 9 items:
+object_info is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -798,8 +798,8 @@ obj_ver is an int
 obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
-	meta has a value which is a Workspace.object_metadata_full
-object_metadata_full is a reference to a list containing 10 items:
+	info has a value which is a Workspace.object_info_full
+object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -809,7 +809,7 @@ object_metadata_full is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a Workspace.usermeta
+	9: (meta) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
@@ -838,8 +838,8 @@ obj_ver is an int
 obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
-	meta has a value which is a Workspace.object_metadata_full
-object_metadata_full is a reference to a list containing 10 items:
+	info has a value which is a Workspace.object_info_full
+object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -849,7 +849,7 @@ object_metadata_full is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a Workspace.usermeta
+	9: (meta) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
@@ -912,9 +912,9 @@ sub get_objects
 
 
 
-=head2 get_object_metadata
+=head2 get_object_info
 
-  $meta = $obj->get_object_metadata($object_ids)
+  $info = $obj->get_object_info($object_ids)
 
 =over 4
 
@@ -924,7 +924,7 @@ sub get_objects
 
 <pre>
 $object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
-$meta is a reference to a list where each element is a Workspace.object_metadata_full
+$info is a reference to a list where each element is a Workspace.object_info_full
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -938,7 +938,7 @@ obj_name is a string
 obj_id is an int
 obj_ver is an int
 obj_ref is a string
-object_metadata_full is a reference to a list containing 10 items:
+object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -948,7 +948,7 @@ object_metadata_full is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a Workspace.usermeta
+	9: (meta) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
@@ -961,7 +961,7 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 =begin text
 
 $object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
-$meta is a reference to a list where each element is a Workspace.object_metadata_full
+$info is a reference to a list where each element is a Workspace.object_info_full
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -975,7 +975,7 @@ obj_name is a string
 obj_id is an int
 obj_ver is an int
 obj_ref is a string
-object_metadata_full is a reference to a list containing 10 items:
+object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
@@ -985,7 +985,7 @@ object_metadata_full is a reference to a list containing 10 items:
 	6: (wsid) a Workspace.ws_id
 	7: (chsum) a string
 	8: (size) an int
-	9: (metadata) a Workspace.usermeta
+	9: (meta) a Workspace.usermeta
 type_string is a string
 timestamp is a string
 username is a string
@@ -996,13 +996,13 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-Get object metadata from the workspace.
+Get information about an object from the workspace.
 
 =back
 
 =cut
 
-sub get_object_metadata
+sub get_object_info
 {
     my($self, @args) = @_;
 
@@ -1011,7 +1011,7 @@ sub get_object_metadata
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function get_object_metadata (received $n, expecting 1)");
+							       "Invalid argument count for function get_object_info (received $n, expecting 1)");
     }
     {
 	my($object_ids) = @args;
@@ -1019,29 +1019,29 @@ sub get_object_metadata
 	my @_bad_arguments;
         (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to get_object_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to get_object_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'get_object_metadata');
+								   method_name => 'get_object_info');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.get_object_metadata",
+	method => "Workspace.get_object_info",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'get_object_metadata',
+					       method_name => 'get_object_info',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_metadata",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'get_object_metadata',
+					    method_name => 'get_object_info',
 				       );
     }
 }
@@ -2560,7 +2560,7 @@ id has a value which is a Workspace.ws_id
 
 
 
-=head2 workspace_metadata
+=head2 workspace_info
 
 =over 4
 
@@ -2568,7 +2568,7 @@ id has a value which is a Workspace.ws_id
 
 =item Description
 
-Meta data associated with a workspace.
+Information about a workspace.
 
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - name of the workspace.
@@ -2815,7 +2815,7 @@ ref has a value which is a Workspace.obj_ref
 
 
 
-=head2 object_metadata
+=head2 object_info
 
 =over 4
 
@@ -2823,7 +2823,7 @@ ref has a value which is a Workspace.obj_ref
 
 =item Description
 
-Metadata associated with an object.
+Information about an object.
 
         obj_id objid - the numerical id of the object.
         obj_name name - the name of the object.
@@ -2876,7 +2876,7 @@ a reference to a list containing 9 items:
 
 
 
-=head2 object_metadata_full
+=head2 object_info_full
 
 =over 4
 
@@ -2884,7 +2884,7 @@ a reference to a list containing 9 items:
 
 =item Description
 
-Metadata associated with an object, including user provided metadata.
+Information about an object, including user provided metadata.
 
         obj_id objid - the numerical id of the object.
         obj_name name - the name of the object.
@@ -2895,7 +2895,7 @@ Metadata associated with an object, including user provided metadata.
         ws_id wsid - the workspace containing the object.
         string chsum - the md5 checksum of the object.
         int size - the size of the object in bytes.
-        usermeta metadata - arbitrary user-supplied metadata about
+        usermeta meta - arbitrary user-supplied metadata about
                 the object.
 
 
@@ -2914,7 +2914,7 @@ a reference to a list containing 10 items:
 6: (wsid) a Workspace.ws_id
 7: (chsum) a string
 8: (size) an int
-9: (metadata) a Workspace.usermeta
+9: (meta) a Workspace.usermeta
 
 </pre>
 
@@ -2932,7 +2932,7 @@ a reference to a list containing 10 items:
 6: (wsid) a Workspace.ws_id
 7: (chsum) a string
 8: (size) an int
-9: (metadata) a Workspace.usermeta
+9: (meta) a Workspace.usermeta
 
 
 =end text
@@ -3158,7 +3158,7 @@ An object and associated data required for saving.
                 appended if that object id already exists as a name.
         obj_name name - the name of the object.
         obj_id objid - the id of the object to save over.
-        usermeta metadata - arbitrary user-supplied metadata for the object,
+        usermeta meta - arbitrary user-supplied metadata for the object,
                 not to exceed 16kb.
         list<ProvenanceAction> provenance - provenance data for the object.
         boolean hidden - true if this object should not be listed when listing
@@ -3175,7 +3175,7 @@ type has a value which is a Workspace.type_string
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
-metadata has a value which is a Workspace.usermeta
+meta has a value which is a Workspace.usermeta
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 hidden has a value which is a Workspace.boolean
 
@@ -3190,7 +3190,7 @@ type has a value which is a Workspace.type_string
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
-metadata has a value which is a Workspace.usermeta
+meta has a value which is a Workspace.usermeta
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 hidden has a value which is a Workspace.boolean
 
@@ -3256,10 +3256,10 @@ objects has a value which is a reference to a list where each element is a Works
 
 =item Description
 
-The data and metadata for an object.
+The data and supplemental info for an object.
 
         UnspecifiedObject data - the object's data.
-        object_metadata_full meta - metadata about the object.
+        object_info_full info - information about the object.
 
 
 =item Definition
@@ -3269,7 +3269,7 @@ The data and metadata for an object.
 <pre>
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
-meta has a value which is a Workspace.object_metadata_full
+info has a value which is a Workspace.object_info_full
 
 </pre>
 
@@ -3279,7 +3279,7 @@ meta has a value which is a Workspace.object_metadata_full
 
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
-meta has a value which is a Workspace.object_metadata_full
+info has a value which is a Workspace.object_info_full
 
 
 =end text

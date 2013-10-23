@@ -187,9 +187,9 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_workspace_metadata(self, wsi):
+    def get_workspace_info(self, wsi):
 
-        arg_hash = {'method': 'Workspace.get_workspace_metadata',
+        arg_hash = {'method': 'Workspace.get_workspace_info',
                     'params': [wsi],
                     'version': '1.1',
                     'id': str(random.random())[2:]
@@ -397,9 +397,9 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_object_metadata(self, object_ids):
+    def get_object_info(self, object_ids):
 
-        arg_hash = {'method': 'Workspace.get_object_metadata',
+        arg_hash = {'method': 'Workspace.get_object_info',
                     'params': [object_ids],
                     'version': '1.1',
                     'id': str(random.random())[2:]

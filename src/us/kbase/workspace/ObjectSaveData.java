@@ -28,7 +28,7 @@ import us.kbase.common.service.UObject;
  *                 appended if that object id already exists as a name.
  *         obj_name name - the name of the object.
  *         obj_id objid - the id of the object to save over.
- *         usermeta metadata - arbitrary user-supplied metadata for the object,
+ *         usermeta meta - arbitrary user-supplied metadata for the object,
  *                 not to exceed 16kb.
  *         list<ProvenanceAction> provenance - provenance data for the object.
  *         boolean hidden - true if this object should not be listed when listing
@@ -43,7 +43,7 @@ import us.kbase.common.service.UObject;
     "data",
     "name",
     "objid",
-    "metadata",
+    "meta",
     "provenance",
     "hidden"
 })
@@ -57,8 +57,8 @@ public class ObjectSaveData {
     private java.lang.String name;
     @JsonProperty("objid")
     private Long objid;
-    @JsonProperty("metadata")
-    private Map<String, String> metadata;
+    @JsonProperty("meta")
+    private Map<String, String> meta;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance;
     @JsonProperty("hidden")
@@ -125,18 +125,18 @@ public class ObjectSaveData {
         return this;
     }
 
-    @JsonProperty("metadata")
-    public Map<String, String> getMetadata() {
-        return metadata;
+    @JsonProperty("meta")
+    public Map<String, String> getMeta() {
+        return meta;
     }
 
-    @JsonProperty("metadata")
-    public void setMetadata(Map<String, String> metadata) {
-        this.metadata = metadata;
+    @JsonProperty("meta")
+    public void setMeta(Map<String, String> meta) {
+        this.meta = meta;
     }
 
-    public ObjectSaveData withMetadata(Map<String, String> metadata) {
-        this.metadata = metadata;
+    public ObjectSaveData withMeta(Map<String, String> meta) {
+        this.meta = meta;
         return this;
     }
 
@@ -182,7 +182,7 @@ public class ObjectSaveData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("ObjectSaveData"+" [type=")+ type)+", data=")+ data)+", name=")+ name)+", objid=")+ objid)+", metadata=")+ metadata)+", provenance=")+ provenance)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("ObjectSaveData"+" [type=")+ type)+", data=")+ data)+", name=")+ name)+", objid=")+ objid)+", meta=")+ meta)+", provenance=")+ provenance)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

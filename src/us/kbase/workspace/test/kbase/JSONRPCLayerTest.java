@@ -174,7 +174,7 @@ public class JSONRPCLayerTest {
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
 		Tuple6<Long, String, String, String, String, String> metaget =
-				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity()
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
 		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
 		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
@@ -195,9 +195,9 @@ public class JSONRPCLayerTest {
 			.withWorkspace("gl1")); //should work fine w/o globalread
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 		.withWorkspace("gl2").withGlobalread("n")); //should work fine w/o globalread
-		assertThat("globalread correct", CLIENT1.getWorkspaceMetadata(
+		assertThat("globalread correct", CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("gl1")).getE6(), is("n"));
-		assertThat("globalread correct", CLIENT1.getWorkspaceMetadata(
+		assertThat("globalread correct", CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("gl2")).getE6(), is("n"));
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
@@ -290,7 +290,7 @@ public class JSONRPCLayerTest {
 		//should work, global read
 		CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob"));
 		CLIENT_NO_AUTH.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permsglob"));
-		CLIENT_NO_AUTH.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace("permsglob"));
+		CLIENT_NO_AUTH.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("permsglob"));
 		
 		try {
 			CLIENT_NO_AUTH.getWorkspaceDescription(new WorkspaceIdentity().withWorkspace("permspriv"));
@@ -301,7 +301,7 @@ public class JSONRPCLayerTest {
 		}
 		
 		try {
-			CLIENT_NO_AUTH.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace("permspriv"));
+			CLIENT_NO_AUTH.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("permspriv"));
 			fail("able to read workspace desc with no auth");
 		} catch (ServerException e) {
 			assertThat("exception message corrent", e.getLocalizedMessage(),
@@ -378,7 +378,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
 				.withDescription("foo"));
 		Tuple6<Long, String, String, String, String, String> meta =
-				CLIENT1.getWorkspaceMetadata(new WorkspaceIdentity().withWorkspace(ws));
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(ws));
 		//these should work
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
@@ -506,7 +506,7 @@ public class JSONRPCLayerTest {
 	public void saveAndGetObjects() throws Exception {
 		
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("saveget"));
-		long wsid = CLIENT1.getWorkspaceMetadata(
+		long wsid = CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("saveget")).getE1();
 		
 		//save some objects to get
@@ -533,11 +533,11 @@ public class JSONRPCLayerTest {
 		}
 		
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType(SAFE_TYPE)); // will be "1"
+				.withMeta(meta).withType(SAFE_TYPE)); // will be "1"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMetadata(meta).withType(SAFE_TYPE)); // will be "2"
+				.withMeta(meta).withType(SAFE_TYPE)); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType(SAFE_TYPE).withName("foo")); 
+				.withMeta(meta2).withType(SAFE_TYPE).withName("foo")); 
 		
 		List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> retmet =
 				CLIENT1.saveObjects(soc);
@@ -550,7 +550,7 @@ public class JSONRPCLayerTest {
 		
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMetadata(meta2).withType(SAFE_TYPE).withObjid(2L));
+				.withMeta(meta2).withType(SAFE_TYPE).withObjid(2L));
 		
 		retmet = CLIENT1.saveObjects(soc);
 		
@@ -598,7 +598,7 @@ public class JSONRPCLayerTest {
 		}
 		
 		try {
-			CLIENT1.getObjectMetadata(new ArrayList<ObjectIdentity>());
+			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>());
 			fail("called get meta with no ids");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
@@ -662,7 +662,7 @@ public class JSONRPCLayerTest {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectMetadata(loi);
+			CLIENT1.getObjectInfo(loi);
 			fail("got meta with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -682,7 +682,7 @@ public class JSONRPCLayerTest {
 		
 		List<Tuple10<Long, String, String, String, Long, String, Long, String,
 				Long, Map<String, String>>> retusermeta =
-				CLIENT1.getObjectMetadata(loi);
+				CLIENT1.getObjectInfo(loi);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple10<Long, String, String, String, Long, String, Long,
@@ -700,7 +700,7 @@ public class JSONRPCLayerTest {
 		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
 		
-		checkUserMeta(retdata.getMeta(), id, name, typeString, ver, user, wsid, chksum, size, meta);
+		checkUserMeta(retdata.getInfo(), id, name, typeString, ver, user, wsid, chksum, size, meta);
 	}
 
 	private void checkUserMeta(
@@ -741,7 +741,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
-		long wsid = CLIENT1.getWorkspaceMetadata(wsi).getE1();
+		long wsid = CLIENT1.getWorkspaceInfo(wsi).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();

@@ -418,7 +418,6 @@ public class Workspaces {
 		reports.clear();
 		reftypes.clear();
 		newrefs.clear();
-		//TODO make sure refs are mongo refs in mongo workspace db
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 

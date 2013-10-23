@@ -16,9 +16,9 @@ import us.kbase.common.service.UObject;
 /**
  * <p>Original spec-file type: ObjectData</p>
  * <pre>
- * The data and metadata for an object.
+ * The data and supplemental info for an object.
  *         UnspecifiedObject data - the object's data.
- *         object_metadata_full meta - metadata about the object.
+ *         object_info_full info - information about the object.
  * </pre>
  * 
  */
@@ -26,14 +26,14 @@ import us.kbase.common.service.UObject;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "data",
-    "meta"
+    "info"
 })
 public class ObjectData {
 
     @JsonProperty("data")
     private UObject data;
-    @JsonProperty("meta")
-    private Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta;
+    @JsonProperty("info")
+    private Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -51,18 +51,18 @@ public class ObjectData {
         return this;
     }
 
-    @JsonProperty("meta")
-    public Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> getMeta() {
-        return meta;
+    @JsonProperty("info")
+    public Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> getInfo() {
+        return info;
     }
 
-    @JsonProperty("meta")
-    public void setMeta(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta) {
-        this.meta = meta;
+    @JsonProperty("info")
+    public void setInfo(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info) {
+        this.info = info;
     }
 
-    public ObjectData withMeta(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> meta) {
-        this.meta = meta;
+    public ObjectData withInfo(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info) {
+        this.info = info;
         return this;
     }
 
@@ -78,7 +78,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((("ObjectData"+" [data=")+ data)+", meta=")+ meta)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
