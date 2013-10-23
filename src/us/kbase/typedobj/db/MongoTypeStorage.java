@@ -434,13 +434,21 @@ public class MongoTypeStorage implements TypeStorage {
 		return ret.get("md5hash").toString();
 	}
 
+	@SuppressWarnings("rawtypes")
 	@Override
-	public String getTypeVersionByMd5(String moduleName, String typeName,
+	public List<String> getTypeVersionsByMd5(String moduleName, String typeName,
 			String md5) throws TypeStorageException {
-		String query = "{moduleName:#,typeName:#,md5hash:#}";
-		Map<String, Object> ret = findTypeRecord(moduleName, typeName, md5,
-				query, moduleName, typeName, md5);
-		return ret == null ? null : ret.get("version").toString();
+		try {
+			String query = "{moduleName:#,typeName:#,md5hash:#}";
+			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			List<Map> list = Lists.newArrayList(docs.find(query, moduleName, typeName, md5).as(Map.class));
+			List<String> ret = new ArrayList<String>();
+			for (Map<?,?> map : list)
+				ret.add(map.get("version").toString());
+			return ret;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
 	}
 	
 	@Override

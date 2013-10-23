@@ -594,6 +594,14 @@ module Workspace {
 		
 	/* Get JSON schema for a type. */
 	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
+
+	/* Translation from types qualified with MD5 to their semantic versions */
+	funcdef translate_from_MD5_types(list<type_string>) 
+		returns(mapping<type_string, list<type_string>>);
+
+	/* Translation from types qualified with semantic versions to their MD5'ed versions */
+	funcdef translate_to_MD5_types(list<type_string>) 
+		returns(mapping<type_string, type_string>);
 		
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
