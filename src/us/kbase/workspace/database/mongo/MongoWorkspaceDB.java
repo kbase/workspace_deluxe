@@ -912,10 +912,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					throw new RuntimeException(
 							"Should never get a JSON exception here", jpe);
 				}
+			escapeSubdata(subdata);
 			//TODO null out the object packages after this
 			//TODO add references to object version
 			//TODO when safe, increment reference counter on main object
-			//TODO change subdata disallowed chars - html encode (%)
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(json, o.getType(), subdata);
@@ -923,6 +923,61 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			objnum++;
 		}
 		return ret;
+	}
+	
+	private void escapeSubdata(final Map<String, Object> subdata) {
+		escapeSubdataInternal(subdata);
+	}
+	
+	private void escapeSubdataInternal(final Object o) {
+		if (o instanceof String || o instanceof Number ||
+				o instanceof Boolean || o == null) {
+			return;
+		} else if (o instanceof List) {
+			@SuppressWarnings("unchecked")
+			final List<Object> l = (List<Object>)o;
+			for (Object lo: l) {
+				escapeSubdataInternal(lo);
+			}
+			return;
+		} else if (o instanceof Map) {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> m = (Map<String, Object>)o;
+			//save updated keys in separate map so we don't overwrite
+			//keys before they're escaped
+			final Map<String, Object> newm = new HashMap<String, Object>();
+			for (final String k: m.keySet()) {
+				escapeSubdataInternal(m.get(k));
+				newm.put(mongoHTMLEscape(k), m.get(k));
+			}
+			m.clear();
+			m.putAll(newm);
+			return;
+		} else {
+			throw new RuntimeException("Unsupported class: " + o.getClass());
+		}
+	}
+	
+	private static final int CODEPOINT_PERC = new String("%").codePointAt(0);
+	private static final int CODEPOINT_DLR = new String("$").codePointAt(0);
+	private static final int CODEPOINT_PNT = new String(".").codePointAt(0);
+	
+	private String mongoHTMLEscape(final String s) {
+		final StringBuffer ret = new StringBuffer();
+		for (int offset = 0; offset < s.length(); ) {
+			final int codepoint = s.codePointAt(offset);
+			if (codepoint == CODEPOINT_PERC) {
+				ret.append("%25");
+			} else if (codepoint == CODEPOINT_DLR) {
+				ret.append("%24");
+			} else if (codepoint == CODEPOINT_PNT) {
+				ret.append("%2e");
+			} else {
+				ret.appendCodePoint(codepoint);
+			}
+			offset += Character.charCount(codepoint);
+		}
+		return ret.toString();
 	}
 	
 	private static final String M_SAVE_QRY = String.format("{%s: #}",
