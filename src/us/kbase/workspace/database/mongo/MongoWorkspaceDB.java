@@ -158,7 +158,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find objects by legacy UUID
 		wsVer.put(Arrays.asList(Fields.VER_UUID), Arrays.asList(IDX_SPARSE));
 		//determine whether a particular object references this object
-		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList("")); //TODO this might be a bad idea
+		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList(""));
 		//TODO deletion and creation dates for search?
 		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
 	}
@@ -820,7 +820,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public String name;
 		public TypeData td;
 		public Set<String> refs;
-		public Set<String> provrefs;
+		public List<String> provrefs;
 		
 		@Override
 		public String toString() {
@@ -854,7 +854,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-			Set<String> refs = new HashSet<String>();
+			final Set<String> refs = new HashSet<String>();
 			for (final Reference r: o.getRefs()) {
 				if (!(r instanceof MongoReference)) {
 					throw new RuntimeException(
@@ -867,16 +867,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
-			refs = new HashSet<String>();
+			final List<String> provrefs = new LinkedList<String>();
 			for (final Reference r: o.getProvRefs()) {
 				if (!(r instanceof MongoReference)) {
 					throw new RuntimeException(
 							"Improper reference implementation: " +
 							(r == null ? null : r.getClass()));
 				}
-				refs.add(r.toString());
+				provrefs.add(r.toString());
 			}
-			pkg.provrefs = refs;
+			pkg.provrefs = provrefs;
 			pkg.wo = o;
 			final String json;
 			try {
@@ -1481,10 +1481,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
-					new HashSet<Reference>(), new HashSet<Reference>()));
+					new HashSet<Reference>(), new LinkedList<Reference>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
-					new HashSet<Reference>(), new HashSet<Reference>());
+					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

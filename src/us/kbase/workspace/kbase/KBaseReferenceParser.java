@@ -7,7 +7,7 @@ public class KBaseReferenceParser implements ReferenceParser {
 
 	//TODO test
 	@Override
-	public ObjectIdentifier parse(String reference) {
+	public ObjectIdentifier parse(final String reference) {
 		return KBaseIdentifierFactory.processObjectReference(reference);
 	}
 

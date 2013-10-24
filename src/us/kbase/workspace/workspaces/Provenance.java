@@ -8,7 +8,8 @@ import java.util.List;
 public class Provenance {
 	
 	private final String user;
-	private final List<ProvenanceAction> actions = new ArrayList<ProvenanceAction>();
+	private final List<ProvenanceAction> actions =
+			new ArrayList<ProvenanceAction>();
 	
 	public Provenance(String user) {
 		checkString(user, "user");
@@ -30,23 +31,43 @@ public class Provenance {
 		return new ArrayList<ProvenanceAction>(actions);
 	}
 	
+	@Override
+	public String toString() {
+		return "Provenance [user=" + user + ", actions=" + actions + "]";
+	}
+
 	public static class ProvenanceAction {
 		
 		//TODO remainder of provenance items
-		//TODO verify workspace objects exist
 		
 		private String service;
+		private List<String> wsobjs;
 		
 		public ProvenanceAction() {}
 		
-		public ProvenanceAction withServiceName(String service) {
-			checkString(service, "service");
+		public ProvenanceAction withServiceName(final String service) {
 			this.service = service;
+			return this;
+		}
+		
+		public ProvenanceAction withWorkspaceObjects(
+				final List<String> wsobjs) {
+			this.wsobjs = wsobjs;
 			return this;
 		}
 
 		public String getService() {
 			return service;
+		}
+		
+		public List<String> getWorkspaceObjects() {
+			return wsobjs;
+		}
+
+		@Override
+		public String toString() {
+			return "ProvenanceAction [service=" + service + ", wsobjs="
+					+ wsobjs + "]";
 		}
 		
 	}

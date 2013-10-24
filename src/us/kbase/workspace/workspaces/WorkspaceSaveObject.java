@@ -1,5 +1,6 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -116,7 +117,7 @@ public class WorkspaceSaveObject {
 	public ResolvedSaveObject resolve(final AbsoluteTypeDefId type,
 			final JsonNode resolvedData, final TypedObjectValidationReport rep,
 			final Set<Reference> references,
-			final Set<Reference> provenancerefs) {
+			final List<Reference> provenancerefs) {
 		if (id == null) {
 			return new ResolvedSaveObject(resolvedData, type, this.userMeta,
 					this.provenance, this.hidden, rep, references, provenancerefs);

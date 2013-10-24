@@ -41,12 +41,12 @@ public class ArgUtils {
 		if (actions == null) {
 			return p;
 		}
-		for (ProvenanceAction a: actions) {
+		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			Provenance.ProvenanceAction pa = new Provenance.ProvenanceAction();
-			if (a.getService() != null) {
-				pa = pa.withServiceName(a.getService());
-			}
+			p.addAction(new Provenance.ProvenanceAction()
+					.withServiceName(a.getService())
+					.withWorkspaceObjects(a.getInputWsObjects())
+					);
 			//TODO remainder of provenance actions
 			//TODO parse provenance date 
 		}

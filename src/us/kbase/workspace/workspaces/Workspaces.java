@@ -297,12 +297,17 @@ public class Workspaces {
 		//TODO tests for validation of objects
 		final Map<String, ObjectIdentifier> refToOid =
 				new HashMap<String, ObjectIdentifier>();
-		//note this only contains the first object encountered with the ref.
+		final Map<String, ObjectIdentifier> provRefToOid =
+				new HashMap<String, ObjectIdentifier>();
+		final Map<WorkspaceSaveObject, TempObjectData> reports = 
+				new HashMap<WorkspaceSaveObject, TempObjectData>();
+		//note these only contains the first object encountered with the ref.
 		// For error reporting purposes only
 		final Map<ObjectIdentifier, TempObjectData> oidToObject =
 				new HashMap<ObjectIdentifier, TempObjectData>();
-		final Map<WorkspaceSaveObject, TempObjectData> reports = 
-				new HashMap<WorkspaceSaveObject, TempObjectData>();
+		final Map<ObjectIdentifier, TempObjectData> provOidToObject =
+				new HashMap<ObjectIdentifier, TempObjectData>();
+		
 		int objcount = 1;
 		
 		//stage 1: validate & extract & parse references
@@ -319,39 +324,40 @@ public class Workspaces {
 			}
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
 			for (final String ref: rep.getListOfIdReferences()) {
-				try {
-					if (!refToOid.containsKey(ref)) {
-						final ObjectIdentifier oi = refparse.parse(ref);
-						refToOid.put(ref, oi);
-						oidToObject.put(oi, data);
-					}
-				} catch (IllegalArgumentException iae) {
-					throw new TypedObjectValidationException(String.format(
-							"Object %s has unparseable reference %s: %s",
-							objerrid, ref, iae.getLocalizedMessage(), iae));
+				processRef(refToOid, oidToObject, objerrid, data, ref, false);
+			}
+			for (final Provenance.ProvenanceAction action:
+				wo.getProvenance().getActions()) {
+				for (final String pref: action.getWorkspaceObjects()) {
+					processRef(provRefToOid, provOidToObject, objerrid, data,
+							pref, true);
 				}
 			}
 			reports.put(wo, data);
 		}
 		
-		//TODO do the same for provenance references
 		//stage 2: resolve references and get types
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
+		final Set<ObjectIdentifier> allOids =
+				new HashSet<ObjectIdentifier>(oidToObject.keySet());
+		allOids.addAll(provOidToObject.keySet());
 		if (!oidToObject.isEmpty()) {
 			try {
-					wsresolvedids = checkPerms(user,
-							new LinkedList<ObjectIdentifier>(oidToObject.keySet()),
-							Permission.READ, "read");
+				wsresolvedids = checkPerms(user, 
+						new LinkedList<ObjectIdentifier>(allOids),
+						Permission.READ, "read");
 			} catch (InaccessibleObjectException ioe) {
 				final TypedObjectValidationException tove =
 						generateInaccessibleObjectException(refToOid,
-								oidToObject, ioe, ioe.getInaccessibleObject());
+								oidToObject, provRefToOid, provOidToObject,
+								ioe, ioe.getInaccessibleObject());
 				throw tove;
 			}
 		} else {
 			wsresolvedids = new HashMap<ObjectIdentifier,
 					ObjectIDResolvedWS>();
 		}
+		allOids.clear();
 		final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
 		if (!wsresolvedids.isEmpty()) {
 			try {
@@ -369,7 +375,8 @@ public class Workspaces {
 				}
 				final TypedObjectValidationException tove =
 						generateInaccessibleObjectException(refToOid,
-								oidToObject, nsoe, oi);
+								oidToObject, provRefToOid, provOidToObject,
+								nsoe, oi);
 				throw tove;
 			}
 		} else {
@@ -377,21 +384,28 @@ public class Workspaces {
 		}
 		
 		oidToObject.clear();
+		provOidToObject.clear();
 		
-		//rewrite references
+		//stage 3: rewrite references
 		final Map<String, Reference> newrefs = new HashMap<String, Reference>();
 		final Map<String, AbsoluteTypeDefId> reftypes =
 				new HashMap<String, AbsoluteTypeDefId>();
-		for (final String ref: refToOid.keySet()) {
-			final ObjectIDResolvedWS roi = wsresolvedids.get(refToOid.get(ref));
+		final Set<String> allrefs = new HashSet<String>(refToOid.keySet());
+		allrefs.addAll(provRefToOid.keySet());
+		for (final String ref: allrefs) {
+			ObjectIDResolvedWS roi = wsresolvedids.get(refToOid.get(ref));
+			if (roi == null) {
+				roi = wsresolvedids.get(provRefToOid.get(ref));
+			}
 			final TypeAndReference tv = objtypes.get(roi);
 			newrefs.put(ref, tv.getReference());
 			reftypes.put(ref, tv.getType());
 		}
+		allrefs.clear();
 		wsresolvedids.clear();
 		objtypes.clear();
 		refToOid.clear();
-		
+		provRefToOid.clear();
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
@@ -401,15 +415,20 @@ public class Workspaces {
 			final Map<String, String> replacerefs =
 					new HashMap<String, String>();
 			final Set<Reference> refs = new HashSet<Reference>();
-			final Set<Reference> provrefs = new HashSet<Reference>(); //TODO provenance refs
+			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final String r: rep.getListOfIdReferences()) {
 				refs.add(newrefs.get(r));
 				replacerefs.put(r, newrefs.get(r).toString());
 			}
+			for (final Provenance.ProvenanceAction action:
+					wo.getProvenance().getActions()) {
+				for (final String ref: action.getWorkspaceObjects()) {
+					provrefs.add(newrefs.get(ref));
+				}
+			}
 			rep.setAbsoluteIdReferences(replacerefs);
 			val.relableToAbsoluteIds(wo.getData(), rep);
 			//TODO typechecking for each object
-			//TODO pass in provenance references
 			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
 			saveobjs.add(wo.resolve(type, wo.getData(), rep, refs, provrefs));
 			objcount++;
@@ -421,24 +440,57 @@ public class Workspaces {
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 
+	private void processRef(final Map<String, ObjectIdentifier> refToOid,
+			final Map<ObjectIdentifier, TempObjectData> oidToObject,
+			final String objerrid, final TempObjectData data, final String ref,
+			final boolean provenance)
+			throws TypedObjectValidationException {
+		try {
+			if (!refToOid.containsKey(ref)) {
+				final ObjectIdentifier oi = refparse.parse(ref);
+				refToOid.put(ref, oi);
+				oidToObject.put(oi, data);
+			}
+		} catch (IllegalArgumentException iae) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has unparseable %sreference %s: %s",
+					objerrid, provenance ? "provenance " : "", ref,
+							iae.getLocalizedMessage(), iae));
+		}
+	}
+
 	private TypedObjectValidationException generateInaccessibleObjectException(
 			final Map<String, ObjectIdentifier> refToOid,
 			final Map<ObjectIdentifier, TempObjectData> oidToObject,
-			InaccessibleObjectException ioe, final ObjectIdentifier cause) {
+			final Map<String, ObjectIdentifier> provRefToOid,
+			final Map<ObjectIdentifier, TempObjectData> provOidToObject,
+			final InaccessibleObjectException ioe, final ObjectIdentifier cause) {
 		String ref = null; //must be set correctly below
+		TempObjectData tod = null;
+		String reftype = "";
 		for (final String r: refToOid.keySet()) {
 			if (refToOid.get(r).equals(cause)) {
 				ref = r;
+				tod = oidToObject.get(cause);
 				break;
 			}
 		}
-		final TempObjectData tod = oidToObject.get(cause);
+		if (ref == null) {
+			for (final String r: provRefToOid.keySet()) {
+				if (provRefToOid.get(r).equals(cause)) {
+					ref = r;
+					tod = provOidToObject.get(cause);
+					reftype = "provenance ";
+					break;
+				}
+			}
+		}
 		final String objerrid = getObjectErrorId(
 				tod.wo.getObjectIdentifier(), tod.order);
 		final TypedObjectValidationException tove =
 				new TypedObjectValidationException(String.format(
-				"Object %s has inaccessible reference %s: %s",
-				objerrid, ref, ioe.getLocalizedMessage(), ioe));
+				"Object %s has inaccessible %sreference %s: %s",
+				objerrid, reftype, ref, ioe.getLocalizedMessage(), ioe));
 		return tove;
 	}
 	

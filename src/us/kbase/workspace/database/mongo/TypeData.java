@@ -29,7 +29,6 @@ public class TypeData {
 	
 	public TypeData(final String data, final AbsoluteTypeDefId type,
 			final Map<String,Object> subdata) {
-		//TODO might be better to generate subdata here
 		checkString(data, "data");
 		if (type == null) {
 			throw new IllegalArgumentException("type may not be null");

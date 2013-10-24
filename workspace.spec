@@ -215,19 +215,17 @@ module Workspace {
 		int service_ver - the version of the service that performed this action.
 		string method - the method of the service that performed this action.
 		list<UnspecifiedObject> method_params - the parameters of the method
-			that performed this action. If the object is a workspace object,
-			put the object id in the input_ws_object list and refer to it here
-			by the %N syntax described below.
+			that performed this action. If an object in the parameters is a
+			workspace object, also put the object reference in the
+			input_ws_object list.
 		string script - the name of the script that performed this action.
 		int script_ver - the version of the script that performed this action.
 		string script_command_line - the command line provided to the script
 			that performed this action. If workspace objects were provided in
-			the command line, put the object id in the input_ws_object list
-			and refer to it here by the %N syntax described below.
-		list<ObjectIdentifier> input_ws_objects - the workspace objects that
-			were used as input to this action. Refer to these objects
-			elsewhere in the action via the syntax %N, where N is the index
-			of the object in this list.
+			the command line, also put the object reference in the
+			input_ws_object list.
+		list<obj_ref> input_ws_objects - the workspace objects that
+			were used as input to this action.
 		list<string> intermediate_incoming - if the previous action produced 
 			output that 1) was not stored in a referrable way, and 2) is
 			used as input for this action, provide it with an arbitrary and
@@ -252,7 +250,7 @@ module Workspace {
 		int script_ver;
 		string script_command_line;
 		string description;
-		list<ObjectIdentity> input_ws_objects;
+		list<obj_ref> input_ws_objects;
 		list<string> intermediate_incoming;
 		list<string> intermediate_outgoing;
 		string description;

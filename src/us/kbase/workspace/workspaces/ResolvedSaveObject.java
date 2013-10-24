@@ -1,5 +1,6 @@
 package us.kbase.workspace.workspaces;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,13 +21,13 @@ public class ResolvedSaveObject {
 	private final boolean hidden;
 	private final TypedObjectValidationReport rep;
 	private final Set<Reference> refs;
-	private Set<Reference> provrefs;
+	private final List<Reference> provrefs;
 	
 	ResolvedSaveObject(final ObjectIDNoWSNoVer id,
 			final JsonNode resolvedData, final AbsoluteTypeDefId type,
 			final Map<String, String> userMeta, final Provenance provenance,
 			final boolean hidden, final TypedObjectValidationReport rep,
-			final Set<Reference> refs, final Set<Reference> provenancerefs) {
+			final Set<Reference> refs, final List<Reference> provenancerefs) {
 		if (id == null || resolvedData == null || type == null || rep == null ||
 				refs == null || provenancerefs == null) {
 			throw new IllegalArgumentException(
@@ -47,7 +48,7 @@ public class ResolvedSaveObject {
 			final AbsoluteTypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden, 
 			final TypedObjectValidationReport rep,
-			final Set<Reference> refs, final Set<Reference> provenancerefs) {
+			final Set<Reference> refs, final List<Reference> provenancerefs) {
 		if (resolvedData == null || type == null || rep == null || refs == null
 				|| provenancerefs == null) {
 			throw new IllegalArgumentException(
@@ -98,7 +99,7 @@ public class ResolvedSaveObject {
 		return refs;
 	}
 
-	public Set<Reference> getProvRefs() {
+	public List<Reference> getProvRefs() {
 		return provrefs;
 	}
 
