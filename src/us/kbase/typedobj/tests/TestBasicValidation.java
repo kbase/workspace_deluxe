@@ -24,6 +24,7 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -156,8 +157,8 @@ public class TestBasicValidation {
 		
 		// point the type definition db to point there
 		File tempdir = new File("temp_files");
-		if (!dir.exists())
-			dir.mkdir();
+		if (!tempdir.exists())
+			tempdir.mkdir();
 		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
 		
 		
@@ -208,7 +209,7 @@ public class TestBasicValidation {
 		if(VERBOSE) System.out.println("deleting typed obj database");
 	}
 	
-
+	@Ignore
 	@Test
 	public void testInstance() throws Exception {
 		
@@ -234,6 +235,8 @@ public class TestBasicValidation {
 				}
 				
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
+				System.out.println("  *("+instance.resourceName+")");
+				System.out.println(report.toString());
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
 				fail("("+instance.resourceName+") does not validate, but should");
@@ -252,6 +255,8 @@ public class TestBasicValidation {
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 						);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
+				System.out.println("  -("+instance.resourceName+")");
+				System.out.println(report.toString());
 
 			} catch (Exception e) {
 				//if an exception is thrown, it must be an InstanceValidationException

@@ -27,6 +27,7 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,7 +44,6 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
-
 import us.kbase.workspace.kbase.Util;
 
 
@@ -202,7 +202,7 @@ public class TestIdProcessing {
 		System.out.println("deleting typed obj database");
 	}
 	
-	
+	@Ignore
 	@Test
 	public void testValidInstances() throws Exception
 	{
