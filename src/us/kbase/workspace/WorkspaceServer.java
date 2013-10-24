@@ -346,7 +346,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN save_objects
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
-//		final WorkspaceObjectCollection woc = new WorkspaceObjectCollection(wsi);
+		final WorkspaceUser user = getUser(authPart);
 		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
 		int count = 1;
 		if (params.getObjects().isEmpty()) {
@@ -374,8 +374,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
-			final Provenance p = ArgUtils.processProvenance(
-					authPart.getUserName(), d.getProvenance());
+			final Provenance p = ArgUtils.processProvenance(user,
+					d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
 			try {
 				if (oi == null) {
@@ -395,7 +395,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 		final List<ObjectMetaData> meta;
 		try {
-			meta = ws.saveObjects(getUser(authPart), wsi, woc); 
+			meta = ws.saveObjects(user, wsi, woc); 
 		} catch (NoSuchModuleException nsme) {
 			throw new NoSuchModuleException("There is no type module " +
 					nsme.getLocalizedMessage(), nsme);

@@ -34,7 +34,7 @@ public class ArgUtils {
 	
 	public ArgUtils() {}
 	
-	public static Provenance processProvenance(final String user,
+	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) {
 		
 		Provenance p = new Provenance(user);

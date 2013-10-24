@@ -3,7 +3,10 @@ package us.kbase.workspace.workspaces;
 import static us.kbase.common.utils.StringUtils.checkString;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+
+import us.kbase.workspace.database.WorkspaceUser;
 
 public class Provenance {
 	
@@ -11,9 +14,11 @@ public class Provenance {
 	private final List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
-	public Provenance(String user) {
-		checkString(user, "user");
-		this.user = user;
+	public Provenance(WorkspaceUser user) {
+		if (user == null) {
+			throw new IllegalArgumentException("user cannot be null");
+		}
+		this.user = user.getUser();
 	}
 	
 	public void addAction(ProvenanceAction action) {
@@ -41,7 +46,7 @@ public class Provenance {
 		//TODO remainder of provenance items
 		
 		private String service;
-		private List<String> wsobjs;
+		private List<String> wsobjs = new LinkedList<String>();
 		
 		public ProvenanceAction() {}
 		
@@ -52,7 +57,9 @@ public class Provenance {
 		
 		public ProvenanceAction withWorkspaceObjects(
 				final List<String> wsobjs) {
-			this.wsobjs = wsobjs;
+			if (wsobjs != null) {
+				this.wsobjs = wsobjs;
+			}
 			return this;
 		}
 

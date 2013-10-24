@@ -29,8 +29,9 @@ public class WorkspaceSaveObject {
 	public WorkspaceSaveObject(final ObjectIDNoWSNoVer id, final Object data,
 			final TypeDefId type, final Map<String, String> userMeta,
 			final Provenance provenance, final boolean hidden) {
-		if (id == null || data == null || type == null) {
-			throw new IllegalArgumentException("Neither id, data nor type may be null");
+		if (id == null || data == null || type == null || provenance == null) {
+			throw new IllegalArgumentException(
+					"Neither id, provenance data nor type may be null");
 		}
 		this.id = id;
 		this.data = transformData(data);
@@ -44,8 +45,9 @@ public class WorkspaceSaveObject {
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
 			final Map<String, String> userMeta,  final Provenance provenance,
 			final boolean hidden) {
-		if (data == null || type == null) {
-			throw new IllegalArgumentException("Neither data nor type may be null");
+		if (data == null || type == null || provenance == null) {
+			throw new IllegalArgumentException(
+					"Neither data, provenance, nor type may be null");
 		}
 		this.id = null;
 		this.data = transformData(data);

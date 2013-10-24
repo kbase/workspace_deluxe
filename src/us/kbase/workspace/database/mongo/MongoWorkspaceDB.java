@@ -1473,7 +1473,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			moredata.put("foo", "bar");
 			data.put("fubar", moredata);
 			meta.put("metastuff", "meta");
-			Provenance p = new Provenance("kbasetest2");
+			Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
 			TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(

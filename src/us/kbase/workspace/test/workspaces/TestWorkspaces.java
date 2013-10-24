@@ -516,7 +516,7 @@ public class TestWorkspaces {
 		meta.put("metastuff", "meta");
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
-		Provenance p = new Provenance("kbasetest2");
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		
@@ -671,7 +671,8 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE, meta, null, false)));
+					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE, meta,
+					new Provenance(foo), false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -679,7 +680,8 @@ public class TestWorkspaces {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, meta, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, meta,
+					new Provenance(foo), false)));
 			fail("saved object with > 16Mb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -717,7 +719,8 @@ public class TestWorkspaces {
 		JsonNode savedata = mapper.valueToTree(data);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, null, null, false)));
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, null,
+					new Provenance(foo), false)));
 			fail("saved object with non-existant id");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
@@ -736,7 +739,8 @@ public class TestWorkspaces {
 		meta.put("foo", "bar");
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE, meta, null, false)));
+					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE, meta,
+					new Provenance(foo), false)));
 			fail("saved unserializable object");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -754,7 +758,8 @@ public class TestWorkspaces {
 		data.put("fubar", "thingy");
 		JsonNode savedata = mapper.valueToTree(data);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"), savedata, SAFE_TYPE, null, null, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"),
+				savedata, SAFE_TYPE, null, new Provenance(foo), false));
 		ws.saveObjects(foo, read, objects);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
@@ -1030,9 +1035,11 @@ public class TestWorkspaces {
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
 		data2.put("data", "2");
-		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, null, false);
+		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, new Provenance(foo), false);
 		ws.saveObjects(foo, read, Arrays.asList(sobj1,
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE,
+				null, new Provenance(foo), false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
 		
@@ -1091,7 +1098,8 @@ public class TestWorkspaces {
 
 		//save should undelete
 		ws.saveObjects(foo, read, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, null, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1,
+						SAFE_TYPE, null, new Provenance(foo), false)));
 		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
 		idToData.put(o3, data1);
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
