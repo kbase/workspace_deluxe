@@ -108,6 +108,10 @@ public class KBaseIdentifierFactory {
 	}
 
 	public static ObjectIdentifier processObjectReference(final String ref) {
+		if (ref == null) {
+			throw new IllegalArgumentException(
+					"Reference string cannot be null");
+		}
 		final Matcher m = KB_OBJ_ID.matcher(ref);
 		if (m.matches()) {
 			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
