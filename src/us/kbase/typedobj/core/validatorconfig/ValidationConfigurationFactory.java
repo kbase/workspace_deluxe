@@ -21,7 +21,7 @@ import com.github.fge.msgsimple.source.MessageSource;
  * 
  * This class provides a static method for generating a custom configuration
  * that is designed to validate KBase typed objects in conjunction with
- * the workspace service.
+ * the Workspace deluxe.
  * 
  * @author msneddon
  *
@@ -39,8 +39,8 @@ public class ValidationConfigurationFactory {
 		 *  Step 1: create all the keywords that we want to handle by using
 		 *  the getKeyword method from our ValidationBuilders
 		 */
-		final Keyword kbTypeKeyword                = KBTypeValidationBuilder.getKeyword();
-		final Keyword kbIdRefKeyword               = WsIdRefValidationBuilder.getKeyword();
+		final Keyword originalTypeKeyword          = OriginalTypeValidationBuilder.getKeyword();
+		final Keyword idRefKeyword                 = IdRefValidationBuilder.getKeyword();
 		final Keyword kbWsSearchableFieldsKeyword  = WsSearchableFieldsValidationBuilder.getKeyword();
 		final Keyword kbWsSearchableKeysKeyword    = WsSearchableKeysValidationBuilder.getKeyword();
 		
@@ -49,10 +49,10 @@ public class ValidationConfigurationFactory {
 		 * our keywords, freeze it again and we are ready to go.
 		 */
 		LibraryBuilder kbLibBuilder = DraftV4Library.get().thaw();
-		kbLibBuilder.addKeyword(kbTypeKeyword);
-		kbLibBuilder.addKeyword(kbIdRefKeyword);
-		kbLibBuilder.addKeyword(kbWsSearchableFieldsKeyword);
-		kbLibBuilder.addKeyword(kbWsSearchableKeysKeyword);
+		kbLibBuilder.addKeyword(originalTypeKeyword);
+		kbLibBuilder.addKeyword(idRefKeyword);
+		//kbLibBuilder.addKeyword(kbWsSearchableFieldsKeyword);
+		//kbLibBuilder.addKeyword(kbWsSearchableKeysKeyword);
 		final Library kbLibrary = kbLibBuilder.freeze();
 		
 		
@@ -61,12 +61,12 @@ public class ValidationConfigurationFactory {
 		 * be attached to the validator report (note that this is not required, but is a
 		 * nice feature to ensure consistent error messages)
 		 */
-		final MessageSource kbTypeMssgs  = KBTypeValidationBuilder.getErrorMssgSrc();
-		final MessageSource idRefMssgs  = WsIdRefValidationBuilder.getErrorMssgSrc();
-		final MessageSource wsSearchableMssgs = WsSearchableFieldsValidationBuilder.getErrorMssgSrc();
+		final MessageSource originalTypeMssgs   = OriginalTypeValidationBuilder.getErrorMssgSrc();
+		final MessageSource idRefMssgs          = IdRefValidationBuilder.getErrorMssgSrc();
+		final MessageSource wsSearchableMssgs   = WsSearchableFieldsValidationBuilder.getErrorMssgSrc();
 		
 		MessageBundleBuilder mbb = MessageBundles.getBundle(JsonSchemaValidationBundle.class).thaw();
-		mbb.appendSource(kbTypeMssgs);
+		mbb.appendSource(originalTypeMssgs);
 		mbb.appendSource(idRefMssgs);
 		mbb.appendSource(wsSearchableMssgs);
 		final MessageBundle bundle = mbb.freeze();

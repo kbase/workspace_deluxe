@@ -25,6 +25,7 @@ import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
+import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
@@ -286,7 +287,7 @@ public class Workspaces {
 			NoSuchWorkspaceException, NoSuchTypeException,
 			NoSuchModuleException, TypeStorageException,
 			TypedObjectValidationException,
-			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
+			BadJsonSchemaDocumentException, InstanceValidationException, RelabelIdReferenceException { //TODO get rid of these when possible
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}

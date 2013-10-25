@@ -1,6 +1,7 @@
 package us.kbase.typedobj.drivers;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -10,13 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
-import us.kbase.typedobj.core.IdReference;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -25,6 +26,8 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
+import us.kbase.typedobj.idref.IdReference;
+import us.kbase.workspace.kbase.Util;
 
 public class TypedObjExample1 {
 
@@ -35,7 +38,13 @@ public class TypedObjExample1 {
 		
 		// Create a simple db
 		String dblocation = "test/typedobj_temp_test_files/testdb";
-		TypeDefinitionDB db            = new TypeDefinitionDB(new FileTypeStorage(dblocation), new UserInfoProviderForTests());
+		if (!new File(dblocation).exists())
+			new File(dblocation).mkdir();
+		// point the type definition db to point there
+		File tempdir = new File("temp_files");
+		if (!tempdir.exists())
+			tempdir.mkdir();
+		TypeDefinitionDB db = new TypeDefinitionDB(new FileTypeStorage(dblocation), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
 		System.out.println("connecting to: "+dblocation);
 		
 		// list all the modules that have been loaded
@@ -54,10 +63,14 @@ public class TypedObjExample1 {
 			db.requestModuleRegistration("FBA", username);
 			db.approveModuleRegistrationRequest(username, "FBA");
 			String kbSpec = loadResourceFile("../tests/files/t3/KB.spec");
-			db.registerModule(kbSpec, Arrays.asList("Feature","Genome"), username);
-			//String fbaSpec = loadResourceFile("../tests/files/t1/FBA.spec");
-			//db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
-		} 
+			db.registerModule(kbSpec, Arrays.asList("Feature","Genome","genome_id"), username);
+			db.releaseModule("KB", username);
+			String fbaSpec = loadResourceFile("../tests/files/t3/FBA.spec");
+			db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
+			db.releaseModule("FBA", username);
+		}
+			
+		 
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);
@@ -75,24 +88,24 @@ public class TypedObjExample1 {
 			throw new InstanceValidationException("instance was not a valid or readable JSON document",e);
 		}
 		
+		
 		TypedObjectValidationReport report = validator.validate(instance1RootNode, new TypeDefId(new TypeDefName("KB", "Genome")));
 		
-		List<List<IdReference>> idRefLists = report.getListOfIdReferenceObjects();
-		for(List<IdReference> idRefList : idRefLists) {
-			for(IdReference idRef: idRefList) {
-				System.out.println(idRef);
-			}
+		List<IdReference> idRefLists = report.getAllIdReferences();
+		for(IdReference idref: idRefLists) {
+			System.out.println(idref);
 		}
 		
-		System.out.println(report);
+		System.out.println(report.getRawProcessingReport());
+		
 		
 		
 		//////////////////////////////////////
 		ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
 		ByteArrayOutputStream s = new ByteArrayOutputStream();
-		System.out.println("\nraw object:");
+		//System.out.println("\nraw object:");
 		writer.writeValue(s, instance1RootNode);
-		System.out.println(s.toString());
+		//System.out.println(s.toString());
 		s.reset();
 		
 		// set the replacement ids
@@ -100,22 +113,28 @@ public class TypedObjExample1 {
 		absoluteIdRefMapping.put("f1", "f1.abs");
 		absoluteIdRefMapping.put("f2", "f2.abs");
 		absoluteIdRefMapping.put("kb|f/1", "bad_id");
-		report.setAbsoluteIdReferences(absoluteIdRefMapping);
+		report.setReplacementWsIdReferences(absoluteIdRefMapping);
 		
 		// relabel, take a look at the results
 		validator.relableToAbsoluteIds(instance1RootNode, report);
-		System.out.println("renamed:");
+		//System.out.println("renamed:");
 		writer.writeValue(s, instance1RootNode);
-		System.out.println(s.toString());
+		//System.out.println(s.toString());
 		s.flush();
 		s.reset();
 		
 		// extract just the subset
 		JsonNode indexableSubset = validator.extractWsSearchableSubset(instance1RootNode, report);
-		System.out.println("subset:");
+		//System.out.println("subset:");
 		writer.writeValue(s, indexableSubset);
-		System.out.println(s.toString());
+		//System.out.println(s.toString());
 		s.close();
+		
+		
+		
+		// delete the db
+		File dir = new File(dblocation);
+		FileUtils.deleteDirectory(dir);
 	}
 	
 	

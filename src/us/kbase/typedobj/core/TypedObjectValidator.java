@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -16,6 +19,7 @@ import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
+import us.kbase.typedobj.idref.IdReference;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -136,7 +140,7 @@ public final class TypedObjectValidator {
 					"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
 		}
 		
-		return new TypedObjectValidationReport(report, absoluteTypeDefDB);
+		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
 	}
 
 	/**
@@ -158,20 +162,19 @@ public final class TypedObjectValidator {
 		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
 		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
-		for(JsonNode j : instanceRootNodes) {
+		for(JsonNode node : instanceRootNodes) {
 			// Actually perform the validation and return the report
 			ProcessingReport report;
 			try {
-				report = schema.validate(j);
+				report = schema.validate(node);
 			} catch (ProcessingException e) {
 				throw new InstanceValidationException(
 				"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
 			}
-			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB));
+			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB,node));
 		}
 		return reportList;
 	}
-	
 	
 	
 	/**
@@ -183,85 +186,11 @@ public final class TypedObjectValidator {
 	 * @param instanceRootNode
 	 * @param report
 	 * @return
+	 * @throws RelabelIdReferenceException 
 	 */
-	public void relableToAbsoluteIds(final JsonNode instanceRootNode,
-			final TypedObjectValidationReport report) {
-		
-		// we first extract the full list of Id References 
-		List <List<IdReference>> refList = report.getListOfIdReferenceObjects();
-		
-		// traverse them in reverse depth order
-		for(int depth=refList.size()-1; depth>=0; depth--) {
-			List<IdReference> idsAtDepth = refList.get(depth);
-			//doesn't matter the order if we are all at the same depth
-			for(IdReference ref : idsAtDepth) {
-				//System.out.println("Looking at:"+ref.getIdReference()+" at "+ref.getLocation());
-				//if there is nothing to relabel, then we can just quit
-				String absId = ref.getAbsoluteId();
-				if(absId==null) { continue; }
-				if(ref.isMappingKey()) {
-					relabelMappingKeyNode(instanceRootNode, ref.getLocation(),ref.getIdReference(),absId);
-				} else {
-					relabelTextNode(instanceRootNode,ref.getLocation(),absId);
-				}
-			}
-		}
+	public void relableToAbsoluteIds(JsonNode instanceRootNode, TypedObjectValidationReport report) throws RelabelIdReferenceException {
+		report.relabelWsIdReferences();
 	}
-	
-	
-	
-	protected void relabelTextNode(JsonNode root, ArrayNode location, String newString) {
-		//traverse to the parent of the field we want to change
-		JsonNode parent = root;
-		for(int depth=0; depth<location.size()-1; depth++) {
-			if(parent.isArray()) {
-				parent = parent.get(location.get(depth).asInt());
-			} else if(parent.isObject()) {
-				parent = parent.get(location.get(depth).asText());
-			}
-		}
-		// figure out whether the TextNode target is in an array or an object, and set
-		// the new value accordingly
-		if(parent.isArray()) {
-			ArrayNode parentArray = (ArrayNode) parent;
-			parentArray.set(location.get(location.size()-1).asInt(), new TextNode(newString));
-		} else if(parent.isObject()) {
-			ObjectNode parentObject = (ObjectNode) parent;
-			parent = parentObject.set(location.get(location.size()-1).asText(), new TextNode(newString));
-		} else {
-			// we should probably throw an exception here...
-		}
-	}
-	
-	protected void relabelMappingKeyNode(JsonNode root, ArrayNode location, String currentMappingKey, String newString) {
-		//traverse all the way to the mapping we want to change
-		JsonNode mapping = root;
-		for(int depth=0; depth<location.size(); depth++) {
-			if(mapping.isArray()) {
-				mapping = mapping.get(location.get(depth).asInt());
-			} else if(mapping.isObject()) {
-				mapping = mapping.get(location.get(depth).asText());
-			}
-		}
-		// the mapping object we find MUST be an object
-		if(mapping.isObject()) {
-			ObjectNode mappingObj = (ObjectNode) mapping;
-			// do the swap
-			JsonNode value = mappingObj.remove(currentMappingKey);
-			if(mappingObj.has(newString)) {
-				// if the key was already added, then we gots a problem- the user was very likely trying to change two different
-				// id references to the same newString, which can't work because in a mapping keys must be unique.  Overwriting
-				// here would result in loss of data, so we must abort.
-				
-			}
-			mappingObj.put(newString, value);
-		} else {
-			// we should probably throw an exception here...
-		}
-	}
-	
-	
-	
 	
 	
 	/**

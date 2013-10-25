@@ -6,17 +6,17 @@ module KB {
 
 	/*
 	this is an id that can point to any ws object
-	@id_reference
+	@id ws
 	*/
 	typedef string kbid;
 
 	/*
-	@id_reference KB.Genome
+	@id ws KB.Genome
 	*/
 	typedef string genome_id;
 
 	/*
-	@id_reference KB.Feature
+	@id ws KB.Feature
 	*/
 	typedef string feature_id;
 
@@ -30,8 +30,8 @@ module KB {
 	
 
 	/*
-	@ws_searchable name feature_ids
-	@ws_searchable keys_of regulators
+	@searchable ws_subset name feature_ids
+	@searchable ws_subset keys_of(regulators)
 	*/
 	typedef structure {
 		string name;

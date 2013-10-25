@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
+import com.github.fge.jsonschema.exceptions.ExceptionProvider;
+import com.github.fge.jsonschema.exceptions.InvalidSchemaException;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.keyword.digest.AbstractDigester;
 import com.github.fge.jsonschema.keyword.digest.Digester;
@@ -30,12 +32,12 @@ import com.github.fge.msgsimple.source.MessageSource;
  * This class wraps everything required to identify kb-id-reference fields in instances.
  * @author msneddon
  */
-public class WsIdRefValidationBuilder {
+public class IdRefValidationBuilder {
 
 	/**
 	 * Declare the keyword that will be parsed
 	 */
-	public static final String keyword = "kb-id-reference";
+	public static final String keyword = "id-reference";
 	
 	/**
 	 * Method for generating a Keyword object which can be added to a JSON
@@ -45,10 +47,10 @@ public class WsIdRefValidationBuilder {
 	 */
 	public static Keyword getKeyword() {
 		final Keyword kbTypeKeyword = 
-				Keyword.newBuilder(WsIdRefValidationBuilder.keyword)
-					.withSyntaxChecker(WsIdRefSyntaxChecker.getInstance())
-					.withDigester(WsIdRefDigester.getInstance())
-					.withValidatorClass(WsIdRefKeywordValidator.class).freeze();
+				Keyword.newBuilder(IdRefValidationBuilder.keyword)
+					.withSyntaxChecker(IdRefSyntaxChecker.getInstance())
+					.withDigester(IdRefDigester.getInstance())
+					.withValidatorClass(IdRefKeywordValidator.class).freeze();
 		return kbTypeKeyword;
 	}
 	
@@ -59,8 +61,8 @@ public class WsIdRefValidationBuilder {
 	 * @return MessageSource
 	 */
 	public static MessageSource getErrorMssgSrc() {
-		final String key = "idRefError";
-		final String value = "i hath found error in kb-id-reference";
+		final String key = "idReferenceError";
+		final String value = "error in id-reference annotation";
 		final MessageSource source = MapMessageSource.newBuilder()
 				.put(key, value).build();
 		return source;
@@ -78,25 +80,26 @@ public class WsIdRefValidationBuilder {
 	 * as part of the final ProcessingReport.
 	 * @author msneddon
 	 */
-	private static final class WsIdRefDigester extends AbstractDigester {
+	private static final class IdRefDigester extends AbstractDigester {
 		
-		private static final Digester INSTANCE = new WsIdRefDigester();
+		private static final Digester INSTANCE = new IdRefDigester();
 
 		public static Digester getInstance() {
 			return INSTANCE;
 		}
 
-		private WsIdRefDigester() {
+		private IdRefDigester() {
 			// The Digester must declare the types of nodes that it can operate on. In this case,
 			// the NodeType of the instance can only be a String or an Object (a kbase mapping)
-			super(WsIdRefValidationBuilder.keyword, NodeType.STRING, NodeType.OBJECT);
+			super(IdRefValidationBuilder.keyword, NodeType.STRING, NodeType.OBJECT);
 		}
 
 		@Override
 		public JsonNode digest(final JsonNode schema) {
 			// we don't really care about the context in this case, we just want the array
-			// containing the list of possible typed objects that this ID can map to.
-			return schema.findValue(WsIdRefValidationBuilder.keyword);
+			// containing the data about what type of ID this is.
+			System.out.println(schema.findValue(IdRefValidationBuilder.keyword));
+			return schema.findValue(IdRefValidationBuilder.keyword);
 		}
 	}
 	
@@ -105,17 +108,16 @@ public class WsIdRefValidationBuilder {
 	 * This class defines the method that performs the actual validation of the instance.
 	 * @author msneddon
 	 */
-	public static final class WsIdRefKeywordValidator extends AbstractKeywordValidator {
+	public static final class IdRefKeywordValidator extends AbstractKeywordValidator {
 		
 		/**
-		 * Store the digested Json Schema node, which in this case was digested to
-		 * already contain the list of valid typed objects that the ID can point to
+		 * Store the digested Json Schema node
 		 */
-		private JsonNode validTypedObjectNames;
+		private JsonNode idRefSpecificationData;
 		
-		public WsIdRefKeywordValidator(final JsonNode digest) {
-			super(WsIdRefValidationBuilder.keyword);
-			validTypedObjectNames = digest;
+		public IdRefKeywordValidator(final JsonNode digest) {
+			super(IdRefValidationBuilder.keyword);
+			idRefSpecificationData = digest;
 		}
 
 		/**
@@ -132,18 +134,16 @@ public class WsIdRefValidationBuilder {
 		{
 			// get the node we are looking at and the SchemaTree (schema tree no longer necessary)
 			JsonNode node = data.getInstance().getNode();
-			//SchemaTree schemaLocation = data.getSchema();
-			//JsonPointer jp = schemaLocation.getPointer();
 			
 			//if the node type is a string, extract out the ID and associate it with
 			//the valid typed object names
 			if(node.getNodeType() == JsonNodeType.STRING) {
 				ProcessingMessage pm = new ProcessingMessage()
-										.setMessage(WsIdRefValidationBuilder.keyword)
+										.setMessage(IdRefValidationBuilder.keyword)
 										.put("id", node.textValue())
-										.put("type", validTypedObjectNames)
+										.put("id-spec-info", idRefSpecificationData)
 										.put("location",data.getInstance().getPointer())
-										.put("is-mapping-key",BooleanNode.FALSE) ;
+										.put("is-field-name",BooleanNode.FALSE) ;
 				report.info(pm);
 			}
 			// if the node is a mapping, then we need to extract the field names (which are
@@ -153,11 +153,11 @@ public class WsIdRefValidationBuilder {
 				while(fields.hasNext()) {
 					Entry<String,JsonNode> f = fields.next();
 					ProcessingMessage pm = new ProcessingMessage()
-											.setMessage(WsIdRefValidationBuilder.keyword)
+											.setMessage(IdRefValidationBuilder.keyword)
 											.put("id", f.getKey())
-											.put("type", validTypedObjectNames)
+											.put("id-spec-info", idRefSpecificationData)
 											.put("location",data.getInstance().getPointer())
-											.put("is-mapping-key",BooleanNode.TRUE);
+											.put("is-field-name",BooleanNode.TRUE);
 					report.info(pm);
 				}
 			}
@@ -168,7 +168,7 @@ public class WsIdRefValidationBuilder {
 
 		@Override
 		public String toString() {
-			return "WsIdRefKeywordValidator set to validate:" + validTypedObjectNames;
+			return "IdRefKeywordValidator set to validate ids of type" + idRefSpecificationData.get("type");
 		}
 	}
 	
@@ -180,16 +180,19 @@ public class WsIdRefValidationBuilder {
 	 * @author msneddon
 	 *
 	 */
-	private static final class WsIdRefSyntaxChecker extends AbstractSyntaxChecker {
+	private static final class IdRefSyntaxChecker extends AbstractSyntaxChecker {
 	
-		private static final SyntaxChecker INSTANCE = new WsIdRefSyntaxChecker();
+		private static final SyntaxChecker INSTANCE = new IdRefSyntaxChecker();
 		
-		/* this tells us what exceptions to throw if we run into an invalid schema */
+//		/* this tells us what exceptions to throw if we run into an invalid schema */
 //		private static final ExceptionProvider EXCEPTION_PROVIDER
 //			= new ExceptionProvider()
 //		{
 //			@Override
 //			public ProcessingException doException(final ProcessingMessage message) {
+//				ProcessingMessage newMessage = new ProcessingMessage();
+//				newMessage.setLogLevel(message.getLogLevel());
+//				newMessage.setMessage(message.getMessage()+" - encountered when parsing annotation "+IdRefValidationBuilder.keyword);
 //				return new InvalidSchemaException(message);
 //			}
 //		};
@@ -198,10 +201,10 @@ public class WsIdRefValidationBuilder {
 			return INSTANCE;
 		}
 		
-		private WsIdRefSyntaxChecker()
+		private IdRefSyntaxChecker()
 		{
 			// When constructing, the name for the keyword must be provided along with the allowed type for the value
-			super(WsIdRefValidationBuilder.keyword, NodeType.ARRAY);
+			super(IdRefValidationBuilder.keyword, NodeType.OBJECT);
 		}
 		
 		@Override

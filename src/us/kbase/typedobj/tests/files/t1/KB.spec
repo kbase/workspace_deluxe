@@ -4,17 +4,17 @@ test module for type validation with annotations
 module KB {
 
 	/*
-	@id_reference
+	@id ws
 	*/
 	typedef string kbid;
 
 	/*
-	@id_reference KB.Genome
+	@id ws KB.Genome
 	*/
 	typedef string genome_id;
 
 	/*
-	@id_reference KB.Feature
+	@id ws KB.Feature
 	*/
 	typedef string feature_id;
 
@@ -28,7 +28,7 @@ module KB {
 	} Feature;
 
 	/*
-	@ws_searchable id feature_ids
+	@searchable ws_subset id feature_ids
 	*/
 	typedef structure {
 		string id;

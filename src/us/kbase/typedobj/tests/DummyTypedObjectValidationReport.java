@@ -1,20 +1,26 @@
 package us.kbase.typedobj.tests;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.github.fge.jsonschema.report.LogLevel;
+import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.IdReference;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
+import us.kbase.typedobj.idref.IdReference;
+import us.kbase.typedobj.idref.WsIdReference;
 
 public class DummyTypedObjectValidationReport extends
 		TypedObjectValidationReport {
 
 	public DummyTypedObjectValidationReport() {
-		super(null, null);
+		super(null, null, null);
 	}
 
 
@@ -34,8 +40,8 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public String [] getErrorMessages() {
-		return new String[0];
+	public List <String> getErrorMessagesAsList() {
+		return new ArrayList<String>();
 	}
 	
 	
@@ -45,18 +51,27 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public List<List<IdReference>> getListOfIdReferenceObjects() {
-		return new LinkedList<List<IdReference>>();
+	public List<WsIdReference> getWsIdReferences() {
+		return new ArrayList<WsIdReference>();
+	}
+	@Override
+	public List<IdReference> getAllIdReferences() {
+		return new ArrayList<IdReference>();
+	}
+	@Override
+	public List<IdReference> getAllIdReferencesOfType(String type) {
+		return new ArrayList<IdReference>();
 	}
 	
+	
 	@Override
-	public List<String> getListOfIdReferences() {
-		return new LinkedList<String>();
+	public void setReplacementWsIdReferences(Map<String,String> absoluteIdRefMapping) {
+	}
+	@Override
+	public void relabelWsIdReferences() throws RelabelIdReferenceException {
 	}
 	
 	
-	@Override
-	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) { }
 	
 	@Override
 	public String toString() { 

@@ -229,9 +229,9 @@ public class TestBasicValidation {
 						);
 				
 				// print errors, if any before the assert to aid in testing
-				String [] mssgs = report.getErrorMessages();
-				for(int i=0; i<mssgs.length; i++) {
-					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs[i]);
+				List <String> mssgs = report.getErrorMessagesAsList();
+				for(int i=0; i<mssgs.size(); i++) {
+					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs.get(i));
 				}
 				
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
