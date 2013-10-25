@@ -39,6 +39,7 @@ public class Fields {
 	public static final String PTR_VCNT = "numver";
 	public static final String PTR_DEL = "del";
 	public static final String PTR_HIDE = "hide";
+	public static final String PTR_REFCOUNTS = "refcnt";
 	
 	//workspace version fields
 	public static final String VER_WS_ID = "ws";

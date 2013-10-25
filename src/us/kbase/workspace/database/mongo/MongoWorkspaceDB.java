@@ -667,6 +667,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final int ver;
 		final Date created = new Date();
 		try {
+			//TODO set hidden status here
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
@@ -778,9 +779,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		dbo.put(Fields.PTR_WS_ID, wsid.getID());
 		dbo.put(Fields.PTR_ID, objectid);
 		dbo.put(Fields.PTR_VCNT, 0); //Integer
+		dbo.put(Fields.PTR_REFCOUNTS, new LinkedList<Integer>());
 		dbo.put(Fields.PTR_NAME, newName);
 		//deleted handled in saveObjectVersion()
-		dbo.put(Fields.PTR_HIDE, false); //TODO hidden, also set hidden when not creating pointer from scratch
+		dbo.put(Fields.PTR_HIDE, false);
 		try {
 			//maybe could speed things up with batch inserts but dealing with
 			//errors would really suck
@@ -1037,6 +1039,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
 		saveData(wsidmongo, packages);
+		updateReferenceCounts(packages);
 		final long lastid;
 		try {
 			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
@@ -1092,6 +1095,145 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private class VerCount {
+		final public Integer ver;
+		final public Integer count;
+
+		public VerCount (final Integer ver, final Integer count) {
+			this.ver = ver;
+			this.count = count;
+		}
+		
+		@Override
+		public String toString() {
+			return "VerCount [ver=" + ver + ", count=" + count + "]";
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((count == null) ? 0 : count.hashCode());
+			result = prime * result + ((ver == null) ? 0 : ver.hashCode());
+			return result;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof VerCount)) {
+				return false;
+			}
+			VerCount other = (VerCount) obj;
+			if (count == null) {
+				if (other.count != null) {
+					return false;
+				}
+			} else if (!count.equals(other.count)) {
+				return false;
+			}
+			if (ver == null) {
+				if (other.ver != null) {
+					return false;
+				}
+			} else if (!ver.equals(other.ver)) {
+				return false;
+			}
+			return true;
+		}
+	}
+	
+	private void updateReferenceCounts(final List<ObjectSavePackage> packages)
+			throws WorkspaceCommunicationException {
+		
+		final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts = 
+				countReferences(packages);
+		/* since the version numbers are probably highly skewed towards 1 and
+		 * the reference counts are also highly skewed towards 1 we can 
+		 * probably minimize the number of updates by running one update
+		 * per version/count combination
+		 */
+		final Map<VerCount, Map<Long, List<Long>>> queries = 
+				new HashMap<VerCount, Map<Long,List<Long>>>();
+		for (final Long ws: refcounts.keySet()) {
+			for (final Long obj: refcounts.get(ws).keySet()) {
+				for (final Integer ver: refcounts.get(ws).get(obj).keySet()) {
+					final VerCount vc = new VerCount(ver,
+							refcounts.get(ws).get(obj).get(ver).getValue());
+					if (!queries.containsKey(vc)) {
+						queries.put(vc, new HashMap<Long, List<Long>>());
+					}
+					if (!queries.get(vc).containsKey(ws)) {
+						queries.get(vc).put(ws, new LinkedList<Long>());
+					}
+					queries.get(vc).get(ws).add(obj);
+				}
+			}
+		}
+		for (final VerCount vc: queries.keySet()) {
+			updateReferenceCounts(vc, queries.get(vc));
+		}
+	}
+
+	private void updateReferenceCounts(final VerCount vc,
+			final Map<Long, List<Long>> wsToObjs)
+			throws WorkspaceCommunicationException {
+		final DBObject update = new BasicDBObject("$inc",
+				new BasicDBObject(Fields.PTR_REFCOUNTS + "." + (vc.ver - 1),
+						vc.count));
+		final List<DBObject> orquery = new LinkedList<DBObject>();
+		for (final Long ws: wsToObjs.keySet()) {
+			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID, ws);
+			query.put(Fields.PTR_ID, new BasicDBObject("$in",
+					wsToObjs.get(ws)));
+			orquery.add(query);
+		}
+		try {
+			wsmongo.getCollection(COL_WORKSPACE_PTRS).update(
+					new BasicDBObject("$or", orquery), update, false, true);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+
+	private Map<Long, Map<Long, Map<Integer, Counter>>> countReferences(
+			final List<ObjectSavePackage> packages) {
+		final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts =
+				new HashMap<Long, Map<Long,Map<Integer,Counter>>>();
+		for (final ObjectSavePackage p: packages) {
+			//these were checked to be MongoReferences in saveObjectBuildPackages
+			final Set<Reference> refs = new HashSet<Reference>();
+			refs.addAll(p.wo.getRefs());
+			refs.addAll(p.wo.getProvRefs());
+			for (final Reference r: refs) {
+				if (!refcounts.containsKey(r.getWorkspaceID())) {
+					refcounts.put(r.getWorkspaceID(),
+							new HashMap<Long, Map<Integer, Counter>>());
+				}
+				if (!refcounts.get(r.getWorkspaceID())
+						.containsKey(r.getObjectID())) {
+					refcounts.get(r.getWorkspaceID()).put(r.getObjectID(),
+							new HashMap<Integer, Counter>());
+				}
+				if (!refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+						.containsKey(r.getVersion())) {
+					refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+						.put(r.getVersion(), new Counter());
+				}
+				refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+					.get(r.getVersion()).increment();
+			}
+		}
+		return refcounts;
+	}
+
 	//TODO break this up
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws

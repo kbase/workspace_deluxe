@@ -9,7 +9,7 @@ public class MongoReference implements Reference {
 	private final long objectID;
 	private final int version;
 
-	public MongoReference(long workspaceID, long objectID, int version) {
+	MongoReference(long workspaceID, long objectID, int version) {
 		if (workspaceID < 1 || objectID < 1 || version < 1) {
 			throw new IllegalArgumentException("All arguments must be > 0");
 		}
