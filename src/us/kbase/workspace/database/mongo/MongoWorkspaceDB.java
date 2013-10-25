@@ -661,8 +661,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.PTR_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: 1}, $set: {%s: #, %s: #}}", Fields.PTR_VCNT,
-			Fields.PTR_DEL, Fields.PTR_MODDATE);
+			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null}}", Fields.PTR_VCNT,
+			Fields.PTR_DEL, Fields.PTR_MODDATE, Fields.PTR_LATEST);
 	
 	// save object in preexisting object container
 	private ObjectMetaData saveObjectVersion(final WorkspaceUser user,
@@ -678,7 +678,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
-					.with(M_SAVEINS_WTH, false, created)
+					.with(M_SAVEINS_WTH, created)
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
 					.get(Fields.PTR_VCNT);
 		} catch (MongoException me) {
@@ -788,7 +788,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		dbo.put(Fields.PTR_VCNT, 0); //Integer
 		dbo.put(Fields.PTR_REFCOUNTS, new LinkedList<Integer>());
 		dbo.put(Fields.PTR_NAME, newName);
-		//deleted handled in saveObjectVersion()
+		dbo.put(Fields.PTR_LATEST, null);
+		dbo.put(Fields.PTR_DEL, false);
 		dbo.put(Fields.PTR_HIDE, false);
 		try {
 			//maybe could speed things up with batch inserts but dealing with
@@ -1465,8 +1466,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final Set<String> FLDS_PTR_ID_NAME_DEL =
-			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL);
+	private static final Set<String> FLDS_RESOLVE_OBJS =
+			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL,
+					Fields.PTR_LATEST, Fields.PTR_VCNT);
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
@@ -1486,7 +1488,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
 				query.queryObjects(
 						new HashSet<ObjectIDResolvedWSNoVer>(nover.values()),
-						FLDS_PTR_ID_NAME_DEL);
+						FLDS_RESOLVE_OBJS);
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
 		for (final ObjectIDResolvedWS oid: nover.keySet()) {
@@ -1509,13 +1511,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
-			if (oid.getVersion() != null) {
-				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedWSID(
-						oid.getWorkspaceIdentifier()), name, id,
-						oid.getVersion().intValue()));
+			final Integer latestVersion;
+			if ((Integer) ids.get(o).get(Fields.PTR_LATEST) == null) {
+				latestVersion = (Integer) ids.get(o).get(Fields.PTR_VCNT);
 			} else {
-				ret.put(oid, new ResolvedMongoObjectID(query.convertResolvedWSID(
-						oid.getWorkspaceIdentifier()), name, id));
+				//TODO check this works with GC
+				latestVersion = (Integer) ids.get(o).get(Fields.PTR_LATEST);
+			}
+			if (oid.getVersion() == null ||
+					oid.getVersion().equals(latestVersion)) {
+				ret.put(oid, new FullyResolvedMongoOID(
+						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
+						name, id, latestVersion));
+			} else {
+				ret.put(oid, new ResolvedMongoObjectID(
+						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
+						name, id, oid.getVersion().intValue()));
 			}
 		}
 		return ret;

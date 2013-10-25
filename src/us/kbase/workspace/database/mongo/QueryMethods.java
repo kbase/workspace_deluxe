@@ -20,7 +20,6 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
-import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -232,47 +231,28 @@ public class QueryMethods {
 		return ret;
 	}
 	
+	//all incoming object IDs must have versions
 	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
 			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException {
 
 		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids = 
 			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
-		final Map<ResolvedMongoWSID, List<Long>> idsNoVer = 
-				new HashMap<ResolvedMongoWSID, List<Long>>();
 		
-		for (final ResolvedMongoObjectID o: objectIDs) {
-			final ResolvedMongoWSID rwsi =
-					convertResolvedWSID(o.getWorkspaceIdentifier());
-			if (o.getVersion() == null) {
-				if (idsNoVer.get(rwsi) == null) {
-					idsNoVer.put(rwsi, new LinkedList<Long>());
-				}
-				idsNoVer.get(rwsi).add(o.getId());
-			} else {
-				if (ids.get(rwsi) == null) {
-					ids.put(rwsi, new HashMap<Long, List<Integer>>());
-				}
-				if (ids.get(rwsi).get(o.getId()) == null) {
-					ids.get(rwsi).put(o.getId(), new LinkedList<Integer>());
-				}
-				ids.get(rwsi).get(o.getId()).add(o.getVersion());
+		for (final ResolvedMongoObjectID roi: objectIDs) {
+			if (roi.getVersion() == null) {
+				throw new IllegalArgumentException(
+						"All object IDs must have versions");
 			}
-		}
-		
-		final Map<ResolvedMongoWSID, Map<Long, Integer>> latestIds =
-				getLatestVersions(idsNoVer);
-		
-		for (final ResolvedMongoWSID rwsi: idsNoVer.keySet()) {
+			final ResolvedMongoWSID rwsi =
+					convertResolvedWSID(roi.getWorkspaceIdentifier());
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
 			}
-			for (final Long oid: latestIds.get(rwsi).keySet()) {
-				if (ids.get(rwsi).get(oid) == null) {
-					ids.get(rwsi).put(oid, new LinkedList<Integer>());
-				}
-				ids.get(rwsi).get(oid).add(latestIds.get(rwsi).get(oid));
+			if (ids.get(rwsi).get(roi.getId()) == null) {
+				ids.get(rwsi).put(roi.getId(), new LinkedList<Integer>());
 			}
+			ids.get(rwsi).get(roi.getId()).add(roi.getVersion());
 		}
 		
 		// ws id, obj id, obj version, version data map
@@ -283,19 +263,11 @@ public class QueryMethods {
 				new HashMap<ResolvedMongoObjectID, Map<String,Object>>();
 		
 		for (final ResolvedMongoObjectID roi: objectIDs) {
-			if (roi.getVersion() == null) {
-				// this id is resolved so at least one version must exist
-				int latest = latestIds.get(roi.getWorkspaceIdentifier())
-						.get(roi.getId());
-				ret.put(roi, data.get(roi.getWorkspaceIdentifier())
-						.get(roi.getId()).get(latest));
-			} else {
-				final Map<String, Object> d = data.get(
-						roi.getWorkspaceIdentifier()).get(roi.getId())
-						.get(roi.getVersion());
-				if (d != null) {
-					ret.put(roi, d);
-				}
+			final Map<String, Object> d = data.get(
+					roi.getWorkspaceIdentifier()).get(roi.getId())
+					.get(roi.getVersion());
+			if (d != null) {
+				ret.put(roi, d);
 			}
 		}
 		return ret;
@@ -336,50 +308,6 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	private Map<ResolvedMongoWSID, Map<Long, Integer>> getLatestVersions(
-			final Map<ResolvedMongoWSID, List<Long>> ids)
-			throws WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, Map<Long, Integer>> ret =
-				new HashMap<ResolvedMongoWSID, Map<Long, Integer>>();
-		if (ids.isEmpty()) {
-			return ret;
-		}
-		final List<DBObject> orquery = new LinkedList<DBObject>();
-		for (final ResolvedMongoWSID wsid: ids.keySet()) {
-			final DBObject query = new BasicDBObject(
-					Fields.VER_ID, new BasicDBObject("$in", ids.get(wsid)));
-			query.put(Fields.VER_WS_ID, wsid.getID());
-			orquery.add(query);
-		}
-		final DBObject query = new BasicDBObject("$or", orquery);
-		final DBObject groupid = new BasicDBObject(
-				Fields.VER_WS_ID, "$" + Fields.VER_WS_ID);
-		groupid.put(Fields.VER_ID, "$" + Fields.VER_ID);
-		final DBObject group = new BasicDBObject(Fields.MONGO_ID, groupid);
-		group.put(Fields.VER_VER,
-				new BasicDBObject("$max", "$" + Fields.VER_VER));
-		final AggregationOutput mret;
-		try {
-			mret = wsmongo.getCollection(versionCollection).aggregate(
-					new BasicDBObject("$match", query),
-					new BasicDBObject("$group", group));
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
-		for (DBObject o: mret.results()) {
-			final DBObject id = (DBObject) o.get(Fields.MONGO_ID);
-			final ResolvedMongoWSID rwsi = new ResolvedMongoWSID(
-					(Long) id.get(Fields.VER_WS_ID));
-			if (!ret.containsKey(rwsi)) {
-				ret.put(rwsi, new HashMap<Long, Integer>());
-			}
-			ret.get(rwsi).put((Long) id.get(Fields.VER_ID),
-					(Integer) o.get(Fields.VER_VER));
-		}
-		return ret;
-	}
-
 	List<Map<String, Object>> queryCollection(final String collection,
 			final String query, final Set<String> fields) throws
 			WorkspaceCommunicationException {

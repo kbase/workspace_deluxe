@@ -66,14 +66,13 @@ public class Workspaces {
 	//TODO get object changes since date (based on type collection and pointers collection
 	//TODO set global read
 	//TODO set description
-	//TODO garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object
+	//TODO garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
 	//TODO ** alpha_list_objects alpha_list_workspaces
 	//TODO ** save provenance
 	//TODO shock acl integration. Needs auth groups. group = workspace.
 	//TODO shock node pointer objects that return pointer and set ACLS on pointer.
-	//TODO * save most recent version in object. Null if = counter. # set by GC.
 	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO search interface, return changes since date, store most recent update to avoid queries
 	//TODO subdata search interface. Add ability to 'install' queries that certain users can run?

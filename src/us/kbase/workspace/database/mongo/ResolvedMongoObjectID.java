@@ -26,7 +26,8 @@ public class ResolvedMongoObjectID {
 	private final Long id;
 	private final Integer version;
 	
-	ResolvedMongoObjectID(ResolvedMongoWSID rwsi, String name, long id) {
+	ResolvedMongoObjectID(final ResolvedMongoWSID rwsi, final String name,
+			final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -40,7 +41,8 @@ public class ResolvedMongoObjectID {
 		this.version = null;
 	}
 	
-	ResolvedMongoObjectID(ResolvedMongoWSID rwsi, String name, long id, int version) {
+	ResolvedMongoObjectID(final ResolvedMongoWSID rwsi, final String name,
+			final long id, final int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -71,6 +73,10 @@ public class ResolvedMongoObjectID {
 
 	public Integer getVersion() {
 		return version;
+	}
+	
+	public boolean isFullyResolved() {
+		return false;
 	}
 
 	@Override
