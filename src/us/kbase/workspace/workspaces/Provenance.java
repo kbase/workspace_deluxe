@@ -1,8 +1,7 @@
 package us.kbase.workspace.workspaces;
 
-import static us.kbase.common.utils.StringUtils.checkString;
-
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -58,7 +57,8 @@ public class Provenance {
 		public ProvenanceAction withWorkspaceObjects(
 				final List<String> wsobjs) {
 			if (wsobjs != null) {
-				this.wsobjs = wsobjs;
+				this.wsobjs = new LinkedList<String>(
+						new HashSet<String>(wsobjs));
 			}
 			return this;
 		}
