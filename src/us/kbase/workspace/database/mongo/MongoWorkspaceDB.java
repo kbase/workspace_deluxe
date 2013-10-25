@@ -146,8 +146,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_NAME), Arrays.asList(IDX_UNIQ));
 		//find object by workspace id & object id
 		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID), Arrays.asList(IDX_UNIQ));
+		//find recently modified objects
+		wsPtr.put(Arrays.asList(Fields.PTR_MODDATE), Arrays.asList(""));
+		//find object to garbage collect
+		wsPtr.put(Arrays.asList(Fields.PTR_DEL, Fields.PTR_REFCOUNTS), Arrays.asList(""));
 		INDEXES.put(COL_WORKSPACE_PTRS, wsPtr);
-		
+
 		//workspace pointer version indexes
 		Map<List<String>, List<String>> wsVer = new HashMap<List<String>, List<String>>();
 		//find versions
@@ -157,9 +161,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsVer.put(Arrays.asList(Fields.VER_TYPE, Fields.VER_CHKSUM), Arrays.asList(""));
 		//find objects by legacy UUID
 		wsVer.put(Arrays.asList(Fields.VER_UUID), Arrays.asList(IDX_SPARSE));
-		//determine whether a particular object references this object
+		//determine whether a particular object is referenced by this object
 		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList(""));
-		//TODO deletion and creation dates for search?
+		//determine whether a particular object is included in this object's provenance
+		wsVer.put(Arrays.asList(Fields.VER_PROVREF), Arrays.asList(""));
+		//find objects that have the same provenance
+		wsVer.put(Arrays.asList(Fields.VER_PROV), Arrays.asList(""));
 		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
 	}
 
