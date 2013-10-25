@@ -63,20 +63,20 @@ public class Workspaces {
 	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
-	//TODO get object changes since date (based on type collection and pointers collection
+	//TODO BIG SEARCH get object changes since date (based on type collection and pointers collection
 	//TODO set global read
 	//TODO set description
-	//TODO garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
+	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
 	//TODO ** alpha_list_objects alpha_list_workspaces
 	//TODO ** save provenance
-	//TODO shock acl integration. Needs auth groups. group = workspace.
-	//TODO shock node pointer objects that return pointer and set ACLS on pointer.
+	//TODO BIG SHOCK shock acl integration. Needs auth groups. group = workspace.
+	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
 	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
-	//TODO search interface, return changes since date, store most recent update to avoid queries
-	//TODO subdata search interface. Add ability to 'install' queries that certain users can run?
-	//TODO subdata search - admin can install and remove indexes.
+	//TODO BIG SEARCH search interface, return changes since date, store most recent update to avoid queries
+	//TODO BIG SUBDATA subdata search interface. Add ability to 'install' queries that certain users can run?
+	//TODO BIG SUBDATA subdata search - admin can install and remove indexes.
 	
 	//TODO length limits on all incoming strings
 	
@@ -634,8 +634,6 @@ public class Workspaces {
 		}
 		return typedb.getModulesByOwner(user.getUser());
 	}
-	
-	//TODO version collection. To refs stored with each version pointer for prov and normal refs. ref counts for from references. 
 	
 	public ModuleInfo getModuleInfo(final ModuleDefId module)
 			throws NoSuchModuleException, TypeStorageException {
