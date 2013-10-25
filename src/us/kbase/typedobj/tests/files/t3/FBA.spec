@@ -26,7 +26,7 @@ module FBA {
 	} FBAModel;
 
 	/*
-	@searchable ws_subset model fluxes
+	@searchable ws_subset model,fluxes
 	*/
 	typedef structure {
 		fba_model_id model;

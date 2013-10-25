@@ -97,9 +97,10 @@ public class IdReferenceManager {
 	public void setWsReplacementNames(Map<String,String> absoluteIdRefMapping) {
 		buildIdList();
 		for(WsIdReference wsid: allWsIdReferences) {
-			String replacement = absoluteIdRefMapping.get(wsid);
+			String replacement = absoluteIdRefMapping.get(wsid.getId());
 			if(replacement != null) {
 				wsid.setReplacementId(replacement);
+				
 			}
 		}
 	}
@@ -110,7 +111,6 @@ public class IdReferenceManager {
 			List<WsIdReference> wsIdsAtDepth = wsIdReferences.get(depth);
 			//doesn't matter the order if we are all at the same depth
 			for(WsIdReference wsid : wsIdsAtDepth) {
-				//System.out.println("Looking at:"+ref.getIdReference()+" at "+ref.getLocation());
 				//if there is nothing to relabel, then we can just quit
 				wsid.relabel(target);
 			}

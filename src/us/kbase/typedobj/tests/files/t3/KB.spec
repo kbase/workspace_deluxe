@@ -6,7 +6,7 @@ module KB {
 
 	/*
 	this is an id that can point to any ws object
-	@id ws
+	@id kb
 	*/
 	typedef string kbid;
 
@@ -34,6 +34,7 @@ module KB {
 	@searchable ws_subset keys_of(regulators)
 	*/
 	typedef structure {
+		kbid source;
 		string name;
 		string sequence;
 		feature_id bestFeature;

@@ -151,24 +151,34 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * Set the absolute ID References as specified in the absoluteIdRefMapping (original ids
-	 * are keys, replacement absolute IDs are values).
-	 */
-	public void setReplacementWsIdReferences(Map<String,String> absoluteIdRefMapping) {
-		idRefManager.setWsReplacementNames(absoluteIdRefMapping);
-	}
-	
-	/**
-	 * Use setReplacementWsIdReferences for relabeling ws id references - you cannot
-	 * relabel other types of id references for the time being...
+	 * Use relabelWsIdReferences for relabeling ws id references from now on. You no
+	 * longer need to call this method (although it still works)
 	 * @deprecated
 	 */
 	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) {
 		idRefManager.setWsReplacementNames(absoluteIdRefMapping);
 	}
 	
-	public void relabelWsIdReferences() throws RelabelIdReferenceException {
+	/**
+	 * Relabel the WS IDs in the original Json document based on the specified set of
+	 * ID Mappings, where keys are the original ids and values are the replacement ids.
+	 * 
+	 * Caution: this relabeling happens in-place, so if you have modified the structure
+	 * of the JSON node between validation and invocation of this method, you will likely
+	 * get many runtime errors.  You should make a deep copy first if you indent to do this.
+	 * 
+	 * Memory of the original ids is not changed by this operation.  Thus, if you need
+	 * to rename the ids a second time, you must still refer to the id as its original name,
+	 * not necessarily be the name in the current version of the object.
+	 */
+	public JsonNode relabelWsIdReferences(Map<String,String> absoluteIdRefMapping) throws RelabelIdReferenceException {
+		idRefManager.setWsReplacementNames(absoluteIdRefMapping);
 		idRefManager.relabelWsIds(originalInstance);
+		return originalInstance;
+	}
+	
+	public JsonNode getJsonInstance() {
+		return originalInstance;
 	}
 	
 	

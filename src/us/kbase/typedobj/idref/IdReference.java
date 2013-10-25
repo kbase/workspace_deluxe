@@ -96,7 +96,7 @@ public class IdReference {
 	 */
 	public final void relabel(JsonNode instanceRoot) throws RelabelIdReferenceException {
 		if(!isReplacementIdSet) return;
-		
+		//System.out.println("renaming: "+this);
 		if(isFieldName) {
 			JsonNode mapping = instanceRoot;
 			for(int depth=0; depth<location.size(); depth++) {
@@ -160,57 +160,22 @@ public class IdReference {
 		
 	}
 	
+	protected boolean isReplacementIdSet() {
+		return isReplacementIdSet;
+	}
+	protected String getReplacementId() {
+		return replacementId;
+	}
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-//	
-//	/**
-//	 * For now, we only permit checking of TypeDefName is in the list, which means we
-//	 * cannot yet verify type def versions match...
-//	 */
-//	public boolean isValidType(TypeDefName typeDefName) {
-//		for(TypeDefId t: validTypes) {
-//			if(t.getType().equals(typeDefName)) return true;
-//		}
-//		return false;
-//	}
-//	
-//	
-//	/**
-//	 * Set the absolute ID 
-//	 */
-//	public void setAbsoluteId(String absoluteIdReference) {
-//		this.absoluteIdReference = absoluteIdReference;
-//	}
-//	
-//	public String getAbsoluteId() {
-//		return this.absoluteIdReference;
-//	}
-//	
-//	@Override
-//	public String toString() {
-//		String validTypeStr = "";
-//		if(validTypes.isEmpty()) { validTypeStr="*"; }
-//		else {
-//			validTypeStr += "[ ";
-//			for(TypeDefId type : validTypes) {
-//				validTypeStr += type.getType().getModule() + "." + type.getType().getName() + " ";
-//			}
-//			validTypeStr += "]";
-//		}
-//			
-//		return "ID: "+idReference+" (type:"+validTypeStr+",loc:"+location+",key?="+isMappingKey+")";
-//	}
+	@Override
+	public String toString() {
+		String s;
+		if(isReplacementIdSet)
+			s=replacementId;
+		else
+			s="-none-";
+		return "IdReference: [id:'"+id+"', type='"+type+"', loc="+location+", isField?="+isFieldName+", replacementId='"+s+"']";
+	}
 	
 }

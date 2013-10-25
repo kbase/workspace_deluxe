@@ -98,7 +98,6 @@ public class IdRefValidationBuilder {
 		public JsonNode digest(final JsonNode schema) {
 			// we don't really care about the context in this case, we just want the array
 			// containing the data about what type of ID this is.
-			System.out.println(schema.findValue(IdRefValidationBuilder.keyword));
 			return schema.findValue(IdRefValidationBuilder.keyword);
 		}
 	}

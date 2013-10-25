@@ -1,6 +1,7 @@
 package us.kbase.typedobj.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -178,18 +179,12 @@ public final class TypedObjectValidator {
 	
 	
 	/**
-	 * Given the original JsonNode instance and a report from a validation, convert all ID references in the JsonNode
-	 * to the absolute reference set in the report.  The update happens in place, so if you need to preserve the
-	 * original ids or original data, you should deep copy the instance object first.  The report and original listing
-	 * of ids is unchanged by this operation, so in principle you can change the ids multiple times by updating the
-	 * absoluteIdMapping in the report and rerunning this method.
-	 * @param instanceRootNode
-	 * @param report
-	 * @return
-	 * @throws RelabelIdReferenceException 
+	 * Stop using this method.  You should use the relabelWsIdReferences() that is now part of the updated
+	 * TypedObjectValidationReport
+	 * @deprecated
 	 */
 	public void relableToAbsoluteIds(JsonNode instanceRootNode, TypedObjectValidationReport report) throws RelabelIdReferenceException {
-		report.relabelWsIdReferences();
+		report.relabelWsIdReferences(new HashMap<String,String>());
 	}
 	
 	

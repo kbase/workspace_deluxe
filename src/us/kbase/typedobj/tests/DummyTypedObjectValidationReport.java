@@ -65,15 +65,6 @@ public class DummyTypedObjectValidationReport extends
 	
 	
 	@Override
-	public void setReplacementWsIdReferences(Map<String,String> absoluteIdRefMapping) {
-	}
-	@Override
-	public void relabelWsIdReferences() throws RelabelIdReferenceException {
-	}
-	
-	
-	
-	@Override
 	public String toString() { 
 		return "DummyTypedObjectValidationReport";
 	}

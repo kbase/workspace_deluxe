@@ -202,7 +202,6 @@ public class TestIdProcessing {
 		System.out.println("deleting typed obj database");
 	}
 	
-	@Ignore
 	@Test
 	public void testValidInstances() throws Exception
 	{
@@ -268,8 +267,7 @@ public class TestIdProcessing {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
-		report.setReplacementWsIdReferences(absoluteIdMapping);
-		validator.relableToAbsoluteIds(instanceRootNode, report);
+		report.relabelWsIdReferences(absoluteIdMapping);
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		TypedObjectValidationReport report2 = validator.validate(instanceRootNode, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));

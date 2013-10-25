@@ -209,7 +209,6 @@ public class TestBasicValidation {
 		if(VERBOSE) System.out.println("deleting typed obj database");
 	}
 	
-	@Ignore
 	@Test
 	public void testInstance() throws Exception {
 		
@@ -236,7 +235,7 @@ public class TestBasicValidation {
 				
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 				System.out.println("  *("+instance.resourceName+")");
-				System.out.println(report.toString());
+				//System.out.println(report.toString());
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
 				fail("("+instance.resourceName+") does not validate, but should");

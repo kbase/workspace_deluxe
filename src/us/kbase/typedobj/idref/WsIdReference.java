@@ -1,5 +1,6 @@
 package us.kbase.typedobj.idref;
 
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -37,6 +38,24 @@ public class WsIdReference extends IdReference {
 				return true;
 		}
 		return false;
+	}
+	
+	/**
+	 * return true if the given TypeDefName is on the list of valid TypeDefNames specified for this WsIdReference
+	 * NOTE: type def version information is ignored because it is not currently accepted at the schema level.
+	 */
+	public boolean isValidInstanceType(TypeDefId typeDefId) {
+		return isValidInstanceType(typeDefId.getType());
+	}
+	
+	@Override
+	public String toString() {
+		String s;
+		if(isReplacementIdSet())
+			s=getReplacementId();
+		else
+			s="-none-";
+		return "WsIdReference [id:'"+getId()+"', loc="+location+", isField?="+isFieldName()+", replacement='"+s+"']";
 	}
 	
 }

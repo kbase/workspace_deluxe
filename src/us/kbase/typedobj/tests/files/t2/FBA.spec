@@ -8,7 +8,7 @@ module FBA {
 
 
 	/*
-	@id_reference FBA.FBAModel
+	@id FBA.FBAModel
 	*/
 	typedef string fba_model_id;
 
