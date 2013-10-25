@@ -1524,9 +1524,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
 						name, id, latestVersion));
 			} else {
-				ret.put(oid, new ResolvedMongoObjectID(
-						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
-						name, id, oid.getVersion().intValue()));
+				if (oid.getVersion().compareTo(latestVersion) > 0) {
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s" +
+							" exists in workspace %s", id, name,
+							oid.getVersion(), 
+							oid.getWorkspaceIdentifier().getID()), oid);
+				} else {
+					ret.put(oid, new ResolvedMongoObjectID(
+							query.convertResolvedWSID(
+									oid.getWorkspaceIdentifier()),
+							name, id, oid.getVersion().intValue()));
+				}
 			}
 		}
 		return ret;
