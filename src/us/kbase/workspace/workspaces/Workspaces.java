@@ -63,7 +63,6 @@ public class Workspaces {
 	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
-	//TODO BIG SEARCH get object changes since date (based on type collection and pointers collection
 	//TODO set global read
 	//TODO set description
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
@@ -71,14 +70,23 @@ public class Workspaces {
 	//TODO get provenance by ref chain
 	//TODO ** alpha_list_objects alpha_list_workspaces
 	//TODO ** save provenance
+	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO BIG SHOCK shock acl integration. Needs auth groups. group = workspace.
 	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
-	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO BIG SEARCH search interface, return changes since date, store most recent update to avoid queries
+	//TODO BIG SEARCH get object changes since date (based on type collection and pointers collection
+	//TODO BIG SEARCH index typespecs
 	//TODO BIG SUBDATA subdata search interface. Add ability to 'install' queries that certain users can run?
 	//TODO BIG SUBDATA subdata search - admin can install and remove indexes.
 	
 	//TODO length limits on all incoming strings
+	
+	//TODO REFS1 update WS conversion code
+	//TODO REFS2 test convert WS DB
+	//TODO REFS3 Dev list letter
+	//TODO REFS4 Nomi update changes
+	//TODO REFS5 update phase 1 workspace code
+	//TODO REFS6 update phase 2 workspace code
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	

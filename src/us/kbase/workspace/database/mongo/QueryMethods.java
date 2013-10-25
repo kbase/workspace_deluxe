@@ -240,10 +240,6 @@ public class QueryMethods {
 			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
 		
 		for (final ResolvedMongoObjectID roi: objectIDs) {
-			if (roi.getVersion() == null) {
-				throw new IllegalArgumentException(
-						"All object IDs must have versions");
-			}
 			final ResolvedMongoWSID rwsi =
 					convertResolvedWSID(roi.getWorkspaceIdentifier());
 			if (ids.get(rwsi) == null) {

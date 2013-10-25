@@ -27,21 +27,6 @@ public class ResolvedMongoObjectID {
 	private final Integer version;
 	
 	ResolvedMongoObjectID(final ResolvedMongoWSID rwsi, final String name,
-			final long id) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
-		if (id < 1) {
-			throw new IllegalArgumentException("id must be > 0");
-		}
-		checkObjectName(name);
-		this.rwsi = rwsi;
-		this.name = name;
-		this.id = id;
-		this.version = null;
-	}
-	
-	ResolvedMongoObjectID(final ResolvedMongoWSID rwsi, final String name,
 			final long id, final int version) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
