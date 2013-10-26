@@ -13,7 +13,9 @@ import us.kbase.typedobj.idref.IdReferenceManager;
 import us.kbase.typedobj.idref.WsIdReference;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
@@ -180,6 +182,119 @@ public class TypedObjectValidationReport {
 	public JsonNode getJsonInstance() {
 		return originalInstance;
 	}
+	
+	
+	
+	
+	
+	
+	public JsonNode extractSearchableWsSubset() {
+		
+		// temporary hack until subset extraction is updated...
+		///processingReport
+		
+		// Create the new node to store our subset
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode subset = mapper.createObjectNode();
+		
+		// Identify what we need to extract
+		JsonNode keys_of = null;
+		JsonNode fields = null;
+		
+		Iterator<ProcessingMessage> mssgs = processingReport.iterator();
+		while(mssgs.hasNext()) {
+			ProcessingMessage m = mssgs.next();
+			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
+				keys_of = m.asJson().get("search-data").get("keys");
+				fields = m.asJson().get("search-data").get("fields");
+				//there can only one per report, so we can break as soon as we got it!
+				break;
+			}
+		}
+		
+		System.out.println("extracting subset");
+		subset = extractField(subset, 
+				(JsonNode)originalInstance, 
+				(ObjectNode)fields);
+		
+//		
+//				ArrayNode fields = (ArrayNode)m.asJson().get("fields");
+//						Iterator<JsonNode> fieldNames = fields.elements();
+//						while(fieldNames.hasNext()) {
+//							String fieldName = fieldNames.next().asText();
+//							subset.put(fieldName, instanceRootNode.findValue(fieldName));
+//						}
+//					} else if( m.getMessage().compareTo("ws-searchable-keys-subset") == 0 ) {
+//						ArrayNode fields = (ArrayNode) m.asJson().get("keys_of");
+//						Iterator<JsonNode> fieldNames = fields.elements();
+//						while(fieldNames.hasNext()) {
+//							String fieldName = fieldNames.next().asText();
+//							JsonNode mapping = instanceRootNode.findValue(fieldName);
+//							if(!mapping.isObject()) {
+//								//might want to error out here instead of passing
+//								continue;
+//							}
+//							ArrayNode keys = mapper.createArrayNode();
+//							Iterator<String> keyIter = mapping.fieldNames();
+//							while(keyIter.hasNext()) {
+//								keys.add(keyIter.next());
+//							}
+//							subset.put(fieldName, keys);
+//						}
+//					}
+//				}
+		return subset;
+	}
+	
+	
+	
+	
+	private ObjectNode extractField(ObjectNode subset, JsonNode element, ObjectNode selection) {
+		
+		System.out.println("here");
+		Iterator <Map.Entry<String,JsonNode>> selected_fields = selection.fields();
+		
+		//if the selection is empty, we return nothing
+		if(!selected_fields.hasNext()) return null;
+		
+		//otherwise we need to get everything in the selection
+		while(selected_fields.hasNext()) {
+			Map.Entry<String,JsonNode> selected_field = selected_fields.next();
+			System.out.println("looking at: "+selected_field.getKey());
+			
+			JsonNode field_data = element.get(selected_field.getKey());
+			if(field_data!=null) {
+				if(field_data.isObject()) {
+					ObjectMapper mapper = new ObjectMapper();
+					ObjectNode newsubset = mapper.createObjectNode();
+					JsonNode moreSubData = extractField(newsubset, field_data, (ObjectNode)selected_field.getValue());
+					if(moreSubData==null) {
+						subset.set(selected_field.getKey(),moreSubData);
+					} else {
+						subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
+					}
+				} else if(field_data.isValueNode()) {
+					subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
+				} else if(field_data.isArray()) {
+//					ObjectMapper mapper = new ObjectMapper();
+//					ObjectNode newsubset = mapper.createObjectNode();
+//					JsonNode moreSubData = extractField(newsubset, field_data, (ObjectNode)selected_field.getValue());
+//					if(moreSubData==null) {
+//						subset.set(selected_field.getKey(),moreSubData);
+//					} else {
+//						subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
+//					}
+				}
+			}
+			
+		}
+		return subset;
+	}
+	
+	
+	
+	
+	
 	
 	
 	@Override

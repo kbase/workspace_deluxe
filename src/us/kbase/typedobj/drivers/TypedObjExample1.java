@@ -76,7 +76,7 @@ public class TypedObjExample1 {
 			TypedObjectValidator validator = new TypedObjectValidator(db);
 			
 			String instance1 = 
-					("{`source`:`g.0`,`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`,"
+					("{`source`:`g.0`,`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`, `secondBest`:{`name`:`num2`,`sequence`:`gat`},   "
 					+ "`feature_ids`:[`f1`,`f2`],`length_of_features`:{`f1`:11,`f2`:22},"
 					+ "`regulators`:{`f1`:[`f2`]} }").replace('`', '"');
 			
@@ -126,7 +126,7 @@ public class TypedObjExample1 {
 			s.reset();
 			
 			// extract just the subset
-			JsonNode indexableSubset = validator.extractWsSearchableSubset(instance1RootNode, report);
+			JsonNode indexableSubset = report.extractSearchableWsSubset(); //.extractWsSearchableSubset(instance1RootNode, report);
 			System.out.println("subset:");
 			writer.writeValue(s, indexableSubset);
 			System.out.println(s.toString());

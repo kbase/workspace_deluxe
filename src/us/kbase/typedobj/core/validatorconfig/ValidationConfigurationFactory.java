@@ -39,10 +39,9 @@ public class ValidationConfigurationFactory {
 		 *  Step 1: create all the keywords that we want to handle by using
 		 *  the getKeyword method from our ValidationBuilders
 		 */
-		final Keyword originalTypeKeyword          = OriginalTypeValidationBuilder.getKeyword();
-		final Keyword idRefKeyword                 = IdRefValidationBuilder.getKeyword();
-		final Keyword kbWsSearchableFieldsKeyword  = WsSearchableFieldsValidationBuilder.getKeyword();
-		final Keyword kbWsSearchableKeysKeyword    = WsSearchableKeysValidationBuilder.getKeyword();
+		final Keyword originalTypeKeyword    = OriginalTypeValidationBuilder.getKeyword();
+		final Keyword idRefKeyword           = IdRefValidationBuilder.getKeyword();
+		final Keyword searchableKeyword      = SearchableWsSubsetValidationBuilder.getKeyword();
 		
 		 /*
 		 * Fetch the default Library based on Json Schema V4, thaw it, add
@@ -51,8 +50,7 @@ public class ValidationConfigurationFactory {
 		LibraryBuilder kbLibBuilder = DraftV4Library.get().thaw();
 		kbLibBuilder.addKeyword(originalTypeKeyword);
 		kbLibBuilder.addKeyword(idRefKeyword);
-		//kbLibBuilder.addKeyword(kbWsSearchableFieldsKeyword);
-		//kbLibBuilder.addKeyword(kbWsSearchableKeysKeyword);
+		kbLibBuilder.addKeyword(searchableKeyword);
 		final Library kbLibrary = kbLibBuilder.freeze();
 		
 		
@@ -63,12 +61,12 @@ public class ValidationConfigurationFactory {
 		 */
 		final MessageSource originalTypeMssgs   = OriginalTypeValidationBuilder.getErrorMssgSrc();
 		final MessageSource idRefMssgs          = IdRefValidationBuilder.getErrorMssgSrc();
-		final MessageSource wsSearchableMssgs   = WsSearchableFieldsValidationBuilder.getErrorMssgSrc();
+		final MessageSource searchableMssgs     = SearchableWsSubsetValidationBuilder.getErrorMssgSrc();
 		
 		MessageBundleBuilder mbb = MessageBundles.getBundle(JsonSchemaValidationBundle.class).thaw();
 		mbb.appendSource(originalTypeMssgs);
 		mbb.appendSource(idRefMssgs);
-		mbb.appendSource(wsSearchableMssgs);
+		mbb.appendSource(searchableMssgs);
 		final MessageBundle bundle = mbb.freeze();
 		
 		/*
