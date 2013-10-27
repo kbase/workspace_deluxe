@@ -27,7 +27,8 @@ module Workspace {
 	typedef int ws_id;
 	
 	/* A string used as a name for a workspace.
-		Any string consisting of alphanumeric characters and "_" is acceptable.
+		Any string consisting of alphanumeric characters and "_" that is not an
+		integer is acceptable.
 	*/
 	typedef string ws_name;
 	
@@ -111,7 +112,7 @@ module Workspace {
 	
 	/* A string used as a name for an object.
 		Any string consisting of alphanumeric characters and the characters
-			|._- is acceptable.
+			|._- that is not an integer is acceptable.
 	*/
 	typedef string obj_name;
 	
@@ -122,17 +123,16 @@ module Workspace {
 	
 	/* A string that uniquely identifies an object in the workspace service.
 	
-		There are several ways to uniquely identify an object in one string:
-		"[ws_id].[obj_id].[obj_ver]" - for example, "23.567.2" would identify
-			the second version of an object with id 567 in a workspace with id
-			23.
-		"[ws_name]/[obj_name]/[obj_ver]" - for example,
+		There are two ways to uniquely identify an object in one string:
+		"[ws_name or id]/[obj_name or id]/[obj_ver]" - for example,
 			"MyFirstWorkspace/MyFirstObject/3" would identify the third version
 			of an object called MyFirstObject in the workspace called
-			MyFirstWorkspace.
+			MyFirstWorkspace. 42/Panic/1 would identify the first version of
+			the object name Panic in workspace 42. Towel/1/6 would identify
+			the 6th version of the object with id 1 in the Towel workspace. 
 		"kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
-			"kb|ws.23.obj.567.ver.2" would identify the same object as in the
-			first example.
+			"kb|ws.23.obj.567.ver.2" would identify the second version of an
+			object with id 567 in a workspace with id 23.
 		In all cases, if the version number is omitted, the latest version of
 		the object is assumed.
 	*/

@@ -35,8 +35,8 @@ import us.kbase.shock.client.ShockUserId;
 import us.kbase.shock.client.ShockVersionStamp;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockAuthorizationException;
-import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNoFileException;
+import us.kbase.shock.client.exceptions.ShockNoNodeException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
@@ -167,10 +167,9 @@ public class ShockTests {
 		try {
 			bsc1.getNode(new ShockNodeId("00000000-0000-0000-0000-000000000000"));
 			fail("got node with bad id");
-		} catch (ShockHttpException she) {
-			assertThat("Bad exception message",
-					"us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error",
-					is(she.toString()));
+		} catch (ShockNoNodeException snne) {
+			assertThat("Bad exception message", snne.getLocalizedMessage(),
+					is("Node does not exist"));
 		}
 	}
 	
@@ -178,10 +177,9 @@ public class ShockTests {
 		try {
 			bsc1.getNode(id);
 			fail("Able to retrieve deleted node");
-		} catch (ShockHttpException she) {
-			assertThat("Bad exception message",
-					"us.kbase.shock.client.exceptions.ShockHttpException: 500 Internal Server Error",
-					is(she.toString()));
+		} catch (ShockNoNodeException snne) {
+			assertThat("Bad exception message", snne.getLocalizedMessage(),
+					is("Node does not exist"));
 		}
 	}
 	
@@ -295,8 +293,8 @@ public class ShockTests {
 			sn.getFile();
 			fail("Got file from node w/o file");
 		} catch (ShockNoFileException snfe) {
-			assertThat("no file exc string incorrect", snfe.toString(), 
-					is("us.kbase.shock.client.exceptions.ShockNoFileException: 400 Node has no file"));
+			assertThat("no file exc string incorrect", snfe.getLocalizedMessage(), 
+					is("Node has no file"));
 		}
 		sn.delete();
 	}
@@ -361,8 +359,8 @@ public class ShockTests {
 				new ShockNodeId(uuid);
 				fail("Node id accepted invalid id string " + uuid);
 			} catch (IllegalArgumentException iae) {
-				assertThat("Bad exception message", iae.toString(),
-						is("java.lang.IllegalArgumentException: id must be a UUID hex string"));
+				assertThat("Bad exception message", iae.getLocalizedMessage(),
+						is("id must be a UUID hex string"));
 			}
 		}
 		for (String uuid: badUUIDs) {
@@ -370,8 +368,8 @@ public class ShockTests {
 				new ShockUserId(uuid);
 				fail("User id accepted invalid id string " + uuid);
 			} catch (IllegalArgumentException iae) {
-				assertThat("Bad exception message", iae.toString(),
-						is("java.lang.IllegalArgumentException: id must be a UUID hex string"));
+				assertThat("Bad exception message", iae.getLocalizedMessage(),
+						is("id must be a UUID hex string"));
 			}
 		}
 	}
@@ -382,8 +380,8 @@ public class ShockTests {
 			new ShockACLType("invalid type") ;
 			fail("invalid acl type accepted");
 		} catch (IllegalArgumentException iae) {
-			assertThat("wrong exception string for bad acl type", iae.toString(),
-					is("java.lang.IllegalArgumentException: invalid type is not a valid acl type"));
+			assertThat("wrong exception string for bad acl type", iae.getLocalizedMessage(),
+					is("invalid type is not a valid acl type"));
 		}
 		ShockACLType owner = new ShockACLType("owner");
 		ShockNode sn = bsc1.addNode();
@@ -468,19 +466,18 @@ public class ShockTests {
 	private ShockNode setUpNodeAndCheckAuth(BasicShockClient c, boolean auth)
 			throws Exception{
 		ShockNode sn = bsc1.addNode();
-		String expected = 
-				"us.kbase.shock.client.exceptions.ShockAuthorizationException: 401 ";
+		String expected;
 		if (auth) {
-			expected += "Unauthorized";
+			expected = "Unauthorized";
 		} else {
 			//if Authorization.read = false, then you get a No Auth error
-			expected += "Unauthorized"; //"No Authorization";
+			expected = "Unauthorized"; //"No Authorization";
 		}
 		try {
 			c.getNode(sn.getId());
 			fail("Node is readable with no permissions");
 		} catch (ShockAuthorizationException aue) {
-			assertThat("auth exception string is correct", aue.toString(),
+			assertThat("auth exception string is correct", aue.getLocalizedMessage(),
 					is(expected));
 		}
 		return sn;
@@ -509,8 +506,8 @@ public class ShockTests {
 				new ShockVersionStamp(md5);
 				fail("Version stamp accepted invalid version string");
 			} catch (IllegalArgumentException iae) {
-				assertThat("Bad exception message", iae.toString(),
-						is("java.lang.IllegalArgumentException: version must be an md5 string"));
+				assertThat("Bad exception message", iae.getLocalizedMessage(),
+						is("version must be an md5 string"));
 			}
 		}
 		bsc1.deleteNode(sn.getId());

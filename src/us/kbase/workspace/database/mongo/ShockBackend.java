@@ -179,7 +179,8 @@ public class ShockBackend implements BlobStore {
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
 			throw new BlobStoreCommunicationException(
-					"Failed to retrieve shock node", she);
+					"Failed to retrieve shock node: " +
+					she.getLocalizedMessage(), she);
 		}
 		return ret;
 	}
@@ -205,7 +206,6 @@ public class ShockBackend implements BlobStore {
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		} catch (ShockHttpException she) {
-			//No way to tell ATM if the node was never there or something else happened
 			throw new BlobStoreCommunicationException(
 					"Failed to delete shock node: " +
 					she.getLocalizedMessage(), she);
