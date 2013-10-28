@@ -5,11 +5,13 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 public class Provenance {
 	
-	private String user;
-	private List<ProvenanceAction> actions =
+	protected String user;
+	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
 	public Provenance(WorkspaceUser user) {
@@ -45,8 +47,8 @@ public class Provenance {
 		
 		//TODO remainder of provenance items
 		
-		private String service;
-		private List<String> wsobjs = new LinkedList<String>();
+		protected String service;
+		protected List<String> wsobjs = new LinkedList<String>();
 		
 		public ProvenanceAction() {}
 		
@@ -71,13 +73,20 @@ public class Provenance {
 		public List<String> getWorkspaceObjects() {
 			return wsobjs;
 		}
+		
+		public ProvenanceAction withResolvedObjects(
+				final List<String> objRefs) {
+			throw new NotImplementedException();
+		}
+
+		public List<String> getResolvedObjects() {
+			throw new NotImplementedException();
+		}
 
 		@Override
 		public String toString() {
 			return "ProvenanceAction [service=" + service + ", wsobjs="
 					+ wsobjs + "]";
 		}
-		
 	}
-
 }

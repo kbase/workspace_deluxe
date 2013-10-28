@@ -87,6 +87,7 @@ public class Workspaces {
 	//TODO *** alpha_list_objects alpha_list_workspaces
 	//TODO ** save and get provenance
 	//TODO *** email notification on module ownership request
+	//TODO * refactor meta classes to info
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	

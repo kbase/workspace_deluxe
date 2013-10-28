@@ -4,6 +4,7 @@ import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +38,7 @@ public class ArgUtils {
 	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) {
 		
-		Provenance p = new Provenance(user);
+		final Provenance p = new Provenance(user);
 		if (actions == null) {
 			return p;
 		}
@@ -139,8 +140,23 @@ public class ArgUtils {
 		for (final WorkspaceObjectData o: objects) {
 			ret.add(new ObjectData()
 					.withData(new UObject(o.getData()))
-					.withInfo(objUserMetaToTuple(o.getMeta())));
+					.withInfo(objUserMetaToTuple(o.getMeta()))
+					.withProvenance(translateProvenanceActions(
+							o.getProvenance().getActions())));
 		}
 		return ret;
+	}
+
+	private List<ProvenanceAction> translateProvenanceActions(
+			final List<Provenance.ProvenanceAction> actions) {
+		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
+		for (final Provenance.ProvenanceAction a: actions) {
+			//TODO finish all prov items
+			pas.add(new ProvenanceAction()
+					.withInputWsObjects(a.getWorkspaceObjects())
+					.withResolvedWsObjects(a.getResolvedObjects())
+					.withService(a.getService()));
+		}
+		return pas;
 	}
 }

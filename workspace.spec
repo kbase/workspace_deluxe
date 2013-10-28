@@ -170,7 +170,7 @@ module Workspace {
 		obj_id objid - the numerical id of the object.
 		obj_name name - the name of the object.
 		type_string type - the type of the object.
-		timestamp create_date - the creation date of the object.
+		timestamp save_date - the save date of the object.
 		obj_ver ver - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
@@ -179,7 +179,7 @@ module Workspace {
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
-		timestamp create_date, int version, username created_by,
+		timestamp save_date, int version, username created_by,
 		ws_id wsid, string chsum, int size> object_info;
 		
 	/* Information about an object, including user provided metadata.
@@ -187,7 +187,7 @@ module Workspace {
 		obj_id objid - the numerical id of the object.
 		obj_name name - the name of the object.
 		type_string type - the type of the object.
-		timestamp create_date - the creation date of the object.
+		timestamp save_date - the save date of the object.
 		obj_ver ver - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
@@ -198,7 +198,7 @@ module Workspace {
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
-		timestamp create_date, int version, username created_by,
+		timestamp save_date, int version, username created_by,
 		ws_id wsid, string chsum, int size, usermeta meta>
 		object_info_full;
 	

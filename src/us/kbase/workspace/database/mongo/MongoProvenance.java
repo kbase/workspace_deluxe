@@ -1,6 +1,11 @@
 package us.kbase.workspace.database.mongo;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.bson.types.ObjectId;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import us.kbase.workspace.database.Provenance;
 
@@ -12,7 +17,7 @@ public class MongoProvenance extends Provenance {
 	
 	MongoProvenance(final Provenance p) {
 		super(p.getUser());
-		for (final ProvenanceAction pa: p.getActions()) {
+		for (final Provenance.ProvenanceAction pa: p.getActions()) {
 			addAction(pa);
 		}
 	}
@@ -22,5 +27,25 @@ public class MongoProvenance extends Provenance {
 	
 	ObjectId getMongoId() {
 		return _id;
+	}
+	
+	static class MongoProvenanceAction extends Provenance.ProvenanceAction {
+
+		@JsonIgnore
+		private List<String> resolvedObjs = new LinkedList<String>();
+		
+		@Override
+		public MongoProvenanceAction withResolvedObjects(
+				final List<String> objRefs) {
+			if (objRefs != null) {
+				resolvedObjs = objRefs;
+			}
+			return this;
+		}
+
+		@Override
+		public List<String> getResolvedObjects() {
+			return resolvedObjs;
+		}
 	}
 }

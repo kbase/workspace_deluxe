@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bson.types.ObjectId;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -1366,6 +1367,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						FLDS_VER_META);
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
+		final List<ObjectId> provIDs = new LinkedList<ObjectId>();
+		for (final ResolvedMongoObjectID id: vers.keySet()) {
+			provIDs.add((ObjectId) vers.get(id).get(Fields.VER_PROV));
+		}
+		final Map<ObjectId, MongoProvenance> provs = getProvenance(provIDs);
 		final Map<String, Object> chksumToData = new HashMap<String, Object>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
@@ -1376,11 +1382,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
+			//TODO handle resolved refs
+			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
+					.get(Fields.VER_PROV));
 			final MongoObjectUserMeta meta = generateUserMeta(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
-						chksumToData.get(meta.getCheckSum()), meta));
+						chksumToData.get(meta.getCheckSum()), meta, prov));
 			} else {
 				final String data;
 				try {
@@ -1407,13 +1416,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							meta.getCheckSum()), e); 
 				}
 				chksumToData.put(meta.getCheckSum(), object);
-				ret.put(o, new WorkspaceObjectData(object, meta));
+				ret.put(o, new WorkspaceObjectData(object, meta, prov));
 			}
 		}
 		return ret;
 	}
 	
-	
+	private Map<ObjectId, MongoProvenance> getProvenance(
+			final List<ObjectId> provIDs)
+			throws WorkspaceCommunicationException {
+		final Iterable<MongoProvenance> provs;
+		try {
+			provs = wsjongo.getCollection(COL_PROVENANCE)
+					.find("{_id: {$in: #}}", provIDs).as(MongoProvenance.class);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		final Map<ObjectId, MongoProvenance> ret =
+				new HashMap<ObjectId, MongoProvenance>();
+		for (MongoProvenance p: provs) {
+			ret.put(p.getMongoId(), p);
+		}
+		return ret;
+	}
+
 	private MongoObjectUserMeta generateUserMeta(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
@@ -1469,7 +1496,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
-			Fields.VER_CHKSUM, Fields.VER_SIZE);
+			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV);
 	
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
