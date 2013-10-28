@@ -67,6 +67,7 @@ public class Workspaces {
 	//TODO set description
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
+	//TODO maximum provenance size
 	//TODO import shock objects
 	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
@@ -78,16 +79,14 @@ public class Workspaces {
 	//TODO BIG SUBDATA subdata search interface. Add ability to 'install' queries that certain users can run?
 	//TODO BIG SUBDATA subdata search - admin can install and remove indexes.
 	
-	//TODO length limits on all incoming strings
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
-	//TODO * REFS6 update phase 2 workspace code
+	//TODO * REFS6 update phase 2 workspace code - auto name creation
 
-	//TODO * fix shock client tests
-	//TODO ** alpha_list_objects alpha_list_workspaces
-	//TODO * save provenance
-	//TODO ** email notification on module ownership request
+	//TODO *** alpha_list_objects alpha_list_workspaces
+	//TODO ** save provenance
+	//TODO *** email notification on module ownership request
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	

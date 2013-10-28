@@ -1,18 +1,19 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.common.utils.StringUtils.checkString;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WorkspaceUser implements User {
 	
 	private final static Pattern INVALID_USER_NAME = Pattern.compile("[^\\w-]");
+	private final static int MAX_NAME_LENGTH = 100;
 	
 	protected final String user;
 	
 	public WorkspaceUser(String user) {
-		if (user == null || user.isEmpty()) {
-			throw new IllegalArgumentException("User cannot be null or the empty string");
-		}
+		checkString(user, "Username", MAX_NAME_LENGTH);
 		final Matcher m = INVALID_USER_NAME.matcher(user);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(

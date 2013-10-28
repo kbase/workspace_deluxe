@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.common.utils.StringUtils.checkString;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,6 +13,7 @@ public class WorkspaceIdentifier {
 	private final static String WS_NAME_DELIMITER = ":";
 	private final static Pattern INVALID_WS_NAMES = 
 			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "]");
+	private final static int MAX_NAME_LENGTH = 100;
 
 	private final Long id;
 	private final String wsname;
@@ -43,9 +46,7 @@ public class WorkspaceIdentifier {
 	}
 
 	public static void checkWorkspaceName(String name, WorkspaceUser user) {
-		if (name == null || name.length() == 0) {
-			throw new IllegalArgumentException("A workspace name cannot be null and must have at least one character");
-		}
+		checkString(name, "Workspace name", MAX_NAME_LENGTH);
 		int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
 			throw new IllegalArgumentException(String.format(

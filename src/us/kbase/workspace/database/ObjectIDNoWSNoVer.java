@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.common.utils.StringUtils.checkString;
 import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.regex.Matcher;
@@ -9,6 +10,7 @@ public class ObjectIDNoWSNoVer {
 	
 	private final static Pattern INVALID_OBJ_NAMES = 
 			Pattern.compile("[^\\w\\|._-]");
+	private final static int MAX_NAME_LENGTH = 100;
 	
 	private final String name;
 	private final Long id;
@@ -52,9 +54,7 @@ public class ObjectIDNoWSNoVer {
 	}
 	
 	public static void checkObjectName(String name) {
-		if (name == null || name.length() == 0) {
-			throw new IllegalArgumentException("Object name cannot be null and must have at least one character");
-		}
+		checkString(name, "Object name", MAX_NAME_LENGTH);
 		final Matcher m = INVALID_OBJ_NAMES.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(

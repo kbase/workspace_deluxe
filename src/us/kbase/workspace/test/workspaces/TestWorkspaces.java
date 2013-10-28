@@ -72,6 +72,13 @@ public class TestWorkspaces {
 	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
+	public static String TEXT101;
+	static {
+		for (int i = 0; i < 10; i++) {
+			TEXT101 += "aaaaabbbbb";
+		}
+		TEXT101 += "f";
+	}
 	
 	public static ShockBackend sbe;
 	
@@ -257,9 +264,12 @@ public class TestWorkspaces {
 				"Illegal character in workspace name af?eaff*afea: ?"));
 		//check missing ws name
 		userWS.add(new TestRig(crap, null,
-				"A workspace name cannot be null and must have at least one character"));
+				"Workspace name cannot be null or the empty string"));
 		userWS.add(new TestRig(crap, "",
-				"A workspace name cannot be null and must have at least one character"));
+				"Workspace name cannot be null or the empty string"));
+		//check long names
+		userWS.add(new TestRig(crap, TEXT101,
+				"Workspace name exceeds the maximum length of 100"));
 		//check missing user and/or workspace name in compound name
 		userWS.add(new TestRig(crap, ":",
 				"Workspace name missing from :"));
@@ -341,14 +351,21 @@ public class TestWorkspaces {
 			fail("able to create user with null");
 		} catch (IllegalArgumentException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User cannot be null or the empty string"));
+					is("Username cannot be null or the empty string"));
 		}
 		try {
 			new WorkspaceUser("");
 			fail("able to create user with empty string");
 		} catch (IllegalArgumentException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User cannot be null or the empty string"));
+					is("Username cannot be null or the empty string"));
+		}
+		try {
+			new WorkspaceUser(TEXT101);
+			fail("able to create user with long string");
+		} catch (IllegalArgumentException e) {
+			assertThat("exception message correct", e.getLocalizedMessage(),
+					is("Username exceeds the maximum length of 100"));
 		}
 		try {
 			new AllUsers('$');
@@ -990,10 +1007,11 @@ public class TestWorkspaces {
 		testObjectIdentifier("f|o.A-1_2");
 		testObjectIdentifier("f|o.A-1_2", 1);
 		testObjectIdentifier(null, "foo", "wsi cannot be null");
-		testObjectIdentifier(goodWs, null, "Object name cannot be null and must have at least one character");
-		testObjectIdentifier(goodWs, "", "Object name cannot be null and must have at least one character");
+		testObjectIdentifier(goodWs, null, "Object name cannot be null or the empty string");
+		testObjectIdentifier(goodWs, "", "Object name cannot be null or the empty string");
 		testObjectIdentifier(goodWs, "f|o.A-1_2+", "Illegal character in object name f|o.A-1_2+: +");
 		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
+		testObjectIdentifier(goodWs, TEXT101, "Object name exceeds the maximum length of 100");
 		testObjectIdentifier(1);
 		testObjectIdentifier(1, 1);
 		testObjectIdentifier(null, 1, "wsi cannot be null");
@@ -1003,6 +1021,7 @@ public class TestWorkspaces {
 		testCreate(goodWs, "f|o.A-1_2", null);
 		testCreate(goodWs, null, 1L);
 		testCreate(null, "boo", null, "wsi cannot be null");
+		testCreate(goodWs, TEXT101, null, "Object name exceeds the maximum length of 100");
 		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
 		testCreate(goodWs, "boo", 1L, "Must provide one and only one of object name (was: boo) or id (was: 1)");
 		testCreateVer(goodWs, "boo", null, 1);
@@ -1010,10 +1029,12 @@ public class TestWorkspaces {
 		testCreateVer(goodWs, "boo", null, null);
 		testCreateVer(goodWs, null, 1L, null);
 		testCreateVer(goodWs, "boo", null, 0, "Object version must be > 0");
+		testCreateVer(goodWs, TEXT101, null, 1, "Object name exceeds the maximum length of 100");
 		testCreateVer(goodWs, null, 1L, 0, "Object version must be > 0");
 		testRef("foo/bar");
 		testRef("foo/bar/1");
 		testRef("foo/bar/1/2", "Illegal number of separators / in object name reference foo/bar/1/2");
+		testRef("foo/" + TEXT101 + "/1", "Object name exceeds the maximum length of 100");
 		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
 		testRef("1.2");
 		testRef("1.2.3");
