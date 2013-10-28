@@ -558,59 +558,59 @@ public class TestWorkspaces {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata, SAFE_TYPE, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3"), savedata2, SAFE_TYPE, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("3-1"), savedata, SAFE_TYPE, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE, meta, p, false));
 		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, p, false));
 		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjMeta(objmeta.get(0), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
-		checkObjMeta(objmeta.get(1), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24);
-		checkObjMeta(objmeta.get(2), 2, "3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
-		checkObjMeta(objmeta.get(3), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24);
-		checkObjMeta(objmeta.get(4), 4, "4", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24);
+		checkObjMeta(objmeta.get(2), 2, "auto3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(3), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24);
+		checkObjMeta(objmeta.get(4), 4, "auto4", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
 		loi.add(new ObjectIdentifier(read, 1, 1));
-		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "3"));
-		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "3", 1));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3"));
+		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3", 1));
 		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1));
 		loi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1, 1));
-		loi.add(new ObjectIdentifier(read, "3"));
-		loi.add(new ObjectIdentifier(read, "3", 1));
-		loi.add(new ObjectIdentifier(read, "3-2"));
+		loi.add(new ObjectIdentifier(read, "auto3"));
+		loi.add(new ObjectIdentifier(read, "auto3", 1));
+		loi.add(new ObjectIdentifier(read, "auto3-2"));
 		loi.add(new ObjectIdentifier(read, 3));
-		loi.add(new ObjectIdentifier(read, "3-2", 1));
+		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
 		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
 		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(foo, loi);
-		checkObjMeta(usermeta.get(0), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(1), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(2), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(3), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(4), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(5), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(6), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(7), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(usermeta.get(8), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(9), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(10), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(11), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(0).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(1).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(2).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(3).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(4).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(5).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(6).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(7).getMeta(), 1, "3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
-		checkObjMeta(retdata.get(8).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(9).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(10).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
-		checkObjMeta(retdata.get(11).getMeta(), 3, "3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(usermeta.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(usermeta.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(0).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(1).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(2).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(3).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(4).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(5).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(6).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(7).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
+		checkObjMeta(retdata.get(8).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(9).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(10).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
+		checkObjMeta(retdata.get(11).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum2, 24, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
 		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
@@ -630,9 +630,9 @@ public class TestWorkspaces {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE, meta2, p, false));
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23);
 		usermeta = ws.getObjectMetaData(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
-		checkObjMeta(usermeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
+		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
 		
 		ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
 		try {
@@ -656,9 +656,9 @@ public class TestWorkspaces {
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjMeta(usermeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
 		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjMeta(retdata.get(0).getMeta(), 2, "3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
+		checkObjMeta(retdata.get(0).getMeta(), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
 		try {
 			ws.saveObjects(bar, priv, objects);
@@ -669,7 +669,7 @@ public class TestWorkspaces {
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objmeta = ws.saveObjects(bar, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
+		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
 	@Test

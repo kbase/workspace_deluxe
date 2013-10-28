@@ -732,11 +732,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private String generateUniqueNameForObject(final ResolvedWorkspaceID wsid,
 			final long objectid) throws WorkspaceCommunicationException {
+		final String prefix = "auto" + objectid;
 		@SuppressWarnings("rawtypes")
 		Iterable<Map> ids;
 		try {
 			ids = wsjongo.getCollection(COL_WORKSPACE_PTRS)
-					.find(M_UNIQ_NAME_QRY, wsid.getID(), objectid)
+					.find(M_UNIQ_NAME_QRY, wsid.getID(), prefix)
 					.projection(M_UNIQ_NAME_PROJ).as(Map.class);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -755,20 +756,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			} else if (id.length == 1) {
 				try {
-					exact = exact || objectid == Long.parseLong(id[0]);
+					exact = exact || prefix.equals(id[0]);
 				} catch (NumberFormatException e) {
 					// do nothing
 				}
 			}
 		}
 		if (!exact) {
-			return "" + objectid;
+			return prefix;
 		}
 		long counter = 1;
 		while (suffixes.contains(counter)) {
 			counter++;
 		}
-		return objectid + "-" + counter;
+		return prefix + "-" + counter;
 	}
 	
 	//save brand new object - create container
