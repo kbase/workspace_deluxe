@@ -42,6 +42,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -71,7 +72,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.Provenance;
 import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 

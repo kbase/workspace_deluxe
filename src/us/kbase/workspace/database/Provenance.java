@@ -1,11 +1,10 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.database;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import us.kbase.workspace.database.WorkspaceUser;
 
 public class Provenance {
 	

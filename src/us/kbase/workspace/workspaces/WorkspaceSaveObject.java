@@ -12,6 +12,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 
 public class WorkspaceSaveObject {

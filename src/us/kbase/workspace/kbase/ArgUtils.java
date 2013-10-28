@@ -17,10 +17,10 @@ import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectMetaData;
 import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.workspaces.Provenance;
 
 /**
  * not thread safe
