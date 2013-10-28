@@ -6,9 +6,7 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	public final static String REFERENCE_ID_SEP = ".";
-	private final static String REFERENCE_ID_SEP_REGEX = "\\" + REFERENCE_ID_SEP;
-	public final static String REFERENCE_NAME_SEP = "/"; //this cannot be a legal object/workspace char
+	public final static String REFERENCE_SEP = "/"; //this cannot be a legal object/workspace char
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
@@ -139,39 +137,38 @@ public class ObjectIdentifier {
 		if (workspace < 1 || object < 1 || version < 1) {
 			throw new IllegalArgumentException("All arguments must be > 0");
 		}
-		return workspace + REFERENCE_ID_SEP + object + REFERENCE_ID_SEP +
+		return workspace + REFERENCE_SEP + object + REFERENCE_SEP +
 				version;
 	}
 	
 	public static ObjectIdentifier parseObjectReference(final String reference) {
 		checkString(reference, "reference");
-		if (reference.contains(REFERENCE_NAME_SEP)) {
-			final String[] r = reference.split(REFERENCE_NAME_SEP);
-			if (r.length != 2 && r.length != 3) {
-				throw new IllegalArgumentException(String.format(
-						"Illegal number of separators %s in object name reference %s",
-						REFERENCE_NAME_SEP, reference));
-			}
-			if (r.length == 3) {
-				final Integer ver = parseInt(r[2], reference, "version");
-				return new ObjectIdentifier(new WorkspaceIdentifier(r[0]),
-						r[1], ver);
-			}
-			return new ObjectIdentifier(new WorkspaceIdentifier(r[0]), r[1]);
-		}
-		final String[] r = reference.split(REFERENCE_ID_SEP_REGEX);
+		final String[] r = reference.split(REFERENCE_SEP);
 		if (r.length != 2 && r.length != 3) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal number of separators %s in object id reference %s",
-					REFERENCE_ID_SEP, reference));
+					"Illegal number of separators %s in object reference %s",
+					REFERENCE_SEP, reference));
 		}
-		final Integer ws = parseInt(r[0], reference, "workspace");
-		final Integer obj = parseInt(r[1], reference, "object");
+		WorkspaceIdentifier wsi;
+		try {
+			wsi = new WorkspaceIdentifier(Long.parseLong(r[0]));
+		} catch (NumberFormatException nfe) {
+			wsi = new WorkspaceIdentifier(r[0]);
+		}
 		if (r.length == 3) {
 			final Integer ver = parseInt(r[2], reference, "version");
-			return new ObjectIdentifier(new WorkspaceIdentifier(ws), obj, ver);
+			try {
+				return new ObjectIdentifier(wsi, Long.parseLong(r[1]), ver);
+			} catch (NumberFormatException nfe) {
+				return new ObjectIdentifier(wsi, r[1], ver);
+			}
+		} else {
+			try {
+				return new ObjectIdentifier(wsi, Long.parseLong(r[1]));
+			} catch (NumberFormatException nfe) {
+				return new ObjectIdentifier(wsi, r[1]);
+			}
 		}
-		return new ObjectIdentifier(new WorkspaceIdentifier(ws), obj);
 	}
 	
 	private static Integer parseInt(String s, String reference, String portion) {

@@ -82,7 +82,6 @@ public class Workspaces {
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
-	//TODO * REFS6 update phase 2 workspace code
 
 	//TODO *** alpha_list_objects alpha_list_workspaces
 	//TODO ** save provenance

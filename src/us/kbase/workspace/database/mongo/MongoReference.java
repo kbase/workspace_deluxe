@@ -35,8 +35,8 @@ public class MongoReference implements Reference {
 	
 	@Override
 	public String toString() {
-		return workspaceID + ObjectIdentifier.REFERENCE_ID_SEP + objectID +
-				ObjectIdentifier.REFERENCE_ID_SEP + version;
+		return workspaceID + ObjectIdentifier.REFERENCE_SEP + objectID +
+				ObjectIdentifier.REFERENCE_SEP + version;
 	}
 
 }

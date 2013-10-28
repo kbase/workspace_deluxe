@@ -1033,18 +1033,19 @@ public class TestWorkspaces {
 		testCreateVer(goodWs, null, 1L, 0, "Object version must be > 0");
 		testRef("foo/bar");
 		testRef("foo/bar/1");
-		testRef("foo/bar/1/2", "Illegal number of separators / in object name reference foo/bar/1/2");
+		testRef("foo/bar/1/2", "Illegal number of separators / in object reference foo/bar/1/2");
 		testRef("foo/" + TEXT101 + "/1", "Object name exceeds the maximum length of 100");
 		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
-		testRef("1.2");
-		testRef("1.2.3");
-		testRef("1.2.3.4", "Illegal number of separators . in object id reference 1.2.3.4");
-		testRef("n.2", "Unable to parse workspace portion of object reference n.2 to an integer");
-		testRef("1.n", "Unable to parse object portion of object reference 1.n to an integer");
-		testRef("n.2.3", "Unable to parse workspace portion of object reference n.2.3 to an integer");
-		testRef("1.n.3", "Unable to parse object portion of object reference 1.n.3 to an integer");
-		testRef("1.2.n", "Unable to parse version portion of object reference 1.2.n to an integer");
-		testRef("1", "Illegal number of separators . in object id reference 1");
+		testRef("foo", "Illegal number of separators / in object reference foo");
+		testRef("1/2");
+		testRef("1/2/3");
+		testRef("1/2/3/4", "Illegal number of separators / in object reference 1/2/3/4");
+		testRef("1/2/n", "Unable to parse version portion of object reference 1/2/n to an integer");
+		testRef("1", "Illegal number of separators / in object reference 1");
+		testRef("foo/2");
+		testRef("2/foo");
+		testRef("foo/2/1");
+		testRef("2/foo/1");
 	}
 	
 	@Test

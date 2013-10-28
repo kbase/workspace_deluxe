@@ -563,8 +563,8 @@ public class JSONRPCLayerTest {
 				CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(3));
-		checkMeta(retmet.get(0), 1, "1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(1), 2, "2", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkMeta(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
 		checkMeta(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		
@@ -575,38 +575,38 @@ public class JSONRPCLayerTest {
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
-		checkMeta(retmet.get(0), 2, "2", SAFE_TYPE, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkMeta(retmet.get(0), 2, "auto2", SAFE_TYPE, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.1"));
-		loi.add(new ObjectIdentity().withRef(wsid + ".2.1"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(1L));
+		loi.add(new ObjectIdentity().withRef(wsid + "/2/1"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
-		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(1L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
-		checkSavedObjects(loi, 2, "2", SAFE_TYPE, 1, USER1,
+		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 1, USER1,
 				wsid, "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
 		
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
-		loi.add(new ObjectIdentity().withRef(wsid + ".2"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2"));
+		loi.add(new ObjectIdentity().withRef(wsid + "/2"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L));
-		loi.add(new ObjectIdentity().withWsid(wsid).withName("2"));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("auto2"));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L));
 		// w/ versions
 		loi.add(new ObjectIdentity().withRef("saveget/2/2"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.2"));
-		loi.add(new ObjectIdentity().withRef(wsid + ".2.2"));
-		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("2").withVer(2L));
+		loi.add(new ObjectIdentity().withRef(wsid + "/2/2"));
+		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(2L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(2L));
-		loi.add(new ObjectIdentity().withWsid(wsid).withName("2").withVer(2L));
+		loi.add(new ObjectIdentity().withWsid(wsid).withName("auto2").withVer(2L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 		
-		checkSavedObjects(loi, 2, "2", SAFE_TYPE, 2, USER1,
+		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
 		try {
@@ -629,11 +629,11 @@ public class JSONRPCLayerTest {
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators . in object id reference kb|wss." + wsid + ".obj.2");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators / in object reference kb|wss." + wsid + ".obj.2");
 		
 		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unable to parse workspace portion of object reference kb|ws." + wsid + " to an integer");
+		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Illegal number of separators / in object reference kb|ws." + wsid);
 		
 		//there are 32 different ways to get this type of error. Just try a few.
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
