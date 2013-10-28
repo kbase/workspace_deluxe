@@ -23,6 +23,9 @@ import us.kbase.common.service.UObject;
  *         command, etc. All of the following are optional, but more information
  *         provided equates to better data provenance.
  *         
+ *         resolved_ws_objects should never be set by the user; it is set by the
+ *         workspace service when returning data.
+ *         
  *         timestamp time - the time the action was started.
  *         string service - the name of the service that performed this action.
  *         int service_ver - the version of the service that performed this action.
@@ -39,6 +42,9 @@ import us.kbase.common.service.UObject;
  *                 input_ws_object list.
  *         list<obj_ref> input_ws_objects - the workspace objects that
  *                 were used as input to this action.
+ *         list<obj_ref> resolved_ws_objects - the workspace objects ids from 
+ *                 input_ws_objects resolved to permanent workspace object references
+ *                 by the workspace service.
  *         list<string> intermediate_incoming - if the previous action produced 
  *                 output that 1) was not stored in a referrable way, and 2) is
  *                 used as input for this action, provide it with an arbitrary and
@@ -68,6 +74,7 @@ import us.kbase.common.service.UObject;
     "script_command_line",
     "description",
     "input_ws_objects",
+    "resolved_ws_objects",
     "intermediate_incoming",
     "intermediate_outgoing"
 })
@@ -93,6 +100,8 @@ public class ProvenanceAction {
     private java.lang.String description;
     @JsonProperty("input_ws_objects")
     private List<String> inputWsObjects;
+    @JsonProperty("resolved_ws_objects")
+    private List<String> resolvedWsObjects;
     @JsonProperty("intermediate_incoming")
     private List<String> intermediateIncoming;
     @JsonProperty("intermediate_outgoing")
@@ -249,6 +258,21 @@ public class ProvenanceAction {
         return this;
     }
 
+    @JsonProperty("resolved_ws_objects")
+    public List<String> getResolvedWsObjects() {
+        return resolvedWsObjects;
+    }
+
+    @JsonProperty("resolved_ws_objects")
+    public void setResolvedWsObjects(List<String> resolvedWsObjects) {
+        this.resolvedWsObjects = resolvedWsObjects;
+    }
+
+    public ProvenanceAction withResolvedWsObjects(List<String> resolvedWsObjects) {
+        this.resolvedWsObjects = resolvedWsObjects;
+        return this;
+    }
+
     @JsonProperty("intermediate_incoming")
     public List<String> getIntermediateIncoming() {
         return intermediateIncoming;
@@ -291,7 +315,7 @@ public class ProvenanceAction {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", description=")+ description)+", inputWsObjects=")+ inputWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", description=")+ description)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

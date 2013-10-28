@@ -623,6 +623,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script_command_line has a value which is a string
 	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
@@ -678,6 +679,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script_command_line has a value which is a string
 	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
@@ -783,6 +785,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info_full
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -798,6 +801,21 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is an int
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is an int
+	script_command_line has a value which is a string
+	description has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
 
 </pre>
 
@@ -823,6 +841,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info_full
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -838,6 +857,21 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is an int
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is an int
+	script_command_line has a value which is a string
+	description has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
 
 
 =end text
@@ -2460,7 +2494,8 @@ an int
 =item Description
 
 A string used as a name for a workspace.
-Any string consisting of alphanumeric characters and "_" is acceptable.
+Any string consisting of alphanumeric characters and "_" that is not an
+integer is acceptable.
 
 
 =item Definition
@@ -2802,7 +2837,7 @@ an int
 
 A string used as a name for an object.
 Any string consisting of alphanumeric characters and the characters
-        |._- is acceptable.
+        |._- that is not an integer is acceptable.
 
 
 =item Definition
@@ -2867,17 +2902,16 @@ an int
 
 A string that uniquely identifies an object in the workspace service.
 
-        There are several ways to uniquely identify an object in one string:
-        "[ws_id].[obj_id].[obj_ver]" - for example, "23.567.2" would identify
-                the second version of an object with id 567 in a workspace with id
-                23.
-        "[ws_name]/[obj_name]/[obj_ver]" - for example,
+        There are two ways to uniquely identify an object in one string:
+        "[ws_name or id]/[obj_name or id]/[obj_ver]" - for example,
                 "MyFirstWorkspace/MyFirstObject/3" would identify the third version
                 of an object called MyFirstObject in the workspace called
-                MyFirstWorkspace.
+                MyFirstWorkspace. 42/Panic/1 would identify the first version of
+                the object name Panic in workspace 42. Towel/1/6 would identify
+                the 6th version of the object with id 1 in the Towel workspace. 
         "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
-                "kb|ws.23.obj.567.ver.2" would identify the same object as in the
-                first example.
+                "kb|ws.23.obj.567.ver.2" would identify the second version of an
+                object with id 567 in a workspace with id 23.
         In all cases, if the version number is omitted, the latest version of
         the object is assumed.
 
@@ -3105,6 +3139,9 @@ A provenance action.
         command, etc. All of the following are optional, but more information
         provided equates to better data provenance.
         
+        resolved_ws_objects should never be set by the user; it is set by the
+        workspace service when returning data.
+        
         timestamp time - the time the action was started.
         string service - the name of the service that performed this action.
         int service_ver - the version of the service that performed this action.
@@ -3121,6 +3158,9 @@ A provenance action.
                 input_ws_object list.
         list<obj_ref> input_ws_objects - the workspace objects that
                 were used as input to this action.
+        list<obj_ref> resolved_ws_objects - the workspace objects ids from 
+                input_ws_objects resolved to permanent workspace object references
+                by the workspace service.
         list<string> intermediate_incoming - if the previous action produced 
                 output that 1) was not stored in a referrable way, and 2) is
                 used as input for this action, provide it with an arbitrary and
@@ -3152,6 +3192,7 @@ script_ver has a value which is an int
 script_command_line has a value which is a string
 description has a value which is a string
 input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 description has a value which is a string
@@ -3173,6 +3214,7 @@ script_ver has a value which is an int
 script_command_line has a value which is a string
 description has a value which is a string
 input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 description has a value which is a string
@@ -3300,8 +3342,9 @@ An object and associated data required for saving.
         
         Optional arguments:
         One of an object name or id. If no name or id is provided the name
-                will be set to the object id as a string, possibly with -\d+
-                appended if that object id already exists as a name.
+                will be set to 'auto' with the object id appended as a string,
+                possibly with -\d+ appended if that object id already exists as a
+                name.
         obj_name name - the name of the object.
         obj_id objid - the id of the object to save over.
         usermeta meta - arbitrary user-supplied metadata for the object,
@@ -3406,6 +3449,7 @@ The data and supplemental info for an object.
 
         UnspecifiedObject data - the object's data.
         object_info_full info - information about the object.
+        list<ProvenanceAction> provenance - the object's provenance.
 
 
 =item Definition
@@ -3416,6 +3460,7 @@ The data and supplemental info for an object.
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info_full
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 
 </pre>
 
@@ -3426,6 +3471,7 @@ info has a value which is a Workspace.object_info_full
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info_full
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 
 
 =end text

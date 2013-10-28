@@ -2,6 +2,7 @@
 package us.kbase.workspace;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -19,6 +20,7 @@ import us.kbase.common.service.UObject;
  * The data and supplemental info for an object.
  *         UnspecifiedObject data - the object's data.
  *         object_info_full info - information about the object.
+ *         list<ProvenanceAction> provenance - the object's provenance.
  * </pre>
  * 
  */
@@ -26,7 +28,8 @@ import us.kbase.common.service.UObject;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "data",
-    "info"
+    "info",
+    "provenance"
 })
 public class ObjectData {
 
@@ -34,6 +37,8 @@ public class ObjectData {
     private UObject data;
     @JsonProperty("info")
     private Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info;
+    @JsonProperty("provenance")
+    private List<ProvenanceAction> provenance;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -66,6 +71,21 @@ public class ObjectData {
         return this;
     }
 
+    @JsonProperty("provenance")
+    public List<ProvenanceAction> getProvenance() {
+        return provenance;
+    }
+
+    @JsonProperty("provenance")
+    public void setProvenance(List<ProvenanceAction> provenance) {
+        this.provenance = provenance;
+    }
+
+    public ObjectData withProvenance(List<ProvenanceAction> provenance) {
+        this.provenance = provenance;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -78,7 +98,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

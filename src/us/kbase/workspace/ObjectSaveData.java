@@ -24,8 +24,9 @@ import us.kbase.common.service.UObject;
  *         
  *         Optional arguments:
  *         One of an object name or id. If no name or id is provided the name
- *                 will be set to the object id as a string, possibly with -\d+
- *                 appended if that object id already exists as a name.
+ *                 will be set to 'auto' with the object id appended as a string,
+ *                 possibly with -\d+ appended if that object id already exists as a
+ *                 name.
  *         obj_name name - the name of the object.
  *         obj_id objid - the id of the object to save over.
  *         usermeta meta - arbitrary user-supplied metadata for the object,
