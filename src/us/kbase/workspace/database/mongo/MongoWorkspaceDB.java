@@ -98,6 +98,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WS_ACLS = "workspaceACLs";
 	private static final String COL_WORKSPACE_PTRS = "workspaceObjects";
 	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
+	private static final String COL_PROVENANCE = "provenance";
 	private static final String COL_SHOCK = "shockData";
 	private static final User allUsers = new AllUsers('*');
 	
@@ -168,6 +169,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find objects that have the same provenance
 		wsVer.put(Arrays.asList(Fields.VER_PROV), Arrays.asList(""));
 		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
+		
+		//no indexes needed for provenance since all lookups are by _id
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
@@ -706,7 +709,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		pointer.put(Fields.VER_CREATEDATE, created);
 		pointer.put(Fields.VER_REF, pkg.refs);
 		pointer.put(Fields.VER_PROVREF, pkg.provrefs);
-		pointer.put(Fields.VER_PROV, null); //TODO add objectID
+		pointer.put(Fields.VER_PROV, pkg.mprov.getMongoId());
 		pointer.put(Fields.VER_TYPE, pkg.wo.getType().getTypeString());
 		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
 		pointer.put(Fields.VER_RVRT, null);
@@ -841,7 +844,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	//TODO can get rid of this?
+	//TODO can get rid of this? or null out the ResolvedSaveObject?
 	private static class ObjectSavePackage {
 		
 		public ResolvedSaveObject wo;
@@ -849,11 +852,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public TypeData td;
 		public Set<String> refs;
 		public List<String> provrefs;
+		public MongoProvenance mprov;
 		
 		@Override
 		public String toString() {
 			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", td="
-					+ td + "]";
+					+ td + ", mprov =" + mprov +  "]";
 		}
 	}
 	
@@ -1065,6 +1069,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
 		saveData(wsidmongo, packages);
+		saveProvenance(packages);
 		updateReferenceCounts(packages);
 		final long lastid;
 		try {
@@ -1121,6 +1126,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private void saveProvenance(final List<ObjectSavePackage> packages)
+			throws WorkspaceCommunicationException {
+		final List<MongoProvenance> prov = new LinkedList<MongoProvenance>();
+		for (final ObjectSavePackage p: packages) {
+			final MongoProvenance mp = new MongoProvenance(
+					p.wo.getProvenance());
+			prov.add(mp);
+			p.mprov = mp;
+		}
+		try {
+			wsjongo.getCollection(COL_PROVENANCE).insert((Object[])
+					prov.toArray(new MongoProvenance[prov.size()]));
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+
 	private class VerCount {
 		final public Integer ver;
 		final public Integer count;

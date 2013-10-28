@@ -85,7 +85,7 @@ public class Workspaces {
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
 
 	//TODO *** alpha_list_objects alpha_list_workspaces
-	//TODO ** save provenance
+	//TODO ** save and get provenance
 	//TODO *** email notification on module ownership request
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;

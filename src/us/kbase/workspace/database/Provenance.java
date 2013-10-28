@@ -8,8 +8,8 @@ import java.util.List;
 
 public class Provenance {
 	
-	private final String user;
-	private final List<ProvenanceAction> actions =
+	private String user;
+	private List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
 	public Provenance(WorkspaceUser user) {
@@ -19,6 +19,8 @@ public class Provenance {
 		this.user = user.getUser();
 	}
 	
+	protected Provenance() {} //for subclasses using mongo
+	
 	public void addAction(ProvenanceAction action) {
 		if (action == null) {
 			throw new NullPointerException("action cannot be null");
@@ -26,8 +28,8 @@ public class Provenance {
 		actions.add(action);
 	}
 	
-	public String getUser() {
-		return user;
+	public WorkspaceUser getUser() {
+		return new WorkspaceUser(user);
 	}
 
 	public List<ProvenanceAction> getActions() {
