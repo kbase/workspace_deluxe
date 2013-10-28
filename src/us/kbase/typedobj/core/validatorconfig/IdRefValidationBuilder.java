@@ -121,7 +121,6 @@ public class IdRefValidationBuilder {
 
 		/**
 		* Performs the actual validation of the instance, which in this case simply
-		* TODO add validation to make sure ID is in the proper format
 		*/
 		@Override
 		public void validate(

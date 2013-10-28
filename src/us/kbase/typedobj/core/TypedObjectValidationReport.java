@@ -15,6 +15,7 @@ import us.kbase.typedobj.idref.WsIdReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
@@ -45,7 +46,10 @@ public class TypedObjectValidationReport {
 	 */
 	private IdReferenceManager idRefManager;
 
-	
+	/**
+	 * we keep a reference to the original instance that was validated so we can later easily rename labels or extract
+	 * the ws searchable subset
+	 */
 	private JsonNode originalInstance;
 	
 	
@@ -189,7 +193,10 @@ public class TypedObjectValidationReport {
 	
 	
 	public JsonNode extractSearchableWsSubset() {
-		
+		if(!isInstanceValid()) {
+			ObjectMapper mapper = new ObjectMapper();
+			return mapper.createObjectNode();
+		}
 		// temporary hack until subset extraction is updated...
 		///processingReport
 		
@@ -205,85 +212,113 @@ public class TypedObjectValidationReport {
 		while(mssgs.hasNext()) {
 			ProcessingMessage m = mssgs.next();
 			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
-				keys_of = m.asJson().get("search-data").get("keys");
-				fields = m.asJson().get("search-data").get("fields");
+				JsonNode searchData = m.asJson().get("search-data");
+				keys_of = searchData.get("keys");
+				fields = searchData.get("fields");
 				//there can only one per report, so we can break as soon as we got it!
 				break;
 			}
 		}
 		
 		System.out.println("extracting subset");
-		subset = extractField(subset, 
+		subset = extractFields(subset, 
 				(JsonNode)originalInstance, 
 				(ObjectNode)fields);
 		
-//		
-//				ArrayNode fields = (ArrayNode)m.asJson().get("fields");
-//						Iterator<JsonNode> fieldNames = fields.elements();
-//						while(fieldNames.hasNext()) {
-//							String fieldName = fieldNames.next().asText();
-//							subset.put(fieldName, instanceRootNode.findValue(fieldName));
-//						}
-//					} else if( m.getMessage().compareTo("ws-searchable-keys-subset") == 0 ) {
-//						ArrayNode fields = (ArrayNode) m.asJson().get("keys_of");
-//						Iterator<JsonNode> fieldNames = fields.elements();
-//						while(fieldNames.hasNext()) {
-//							String fieldName = fieldNames.next().asText();
-//							JsonNode mapping = instanceRootNode.findValue(fieldName);
-//							if(!mapping.isObject()) {
-//								//might want to error out here instead of passing
-//								continue;
-//							}
-//							ArrayNode keys = mapper.createArrayNode();
-//							Iterator<String> keyIter = mapping.fieldNames();
-//							while(keyIter.hasNext()) {
-//								keys.add(keyIter.next());
-//							}
-//							subset.put(fieldName, keys);
-//						}
-//					}
-//				}
+		
 		return subset;
 	}
 	
 	
 	
 	
-	private ObjectNode extractField(ObjectNode subset, JsonNode element, ObjectNode selection) {
+	private ObjectNode extractFields(ObjectNode subset, JsonNode element, ObjectNode selection) {
 		
 		System.out.println("here");
-		Iterator <Map.Entry<String,JsonNode>> selected_fields = selection.fields();
+		System.out.println(" - subset: "+subset);
+		System.out.println(" - element: "+element);
+		System.out.println(" - selection: " + selection);
+		Iterator <Map.Entry<String,JsonNode>> selectedFields = selection.fields();
 		
 		//if the selection is empty, we return nothing
-		if(!selected_fields.hasNext()) return null;
+		if(!selectedFields.hasNext()) return null;
 		
 		//otherwise we need to get everything in the selection
-		while(selected_fields.hasNext()) {
-			Map.Entry<String,JsonNode> selected_field = selected_fields.next();
-			System.out.println("looking at: "+selected_field.getKey());
+		while(selectedFields.hasNext()) {
+			Map.Entry<String,JsonNode> selectedField = selectedFields.next();
+			System.out.println("looking at: "+selectedField.getKey());
+			// first we split the name to determine if it is a mapping or not...
+			boolean isMapping = false;
+			String selectedFieldName = selectedField.getKey();
+			String [] splitFieldName = selectedFieldName.split("\\.");
+			if(splitFieldName.length==2) {
+				if(splitFieldName[0].equals("mapping")) {
+					isMapping=true;
+					selectedFieldName = splitFieldName[1];
+				}
+			}
 			
-			JsonNode field_data = element.get(selected_field.getKey());
-			if(field_data!=null) {
-				if(field_data.isObject()) {
-					ObjectMapper mapper = new ObjectMapper();
-					ObjectNode newsubset = mapper.createObjectNode();
-					JsonNode moreSubData = extractField(newsubset, field_data, (ObjectNode)selected_field.getValue());
-					if(moreSubData==null) {
-						subset.set(selected_field.getKey(),moreSubData);
+			JsonNode fieldData = element.get(selectedFieldName);
+			if(fieldData!=null) {
+				if(fieldData.isObject()) {
+					// TODO make sure node in subset does not already exist..
+					// TODO if the object is a kbase type 'map' we must detect it and recurse down each field instead of looking
+					// at field names
+					if(isMapping) {
+						// if there is nothing in the mapping we want, then we take the entire thing
+						if(selectedField.getValue().size()==0) {
+							subset.set(selectedFieldName, element.get(selectedFieldName));
+						} else {
+							// we must go through each value in the mapping, and add it
+							ObjectMapper mapper = new ObjectMapper();
+							ObjectNode newMappingSubset = mapper.createObjectNode();
+							
+							Iterator <Map.Entry<String,JsonNode>> mappingElements = fieldData.fields();
+							while(mappingElements.hasNext()) {
+								Map.Entry<String,JsonNode> mappingElement = mappingElements.next();
+								ObjectNode emptyMappingSubset = mapper.createObjectNode();
+								JsonNode elementSubData = extractFields(emptyMappingSubset, mappingElement.getValue(), (ObjectNode)selectedField.getValue());
+								newMappingSubset.set(mappingElement.getKey(),elementSubData);
+							}
+							subset.set(selectedFieldName, newMappingSubset);
+							
+						}
 					} else {
-						subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
+						ObjectMapper mapper = new ObjectMapper();
+						ObjectNode newsubset = mapper.createObjectNode();
+						JsonNode moreSubData = extractFields(newsubset, fieldData, (ObjectNode)selectedField.getValue());
+						if(moreSubData!=null) {
+							subset.set(selectedFieldName,moreSubData);
+						} else {
+							subset.set(selectedFieldName, element.get(selectedFieldName));
+						}
 					}
-				} else if(field_data.isValueNode()) {
-					subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
-				} else if(field_data.isArray()) {
-//					ObjectMapper mapper = new ObjectMapper();
-//					ObjectNode newsubset = mapper.createObjectNode();
-//					JsonNode moreSubData = extractField(newsubset, field_data, (ObjectNode)selected_field.getValue());
-//					if(moreSubData==null) {
-//						subset.set(selected_field.getKey(),moreSubData);
-//					} else {
-//						subset.set(selected_field.getKey(), element.get(selected_field.getKey()));
-//					}
+				} else if(fieldData.isValueNode()) {
+					subset.set(selectedField.getKey(), element.get(selectedField.getKey()));
+					System.out.println("adding, new subset:" +subset);
+				} else if(fieldData.isArray()) {
+					// TODO make sure node in subset does not already exist...
+					// first, check if there are any sub fields-- if there aren't, then we can add the entire list
+					if(selectedField.getValue().size()==0) {
+						subset.set(selectedFieldName, element.get(selectedFieldName));
+					} else {
+						// otherwise, we have to create a new arraynode, populate it with just what we need, then return
+						ArrayNode newSubArray = JsonNodeFactory.instance.arrayNode();
+						ObjectMapper mapper = new ObjectMapper();
+						for(int k=0; k<fieldData.size(); k++) {
+							ObjectNode emptySubset = mapper.createObjectNode();
+							JsonNode newSubArrayElement = extractFields(emptySubset, fieldData.get(k), (ObjectNode)selectedField.getValue());
+							// since the size of the selected_field is not zero, we should always be pulling some sub data, but if we do not
+							// for whatever failure (optional fields should still get us an empty object, so it must be some other failure), we add an empty object
+							if(newSubArrayElement!=null) {
+								newSubArray.add(newSubArrayElement);
+							} else {
+								ObjectNode nothing = mapper.createObjectNode();
+								newSubArray.add(nothing);
+							}
+						}
+						subset.set(selectedFieldName, newSubArray);
+					}
 				}
 			}
 			

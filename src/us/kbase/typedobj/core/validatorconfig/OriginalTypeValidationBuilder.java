@@ -3,6 +3,7 @@ package us.kbase.typedobj.core.validatorconfig;
 import java.util.Collection;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -12,6 +13,7 @@ import com.github.fge.jsonschema.keyword.validator.AbstractKeywordValidator;
 import com.github.fge.jsonschema.library.Keyword;
 import com.github.fge.jsonschema.processing.Processor;
 import com.github.fge.jsonschema.processors.data.FullData;
+import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 import com.github.fge.jsonschema.syntax.checkers.AbstractSyntaxChecker;
 import com.github.fge.jsonschema.syntax.checkers.SyntaxChecker;
@@ -100,8 +102,24 @@ public class OriginalTypeValidationBuilder {
 	 */
 	public static final class OriginalTypeKeywordValidator extends AbstractKeywordValidator {
 		
+		/**
+		 * we need to mark kidl mappings at the validation level, because later on we can't distinguish
+		 * between structures and mappings in raw json without this.
+		 */
+		private boolean isKidlMapping;
+		
 		public OriginalTypeKeywordValidator(final JsonNode digest) {
 			super(OriginalTypeValidationBuilder.keyword);
+			System.out.println(digest);
+			JsonNode originalType = digest.get(OriginalTypeValidationBuilder.keyword);
+			System.out.println(originalType);
+			if(originalType!=null) {
+				if(originalType.asText().equals("kidl-mapping")) {
+					isKidlMapping = true;
+				} else {
+					isKidlMapping = false;
+				}
+			}
 		}
 
 		@Override
@@ -113,6 +131,15 @@ public class OriginalTypeValidationBuilder {
 						throws ProcessingException {
 			// validation goes here
 			//TODO save a pointer to any kidl-mapping object so that mapping keys can be later be processed (e.g. replace dots and dollar)
+			//kidl-mapping
+			// mark type "mapping"
+			if(isKidlMapping) {
+				JsonNode node = data.getInstance().getNode();
+				report.info(new ProcessingMessage()
+								.setMessage("kidl-mapping-marker")
+								.put("location",data.getInstance().getPointer())
+								);
+			}
 			return;
 		}
 
@@ -131,12 +158,12 @@ public class OriginalTypeValidationBuilder {
 	
 		private static final SyntaxChecker INSTANCE = new OriginalTypeSyntaxChecker();
 		
+		
 		public static SyntaxChecker getInstance() {
 			return INSTANCE;
 		}
 		
-		private OriginalTypeSyntaxChecker()
-		{
+		private OriginalTypeSyntaxChecker() {
 			// When constructing, the name for the keyword must be provided along with the allowed type for the value
 			super(OriginalTypeValidationBuilder.keyword, NodeType.OBJECT, NodeType.ARRAY, NodeType.BOOLEAN, NodeType.INTEGER, NodeType.NUMBER, NodeType.STRING);
 		}
@@ -149,7 +176,6 @@ public class OriginalTypeValidationBuilder {
 				final SchemaTree tree)
 						throws ProcessingException
 		{
-			
 		}
 	}
 	

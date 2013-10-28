@@ -76,9 +76,10 @@ public class TypedObjExample1 {
 			TypedObjectValidator validator = new TypedObjectValidator(db);
 			
 			String instance1 = 
-					("{`source`:`g.0`,`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`, `secondBest`:{`name`:`num2`,`sequence`:`gat`},   "
-					+ "`feature_ids`:[`f1`,`f2`],`length_of_features`:{`f1`:11,`f2`:22},"
-					+ "`regulators`:{`f1`:[`f2`]} }").replace('`', '"');
+					("{`source`:`g.0`,`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`, `secondBest`:{`name`:`num2`,`sequence`:`gat`}, `feats`:[{`name`:`feat1`,`sequence`:`yadayada`},{`name`:`feat2`,`sequence`:`superseq`}],  "
+							+ "`featmap`:{`fm1`:{`name`:`feat1`,`sequence`:`yadayada`},`fm2`:{`name`:`feat2`,`sequence`:`superseq`}},"
+							+ "`feature_ids`:[`f1`,`f2`],`length_of_features`:{`f1`:11,`f2`:22},"
+							+ "`regulators`:{`f1`:[`f2`]} }").replace('`', '"');
 			
 			ObjectMapper mapper = new ObjectMapper();
 			final JsonNode instance1RootNode;

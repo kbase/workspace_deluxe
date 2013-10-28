@@ -27,17 +27,20 @@ module KB {
 		string sequence;
 	} Feature;
 
-	
 
 	/*
-	@searchable ws_subset name feature_ids
+	@searchable ws_subset name feature_ids secondBest.name feats.sequence
 	@searchable ws_subset keys_of(regulators)
+	@searchable ws_subset featmap.name
 	*/
 	typedef structure {
 		kbid source;
 		string name;
 		string sequence;
 		feature_id bestFeature;
+		Feature secondBest;
+		list <Feature> feats;
+		mapping <feature_id,Feature> featmap;
 		list <feature_id> feature_ids;
 		mapping <feature_id, int> length_of_features;
 		mapping <feature_id,list<feature_id>> regulators;
