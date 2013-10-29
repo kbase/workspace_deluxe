@@ -84,10 +84,10 @@ public class Workspaces {
 	
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
 
-	//TODO *** alpha_list_objects alpha_list_workspaces
-	//TODO ** save and get provenance
-	//TODO *** email notification on module ownership request
-	//TODO * refactor meta classes to info
+	//TODO $P3 alpha_list_objects alpha_list_workspaces
+	//TODO $P1 save and get provenance
+	//TODO $P3 email notification on module ownership request
+	//TODO $P1 refactor meta classes to info
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
@@ -447,7 +447,7 @@ public class Workspaces {
 			}
 			rep.setAbsoluteIdReferences(replacerefs);
 			val.relableToAbsoluteIds(wo.getData(), rep);
-			//TODO typechecking for each object
+			//TODO typechecking for each reference
 			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
 			saveobjs.add(wo.resolve(type, wo.getData(), rep, refs, provrefs));
 			objcount++;

@@ -85,6 +85,9 @@ public class Provenance {
 			return wsobjs;
 		}
 
+		// would prefer to make this abstract but Jackson doesn't like it
+		// and want to keep this class as unaware of the backend implementation
+		// as possible
 		public List<String> getResolvedObjects() {
 			throw new UnimplementedException();
 		}

@@ -67,7 +67,6 @@ import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
-import us.kbase.workspace.database.mongo.MongoProvenance.MongoProvenanceAction;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -948,8 +947,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			escapeSubdata(subdata);
 			//TODO null out the object packages after this
-			//TODO add references to object version
-			//TODO when safe, increment reference counter on main object
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(json, o.getType(), subdata);
@@ -1372,14 +1369,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_META_PROV);
+		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
+		final Map<String, Object> chksumToData = new HashMap<String, Object>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
-		final List<ObjectId> provIDs = new LinkedList<ObjectId>();
-		for (final ResolvedMongoObjectID id: vers.keySet()) {
-			provIDs.add((ObjectId) vers.get(id).get(Fields.VER_PROV));
-		}
-		final Map<ObjectId, MongoProvenance> provs = getProvenance(provIDs);
-		final Map<String, Object> chksumToData = new HashMap<String, Object>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
@@ -1391,16 +1384,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
-			@SuppressWarnings("unchecked")
-			final List<String> resolvedRefs = (List<String>) vers.get(roi)
-					.get(Fields.VER_PROVREF);
-			for (Provenance.ProvenanceAction pa: prov.getActions()) {
-				final int refcnt = pa.getWorkspaceObjects().size();
-				final List<String> actionRefs = new LinkedList<String>(
-						resolvedRefs.subList(0, refcnt));
-				resolvedRefs.subList(0, refcnt).clear();
-				((MongoProvenanceAction) pa).withResolvedObjects(actionRefs);
-			}
 			final MongoObjectUserMeta meta = generateUserMeta(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
@@ -1439,12 +1422,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private Map<ObjectId, MongoProvenance> getProvenance(
-			final List<ObjectId> provIDs)
+			final Map<ResolvedMongoObjectID, Map<String, Object>> vers)
 			throws WorkspaceCommunicationException {
+		final Map<ObjectId, Map<String, Object>> provIDs =
+				new HashMap<ObjectId, Map<String,Object>>();
+		for (final ResolvedMongoObjectID id: vers.keySet()) {
+			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV),
+					vers.get(id));
+		}
 		final Iterable<MongoProvenance> provs;
 		try {
 			provs = wsjongo.getCollection(COL_PROVENANCE)
-					.find("{_id: {$in: #}}", provIDs).as(MongoProvenance.class);
+					.find("{_id: {$in: #}}", provIDs.keySet())
+					.as(MongoProvenance.class);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -1452,8 +1442,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectId, MongoProvenance> ret =
 				new HashMap<ObjectId, MongoProvenance>();
 		for (MongoProvenance p: provs) {
+			@SuppressWarnings("unchecked")
+			final List<String> resolvedRefs = (List<String>) provIDs
+					.get(p.getMongoId()).get(Fields.VER_PROVREF);
 			ret.put(p.getMongoId(), p);
-			p.fixProvenanceActions(); //this is a gross hack. I'm rather proud of it actually
+			p.resolveReferences(resolvedRefs); //this is a gross hack. I'm rather proud of it actually
 		}
 		return ret;
 	}

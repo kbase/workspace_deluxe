@@ -11,8 +11,6 @@ import us.kbase.workspace.database.Provenance;
 
 public class MongoProvenance extends Provenance {
 	
-	//TODO return resolved refs in correct order
-	
 	private ObjectId _id;
 	
 	MongoProvenance(final Provenance p) {
@@ -22,12 +20,17 @@ public class MongoProvenance extends Provenance {
 		}
 	}
 	
-	//hacky hacky hacky but what're you gonna do
-	void fixProvenanceActions() {
+	public void resolveReferences(List<String> resolvedRefs) {
+		final List<String> refs = new LinkedList<String>(resolvedRefs);
 		final List<ProvenanceAction> actions =
 				new LinkedList<ProvenanceAction>();
-		for (final ProvenanceAction pa: this.actions) {
-			actions.add(new MongoProvenanceAction(pa));
+		for (Provenance.ProvenanceAction pa: this.actions) {
+			final int refcnt = pa.getWorkspaceObjects().size();
+			final List<String> actionRefs = new LinkedList<String>(
+					refs.subList(0, refcnt));
+			refs.subList(0, refcnt).clear();
+			actions.add(new MongoProvenanceAction(pa)
+					.withResolvedObjects(actionRefs));
 		}
 		this.actions = actions;
 	}
