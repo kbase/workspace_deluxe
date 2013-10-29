@@ -106,20 +106,21 @@ public class OriginalTypeValidationBuilder {
 		 * we need to mark kidl mappings at the validation level, because later on we can't distinguish
 		 * between structures and mappings in raw json without this.
 		 */
-		private boolean isKidlMapping;
+		//private boolean isKidlMapping;
 		
 		public OriginalTypeKeywordValidator(final JsonNode digest) {
 			super(OriginalTypeValidationBuilder.keyword);
-			System.out.println(digest);
-			JsonNode originalType = digest.get(OriginalTypeValidationBuilder.keyword);
-			System.out.println(originalType);
-			if(originalType!=null) {
+			
+			//JsonNode originalType = digest.get(OriginalTypeValidationBuilder.keyword);
+
+			// this code would allow us to mark a type as "mapping"- it is not currently needed, so this is commented out
+			/*if(originalType!=null) {
 				if(originalType.asText().equals("kidl-mapping")) {
 					isKidlMapping = true;
 				} else {
 					isKidlMapping = false;
 				}
-			}
+			}*/
 		}
 
 		@Override
@@ -129,23 +130,20 @@ public class OriginalTypeValidationBuilder {
 				final MessageBundle bundle,
 				final FullData data)
 						throws ProcessingException {
-			// validation goes here
-			//TODO save a pointer to any kidl-mapping object so that mapping keys can be later be processed (e.g. replace dots and dollar)
-			//kidl-mapping
-			// mark type "mapping"
-			if(isKidlMapping) {
+			// this code would allow us to mark a type as "mapping"- it is not currently needed, so this is commented out
+			/*if(isKidlMapping) {
 				JsonNode node = data.getInstance().getNode();
 				report.info(new ProcessingMessage()
 								.setMessage("kidl-mapping-marker")
 								.put("location",data.getInstance().getPointer())
 								);
-			}
+			}*/
 			return;
 		}
 
 		@Override
 		public String toString() {
-			return "i am a KBTypeKeywordValidator, but you prob wanted more than that";
+			return "OriginalKeyWordValidator instance";
 		}
 	}
 	

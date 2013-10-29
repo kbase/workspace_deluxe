@@ -44,7 +44,7 @@ public class ValidationConfigurationFactory {
 		final Keyword searchableKeyword      = SearchableWsSubsetValidationBuilder.getKeyword();
 		
 		 /*
-		 * Fetch the default Library based on Json Schema V4, thaw it, add
+		 * Step 2: Fetch the default Library based on Json Schema V4, thaw it, add
 		 * our keywords, freeze it again and we are ready to go.
 		 */
 		LibraryBuilder kbLibBuilder = DraftV4Library.get().thaw();
@@ -55,9 +55,9 @@ public class ValidationConfigurationFactory {
 		
 		
 		/*
-		 * Complement the validation message bundle with error messages that can later
+		 * Step 3: Complement the validation message bundle with error messages that can later
 		 * be attached to the validator report (note that this is not required, but is a
-		 * nice feature to ensure consistent error messages)
+		 * nice feature to ensure consistent error messages, which we don't use currently)
 		 */
 		final MessageSource originalTypeMssgs   = OriginalTypeValidationBuilder.getErrorMssgSrc();
 		final MessageSource idRefMssgs          = IdRefValidationBuilder.getErrorMssgSrc();
@@ -70,7 +70,8 @@ public class ValidationConfigurationFactory {
 		final MessageBundle bundle = mbb.freeze();
 		
 		/*
-		 * Create the new ValidationConfiguration and set the kbase library as default
+		 * Step 4: Create the new ValidationConfiguration and set the kbase library as default
+		 * TODO define the json schema for our json schema, and post the library online somewhere....
 		 */
 		ValidationConfiguration cfg = 
 				ValidationConfiguration.newBuilder()

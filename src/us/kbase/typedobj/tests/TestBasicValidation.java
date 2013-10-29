@@ -76,7 +76,7 @@ public class TestBasicValidation {
 	
 	private static TypedObjectValidator validator;
 	
-	private final static boolean VERBOSE = false;
+	private final static boolean VERBOSE = true;
 	
 	/*
 	 * structures to store info on each instance we wish to validate 
@@ -234,7 +234,7 @@ public class TestBasicValidation {
 				}
 				
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
-				System.out.println("  *("+instance.resourceName+")");
+				//System.out.println("  *("+instance.resourceName+")");
 				//System.out.println(report.toString());
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
@@ -254,8 +254,8 @@ public class TestBasicValidation {
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 						);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
-				System.out.println("  -("+instance.resourceName+")");
-				System.out.println(report.toString());
+				//System.out.println("  -("+instance.resourceName+")");
+				//System.out.println(report.toString());
 
 			} catch (Exception e) {
 				//if an exception is thrown, it must be an InstanceValidationException

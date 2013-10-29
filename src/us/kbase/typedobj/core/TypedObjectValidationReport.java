@@ -189,6 +189,9 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
+	/**
+	 * Get a copy of the original json instance that was validated to generate this report
+	 */
 	public JsonNode getJsonInstance() {
 		return originalInstance;
 	}
@@ -197,10 +200,16 @@ public class TypedObjectValidationReport {
 	
 	
 	
-	
+	/**
+	 * If a searchable ws_subset was defined in the Json Schema, then you can use this method
+	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
+	 * so if you extract a subset, then modify the original instance that was validated, it can
+	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
+	 * deep copy of the original instance if you intend to modify it and subset data has already
+	 * been extracted.
+	 */
 	public JsonNode extractSearchableWsSubset() {
 		if(!isInstanceValid()) {
-			ObjectMapper mapper = new ObjectMapper();
 			return mapper.createObjectNode();
 		}
 		
@@ -208,9 +217,8 @@ public class TypedObjectValidationReport {
 		ObjectNode subset = mapper.createObjectNode();
 		
 		// Identify what we need to extract
-		ObjectNode keys_of = null;
-		ObjectNode fields = null;
-		
+		ObjectNode keys_of  = null;
+		ObjectNode fields   = null;
 		Iterator<ProcessingMessage> mssgs = processingReport.iterator();
 		while(mssgs.hasNext()) {
 			ProcessingMessage m = mssgs.next();
@@ -223,60 +231,23 @@ public class TypedObjectValidationReport {
 			}
 		}
 		
-		if(fields.size()>0) {
-			extractFields(subset, 
-					(JsonNode)originalInstance, 
-					(ObjectNode)fields,
-					false);
-		}
-		if(keys_of.size()>0) {
-			extractFields(subset, 
-					(JsonNode)originalInstance, 
-					(ObjectNode)keys_of,
-					true);
-			
-		}
-		
+		// call our private method for extracting out the fields and keys_of mappings
+		if(fields!=null)
+			extractFields(subset, originalInstance, fields, false);
+		if(keys_of!=null)
+			extractFields(subset, originalInstance, keys_of, true);
 		
 		return subset;
 	}
 	
 	
 	/**
-	 * 
-	 */
-	private void extractElements(ArrayNode subsetArray, ArrayNode element, ObjectNode selection, boolean extractKeysOf) {
-		
-		//add nothing if selection is empty...  adding everything is always handled one level up
-		Iterator <Map.Entry<String,JsonNode>> selectedFields = selection.fields();
-		if(!selectedFields.hasNext()) return;
-		
-		// loop over every item in the array element
-		for(int k=0; k<element.size(); k++) {
-			// get the data
-			JsonNode elementDataAtK = element.get(k);
-			// if the data was an object, then see if we have that info yet in the array, and if not create it and continue
-			if(elementDataAtK.isObject()) {
-				ObjectNode subsetDataAtK = (ObjectNode) subsetArray.get(k);
-				if(subsetDataAtK==null) {
-					subsetDataAtK = mapper.createObjectNode();
-					subsetArray.add(subsetDataAtK);
-				}
-				extractFields(subsetDataAtK, elementDataAtK, selection, extractKeysOf);
-			} else if(elementDataAtK.isArray()) {
-				// otherwise, we have to create a new arraynode, and recurse
-				ArrayNode subsetElementArray = (ArrayNode) subsetArray.get(k);
-				if(subsetElementArray==null) {
-					subsetElementArray = JsonNodeFactory.instance.arrayNode();
-					subsetArray.add(subsetElementArray);
-				}
-				extractElements(subsetElementArray, (ArrayNode)elementDataAtK, selection, extractKeysOf);
-			}
-		}
-	}
-	
-	/**
 	 * extract the fields listed in selection from the element and add them to the subset
+	 * 
+	 * selection must either be an object containing structure field names to extract, '*' in the case of
+	 * extracting a mapping, or '[*]' for extracting a list.  if the selection is empty, nothing is added.
+	 * If extractKeysOf is set, and the element is an Object (ie a kidl mapping), then an array of the keys
+	 * is added instead of the entire mapping.
 	 * 
 	 * we assume here that selection has already been validated against the structure of the document, so that
 	 * if we get true on extractKeysOf, it really is a mapping, and if we get a '*' or '[*]', it really is
@@ -284,10 +255,9 @@ public class TypedObjectValidationReport {
 	 */
 	private void extractFields(JsonNode subset, JsonNode element, ObjectNode selection, boolean extractKeysOf) {
 		
-		System.out.println("here");
-		System.out.println(" - subset: "+subset);
-		System.out.println(" - element: "+element);
-		System.out.println(" - selection: " + selection);
+		//System.out.println(" - subset: "+subset);
+		//System.out.println(" - element: "+element);
+		//System.out.println(" - selection: " + selection);
 		Iterator <Map.Entry<String,JsonNode>> selectedFields = selection.fields();
 		
 		//if the selection is empty, we return without adding anything
@@ -299,7 +269,6 @@ public class TypedObjectValidationReport {
 			// get the selected field name
 			Map.Entry<String,JsonNode> selectedField = selectedFields.next();
 			String selectedFieldName = selectedField.getKey();
-			System.out.println("looking at: "+selectedFieldName);
 			
 			// if there are no more subfields beyond this, we figure it out now...
 			boolean atTheEnd = false;
@@ -429,7 +398,7 @@ public class TypedObjectValidationReport {
 			}
 			
 			// NOTE: we cannot descend into a tuple - we could support it by detecting something like [1] or [4], but for now
-			// we do not allow it!
+			// we do not allow it!  We will encounter an error if subfields of a tuple are defined
 			
 		}
 		return;
