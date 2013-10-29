@@ -405,6 +405,15 @@ module Workspace {
 	
 	authentication optional;
 	
+	/* pre alpha version of list_workspaces so there's something to use.
+		Untested. */
+	funcdef prealpha_list_workspaces() returns(list<workspace_info> wsinfo);
+	
+	/* pre alpha version of list_objects so there's something to use.
+		Untested. */
+	funcdef prealpha_list_objects(WorkspaceIdentity wsi)
+		returns(list<object_info> objinfo);
+	
 	/* 
 		Get objects from the workspace.
 	*/

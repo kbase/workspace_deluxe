@@ -754,6 +754,219 @@ sub save_objects
 
 
 
+=head2 prealpha_list_workspaces
+
+  $wsinfo = $obj->prealpha_list_workspaces()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsinfo is a reference to a list where each element is a Workspace.workspace_info
+workspace_info is a reference to a list containing 6 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
+ws_id is an int
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsinfo is a reference to a list where each element is a Workspace.workspace_info
+workspace_info is a reference to a list containing 6 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (user_permission) a Workspace.permission
+	5: (globalread) a Workspace.permission
+ws_id is an int
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+
+
+=end text
+
+=item Description
+
+pre alpha version of list_workspaces so there's something to use.
+Untested.
+
+=back
+
+=cut
+
+sub prealpha_list_workspaces
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function prealpha_list_workspaces (received $n, expecting 0)");
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.prealpha_list_workspaces",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'prealpha_list_workspaces',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method prealpha_list_workspaces",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'prealpha_list_workspaces',
+				       );
+    }
+}
+
+
+
+=head2 prealpha_list_objects
+
+  $objinfo = $obj->prealpha_list_objects($wsi)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsi is a Workspace.WorkspaceIdentity
+$objinfo is a reference to a list where each element is a Workspace.object_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+object_info is a reference to a list containing 9 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+obj_id is an int
+obj_name is a string
+type_string is a string
+timestamp is a string
+username is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsi is a Workspace.WorkspaceIdentity
+$objinfo is a reference to a list where each element is a Workspace.object_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+object_info is a reference to a list containing 9 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+obj_id is an int
+obj_name is a string
+type_string is a string
+timestamp is a string
+username is a string
+
+
+=end text
+
+=item Description
+
+pre alpha version of list_objects so there's something to use.
+Untested.
+
+=back
+
+=cut
+
+sub prealpha_list_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function prealpha_list_objects (received $n, expecting 1)");
+    }
+    {
+	my($wsi) = @args;
+
+	my @_bad_arguments;
+        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to prealpha_list_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'prealpha_list_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.prealpha_list_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'prealpha_list_objects',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method prealpha_list_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'prealpha_list_objects',
+				       );
+    }
+}
+
+
+
 =head2 get_objects
 
   $data = $obj->get_objects($object_ids)
@@ -3137,6 +3350,8 @@ A provenance action.
         
         resolved_ws_objects should never be set by the user; it is set by the
         workspace service when returning data.
+        
+        The maximum size of the entire provenance object is 1MB.
         
         timestamp time - the time the action was started.
         string service - the name of the service that performed this action.

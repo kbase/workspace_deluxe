@@ -184,6 +184,42 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: prealpha_list_workspaces</p>
+     * <pre>
+     * pre alpha version of list_workspaces so there's something to use.
+     * Untested.
+     * </pre>
+     * @return   parameter "wsinfo" of list of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 6: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Tuple6<Long, String, String, String, String, String>> prealphaListWorkspaces() throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<List<Tuple6<Long, String, String, String, String, String>>>> retType = new TypeReference<List<List<Tuple6<Long, String, String, String, String, String>>>>() {};
+        List<List<Tuple6<Long, String, String, String, String, String>>> res = caller.jsonrpcCall("Workspace.prealpha_list_workspaces", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: prealpha_list_objects</p>
+     * <pre>
+     * pre alpha version of list_objects so there's something to use.
+     * Untested.
+     * </pre>
+     * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
+     * @return   parameter "objinfo" of list of original type "object_info" (Information about an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 9: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "chsum" of String, parameter "size" of Long
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> prealphaListObjects(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(wsi);
+        TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>>> retType = new TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>>>() {};
+        List<List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>>> res = caller.jsonrpcCall("Workspace.prealpha_list_objects", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
      * Get objects from the workspace.
