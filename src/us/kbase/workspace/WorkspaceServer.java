@@ -41,7 +41,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -393,7 +393,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			count++;
 		}
 		
-		final List<ObjectMetaData> meta;
+		final List<ObjectInformation> meta;
 		try {
 			meta = ws.saveObjects(user, wsi, woc); 
 		} catch (NoSuchModuleException nsme) {

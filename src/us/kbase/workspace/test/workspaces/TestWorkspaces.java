@@ -36,8 +36,8 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectMetaData;
-import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -480,9 +480,9 @@ public class TestWorkspaces {
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
 	}
 	
-	private void checkObjMeta(ObjectMetaData meta, long id, String name, String type,
+	private void checkObjMeta(ObjectInformation meta, long id, String name, String type,
 			int version, WorkspaceUser user, long wsid, String chksum, long size) {
-		if (meta instanceof ObjectUserMetaData) {
+		if (meta instanceof ObjectInfoUserMeta) {
 			throw new TestException("missed testing meta");
 		}
 		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
@@ -496,7 +496,7 @@ public class TestWorkspaces {
 		assertThat("Object size is correct", meta.getSize(), is(size));
 	}
 	
-	private void checkObjMeta(ObjectUserMetaData meta, long id,
+	private void checkObjMeta(ObjectInfoUserMeta meta, long id,
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String chksum, long size, Map<String, String> usermeta) {
 		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
@@ -563,7 +563,7 @@ public class TestWorkspaces {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE, meta, p, false));
 		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, p, false));
-		List<ObjectMetaData> objmeta = ws.saveObjects(foo, read, objects);
+		List<ObjectInformation> objmeta = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
 		checkObjMeta(objmeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23);
@@ -586,7 +586,7 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
 		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
-		List<ObjectUserMetaData> usermeta = ws.getObjectMetaData(foo, loi);
+		List<ObjectInfoUserMeta> usermeta = ws.getObjectMetaData(foo, loi);
 		checkObjMeta(usermeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
 		checkObjMeta(usermeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);

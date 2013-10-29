@@ -36,8 +36,8 @@ import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectMetaData;
-import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
@@ -295,7 +295,7 @@ public class Workspaces {
 		
 	}
 	
-	public List<ObjectMetaData> saveObjects(final WorkspaceUser user,
+	public List<ObjectInformation> saveObjects(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
 			List<WorkspaceSaveObject> objects) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
@@ -528,16 +528,16 @@ public class Workspaces {
 		return ret;
 	}
 	
-	public List<ObjectUserMetaData> getObjectMetaData(final WorkspaceUser user,
+	public List<ObjectInfoUserMeta> getObjectMetaData(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, ObjectUserMetaData> meta = 
+		final Map<ObjectIDResolvedWS, ObjectInfoUserMeta> meta = 
 				db.getObjectMeta(new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<ObjectUserMetaData> ret =
-				new ArrayList<ObjectUserMetaData>();
+		final List<ObjectInfoUserMeta> ret =
+				new ArrayList<ObjectInfoUserMeta>();
 		
 		for (final ObjectIdentifier o: loi) {
 			ret.add(meta.get(ws.get(o)));

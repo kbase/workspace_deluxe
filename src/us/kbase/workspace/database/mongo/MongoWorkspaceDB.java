@@ -48,8 +48,8 @@ import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectMetaData;
-import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
@@ -670,7 +670,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.PTR_DEL, Fields.PTR_MODDATE, Fields.PTR_LATEST);
 	
 	// save object in preexisting object container
-	private ObjectMetaData saveObjectVersion(final WorkspaceUser user,
+	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
@@ -721,7 +721,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return new MongoObjectMeta(objectid, pkg.name,
+		return new MongoObjectInfo(objectid, pkg.name,
 				pkg.wo.getType().getTypeString(), created, ver, user, wsid,
 				pkg.td.getChksum(), pkg.td.getSize());
 	}
@@ -1034,7 +1034,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 	//at this point the objects are expected to be validated and references rewritten
 	@Override
-	public List<ObjectMetaData> saveObjects(final WorkspaceUser user, 
+	public List<ObjectInformation> saveObjects(final WorkspaceUser user, 
 			final ResolvedWorkspaceID rwsi,
 			final List<ResolvedSaveObject> objects)
 			throws WorkspaceCommunicationException,
@@ -1112,7 +1112,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 *  complexity.
 		 */
 		long newid = lastid - newobjects + 1;
-		final List<ObjectMetaData> ret = new ArrayList<ObjectMetaData>();
+		final List<ObjectInformation> ret = new ArrayList<ObjectInformation>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
@@ -1397,7 +1397,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
-			final MongoObjectUserMeta meta = generateUserMeta(
+			final MongoObjectInfoUserMeta meta = generateUserMeta(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
@@ -1464,12 +1464,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private MongoObjectUserMeta generateUserMeta(
+	private MongoObjectInfoUserMeta generateUserMeta(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		return new MongoObjectUserMeta(
+		return new MongoObjectInfoUserMeta(
 				roi.getId(),
 				roi.getName(),
 				(String) ver.get(Fields.VER_TYPE),
@@ -1522,7 +1522,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
+	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectMeta(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
@@ -1531,8 +1531,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_META);
-		final Map<ObjectIDResolvedWS, ObjectUserMetaData> ret =
-				new HashMap<ObjectIDResolvedWS, ObjectUserMetaData>();
+		final Map<ObjectIDResolvedWS, ObjectInfoUserMeta> ret =
+				new HashMap<ObjectIDResolvedWS, ObjectInfoUserMeta>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
@@ -1750,7 +1750,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;
-			ObjectMetaData md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.id, pkg);
+			ObjectInformation md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.id, pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
 	}

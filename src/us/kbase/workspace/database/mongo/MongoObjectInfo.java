@@ -2,10 +2,10 @@ package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
 
-import us.kbase.workspace.database.ObjectMetaData;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
-public class MongoObjectMeta implements ObjectMetaData {
+public class MongoObjectInfo implements ObjectInformation {
 	
 	final private long id;
 	final private String name;
@@ -17,7 +17,7 @@ public class MongoObjectMeta implements ObjectMetaData {
 	final private String chksum;
 	final private long size;
 	
-	MongoObjectMeta(final long id, final String name,
+	MongoObjectInfo(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
 			final String chksum,

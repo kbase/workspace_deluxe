@@ -65,7 +65,7 @@ public interface WorkspaceDatabase {
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public List<ObjectMetaData> saveObjects(WorkspaceUser user,
+	public List<ObjectInformation> saveObjects(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi, List<ResolvedSaveObject> objects) throws
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
@@ -74,7 +74,7 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(
+	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectMeta(
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 	

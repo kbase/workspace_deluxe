@@ -3,15 +3,15 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 import java.util.Map;
 
-import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.WorkspaceUser;
 
-public class MongoObjectUserMeta extends MongoObjectMeta implements
-		ObjectUserMetaData {
+public class MongoObjectInfoUserMeta extends MongoObjectInfo implements
+		ObjectInfoUserMeta {
 	
 	final private Map<String, String> userMeta;
 	
-	MongoObjectUserMeta(final long id, final String name,
+	MongoObjectInfoUserMeta(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
 			final String chksum, final long size,

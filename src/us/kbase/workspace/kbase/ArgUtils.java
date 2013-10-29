@@ -17,8 +17,8 @@ import us.kbase.common.utils.UTCDateFormat;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
-import us.kbase.workspace.database.ObjectMetaData;
-import us.kbase.workspace.database.ObjectUserMetaData;
+import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceMetaData;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -103,7 +103,7 @@ public class ArgUtils {
 	
 	public List<Tuple9<Long, String, String, String, Long, String,
 			Long, String, Long>>
-			objMetaToTuple (final List<ObjectMetaData> meta) {
+			objMetaToTuple (final List<ObjectInformation> meta) {
 		
 		//oh the humanity
 		final List<Tuple9<Long, String, String, String, Long, String,
@@ -111,7 +111,7 @@ public class ArgUtils {
 			new ArrayList<Tuple9<Long, String, String, String, Long,
 			String, Long, String, Long>>();
 		
-		for (ObjectMetaData m: meta) {
+		for (ObjectInformation m: meta) {
 			ret.add(new Tuple9<Long, String, String, String, Long,
 					String, Long, String, Long>()
 					.withE1(m.getObjectId())
@@ -129,15 +129,15 @@ public class ArgUtils {
 	
 	public Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>
-			objUserMetaToTuple (final ObjectUserMetaData meta) {
-		final List<ObjectUserMetaData> m = new ArrayList<ObjectUserMetaData>();
+			objUserMetaToTuple (final ObjectInfoUserMeta meta) {
+		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
 		m.add(meta);
 		return objUserMetaToTuple(m).get(0);
 	}
 	
 	public List<Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>>
-			objUserMetaToTuple (final List<ObjectUserMetaData> meta) {
+			objUserMetaToTuple (final List<ObjectInfoUserMeta> meta) {
 		
 		//oh the humanity
 		final List<Tuple10<Long, String, String, String, Long, String,
@@ -145,7 +145,7 @@ public class ArgUtils {
 			new ArrayList<Tuple10<Long, String, String, String, Long,
 			String, Long, String, Long, Map<String, String>>>();
 		
-		for (ObjectUserMetaData m: meta) {
+		for (ObjectInfoUserMeta m: meta) {
 			ret.add(new Tuple10<Long, String, String, String, Long,
 					String, Long, String, Long, Map<String, String>>()
 					.withE1(m.getObjectId())

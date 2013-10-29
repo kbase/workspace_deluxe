@@ -3,7 +3,7 @@ package us.kbase.workspace.database;
 import java.util.Date;
 
 
-public interface ObjectMetaData {
+public interface ObjectInformation {
 	
 	public long getObjectId();
 	public String getObjectName();

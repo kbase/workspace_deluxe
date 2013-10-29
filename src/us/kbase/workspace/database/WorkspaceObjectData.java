@@ -3,11 +3,11 @@ package us.kbase.workspace.database;
 public class WorkspaceObjectData {
 
 	private final Object data;
-	private final ObjectUserMetaData meta;
+	private final ObjectInfoUserMeta meta;
 	private final Provenance prov;
 
 	public WorkspaceObjectData(final Object data,
-			final ObjectUserMetaData meta, final Provenance prov) {
+			final ObjectInfoUserMeta meta, final Provenance prov) {
 		if (data == null || meta == null || prov == null) {
 			throw new IllegalArgumentException(
 					"data, prov and meta cannot be null");
@@ -21,7 +21,7 @@ public class WorkspaceObjectData {
 		return data;
 	}
 
-	public ObjectUserMetaData getMeta() {
+	public ObjectInfoUserMeta getMeta() {
 		return meta;
 	}
 
