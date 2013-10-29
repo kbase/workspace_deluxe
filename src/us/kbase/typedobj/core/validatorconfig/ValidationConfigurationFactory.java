@@ -21,7 +21,7 @@ import com.github.fge.msgsimple.source.MessageSource;
  * 
  * This class provides a static method for generating a custom configuration
  * that is designed to validate KBase typed objects in conjunction with
- * the workspace service.
+ * the Workspace deluxe.
  * 
  * @author msneddon
  *
@@ -39,40 +39,39 @@ public class ValidationConfigurationFactory {
 		 *  Step 1: create all the keywords that we want to handle by using
 		 *  the getKeyword method from our ValidationBuilders
 		 */
-		final Keyword kbTypeKeyword                = KBTypeValidationBuilder.getKeyword();
-		final Keyword kbIdRefKeyword               = WsIdRefValidationBuilder.getKeyword();
-		final Keyword kbWsSearchableFieldsKeyword  = WsSearchableFieldsValidationBuilder.getKeyword();
-		final Keyword kbWsSearchableKeysKeyword    = WsSearchableKeysValidationBuilder.getKeyword();
+		final Keyword originalTypeKeyword    = OriginalTypeValidationBuilder.getKeyword();
+		final Keyword idRefKeyword           = IdRefValidationBuilder.getKeyword();
+		final Keyword searchableKeyword      = SearchableWsSubsetValidationBuilder.getKeyword();
 		
 		 /*
-		 * Fetch the default Library based on Json Schema V4, thaw it, add
+		 * Step 2: Fetch the default Library based on Json Schema V4, thaw it, add
 		 * our keywords, freeze it again and we are ready to go.
 		 */
 		LibraryBuilder kbLibBuilder = DraftV4Library.get().thaw();
-		kbLibBuilder.addKeyword(kbTypeKeyword);
-		kbLibBuilder.addKeyword(kbIdRefKeyword);
-		kbLibBuilder.addKeyword(kbWsSearchableFieldsKeyword);
-		kbLibBuilder.addKeyword(kbWsSearchableKeysKeyword);
+		kbLibBuilder.addKeyword(originalTypeKeyword);
+		kbLibBuilder.addKeyword(idRefKeyword);
+		kbLibBuilder.addKeyword(searchableKeyword);
 		final Library kbLibrary = kbLibBuilder.freeze();
 		
 		
 		/*
-		 * Complement the validation message bundle with error messages that can later
+		 * Step 3: Complement the validation message bundle with error messages that can later
 		 * be attached to the validator report (note that this is not required, but is a
-		 * nice feature to ensure consistent error messages)
+		 * nice feature to ensure consistent error messages, which we don't use currently)
 		 */
-		final MessageSource kbTypeMssgs  = KBTypeValidationBuilder.getErrorMssgSrc();
-		final MessageSource idRefMssgs  = WsIdRefValidationBuilder.getErrorMssgSrc();
-		final MessageSource wsSearchableMssgs = WsSearchableFieldsValidationBuilder.getErrorMssgSrc();
+		final MessageSource originalTypeMssgs   = OriginalTypeValidationBuilder.getErrorMssgSrc();
+		final MessageSource idRefMssgs          = IdRefValidationBuilder.getErrorMssgSrc();
+		final MessageSource searchableMssgs     = SearchableWsSubsetValidationBuilder.getErrorMssgSrc();
 		
 		MessageBundleBuilder mbb = MessageBundles.getBundle(JsonSchemaValidationBundle.class).thaw();
-		mbb.appendSource(kbTypeMssgs);
+		mbb.appendSource(originalTypeMssgs);
 		mbb.appendSource(idRefMssgs);
-		mbb.appendSource(wsSearchableMssgs);
+		mbb.appendSource(searchableMssgs);
 		final MessageBundle bundle = mbb.freeze();
 		
 		/*
-		 * Create the new ValidationConfiguration and set the kbase library as default
+		 * Step 4: Create the new ValidationConfiguration and set the kbase library as default
+		 * TODO define the json schema for our json schema, and post the library online somewhere....
 		 */
 		ValidationConfiguration cfg = 
 				ValidationConfiguration.newBuilder()

@@ -8,12 +8,12 @@ module FBA {
 
 
 	/*
-	@id_reference FBA.FBAModel
+	@id ws FBA.FBAModel
 	*/
 	typedef string fba_model_id;
 
 	/*
-	@ws_searchable id name genome
+	@searchable ws_subset id name genome
 	@optional description
 	*/
 	typedef structure {
@@ -25,7 +25,7 @@ module FBA {
 	} FBAModel;
 
 	/*
-	@ws_searchable model fluxes
+	@searchable ws_subset model fluxes
 	*/
 	typedef structure {
 		fba_model_id model;

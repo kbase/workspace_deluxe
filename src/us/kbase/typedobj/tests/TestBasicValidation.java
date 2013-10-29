@@ -76,7 +76,7 @@ public class TestBasicValidation {
 	
 	private static TypedObjectValidator validator;
 	
-	private final static boolean VERBOSE = false;
+	private final static boolean VERBOSE = true;
 	
 	/*
 	 * structures to store info on each instance we wish to validate 
@@ -209,7 +209,6 @@ public class TestBasicValidation {
 		if(VERBOSE) System.out.println("deleting typed obj database");
 	}
 	
-	@Ignore
 	@Test
 	public void testInstance() throws Exception {
 		
@@ -229,14 +228,14 @@ public class TestBasicValidation {
 						);
 				
 				// print errors, if any before the assert to aid in testing
-				String [] mssgs = report.getErrorMessages();
-				for(int i=0; i<mssgs.length; i++) {
-					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs[i]);
+				List <String> mssgs = report.getErrorMessagesAsList();
+				for(int i=0; i<mssgs.size(); i++) {
+					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs.get(i));
 				}
 				
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
-				System.out.println("  *("+instance.resourceName+")");
-				System.out.println(report.toString());
+				//System.out.println("  *("+instance.resourceName+")");
+				//System.out.println(report.toString());
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
 				fail("("+instance.resourceName+") does not validate, but should");
@@ -255,8 +254,8 @@ public class TestBasicValidation {
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 						);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
-				System.out.println("  -("+instance.resourceName+")");
-				System.out.println(report.toString());
+				//System.out.println("  -("+instance.resourceName+")");
+				//System.out.println(report.toString());
 
 			} catch (Exception e) {
 				//if an exception is thrown, it must be an InstanceValidationException
