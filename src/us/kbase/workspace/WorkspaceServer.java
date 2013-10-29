@@ -20,11 +20,13 @@ import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdent
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -621,7 +623,22 @@ public class WorkspaceServer extends JsonServerServlet {
     public Long compileTypespecCopy(String externalWorkspaceUrl, String mod, Long versionInExternalWorkspace, AuthToken authPart) throws Exception {
         Long returnVal = null;
         //BEGIN compile_typespec_copy
-        returnVal = ws.compileTypeSpecCopy(externalWorkspaceUrl, mod, versionInExternalWorkspace, authPart);
+		WorkspaceClient client = new WorkspaceClient(new URL(externalWorkspaceUrl), authPart);
+		GetModuleInfoParams params = new GetModuleInfoParams().withMod(mod).withVer(versionInExternalWorkspace);
+		us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(params);
+		Map<String, String> includesToMd5 = new HashMap<String, String>();
+		for (Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
+			String includedModule = entry.getKey();
+			long extIncludedVer = entry.getValue();
+			GetModuleInfoParams includeParams = new GetModuleInfoParams().withMod(includedModule).withVer(extIncludedVer);
+			us.kbase.workspace.ModuleInfo extIncludedInfo = client.getModuleInfo(includeParams);
+			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
+		}
+		String userId = authPart.getUserName();
+		String specDocument = extInfo.getSpec();
+		Set<String> extTypeSet = extInfo.getTypes().keySet();
+        returnVal = ws.compileTypeSpecCopy(mod, specDocument, extTypeSet, userId, includesToMd5, 
+        		extInfo.getIncludedSpecVersion());
         //END compile_typespec_copy
         return returnVal;
     }
