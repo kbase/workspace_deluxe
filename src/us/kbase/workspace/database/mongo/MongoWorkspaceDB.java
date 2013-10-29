@@ -43,6 +43,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.TypeAndReference;
@@ -553,11 +554,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Set<ResolvedWorkspaceID> wsis =
 				new HashSet<ResolvedWorkspaceID>();
 		wsis.add(wsi);
-		return getPermissions(user, wsis).get(wsi);
+		return getPermissions(user, wsis).getPermission(wsi);
 	}
 	
 	@Override
-	public Map<ResolvedWorkspaceID, Permission> getPermissions(
+	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, 
 			CorruptWorkspaceDBException {
@@ -572,20 +573,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms = 
 				query.queryPermissions(rm, users);
-		final Map<ResolvedWorkspaceID, Permission> ret = 
-				new HashMap<ResolvedWorkspaceID, Permission>();
+//		final Map<ResolvedWorkspaceID, Permission> ret = 
+//				new HashMap<ResolvedWorkspaceID, Permission>();
+		final MongoPermissionSet pset = new MongoPermissionSet(user);
 		for (ResolvedMongoWSID r: perms.keySet()) {
-			Permission p = Permission.NONE;
-			if (perms.get(r).containsKey(allUsers)) {
-				p = perms.get(r).get(allUsers); //if allUsers is in the DB it's always read
-			}
-			if (perms.get(r).containsKey(user) &&
-					!perms.get(r).get(user).equals(Permission.NONE)) {
-				p = perms.get(r).get(user);
-			}
-			ret.put(r, p);
+			pset.setPermission(r, perms.get(r).get(user),
+					perms.get(r).get(allUsers));
+//			Permission p = Permission.NONE;
+//			if (perms.get(r).containsKey(allUsers)) {
+//				p = perms.get(r).get(allUsers); //if allUsers is in the DB it's always read
+//			}
+//			if (perms.get(r).containsKey(user) &&
+//					!perms.get(r).get(user).equals(Permission.NONE)) {
+//				p = perms.get(r).get(user);
+//			}
+//			ret.put(r, p);
 		}
-		return ret;
+		return pset;
+//		return ret;
 	}
 	
 	@Override

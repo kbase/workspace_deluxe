@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
-import us.kbase.common.service.UnauthorizedException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -37,6 +36,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ReferenceParser;
@@ -92,7 +92,6 @@ public class Workspaces {
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
 
 	//TODO $P3 alpha_list_objects alpha_list_workspaces
-	//TODO $P3 email notification on module ownership request
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
@@ -200,15 +199,15 @@ public class Workspaces {
 					obj.getIdentifierString(), nswe.getLocalizedMessage()),
 					obj, nswe);
 		}
-		final Map<ResolvedWorkspaceID, Permission> perms =
-				db.getPermissions(user,
+		final PermissionSet perms = db.getPermissions(user,
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
-				comparePermission(user, perm, perms.get(r), o, operation);
+				comparePermission(user, perm, perms.getPermission(r), o,
+						operation);
 			} catch (WorkspaceAuthorizationException wae) {
 				throw new InaccessibleObjectException(String.format(
 						"Object %s cannot be accessed: %s",
@@ -516,6 +515,12 @@ public class Workspaces {
 				"Object %s has inaccessible %sreference %s: %s",
 				objerrid, reftype, ref, ioe.getLocalizedMessage(), ioe));
 		return tove;
+	}
+	
+	public List<WorkspaceInformation> prealphaListWorkspaces(
+			final WorkspaceUser user) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

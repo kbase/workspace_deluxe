@@ -417,6 +417,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple6<Long, String, String, String, String, String>> prealphaListWorkspaces(AuthToken authPart) throws Exception {
         List<Tuple6<Long, String, String, String, String, String>> returnVal = null;
         //BEGIN prealpha_list_workspaces
+        ws.prealphaListWorkspaces(getUser(authPart));
         //END prealpha_list_workspaces
         return returnVal;
     }

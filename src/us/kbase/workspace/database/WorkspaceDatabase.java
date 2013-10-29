@@ -46,8 +46,8 @@ public interface WorkspaceDatabase {
 			ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public Map<ResolvedWorkspaceID, Permission> getPermissions(
-			WorkspaceUser user, Set<ResolvedWorkspaceID> rwsis)
+	public PermissionSet getPermissions(WorkspaceUser user,
+			Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public Map<User, Permission> getUserAndGlobalPermission(WorkspaceUser user,
