@@ -7,23 +7,35 @@ import java.util.Set;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoPermissionSet implements PermissionSet {
 	
 	private final WorkspaceUser user;
+	private final User globalUser;
 	private final Map<ResolvedWorkspaceID, Permission> userPerms = 
 			new HashMap<ResolvedWorkspaceID, Permission>();
 	private final Map<ResolvedWorkspaceID, Boolean> worldRead = 
 			new HashMap<ResolvedWorkspaceID, Boolean>();
 	
-	MongoPermissionSet(final WorkspaceUser user) {
+	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
+		if (globalUser == null) {
+			throw new IllegalArgumentException(
+					"Global user cannot be null");
+		}
 		this.user = user;
+		this.globalUser = globalUser;
 	}
 
 	@Override
 	public WorkspaceUser getUser() {
 		return user;
+	}
+	
+	@Override
+	public User getGlobalUser() {
+		return globalUser;
 	}
 	
 	void setPermission(final ResolvedMongoWSID rwsi, Permission userPerm,
@@ -44,7 +56,7 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 	
 	@Override
-	public Permission getPermission(ResolvedWorkspaceID rwsi) {
+	public Permission getPermission(final ResolvedWorkspaceID rwsi) {
 		final Permission p = getUserPermission(rwsi);
 		if (Permission.NONE.equals(p)) {
 			return isWorldReadable(rwsi) ? Permission.READ : p;
@@ -54,7 +66,7 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 
 	@Override
-	public Permission getUserPermission(ResolvedWorkspaceID rwsi) {
+	public Permission getUserPermission(final ResolvedWorkspaceID rwsi) {
 		if (!userPerms.containsKey(rwsi)) {
 			throw new IllegalArgumentException(
 					"Workspace not registered: " + rwsi);
@@ -63,7 +75,7 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 
 	@Override
-	public boolean isWorldReadable(ResolvedWorkspaceID rwsi) {
+	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi) {
 		if (!worldRead.containsKey(rwsi)) {
 			throw new IllegalArgumentException(
 					"Workspace not registered: " + rwsi);

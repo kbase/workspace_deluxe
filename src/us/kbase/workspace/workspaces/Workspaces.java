@@ -252,6 +252,7 @@ public class Workspaces {
 		db.setPermissions(wsid, users, permission);
 	}
 
+	//TODO refactor to use permission sets
 	public Map<User, Permission> getPermissions(final WorkspaceUser user,
 				final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 				WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -259,10 +260,14 @@ public class Workspaces {
 			throw new IllegalArgumentException("User cannot be null");
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-		final Map<User, Permission> perms =
-				db.getUserAndGlobalPermission(user, wsid);
-		if (Permission.ADMIN.compareTo(perms.get(user)) > 0) {
-			return perms;
+		final PermissionSet perms = db.getPermissions(user, wsid);
+		if (Permission.ADMIN.compareTo(perms.getPermission(wsid)) > 0) {
+			final Map<User, Permission> ret = new HashMap<User, Permission>();
+			ret.put(perms.getUser(), perms.getUserPermission(wsid));
+			if (perms.isWorldReadable(wsid)) {
+				ret.put(perms.getGlobalUser(), Permission.READ);
+			}
+			return ret;
 		}
 		return db.getAllPermissions(wsid);
 	}

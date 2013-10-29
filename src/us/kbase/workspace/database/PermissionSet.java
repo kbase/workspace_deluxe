@@ -11,6 +11,7 @@ import java.util.Set;
 public interface PermissionSet {
 	
 	public WorkspaceUser getUser();
+	public User getGlobalUser();
 	/** Returns the user's explicit permission for the workspace
 	 * @param rwsi the workspace of interest
 	 * @return the user's explicit permission
