@@ -105,6 +105,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final long MAX_OBJECT_SIZE = 1000000000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
+	private static final long MAX_PROV_SIZE = 1000000;
 	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -935,15 +936,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						MAX_SUBDATA_SIZE));
 			}
 			final Map<String, Object> subdata;
-				try {
-					@SuppressWarnings("unchecked")
-					final Map<String, Object> subdata2 = (Map<String, Object>)
-							MAPPER_DEFAULT.treeToValue(sd, Map.class);
-					subdata = subdata2;
-				} catch (JsonProcessingException jpe) {
-					throw new RuntimeException(
-							"Should never get a JSON exception here", jpe);
-				}
+			try {
+				@SuppressWarnings("unchecked")
+				final Map<String, Object> subdata2 = (Map<String, Object>)
+						MAPPER_DEFAULT.treeToValue(sd, Map.class);
+				subdata = subdata2;
+			} catch (JsonProcessingException jpe) {
+				throw new RuntimeException(
+						"Should never get a JSON exception here", jpe);
+			}
+			final String prov;
+			try {
+				prov = MAPPER_DEFAULT.writeValueAsString(
+						o.getProvenance());
+			} catch (JsonProcessingException jpe) {
+				throw new RuntimeException(
+						"Should never get a JSON exception here", jpe);
+			}
+			if (prov.length() > MAX_PROV_SIZE) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s provenance size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						MAX_PROV_SIZE));
+			}
 			escapeSubdata(subdata);
 			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing

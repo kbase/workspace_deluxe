@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import us.kbase.common.exceptions.UnimplementedException;
 
 public class Provenance {
@@ -230,6 +232,7 @@ public class Provenance {
 		// would prefer to make this abstract but Jackson doesn't like it
 		// and want to keep this class as unaware of the backend implementation
 		// as possible
+		@JsonIgnore
 		public List<String> getResolvedObjects() {
 			throw new UnimplementedException();
 		}

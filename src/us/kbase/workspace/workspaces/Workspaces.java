@@ -68,7 +68,6 @@ public class Workspaces {
 	//TODO set description
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
-	//TODO maximum provenance size
 	//TODO import shock objects
 	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
