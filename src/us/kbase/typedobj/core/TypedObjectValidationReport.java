@@ -277,8 +277,12 @@ public class TypedObjectValidationReport {
 	
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
+	 * 
+	 * we assume here that selection has already been validated against the structure of the document, so that
+	 * if we get true on extractKeysOf, it really is a mapping, and if we get a '*' or '[*]', it really is
+	 * a mapping or array.
 	 */
-	private void extractFields(ObjectNode subset, JsonNode element, ObjectNode selection, boolean extractKeysOf) {
+	private void extractFields(JsonNode subset, JsonNode element, ObjectNode selection, boolean extractKeysOf) {
 		
 		System.out.println("here");
 		System.out.println(" - subset: "+subset);
@@ -291,101 +295,141 @@ public class TypedObjectValidationReport {
 		
 		//otherwise we need to add every selected field in the selection from the element to the subset
 		while(selectedFields.hasNext()) {
-			Map.Entry<String,JsonNode> selectedField = selectedFields.next();
-			System.out.println("looking at: "+selectedField.getKey());
 			
-			// first we split the name to determine if the selected field is a mapping or not
-			boolean isMapping = false;
+			// get the selected field name
+			Map.Entry<String,JsonNode> selectedField = selectedFields.next();
 			String selectedFieldName = selectedField.getKey();
-			String [] splitFieldName = selectedFieldName.split("\\.");
-			if(splitFieldName.length==2) {
-				if(splitFieldName[0].equals("mapping")) {
-					isMapping=true;
-					selectedFieldName = splitFieldName[1];
+			System.out.println("looking at: "+selectedFieldName);
+			
+			// if there are no more subfields beyond this, we figure it out now...
+			boolean atTheEnd = false;
+			if(selectedField.getValue().size()==0) {
+				atTheEnd = true;
+			}
+			
+			////// KIDL MAPPING
+			if(selectedFieldName.equals("*")) {
+				// we have descended into a kidl mapping, so we need to handle with care.
+				// we must go through each value in the mapping, and add the extracted portion
+				// Note: subset must be an ObjectNode if we are at a mapping
+				Iterator <Map.Entry<String,JsonNode>> mappingElements = element.fields();
+				while(mappingElements.hasNext()) {
+					Map.Entry<String,JsonNode> mappingElement = mappingElements.next();
+					String mappingKey      = mappingElement.getKey();
+					JsonNode mappingValue  = mappingElement.getValue();
+						
+					if(atTheEnd) {
+						// if we are at the end, we either add the data or add "keys_of" the sub mapping
+						if(extractKeysOf) {
+							ArrayNode subKeyList = JsonNodeFactory.instance.arrayNode();
+							((ObjectNode)subset).set(mappingKey,subKeyList);
+							Iterator <Map.Entry<String,JsonNode>> subMappingElements = mappingValue.fields();
+							while(subMappingElements.hasNext()) {
+								subKeyList.add(subMappingElements.next().getKey());
+							}
+						} else {
+							// we want everything here, so add it...
+							((ObjectNode)subset).set(mappingKey,mappingValue);
+						}
+					}
+						
+					else {
+						// if we are not at the end, then we recurse down
+						JsonNode subsetDataForKey = subset.get(mappingKey);
+						if(subsetDataForKey==null) {
+							if(mappingValue.isObject()) {
+								subsetDataForKey = mapper.createObjectNode();
+								((ObjectNode)subset).set(mappingKey,subsetDataForKey);
+							} else if(mappingValue.isArray()) {
+								subsetDataForKey = JsonNodeFactory.instance.arrayNode();
+								((ObjectNode)subset).set(mappingKey,subsetDataForKey);
+							}
+						}
+						extractFields(subsetDataForKey, mappingValue, (ObjectNode)selection.get("*"), extractKeysOf);
+					}
 				}
 			}
 			
-			// next we get a pointer to the data in the element we are extracting from
-			JsonNode fieldData = element.get(selectedFieldName);
-			// fieldData may be null if it was an optional field.  If that is the case we can skip it without error.
-			if(fieldData!=null) {
-				
-				// if there are no more sub selections, we can just add a pointer to the element data at this field and be done with it
-				// (of course, if the element is a mapping, and we indicate keys_of, then we extract the keys as an array) 
-				if(selectedField.getValue().size()==0) {
-					if(extractKeysOf && isMapping) {
-						ArrayNode keyList = JsonNodeFactory.instance.arrayNode();
-						subset.set(selectedFieldName, keyList);
-						Iterator <Map.Entry<String,JsonNode>> mappingPairs = element.get(selectedFieldName).fields();
-						while(mappingPairs.hasNext()) {
-							keyList.add(mappingPairs.next().getKey());
+			////// KIDL LIST
+			else if (selectedFieldName.equals("[*]")) {
+				// we have descended into a kidl list, so we must deal with that
+				// subset must be an ArrayNode, and it is not possible to get keys_of an ArrayNode, so we don't need to handle anything special there
+				//  (could explicitly check and throw an error if extractKeysOf is true!?)
+				// loop over every item in the array element and add it to the ArrayNode subset
+				for(int k=0; k<element.size(); k++) {
+					// get the data
+					JsonNode elementDataAtK = element.get(k);
+					if(atTheEnd) {
+						// if we are at the end, then we add the element to the ArrayNode (we could do a quick check to make sure nothing was added
+						// at this position yet.  But for now if there was something added, then we just blow it away, which should be ok...)
+						if(subset.get(k)==null) {
+							((ArrayNode)subset).add(elementDataAtK);
+						} else {
+							((ArrayNode)subset).set(k, elementDataAtK);
 						}
 					} else {
-						subset.set(selectedFieldName, element.get(selectedFieldName));
+						// check if there is anything in the subset for this object yet, if not we have to create it
+						JsonNode subsetDataAtK = subset.get(k);
+						if(subsetDataAtK==null) {
+							if(elementDataAtK.isObject()) {
+								subsetDataAtK = mapper.createObjectNode();
+								((ArrayNode)subset).add(subsetDataAtK);
+							} else if(elementDataAtK.isArray()) {
+								subsetDataAtK = JsonNodeFactory.instance.arrayNode();
+								((ArrayNode)subset).add(subsetDataAtK);
+							}
+						}
+						extractFields(subsetDataAtK, elementDataAtK, (ObjectNode)selection.get("[*]"), extractKeysOf);
 					}
-				} 
-				
-				// otherwise there are sub selections, so we have to handle them. The field is either an object or an array
-				else {
-					// if the fieldData is an object, then it might be a mapping or a structure so we need to take some care
-					if(fieldData.isObject()) {
-						if(!isMapping) {
-							//Life is easier if it is not a mapping
+				}
+			}
+			
+			////// KIDL FIELD
+			else {
+				// we are descending into a field of an object, so go down to that field.
+				JsonNode fieldData = element.get(selectedFieldName);
+				// fieldData may be null if it was an optional field.  If that is the case we can skip it without error.
+				if(fieldData!=null) {
+					// if there are no more sub selections, we can just add a pointer to the element data at this field and be done with it
+					// (of course, if we indicate keys_of, then we need to extract the keys as an array) 
+					if(atTheEnd) {
+						if(extractKeysOf) {
+							ArrayNode keyList = JsonNodeFactory.instance.arrayNode();
+							((ObjectNode)subset).set(selectedFieldName, keyList);
+							Iterator <Map.Entry<String,JsonNode>> mappingPairs = element.get(selectedFieldName).fields();
+							while(mappingPairs.hasNext()) {
+								keyList.add(mappingPairs.next().getKey());
+							}
+						} else {
+							((ObjectNode)subset).set(selectedFieldName, element.get(selectedFieldName));
+						}
+					}
+					
+					// otherwise there are sub selections, so we have to handle them.
+					else {
+						if(fieldData.isObject()) {
 							ObjectNode structSubsetData = (ObjectNode)subset.get(selectedFieldName);
 							if(structSubsetData==null) {
 								structSubsetData = mapper.createObjectNode();
-								subset.set(selectedFieldName, structSubsetData);
+								((ObjectNode)subset).set(selectedFieldName, structSubsetData);
 							}
 							extractFields(structSubsetData, fieldData, (ObjectNode)selectedField.getValue(), extractKeysOf);
-						} else {
-							// it is a kidl mapping, so we need to handle with care.
-							// we must go through each value in the mapping, and add the extracted portion
-							// first we fetch the subsetted object if it already exists
-							ObjectNode mappingSubsetData = (ObjectNode)subset.get(selectedFieldName);
-							if(mappingSubsetData==null) {
-								mappingSubsetData = mapper.createObjectNode();
-								subset.set(selectedFieldName, mappingSubsetData);
-							}
-							
-							//next we iterate over each of the key/value pairs in the mapping
-							Iterator <Map.Entry<String,JsonNode>> mappingElements = fieldData.fields();
-							while(mappingElements.hasNext()) {
-								Map.Entry<String,JsonNode> mappingElement = mappingElements.next();
-								String mappingKey = mappingElement.getKey();
-								
-								JsonNode mappingElementValue = mappingElement.getValue();
-								if(mappingElementValue.isObject()) {
-									ObjectNode subsetDataForKey = (ObjectNode) mappingSubsetData.get(mappingKey);
-									if(subsetDataForKey==null) {
-										subsetDataForKey = mapper.createObjectNode();
-										mappingSubsetData.set(mappingKey,subsetDataForKey);
-									}
-									extractFields(subsetDataForKey, mappingElementValue, selection, extractKeysOf);
-								} else if(mappingElementValue.isArray()) {
-									ArrayNode subsetArrayForKey = (ArrayNode) mappingElementValue.get(mappingKey);
-									if(subsetArrayForKey==null) {
-										subsetArrayForKey = JsonNodeFactory.instance.arrayNode();
-										mappingSubsetData.set(mappingKey,subsetArrayForKey);
-									}
-									extractElements(subsetArrayForKey, (ArrayNode)mappingElementValue, selection, extractKeysOf);
-								}
-							}
 						}
-					}
-					// the fieldData is an object, so we need to add each element one by one
-					else if(fieldData.isArray()) {
-						// otherwise, we have to create a new arraynode, populate it with just what we need, then return
-						ArrayNode subsetArray = (ArrayNode) subset.get(selectedFieldName);
-						if(subsetArray==null) {
-							subsetArray = JsonNodeFactory.instance.arrayNode();
-							subset.set(selectedFieldName, subsetArray);
+						
+						else if(fieldData.isArray()) {
+							ArrayNode structSubsetArrayData = (ArrayNode)subset.get(selectedFieldName);
+							if(structSubsetArrayData==null) {
+								structSubsetArrayData = JsonNodeFactory.instance.arrayNode();
+								((ObjectNode)subset).set(selectedFieldName, structSubsetArrayData);
+							}
+							extractFields(structSubsetArrayData, fieldData, (ObjectNode)selectedField.getValue(), extractKeysOf);
 						}
-						extractElements(subsetArray, (ArrayNode)fieldData, (ObjectNode)selectedField.getValue(), extractKeysOf);
 					}
 				}
-				
-				
 			}
+			
+			// NOTE: we cannot descend into a tuple - we could support it by detecting something like [1] or [4], but for now
+			// we do not allow it!
 			
 		}
 		return;
