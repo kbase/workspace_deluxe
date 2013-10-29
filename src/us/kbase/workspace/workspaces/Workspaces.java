@@ -85,7 +85,6 @@ public class Workspaces {
 	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
 
 	//TODO $P3 alpha_list_objects alpha_list_workspaces
-	//TODO $P1 save and get provenance
 	//TODO $P3 email notification on module ownership request
 	//TODO $P1 refactor meta classes to info
 	

@@ -51,7 +51,7 @@ public class ArgUtils {
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
 					.withMethod(a.getMethod())
-					.withMethodParameters(translateMethodParameters(
+					.withMethodParameters(translateMethodParametersToObject(
 							a.getMethodParams()))
 					.withScript(a.getScript())
 					.withScriptVersion(a.getScriptVer())
@@ -65,13 +65,27 @@ public class ArgUtils {
 		return p;
 	}
 	
-	private List<Object> translateMethodParameters(List<UObject> methodParams) {
+	private List<Object> translateMethodParametersToObject(
+			final List<UObject> methodParams) {
 		if (methodParams == null) {
 			return null;
 		}
 		final List<Object> params = new LinkedList<Object>();
 		for (final UObject uo: methodParams) {
 			params.add(uo.asInstance());
+		}
+		return params;
+	}
+	
+
+	private List<UObject> translateMethodParametersToUObject(
+			final List<Object> methodParams) {
+		if (methodParams == null) {
+			return null;
+		}
+		final List<UObject> params = new LinkedList<UObject>();
+		for (final Object uo: methodParams) {
+			params.add(new UObject(uo));
 		}
 		return params;
 	}
@@ -172,11 +186,22 @@ public class ArgUtils {
 			final List<Provenance.ProvenanceAction> actions) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
-			//TODO finish all prov items
 			pas.add(new ProvenanceAction()
+					.withTime(dateFormat.formatDate(a.getTime()))
+					.withService(a.getServiceName())
+					.withServiceVer(a.getServiceVersion())
+					.withMethod(a.getMethod())
+					.withMethodParams(translateMethodParametersToUObject(
+							a.getMethodParameters()))
+					.withScript(a.getScript())
+					.withScriptVer(a.getScriptVersion())
+					.withScriptCommandLine(a.getCommandLine())
 					.withInputWsObjects(a.getWorkspaceObjects())
 					.withResolvedWsObjects(a.getResolvedObjects())
-					.withService(a.getServiceName()));
+					.withIntermediateIncoming(a.getIncomingArgs())
+					.withIntermediateOutgoing(a.getOutgoingArgs())
+					.withDescription(a.getDescription())
+					);
 		}
 		return pas;
 	}

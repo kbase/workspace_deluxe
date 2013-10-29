@@ -45,8 +45,18 @@ public class MongoProvenance extends Provenance {
 	static class MongoProvenanceAction extends Provenance.ProvenanceAction {
 
 		MongoProvenanceAction(final ProvenanceAction pa) {
+			setTime(pa.getTime());
 			setServiceName(pa.getServiceName());
+			setServiceVersion(pa.getServiceVersion());
+			setMethod(pa.getMethod());
+			setMethodParameters(pa.getMethodParameters());
+			setScript(pa.getScript());
+			setScriptVersion(pa.getScriptVersion());
+			setCommandLine(pa.getCommandLine());
 			setWorkspaceObjects(pa.getWorkspaceObjects());
+			setIncomingArgs(pa.getIncomingArgs());
+			setOutgoingArgs(pa.getOutgoingArgs());
+			setDescription(pa.getDescription());
 		}
 		
 		@JsonIgnore

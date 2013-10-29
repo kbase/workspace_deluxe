@@ -673,7 +673,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoWSID wsid, final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
-		//TODO save datainstance/provenance
 		// collection objects might be batchable if saves are slow
 		final int ver;
 		final Date created = new Date();
@@ -1350,7 +1349,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"There was a problem communicating with the database", me);
 			}
 		}
-		//TODO save provenance as batch and add prov id to pkgs
 	}
 	
 	private static final Set<String> FLDS_VER_META_PROV = newHashSet(
