@@ -41,11 +41,7 @@ public class SimpleTest1 {
 		// print the 
 		System.out.println(instance1RootNode);
 		
-		// Pull out the list of IDs from the report
-		System.out.println(ReportUtil.getIdList(report2));
 		
-		// Pull out the searchable subset from the report
-		System.out.println(ReportUtil.getSearchableSubset(report2));
 		
 	}
 	

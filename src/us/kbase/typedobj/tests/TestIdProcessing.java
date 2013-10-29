@@ -36,7 +36,6 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.kbase.typedobj.core.IdReference;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -44,6 +43,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
+import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 
 
@@ -202,7 +202,6 @@ public class TestIdProcessing {
 		System.out.println("deleting typed obj database");
 	}
 	
-	@Ignore
 	@Test
 	public void testValidInstances() throws Exception
 	{
@@ -233,15 +232,15 @@ public class TestIdProcessing {
 				instanceJson,
 				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 				);
-		String [] mssgs = report.getErrorMessages();
-		for(int i=0; i<mssgs.length; i++) {
-			System.out.println("    ["+i+"]:"+mssgs[i]);
+		List <String> mssgs = report.getErrorMessagesAsList();
+		for(int i=0; i<mssgs.size(); i++) {
+			System.out.println("    ["+i+"]:"+mssgs.get(i));
 		}
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		
 		// check that all expected Ids are in fact found
-		List<String> foundIdRefs = report.getListOfIdReferences();
-		List<List<IdReference>> fullIdList = report.getListOfIdReferenceObjects();
+		List<String> foundIdRefs = report.getAllIds();
+		List<IdReference> fullIdList = report.getAllIdReferences();
 		for(String ref: foundIdRefs) {
 			assertTrue("  -("+instance.resourceName+") extracted id "+ref+" that should not have been extracted",
 					expectedIdList.containsKey(ref));
@@ -268,24 +267,21 @@ public class TestIdProcessing {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
-		report.setAbsoluteIdReferences(absoluteIdMapping);
-		validator.relableToAbsoluteIds(instanceRootNode, report);
+		report.relabelWsIdReferences(absoluteIdMapping);
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		TypedObjectValidationReport report2 = validator.validate(instanceRootNode, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
 		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
-		List<String> relabeledIds = report2.getListOfIdReferences();
+		List<String> relabeledIds = report2.getAllIds();
 		
 		//there should be the same number as before, of course!
 		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), foundIdRefs.size());
 		
 		
 		// make sure every id that was found originally 
-		for(List<IdReference> refList : fullIdList) {
-			for(IdReference ref : refList) {
-				checkInstanceId(ref,instanceRootNode);
-			}
+		for(IdReference ref : fullIdList) {
+			checkInstanceId(ref,instanceRootNode);
 		}
 		
 		

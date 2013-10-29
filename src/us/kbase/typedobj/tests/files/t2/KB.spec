@@ -5,17 +5,17 @@ module KB {
 
 
 	/*
-	@id_reference
+	@id ws
 	*/
 	typedef string kbid;
 
 	/*
-	@id_reference KB.Genome
+	@id ws KB.Genome
 	*/
 	typedef string genome_id;
 
 	/*
-	@id_reference KB.Feature
+	@id ws KB.Feature
 	*/
 	typedef string feature_id;
 

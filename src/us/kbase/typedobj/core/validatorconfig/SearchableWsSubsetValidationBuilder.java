@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.NodeType;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
@@ -24,15 +25,15 @@ import com.github.fge.msgsimple.source.MessageSource;
 
 
 /**
- * This class wraps everything required to identify report ws-searchable fields.
+ * This class wraps everything required to identify and process the 'searchable' class of annotations.
  * @author msneddon
  */
-public class WsSearchableKeysValidationBuilder {
+public class SearchableWsSubsetValidationBuilder {
 
 	/**
 	 * Declare the keyword that will be parsed
 	 */
-	public static final String keyword = "kb-ws-searchable-keys";
+	public static final String keyword = "searchable-ws-subset";
 	
 	/**
 	 * Method for generating a Keyword object which can be added to a JSON
@@ -42,10 +43,10 @@ public class WsSearchableKeysValidationBuilder {
 	 */
 	public static Keyword getKeyword() {
 		final Keyword kbTypeKeyword = 
-				Keyword.newBuilder(WsSearchableKeysValidationBuilder.keyword)
-				.withSyntaxChecker(WsSearchableKeysSyntaxChecker.getInstance())
-				.withDigester(WsSearchableKeysDigester.getInstance())
-				.withValidatorClass(WsSearchableKeysKeywordValidator.class).freeze();
+				Keyword.newBuilder(SearchableWsSubsetValidationBuilder.keyword)
+				.withSyntaxChecker(SearchableWsSubsetSyntaxChecker.getInstance())
+				.withDigester(SearchableWsSubsetDigester.getInstance())
+				.withValidatorClass(SearchableWsSubsetKeywordValidator.class).freeze();
 		return kbTypeKeyword;
 	}
 	
@@ -56,8 +57,8 @@ public class WsSearchableKeysValidationBuilder {
 	 * @return MessageSource
 	 */
 	public static MessageSource getErrorMssgSrc() {
-		final String key = "wsSearchableKeys";
-		final String value = "i hath found error in kb-ws-searchable-keys";
+		final String key = "searchableError";
+		final String value = "error encountered in processing searchable keyword";
 		final MessageSource source = MapMessageSource.newBuilder()
 				.put(key, value).build();
 		return source;
@@ -75,26 +76,26 @@ public class WsSearchableKeysValidationBuilder {
 	 * as part of the final ProcessingReport.
 	 * @author msneddon
 	 */
-	private static final class WsSearchableKeysDigester extends AbstractDigester {
+	private static final class SearchableWsSubsetDigester extends AbstractDigester {
 		
-		private static final Digester INSTANCE = new WsSearchableKeysDigester();
+		private static final Digester INSTANCE = new SearchableWsSubsetDigester();
 
 		public static Digester getInstance() {
 			return INSTANCE;
 		}
 
-		private WsSearchableKeysDigester() {
+		private SearchableWsSubsetDigester() {
 			// The Digester must declare the types of nodes that it can operate on.  In this case,
 			// the searchable fields can only be marked for a typed object
-	        super(WsSearchableKeysValidationBuilder.keyword, NodeType.OBJECT);
-	    }
+			super(SearchableWsSubsetValidationBuilder.keyword, NodeType.OBJECT);
+		}
 
-	    @Override
-	    public JsonNode digest(final JsonNode schema) {
-	    	// we don't really care about the context in this case, we just want the array
-	        // containing the list of searchable fields
-	        return schema.findValue(WsSearchableKeysValidationBuilder.keyword);
-	    }
+		@Override
+		public JsonNode digest(final JsonNode schema) {
+			// we don't really care about the context in this case, we just want the array
+			// containing the path to the searchable fields
+			return schema.findValue(SearchableWsSubsetValidationBuilder.keyword);
+		}
 	}
 	
 	
@@ -102,22 +103,20 @@ public class WsSearchableKeysValidationBuilder {
 	 * This class defines the method that performs the actual validation of the instance.
 	 * @author msneddon
 	 */
-	public static final class WsSearchableKeysKeywordValidator extends AbstractKeywordValidator {
+	public static final class SearchableWsSubsetKeywordValidator extends AbstractKeywordValidator {
 		
 		/**
 		 * Store the digested Json Schema node, which has already been digested to include
 		 * a list of fields we have to extract
 		 */
-		private ArrayNode fields;
+		private JsonNode searchData;
 		
-		public WsSearchableKeysKeywordValidator(final JsonNode digest) {
-			super(WsSearchableKeysValidationBuilder.keyword);
-			fields = (ArrayNode) digest;
+		public SearchableWsSubsetKeywordValidator(final JsonNode digest) {
+			super(SearchableWsSubsetValidationBuilder.keyword);
+			searchData = digest;
 		}
 
 		/**
-		 * Performs the actual validation of the instance, which in this case simply
-		 * @todo add validation to make sure ID is in the proper format
 		 */
 		@Override
 		public void validate(
@@ -129,14 +128,14 @@ public class WsSearchableKeysValidationBuilder {
 		{
 			// assemble the subset object for return
 			report.info(new ProcessingMessage()
-							.setMessage("ws-searchable-keys-subset")
-							.put("keys_of", fields)
+							.setMessage("searchable-ws-subset")
+							.put("search-data", searchData)
 							);
 		}
 
 		@Override
 		public String toString() {
-			return "WsSearchableFieldsKeywordValidator set to validate:" + fields;
+			return "SearchableFieldsKeywordValidator";
 		}
 	}
 	
@@ -148,17 +147,17 @@ public class WsSearchableKeysValidationBuilder {
 	 * @author msneddon
 	 *
 	 */
-	private static final class WsSearchableKeysSyntaxChecker extends AbstractSyntaxChecker {
+	private static final class SearchableWsSubsetSyntaxChecker extends AbstractSyntaxChecker {
 	
-		private static final SyntaxChecker INSTANCE = new WsSearchableKeysSyntaxChecker();
+		private static final SyntaxChecker INSTANCE = new SearchableWsSubsetSyntaxChecker();
 		
 		public static SyntaxChecker getInstance() {
 			return INSTANCE;
 		}
 		
-		private WsSearchableKeysSyntaxChecker() {
+		private SearchableWsSubsetSyntaxChecker() {
 			// the schema must contain a list of values
-			super(WsSearchableKeysValidationBuilder.keyword, NodeType.ARRAY);
+			super(SearchableWsSubsetValidationBuilder.keyword, NodeType.OBJECT);
 		}
 		
 		@Override
