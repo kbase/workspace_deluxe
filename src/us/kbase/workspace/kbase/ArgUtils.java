@@ -91,7 +91,7 @@ public class ArgUtils {
 	}
 
 	public Tuple6<Long, String, String, String, String, String>
-			wsMetaToTuple (final WorkspaceInformation meta) {
+			wsInfoToTuple (final WorkspaceInformation meta) {
 		return new Tuple6<Long, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())
@@ -103,7 +103,7 @@ public class ArgUtils {
 	
 	public List<Tuple9<Long, String, String, String, Long, String,
 			Long, String, Long>>
-			objMetaToTuple (final List<ObjectInformation> meta) {
+			objInfoToTuple (final List<ObjectInformation> meta) {
 		
 		//oh the humanity
 		final List<Tuple9<Long, String, String, String, Long, String,
@@ -129,15 +129,15 @@ public class ArgUtils {
 	
 	public Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>
-			objUserMetaToTuple (final ObjectInfoUserMeta meta) {
+			objInfoUserMetaToTuple (final ObjectInfoUserMeta meta) {
 		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
 		m.add(meta);
-		return objUserMetaToTuple(m).get(0);
+		return objInfoUserMetaToTuple(m).get(0);
 	}
 	
 	public List<Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>>
-			objUserMetaToTuple (final List<ObjectInfoUserMeta> meta) {
+			objInfoUserMetaToTuple (final List<ObjectInfoUserMeta> meta) {
 		
 		//oh the humanity
 		final List<Tuple10<Long, String, String, String, Long, String,
@@ -175,7 +175,7 @@ public class ArgUtils {
 		for (final WorkspaceObjectData o: objects) {
 			ret.add(new ObjectData()
 					.withData(new UObject(o.getData()))
-					.withInfo(objUserMetaToTuple(o.getMeta()))
+					.withInfo(objInfoUserMetaToTuple(o.getMeta()))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions())));
 		}

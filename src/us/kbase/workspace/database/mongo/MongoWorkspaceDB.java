@@ -617,9 +617,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.WS_MODDATE);
 	
 	@Override
-	public WorkspaceInformation getWorkspaceMetadata(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	public WorkspaceInformation getWorkspaceInformation(
+			final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
 		final Map<String, Object> ws = query.queryWorkspace(m,
 				FLDS_WS_ID_NAME_OWNER_MODDATE);
@@ -1397,7 +1398,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
-			final MongoObjectInfoUserMeta meta = generateUserMeta(
+			final MongoObjectInfoUserMeta meta = generateUserMetaInfo(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
@@ -1464,7 +1465,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private MongoObjectInfoUserMeta generateUserMeta(
+	private MongoObjectInfoUserMeta generateUserMetaInfo(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
@@ -1522,7 +1523,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectMeta(
+	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectInformation(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
@@ -1542,7 +1543,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
-			ret.put(o, generateUserMeta(roi, vers.get(roi)));
+			ret.put(o, generateUserMetaInfo(roi, vers.get(roi)));
 		}
 		return ret;
 	}

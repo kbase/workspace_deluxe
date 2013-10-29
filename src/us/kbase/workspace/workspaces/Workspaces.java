@@ -85,7 +85,6 @@ public class Workspaces {
 
 	//TODO $P3 alpha_list_objects alpha_list_workspaces
 	//TODO $P3 email notification on module ownership request
-	//TODO $P1 refactor meta classes to info
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
@@ -261,13 +260,13 @@ public class Workspaces {
 		return db.getAllPermissions(wsid);
 	}
 
-	public WorkspaceInformation getWorkspaceMetaData(final WorkspaceUser user,
-				final WorkspaceIdentifier wsi) throws
-				NoSuchWorkspaceException, WorkspaceCommunicationException,
-				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+	public WorkspaceInformation getWorkspaceInformation(
+			final WorkspaceUser user, final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
 				"read");
-		return db.getWorkspaceMetadata(user, wsid);
+		return db.getWorkspaceInformation(user, wsid);
 	}
 	
 	public String getBackendType() {
@@ -528,14 +527,14 @@ public class Workspaces {
 		return ret;
 	}
 	
-	public List<ObjectInfoUserMeta> getObjectMetaData(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+	public List<ObjectInfoUserMeta> getObjectInformation(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		final Map<ObjectIDResolvedWS, ObjectInfoUserMeta> meta = 
-				db.getObjectMeta(new HashSet<ObjectIDResolvedWS>(ws.values()));
+				db.getObjectInformation(new HashSet<ObjectIDResolvedWS>(ws.values()));
 		final List<ObjectInfoUserMeta> ret =
 				new ArrayList<ObjectInfoUserMeta>();
 		

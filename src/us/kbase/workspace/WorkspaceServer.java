@@ -232,7 +232,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceInformation meta = ws.createWorkspace(getUser(authPart),
 				params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription());
-		returnVal = au.wsMetaToTuple(meta);
+		returnVal = au.wsInfoToTuple(meta);
         //END create_workspace
         return returnVal;
     }
@@ -250,9 +250,9 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple6<Long, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_info
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceInformation meta = ws.getWorkspaceMetaData(
+		final WorkspaceInformation meta = ws.getWorkspaceInformation(
 				getUser(authPart), wksp);
-		returnVal = au.wsMetaToTuple(meta);
+		returnVal = au.wsInfoToTuple(meta);
         //END get_workspace_info
         return returnVal;
     }
@@ -400,7 +400,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			throw new NoSuchModuleException("There is no type module " +
 					nsme.getLocalizedMessage(), nsme);
 		}
-		returnVal = au.objMetaToTuple(meta);
+		returnVal = au.objInfoToTuple(meta);
         //END save_objects
         return returnVal;
     }
@@ -438,8 +438,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_info
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = au.objUserMetaToTuple(
-				ws.getObjectMetaData(getUser(authPart), loi));
+		returnVal = au.objInfoUserMetaToTuple(
+				ws.getObjectInformation(getUser(authPart), loi));
         //END get_object_info
         return returnVal;
     }

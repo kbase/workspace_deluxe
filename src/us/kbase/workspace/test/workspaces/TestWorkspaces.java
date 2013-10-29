@@ -207,13 +207,13 @@ public class TestWorkspaces {
 		long id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
-		meta = ws.getWorkspaceMetaData(SOMEUSER, new WorkspaceIdentifier(id));
+		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
 		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
-		meta = ws.getWorkspaceMetaData(SOMEUSER, new WorkspaceIdentifier("foo"));
+		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
 		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false, id, moddate);
 		
 		try {
-			ws.getWorkspaceMetaData(BUSER, wsi);
+			ws.getWorkspaceInformation(BUSER, wsi);
 			fail("Got metadata w/o read perms");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message ok", e.getLocalizedMessage(),
@@ -224,7 +224,7 @@ public class TestWorkspaces {
 				continue;
 			}
 			ws.setPermissions(SOMEUSER, wsi, Arrays.asList(BUSER), p);
-			ws.getWorkspaceMetaData(BUSER, wsi); //will fail if perms are wrong
+			ws.getWorkspaceInformation(BUSER, wsi); //will fail if perms are wrong
 		}
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
@@ -232,9 +232,9 @@ public class TestWorkspaces {
 		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true);
 		id = meta.getId();
 		moddate = meta.getModDate();
-		meta = ws.getWorkspaceMetaData(anotheruser, new WorkspaceIdentifier(id));
+		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
 		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
-		meta = ws.getWorkspaceMetaData(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
+		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
 		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", Permission.OWNER, true, id, moddate);
 	}
 	
@@ -395,7 +395,7 @@ public class TestWorkspaces {
 					is("Anonymous users may not read workspace perms_noglobal"));
 		}
 		try {
-			ws.getWorkspaceMetaData(null, wsiNG);
+			ws.getWorkspaceInformation(null, wsiNG);
 			fail("Able to get private workspace metadata with no user name");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("Correct exception message", e.getLocalizedMessage(),
@@ -428,7 +428,7 @@ public class TestWorkspaces {
 		//test read permissions
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
-		WorkspaceInformation meta= ws.getWorkspaceMetaData(null, wsiGL);
+		WorkspaceInformation meta= ws.getWorkspaceInformation(null, wsiGL);
 		checkWSMeta(meta, AUSER, "perms_global", Permission.NONE, true);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
@@ -519,8 +519,8 @@ public class TestWorkspaces {
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
 		ws.createWorkspace(foo, read.getIdentifierString(), true, null);
 		ws.createWorkspace(foo, priv.getIdentifierString(), false, null);
-		long readid = ws.getWorkspaceMetaData(foo, read).getId();
-		long privid = ws.getWorkspaceMetaData(foo, priv).getId();
+		long readid = ws.getWorkspaceInformation(foo, read).getId();
+		long privid = ws.getWorkspaceInformation(foo, priv).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -552,7 +552,7 @@ public class TestWorkspaces {
 		}
 		
 		try {
-			ws.getObjectMetaData(foo, new ArrayList<ObjectIdentifier>());
+			ws.getObjectInformation(foo, new ArrayList<ObjectIdentifier>());
 			fail("called method with no identifiers");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
@@ -586,7 +586,7 @@ public class TestWorkspaces {
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
 		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
-		List<ObjectInfoUserMeta> usermeta = ws.getObjectMetaData(foo, loi);
+		List<ObjectInfoUserMeta> usermeta = ws.getObjectInformation(foo, loi);
 		checkObjMeta(usermeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
 		checkObjMeta(usermeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, chksum1, 23, meta);
 		checkObjMeta(usermeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum2, 24, meta2);
@@ -631,12 +631,12 @@ public class TestWorkspaces {
 		objmeta = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
 		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23);
-		usermeta = ws.getObjectMetaData(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
+		usermeta = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)));
 		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, chksum1, 23, meta2);
 		
-		ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
+		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
 		try {
-			ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+			ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 			fail("Able to get obj meta from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
@@ -655,7 +655,7 @@ public class TestWorkspaces {
 					is(new ObjectIdentifier(priv, 2)));
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
-		usermeta = ws.getObjectMetaData(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
+		usermeta = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
 		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 		checkObjMeta(retdata.get(0).getMeta(), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, chksum1, 23, meta2);
@@ -770,7 +770,7 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
-		long readid = ws.getWorkspaceMetaData(foo, read).getId();
+		long readid = ws.getWorkspaceInformation(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
 		JsonNode savedata = mapper.valueToTree(data);
@@ -791,7 +791,7 @@ public class TestWorkspaces {
 	private void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
 			String exception) throws Exception {
 		try {
-			ws.getObjectMetaData(foo, Arrays.asList(oi));
+			ws.getObjectInformation(foo, Arrays.asList(oi));
 			fail("got non-existant object");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getLocalizedMessage(), 
@@ -1129,7 +1129,7 @@ public class TestWorkspaces {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceMetaData(foo, read), foo, "deleteundelete", Permission.OWNER, false);
+		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", Permission.OWNER, false);
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
@@ -1152,7 +1152,7 @@ public class TestWorkspaces {
 					is("Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.getWorkspaceMetaData(foo, read);
+			ws.getWorkspaceInformation(foo, read);
 			fail("got meta from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
@@ -1180,7 +1180,7 @@ public class TestWorkspaces {
 					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.getObjectMetaData(bar, objs);
+			ws.getObjectInformation(bar, objs);
 			fail("got obj meta from deleted workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception msg", ioe.getLocalizedMessage(),
@@ -1205,7 +1205,7 @@ public class TestWorkspaces {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceMetaData(foo, read), foo, "deleteundelete", Permission.OWNER, false);
+		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", Permission.OWNER, false);
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		
@@ -1232,7 +1232,7 @@ public class TestWorkspaces {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
 		}
 		try {
-			ws.getObjectMetaData(user, objs);
+			ws.getObjectInformation(user, objs);
 			fail("got deleted object's metadata");
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
