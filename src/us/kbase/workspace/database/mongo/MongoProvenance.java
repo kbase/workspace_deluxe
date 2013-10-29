@@ -20,7 +20,7 @@ public class MongoProvenance extends Provenance {
 		}
 	}
 	
-	public void resolveReferences(List<String> resolvedRefs) {
+	void resolveReferences(List<String> resolvedRefs) {
 		final List<String> refs = new LinkedList<String>(resolvedRefs);
 		final List<ProvenanceAction> actions =
 				new LinkedList<ProvenanceAction>();
@@ -45,7 +45,7 @@ public class MongoProvenance extends Provenance {
 	static class MongoProvenanceAction extends Provenance.ProvenanceAction {
 
 		MongoProvenanceAction(final ProvenanceAction pa) {
-			setServiceName(pa.getService());
+			setServiceName(pa.getServiceName());
 			setWorkspaceObjects(pa.getWorkspaceObjects());
 		}
 		

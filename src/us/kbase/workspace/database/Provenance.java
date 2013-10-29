@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,17 +45,130 @@ public class Provenance {
 
 	public static class ProvenanceAction {
 		
-		//TODO remainder of provenance items
-		
+		private Date time;
 		private String service;
+		private String serviceVersion;
+		private String method;
+		private List<Object> methodParameters;
+		private String script;
+		private String scriptVersion;
+		private String commandLine;
 		private List<String> wsobjs = new LinkedList<String>();
+		private List<String> incomingArgs;
+		private List<String> outgoingArgs;
+		private String description;
 		
 		public ProvenanceAction() {}
 		
+		public Date getTime() {
+			return time;
+		}
+
+		public void setTime(final Date time) {
+			this.time = time;
+		}
+
+		public ProvenanceAction withTime(final Date time) {
+			this.time = time;
+			return this;
+		}
+		
+		public String getServiceName() {
+			return service;
+		}
+
 		public void setServiceName(final String service) {
 			this.service = service;
 		}
+		
+		public ProvenanceAction withServiceName(final String service) {
+			this.service = service;
+			return this;
+		}
 
+		public String getServiceVersion() {
+			return serviceVersion;
+		}
+
+		public void setServiceVersion(final String serviceVersion) {
+			this.serviceVersion = serviceVersion;
+		}
+		
+		public ProvenanceAction withServiceVersion(final String serviceVersion) {
+			this.serviceVersion = serviceVersion;
+			return this;
+		}
+
+		public String getMethod() {
+			return method;
+		}
+
+		public void setMethod(final String method) {
+			this.method = method;
+		}
+		
+		public ProvenanceAction withMethod(final String method) {
+			this.method = method;
+			return this;
+		}
+
+		public List<Object> getMethodParameters() {
+			return methodParameters;
+		}
+
+		public void setMethodParameters(final List<Object> methodParameters) {
+			this.methodParameters = methodParameters;
+		}
+		
+		public ProvenanceAction withMethodParameters(
+				final List<Object> methodParameters) {
+			this.methodParameters = methodParameters;
+			return this;
+		}
+
+		public String getScript() {
+			return script;
+		}
+
+		public void setScript(final String script) {
+			this.script = script;
+		}
+		
+		public ProvenanceAction withScript(final String script) {
+			this.script = script;
+			return this;
+		}
+
+		public String getScriptVersion() {
+			return scriptVersion;
+		}
+
+		public void setScriptVersion(final String scriptVersion) {
+			this.scriptVersion = scriptVersion;
+		}
+
+		public ProvenanceAction withScriptVersion(final String scriptVersion) {
+			this.scriptVersion = scriptVersion;
+			return this;
+		}
+		
+		public String getCommandLine() {
+			return commandLine;
+		}
+
+		public void setCommandLine(final String commandLine) {
+			this.commandLine = commandLine;
+		}
+
+		public ProvenanceAction withCommandLine(final String commandLine) {
+			this.commandLine = commandLine;
+			return this;
+		}
+		
+		public List<String> getWorkspaceObjects() {
+			return wsobjs;
+		}
+		
 		public void setWorkspaceObjects(final List<String> wsobjs) {
 			if (wsobjs != null) {
 				this.wsobjs = new LinkedList<String>(
@@ -63,11 +177,6 @@ public class Provenance {
 			this.wsobjs = wsobjs;
 		}
 
-		public ProvenanceAction withServiceName(final String service) {
-			this.service = service;
-			return this;
-		}
-		
 		public ProvenanceAction withWorkspaceObjects(
 				final List<String> wsobjs) {
 			if (wsobjs != null) {
@@ -76,13 +185,46 @@ public class Provenance {
 			}
 			return this;
 		}
+		
+		public List<String> getIncomingArgs() {
+			return incomingArgs;
+		}
 
-		public String getService() {
-			return service;
+		public void setIncomingArgs(final List<String> incomingArgs) {
+			this.incomingArgs = incomingArgs;
+		}
+
+		public ProvenanceAction withIncomingArgs(
+				final List<String> incomingArgs) {
+			this.incomingArgs = incomingArgs;
+			return this;
 		}
 		
-		public List<String> getWorkspaceObjects() {
-			return wsobjs;
+		public List<String> getOutgoingArgs() {
+			return outgoingArgs;
+		}
+
+		public void setOutgoingArgs(final List<String> outgoingArgs) {
+			this.outgoingArgs = outgoingArgs;
+		}
+		
+		public ProvenanceAction withOutgoingArgs(
+				final List<String> outgoingArgs) {
+			this.outgoingArgs = outgoingArgs;
+			return this;
+		}
+
+		public String getDescription() {
+			return description;
+		}
+
+		public void setDescription(final String description) {
+			this.description = description;
+		}
+		
+		public ProvenanceAction withDescription(final String description) {
+			this.description = description;
+			return this;
 		}
 
 		// would prefer to make this abstract but Jackson doesn't like it
@@ -94,8 +236,13 @@ public class Provenance {
 
 		@Override
 		public String toString() {
-			return "ProvenanceAction [service=" + service + ", wsobjs="
-					+ wsobjs + "]";
+			return "ProvenanceAction [time=" + time + ", service=" + service
+					+ ", serviceVersion=" + serviceVersion + ", method="
+					+ method + ", methodParameters=" + methodParameters
+					+ ", script=" + script + ", scriptVersion=" + scriptVersion
+					+ ", commandLine=" + commandLine + ", wsobjs=" + wsobjs
+					+ ", incomingArgs=" + incomingArgs + ", outgoingArgs="
+					+ outgoingArgs + ", description=" + description + "]";
 		}
 	}
 }

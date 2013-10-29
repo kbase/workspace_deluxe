@@ -41,7 +41,9 @@ import us.kbase.common.service.UObject;
  *                 the command line, also put the object reference in the
  *                 input_ws_object list.
  *         list<obj_ref> input_ws_objects - the workspace objects that
- *                 were used as input to this action.
+ *                 were used as input to this action; typically these will also be
+ *                 present as parts of the method_params or the script_command_line
+ *                 arguments.
  *         list<obj_ref> resolved_ws_objects - the workspace objects ids from 
  *                 input_ws_objects resolved to permanent workspace object references
  *                 by the workspace service.
@@ -56,8 +58,7 @@ import us.kbase.common.service.UObject;
  *                 unique ID here, in the order of the output values from this action.
  *                 These IDs can be used in the intermediate_incoming argument in the
  *                 next action.
- *         string description - a free text description of this action, limited to
- *                 1000 characters. Longer descriptions will be silently truncated.
+ *         string description - a free text description of this action.
  * </pre>
  * 
  */
@@ -72,11 +73,11 @@ import us.kbase.common.service.UObject;
     "script",
     "script_ver",
     "script_command_line",
-    "description",
     "input_ws_objects",
     "resolved_ws_objects",
     "intermediate_incoming",
-    "intermediate_outgoing"
+    "intermediate_outgoing",
+    "description"
 })
 public class ProvenanceAction {
 
@@ -85,7 +86,7 @@ public class ProvenanceAction {
     @JsonProperty("service")
     private java.lang.String service;
     @JsonProperty("service_ver")
-    private Long serviceVer;
+    private java.lang.String serviceVer;
     @JsonProperty("method")
     private java.lang.String method;
     @JsonProperty("method_params")
@@ -93,11 +94,9 @@ public class ProvenanceAction {
     @JsonProperty("script")
     private java.lang.String script;
     @JsonProperty("script_ver")
-    private Long scriptVer;
+    private java.lang.String scriptVer;
     @JsonProperty("script_command_line")
     private java.lang.String scriptCommandLine;
-    @JsonProperty("description")
-    private java.lang.String description;
     @JsonProperty("input_ws_objects")
     private List<String> inputWsObjects;
     @JsonProperty("resolved_ws_objects")
@@ -106,6 +105,8 @@ public class ProvenanceAction {
     private List<String> intermediateIncoming;
     @JsonProperty("intermediate_outgoing")
     private List<String> intermediateOutgoing;
+    @JsonProperty("description")
+    private java.lang.String description;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("time")
@@ -139,16 +140,16 @@ public class ProvenanceAction {
     }
 
     @JsonProperty("service_ver")
-    public Long getServiceVer() {
+    public java.lang.String getServiceVer() {
         return serviceVer;
     }
 
     @JsonProperty("service_ver")
-    public void setServiceVer(Long serviceVer) {
+    public void setServiceVer(java.lang.String serviceVer) {
         this.serviceVer = serviceVer;
     }
 
-    public ProvenanceAction withServiceVer(Long serviceVer) {
+    public ProvenanceAction withServiceVer(java.lang.String serviceVer) {
         this.serviceVer = serviceVer;
         return this;
     }
@@ -199,16 +200,16 @@ public class ProvenanceAction {
     }
 
     @JsonProperty("script_ver")
-    public Long getScriptVer() {
+    public java.lang.String getScriptVer() {
         return scriptVer;
     }
 
     @JsonProperty("script_ver")
-    public void setScriptVer(Long scriptVer) {
+    public void setScriptVer(java.lang.String scriptVer) {
         this.scriptVer = scriptVer;
     }
 
-    public ProvenanceAction withScriptVer(Long scriptVer) {
+    public ProvenanceAction withScriptVer(java.lang.String scriptVer) {
         this.scriptVer = scriptVer;
         return this;
     }
@@ -225,21 +226,6 @@ public class ProvenanceAction {
 
     public ProvenanceAction withScriptCommandLine(java.lang.String scriptCommandLine) {
         this.scriptCommandLine = scriptCommandLine;
-        return this;
-    }
-
-    @JsonProperty("description")
-    public java.lang.String getDescription() {
-        return description;
-    }
-
-    @JsonProperty("description")
-    public void setDescription(java.lang.String description) {
-        this.description = description;
-    }
-
-    public ProvenanceAction withDescription(java.lang.String description) {
-        this.description = description;
         return this;
     }
 
@@ -303,6 +289,21 @@ public class ProvenanceAction {
         return this;
     }
 
+    @JsonProperty("description")
+    public java.lang.String getDescription() {
+        return description;
+    }
+
+    @JsonProperty("description")
+    public void setDescription(java.lang.String description) {
+        this.description = description;
+    }
+
+    public ProvenanceAction withDescription(java.lang.String description) {
+        this.description = description;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -315,7 +316,7 @@ public class ProvenanceAction {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", description=")+ description)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

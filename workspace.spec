@@ -228,7 +228,9 @@ module Workspace {
 			the command line, also put the object reference in the
 			input_ws_object list.
 		list<obj_ref> input_ws_objects - the workspace objects that
-			were used as input to this action.
+			were used as input to this action; typically these will also be
+			present as parts of the method_params or the script_command_line
+			arguments.
 		list<obj_ref> resolved_ws_objects - the workspace objects ids from 
 			input_ws_objects resolved to permanent workspace object references
 			by the workspace service.
@@ -243,19 +245,17 @@ module Workspace {
 			unique ID here, in the order of the output values from this action.
 			These IDs can be used in the intermediate_incoming argument in the
 			next action.
-		string description - a free text description of this action, limited to
-			1000 characters. Longer descriptions will be silently truncated.
+		string description - a free text description of this action.
 	*/
 	typedef structure {
 		timestamp time;
 		string service;
-		int service_ver;
+		string service_ver;
 		string method;
 		list<UnspecifiedObject> method_params;
 		string script;
-		int script_ver;
+		string script_ver;
 		string script_command_line;
-		string description;
 		list<obj_ref> input_ws_objects;
 		list<obj_ref> resolved_ws_objects;
 		list<string> intermediate_incoming;

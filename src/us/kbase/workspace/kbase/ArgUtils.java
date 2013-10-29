@@ -3,6 +3,7 @@ package us.kbase.workspace.kbase;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,8 +36,8 @@ public class ArgUtils {
 	
 	public ArgUtils() {}
 	
-	public static Provenance processProvenance(final WorkspaceUser user,
-			final List<ProvenanceAction> actions) {
+	public Provenance processProvenance(final WorkspaceUser user,
+			final List<ProvenanceAction> actions) throws ParseException {
 		
 		final Provenance p = new Provenance(user);
 		if (actions == null) {
@@ -45,16 +46,36 @@ public class ArgUtils {
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			p.addAction(new Provenance.ProvenanceAction()
+					.withTime(a.getTime() == null ? null :
+						dateFormat.parseDate(a.getTime()))
 					.withServiceName(a.getService())
+					.withServiceVersion(a.getServiceVer())
+					.withMethod(a.getMethod())
+					.withMethodParameters(translateMethodParameters(
+							a.getMethodParams()))
+					.withScript(a.getScript())
+					.withScriptVersion(a.getScriptVer())
+					.withCommandLine(a.getScriptCommandLine())
 					.withWorkspaceObjects(a.getInputWsObjects())
+					.withIncomingArgs(a.getIntermediateIncoming())
+					.withOutgoingArgs(a.getIntermediateOutgoing())
+					.withDescription(a.getDescription())
 					);
-			//TODO remainder of provenance actions
-			//TODO parse provenance date 
 		}
-		
 		return p;
 	}
 	
+	private List<Object> translateMethodParameters(List<UObject> methodParams) {
+		if (methodParams == null) {
+			return null;
+		}
+		final List<Object> params = new LinkedList<Object>();
+		for (final UObject uo: methodParams) {
+			params.add(uo.asInstance());
+		}
+		return params;
+	}
+
 	public Tuple6<Long, String, String, String, String, String>
 			wsMetaToTuple (final WorkspaceMetaData meta) {
 		return new Tuple6<Long, String, String, String, String, String>()
@@ -155,7 +176,7 @@ public class ArgUtils {
 			pas.add(new ProvenanceAction()
 					.withInputWsObjects(a.getWorkspaceObjects())
 					.withResolvedWsObjects(a.getResolvedObjects())
-					.withService(a.getService()));
+					.withService(a.getServiceName()));
 		}
 		return pas;
 	}

@@ -615,13 +615,12 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
-	service_ver has a value which is an int
+	service_ver has a value which is a string
 	method has a value which is a string
 	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 	script has a value which is a string
-	script_ver has a value which is an int
+	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
@@ -634,7 +633,7 @@ object_info is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -671,13 +670,12 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
-	service_ver has a value which is an int
+	service_ver has a value which is a string
 	method has a value which is a string
 	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 	script has a value which is a string
-	script_ver has a value which is an int
+	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
@@ -690,7 +688,7 @@ object_info is a reference to a list containing 9 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -790,7 +788,7 @@ object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -804,13 +802,12 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
-	service_ver has a value which is an int
+	service_ver has a value which is a string
 	method has a value which is a string
 	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 	script has a value which is a string
-	script_ver has a value which is an int
+	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
@@ -846,7 +843,7 @@ object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -860,13 +857,12 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	service has a value which is a string
-	service_ver has a value which is an int
+	service_ver has a value which is a string
 	method has a value which is a string
 	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 	script has a value which is a string
-	script_ver has a value which is an int
+	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	description has a value which is a string
 	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
@@ -960,7 +956,7 @@ object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -997,7 +993,7 @@ object_info_full is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
-	3: (create_date) a Workspace.timestamp
+	3: (save_date) a Workspace.timestamp
 	4: (version) an int
 	5: (created_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
@@ -3010,7 +3006,7 @@ Information about an object.
         obj_id objid - the numerical id of the object.
         obj_name name - the name of the object.
         type_string type - the type of the object.
-        timestamp create_date - the creation date of the object.
+        timestamp save_date - the save date of the object.
         obj_ver ver - the version of the object.
         username created_by - the user that created the object.
         ws_id wsid - the workspace containing the object.
@@ -3027,7 +3023,7 @@ a reference to a list containing 9 items:
 0: (objid) a Workspace.obj_id
 1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
-3: (create_date) a Workspace.timestamp
+3: (save_date) a Workspace.timestamp
 4: (version) an int
 5: (created_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
@@ -3044,7 +3040,7 @@ a reference to a list containing 9 items:
 0: (objid) a Workspace.obj_id
 1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
-3: (create_date) a Workspace.timestamp
+3: (save_date) a Workspace.timestamp
 4: (version) an int
 5: (created_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
@@ -3071,7 +3067,7 @@ Information about an object, including user provided metadata.
         obj_id objid - the numerical id of the object.
         obj_name name - the name of the object.
         type_string type - the type of the object.
-        timestamp create_date - the creation date of the object.
+        timestamp save_date - the save date of the object.
         obj_ver ver - the version of the object.
         username created_by - the user that created the object.
         ws_id wsid - the workspace containing the object.
@@ -3090,7 +3086,7 @@ a reference to a list containing 10 items:
 0: (objid) a Workspace.obj_id
 1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
-3: (create_date) a Workspace.timestamp
+3: (save_date) a Workspace.timestamp
 4: (version) an int
 5: (created_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
@@ -3108,7 +3104,7 @@ a reference to a list containing 10 items:
 0: (objid) a Workspace.obj_id
 1: (name) a Workspace.obj_name
 2: (type) a Workspace.type_string
-3: (create_date) a Workspace.timestamp
+3: (save_date) a Workspace.timestamp
 4: (version) an int
 5: (created_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
@@ -3157,7 +3153,9 @@ A provenance action.
                 the command line, also put the object reference in the
                 input_ws_object list.
         list<obj_ref> input_ws_objects - the workspace objects that
-                were used as input to this action.
+                were used as input to this action; typically these will also be
+                present as parts of the method_params or the script_command_line
+                arguments.
         list<obj_ref> resolved_ws_objects - the workspace objects ids from 
                 input_ws_objects resolved to permanent workspace object references
                 by the workspace service.
@@ -3172,8 +3170,7 @@ A provenance action.
                 unique ID here, in the order of the output values from this action.
                 These IDs can be used in the intermediate_incoming argument in the
                 next action.
-        string description - a free text description of this action, limited to
-                1000 characters. Longer descriptions will be silently truncated.
+        string description - a free text description of this action.
 
 
 =item Definition
@@ -3184,13 +3181,12 @@ A provenance action.
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
 service has a value which is a string
-service_ver has a value which is an int
+service_ver has a value which is a string
 method has a value which is a string
 method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 script has a value which is a string
-script_ver has a value which is an int
+script_ver has a value which is a string
 script_command_line has a value which is a string
-description has a value which is a string
 input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
@@ -3206,13 +3202,12 @@ description has a value which is a string
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
 service has a value which is a string
-service_ver has a value which is an int
+service_ver has a value which is a string
 method has a value which is a string
 method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
 script has a value which is a string
-script_ver has a value which is an int
+script_ver has a value which is a string
 script_command_line has a value which is a string
-description has a value which is a string
 input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
