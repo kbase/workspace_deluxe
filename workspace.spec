@@ -517,6 +517,14 @@ module Workspace {
 	*/
 	funcdef compile_typespec(CompileTypespecParams params)
 		returns(mapping<type_string, jsonschema>);
+
+	/* 
+	Compile a copy of new typespec or recompile an existing typespec which is loaded 
+	from another workspace for synchronization. Method returns new version of module 
+	in current workspace. Also see the release_types function.
+	*/
+	funcdef compile_typespec_copy(string external_workspace_url, modulename mod, 
+		spec_version version_in_external_workspace) returns(spec_version new_local_version);
 		
 	/* Release a module for general use of its types.
 		
@@ -599,6 +607,9 @@ module Workspace {
 		string description - the description of the module from the typespec.
 		mapping<type_string, jsonschema> types - the types associated with this
 			module and their JSON schema.
+		mapping<modulename, spec_version> included_spec_version - names of 
+			included modules associated with their versions.
+		string chsum - the md5 checksum of the object.
 	*/
 	typedef structure {
 		list<username> owners;
@@ -606,6 +617,8 @@ module Workspace {
 		typespec spec;
 		string description;
 		mapping<type_string, jsonschema> types;
+		mapping<modulename, spec_version> included_spec_version;
+		string chsum;
 	} ModuleInfo;
 	
 	funcdef get_module_info(GetModuleInfoParams params)

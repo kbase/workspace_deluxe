@@ -25,6 +25,7 @@ public class JsonClientCaller {
 	private char[] password = null;
 	private AuthToken accessToken = null;
 	private boolean isAuthAllowedForHttp = false;
+	private Integer connectionReadTimeOut = 30 * 60 * 1000;
 	
 	public JsonClientCaller(URL url) {
 		serviceUrl = url;
@@ -56,8 +57,16 @@ public class JsonClientCaller {
 		this.isAuthAllowedForHttp = isAuthAllowedForHttp;
 	}
 	
+	public void setConnectionReadTimeOut(Integer connectionReadTimeOut) {
+		this.connectionReadTimeOut = connectionReadTimeOut;
+	}
+
 	private HttpURLConnection setupCall(boolean authRequired) throws IOException, JsonClientException {
 		HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
+		conn.setConnectTimeout(10000);
+		if (connectionReadTimeOut != null) {
+			conn.setReadTimeout(connectionReadTimeOut);
+		}
 		conn.setDoOutput(true);
 		conn.setRequestMethod("POST");
 		if (authRequired || accessToken != null) {

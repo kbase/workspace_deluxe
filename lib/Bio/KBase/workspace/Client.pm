@@ -1855,6 +1855,98 @@ sub compile_typespec
 
 
 
+=head2 compile_typespec_copy
+
+  $new_local_version = $obj->compile_typespec_copy($external_workspace_url, $mod, $version_in_external_workspace)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$external_workspace_url is a string
+$mod is a Workspace.modulename
+$version_in_external_workspace is a Workspace.spec_version
+$new_local_version is a Workspace.spec_version
+modulename is a string
+spec_version is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$external_workspace_url is a string
+$mod is a Workspace.modulename
+$version_in_external_workspace is a Workspace.spec_version
+$new_local_version is a Workspace.spec_version
+modulename is a string
+spec_version is an int
+
+
+=end text
+
+=item Description
+
+Compile a copy of new typespec or recompile an existing typespec which is loaded 
+from another workspace for synchronization. Method returns new version of module 
+in current workspace. Also see the release_types function.
+
+=back
+
+=cut
+
+sub compile_typespec_copy
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 3)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function compile_typespec_copy (received $n, expecting 3)");
+    }
+    {
+	my($external_workspace_url, $mod, $version_in_external_workspace) = @args;
+
+	my @_bad_arguments;
+        (!ref($external_workspace_url)) or push(@_bad_arguments, "Invalid type for argument 1 \"external_workspace_url\" (value was \"$external_workspace_url\")");
+        (!ref($mod)) or push(@_bad_arguments, "Invalid type for argument 2 \"mod\" (value was \"$mod\")");
+        (!ref($version_in_external_workspace)) or push(@_bad_arguments, "Invalid type for argument 3 \"version_in_external_workspace\" (value was \"$version_in_external_workspace\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to compile_typespec_copy:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'compile_typespec_copy');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.compile_typespec_copy",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'compile_typespec_copy',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method compile_typespec_copy",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'compile_typespec_copy',
+				       );
+    }
+}
+
+
+
 =head2 release_module
 
   $types = $obj->release_module($mod)
@@ -2161,6 +2253,8 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	spec has a value which is a Workspace.typespec
 	description has a value which is a string
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+	chsum has a value which is a string
 username is a string
 typespec is a string
 type_string is a string
@@ -2185,6 +2279,8 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	spec has a value which is a Workspace.typespec
 	description has a value which is a string
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+	chsum has a value which is a string
 username is a string
 typespec is a string
 type_string is a string
@@ -4099,6 +4195,9 @@ Information about a module.
         string description - the description of the module from the typespec.
         mapping<type_string, jsonschema> types - the types associated with this
                 module and their JSON schema.
+        mapping<modulename, spec_version> included_spec_version - names of 
+                included modules associated with their versions.
+        string chsum - the md5 checksum of the object.
 
 
 =item Definition
@@ -4112,6 +4211,8 @@ ver has a value which is a Workspace.spec_version
 spec has a value which is a Workspace.typespec
 description has a value which is a string
 types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+chsum has a value which is a string
 
 </pre>
 
@@ -4125,6 +4226,8 @@ ver has a value which is a Workspace.spec_version
 spec has a value which is a Workspace.typespec
 description has a value which is a string
 types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
+included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
+chsum has a value which is a string
 
 
 =end text

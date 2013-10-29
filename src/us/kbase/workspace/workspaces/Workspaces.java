@@ -1,5 +1,8 @@
 package us.kbase.workspace.workspaces;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +14,9 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.UnauthorizedException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -28,6 +34,8 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
@@ -648,7 +656,8 @@ public class Workspaces {
 		return new ModuleInfo(typedb.getModuleSpecDocument(module),
 				typedb.getModuleOwners(module.getModuleName()),
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
-				typedb.getJsonSchemasForAllTypes(module));
+				typedb.getJsonSchemasForAllTypes(module), 
+				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash());
 	}
 	
 	public List<Long> getModuleVersions(final String module)
@@ -690,5 +699,48 @@ public class Workspaces {
 			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef).getTypeString());
 		}
 		return ret;
+	}
+	
+	public long compileTypeSpecCopy(String secondWorkspaceUrl, String moduleName, long moduleVersion, 
+			AuthToken authPart) throws MalformedURLException, IOException, JsonClientException, 
+			NoSuchModuleException, TypeStorageException, SpecParseException, NoSuchPrivilegeException {
+		String userId = authPart.getUserName();
+		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
+		WorkspaceClient client = new WorkspaceClient(new URL(secondWorkspaceUrl), authPart);
+		GetModuleInfoParams params = new GetModuleInfoParams().withMod(moduleName).withVer(moduleVersion);
+		us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(params);
+		Map<String, Long> moduleVersionRestrictions = new HashMap<String, Long>();
+		for (Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
+			String includedModule = entry.getKey();
+			long extIncludedVer = entry.getValue();
+			GetModuleInfoParams includeParams = new GetModuleInfoParams().withMod(includedModule).withVer(extIncludedVer);
+			us.kbase.workspace.ModuleInfo extIncludedInfo = client.getModuleInfo(includeParams);
+			List<ModuleDefId> localIncludeVersions = new ArrayList<ModuleDefId>(
+					typedb.findModuleVersionsByMD5(includedModule, extIncludedInfo.getChsum()));
+			if (localIncludeVersions.size() == 0)
+				throw new NoSuchModuleException("Can not find local module " + includedModule + " synchronized " +
+						"with external version " + extIncludedVer + " (md5=" + extIncludedInfo.getChsum() + ")");
+			us.kbase.typedobj.db.ModuleInfo localIncludedInfo =  typedb.getModuleInfo(includedModule, 
+					localIncludeVersions.get(0).getVersion());
+			moduleVersionRestrictions.put(localIncludedInfo.getModuleName(), localIncludedInfo.getVersionTime());
+		}
+		String specDocument = extInfo.getSpec();
+		Set<String> prevTypes = new HashSet<String>(typedb.getModuleInfo(moduleName, lastLocalVer).getTypes().keySet());
+		Set<String> typesToSave = extInfo.getTypes().keySet();
+		List<String> allTypes = new ArrayList<String>(prevTypes);
+		allTypes.addAll(typesToSave);
+		List<String> typesToUnregister = new ArrayList<String>();
+		for (String typeName : allTypes) {
+			if (prevTypes.contains(typeName)) {
+				if (typesToSave.contains(typeName)) {
+					typesToSave.remove(typeName);
+				} else {
+					typesToUnregister.add(typeName);
+				}
+			}
+		}
+		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
+				userId, false, moduleVersionRestrictions);
+		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
 	}
 }

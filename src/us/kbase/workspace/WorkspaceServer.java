@@ -606,6 +606,27 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: compile_typespec_copy</p>
+     * <pre>
+     * Compile a copy of new typespec or recompile an existing typespec which is loaded 
+     * from another workspace for synchronization. Method returns new version of module 
+     * in current workspace. Also see the release_types function.
+     * </pre>
+     * @param   externalWorkspaceUrl   instance of String
+     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
+     * @param   versionInExternalWorkspace   instance of original type "spec_version" (The version of a typespec.)
+     * @return   parameter "new_local_version" of original type "spec_version" (The version of a typespec.)
+     */
+    @JsonServerMethod(rpc = "Workspace.compile_typespec_copy")
+    public Long compileTypespecCopy(String externalWorkspaceUrl, String mod, Long versionInExternalWorkspace, AuthToken authPart) throws Exception {
+        Long returnVal = null;
+        //BEGIN compile_typespec_copy
+        returnVal = ws.compileTypeSpecCopy(externalWorkspaceUrl, mod, versionInExternalWorkspace, authPart);
+        //END compile_typespec_copy
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: release_module</p>
      * <pre>
      * Release a module for general use of its types.
@@ -725,7 +746,9 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withOwners(mi.getOwners())
 				.withSpec(mi.getTypespec())
 				.withVer(mi.getVersion())
-				.withTypes(types);
+				.withTypes(types)
+				.withIncludedSpecVersion(mi.getIncludedSpecVersions())
+				.withChsum(mi.getMd5hash());
         //END get_module_info
         return returnVal;
     }

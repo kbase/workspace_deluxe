@@ -22,6 +22,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         string description - the description of the module from the typespec.
  *         mapping<type_string, jsonschema> types - the types associated with this
  *                 module and their JSON schema.
+ *         mapping<modulename, spec_version> included_spec_version - names of 
+ *                 included modules associated with their versions.
+ *         string chsum - the md5 checksum of the object.
  * </pre>
  * 
  */
@@ -32,20 +35,26 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "ver",
     "spec",
     "description",
-    "types"
+    "types",
+    "included_spec_version",
+    "chsum"
 })
 public class ModuleInfo {
 
     @JsonProperty("owners")
     private List<String> owners;
     @JsonProperty("ver")
-    private Long ver;
+    private java.lang.Long ver;
     @JsonProperty("spec")
     private java.lang.String spec;
     @JsonProperty("description")
     private java.lang.String description;
     @JsonProperty("types")
     private Map<String, String> types;
+    @JsonProperty("included_spec_version")
+    private Map<String, Long> includedSpecVersion;
+    @JsonProperty("chsum")
+    private java.lang.String chsum;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("owners")
@@ -64,16 +73,16 @@ public class ModuleInfo {
     }
 
     @JsonProperty("ver")
-    public Long getVer() {
+    public java.lang.Long getVer() {
         return ver;
     }
 
     @JsonProperty("ver")
-    public void setVer(Long ver) {
+    public void setVer(java.lang.Long ver) {
         this.ver = ver;
     }
 
-    public ModuleInfo withVer(Long ver) {
+    public ModuleInfo withVer(java.lang.Long ver) {
         this.ver = ver;
         return this;
     }
@@ -123,6 +132,36 @@ public class ModuleInfo {
         return this;
     }
 
+    @JsonProperty("included_spec_version")
+    public Map<String, Long> getIncludedSpecVersion() {
+        return includedSpecVersion;
+    }
+
+    @JsonProperty("included_spec_version")
+    public void setIncludedSpecVersion(Map<String, Long> includedSpecVersion) {
+        this.includedSpecVersion = includedSpecVersion;
+    }
+
+    public ModuleInfo withIncludedSpecVersion(Map<String, Long> includedSpecVersion) {
+        this.includedSpecVersion = includedSpecVersion;
+        return this;
+    }
+
+    @JsonProperty("chsum")
+    public java.lang.String getChsum() {
+        return chsum;
+    }
+
+    @JsonProperty("chsum")
+    public void setChsum(java.lang.String chsum) {
+        this.chsum = chsum;
+    }
+
+    public ModuleInfo withChsum(java.lang.String chsum) {
+        this.chsum = chsum;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -135,7 +174,7 @@ public class ModuleInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", includedSpecVersion=")+ includedSpecVersion)+", chsum=")+ chsum)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

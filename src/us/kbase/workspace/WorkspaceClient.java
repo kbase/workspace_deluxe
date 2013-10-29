@@ -68,6 +68,10 @@ public class WorkspaceClient {
         caller = new JsonClientCaller(DEFAULT_URL, user, password);
     }
 
+	public void setConnectionReadTimeOut(Integer milliseconds) {
+		this.caller.setConnectionReadTimeOut(milliseconds);
+	}
+
     public boolean isAuthAllowedForHttp() {
         return caller.isAuthAllowedForHttp();
     }
@@ -356,6 +360,30 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
         List<Map<String,String>> res = caller.jsonrpcCall("Workspace.compile_typespec", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: compile_typespec_copy</p>
+     * <pre>
+     * Compile a copy of new typespec or recompile an existing typespec which is loaded 
+     * from another workspace for synchronization. Method returns new version of module 
+     * in current workspace. Also see the release_types function.
+     * </pre>
+     * @param   externalWorkspaceUrl   instance of String
+     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
+     * @param   versionInExternalWorkspace   instance of original type "spec_version" (The version of a typespec.)
+     * @return   parameter "new_local_version" of original type "spec_version" (The version of a typespec.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public Long compileTypespecCopy(String externalWorkspaceUrl, String mod, Long versionInExternalWorkspace) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(externalWorkspaceUrl);
+        args.add(mod);
+        args.add(versionInExternalWorkspace);
+        TypeReference<List<Long>> retType = new TypeReference<List<Long>>() {};
+        List<Long> res = caller.jsonrpcCall("Workspace.compile_typespec_copy", args, retType, true, true);
         return res.get(0);
     }
 

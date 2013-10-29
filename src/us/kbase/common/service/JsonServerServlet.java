@@ -227,6 +227,7 @@ public class JsonServerServlet extends HttpServlet {
 			} catch (Exception ex) {}
 			JsonNode methodNode = node.get("method");
 			ArrayNode paramsNode = (ArrayNode)node.get("params");
+			node = null;
 			rpcName = (methodNode!=null && !methodNode.isNull()) ? methodNode.asText() : null;
 			if (rpcName.contains(".")) {
 				int pos = rpcName.indexOf('.');
@@ -264,8 +265,8 @@ public class JsonServerServlet extends HttpServlet {
 				writeError(response, -32602, "Wrong parameter count for method " + rpcName, output);
 				return;
 			}
-			for (int typePos = 0; typePos < paramsNode.size(); typePos++) {
-				JsonNode jsonData = paramsNode.get(typePos);
+			for (int typePos = 0; paramsNode.size() > 0; typePos++) {
+				JsonNode jsonData = paramsNode.remove(0);
 				Type paramType = rpcMethod.getGenericParameterTypes()[typePos];
 				PlainTypeRef paramJavaType = new PlainTypeRef(paramType);
 				try {
@@ -275,6 +276,7 @@ public class JsonServerServlet extends HttpServlet {
 					return;
 				}
 			}
+			paramsNode = null;
 			if (userProfile != null && methodValues[methodValues.length - 1] == null)
 				methodValues[methodValues.length - 1] = userProfile;
 			Object result;
