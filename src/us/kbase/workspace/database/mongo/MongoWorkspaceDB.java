@@ -67,6 +67,7 @@ import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
+import us.kbase.workspace.database.mongo.MongoProvenance.MongoProvenanceAction;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -1355,6 +1356,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO save provenance as batch and add prov id to pkgs
 	}
 	
+	private static final Set<String> FLDS_VER_META_PROV = newHashSet(
+			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
+			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
+			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
+			Fields.VER_PROVREF);
+	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException,
@@ -1364,7 +1371,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_META);
+						FLDS_VER_META_PROV);
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
 		final List<ObjectId> provIDs = new LinkedList<ObjectId>();
@@ -1382,9 +1389,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
-			//TODO handle resolved refs
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
+			@SuppressWarnings("unchecked")
+			final List<String> resolvedRefs = (List<String>) vers.get(roi)
+					.get(Fields.VER_PROVREF);
+			for (Provenance.ProvenanceAction pa: prov.getActions()) {
+				final int refcnt = pa.getWorkspaceObjects().size();
+				final List<String> actionRefs = new LinkedList<String>(
+						resolvedRefs.subList(0, refcnt));
+				resolvedRefs.subList(0, refcnt).clear();
+				((MongoProvenanceAction) pa).withResolvedObjects(actionRefs);
+			}
 			final MongoObjectUserMeta meta = generateUserMeta(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
@@ -1437,6 +1453,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectId, MongoProvenance>();
 		for (MongoProvenance p: provs) {
 			ret.put(p.getMongoId(), p);
+			p.fixProvenanceActions(); //this is a gross hack. I'm rather proud of it actually
 		}
 		return ret;
 	}
@@ -1496,7 +1513,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
-			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV);
+			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectUserMetaData> getObjectMeta(

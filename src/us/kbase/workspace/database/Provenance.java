@@ -5,12 +5,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
+import us.kbase.common.exceptions.UnimplementedException;
 
 public class Provenance {
 	
-	protected String user;
+	private String user;
 	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
@@ -47,11 +46,23 @@ public class Provenance {
 		
 		//TODO remainder of provenance items
 		
-		protected String service;
-		protected List<String> wsobjs = new LinkedList<String>();
+		private String service;
+		private List<String> wsobjs = new LinkedList<String>();
 		
 		public ProvenanceAction() {}
 		
+		public void setServiceName(final String service) {
+			this.service = service;
+		}
+
+		public void setWorkspaceObjects(final List<String> wsobjs) {
+			if (wsobjs != null) {
+				this.wsobjs = new LinkedList<String>(
+						new HashSet<String>(wsobjs));
+			}
+			this.wsobjs = wsobjs;
+		}
+
 		public ProvenanceAction withServiceName(final String service) {
 			this.service = service;
 			return this;
@@ -73,14 +84,9 @@ public class Provenance {
 		public List<String> getWorkspaceObjects() {
 			return wsobjs;
 		}
-		
-		public ProvenanceAction withResolvedObjects(
-				final List<String> objRefs) {
-			throw new NotImplementedException();
-		}
 
 		public List<String> getResolvedObjects() {
-			throw new NotImplementedException();
+			throw new UnimplementedException();
 		}
 
 		@Override
