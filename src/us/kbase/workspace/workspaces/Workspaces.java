@@ -42,7 +42,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -213,7 +213,7 @@ public class Workspaces {
 		return ret;
 	}
 	
-	public WorkspaceMetaData createWorkspace(final WorkspaceUser user, 
+	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
 			final String wsname, boolean globalread, String description)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -261,7 +261,7 @@ public class Workspaces {
 		return db.getAllPermissions(wsid);
 	}
 
-	public WorkspaceMetaData getWorkspaceMetaData(final WorkspaceUser user,
+	public WorkspaceInformation getWorkspaceMetaData(final WorkspaceUser user,
 				final WorkspaceIdentifier wsi) throws
 				NoSuchWorkspaceException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, WorkspaceAuthorizationException {

@@ -33,7 +33,7 @@ public interface WorkspaceDatabase {
 			Set<WorkspaceIdentifier> wsis, boolean allowDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
-	public WorkspaceMetaData createWorkspace(WorkspaceUser owner, String wsname,
+	public WorkspaceInformation createWorkspace(WorkspaceUser owner, String wsname,
 			boolean globalread, String description) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
@@ -58,7 +58,7 @@ public interface WorkspaceDatabase {
 			ResolvedWorkspaceID rwsi) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 
-	public WorkspaceMetaData getWorkspaceMetadata(WorkspaceUser user,
+	public WorkspaceInformation getWorkspaceMetadata(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
 			WorkspaceCommunicationException;
 

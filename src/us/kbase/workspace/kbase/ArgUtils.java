@@ -20,7 +20,7 @@ import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -91,7 +91,7 @@ public class ArgUtils {
 	}
 
 	public Tuple6<Long, String, String, String, String, String>
-			wsMetaToTuple (final WorkspaceMetaData meta) {
+			wsMetaToTuple (final WorkspaceInformation meta) {
 		return new Tuple6<Long, String, String, String, String, String>()
 				.withE1(meta.getId())
 				.withE2(meta.getName())

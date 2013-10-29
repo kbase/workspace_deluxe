@@ -54,7 +54,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -351,7 +351,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_NAME);
 
 	@Override
-	public WorkspaceMetaData createWorkspace(final WorkspaceUser user,
+	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
 			final String description) throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -399,7 +399,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			setPermissions(new ResolvedMongoWSID(count),
 					Arrays.asList(allUsers), Permission.READ, false);
 		}
-		return new MongoWSMeta(count, wsname, user, moddate, Permission.OWNER,
+		return new MongoWSInfo(count, wsname, user, moddate, Permission.OWNER,
 				globalRead);
 	}
 	
@@ -617,7 +617,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.WS_MODDATE);
 	
 	@Override
-	public WorkspaceMetaData getWorkspaceMetadata(final WorkspaceUser user,
+	public WorkspaceInformation getWorkspaceMetadata(final WorkspaceUser user,
 			final ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
@@ -625,7 +625,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				FLDS_WS_ID_NAME_OWNER_MODDATE);
 		final Map<User, Permission> res = getUserAndGlobalPermission(user,
 				m);
-		return new MongoWSMeta((Long) ws.get(Fields.WS_ID),
+		return new MongoWSInfo((Long) ws.get(Fields.WS_ID),
 				(String) ws.get(Fields.WS_NAME),
 				new WorkspaceUser((String) ws.get(Fields.WS_OWNER)),
 				(Date) ws.get(Fields.WS_MODDATE), res.get(user),

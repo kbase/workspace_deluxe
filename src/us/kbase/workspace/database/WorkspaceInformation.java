@@ -4,7 +4,7 @@ import java.util.Date;
 
 
 
-public interface WorkspaceMetaData {
+public interface WorkspaceInformation {
 	
 	public long getId();
 	public String getName();

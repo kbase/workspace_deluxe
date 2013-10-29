@@ -41,7 +41,7 @@ import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -185,14 +185,14 @@ public class TestWorkspaces {
 		}
 	}
 	
-	private void checkWSMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
+	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
 			Permission perm, boolean globalread, long id, Date moddate) {
 		checkWSMeta(meta, owner, name, perm, globalread);
 		assertThat("ws id correct", meta.getId(), is(id));
 		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
 	}
 	
-	private void checkWSMeta(WorkspaceMetaData meta, WorkspaceUser owner, String name,
+	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
 			Permission perm, boolean globalread) {
 		assertThat("ws owner correct", meta.getOwner(), is(owner));
 		assertThat("ws name correct", meta.getName(), is(name));
@@ -202,7 +202,7 @@ public class TestWorkspaces {
 	
 	@Test
 	public void testCreateWorkspaceAndGetMeta() throws Exception {
-		WorkspaceMetaData meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
+		WorkspaceInformation meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
 		checkWSMeta(meta, SOMEUSER, "foo", Permission.OWNER, false);
 		long id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
@@ -428,7 +428,7 @@ public class TestWorkspaces {
 		//test read permissions
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
-		WorkspaceMetaData meta= ws.getWorkspaceMetaData(null, wsiGL);
+		WorkspaceInformation meta= ws.getWorkspaceMetaData(null, wsiGL);
 		checkWSMeta(meta, AUSER, "perms_global", Permission.NONE, true);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();

@@ -45,7 +45,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
@@ -229,7 +229,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			p = translatePermission(params.getGlobalread());
 		}
-		final WorkspaceMetaData meta = ws.createWorkspace(getUser(authPart),
+		final WorkspaceInformation meta = ws.createWorkspace(getUser(authPart),
 				params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription());
 		returnVal = au.wsMetaToTuple(meta);
@@ -250,7 +250,7 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple6<Long, String, String, String, String, String> returnVal = null;
         //BEGIN get_workspace_info
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final WorkspaceMetaData meta = ws.getWorkspaceMetaData(
+		final WorkspaceInformation meta = ws.getWorkspaceMetaData(
 				getUser(authPart), wksp);
 		returnVal = au.wsMetaToTuple(meta);
         //END get_workspace_info

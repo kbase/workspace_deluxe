@@ -3,10 +3,10 @@ package us.kbase.workspace.database.mongo;
 import java.util.Date;
 
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.WorkspaceMetaData;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
-public class MongoWSMeta implements WorkspaceMetaData {
+public class MongoWSInfo implements WorkspaceInformation {
 	
 	final private long id;
 	final private String name;
@@ -15,7 +15,7 @@ public class MongoWSMeta implements WorkspaceMetaData {
 	final private Permission userPermission;
 	final private boolean globalRead;
 	
-	MongoWSMeta(long id, String name, WorkspaceUser owner, Date modDate,
+	MongoWSInfo(long id, String name, WorkspaceUser owner, Date modDate,
 			Permission userPermission, boolean globalRead) {
 		this.id = id;
 		this.name = name;
