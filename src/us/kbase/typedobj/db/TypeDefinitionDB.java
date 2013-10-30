@@ -608,11 +608,8 @@ public class TypeDefinitionDB {
 		try {
 			List<String> versions = storage.getTypeVersionsByMd5(moduleName, typeDef.getType().getName(), 
 					typeDef.getMd5().getMD5());
-			//Map<String, Boolean> map = storage.getAllTypeVersions(moduleName, typeDef.getType().getName());
 			List<AbsoluteTypeDefId> ret = new ArrayList<AbsoluteTypeDefId>();
 			for (String ver : versions) {
-				//if (map.get(ver) == null || !map.get(ver))
-				//	continue;
 				SemanticVersion sver = new SemanticVersion(ver);
 				ret.add(new AbsoluteTypeDefId(typeDef.getType(), sver.getMajor(), sver.getMinor()));
 			}
@@ -807,7 +804,17 @@ public class TypeDefinitionDB {
 			releaseReadLock(moduleName);
 		}
 	}
-	
+
+	public boolean isOwnerOfModule(String moduleName, String userId) throws NoSuchModuleException, TypeStorageException {
+		requestReadLock(moduleName);
+		try {
+			checkModuleRegistered(moduleName);
+			return storage.getOwnersForModule(moduleName).containsKey(userId);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
 	/**
 	 * Change major version of every registered type to 1.0 for types of version 0.x or set module releaseVersion to currentVersion.
 	 * @param moduleName
@@ -1057,17 +1064,30 @@ public class TypeDefinitionDB {
 		try {
 			checkModuleRegistered(moduleName);
 			checkModuleSupported(moduleName);
-			return getAllModuleVersionsNL(moduleName);
+			return getAllModuleVersionsNL(moduleName, false);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
 
-	private List<Long> getAllModuleVersionsNL(String moduleName) throws TypeStorageException {
+	public List<Long> getAllModuleVersionsWithUnreleased(String moduleName, String ownerUserId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		requestReadLock(moduleName);
+		try {
+			checkModuleRegistered(moduleName);
+			checkModuleSupported(moduleName);
+			checkUserIsOwnerOrAdmin(moduleName, ownerUserId);
+			return getAllModuleVersionsNL(moduleName, true);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
+	private List<Long> getAllModuleVersionsNL(String moduleName, boolean withUnreleased) throws TypeStorageException {
 		TreeMap<Long, Boolean> map = storage.getAllModuleVersions(moduleName);
 		List<Long> ret = new ArrayList<Long>();
 		for (Map.Entry<Long, Boolean> enrty : map.entrySet())
-			if (enrty.getValue() && enrty.getKey() != map.firstKey())
+			if ((withUnreleased || enrty.getValue()) && enrty.getKey() != map.firstKey())
 				ret.add(enrty.getKey());
 		return ret;
 	}
@@ -2065,7 +2085,7 @@ public class TypeDefinitionDB {
 		requestReadLock(moduleName);
 		try {
 			Set<ModuleDefId> ret = new LinkedHashSet<ModuleDefId>();
-			for (long version : getAllModuleVersionsNL(moduleName)) {
+			for (long version : getAllModuleVersionsNL(moduleName, false)) {
 				ModuleInfo info = getModuleInfoNL(moduleName, version);
 				if (md5.equals(info.getMd5hash()))
 					ret.add(new ModuleDefId(moduleName, version));

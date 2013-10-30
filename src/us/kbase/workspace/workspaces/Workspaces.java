@@ -672,8 +672,10 @@ public class Workspaces {
 				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash());
 	}
 	
-	public List<Long> getModuleVersions(final String module)
-			throws NoSuchModuleException, TypeStorageException {
+	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		if (user != null && typedb.isOwnerOfModule(module, user.getUser()))
+			return typedb.getAllModuleVersionsWithUnreleased(module, user.getUser());
 		return typedb.getAllModuleVersions(module);
 	}
 	
