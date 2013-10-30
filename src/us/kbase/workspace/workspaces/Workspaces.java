@@ -286,17 +286,16 @@ public class Workspaces {
 	}
 	
 	private class TempObjectData {
-		public WorkspaceSaveObject wo;
-		public TypedObjectValidationReport rep;
-		public int order;
+		WorkspaceSaveObject wo;
+		TypedObjectValidationReport rep;
+		int order;
 		
-		public TempObjectData(WorkspaceSaveObject wo,
+		TempObjectData(WorkspaceSaveObject wo,
 				TypedObjectValidationReport rep, int order) {
 			this.wo = wo;
 			this.rep = rep;
 			this.order = order;
 		}
-		
 	}
 	
 	public List<ObjectInformation> saveObjects(final WorkspaceUser user,
@@ -308,6 +307,7 @@ public class Workspaces {
 			NoSuchModuleException, TypeStorageException,
 			TypedObjectValidationException, RelabelIdReferenceException,
 			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
+		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
@@ -440,6 +440,16 @@ public class Workspaces {
 			final Set<Reference> refs = new HashSet<Reference>();
 			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final WsIdReference r: rep.getWsIdReferences()) {
+				if (!r.isValidInstanceType(reftypes.get(r.getId()))) {
+					throw new TypedObjectValidationException(String.format(
+							"Object %s: The type %s of reference %s " + 
+							"contained in this object is not " +
+							"allowed for this object's type, %s",
+							getObjectErrorId(wo.getObjectIdentifier(), objnum),
+							reftypes.get(r.getId()).getTypeString(),
+							r.getId(),
+							rep.getValidationTypeDefId().getTypeString()));
+				}
 				refs.add(newrefs.get(r.getId()));
 				replacerefs.put(r.getId(), newrefs.get(r.getId()).toString());
 			}
@@ -451,11 +461,7 @@ public class Workspaces {
 			}
 			//modifies data in place
 			rep.relabelWsIdReferences(replacerefs);
-			//TODO typechecking for each reference
-			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
-			//TODO just need report at this point
 			saveobjs.add(wo.resolve(rep, refs, provrefs));
-			objcount++;
 		}
 		objects = null; // don't screw with the input, but release to gc
 		reports.clear();
