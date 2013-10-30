@@ -84,8 +84,6 @@ public class Workspaces {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
-	//TODO REFS5 update phase 1 workspace code and deploy with full DB (note to dev list)
-
 	//TODO $P3 alpha_list_objects alpha_list_workspaces
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
@@ -308,8 +306,8 @@ public class Workspaces {
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, NoSuchTypeException,
 			NoSuchModuleException, TypeStorageException,
-			TypedObjectValidationException,
-			BadJsonSchemaDocumentException, InstanceValidationException, RelabelIdReferenceException { //TODO get rid of these when possible
+			TypedObjectValidationException, RelabelIdReferenceException,
+			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
@@ -347,6 +345,7 @@ public class Workspaces {
 			}
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
 			for (final WsIdReference ref: rep.getWsIdReferences()) {
+				//WsIdReference doesn't implement equals or hashcode so use string
 				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
 						false);
 			}
@@ -455,7 +454,7 @@ public class Workspaces {
 			//TODO typechecking for each reference
 			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
 			//TODO just need report at this point
-			saveobjs.add(wo.resolve(type, wo.getData(), rep, refs, provrefs));
+			saveobjs.add(wo.resolve(rep, refs, provrefs));
 			objcount++;
 		}
 		objects = null; // don't screw with the input, but release to gc

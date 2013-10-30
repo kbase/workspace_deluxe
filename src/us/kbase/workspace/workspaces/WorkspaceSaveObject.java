@@ -117,17 +117,16 @@ public class WorkspaceSaveObject {
 		return hidden;
 	}
 
-	public ResolvedSaveObject resolve(final AbsoluteTypeDefId type,
-			final JsonNode resolvedData, final TypedObjectValidationReport rep,
+	public ResolvedSaveObject resolve(final TypedObjectValidationReport rep,
 			final Set<Reference> references,
 			final List<Reference> provenancerefs) {
 		if (id == null) {
-			return new ResolvedSaveObject(resolvedData, type, this.userMeta,
-					this.provenance, this.hidden, rep, references, provenancerefs);
+			return new ResolvedSaveObject(this.userMeta, this.provenance,
+					this.hidden, rep, references, provenancerefs);
 		} else {
-			return new ResolvedSaveObject(this.id, resolvedData, type,
-					this.userMeta, this.provenance, this.hidden, rep,
-					references, provenancerefs);
+			return new ResolvedSaveObject(this.id, this.userMeta,
+					this.provenance, this.hidden, rep, references,
+					provenancerefs);
 		}
 	}
 	

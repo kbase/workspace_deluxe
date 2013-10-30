@@ -697,7 +697,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		pointer.put(Fields.VER_REF, pkg.refs);
 		pointer.put(Fields.VER_PROVREF, pkg.provrefs);
 		pointer.put(Fields.VER_PROV, pkg.mprov.getMongoId());
-		pointer.put(Fields.VER_TYPE, pkg.wo.getType().getTypeString());
+		pointer.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
+				.getTypeString());
 		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
 		pointer.put(Fields.VER_RVRT, null);
 
@@ -708,8 +709,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"There was a problem communicating with the database", me);
 		}
 		return new MongoObjectInfo(objectid, pkg.name,
-				pkg.wo.getType().getTypeString(), created, ver, user, wsid,
-				pkg.td.getChksum(), pkg.td.getSize());
+				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
+				created, ver, user, wsid, pkg.td.getChksum(), pkg.td.getSize());
 	}
 	
 	//TODO make all projections not include _id unless specified
@@ -869,7 +870,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		int objnum = 1;
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();
 		for (ResolvedSaveObject o: objects) {
-			if (o.getType().getMd5() != null) {
+			if (o.getRep().getValidationTypeDefId().getMd5() != null) {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
@@ -896,11 +897,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				provrefs.add(r.toString());
 			}
 			pkg.provrefs = provrefs;
-			pkg.wo = o;
+			pkg.wo = o; //TODO don't do this if possible
 			final String json;
 			try {
-				final Object obj = MAPPER_SORTED.treeToValue(o.getData(),
-						Object.class);
+				final Object obj = MAPPER_SORTED.treeToValue(
+						o.getRep().getJsonInstance(), Object.class);
 				json = MAPPER_SORTED.writeValueAsString(obj);
 			} catch (JsonProcessingException jpe) {
 				throw new IllegalArgumentException(
@@ -914,8 +915,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						MAX_OBJECT_SIZE));
 			}
 			final JsonNode sd = pkg.wo.getRep().extractSearchableWsSubset();
-//			final JsonNode sd = typeValidator.extractWsSearchableSubset(
-//					pkg.wo.getData(), pkg.wo.getRep());
 			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s subdata size exceeds limit of %s",
@@ -950,7 +949,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, o.getType(), subdata);
+			pkg.td = new TypeData(json, o.getRep().getValidationTypeDefId(),
+					subdata);
 			ret.add(pkg);
 			objnum++;
 		}
@@ -1727,16 +1727,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new ObjectIDNoWSNoVer("testobj"),
 					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-			wco.add(wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+			wco.add(wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.wo = wo.resolve(at, wo.getData(), new DummyTypedObjectValidationReport(),
+			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
 			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;
+			testdb.saveProvenance(Arrays.asList(pkg));
 			ObjectInformation md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.id, pkg);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
