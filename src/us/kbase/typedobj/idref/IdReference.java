@@ -3,7 +3,6 @@ package us.kbase.typedobj.idref;
 import java.util.List;
 
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 
 import com.fasterxml.jackson.databind.JsonNode;

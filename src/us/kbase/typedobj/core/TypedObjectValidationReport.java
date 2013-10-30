@@ -2,11 +2,9 @@ package us.kbase.typedobj.core;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceManager;

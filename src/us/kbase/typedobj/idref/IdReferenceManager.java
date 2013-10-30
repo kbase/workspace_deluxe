@@ -6,14 +6,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
