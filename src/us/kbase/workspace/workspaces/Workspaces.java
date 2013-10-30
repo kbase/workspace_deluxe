@@ -29,6 +29,7 @@ import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.WsIdReference;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
@@ -345,8 +346,9 @@ public class Workspaces {
 						"Object %s failed type checking:\n", objerrid) + err);
 			}
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
-			for (final String ref: rep.getListOfIdReferences()) {
-				processRef(refToOid, oidToObject, objerrid, data, ref, false);
+			for (final WsIdReference ref: rep.getWsIdReferences()) {
+				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
+						false);
 			}
 			for (final Provenance.ProvenanceAction action:
 				wo.getProvenance().getActions()) {
@@ -438,9 +440,9 @@ public class Workspaces {
 					new HashMap<String, String>();
 			final Set<Reference> refs = new HashSet<Reference>();
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final String r: rep.getListOfIdReferences()) {
-				refs.add(newrefs.get(r));
-				replacerefs.put(r, newrefs.get(r).toString());
+			for (final WsIdReference r: rep.getWsIdReferences()) {
+				refs.add(newrefs.get(r.getId()));
+				replacerefs.put(r.getId(), newrefs.get(r.getId()).toString());
 			}
 			for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
@@ -448,10 +450,11 @@ public class Workspaces {
 					provrefs.add(newrefs.get(ref));
 				}
 			}
-			rep.setAbsoluteIdReferences(replacerefs);
-			val.relableToAbsoluteIds(wo.getData(), rep);
+			//modifies data in place
+			rep.relabelWsIdReferences(replacerefs);
 			//TODO typechecking for each reference
 			final AbsoluteTypeDefId type = rep.getValidationTypeDefId();
+			//TODO just need report at this point
 			saveobjs.add(wo.resolve(type, wo.getData(), rep, refs, provrefs));
 			objcount++;
 		}

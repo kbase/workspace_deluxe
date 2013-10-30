@@ -913,8 +913,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						MAX_OBJECT_SIZE));
 			}
-			final JsonNode sd = typeValidator.extractWsSearchableSubset(
-					pkg.wo.getData(), pkg.wo.getRep());
+			final JsonNode sd = pkg.wo.getRep().extractSearchableWsSubset();
+//			final JsonNode sd = typeValidator.extractWsSearchableSubset(
+//					pkg.wo.getData(), pkg.wo.getRep());
 			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s subdata size exceeds limit of %s",
