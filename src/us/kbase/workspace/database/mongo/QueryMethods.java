@@ -381,22 +381,37 @@ public class QueryMethods {
 	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
 			final Set<ResolvedMongoWSID> rwsis, final Set<User> users) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return queryPermissions(rwsis, users, Permission.NONE);
+	}
+	
+	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
+			final Set<User> users, final Permission minPerm) throws
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return queryPermissions(null, users, minPerm);
+	}
+	
+	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
+			final Set<ResolvedMongoWSID> rwsis, final Set<User> users,
+			final Permission minPerm) throws
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
-		final DBObject iddb = new BasicDBObject();
-		final Set<Long> wsids = new HashSet<Long>();
-		for (final ResolvedMongoWSID r: rwsis) {
-			wsids.add(r.getID());
+		if (rwsis != null && rwsis.size() > 0) {
+			final Set<Long> wsids = new HashSet<Long>();
+			for (final ResolvedMongoWSID r: rwsis) {
+				wsids.add(r.getID());
+			}
+			query.put(Fields.ACL_WSID, new BasicDBObject("$in", wsids));
 		}
-		iddb.put("$in", wsids);
-		query.put(Fields.ACL_WSID, iddb);
 		if (users != null && users.size() > 0) {
 			final List<String> u = new ArrayList<String>();
 			for (User user: users) {
 				u.add(user.getUser());
 			}
-			final DBObject usersdb = new BasicDBObject();
-			usersdb.put("$in", u);
-			query.put(Fields.ACL_USER, usersdb);
+			query.put(Fields.ACL_USER, new BasicDBObject("$in", u));
+		}
+		if (minPerm != null & !Permission.NONE.equals(minPerm)) {
+			query.put(Fields.ACL_PERM, new BasicDBObject("$gte",
+					minPerm.getPermission()));
 		}
 		final DBObject proj = new BasicDBObject();
 		proj.put(Fields.MONGO_ID, 0);
@@ -413,23 +428,25 @@ public class QueryMethods {
 					"There was a problem communicating with the database", me);
 		}
 		
-		final Map<Long, Map<User, Permission>> wsidToPerms =
-				new HashMap<Long, Map<User, Permission>>();
+		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
+				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
 		for (final DBObject m: res) {
-			final long wsid = (Long) m.get(Fields.ACL_WSID);
+			final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
+					(Long) m.get(Fields.ACL_WSID));
 			if (!wsidToPerms.containsKey(wsid)) {
 				wsidToPerms.put(wsid, new HashMap<User, Permission>());
 			}
 			wsidToPerms.get(wsid).put(getUser((String) m.get(Fields.ACL_USER)),
 					Permission.fromInt((Integer) m.get(Fields.ACL_PERM)));
 		}
-		final Map<ResolvedMongoWSID, Map<User, Permission>> ret =
-				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
-		for (ResolvedMongoWSID rwsi: rwsis) {
-			final Map<User, Permission> p = wsidToPerms.get(rwsi.getID());
-			ret.put(rwsi, p == null ? new HashMap<User, Permission>() : p);
+		if (rwsis != null) {
+			for (ResolvedMongoWSID rwsi: rwsis) {
+				if (!wsidToPerms.containsKey(rwsi)) {
+					wsidToPerms.put(rwsi, new HashMap<User, Permission>());
+				}
+			}
 		}
-		return ret;
+		return wsidToPerms;
 	}
 	
 	private User getUser(final String user) throws

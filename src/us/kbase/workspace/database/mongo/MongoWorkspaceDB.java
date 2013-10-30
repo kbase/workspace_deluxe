@@ -478,6 +478,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	public PermissionSet getWorkspacesWithPermission(
+			final WorkspaceUser user, final Permission perm)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		if (perm == null || Permission.NONE.equals(perm)) {
+			throw new IllegalArgumentException(
+					"Permission cannot be null or NONE");
+		}
+		final Set<User> u = new HashSet<User>();
+		u.add(user);
+		final Map<ResolvedMongoWSID, Map<User, Permission>> perms =
+				query.queryPermissions(u, perm);
+		final MongoPermissionSet pset = new MongoPermissionSet(user, allUsers);
+		for (final ResolvedMongoWSID rwsi: perms.keySet()) {
+			pset.setPermission(rwsi, perms.get(rwsi).get(user), perms.get(rwsi)
+					.get(allUsers));
+		}
+		return pset;
+	}
+	
 	private static String getWSErrorId(final WorkspaceIdentifier wsi) {
 		if (wsi.getId() == null) {
 			return "name " + wsi.getName();
