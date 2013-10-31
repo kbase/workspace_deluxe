@@ -207,8 +207,8 @@ public class TestWsSubsetExtraction {
 		// this method generates a patch, so that if they differ you can see what's up
 		JsonNode diff = JsonDiff.asJson(actualSubset,expectedSubset);
 		if(VERBOSE) if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
-		System.out.println(actualSubset);
-		System.out.println(expectedSubset);
+		//System.out.println(actualSubset);
+		//System.out.println(expectedSubset);
 		assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset; diff="+diff,
 						diff.size()==0);
 		
