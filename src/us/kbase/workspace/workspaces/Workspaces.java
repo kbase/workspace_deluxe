@@ -85,6 +85,7 @@ public class Workspaces {
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
 	//TODO $P3 alpha_list_objects alpha_list_workspaces
+	//TODO copy ujs deploy stuff here
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
@@ -525,9 +526,12 @@ public class Workspaces {
 	}
 	
 	public List<WorkspaceInformation> prealphaListWorkspaces(
-			final WorkspaceUser user) {
-		// TODO Auto-generated method stub
-		return null;
+			final WorkspaceUser user)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final PermissionSet perms =
+				db.getWorkspacesWithPermission(user, Permission.READ);
+		return db.getWorkspaceInformation(perms);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

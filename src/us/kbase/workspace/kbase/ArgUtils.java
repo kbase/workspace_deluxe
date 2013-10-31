@@ -89,21 +89,33 @@ public class ArgUtils {
 		}
 		return params;
 	}
+	
+	public List<Tuple6<Long, String, String, String, String, String>>
+			wsInfoToTuple (final List<WorkspaceInformation> info) {
+		final List<Tuple6<Long, String, String, String, String, String>> ret =
+				new LinkedList<Tuple6<Long,String,String,String,String,
+				String>>();
+		for (final WorkspaceInformation wi: info) {
+			ret.add(wsInfoToTuple(wi));
+		}
+		return ret;
+		
+	}
 
 	public Tuple6<Long, String, String, String, String, String>
-			wsInfoToTuple (final WorkspaceInformation meta) {
+			wsInfoToTuple (final WorkspaceInformation info) {
 		return new Tuple6<Long, String, String, String, String, String>()
-				.withE1(meta.getId())
-				.withE2(meta.getName())
-				.withE3(meta.getOwner().getUser())
-				.withE4(dateFormat.formatDate(meta.getModDate()))
-				.withE5(translatePermission(meta.getUserPermission())) 
-				.withE6(translatePermission(meta.isGloballyReadable()));
+				.withE1(info.getId())
+				.withE2(info.getName())
+				.withE3(info.getOwner().getUser())
+				.withE4(dateFormat.formatDate(info.getModDate()))
+				.withE5(translatePermission(info.getUserPermission())) 
+				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
 	public List<Tuple9<Long, String, String, String, Long, String,
 			Long, String, Long>>
-			objInfoToTuple (final List<ObjectInformation> meta) {
+			objInfoToTuple (final List<ObjectInformation> info) {
 		
 		//oh the humanity
 		final List<Tuple9<Long, String, String, String, Long, String,
@@ -111,7 +123,7 @@ public class ArgUtils {
 			new ArrayList<Tuple9<Long, String, String, String, Long,
 			String, Long, String, Long>>();
 		
-		for (ObjectInformation m: meta) {
+		for (ObjectInformation m: info) {
 			ret.add(new Tuple9<Long, String, String, String, Long,
 					String, Long, String, Long>()
 					.withE1(m.getObjectId())
@@ -129,15 +141,15 @@ public class ArgUtils {
 	
 	public Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>
-			objInfoUserMetaToTuple (final ObjectInfoUserMeta meta) {
+			objInfoUserMetaToTuple (final ObjectInfoUserMeta info) {
 		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
-		m.add(meta);
+		m.add(info);
 		return objInfoUserMetaToTuple(m).get(0);
 	}
 	
 	public List<Tuple10<Long, String, String, String, Long, String,
 			Long, String, Long, Map<String, String>>>
-			objInfoUserMetaToTuple (final List<ObjectInfoUserMeta> meta) {
+			objInfoUserMetaToTuple (final List<ObjectInfoUserMeta> info) {
 		
 		//oh the humanity
 		final List<Tuple10<Long, String, String, String, Long, String,
@@ -145,7 +157,7 @@ public class ArgUtils {
 			new ArrayList<Tuple10<Long, String, String, String, Long,
 			String, Long, String, Long, Map<String, String>>>();
 		
-		for (ObjectInfoUserMeta m: meta) {
+		for (ObjectInfoUserMeta m: info) {
 			ret.add(new Tuple10<Long, String, String, String, Long,
 					String, Long, String, Long, Map<String, String>>()
 					.withE1(m.getObjectId())
