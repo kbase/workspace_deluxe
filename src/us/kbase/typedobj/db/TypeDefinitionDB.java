@@ -128,7 +128,7 @@ public class TypeDefinitionDB {
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
 			UserInfoProvider uip, String kbTopPath) throws TypeStorageException {
-		this(storage, tempDir, uip, kbTopPath, KidlSource.internal);
+		this(storage, tempDir, uip, kbTopPath, KidlSource.external);
 	}
 	
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
