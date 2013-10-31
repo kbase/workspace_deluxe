@@ -44,6 +44,7 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 
 /**
@@ -158,7 +159,8 @@ public class TestIdProcessing {
 		File tempdir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),
+				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		
 		// create a validator that uses the type def db

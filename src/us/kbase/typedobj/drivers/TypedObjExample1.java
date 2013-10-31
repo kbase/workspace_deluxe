@@ -28,6 +28,7 @@ import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjExample1 {
 
@@ -45,7 +46,8 @@ public class TypedObjExample1 {
 			File tempdir = new File("temp_files");
 			if (!tempdir.exists())
 				tempdir.mkdir();
-			TypeDefinitionDB db = new TypeDefinitionDB(new FileTypeStorage(dblocation), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
+			TypeDefinitionDB db = new TypeDefinitionDB(new FileTypeStorage(dblocation), tempdir, 
+					new UserInfoProviderForTests(), new Util().getKIDLpath(),  WorkspaceTestCommon.getKidlSource());
 			System.out.println("connecting to: "+dblocation);
 			
 			// list all the modules that have been loaded

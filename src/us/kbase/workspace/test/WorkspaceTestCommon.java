@@ -27,6 +27,7 @@ public class WorkspaceTestCommon {
 	public static final String SHOCKURL = "test.shock.url";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
+	public static final String KIDL_SOURCE = "test.kidl.source";
 			
 	private static MongoClient mongoClient = null;
 	
@@ -70,6 +71,10 @@ public class WorkspaceTestCommon {
 	
 	public static String getShockUrl() {
 		return getProp(SHOCKURL);
+	}
+	
+	public static String getKidlSource() {
+		return System.getProperty(KIDL_SOURCE);
 	}
 	
 	private static void buildMongo() throws UnknownHostException,

@@ -193,7 +193,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase())),
 								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null), kidlpath));
+								new UserInfoProviderForTests(null), kidlpath, null));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
@@ -217,7 +217,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
 								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null), kidlpath));
+								new UserInfoProviderForTests(null), kidlpath, null));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}

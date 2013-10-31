@@ -25,7 +25,8 @@ CONFIG_OPTS = ['test.shock.url',
                'test.user2',
                'test.pwd2',
                'test.user.noemail',
-               'test.pwd.noemail'
+               'test.pwd.noemail',
+               'test.kidl.source'
                ]
 
 if __name__ == '__main__':

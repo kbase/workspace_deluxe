@@ -29,7 +29,6 @@ import com.github.fge.jsonschema.cfg.ValidationConfiguration;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
-import us.kbase.jkidl.IncludeProvider;
 import us.kbase.jkidl.StaticIncludeProvider;
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbList;
@@ -115,7 +114,7 @@ public class TypeDefinitionDB {
 
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
 			UserInfoProvider uip) throws TypeStorageException {
-		this(storage, tempDir, uip, null);
+		this(storage, tempDir, uip, null, null);
 	}
 	
 	/**
@@ -124,15 +123,12 @@ public class TypeDefinitionDB {
 	 * @param storage
 	 * @param tempDir
 	 * @param uip
+	 * @param kbTopPath
+	 * @param kidlSource
 	 * @throws TypeStorageException 
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			UserInfoProvider uip, String kbTopPath) throws TypeStorageException {
-		this(storage, tempDir, uip, kbTopPath, KidlSource.external);
-	}
-	
-	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			UserInfoProvider uip, String kbTopPath, KidlSource kidlSource) throws TypeStorageException {
+			UserInfoProvider uip, String kbTopPath, String kidlSource) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
@@ -162,7 +158,8 @@ public class TypeDefinitionDB {
 		}
 		this.uip = uip;
 		this.kbTopPath = kbTopPath;
-		this.kidlSource = kidlSource;
+		this.kidlSource = kidlSource == null || kidlSource.isEmpty() ? KidlSource.internal : 
+			KidlSource.valueOf(kidlSource);
 	}
 	
 	

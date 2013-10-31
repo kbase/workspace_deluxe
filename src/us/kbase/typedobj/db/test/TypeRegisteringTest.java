@@ -102,7 +102,8 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser),new Util().getKIDLpath());
+		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser), 
+				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 	}
 	
 	public static DB createMongoDbConnection() throws UnknownHostException {

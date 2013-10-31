@@ -4,9 +4,9 @@ module KB {
 
 	/*
 	  @optional size
-	  @searchable ws_subset name,alias,size,width
-	  aa@searchable ws_subset size
-	  aa@searchable ws_subset width
+	  @searchable ws_subset name,alias
+	  @searchable ws_subset size
+	  @searchable ws_subset width
 	*/
 	typedef structure {
 		string name;
@@ -19,8 +19,8 @@ module KB {
 
 
 	/*
-	  @searchable ws_subset numbers,floaters.*
-	  aa@searchable ws_subset floaters.*
+	  @searchable ws_subset numbers
+	  @searchable ws_subset floaters.*
 	*/
 	typedef structure {
 		mapping<string,int> numbers;
@@ -30,8 +30,8 @@ module KB {
 	
 	
 	/*
-	  @searchable ws_subset names,numbers.[*]
-	  aa@searchable ws_subset numbers.[*]
+	  @searchable ws_subset names
+	  @searchable ws_subset numbers.[*]
 	*/
 	typedef structure {
 		list<string> names;
@@ -58,10 +58,10 @@ module KB {
 
 	/*
 	@optional dl dm dml
-	@searchable ws_subset d.(name,length),dl.[*].name,dm.*.(seq,length),dml.*.[*].name
-	a@searchable ws_subset dl.[*].name
-	a@searchable ws_subset dm.*.(seq,length)
-	a@searchable ws_subset dml.*.[*].name
+	@searchable ws_subset d.(name,length)
+	@searchable ws_subset dl.[*].name
+	@searchable ws_subset dm.*.(seq,length)
+	@searchable ws_subset dml.*.[*].name
 	*/
 	typedef structure {
 		Subdata d;
