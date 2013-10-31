@@ -29,6 +29,8 @@ import com.github.fge.jsonschema.cfg.ValidationConfiguration;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
+import us.kbase.jkidl.IncludeProvider;
+import us.kbase.jkidl.StaticIncludeProvider;
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbList;
 import us.kbase.kidl.KbMapping;
@@ -44,6 +46,7 @@ import us.kbase.kidl.KbType;
 import us.kbase.kidl.KbTypedef;
 import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
+import us.kbase.kidl.tests.KidlTest;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
@@ -61,6 +64,9 @@ import us.kbase.typedobj.exceptions.*;
  */
 public class TypeDefinitionDB {
 
+	public enum KidlSource {
+		external, internal, both
+	}
 	
 	/**
 	 * This is the factory used to create a JsonSchema object from a Json Schema
@@ -85,6 +91,7 @@ public class TypeDefinitionDB {
 	private final Map<String, ModuleState> moduleStates = new HashMap<String, ModuleState>();
 	private final ThreadLocal<Map<String,Integer>> localReadLocks = new ThreadLocal<Map<String,Integer>>(); 
 	private final String kbTopPath;
+	private final KidlSource kidlSource;
 	
 	enum Change {
 		noChange, backwardCompatible, notCompatible;
@@ -121,6 +128,11 @@ public class TypeDefinitionDB {
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
 			UserInfoProvider uip, String kbTopPath) throws TypeStorageException {
+		this(storage, tempDir, uip, kbTopPath, KidlSource.internal);
+	}
+	
+	public TypeDefinitionDB(TypeStorage storage, File tempDir,
+			UserInfoProvider uip, String kbTopPath, KidlSource kidlSource) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
@@ -150,6 +162,7 @@ public class TypeDefinitionDB {
 		}
 		this.uip = uip;
 		this.kbTopPath = kbTopPath;
+		this.kidlSource = kidlSource;
 	}
 	
 	
@@ -1590,21 +1603,40 @@ public class TypeDefinitionDB {
 			Map<String, Map<String, String>> moduleToTypeToSchema,
 			Map<String, ModuleInfo> moduleToInfo, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, NoSuchModuleException {
-		File tempDir = createTempDir();
+		File tempDir = kidlSource == KidlSource.internal ? null : createTempDir();
 		try {
-			File specFile = new File(tempDir, "currentlyCompiled.spec");
-			writeFile(specDocument, specFile);
 			Map<String, IncludeDependentPath> moduleToPath = new HashMap<String, IncludeDependentPath>();
+			StaticIncludeProvider sip = kidlSource == KidlSource.internal ? new StaticIncludeProvider() : null;
 			for (String iModule : includedModules) {
 				Long iVersion = moduleVersionRestrictions.get(iModule);
 				if (iVersion == null)
 					iVersion = getLatestModuleVersion(iModule);
 				saveIncludedModuleRecusive(tempDir, new IncludeDependentPath(), iModule, iVersion, 
-						moduleToPath, moduleVersionRestrictions);
+						moduleToPath, moduleVersionRestrictions, sip);
 			}
 			for (IncludeDependentPath path : moduleToPath.values())
 				moduleToInfo.put(path.info.getModuleName(), path.info);
-			List<KbService> services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema, kbTopPath);
+			List<KbService> services;
+			if (kidlSource == KidlSource.external) {
+				File specFile = new File(tempDir, "currentlyCompiled.spec");
+				writeFile(specDocument, specFile);
+				services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema, kbTopPath, false);
+			} else if (kidlSource == KidlSource.both) {
+				File specFile = new File(tempDir, "currentlyCompiled.spec");
+				writeFile(specDocument, specFile);
+				Map<String, Map<String, String>> jsonSchemasExt = new TreeMap<String, Map<String, String>>();
+				Map<?,?> parseMapExt = KidlParser.parseSpecExt(specFile, tempDir, jsonSchemasExt, kbTopPath);
+				Map<String, Map<String, String>> jsonSchemasInt = new TreeMap<String, Map<String, String>>();
+				Map<?,?> parseMapInt = KidlParser.parseSpecInt(specFile, jsonSchemasInt);
+				KidlTest.compareJson(parseMapExt, parseMapInt, "Parsing schema"); 
+				KidlTest.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas"); 			
+				services = KidlParser.parseSpec(parseMapExt);
+				moduleToTypeToSchema.putAll(jsonSchemasExt);
+			} else {
+				StringReader r = new StringReader(specDocument);
+				Map<?,?> parseMap = KidlParser.parseSpecInt(r, moduleToTypeToSchema, sip);
+				services = KidlParser.parseSpec(parseMap);
+			}
 			if (services.size() != 1)
 				throw new SpecParseException("Spec-file should consist of only one service");
 			if (services.get(0).getModules().size() != 1)
@@ -1617,7 +1649,8 @@ public class TypeDefinitionDB {
 		} catch (Exception ex) {
 			throw new SpecParseException("Unexpected error during spec-file parsing: " + ex.getMessage(), ex);			
 		} finally {
-			deleteTempDir(tempDir);
+			if (tempDir != null)
+				deleteTempDir(tempDir);
 		}
 	}
 	
@@ -1856,8 +1889,8 @@ public class TypeDefinitionDB {
 			KbScalar newIType = (KbScalar)newType;
 			if (oldIType.getScalarType() != newIType.getScalarType())
 				return Change.notCompatible;
-			String oldIdRefText = "" + oldIType.getIdReferences();
-			String newIdRefText = "" + newIType.getIdReferences();
+			String oldIdRefText = "" + oldIType.getIdReference();
+			String newIdRefText = "" + newIType.getIdReference();
 			return oldIdRefText.equals(newIdRefText) ? Change.noChange : Change.notCompatible;
 		} else if (newType instanceof KbStruct) {
 			KbStruct oldIType = (KbStruct)oldType;
@@ -1977,7 +2010,7 @@ public class TypeDefinitionDB {
 	
 	private void saveIncludedModuleRecusive(File workDir, IncludeDependentPath parent, 
 			String moduleName, long version, Map<String, IncludeDependentPath> savedModules, 
-			Map<String, Long> moduleVersionRestrictions) 
+			Map<String, Long> moduleVersionRestrictions, StaticIncludeProvider sip) 
 			throws NoSuchModuleException, IOException, TypeStorageException, SpecParseException {
 		ModuleInfo info = getModuleInfoNL(moduleName, version);
 		IncludeDependentPath currentPath = new IncludeDependentPath(info, parent);
@@ -1993,13 +2026,16 @@ public class TypeDefinitionDB {
 			return;
 		}
 		String spec = getModuleSpecDocument(moduleName, version);
-		writeFile(spec, new File(workDir, moduleName + ".types"));
+		if (workDir != null)
+			writeFile(spec, new File(workDir, moduleName + ".types"));
+		if (sip != null)
+			sip.addSpecFile(moduleName, spec);
 		savedModules.put(moduleName, currentPath);
 		for (Map.Entry<String, Long> entry : info.getIncludedModuleNameToVersion().entrySet()) {
 			String includedModule = entry.getKey();
 			long includedVersion = entry.getValue();
 			saveIncludedModuleRecusive(workDir, currentPath, includedModule, includedVersion, 
-					savedModules, moduleVersionRestrictions);
+					savedModules, moduleVersionRestrictions, sip);
 		}
 	}
 	
