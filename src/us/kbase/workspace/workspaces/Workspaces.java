@@ -84,8 +84,7 @@ public class Workspaces {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
-	//TODO $P3 alpha_list_objects alpha_list_workspaces
-	//TODO copy ujs deploy stuff here
+	//TODO $P3 alpha_list_objects
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	
