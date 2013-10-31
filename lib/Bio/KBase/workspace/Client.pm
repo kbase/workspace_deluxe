@@ -805,7 +805,7 @@ permission is a string
 =item Description
 
 pre alpha version of list_workspaces so there's something to use.
-Untested.
+No tests.
 
 =back
 
@@ -915,7 +915,7 @@ username is a string
 =item Description
 
 pre alpha version of list_objects so there's something to use.
-Untested.
+No tests.
 
 =back
 
@@ -2187,7 +2187,7 @@ sub list_module_versions
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {

@@ -583,7 +583,7 @@ module Workspace {
 	
 	/* List typespec module versions. */
 	funcdef list_module_versions(ListModuleVersionsParams params)
-		 returns(ModuleVersions vers);
+		 returns(ModuleVersions vers) authentication optional;
 	
 	/* Parameters for the get_module_info function.
 	
