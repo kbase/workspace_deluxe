@@ -58,6 +58,7 @@
     <include name="fge/jackson-coreutils-1.4.jar"/>
     <include name="fge/json-schema-core-1.1.8.jar"/>
     <include name="fge/json-schema-validator-2.1.7.jar"/>
+    <include name="fge/json-patch-1.3.jar"/>
     <include name="fge/msg-simple-0.9.jar"/>
     <include name="fge/uri-template-0.7.jar"/>
     <include name="google/guava-14.0.1.jar"/>
@@ -217,6 +218,7 @@
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
+      <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"/>
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
       <test name="us.kbase.shock.client.test.ShockTests"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>

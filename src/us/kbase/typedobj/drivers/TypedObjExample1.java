@@ -62,10 +62,10 @@ public class TypedObjExample1 {
 				db.approveModuleRegistrationRequest(username, "KB");
 				db.requestModuleRegistration("FBA", username);
 				db.approveModuleRegistrationRequest(username, "FBA");
-				String kbSpec = loadResourceFile("../tests/files/t3/KB.spec");
+				String kbSpec = loadResourceFile("../tests/files/t4/KB.spec");
 				db.registerModule(kbSpec, Arrays.asList("Feature","Genome","genome_id"), username);
 				db.releaseModule("KB", username);
-				String fbaSpec = loadResourceFile("../tests/files/t3/FBA.spec");
+				String fbaSpec = loadResourceFile("../tests/files/t4/FBA.spec");
 				db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
 				db.releaseModule("FBA", username);
 			}

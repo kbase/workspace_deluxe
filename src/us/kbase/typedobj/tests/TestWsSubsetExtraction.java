@@ -29,6 +29,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.diff.JsonDiff;
+
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -40,76 +44,60 @@ import us.kbase.workspace.kbase.Util;
 
 
 /**
- * simple test of the basic typed object validation framework that creates a simple
- * file storage typed object database using a couple spec files, looks at the directory
- * containing instances to validate, and ensures that the instances validate or don't
- * as indicated.
- * 
- * The test files are in us.kbase.typedobj.tests.files.t1
- * 
- * You can add as many instances to validate as you like by naming text files as:
- *   ModuleName.TypeName.[valid|invalid].instance.N
- * where you need to indicate if the instance is valid or not, and N is any string
- * identifier for the test, usually integer numbers.
- * 
- * If the spec files are updated or new ones added, you need to modify the db
- * setup method to add the new typed obj defs.
- * 
- * Note: we could/should migrate this to JUnit parameterized tests in the future...
- * 
- * @author msneddon
+ * Tests that ensure the proper subset is extracted from a typed object instance
  *
+ * To add new tests of the ID processing machinery, add files named in the format:
+ *   [ModuleName].[TypeName].instance.[label] 
+ *        - json encoding of a valid type instance
+ *   [ModuleName].[TypeName].instance.[label].subset
+ *        - json encoding of the expected '\@searchable ws_subset' output
+ *
+ * @author msneddon
  */
 @RunWith(value = Parameterized.class)
-public class TestBasicValidation {
+public class TestWsSubsetExtraction {
 
 	/**
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t3";
 	
-	private final static String TEST_RESOURCE_LOCATION = "files/t1/";
-	
-	private static TypeDefinitionDB db;
-	
-	private static TypedObjectValidator validator;
+	/**
+	 * relative location to find the input files
+	 */
+	private final static String TEST_RESOURCE_LOCATION = "files/t3/";
 	
 	private final static boolean VERBOSE = true;
+
+	private static TypeDefinitionDB db;
+	private static TypedObjectValidator validator;
 	
-	/*
-	 * structures to store info on each instance we wish to validate 
+	/**
+	 * List to stash the handle to the test case files
 	 */
-	
-	private static List<TestInstanceInfo> validInstanceResources = new ArrayList <TestInstanceInfo> ();
-	private static List<TestInstanceInfo> invalidInstanceResources = new ArrayList <TestInstanceInfo> ();
+	private static List<TestInstanceInfo> instanceResources = new ArrayList <TestInstanceInfo> ();
 	
 	private static class TestInstanceInfo {
-		public TestInstanceInfo(String resourceName, String moduleName, String typeName, boolean isValid) {
+		public TestInstanceInfo(String resourceName, String moduleName, String typeName) {
 			this.resourceName = resourceName;
 			this.moduleName = moduleName;
 			this.typeName = typeName;
-			this.isValid = isValid;
 		}
 		public String resourceName;
 		public String moduleName;
 		public String typeName;
-		@SuppressWarnings("unused")
-		public boolean isValid;
 	}
 	
 	/**
 	 * As each test instance object is created, this sets which instance to actually test
 	 */
-	private int instanceNumber;
-	private boolean isValidInstance;
+	private TestInstanceInfo instance;
 	
-	public TestBasicValidation(Integer instanceNumber, Boolean isValidInstance) {
-		this.instanceNumber = instanceNumber.intValue();
-		this.isValidInstance = isValidInstance.booleanValue();
+	public TestWsSubsetExtraction(TestInstanceInfo tii) {
+		this.instance = tii;
 	}
-	
-	
+
 	/**
 	 * This is invoked before anything else, so here we invoke the creation of the db
 	 * @return
@@ -118,18 +106,17 @@ public class TestBasicValidation {
 	@Parameters
 	public static Collection<Object[]> assembleTestInstanceList() throws Exception {
 		prepareDb();
-		Object [][] instanceInfo = new Object[validInstanceResources.size()+invalidInstanceResources.size()][2];
-		for(int k=0; k<validInstanceResources.size(); k++) {
-			instanceInfo[k][0] = new Integer(k);
-			instanceInfo[k][1] = new Boolean(true);
-		}
-		for(int k=0; k<invalidInstanceResources.size(); k++) {
-			instanceInfo[k+validInstanceResources.size()][0] = new Integer(k);
-			instanceInfo[k+validInstanceResources.size()][1] = new Boolean(false);
+		Object [][] instanceInfo = new Object[instanceResources.size()][1];
+		for(int k=0; k<instanceResources.size(); k++) {
+			instanceInfo[k][0] = instanceResources.get(k);
 		}
 		
 		return Arrays.asList(instanceInfo);
 	}
+
+	
+	
+	
 	
 	
 	
@@ -142,6 +129,7 @@ public class TestBasicValidation {
 	 */
 	public static void prepareDb() throws Exception
 	{
+		
 		//ensure test location is available
 		File dir = new File(TEST_DB_LOCATION);
 		if (dir.exists()) {
@@ -152,54 +140,38 @@ public class TestBasicValidation {
 			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
-		if(VERBOSE) System.out.println("setting up the typed obj database");
-		
+		if(VERBOSE) System.out.println("setting up the typed obj database at '"+dir.getAbsolutePath()+"'");
 		// point the type definition db to point there
 		File tempdir = new File("temp_files");
-		if (!tempdir.exists())
-			tempdir.mkdir();
+		if (!dir.exists())
+			dir.mkdir();
 		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),new Util().getKIDLpath());
 		
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
 	
-		
-		if(VERBOSE) System.out.println("loading db with types");
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
+		List<String> kb_types =  Arrays.asList("SimpleStructure");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
 		db.releaseModule("KB", username);
 		
-		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
-		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
-		db.requestModuleRegistration("FBA", username);
-		db.approveModuleRegistrationRequest(username, "FBA");
-		db.registerModule(fbaSpec ,fba_types, username);
-		db.releaseModule("FBA", username);
-		
-		if(VERBOSE) System.out.print("finding test instances: ");
+		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
-			if(tokens.length!=5) { continue; }
-			if(tokens[3].equals("instance")) {
-				if(tokens[2].equals("valid")) {
-					validInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1],true));
-				} else if(tokens[2].equals("invalid")) {
-					invalidInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1],false));
-				}
+			if(tokens.length!=4) { continue; }
+			if(tokens[2].equals("instance")) {
+				instanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
 			}
 		}
-		if(VERBOSE) System.out.println(validInstanceResources.size()+" valid, "+invalidInstanceResources.size()+" invalid");
+		if(VERBOSE) System.out.println(" " + instanceResources.size() + "found");
 	}
 	
-	//@After
-	//public void clear 
 	
 	@AfterClass
 	public static void removeDb() throws IOException {
@@ -209,72 +181,51 @@ public class TestBasicValidation {
 	}
 	
 	@Test
-	public void testInstance() throws Exception {
+	public void testValidInstances() throws Exception
+	{
+		ObjectMapper mapper = new ObjectMapper();
 		
+		//read the instance data
+		if(VERBOSE) System.out.println("  -("+instance.resourceName+")");
+		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
+		JsonNode instanceRootNode = mapper.readTree(instanceJson);
 		
-		if(this.isValidInstance) {
-
-			// load the instance information
-			TestInstanceInfo instance = validInstanceResources.get(this.instanceNumber);
-			if(VERBOSE) System.out.println("  -VALID TEST ("+instance.resourceName+")");
-			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
-			
-			try {
-				TypedObjectValidationReport report = 
-					validator.validate(
-						instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
-				
-				// print errors, if any before the assert to aid in testing
-				List <String> mssgs = report.getErrorMessagesAsList();
-				for(int i=0; i<mssgs.size(); i++) {
-					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs.get(i));
-				}
-				
-				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
-				//System.out.println("  *("+instance.resourceName+")");
-				//System.out.println(report.toString());
-			} catch (Exception e) {
-				//if an exception is thrown, the object did not validate, so we failed
-				fail("("+instance.resourceName+") does not validate, but should");
-			}
-		} else {
-
-			// load the instance information
-			TestInstanceInfo instance = invalidInstanceResources.get(this.instanceNumber);
-			if(VERBOSE) System.out.println("  -INVALID TEST ("+instance.resourceName+")");
-			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
-			
-			try {
-				TypedObjectValidationReport report = 
-					validator.validate(
-						instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
-				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
-				//System.out.println("  -("+instance.resourceName+")");
-				//System.out.println(report.toString());
-
-			} catch (Exception e) {
-				//if an exception is thrown, it must be an InstanceValidationException
-				//we are not testing if an incorrect module name or type name is given here
-				if(! e.getClass().getSimpleName().equals("InstanceValidationException")) {
-					fail("  -("+instance.resourceName+") did not validate successfully, but exception thrown was '"+e.getClass().getSimpleName()+"' and not 'InstanceValidationException'");
-				}
-			}
+		// read the ids file, which provides the list of ids we expect to extract from the instance
+		String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
+		JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
+		
+		// perform the initial validation, which must validate!
+		TypedObjectValidationReport report = 
+			validator.validate(
+				instanceRootNode,
+				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+				);
+		List <String> mssgs = report.getErrorMessagesAsList();
+		for(int i=0; i<mssgs.size(); i++) {
+			System.out.println("    ["+i+"]:"+mssgs.get(i));
 		}
-		if(VERBOSE) System.out.println("      PASS.");
+		assertTrue("  -("+instance.resourceName+") does not validate, but should",
+				report.isInstanceValid());
+		
+		JsonNode actualSubset = report.extractSearchableWsSubset();
+		// we can just check if they are equal like so:
+		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+		//		actualSubset.equals(expectedSubset));
+		// this method generates a patch, so that if they differ you can see what's up
+		JsonNode diff = JsonDiff.asJson(actualSubset,expectedSubset);
+		if(VERBOSE) if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
+		assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset; diff="+diff,
+						diff.size()==0);
+		
 	}
-	
-	
+
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test
 	 */
 	private static String loadResourceFile(String resourceName) throws Exception {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		InputStream is = TestBasicValidation.class.getResourceAsStream(resourceName);
+		InputStream is = TestWsSubsetExtraction.class.getResourceAsStream(resourceName);
 		if (is == null)
 			throw new IllegalStateException("Resource not found: " + resourceName);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -305,7 +256,7 @@ public class TestBasicValidation {
 	 * @throws IOException 
 	 */
 	private static String[] getResourceListing(String path) throws URISyntaxException, IOException {
-		URL dirURL = TestBasicValidation.class.getResource(path);
+		URL dirURL = TestWsSubsetExtraction.class.getResource(path);
 		if (dirURL != null && dirURL.getProtocol().equals("file")) {
 			/* A file path: easy enough */
 			return new File(dirURL.toURI()).list();
@@ -314,8 +265,8 @@ public class TestBasicValidation {
 		if (dirURL == null) {
 			// In case of a jar file, we can't actually find a directory.
 			// Have to assume the same jar as the class.
-			String me = TestBasicValidation.class.getName().replace(".", "/")+".class";
-			dirURL = TestBasicValidation.class.getResource(me);
+			String me = TestWsSubsetExtraction.class.getName().replace(".", "/")+".class";
+			dirURL = TestWsSubsetExtraction.class.getResource(me);
 		}
 
 		if (dirURL.getProtocol().equals("jar")) {
@@ -327,7 +278,7 @@ public class TestBasicValidation {
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
 				// construct internal jar path relative to the class
-				String fullPath = TestBasicValidation.class.getPackage().getName().replace(".","/") + "/" + path;
+				String fullPath = TestWsSubsetExtraction.class.getPackage().getName().replace(".","/") + "/" + path;
 				if (name.startsWith(fullPath)) { //filter according to the path
 					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");
