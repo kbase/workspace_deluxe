@@ -478,6 +478,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	@Override
 	public PermissionSet getWorkspacesWithPermission(
 			final WorkspaceUser user, final Permission perm)
 			throws WorkspaceCommunicationException,
@@ -488,6 +489,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Set<User> u = new HashSet<User>();
 		u.add(user);
+		u.add(allUsers);
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms =
 				query.queryPermissions(u, perm);
 		final MongoPermissionSet pset = new MongoPermissionSet(user, allUsers);
@@ -622,6 +624,33 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.WS_MODDATE);
 	
 	@Override
+	public List<WorkspaceInformation> getWorkspaceInformation(
+			final PermissionSet pset)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		if (!(pset instanceof MongoPermissionSet)) {
+			throw new IllegalArgumentException(
+					"Illegal implementation of PermissionSet: " +
+					pset.getClass().getName());
+		}
+		final Set<ResolvedMongoWSID> rwsis = new HashSet<ResolvedMongoWSID>();
+		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
+			if (pset.getUserPermission(rwsi).compareTo(Permission.READ) >= 1) {
+				rwsis.add(query.convertResolvedWSID(rwsi));
+			}
+		}
+		final Map<ResolvedMongoWSID, Map<String, Object>> ws =
+				query.queryWorkspacesByResolvedID(rwsis,
+						FLDS_WS_ID_NAME_OWNER_MODDATE);
+		final List<WorkspaceInformation> ret =
+				new LinkedList<WorkspaceInformation>();
+		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
+			ret.add(generateWSInfo(pset.getUser(), rwsi, pset, ws.get(rwsi)));
+		}
+		return ret;
+	}
+	
+	@Override
 	public WorkspaceInformation getWorkspaceInformation(
 			final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException,
@@ -629,12 +658,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
 		final Map<String, Object> ws = query.queryWorkspace(m,
 				FLDS_WS_ID_NAME_OWNER_MODDATE);
-		final PermissionSet perms = getPermissions(user,
-				m);
-		return new MongoWSInfo((Long) ws.get(Fields.WS_ID),
-				(String) ws.get(Fields.WS_NAME),
-				new WorkspaceUser((String) ws.get(Fields.WS_OWNER)),
-				(Date) ws.get(Fields.WS_MODDATE), perms.getUserPermission(rwsi),
+		final PermissionSet perms = getPermissions(user, m);
+		return generateWSInfo(user, rwsi, perms, ws);
+	}
+
+	private WorkspaceInformation generateWSInfo(final WorkspaceUser user,
+			final ResolvedWorkspaceID rwsi, final PermissionSet perms,
+			final Map<String, Object> wsdata)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
+				(String) wsdata.get(Fields.WS_NAME),
+				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
+				(Date) wsdata.get(Fields.WS_MODDATE),
+				perms.getUserPermission(rwsi),
 				perms.isWorldReadable(rwsi));
 	}
 	

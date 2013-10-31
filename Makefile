@@ -11,7 +11,7 @@ THREADPOOL_SIZE = 20
 GITCOMMIT := $(shell git rev-parse --short HEAD)
 TAGS := $(shell git tag --contains $(GITCOMMIT))
 
-TOP_DIR =  $(shell python -c "import os.path as p; print p.abspath('../..')")
+TOP_DIR = $(shell python -c "import os.path as p; print p.abspath('../..')")
 
 TOP_DIR_NAME = $(shell basename $(TOP_DIR))
 
@@ -31,6 +31,13 @@ ANT = ant
 .PHONY : test
 
 default: init build-libs build-docs
+
+# fake deploy-cfg target for when this is run outside the dev_container
+deploy-cfg:
+
+ifeq ($(TOP_DIR_NAME), dev_container)
+include $(TOP_DIR)/tools/Makefile.common.rules
+endif
 
 init:
 	git submodule init
@@ -52,7 +59,7 @@ build-docs: build-libs
 	$(ANT) javadoc
 	@echo "**Expect two warnings for javadoc build, that's normal**"
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
-	rm -f pod2htmd.tmp
+	rm -f pod2htm?.tmp
 	cp $(SERVICE).spec docs/.
 
 compile: compile-typespec compile-java
@@ -105,7 +112,7 @@ deploy-docs:
 deploy-scripts:
 	@echo no scripts to deploy
 
-deploy-service: deploy-service-libs deploy-service-scripts
+deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
 
 deploy-service-libs:
 	echo $(SERVICE_DIR) > classes/kidlinit
@@ -123,7 +130,11 @@ deploy-service-libs:
 	
 deploy-service-scripts:
 	cp server_scripts/* $(SERVICE_DIR)
-	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" > $(SERVICE_DIR)/start_service
+	echo "if [ -z \"\$$KB_DEPLOYMENT_CONFIG\" ]" > $(SERVICE_DIR)/start_service
+	echo "then" >> $(SERVICE_DIR)/start_service
+	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
+	echo "fi" >> $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" >> $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
 	echo "$(SERVICE_DIR)/glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service

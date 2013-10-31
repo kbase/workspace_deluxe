@@ -88,4 +88,12 @@ public interface WorkspaceDatabase {
 
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
+
+	public PermissionSet getWorkspacesWithPermission(WorkspaceUser user,
+			Permission perm) throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException;
+
+	public List<WorkspaceInformation> getWorkspaceInformation(
+			PermissionSet pset)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 }
