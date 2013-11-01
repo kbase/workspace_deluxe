@@ -1559,6 +1559,41 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	@Override
+	public List<ObjectInformation> getObjectInformation(
+			final ResolvedWorkspaceID wsid)
+			throws WorkspaceCommunicationException {
+		//TODO temporary method, does unnecessary query
+		final ResolvedMongoWSID rwsi = query.convertResolvedWSID(wsid);
+		final List<Map<String, Object>> objs = query.queryCollection(
+				COL_WORKSPACE_PTRS, String.format("{%s: %s}",
+						Fields.PTR_WS_ID, rwsi.getID()), FLDS_RESOLVE_OBJS);
+		final Set<ObjectIDResolvedWS> ids =
+				new HashSet<ObjectIDResolvedWS>();
+		for (final Map<String, Object> o: objs) {
+			if ((Boolean) o.get(Fields.PTR_DEL)) {
+				continue;
+			}
+			final long id = (Long) o.get(Fields.PTR_ID);
+			final Integer latestVersion;
+			if ((Integer) o.get(Fields.PTR_LATEST) == null) {
+				latestVersion = (Integer) o.get(Fields.PTR_VCNT);
+			} else {
+				//TODO check this works with GC
+				latestVersion = (Integer) o.get(Fields.PTR_LATEST);
+			}
+			ids.add(new ObjectIDResolvedWS(rwsi, id, latestVersion));
+		}
+		final LinkedList<ObjectInformation> ret;
+		try {
+			ret = new LinkedList<ObjectInformation>(
+				getObjectInformation(ids).values());
+		} catch (NoSuchObjectException nsoe) {
+			throw new RuntimeException("Just verified this object existed", nsoe);
+		}
+		return ret;
+	}
+	
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,

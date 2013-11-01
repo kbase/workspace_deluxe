@@ -96,4 +96,8 @@ public interface WorkspaceDatabase {
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			PermissionSet pset)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+
+	public List<ObjectInformation> getObjectInformation(
+			final ResolvedWorkspaceID wsid)
+			throws WorkspaceCommunicationException;
 }

@@ -533,6 +533,15 @@ public class Workspaces {
 		return db.getWorkspaceInformation(perms);
 	}
 	
+	public List<ObjectInformation> prealphaListObjects(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
+				"read");
+		return db.getObjectInformation(wsid);
+	}
+	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,

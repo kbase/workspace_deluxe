@@ -438,6 +438,9 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> prealphaListObjects(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> returnVal = null;
         //BEGIN prealpha_list_objects
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		returnVal = au.objInfoToTuple(
+				ws.prealphaListObjects(getUser(authPart), wksp));
         //END prealpha_list_objects
         return returnVal;
     }
