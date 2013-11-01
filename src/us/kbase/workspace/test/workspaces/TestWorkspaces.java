@@ -1258,4 +1258,10 @@ public class TestWorkspaces {
 			Assert.assertTrue("0.1".equals(verText) || "1.0".equals(verText));
 		}
 	}
+	
+	@Test
+	public void testListModuleVersions() throws Exception {
+		Assert.assertEquals(1, ws.getModuleVersions("SomeModule", null).size());
+		Assert.assertEquals(2, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
+	}
 }
