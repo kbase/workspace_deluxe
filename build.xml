@@ -140,18 +140,6 @@
     <jar destfile="${dist}/client/${clientjar.file}">
       <fileset refid="client-class-files"/>
     </jar>
-    <!-- make the war file for the server-->
-    <!--<mkdir dir="${war.dir}/lib"/>
-    <copy todir="${war.dir}/lib/" flatten="true">
-      <union refid="serverside"/>
-    </copy>
-    <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
-      <classes dir="${classes}"/>
-      <lib dir="${war.dir}/lib/"/>
-    </war>-->
-    <!-- Remove uncompressed class files and libs-->
-    <!--<delete dir="${classes}"/>
-    <delete dir="${war.dir}/lib"/>-->
   </target>
 
   <target name="buildwar" description="build the WAR file. Assumes compile has been run">
@@ -164,6 +152,7 @@
       <classes dir="${classes}"/>
       <lib dir="${war.dir}/lib/"/>
     </war>
+    <delete dir="${war.dir}/lib"/>
   </target>
 
   <target name="javadoc" description="build javadocs">
