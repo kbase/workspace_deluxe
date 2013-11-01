@@ -1625,8 +1625,10 @@ public class TypeDefinitionDB {
 				Map<?,?> parseMapExt = KidlParser.parseSpecExt(specFile, tempDir, jsonSchemasExt, kbTopPath);
 				Map<String, Map<String, String>> jsonSchemasInt = new TreeMap<String, Map<String, String>>();
 				Map<?,?> parseMapInt = KidlParser.parseSpecInt(specFile, jsonSchemasInt);
-				KidlTest.compareJson(parseMapExt, parseMapInt, "Parsing schema"); 
-				KidlTest.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas"); 			
+				boolean ok = KidlTest.compareJson(parseMapExt, parseMapInt, "Parsing schema");
+				ok = ok & KidlTest.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas");
+				if (!ok)
+					throw new SpecParseException("Output of KIDL parsers is different");
 				services = KidlParser.parseSpec(parseMapExt);
 				moduleToTypeToSchema.putAll(jsonSchemasExt);
 			} else {
