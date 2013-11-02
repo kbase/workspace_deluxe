@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
@@ -138,6 +139,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		logErr(error);
 		System.err.println(error);
 		startupFailed();
+	}
+	
+	public static void clearConfigForTests() {
+		wsConfig = null;
 	}
     //END_CLASS_HEADER
 
@@ -629,6 +634,8 @@ public class WorkspaceServer extends JsonServerServlet {
         Long returnVal = null;
         //BEGIN compile_typespec_copy
 		WorkspaceClient client = new WorkspaceClient(new URL(externalWorkspaceUrl), authPart);
+		if (!externalWorkspaceUrl.startsWith("https:"))
+			client.setAuthAllowedForHttp(true);
 		GetModuleInfoParams params = new GetModuleInfoParams().withMod(mod).withVer(versionInExternalWorkspace);
 		us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(params);
 		Map<String, String> includesToMd5 = new HashMap<String, String>();
@@ -641,9 +648,11 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		String userId = authPart.getUserName();
 		String specDocument = extInfo.getSpec();
-		Set<String> extTypeSet = extInfo.getTypes().keySet();
-        returnVal = ws.compileTypeSpecCopy(mod, specDocument, extTypeSet, userId, includesToMd5, 
-        		extInfo.getIncludedSpecVersion());
+		Set<String> extTypeSet = new LinkedHashSet<String>();
+		for (String typeDef : extInfo.getTypes().keySet())
+			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
+		returnVal = ws.compileTypeSpecCopy(mod, specDocument, extTypeSet, userId, includesToMd5, 
+				extInfo.getIncludedSpecVersion());
         //END compile_typespec_copy
         return returnVal;
     }

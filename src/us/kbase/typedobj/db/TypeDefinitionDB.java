@@ -210,7 +210,7 @@ public class TypeDefinitionDB {
 
 	private void requestReadLock(String moduleName) throws NoSuchModuleException, TypeStorageException {
 		if (!storage.checkModuleExist(moduleName))
-			throw new NoSuchModuleException(moduleName);
+			throw new NoSuchModuleException("Module doesn't exist: " + moduleName);
 		requestReadLockNM(moduleName);
 	}
 		
@@ -1058,10 +1058,10 @@ public class TypeDefinitionDB {
 	
 	public long getLatestModuleVersionWithUnreleased(String moduleName, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		checkUserIsOwnerOrAdmin(moduleName, userId);
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
+			checkUserIsOwnerOrAdmin(moduleName, userId);
 			return storage.getLastModuleVersionWithUnreleased(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
