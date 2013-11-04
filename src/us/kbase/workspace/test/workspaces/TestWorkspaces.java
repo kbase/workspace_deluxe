@@ -725,10 +725,9 @@ public class TestWorkspaces {
 		data1.put("foo", 3);
 		data1.put("baz", "astring");
 		data1.put("bar", Arrays.asList(-3, 1, 234567890));
-		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
 		
-		ws.saveObjects(userfoo, wspace, data); //should work
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false))); //should work
 		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
@@ -753,20 +752,29 @@ public class TestWorkspaces {
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
-		
-		ws.saveObjects(userfoo, wspace, data); //should still work
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
 		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
 		
 		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING2, null, null, null, false, null);
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
 		failSave(userfoo, wspace, data1, abstype2, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
@@ -782,16 +790,55 @@ public class TestWorkspaces {
 		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		failSave(userfoo, wspace, newdata, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
 		
+		ws.releaseTypes(userfoo, mod);
 		
+		failSave(userfoo, wspace, data1, relmaxtype, emptyprov, 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
 		
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(newdata, relmaxtype, null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(newdata, relmintype2, null, emptyprov, false)));
 		
+		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
+		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
 		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
 		data.add(new WorkspaceSaveObject(data2, abstype0, null, emptyprov, false));
