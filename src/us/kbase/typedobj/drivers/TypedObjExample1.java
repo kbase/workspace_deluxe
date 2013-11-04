@@ -79,7 +79,7 @@ public class TypedObjExample1 {
 			
 			String instance1 = 
 					("{`source`:`g.0`,`name`:`ecoli`,`sequence`:`agct`,`bestFeature`:`kb|f/1`, `secondBest`:{`name`:`num2`,`sequence`:`gat`}, `feats`:[{`name`:`feat1`,`sequence`:`yadayada`},{`name`:`feat2`,`sequence`:`superseq`}],  "
-							+ "`featmap`:{`fm1`:{`name`:`feat1`,`sequence`:`yadayada`},`fm2`:{`name`:`feat2`,`sequence`:`superseq`}},"
+							+ "`featmap`:{`fm1`:{`name`:`feat1`,`sequence`:`ttt`},`fm2`:{`name`:`feat2`,`sequence`:`superseq`}},"
 							+ "`feature_ids`:[`f1`,`f2`],`length_of_features`:{`f1`:11,`f2`:22},"
 							+ "`regulators`:{`f1`:[`f2`]} }").replace('`', '"');
 			
@@ -93,6 +93,12 @@ public class TypedObjExample1 {
 			
 			
 			TypedObjectValidationReport report = validator.validate(instance1RootNode, new TypeDefId(new TypeDefName("KB", "Genome")));
+			System.out.println("Validation errors:" );
+			for(String err : report.getErrorMessagesAsList()) {
+				System.out.println("  Error: "+err);
+			}
+			
+			
 			List<IdReference> idRefLists = report.getAllIdReferences();
 			System.out.println("found ids:");
 			for(IdReference idref: idRefLists) {

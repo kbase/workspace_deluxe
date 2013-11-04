@@ -30,7 +30,7 @@ module KB {
 
 	/*
 	@searchable ws_subset featmap.*.name
-	@searchable ws_subset name feature_ids (secondBest.name,feats.[*].sequence)
+	@searchable ws_subset name feature_ids secondBest.name,feats.[*].sequence
 	@searchable ws_subset keys_of(regulators)
 	*/
 	typedef structure {
