@@ -111,10 +111,19 @@ public class TypedObjectValidationReport {
 		if(isInstanceValid()) { return errMssgs; }
 		
 		Iterator<ProcessingMessage> mssgs = processingReport.iterator();
+		JsonNode instance; JsonNode instancePointer;
 		while(mssgs.hasNext()) {
 			ProcessingMessage pm = mssgs.next();
 			if(pm.getLogLevel().equals(LogLevel.ERROR)) {
-				errMssgs.add(pm.getMessage());
+				String foundPositionString = "";
+				instance = pm.asJson().get("instance");
+				if(instance!=null) {
+					instancePointer = instance.get("pointer");
+					if(instancePointer!=null) {
+						foundPositionString = ", at "+instancePointer.asText();
+					}
+				}
+				errMssgs.add(pm.getMessage()+foundPositionString);
 			}
 		}
 		return errMssgs;
