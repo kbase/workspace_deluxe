@@ -192,6 +192,16 @@ public class JsonServerServlet extends HttpServlet {
 		return userLogger.getLogLevel() >= LOG_LEVEL_DEBUG;
 	}
 	
+	@Override
+	protected void doOptions(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		setupResponseHeaders(request, response);
+		response.setContentLength(0);
+		response.getOutputStream().print("");
+		response.getOutputStream().flush();
+	}
+	
+	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		JsonServerSyslog.RpcInfo info = JsonServerSyslog.getCurrentRpcInfo().reset();
 		info.setIp(request.getRemoteAddr());
@@ -205,10 +215,18 @@ public class JsonServerServlet extends HttpServlet {
 		writeError(response, -32300, "HTTP GET not allowed.", output);
 	}
 
+	private void setupResponseHeaders(HttpServletRequest request, HttpServletResponse response) {
+		response.setHeader("Access-Control-Allow-Origin", "*");
+		String allowedHeaders = request.getHeader("HTTP_ACCESS_CONTROL_REQUEST_HEADERS");
+		response.setHeader("Access-Control-Allow-Headers", allowedHeaders == null ? "authorization" : allowedHeaders);
+		response.setContentType(APP_JSON);
+	}
+	
+	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		JsonServerSyslog.RpcInfo info = JsonServerSyslog.getCurrentRpcInfo().reset();
 		info.setIp(request.getRemoteAddr());
-		response.setContentType(APP_JSON);
+		setupResponseHeaders(request, response);
 		OutputStream output	= response.getOutputStream();
 		String rpcName = null;
 		AuthToken userProfile = null;
