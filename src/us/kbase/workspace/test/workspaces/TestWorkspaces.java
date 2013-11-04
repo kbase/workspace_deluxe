@@ -716,7 +716,7 @@ public class TestWorkspaces {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
 			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"])"));
+					is("Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /bar/2"));
 		}
 		Map<String, Object> data3 = new HashMap<String, Object>(data1);
 		data3.put("ref", "typecheck/1/1");
