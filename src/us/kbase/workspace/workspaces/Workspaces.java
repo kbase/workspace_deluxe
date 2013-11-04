@@ -336,8 +336,14 @@ public class Workspaces {
 		for (WorkspaceSaveObject wo: objects) {
 			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
 			final String objerrid = getObjectErrorId(oid, objcount);
-			final TypedObjectValidationReport rep =
-					val.validate(wo.getData(), wo.getType());
+			final TypedObjectValidationReport rep;
+			try {
+				rep = val.validate(wo.getData(), wo.getType());
+			} catch (NoSuchTypeException nste) {
+				throw new TypedObjectValidationException(String.format(
+						"Object %s failed type checking:\n", objerrid)
+						+ nste.getLocalizedMessage(), nste);
+			}
 			if (!rep.isInstanceValid()) {
 				final String[] e = rep.getErrorMessages();
 				final String err = StringUtils.join(e, "\n");

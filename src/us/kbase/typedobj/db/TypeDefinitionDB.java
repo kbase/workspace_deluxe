@@ -1503,9 +1503,15 @@ public class TypeDefinitionDB {
 		} else {
 			unreg = new HashSet<String>(typesToUnregister);
 		}
-		return saveModule(specDocument, new HashSet<String>(typesToSave), 
-				unreg, userId, dryMode, moduleVersionRestrictions, 
-				prevModuleVersion, "registerModule", uploadComment);
+		final Set<String> save;
+		if (typesToSave == null) {
+			save = new HashSet<String>();
+		} else {
+			save = new HashSet<String>(typesToSave);
+		}
+		return saveModule(specDocument, save, unreg, userId, dryMode,
+				moduleVersionRestrictions, prevModuleVersion, "registerModule",
+				uploadComment);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
