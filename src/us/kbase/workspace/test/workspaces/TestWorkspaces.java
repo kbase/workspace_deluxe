@@ -28,10 +28,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.exceptions.NoSuchTypeException;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -710,9 +709,12 @@ public class TestWorkspaces {
 		ws.requestModuleRegistration(userfoo, mod);
 		ws.resolveModuleRegistration(mod, true);
 		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING1, Arrays.asList("CheckType"), null, null, false, null);
-		TypeDefId abstype = new TypeDefId(new TypeDefName(mod, "CheckType"), 0, 1);
+		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0, 1);
+		TypeDefId abstype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
+		TypeDefId abstype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2, 0);
 		TypeDefId relmintype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0);
 		TypeDefId relmintype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1);
+		TypeDefId relmintype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2);
 		TypeDefId relmaxtype = new TypeDefId(new TypeDefName(mod, "CheckType"));
 		
 		
@@ -724,72 +726,75 @@ public class TestWorkspaces {
 		data1.put("baz", "astring");
 		data1.put("bar", Arrays.asList(-3, 1, 234567890));
 		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(data1, abstype, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
+		
 		ws.saveObjects(userfoo, wspace, data); //should work
+		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+		failSave(userfoo, wspace, data1, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
 		try {
+			//TODO the below should work, but exception is wrong
+//			failSave(userfoo, wspace, data1, abstype1, emptyprov,
+//					new TypedObjectValidationException(
+//							"Object #1 failed type checking:\nType schema record was not found for TestTypeChecking.CheckType.1.0"));
 			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, relmintype0, null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+					new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		} catch (TypeStorageException tse) {
+			//TODO this is a bug, shouldn't have to catch here
 		}
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
-		}
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
-		}
+		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
 		
 		ws.releaseTypes(userfoo, mod);
 		
-		ws.saveObjects(userfoo, wspace, data); //should work
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, relmintype0, null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
-		}
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		
+		ws.saveObjects(userfoo, wspace, data); //should still work
+		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
 		
 		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING2, null, null, null, false, null);
-		AbsoluteTypeDefId abstype2 = new AbsoluteTypeDefId(new TypeDefName(mod, "CheckType"), 2, 0);
 		
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, abstype2 , null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
-		}
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+		
 		
 		Map<String, Object> newdata = new HashMap<String, Object>(data1);
 		newdata.put("baz", 1);
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 					new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmaxtype, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(newdata, abstype , null, emptyprov, false)));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		}
+		
+		
 		
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
 		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
-		data.add(new WorkspaceSaveObject(data2, abstype, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(data2, abstype0, null, emptyprov, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
@@ -798,12 +803,12 @@ public class TestWorkspaces {
 		}
 		Map<String, Object> data3 = new HashMap<String, Object>(data1);
 		data3.put("ref", "typecheck/1/1");
-		data.set(1, new WorkspaceSaveObject(data3, abstype, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, emptyprov, false));
 		ws.saveObjects(userfoo, wspace, data); //should work
 		
 		Map<String, Object> data4 = new HashMap<String, Object>(data1);
 		data4.put("ref", "foo/bar/baz");
-		data.set(1, new WorkspaceSaveObject(data4, abstype, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(data4, abstype0, null, emptyprov, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
@@ -812,21 +817,32 @@ public class TestWorkspaces {
 		}
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
-		data.set(1, new WorkspaceSaveObject(data3, abstype, null, goodids, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, goodids, false));
 		ws.saveObjects(userfoo, wspace, data); //should work
 		
 		Provenance badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
-		data.set(1, new WorkspaceSaveObject(data3, abstype, null, badids, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
 			assertThat("correct exception", tove.getLocalizedMessage(),
 					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		}
-		
-		
-		
+	}
+	
+	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
+			Map<String, Object> data, TypeDefId type, Provenance prov,
+			Throwable exception) throws Exception{
+		try {
+			ws.saveObjects(user, wsi, Arrays.asList(
+					new WorkspaceSaveObject(data, type, null, prov, false)));
+			fail("Saved bad object");
+		} catch (Exception e) {
+			assertThat("correct exception type", e, is(exception.getClass()));
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is(exception.getLocalizedMessage()));
+		}
 	}
 	
 	@Test
