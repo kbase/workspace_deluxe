@@ -188,6 +188,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
+		//TODO check a few random types and make sure they exist
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
@@ -628,6 +629,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final PermissionSet pset)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
+		//TODO temporary function, replace with full fn
 		if (!(pset instanceof MongoPermissionSet)) {
 			throw new IllegalArgumentException(
 					"Illegal implementation of PermissionSet: " +
@@ -645,6 +647,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
 		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
+			//TODO don't show deleted workspaces
 			ret.add(generateWSInfo(pset.getUser(), rwsi, pset, ws.get(rwsi)));
 		}
 		return ret;
