@@ -28,8 +28,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.Provenance;
@@ -512,7 +514,7 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void saveObjectsAndGetMeta() throws Exception {
+	public void simpleSaveObjectsAndGetMeta() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
@@ -670,6 +672,83 @@ public class TestWorkspaces {
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objmeta = ws.saveObjects(bar, priv, objects);
 		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
+	}
+	
+	public static final String TEST_TYPE_CHECKING =
+			"module TestTypeChecking {" +
+				"/* @id ws */" +
+				"typedef string reference;" +
+				"/* @optional ref */" + 
+				"typedef structure {" +
+					"int foo;" +
+					"list<int> bar;" +
+					"string baz;" +
+					"reference ref;" +
+				"} CheckType;" +
+			"};";
+	
+	@Test
+	public void saveObjectWithTypeChecking() throws Exception {
+		//TODO test ref rewriting
+		//TODO test full provenance save, retrieve, ref rewrite
+		String mod = "TestTypeChecking";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING, Arrays.asList("CheckType"), null, null, false, null);
+		AbsoluteTypeDefId typecheck = new AbsoluteTypeDefId(
+				new TypeDefName(mod,  "CheckType"), 0, 1);
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("typecheck");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		Map<String, Object> data1 = new HashMap<String, Object>();
+		data1.put("foo", 3);
+		data1.put("baz", "astring");
+		data1.put("bar", Arrays.asList(-3, 1, 234567890));
+		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
+		data.add(new WorkspaceSaveObject(data1, typecheck, null, emptyprov, false));
+		ws.saveObjects(userfoo, wspace, data); //should work
+
+		Map<String, Object> data2 = new HashMap<String, Object>(data1);
+		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
+		data.add(new WorkspaceSaveObject(data2, typecheck, null, emptyprov, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data);
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"])"));
+		}
+		Map<String, Object> data3 = new HashMap<String, Object>(data1);
+		data3.put("ref", "typecheck/1/1");
+		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, emptyprov, false));
+		ws.saveObjects(userfoo, wspace, data); //should work
+		
+		Map<String, Object> data4 = new HashMap<String, Object>(data1);
+		data4.put("ref", "foo/bar/baz");
+		data.set(1, new WorkspaceSaveObject(data4, typecheck, null, emptyprov, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data);
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
+		}
+		Provenance goodids = new Provenance(userfoo);
+		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
+		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, goodids, false));
+		ws.saveObjects(userfoo, wspace, data); //should work
+		
+		Provenance badids = new Provenance(userfoo);
+		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
+		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, badids, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data);
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
+		}
+		
+		
+		
 	}
 	
 	@Test

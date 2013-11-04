@@ -79,8 +79,9 @@ public class Workspaces {
 	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO BIG SEARCH index typespecs
-	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run?
+	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run? Test subdata creation
 	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
+	//TODO performance tests with large / many objects
 	
 	//TODO 1 lots of tests
 	
@@ -357,6 +358,7 @@ public class Workspaces {
 				}
 			}
 			reports.put(wo, data);
+			objcount++;
 		}
 		
 		//stage 2: resolve references and get types

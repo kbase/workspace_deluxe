@@ -381,6 +381,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
+			//TODO test provenance
 			final Provenance p = au.processProvenance(user,
 					d.getProvenance());
 			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
