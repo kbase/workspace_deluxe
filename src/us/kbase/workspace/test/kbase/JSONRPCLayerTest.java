@@ -8,9 +8,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple10;
@@ -34,6 +37,9 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CompileTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.ListModuleVersionsParams;
+import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
@@ -54,13 +60,15 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  */
 public class JSONRPCLayerTest {
 	
-	private static WorkspaceServer SERVER = null;
+	private static WorkspaceServer SERVER1 = null;
 	private static WorkspaceClient CLIENT1 = null;
 	private static String USERNOEMAIL = null;
 	private static String USER1 = null;
-	private static WorkspaceClient CLIENT2 = null;
+	private static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	private static String USER2 = null;
 	private static WorkspaceClient CLIENT_NO_AUTH = null;
+	private static WorkspaceServer SERVER2 = null;
+	private static WorkspaceClient CLIENT_FOR_SRV2 = null;  // This client connects to SERVER2
 	
 	private static SimpleDateFormat DATE_FORMAT =
 			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
@@ -80,10 +88,15 @@ public class JSONRPCLayerTest {
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
 	
 	private static class ServerThread extends Thread {
+		private WorkspaceServer server;
+		
+		private ServerThread(WorkspaceServer server) {
+			this.server = server;
+		}
 		
 		public void run() {
 			try {
-				SERVER.startupServer();
+				server.startupServer();
 			} catch (Exception e) {
 				System.err.println("Can't start server:");
 				e.printStackTrace();
@@ -110,36 +123,9 @@ public class JSONRPCLayerTest {
 		USERNOEMAIL = System.getProperty("test.user.noemail");
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
-		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
-		
-		//write the server config file:
-		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
-		iniFile.deleteOnExit();
-		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
-		Ini ini = new Ini();
-		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", WorkspaceTestCommon.getHost());
-		ws.add("mongodb-database", WorkspaceTestCommon.getDB1());
-		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
-		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
-		ws.add("backend-secret", "");
-		ws.add("ws-admin", USER2);
-		ini.store(iniFile);
-		
-		//set up env
-		Map<String, String> env = getenv();
-		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
-		env.put("KB_SERVICE_NAME", "Workspace");
-
-		SERVER = new WorkspaceServer();
-		new ServerThread().start();
-		System.out.println("Main thread waiting for server to start up");
-		while(SERVER.getServerPort() == null) {
-			Thread.sleep(1000);
-		}
-		int port = SERVER.getServerPort();
-		System.out.println("Started test server on port " + port);
-		System.out.println("Starting tests");
+		SERVER1 = startupWorkspaceServer(1);
+		int port = SERVER1.getServerPort();
+		System.out.println("Started test server 1 on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
 		} catch (UnauthorizedException ue) {
@@ -158,22 +144,105 @@ public class JSONRPCLayerTest {
 		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
+		CLIENT1.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
+			.withNewTypes(Arrays.asList("AType")));
+		CLIENT1.releaseModule("SomeModule");
+		SERVER2 = startupWorkspaceServer(2);
+		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
+		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
+				SERVER2.getServerPort()), USER2, p2);
+		clientForSrv2.setAuthAllowedForHttp(true);
+		clientForSrv2.requestModuleOwnership("SomeModule");
+		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
+		clientForSrv2.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
+			.withNewTypes(Arrays.asList("AType")));
+		clientForSrv2.releaseModule("SomeModule");
+		clientForSrv2.requestModuleOwnership("DepModule");
+		administerCommand(clientForSrv2, "approveModRequest", "module", "DepModule");
+		clientForSrv2.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec("#include <SomeModule>\n" +
+					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
+			.withNewTypes(Arrays.asList("BType")));
+		clientForSrv2.releaseModule("DepModule");
+		clientForSrv2.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
+			.withNewTypes(Collections.<String>emptyList()));
+		clientForSrv2.releaseModule("SomeModule");
+		clientForSrv2.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec("#include <SomeModule>\n" +
+					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
+			.withNewTypes(Collections.<String>emptyList()));
+		clientForSrv2.releaseModule("DepModule");
+		CLIENT_FOR_SRV2 = clientForSrv2;
+		System.out.println("Starting tests");
+	}
+
+	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
+			JsonClientException {
 		Map<String, String> releasemod = new HashMap<String, String>();
 		releasemod.put("command", "approveModRequest");
-		releasemod.put("module", "SomeModule");
-		CLIENT2.administer(new UObject(releasemod));
-		CLIENT1.compileTypespec(new CompileTypespecParams()
-				.withDryrun(0L)
-				.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
-				.withNewTypes(Arrays.asList("AType")));
-		CLIENT1.releaseModule("SomeModule");
+		for (int i = 0; i < params.length / 2; i++)
+			releasemod.put(params[i * 2], params[i * 2 + 1]);
+		client.administer(new UObject(releasemod));
+	}
+
+	public static WorkspaceServer startupWorkspaceServer(int dbNum)
+			throws InvalidHostException, UnknownHostException, IOException,
+			NoSuchFieldException, IllegalAccessException, Exception,
+			InterruptedException {
+		WorkspaceTestCommon.destroyAndSetupDB(dbNum, "gridFS", null);
+		
+		//write the server config file:
+		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
+		if (iniFile.exists())
+			iniFile.delete();
+		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
+		Ini ini = new Ini();
+		Section ws = ini.add("Workspace");
+		ws.add("mongodb-host", WorkspaceTestCommon.getHost());
+		String dbName = dbNum == 1 ? WorkspaceTestCommon.getDB1() : 
+			WorkspaceTestCommon.getDB2();
+		ws.add("mongodb-database", dbName);
+		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
+		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
+		ws.add("backend-secret", "");
+		ws.add("ws-admin", USER2);
+		ini.store(iniFile);
+		iniFile.deleteOnExit();
+		
+		//set up env
+		Map<String, String> env = getenv();
+		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
+		env.put("KB_SERVICE_NAME", "Workspace");
+
+		WorkspaceServer.clearConfigForTests();
+		WorkspaceServer SERVER = new WorkspaceServer();
+		new ServerThread(SERVER).start();
+		System.out.println("Main thread waiting for server to start up");
+		while(SERVER.getServerPort() == null) {
+			Thread.sleep(1000);
+		}
+		return SERVER;
 	}
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		if (SERVER != null) {
-			System.out.print("Killing server... ");
-			SERVER.stopServer();
+		if (SERVER1 != null) {
+			System.out.print("Killing server 1... ");
+			SERVER1.stopServer();
+			System.out.println("Done");
+		}
+		if (SERVER2 != null) {
+			System.out.print("Killing server 2... ");
+			SERVER2.stopServer();
 			System.out.println("Done");
 		}
 	}
@@ -829,5 +898,30 @@ public class JSONRPCLayerTest {
 		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
 		Assert.assertEquals(1, md52semantic.size());
 		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
+	}
+	
+	@Test
+	public void testSpecSync() throws Exception {
+		CLIENT1.requestModuleOwnership("DepModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "DepModule");
+		String urlForSrv2 = "http://localhost:" + SERVER2.getServerPort();
+		ModuleVersions vers = CLIENT_FOR_SRV2.listModuleVersions(
+				new ListModuleVersionsParams().withMod("DepModule"));
+		long lastVer = CLIENT_FOR_SRV2.getModuleInfo(
+				new GetModuleInfoParams().withMod("DepModule")).getVer();
+		for (long ver : vers.getVers()) {
+			boolean ok = true;
+			try {
+				CLIENT1.compileTypespecCopy(urlForSrv2, "DepModule", ver);
+			} catch (Exception ignore) {
+				ok = false;
+			}
+			Assert.assertEquals(ver == lastVer, ok);
+			if (ok) {
+				CLIENT1.releaseModule("DepModule");
+				Assert.assertTrue(CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(
+						"DepModule")).getTypes().containsKey("DepModule.BType-1.0"));
+			}
+		}
 	}
 }

@@ -210,7 +210,7 @@ public class TypeDefinitionDB {
 
 	private void requestReadLock(String moduleName) throws NoSuchModuleException, TypeStorageException {
 		if (!storage.checkModuleExist(moduleName))
-			throw new NoSuchModuleException(moduleName);
+			throw new NoSuchModuleException("Module doesn't exist: " + moduleName);
 		requestReadLockNM(moduleName);
 	}
 		
@@ -1058,10 +1058,10 @@ public class TypeDefinitionDB {
 	
 	public long getLatestModuleVersionWithUnreleased(String moduleName, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		checkUserIsOwnerOrAdmin(moduleName, userId);
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
+			checkUserIsOwnerOrAdmin(moduleName, userId);
 			return storage.getLastModuleVersionWithUnreleased(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
@@ -1560,13 +1560,16 @@ public class TypeDefinitionDB {
 			StringWriter withGoodImports = new StringWriter();
 			PrintWriter pw = null; // new PrintWriter(withGoodImports);
 			BufferedReader br = new BufferedReader(new StringReader(specDocument));
+			List<String> headerLines = new ArrayList<String>();
 			while (true) {
 				String l = br.readLine();
 				if (l == null)
 					break;
 				if (pw == null) {
-					if (l.trim().isEmpty())
+					if (l.trim().isEmpty()) {
+						headerLines.add("");
 						continue;
+					}
 					if (l.startsWith("#include")) {
 						l = l.substring(8).trim();
 						if (!(l.startsWith("<") && l.endsWith(">")))
@@ -1577,11 +1580,11 @@ public class TypeDefinitionDB {
 						if (l.indexOf('.') >= 0)
 							l = l.substring(0, l.indexOf('.')).trim();
 						includedModules.add(l);
+						headerLines.add("#include <" + l + ".types>");
 					} else {
 						pw = new PrintWriter(withGoodImports);
-						for (String iModuleName : includedModules)
-							pw.println("#include <" + iModuleName + ".types>");
-						pw.println();
+						for (String hl : headerLines)
+							pw.println(hl);
 						pw.println(l);
 					}
 				} else {
@@ -1622,9 +1625,26 @@ public class TypeDefinitionDB {
 				File specFile = new File(tempDir, "currentlyCompiled.spec");
 				writeFile(specDocument, specFile);
 				Map<String, Map<String, String>> jsonSchemasExt = new TreeMap<String, Map<String, String>>();
-				Map<?,?> parseMapExt = KidlParser.parseSpecExt(specFile, tempDir, jsonSchemasExt, kbTopPath);
+				Map<?,?> parseMapExt = null;
+				Exception extErr = null;
+				try {
+					parseMapExt = KidlParser.parseSpecExt(specFile, tempDir, jsonSchemasExt, kbTopPath);
+				} catch (Exception ex) {
+					extErr = ex;
+				}
 				Map<String, Map<String, String>> jsonSchemasInt = new TreeMap<String, Map<String, String>>();
-				Map<?,?> parseMapInt = KidlParser.parseSpecInt(specFile, jsonSchemasInt);
+				Map<?,?> parseMapInt = null;
+				try {
+					parseMapInt = KidlParser.parseSpecInt(specFile, jsonSchemasInt);
+				} catch (Exception intErr) {
+					if (extErr == null)
+						System.out.println("Warning: external parser didn't throw an exception");
+					throw intErr;
+				}
+				if (extErr != null) {
+					System.out.println("Warning: internal parser didn't throw an exception");
+					throw extErr;
+				}
 				boolean ok = KidlTest.compareJson(parseMapExt, parseMapInt, "Parsing schema");
 				ok = ok & KidlTest.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas");
 				if (!ok)
