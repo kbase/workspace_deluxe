@@ -361,8 +361,12 @@ public class FileTypeStorage implements TypeStorage {
 	@Override
 	public boolean checkTypeSchemaRecordExists(String moduleName,
 			String typeName, String version) throws TypeStorageException {
-		File schemaDocument = getTypeSchemaFile(moduleName, typeName, version);
-		return schemaDocument != null && schemaDocument.canRead();
+		try {
+			File schemaDocument = getTypeSchemaFile(moduleName, typeName, version);
+			return schemaDocument != null && schemaDocument.canRead();
+		} catch (TypeStorageException ex) {
+			return false;
+		}
 	}
 	
 	private String readFile(File file) throws TypeStorageException {

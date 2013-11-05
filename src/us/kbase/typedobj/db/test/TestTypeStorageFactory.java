@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db.test;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -40,10 +41,16 @@ public class TestTypeStorageFactory {
 							for (TypeStorageListener lst : lsts)
 								lst.onMethodStart(name, args);
 							Method m2 = inner.getClass().getMethod(name, method.getParameterTypes());
-							Object ret = m2.invoke(inner, args);
-							for (TypeStorageListener lst : lsts)
-								lst.onMethodEnd(name, args, ret);
-							return ret;
+							try {
+								Object ret = m2.invoke(inner, args);
+								for (TypeStorageListener lst : lsts)
+									lst.onMethodEnd(name, args, ret);
+								return ret;
+							} catch (InvocationTargetException ex) {
+								if (ex.getCause() != null)
+									throw ex.getCause();
+								throw ex;
+							}
 						}
 					}
 				});
