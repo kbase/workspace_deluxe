@@ -734,16 +734,9 @@ public class TestWorkspaces {
 		failSave(userfoo, wspace, data1, relmintype1, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
-		try {
-			//TODO the below should work, but exception is wrong
-//			failSave(userfoo, wspace, data1, abstype1, emptyprov,
-//					new TypedObjectValidationException(
-//							"Object #1 failed type checking:\nType schema record was not found for TestTypeChecking.CheckType.1.0"));
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
-		} catch (TypeStorageException tse) {
-			//TODO this is a bug, shouldn't have to catch here
-		}
+		failSave(userfoo, wspace, data1, abstype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to read type schema record: 'TestTypeChecking.CheckType'"));
 		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
