@@ -65,6 +65,7 @@ import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
+//TODO test objects slightly < 1GB and > 1GB
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -703,12 +704,13 @@ public class TestWorkspaces {
 			"module TestTypeCheckingRefType {" +
 				"/* @id ws TestTypeChecking.CheckType */" +
 				"typedef string reference;" +
-				"/* @optional ref */" + 
+				"/* @optional refmap */" +
 				"typedef structure {" +
 					"int foo;" +
 					"list<int> bar;" +
 					"string baz;" +
 					"reference ref;" +
+					"mapping<reference, string> refmap;" + 
 				"} CheckRefType;" +
 			"};";
 	
@@ -1069,7 +1071,16 @@ public class TestWorkspaces {
 				new TypedObjectValidationException(
 						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
 		
-		//TODO test duplicate refs in same hash error
+		refdata.put("ref", "referencetypecheck/2/1");
+		Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("referencetypecheck/2/1", "pootypoot");
+		refmap.put("referencetypecheck/auto2/1", "pootypoot");
+		assertThat("refmap has 2 refs", refmap.size(), is(2));
+		refdata.put("refmap", refmap);
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: relabeling 'referencetypecheck/2/1' to '"
+						+ reftypewsid + "/2/1' failed because the field name already exists."));
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
