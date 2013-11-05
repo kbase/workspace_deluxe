@@ -880,7 +880,6 @@ public class TestWorkspaces {
 		}
 		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces
-		//provenance and data
 		Map<String, Object> refdata = new HashMap<String, Object>(data1);
 		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
@@ -891,6 +890,30 @@ public class TestWorkspaces {
 		failSave(userfoo, wspace, data1, abstype0, nowsref,
 				new TypedObjectValidationException(
 						"Object #1 has inaccessible provenance reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+		
+		ws.createWorkspace(userfoo, "tobedeleted", false, null);
+		ws.setWorkspaceDeleted(userfoo, new WorkspaceIdentifier("tobedeleted"), true);
+		refdata.put("ref", "tobedeleted/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+		Provenance delwsref = new Provenance(userfoo);
+		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, delwsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+		
+		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null);
+		refdata.put("ref", "stingyworkspace/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+		Provenance privwsref = new Provenance(userfoo);
+		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, privwsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+		
 		
 	}
 	
