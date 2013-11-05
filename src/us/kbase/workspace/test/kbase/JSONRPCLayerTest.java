@@ -230,13 +230,13 @@ public class JSONRPCLayerTest {
 		env.put("KB_SERVICE_NAME", "Workspace");
 
 		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer SERVER = new WorkspaceServer();
-		new ServerThread(SERVER).start();
+		WorkspaceServer server = new WorkspaceServer();
+		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
-		while(SERVER.getServerPort() == null) {
+		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
 		}
-		return SERVER;
+		return server;
 	}
 	
 	@AfterClass

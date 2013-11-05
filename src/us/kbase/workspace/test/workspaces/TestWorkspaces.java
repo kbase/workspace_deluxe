@@ -30,7 +30,6 @@ import com.mongodb.DB;
 
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -700,6 +699,19 @@ public class TestWorkspaces {
 				"} CheckType;" +
 			"};";
 	
+	public static final String TEST_TYPE_CHECKING_REFTYPE =
+			"module TestTypeCheckingRefType {" +
+				"/* @id ws TestTypeChecking.CheckType */" +
+				"typedef string reference;" +
+				"/* @optional ref */" + 
+				"typedef structure {" +
+					"int foo;" +
+					"list<int> bar;" +
+					"string baz;" +
+					"reference ref;" +
+				"} CheckRefType;" +
+			"};";
+	
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		//TODO test ref rewriting
@@ -961,6 +973,95 @@ public class TestWorkspaces {
 								+ refwsid));
 		
 		//TODO test references against garbage collected objects
+		
+		//test reference type checking
+		String refmod = "TestTypeCheckingRefType";
+		ws.requestModuleRegistration(userfoo, refmod);
+		ws.resolveModuleRegistration(refmod, true);
+		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING_REFTYPE, Arrays.asList("CheckRefType"), null, null, false, null);
+		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 0, 1);
+
+		ws.createWorkspace(userfoo, "referencetypecheck", false, null);
+		WorkspaceIdentifier reftypecheck = new WorkspaceIdentifier("referencetypecheck");
+		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(newdata, SAFE_TYPE , null, emptyprov, false)));
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		
+		refdata.put("ref", "referencetypecheck/2/1");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", "referencetypecheck/2");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", "referencetypecheck/auto2/1");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", "referencetypecheck/auto2");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", reftypewsid + "/2/1");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", reftypewsid + "/2");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", reftypewsid + "/auto2/1");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", reftypewsid + "/auto2");
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
+		
+		refdata.put("ref", "referencetypecheck/1/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", "referencetypecheck/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", "referencetypecheck/auto1/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/auto1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", "referencetypecheck/auto1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", reftypewsid + "/1/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", reftypewsid + "/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", reftypewsid + "/auto1/1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		refdata.put("ref", reftypewsid + "/auto1");
+		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+		
+		//TODO test duplicate refs in same hash error
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
@@ -1012,27 +1113,6 @@ public class TestWorkspaces {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata is > 16000 bytes"));
 		}
-		
-//		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, SAFE_TYPE, smallmeta, null, false));
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo1"), savedata, SAFE_TYPE, meta, null, false));
-//		try {
-//			ws.saveObjects(foo, read, objects);
-//			fail("saved object with > 16Mb metadata");
-//		} catch (IllegalArgumentException iae) {
-//			assertThat("correct exception", iae.getLocalizedMessage(),
-//					is("Metadata is > 16000 bytes"));
-//		}
-//		objects.clear();
-//		objects.add(new WorkspaceSaveObject(new WorkspaceObjectID("foo"), savedata, SAFE_TYPE, smallmeta, null, false));
-//		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, null, false));
-//		try {
-//			ws.saveObjects(foo, read, objects);
-//			fail("saved object with > 16Mb metadata");
-//		} catch (IllegalArgumentException iae) {
-//			assertThat("correct exception", iae.getLocalizedMessage(),
-//					is("Metadata is > 16000 bytes"));
-//		}
 	}
 	
 	@Test

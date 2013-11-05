@@ -306,7 +306,7 @@ public class Workspaces {
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, NoSuchTypeException,
 			NoSuchModuleException, TypeStorageException,
-			TypedObjectValidationException, RelabelIdReferenceException,
+			TypedObjectValidationException,
 			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
@@ -467,8 +467,18 @@ public class Workspaces {
 					provrefs.add(newrefs.get(ref));
 				}
 			}
-			//modifies data in place
-			rep.relabelWsIdReferences(replacerefs);
+			try {
+				//modifies data in place
+				rep.relabelWsIdReferences(replacerefs);
+			} catch (RelabelIdReferenceException ref) {
+				/* this occurs when two references in the same hash resolve
+				 * to the same reference, so one value would be lost
+				 */
+				throw new TypedObjectValidationException(String.format(
+						"Object %s: Two references in a single hash are identical when resolved, resulting in a loss of data: ",
+						getObjectErrorId(wo.getObjectIdentifier(), objnum))
+						+ ref.getLocalizedMessage(), ref);
+			}
 			saveobjs.add(wo.resolve(rep, refs, provrefs));
 		}
 		objects = null; // don't screw with the input, but release to gc
