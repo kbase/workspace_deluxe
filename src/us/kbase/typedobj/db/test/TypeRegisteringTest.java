@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,8 +74,8 @@ public class TypeRegisteringTest {
 //					"testRestrict",
 //					"testMD5",
 //					"testRegistration",
-//					"testError",
-					"testStop"
+					"testError",
+//					"testStop"
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -83,6 +84,9 @@ public class TypeRegisteringTest {
 				test.cleanupBefore();
 				try {
 					TypeRegisteringTest.class.getMethod(method).invoke(test);
+				} catch (InvocationTargetException ex) {
+					if (ex.getCause() != null && ex.getCause() instanceof Exception)
+						throw (Exception)ex.getCause();
 				} finally {
 					//test.cleanupAfter();
 				}
@@ -462,8 +466,27 @@ public class TypeRegisteringTest {
 		db.registerModule(loadSpec("error", "Common"), adminUser);
 		try {
 			db.registerModule(loadSpec("error", "Common"), adminUser);
+			Assert.fail();
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage().contains("There is no difference"));
+		}
+		try {
+			db.getJsonSchema(TypeDefId.fromTypeString("UnknownModule.UnknownType"));
+			Assert.fail();
+		} catch (NoSuchModuleException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Module doesn't exist: UnknownModule"));
+		}
+		try {
+			db.getJsonSchema(TypeDefId.fromTypeString("Common.UnknownType"));
+			Assert.fail();
+		} catch (NoSuchTypeException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Unable to locate type: Common.UnknownType"));
+		}
+		try {
+			db.getJsonSchema(TypeDefId.fromTypeString("Common.UnknownType-1.0"));
+			Assert.fail();
+		} catch (NoSuchTypeException ex) {
+			Assert.assertTrue(ex.getMessage().contains("Unable to read type schema record: 'Common.UnknownType'"));
 		}
 	}
 	
