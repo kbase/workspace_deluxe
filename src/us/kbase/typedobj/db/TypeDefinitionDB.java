@@ -20,14 +20,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.cfg.ValidationConfiguration;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 import us.kbase.jkidl.StaticIncludeProvider;
 import us.kbase.kidl.KbFuncdef;
@@ -66,7 +71,15 @@ public class TypeDefinitionDB {
 	public enum KidlSource {
 		external, internal, both
 	}
-	
+
+	private enum Change {
+		noChange, backwardCompatible, notCompatible;
+		
+		public static Change joinChanges(Change c1, Change c2) {
+			return Change.values()[Math.max(c1.ordinal(), c2.ordinal())];
+		}
+	}
+
 	/**
 	 * This is the factory used to create a JsonSchema object from a Json Schema
 	 * document stored in the DB.
@@ -77,11 +90,7 @@ public class TypeDefinitionDB {
 	 * The Jackson ObjectMapper which can translate a raw Json Schema document to a JsonTree
 	 */
 	protected ObjectMapper mapper;
-	
-	private static final SemanticVersion defaultVersion = new SemanticVersion(0, 1);
-	private static final SemanticVersion releaseVersion = new SemanticVersion(1, 0);
-	private static final long maxDeadLockWaitTime = 120000;
-	
+		
 	private final TypeStorage storage;
 	private final File parentTempDir;
 	private final UserInfoProvider uip;
@@ -91,14 +100,12 @@ public class TypeDefinitionDB {
 	private final ThreadLocal<Map<String,Integer>> localReadLocks = new ThreadLocal<Map<String,Integer>>(); 
 	private final String kbTopPath;
 	private final KidlSource kidlSource;
+	private final LoadingCache<String, ModuleInfo> moduleInfoCache;
+	private final LoadingCache<AbsoluteTypeDefId, String> typeJsonSchemaCache;
 	
-	enum Change {
-		noChange, backwardCompatible, notCompatible;
-		
-		public static Change joinChanges(Change c1, Change c2) {
-			return Change.values()[Math.max(c1.ordinal(), c2.ordinal())];
-		}
-	}
+	private static final SemanticVersion defaultVersion = new SemanticVersion(0, 1);
+	private static final SemanticVersion releaseVersion = new SemanticVersion(1, 0);
+	private static final long maxDeadLockWaitTime = 120000;
 	
 
 	/**
@@ -129,6 +136,11 @@ public class TypeDefinitionDB {
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
 			UserInfoProvider uip, String kbTopPath, String kidlSource) throws TypeStorageException {
+		this(storage, tempDir, uip, kbTopPath, kidlSource, 100);
+	}
+
+	public TypeDefinitionDB(TypeStorage storage, File tempDir, UserInfoProvider uip, 
+			String kbTopPath, String kidlSource, int cacheSize) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
@@ -160,6 +172,37 @@ public class TypeDefinitionDB {
 		this.kbTopPath = kbTopPath;
 		this.kidlSource = kidlSource == null || kidlSource.isEmpty() ? KidlSource.internal : 
 			KidlSource.valueOf(kidlSource);
+		moduleInfoCache = CacheBuilder.newBuilder().maximumSize(cacheSize).build(
+				new CacheLoader<String, ModuleInfo>() {
+					@Override
+					public ModuleInfo load(String moduleName) throws TypeStorageException, NoSuchModuleException {
+						if (!TypeDefinitionDB.this.storage.checkModuleExist(moduleName))
+							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+						long lastVer = TypeDefinitionDB.this.storage.getLastReleasedModuleVersion(moduleName);
+						if (!TypeDefinitionDB.this.storage.checkModuleInfoRecordExist(moduleName, lastVer))
+							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+						if (!TypeDefinitionDB.this.storage.getModuleSupportedState(moduleName))
+							throw new NoSuchModuleException("Module " + moduleName + " is no longer supported");
+						return TypeDefinitionDB.this.storage.getModuleInfoRecord(moduleName, lastVer);
+					}
+				});
+		typeJsonSchemaCache = CacheBuilder.newBuilder().maximumSize(cacheSize).build(
+				new CacheLoader<AbsoluteTypeDefId, String>() {
+					@Override
+					public String load(AbsoluteTypeDefId typeDefId) throws TypeStorageException, NoSuchModuleException, NoSuchTypeException {
+						String moduleName = typeDefId.getType().getModule();
+						if (!TypeDefinitionDB.this.storage.checkModuleExist(moduleName))
+							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+						String typeName = typeDefId.getType().getName();
+						SemanticVersion schemaDocumentVer = new SemanticVersion(typeDefId.getMajorVersion(), 
+								typeDefId.getMinorVersion());
+						String jsonSchemaDocument = TypeDefinitionDB.this.storage.getTypeSchemaRecord(
+								moduleName, typeName, schemaDocumentVer.toString());
+						if (jsonSchemaDocument == null)
+							throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+						return jsonSchemaDocument;
+					}
+				});
 	}
 	
 	
@@ -209,8 +252,10 @@ public class TypeDefinitionDB {
 	}
 
 	private void requestReadLock(String moduleName) throws NoSuchModuleException, TypeStorageException {
-		if (!storage.checkModuleExist(moduleName))
-			throw new NoSuchModuleException("Module doesn't exist: " + moduleName);
+		if (moduleInfoCache.getIfPresent(moduleName) == null) {
+			if (!storage.checkModuleExist(moduleName))
+				throw new NoSuchModuleException("Module doesn't exist: " + moduleName);
+		}
 		requestReadLockNM(moduleName);
 	}
 		
@@ -305,22 +350,41 @@ public class TypeDefinitionDB {
 	
 	private String getJsonSchemaDocumentNL(final TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		// first make sure that the json schema document can be found
 		AbsoluteTypeDefId absTypeDefId = resolveTypeDefIdNL(typeDefId);
-		String typeName = absTypeDefId.getType().getName();
-		// second retrieve the document if it is available
-		SemanticVersion schemaDocumentVer = new SemanticVersion(absTypeDefId.getMajorVersion(), absTypeDefId.getMinorVersion());
-		String moduleName = typeDefId.getType().getModule();
-		String ret = storage.getTypeSchemaRecord(moduleName,typeName,schemaDocumentVer.toString());
+		String ret;
+		try {
+			ret = typeJsonSchemaCache.get(absTypeDefId);
+		} catch (ExecutionException e) {
+			if (e.getCause() != null) {
+				if (e.getCause() instanceof NoSuchModuleException) {
+					throw (NoSuchModuleException)e.getCause();
+				} else if (e.getCause() instanceof NoSuchTypeException) {
+					throw (NoSuchTypeException)e.getCause();
+				} else if (e.getCause() instanceof TypeStorageException) {
+					throw (TypeStorageException)e.getCause();
+				} else {
+					throw new TypeStorageException(e.getCause().getMessage(), e.getCause());
+				}
+			} else {
+				throw new TypeStorageException(e.getMessage(), e);
+			}
+		}
 		if (ret == null)
-			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+			throw new NoSuchTypeException("Unable to read type schema record for type: " + absTypeDefId.getTypeString());
 		return ret;
+	}
+	
+	private long getLastReleasedModuleVersion(String moduleName) throws TypeStorageException {
+		ModuleInfo info = moduleInfoCache.getIfPresent(moduleName);
+		if (info != null)
+			return info.getVersionTime();
+		return storage.getLastReleasedModuleVersion(moduleName);
 	}
 	
 	private long findModuleVersion(ModuleDefId moduleDef) throws NoSuchModuleException, TypeStorageException {
 		if (moduleDef.getVersion() == null) {
 			checkModuleSupported(moduleDef.getModuleName());
-			return storage.getLastReleasedModuleVersion(moduleDef.getModuleName());
+			return getLastReleasedModuleVersion(moduleDef.getModuleName());
 		}
 		long version = moduleDef.getVersion();
 		if (!storage.checkModuleInfoRecordExist(moduleDef.getModuleName(), version))
@@ -373,18 +437,24 @@ public class TypeDefinitionDB {
 
 	private AbsoluteTypeDefId resolveTypeDefIdNL(final TypeDefId typeDefId) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		if (typeDefId.isAbsolute() && typeDefId.getMd5() == null) {
+			AbsoluteTypeDefId ret = new AbsoluteTypeDefId(typeDefId.getType(),
+					typeDefId.getMajorVersion(), typeDefId.getMinorVersion());
+			if (typeJsonSchemaCache.getIfPresent(ret) != null)
+				return ret;
+		}
 		String moduleName = typeDefId.getType().getModule();
 		checkModuleRegistered(moduleName);
 		SemanticVersion schemaDocumentVer = findTypeVersion(typeDefId);
 		if (schemaDocumentVer == null)
 			throwNoSuchTypeException(typeDefId);
 		String typeName = typeDefId.getType().getName();
-		String ret = storage.getTypeSchemaRecord(moduleName,typeName,schemaDocumentVer.toString());
-		if (ret == null)
-			throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
-		// TODO: use this instead, but not yet supported with Mongo Storage backend
-		//if(!storage.checkTypeSchemaRecordExists(moduleName, typeName, schemaDocumentVer.toString()))
-		//	throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		AbsoluteTypeDefId ret = new AbsoluteTypeDefId(new TypeDefName(moduleName, typeName),
+				schemaDocumentVer.getMajor(), schemaDocumentVer.getMinor());
+		if (typeJsonSchemaCache.getIfPresent(ret) == null) {
+			if (!storage.checkTypeSchemaRecordExists(moduleName,typeName,schemaDocumentVer.toString()))
+				throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+		}
 		return new AbsoluteTypeDefId(new TypeDefName(moduleName,typeName),schemaDocumentVer.getMajor(),schemaDocumentVer.getMinor());
 	}
 	
@@ -483,12 +553,14 @@ public class TypeDefinitionDB {
 	}
 
 	private boolean isValidModuleNL(String moduleName, Long version) throws TypeStorageException {
-		if (!storage.checkModuleExist(moduleName))
-			return false;
+		if (moduleInfoCache.getIfPresent(moduleName) == null) {
+			if (!storage.checkModuleExist(moduleName))
+				return false;
+		}
 		if (version == null) {
 			if (!isModuleSupported(moduleName))
 				return false;
-			version = storage.getLastReleasedModuleVersion(moduleName);
+			version = getLastReleasedModuleVersion(moduleName);
 		}
 		return storage.checkModuleInfoRecordExist(moduleName, version) && 
 				storage.checkModuleSpecRecordExist(moduleName, version);
@@ -500,8 +572,10 @@ public class TypeDefinitionDB {
 	}
 
 	private void checkModuleRegistered(String moduleName) throws NoSuchModuleException, TypeStorageException {
+		if (moduleInfoCache.getIfPresent(moduleName) != null)
+			return;
 		if ((!storage.checkModuleExist(moduleName)) || (!storage.checkModuleInfoRecordExist(moduleName,
-				storage.getLastReleasedModuleVersion(moduleName))))
+				getLastReleasedModuleVersion(moduleName))))
 			throw new NoSuchModuleException("Module wasn't registered: " + moduleName);
 	}
 	
@@ -534,7 +608,7 @@ public class TypeDefinitionDB {
 			if (!storage.checkModuleExist(moduleName))
 				return false;
 			if (!storage.checkModuleInfoRecordExist(moduleName, 
-					storage.getLastReleasedModuleVersion(moduleName)))
+					getLastReleasedModuleVersion(moduleName)))
 				return false;
 			SemanticVersion ver = findTypeVersion(typeDefId);
 			if (ver == null)
@@ -896,6 +970,7 @@ public class TypeDefinitionDB {
 			} else {
 				storage.setModuleReleaseVersion(moduleName, version);
 			}
+			removeModuleInfoFromCache(moduleName);
 		} finally {
 			releaseWriteLock(moduleName);
 		}
@@ -963,6 +1038,7 @@ public class TypeDefinitionDB {
 	private void writeModuleInfoSpec(ModuleInfo info, String specDocument, 
 			long backupTime) throws TypeStorageException {
 		storage.writeModuleRecords(info, specDocument, backupTime);
+		removeModuleInfoFromCache(info.getModuleName());
 	}
 
 	public String getModuleSpecDocument(String moduleName) 
@@ -970,7 +1046,7 @@ public class TypeDefinitionDB {
 		requestReadLock(moduleName);
 		try {
 			checkModuleSupported(moduleName);
-			return storage.getModuleSpecRecord(moduleName, storage.getLastReleasedModuleVersion(moduleName));
+			return storage.getModuleSpecRecord(moduleName, getLastReleasedModuleVersion(moduleName));
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -1001,10 +1077,69 @@ public class TypeDefinitionDB {
 		}
 	}
 
+	public void cleanupCaches() {
+		moduleInfoCache.cleanUp();
+		typeJsonSchemaCache.cleanUp();
+	}
+	
+	private ModuleInfo copyOf(ModuleInfo input) throws TypeStorageException {
+		/*String infoText;
+		try {
+			infoText = mapper.writeValueAsString(input);
+			return mapper.readValue(infoText, ModuleInfo.class);
+		} catch (JsonProcessingException e) {
+			throw new TypeStorageException(e);
+		} catch (IOException e) {
+			throw new TypeStorageException(e);
+		}*/
+		ModuleInfo ret = new ModuleInfo();
+		ret.setDescription(input.getDescription());
+		for (Map.Entry<String, FuncInfo> entry : input.getFuncs().entrySet()) {
+			FuncInfo fi = new FuncInfo();
+			fi.setFuncName(entry.getValue().getFuncName());
+			fi.setFuncVersion(entry.getValue().getFuncVersion());
+			fi.setSupported(entry.getValue().isSupported());
+			ret.getFuncs().put(entry.getKey(), fi);
+		}
+		ret.getIncludedModuleNameToVersion().putAll(input.getIncludedModuleNameToVersion());
+		ret.setMd5hash(input.getMd5hash());
+		ret.setModuleName(input.getModuleName());
+		ret.setReleased(input.isReleased());
+		for (Map.Entry<String, TypeInfo> entry : input.getTypes().entrySet()) {
+			TypeInfo ti = new TypeInfo();
+			ti.setTypeName(entry.getValue().getTypeName());
+			ti.setTypeVersion(entry.getValue().getTypeVersion());
+			ti.setSupported(entry.getValue().isSupported());
+			ret.getTypes().put(entry.getKey(), ti);
+		}
+		ret.setUploadComment(input.getUploadComment());
+		ret.setUploadMethod(input.getUploadMethod());
+		ret.setUploadUserId(input.getUploadUserId());
+		ret.setVersionTime(input.getVersionTime());
+		return ret;
+	}
+		
 	private ModuleInfo getModuleInfoNL(String moduleName) 
 			throws NoSuchModuleException, TypeStorageException {
 		checkModuleSupported(moduleName);
-		return getModuleInfoNL(moduleName, storage.getLastReleasedModuleVersion(moduleName));
+		ModuleInfo ret;
+		try {
+			ret = moduleInfoCache.get(moduleName);
+		} catch (ExecutionException e) {
+			if (e.getCause() != null) {
+				if (e.getCause() instanceof NoSuchModuleException) {
+					throw (NoSuchModuleException)e.getCause();
+				} else if (e.getCause() instanceof TypeStorageException) {
+					throw (TypeStorageException)e.getCause();
+				} else {
+					throw new TypeStorageException(e.getCause().getMessage(), e.getCause());
+				}
+			} else {
+				throw new TypeStorageException(e.getMessage(), e);
+			}
+		}
+		return copyOf(ret);
+		//return getModuleInfoNL(moduleName, storage.getLastReleasedModuleVersion(moduleName));
 	}
 	
 	public ModuleInfo getModuleInfo(String moduleName) 
@@ -1020,6 +1155,9 @@ public class TypeDefinitionDB {
 	private ModuleInfo getModuleInfoNL(String moduleName, long version) 
 			throws NoSuchModuleException, TypeStorageException {
 		checkModuleRegistered(moduleName);
+		ModuleInfo ret = moduleInfoCache.getIfPresent(moduleName);
+		if (ret != null && ret.getVersionTime() == version)
+			return copyOf(ret);
 		return storage.getModuleInfoRecord(moduleName, version);
 	}
 	
@@ -1050,7 +1188,7 @@ public class TypeDefinitionDB {
 		try {
 			checkModuleRegistered(moduleName);
 			checkModuleSupported(moduleName);
-			return storage.getLastReleasedModuleVersion(moduleName);
+			return getLastReleasedModuleVersion(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -1283,6 +1421,7 @@ public class TypeDefinitionDB {
 			checkAdmin(userId);
 			checkModuleRegistered(moduleName);
 			storage.removeModule(moduleName);
+			removeModuleInfoFromCache(moduleName);
 		} finally {
 			releaseWriteLock(moduleName);
 		}
@@ -2197,6 +2336,8 @@ public class TypeDefinitionDB {
 	}
 	
 	private boolean isModuleSupported(String moduleName) throws TypeStorageException {
+		if (moduleInfoCache.getIfPresent(moduleName) != null)
+			return true;
 		return storage.getModuleSupportedState(moduleName);
 	}
 	
@@ -2207,6 +2348,7 @@ public class TypeDefinitionDB {
 		requestWriteLock(moduleName);
 		try {
 			storage.changeModuleSupportedState(moduleName, false);
+			removeModuleInfoFromCache(moduleName);
 		} finally {
 			releaseWriteLock(moduleName);
 		}
@@ -2222,6 +2364,10 @@ public class TypeDefinitionDB {
 		} finally {
 			releaseWriteLock(moduleName);
 		}
+	}
+	
+	private void removeModuleInfoFromCache(String moduleName) {
+		moduleInfoCache.invalidate(moduleName);		
 	}
 	
 	private static class ComponentChange {

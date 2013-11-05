@@ -132,6 +132,7 @@ public class TypeRegisteringTest {
 	public void cleanupBefore() throws Exception {
 		storage.removeAllTypeStorageListeners();
 		storage.removeAllData();
+		db.cleanupCaches();
 	}
 	
 	@After
