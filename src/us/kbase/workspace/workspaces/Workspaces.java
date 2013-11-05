@@ -304,9 +304,8 @@ public class Workspaces {
 			List<WorkspaceSaveObject> objects) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
-			NoSuchWorkspaceException, NoSuchTypeException,
-			NoSuchModuleException, TypeStorageException,
-			TypedObjectValidationException,
+			NoSuchWorkspaceException, TypedObjectValidationException,
+			TypeStorageException,
 			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
@@ -343,6 +342,10 @@ public class Workspaces {
 				throw new TypedObjectValidationException(String.format(
 						"Object %s failed type checking:\n", objerrid)
 						+ nste.getLocalizedMessage(), nste);
+			} catch (NoSuchModuleException nsme) {
+				throw new TypedObjectValidationException(String.format(
+						"Object %s failed type checking:\n", objerrid)
+						+ nsme.getLocalizedMessage(), nsme);
 			}
 			if (!rep.isInstanceValid()) {
 				final String[] e = rep.getErrorMessages();
