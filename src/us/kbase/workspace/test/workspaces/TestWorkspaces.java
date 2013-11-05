@@ -740,6 +740,14 @@ public class TestWorkspaces {
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false))); //should work
+		
+		failSave(userfoo, wspace, data1, new TypeDefId("NoModHere.Foo"), emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nModule doesn't exist: NoModHere"));
+		failSave(userfoo, wspace, data1, new TypeDefId("SomeModule.Foo"), emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: SomeModule.Foo"));
+		
 		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
