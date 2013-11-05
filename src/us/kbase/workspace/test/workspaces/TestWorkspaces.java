@@ -998,7 +998,7 @@ public class TestWorkspaces {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE, meta,
 					new Provenance(foo), false)));
-			fail("saved object with > 16Mb metadata");
+			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata is > 16000 bytes"));
@@ -1007,7 +1007,7 @@ public class TestWorkspaces {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, meta,
 					new Provenance(foo), false)));
-			fail("saved object with > 16Mb metadata");
+			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata is > 16000 bytes"));

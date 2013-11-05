@@ -83,6 +83,12 @@ public class JSONRPCLayerTest {
 		}
 		TEXT101 += "f";
 	}
+	private static String TEXT1000;
+	static {
+		for (int i = 0; i < 100; i++) {
+			TEXT1000 += "aaaaabbbbb";
+		}
+	}
 	
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
@@ -579,6 +585,9 @@ public class JSONRPCLayerTest {
 		objects.add(new ObjectSaveData().withData(new UObject("foo")));
 		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
 		
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(null));
+		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
+		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(""));
 		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
 		
@@ -632,9 +641,9 @@ public class JSONRPCLayerTest {
 				CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(3));
-		checkMeta(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkMeta(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkInfo(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkInfo(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);
+		checkInfo(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		
 		objects.clear();
@@ -644,7 +653,7 @@ public class JSONRPCLayerTest {
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
-		checkMeta(retmet.get(0), 2, "auto2", SAFE_TYPE, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
+		checkInfo(retmet.get(0), 2, "auto2", SAFE_TYPE, 2, USER1, wsid, "3c59f762140806c36ab48a152f28e840", 24);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
@@ -776,7 +785,7 @@ public class JSONRPCLayerTest {
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple10<Long, String, String, String, Long, String, Long,
 				String, Long, Map<String, String>> o: retusermeta) {
-			checkUserMeta(o, id, name, type, ver, user, wsid,
+			checkInfoUserMeta(o, id, name, type, ver, user, wsid,
 					chksum, size, meta);
 		}
 	}
@@ -789,40 +798,70 @@ public class JSONRPCLayerTest {
 		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
 		
-		checkUserMeta(retdata.getInfo(), id, name, typeString, ver, user, wsid, chksum, size, meta);
+		checkInfoUserMeta(retdata.getInfo(), id, name, typeString, ver, user, wsid, chksum, size, meta);
 	}
 
-	private void checkUserMeta(
-			Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> usermeta,
+	private void checkInfoUserMeta(
+			Tuple10<Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> infousermeta,
 			long id, String name, String typeString, int ver, String user,
 			long wsid, String chksum, long size, Map<String, String> meta)
 			throws Exception {
 		
-		assertThat("id is correct", usermeta.getE1(), is(id));
-		assertThat("name is correct", usermeta.getE2(), is(name));
-		assertThat("type is correct", usermeta.getE3(), is(typeString));
-		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
-		assertThat("version is correct", (int) usermeta.getE5().longValue(), is(ver));
-		assertThat("user is correct", usermeta.getE6(), is(user));
-		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
-		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
-		assertThat("size is correct", usermeta.getE9(), is(size));
-		assertThat("meta is correct", usermeta.getE10(), is(meta));
+		assertThat("id is correct", infousermeta.getE1(), is(id));
+		assertThat("name is correct", infousermeta.getE2(), is(name));
+		assertThat("type is correct", infousermeta.getE3(), is(typeString));
+		DATE_FORMAT.parse(infousermeta.getE4()); //should throw error if bad format
+		assertThat("version is correct", (int) infousermeta.getE5().longValue(), is(ver));
+		assertThat("user is correct", infousermeta.getE6(), is(user));
+		assertThat("wsid is correct", infousermeta.getE7(), is(wsid));
+		assertThat("chksum is correct", infousermeta.getE8(), is(chksum));
+		assertThat("size is correct", infousermeta.getE9(), is(size));
+		assertThat("meta is correct", infousermeta.getE10(), is(meta));
 	}
-	private void checkMeta(
-			Tuple9<Long, String, String, String, Long, String, Long, String, Long> usermeta,
+	private void checkInfo(
+			Tuple9<Long, String, String, String, Long, String, Long, String, Long> objinfo,
 			long id, String name, String typeString, int ver, String user,
 			long wsid, String chksum, long size) throws Exception {
 		
-		assertThat("id is correct", usermeta.getE1(), is(id));
-		assertThat("name is correct", usermeta.getE2(), is(name));
-		assertThat("type is correct", usermeta.getE3(), is(typeString));
-		DATE_FORMAT.parse(usermeta.getE4()); //should throw error if bad format
-		assertThat("version is correct", (int) usermeta.getE5().longValue(), is(ver));
-		assertThat("user is correct", usermeta.getE6(), is(user));
-		assertThat("wsid is correct", usermeta.getE7(), is(wsid));
-		assertThat("chksum is correct", usermeta.getE8(), is(chksum));
-		assertThat("size is correct", usermeta.getE9(), is(size));
+		assertThat("id is correct", objinfo.getE1(), is(id));
+		assertThat("name is correct", objinfo.getE2(), is(name));
+		assertThat("type is correct", objinfo.getE3(), is(typeString));
+		DATE_FORMAT.parse(objinfo.getE4()); //should throw error if bad format
+		assertThat("version is correct", (int) objinfo.getE5().longValue(), is(ver));
+		assertThat("user is correct", objinfo.getE6(), is(user));
+		assertThat("wsid is correct", objinfo.getE7(), is(wsid));
+		assertThat("chksum is correct", objinfo.getE8(), is(chksum));
+		assertThat("size is correct", objinfo.getE9(), is(size));
+	}
+	
+	@Test
+	public void saveBigMeta() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta"));
+
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		for (int i = 0; i < 16; i++) {
+			meta.put(Integer.toString(i), TEXT1000); //> 16Mb now
+		}
+		
+		
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("bigmeta")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data)).withType(SAFE_TYPE));
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withMeta(meta));
+		
+		try {
+			CLIENT1.saveObjects(soc);
+			fail("called save with too large meta");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Object 2 save error: Metadata is > 16000 bytes"));
+		}
 	}
 	
 	@Test
