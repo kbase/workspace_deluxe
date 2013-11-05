@@ -372,7 +372,7 @@ public class Workspaces {
 		final Set<ObjectIdentifier> allOids =
 				new HashSet<ObjectIdentifier>(oidToObject.keySet());
 		allOids.addAll(provOidToObject.keySet());
-		if (!oidToObject.isEmpty()) {
+		if (!allOids.isEmpty()) {
 			try {
 				wsresolvedids = checkPerms(user, 
 						new LinkedList<ObjectIdentifier>(allOids),

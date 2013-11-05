@@ -717,7 +717,7 @@ public class TestWorkspaces {
 		TypeDefId relmintype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2);
 		TypeDefId relmaxtype = new TypeDefId(new TypeDefName(mod, "CheckType"));
 		
-		
+		// test basic type checking with different versions
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("typecheck");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null);
 		Provenance emptyprov = new Provenance(userfoo);
@@ -837,6 +837,8 @@ public class TestWorkspaces {
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(newdata, relmintype2, null, emptyprov, false)));
 		
+		
+		// test non-parseable references and typechecking with object count
 		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
@@ -876,6 +878,20 @@ public class TestWorkspaces {
 			assertThat("correct exception", tove.getLocalizedMessage(),
 					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		}
+		
+		//test inaccessible references due to missing, deleted, or unreadable workspaces
+		//provenance and data
+		Map<String, Object> refdata = new HashMap<String, Object>(data1);
+		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+		Provenance nowsref = new Provenance(userfoo);
+		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, nowsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+		
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
@@ -886,9 +902,12 @@ public class TestWorkspaces {
 					new WorkspaceSaveObject(data, type, null, prov, false)));
 			fail("Saved bad object");
 		} catch (Exception e) {
-			assertThat("correct exception type", e, is(exception.getClass()));
+			if (e instanceof NullPointerException) {
+				e.printStackTrace();
+			}
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is(exception.getLocalizedMessage()));
+			assertThat("correct exception type", e, is(exception.getClass()));
 		}
 	}
 	
