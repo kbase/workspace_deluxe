@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -674,7 +674,7 @@ public class TestWorkspaces {
 		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
-	public static final String TEST_TYPE_CHECKING =
+	public static final String TEST_TYPE_CHECKING1 =
 			"module TestTypeChecking {" +
 				"/* @id ws */" +
 				"typedef string reference;" +
@@ -687,6 +687,19 @@ public class TestWorkspaces {
 				"} CheckType;" +
 			"};";
 	
+	public static final String TEST_TYPE_CHECKING2 =
+			"module TestTypeChecking {" +
+				"/* @id ws */" +
+				"typedef string reference;" +
+				"/* @optional ref */" + 
+				"typedef structure {" +
+					"int foo;" +
+					"list<int> bar;" +
+					"int baz;" +
+					"reference ref;" +
+				"} CheckType;" +
+			"};";
+	
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		//TODO test ref rewriting
@@ -695,9 +708,16 @@ public class TestWorkspaces {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(userfoo, mod);
 		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING, Arrays.asList("CheckType"), null, null, false, null);
-		AbsoluteTypeDefId typecheck = new AbsoluteTypeDefId(
-				new TypeDefName(mod,  "CheckType"), 0, 1);
+		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING1, Arrays.asList("CheckType"), null, null, false, null);
+		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0, 1);
+		TypeDefId abstype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
+		TypeDefId abstype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2, 0);
+		TypeDefId relmintype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0);
+		TypeDefId relmintype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1);
+		TypeDefId relmintype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2);
+		TypeDefId relmaxtype = new TypeDefId(new TypeDefName(mod, "CheckType"));
+		
+		// test basic type checking with different versions
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("typecheck");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null);
 		Provenance emptyprov = new Provenance(userfoo);
@@ -705,13 +725,125 @@ public class TestWorkspaces {
 		data1.put("foo", 3);
 		data1.put("baz", "astring");
 		data1.put("bar", Arrays.asList(-3, 1, 234567890));
+		
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false))); //should work
+		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+		failSave(userfoo, wspace, data1, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
+		try {
+			//TODO the below should work, but exception is wrong
+//			failSave(userfoo, wspace, data1, abstype1, emptyprov,
+//					new TypedObjectValidationException(
+//							"Object #1 failed type checking:\nType schema record was not found for TestTypeChecking.CheckType.1.0"));
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		} catch (TypeStorageException tse) {
+			//TODO this is a bug, shouldn't have to catch here
+		}
+		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
+		
+		ws.releaseTypes(userfoo, mod);
+		
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+		
+		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING2, null, null, null, false, null);
+		
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+		
+		
+		Map<String, Object> newdata = new HashMap<String, Object>(data1);
+		newdata.put("baz", 1);
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmaxtype, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+		
+		ws.releaseTypes(userfoo, mod);
+		
+		failSave(userfoo, wspace, data1, relmaxtype, emptyprov, 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
+		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(newdata, relmaxtype, null, emptyprov, false)));
+		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
+				new WorkspaceSaveObject(newdata, relmintype2, null, emptyprov, false)));
+		
+		
+		// test non-parseable references and typechecking with object count
 		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(data1, typecheck, null, emptyprov, false));
-		ws.saveObjects(userfoo, wspace, data); //should work
-
+		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
 		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
-		data.add(new WorkspaceSaveObject(data2, typecheck, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(data2, abstype0, null, emptyprov, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
@@ -720,12 +852,12 @@ public class TestWorkspaces {
 		}
 		Map<String, Object> data3 = new HashMap<String, Object>(data1);
 		data3.put("ref", "typecheck/1/1");
-		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, emptyprov, false));
 		ws.saveObjects(userfoo, wspace, data); //should work
 		
 		Map<String, Object> data4 = new HashMap<String, Object>(data1);
 		data4.put("ref", "foo/bar/baz");
-		data.set(1, new WorkspaceSaveObject(data4, typecheck, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(data4, abstype0, null, emptyprov, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
@@ -734,12 +866,12 @@ public class TestWorkspaces {
 		}
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
-		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, goodids, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, goodids, false));
 		ws.saveObjects(userfoo, wspace, data); //should work
 		
 		Provenance badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
-		data.set(1, new WorkspaceSaveObject(data3, typecheck, null, badids, false));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
 		try {
 			ws.saveObjects(userfoo, wspace, data);
 		} catch (TypedObjectValidationException tove) {
@@ -747,8 +879,112 @@ public class TestWorkspaces {
 					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		}
 		
+		//test inaccessible references due to missing, deleted, or unreadable workspaces
+		Map<String, Object> refdata = new HashMap<String, Object>(data1);
+		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+		Provenance nowsref = new Provenance(userfoo);
+		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, nowsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
 		
+		ws.createWorkspace(userfoo, "tobedeleted", false, null);
+		ws.setWorkspaceDeleted(userfoo, new WorkspaceIdentifier("tobedeleted"), true);
+		refdata.put("ref", "tobedeleted/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+		Provenance delwsref = new Provenance(userfoo);
+		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, delwsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
 		
+		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null);
+		refdata.put("ref", "stingyworkspace/2/1");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+		Provenance privwsref = new Provenance(userfoo);
+		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, privwsref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+		
+		//test inaccessible reference due to missing or deleted objects, incl bad versions
+		ws.createWorkspace(userfoo, "referencetesting", false, null);
+		WorkspaceIdentifier reftest = new WorkspaceIdentifier("referencetesting");
+		ws.saveObjects(userfoo, reftest, Arrays.asList(
+				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		
+		refdata.put("ref", "referencetesting/1/1");
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(refdata, abstype1 , null, emptyprov, false)));
+		Provenance goodref = new Provenance(userfoo);
+		goodref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/1")));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(refdata, abstype1 , null, goodref, false)));
+		
+		refdata.put("ref", "referencetesting/2/1");
+		long refwsid = ws.getWorkspaceInformation(userfoo, reftest).getId();
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference referencetesting/2/1: No object with id 2 exists in workspace "
+								+ refwsid));
+		Provenance noobjref = new Provenance(userfoo);
+		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, noobjref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference referencetesting/2/1: No object with id 2 exists in workspace "
+								+ refwsid));
+		
+		ws.saveObjects(userfoo, reftest, Arrays.asList(
+				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
+		ws.setObjectsDeleted(userfoo, Arrays.asList(new ObjectIdentifier(reftest, 2)), true);
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(String.format(
+						"Object #1 has inaccessible reference referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
+								refwsid)));
+		Provenance delobjref = new Provenance(userfoo);
+		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
+		failSave(userfoo, wspace, data1, abstype0, delobjref,
+				new TypedObjectValidationException(String.format(
+						"Object #1 has inaccessible provenance reference referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
+								refwsid)));
+		
+		refdata.put("ref", "referencetesting/1/2");
+		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible reference referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
+								+ refwsid));
+		Provenance noverref = new Provenance(userfoo);
+		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/2")));
+		failSave(userfoo, wspace, data1, abstype0, noverref,
+				new TypedObjectValidationException(
+						"Object #1 has inaccessible provenance reference referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
+								+ refwsid));
+		
+		//TODO test references against garbage collected objects
+	}
+	
+	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
+			Map<String, Object> data, TypeDefId type, Provenance prov,
+			Throwable exception) throws Exception{
+		try {
+			ws.saveObjects(user, wsi, Arrays.asList(
+					new WorkspaceSaveObject(data, type, null, prov, false)));
+			fail("Saved bad object");
+		} catch (Exception e) {
+			if (e instanceof NullPointerException) {
+				e.printStackTrace();
+			}
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is(exception.getLocalizedMessage()));
+			assertThat("correct exception type", e, is(exception.getClass()));
+		}
 	}
 	
 	@Test
