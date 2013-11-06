@@ -1091,7 +1091,7 @@ public class TestWorkspaces {
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: relabeling 'referencetypecheck/2/1' to '"
-						+ reftypewsid + "/2/1' failed because the field name already exists."));
+						+ reftypewsid + "/2/1' failed because the field name already exists at /refmap"));
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
