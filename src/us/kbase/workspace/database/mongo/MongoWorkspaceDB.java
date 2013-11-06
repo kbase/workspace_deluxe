@@ -711,8 +711,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.PTR_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null}}", Fields.PTR_VCNT,
-			Fields.PTR_DEL, Fields.PTR_MODDATE, Fields.PTR_LATEST);
+			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null}, $push: {%s: 0}}",
+			Fields.PTR_VCNT, Fields.PTR_DEL, Fields.PTR_MODDATE,
+			Fields.PTR_LATEST, Fields.PTR_REFCOUNTS);
 	
 	// save object in preexisting object container
 	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
@@ -1204,10 +1205,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private class VerCount {
-		final public Integer ver;
-		final public Integer count;
+		final public int ver;
+		final public int count;
 
-		public VerCount (final Integer ver, final Integer count) {
+		public VerCount (final int ver, final int count) {
 			this.ver = ver;
 			this.count = count;
 		}
@@ -1221,9 +1222,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result
-					+ ((count == null) ? 0 : count.hashCode());
-			result = prime * result + ((ver == null) ? 0 : ver.hashCode());
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + count;
+			result = prime * result + ver;
 			return result;
 		}
 		
@@ -1239,27 +1240,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				return false;
 			}
 			VerCount other = (VerCount) obj;
-			if (count == null) {
-				if (other.count != null) {
-					return false;
-				}
-			} else if (!count.equals(other.count)) {
+			if (!getOuterType().equals(other.getOuterType())) {
 				return false;
 			}
-			if (ver == null) {
-				if (other.ver != null) {
-					return false;
-				}
-			} else if (!ver.equals(other.ver)) {
+			if (count != other.count) {
+				return false;
+			}
+			if (ver != other.ver) {
 				return false;
 			}
 			return true;
+		}
+
+		private MongoWorkspaceDB getOuterType() {
+			return MongoWorkspaceDB.this;
 		}
 	}
 	
 	private void updateReferenceCounts(final List<ObjectSavePackage> packages)
 			throws WorkspaceCommunicationException {
-		
+		//TODO when garbage collection working much more testing of these methods
 		final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts = 
 				countReferences(packages);
 		/* since the version numbers are probably highly skewed towards 1 and

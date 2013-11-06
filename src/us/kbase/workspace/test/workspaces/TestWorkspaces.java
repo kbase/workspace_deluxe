@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -1111,7 +1113,79 @@ public class TestWorkspaces {
 	}
 	
 	@Test
-	public void bigUserMetaAndObjectErrors() throws Exception {
+	public void saveProvenance() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier prov = new WorkspaceIdentifier("provenance");
+		ws.createWorkspace(foo, prov.getName(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("foo", "bar");
+		Provenance emptyprov = new Provenance(foo);
+		
+		//already tested bad references in saveObjectWithTypeChecking, won't test again here
+		
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+		
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE, null, emptyprov, false)));
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE, null, emptyprov, false)));
+		
+		
+		Provenance p = new Provenance(foo);
+		p.addAction(new ProvenanceAction()
+				.withCommandLine("A command line")
+				.withDescription("descrip")
+				.withIncomingArgs(Arrays.asList("a", "b", "c"))
+				.withMethod("method")
+				.withMethodParameters(Arrays.asList((Object) data, data, data))
+				.withOutgoingArgs(Arrays.asList("d", "e", "f"))
+				.withScript("script")
+				.withScriptVersion("2.1")
+				.withServiceName("service")
+				.withServiceVersion("3")
+				.withTime(new Date(45))
+				.withWorkspaceObjects(Arrays.asList("provenance/auto3", "provenance/auto1/2")));
+		p.addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
+		
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+		
+		checkProvenanceEqual(p, ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance());
+		//TODO check rewritten refs
+	}
+	
+	private void checkProvenanceEqual(Provenance expected, Provenance got) {
+		assertThat("user equal", got.getUser(), is(expected.getUser()));
+		assertThat("same number actions", got.getActions().size(),
+				is(expected.getActions().size()));
+		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
+		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
+		while (gotAct.hasNext()) {
+			ProvenanceAction gotpa = gotAct.next();
+			ProvenanceAction exppa = expAct.next();
+			assertThat("cmd line equal", gotpa.getCommandLine(), is(exppa.getCommandLine()));
+			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
+			assertThat("inc args equal", gotpa.getIncomingArgs(), is(exppa.getIncomingArgs()));
+			assertThat("method equal", gotpa.getMethod(), is(exppa.getMethod()));
+			assertThat("meth params equal", gotpa.getMethodParameters(), is(exppa.getMethodParameters()));
+			assertThat("out args equal", gotpa.getOutgoingArgs(), is(exppa.getOutgoingArgs()));
+			assertThat("script equal", gotpa.getScript(), is(exppa.getScript()));
+			assertThat("script ver equal", gotpa.getScriptVersion(), is(exppa.getScriptVersion()));
+			assertThat("service equal", gotpa.getServiceName(), is(exppa.getServiceName()));
+			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
+			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
+			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
+		}
+	}
+
+	@Test
+	public void bigUserMetaErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
