@@ -100,7 +100,7 @@ public class IdReference {
 			JsonNode mapping = instanceRoot;
 			for(int depth=0; depth<location.size(); depth++) {
 				if(mapping==null) {
-					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found at "+locationAsString());
 				}
 				if(mapping.isArray()) {
 					mapping = mapping.get(location.get(depth).asInt());
@@ -109,7 +109,7 @@ public class IdReference {
 				}
 			}
 			if(mapping==null) {
-				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found  at "+locationAsString());
 			}
 			// the mapping object we find MUST be an object
 			if(mapping.isObject()) {
@@ -120,18 +120,18 @@ public class IdReference {
 					// if the key was already added, then we gots a problem- the user was very likely trying to change two different
 					// id references to the same newString, which can't work because in a mapping keys must be unique.  Overwriting
 					// here would result in loss of data, so we must abort.
-					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because the field name already exists.");
+					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because the field name already exists at "+locationAsString());
 				}
 				mappingObj.put(replacementId, value);
 			} else {
-				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found  at "+locationAsString());
 			}
 		} else {
 			//traverse to the parent of the field we want to change
 			JsonNode parent = instanceRoot;
 			for(int depth=0; depth<location.size()-1; depth++) {
 				if(parent==null) {
-					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+					throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found  at "+locationAsString());
 				}
 				if(parent.isArray()) {
 					parent = parent.get(location.get(depth).asInt());
@@ -141,7 +141,7 @@ public class IdReference {
 			}
 			
 			if(parent==null) {
-				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found at "+locationAsString());
 			}
 			
 			// figure out whether the TextNode target is in an array or an object, and set
@@ -153,7 +153,7 @@ public class IdReference {
 				ObjectNode parentObject = (ObjectNode) parent;
 				parent = parentObject.set(location.get(location.size()-1).asText(), new TextNode(replacementId));
 			} else {
-				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found.");
+				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found at "+locationAsString());
 			}
 		}
 		
@@ -164,6 +164,14 @@ public class IdReference {
 	}
 	protected String getReplacementId() {
 		return replacementId;
+	}
+	
+	protected String locationAsString() {
+		StringBuilder sb = new StringBuilder();
+		for(int d=0; d<location.size(); d++) {
+			sb.append("/"+location.get(d).asText());
+		}
+		return sb.toString();
 	}
 	
 	
