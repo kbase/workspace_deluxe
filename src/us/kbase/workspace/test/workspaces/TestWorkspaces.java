@@ -77,12 +77,18 @@ public class TestWorkspaces {
 	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
-	public static String TEXT101;
+	public static String TEXT100 = "";
 	static {
 		for (int i = 0; i < 10; i++) {
-			TEXT101 += "aaaaabbbbb";
+			TEXT100 += "aaaaabbbbb";
 		}
-		TEXT101 += "f";
+	}
+	public static String TEXT101 = TEXT100 + "f";
+	public static String TEXT1000 = "";
+	static {
+		for (int i = 0; i < 10; i++) {
+			TEXT1000 += TEXT100;
+		}
 	}
 	
 	public static ShockBackend sbe;
@@ -1249,6 +1255,36 @@ public class TestWorkspaces {
 				assertThat("ref resolved correctly", gotresolvedrefs.next(),
 						is(refmap.get(gotrefs.next())));
 			}
+		}
+	}
+	
+	@Test 
+	public void saveLargeProvenance() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier prov = new WorkspaceIdentifier("bigprov");
+		ws.createWorkspace(foo, prov.getName(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("foo", "bar");
+		List<Object> methparams = new ArrayList<Object>();
+		for (int i = 1; i < 997; i++) {
+			methparams.add(TEXT1000);
+		}
+		Provenance p = new Provenance(foo);
+		p.addAction(new ProvenanceAction().withMethodParameters(methparams));
+		ws.saveObjects(foo, prov, Arrays.asList( //should work
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+		
+		
+		methparams.add(TEXT1000);
+		Provenance p2 = new Provenance(foo);
+		p2.addAction(new ProvenanceAction().withMethodParameters(methparams));
+		try {
+			ws.saveObjects(foo, prov, Arrays.asList(
+					new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+			fail("saved too big prov");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Object #1 provenance size exceeds limit of 1000000"));
 		}
 	}
 
