@@ -1117,6 +1117,7 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("provenance");
 		ws.createWorkspace(foo, prov.getName(), false, null);
+		long wsid = ws.getWorkspaceInformation(foo, prov).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "bar");
 		Provenance emptyprov = new Provenance(foo);
@@ -1155,15 +1156,22 @@ public class TestWorkspaces {
 		
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+		Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("provenance/auto3", wsid + "/3/1");
+		refmap.put("provenance/auto1/2", wsid + "/1/2");
+		refmap.put("provenance/auto2/1", wsid + "/2/1");
+		refmap.put("provenance/auto1", wsid + "/1/3");
 		
-		checkProvenanceEqual(p, ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance());
-		//TODO check rewritten refs
+		Provenance got = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance();
+		checkProvenanceCorrect(p, got, refmap);
 	}
 	
-	private void checkProvenanceEqual(Provenance expected, Provenance got) {
+	private void checkProvenanceCorrect(Provenance expected, Provenance got,
+			Map<String, String> refmap) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
+		
 		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
 		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
 		while (gotAct.hasNext()) {
@@ -1181,6 +1189,15 @@ public class TestWorkspaces {
 			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
 			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
+			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
+					is(gotpa.getWorkspaceObjects().size()));
+			Iterator<String> gotrefs = gotpa.getWorkspaceObjects().iterator();
+			Iterator<String> gotresolvedrefs = gotpa.getResolvedObjects().iterator();
+			while (gotrefs.hasNext()) {
+				assertThat("ref resolved correctly", gotresolvedrefs.next(),
+						is(refmap.get(gotrefs.next())));
+			}
+			
 		}
 	}
 
