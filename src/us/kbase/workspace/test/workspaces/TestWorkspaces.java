@@ -1198,6 +1198,24 @@ public class TestWorkspaces {
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, p2, false)));
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
 		checkProvenanceCorrect(p2, got2, new HashMap<String, String>());
+		
+		//make sure passing nulls for ws obj lists doesn't kill anything
+		Provenance p3 = new Provenance(foo);
+		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, p3, false)));
+		Provenance got3 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 6))).get(0).getProvenance();
+		checkProvenanceCorrect(p3, got3, new HashMap<String, String>());
+		
+		Provenance p4 = new Provenance(foo);
+		ProvenanceAction pa = new ProvenanceAction();
+		pa.setWorkspaceObjects(null);
+		p4.addAction(pa);
+		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, p4, false)));
+		Provenance got4 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 7))).get(0).getProvenance();
+		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
 	}
 	
 	private void checkProvenanceCorrect(Provenance expected, Provenance got,

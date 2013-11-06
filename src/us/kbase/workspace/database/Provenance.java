@@ -176,7 +176,6 @@ public class Provenance {
 				this.wsobjs = new LinkedList<String>(
 						new HashSet<String>(wsobjs));
 			}
-			this.wsobjs = wsobjs;
 		}
 
 		public ProvenanceAction withWorkspaceObjects(
