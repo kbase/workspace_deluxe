@@ -69,7 +69,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO test objects slightly < 1GB and > 1GB
 //TODO test objects with subdata </> 15MB
 //TODO test provenance </> 100K
-//TODO test full provenance save, retrieve, ref rewrite
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -1164,6 +1163,41 @@ public class TestWorkspaces {
 		
 		Provenance got = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance();
 		checkProvenanceCorrect(p, got, refmap);
+		
+		try {
+			new WorkspaceSaveObject(data, SAFE_TYPE, null, null, false);
+			fail("saved without provenance");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Neither data, provenance, nor type may be null"));
+		}
+		try {
+			new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo"), SAFE_TYPE, null, null, false);
+			fail("saved without provenance");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Neither data, provenance, nor type may be null"));
+		}
+		try {
+			new Provenance(null);
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("user cannot be null"));
+		}
+		try {
+			Provenance pv = new Provenance(foo);
+			pv.addAction(null);
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("action cannot be null"));
+		}
+		
+		//Test minimal provenance
+		Provenance p2 = new Provenance(foo);
+		ws.saveObjects(foo, prov, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, p2, false)));
+		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
+		checkProvenanceCorrect(p2, got2, new HashMap<String, String>());
 	}
 	
 	private void checkProvenanceCorrect(Provenance expected, Provenance got,

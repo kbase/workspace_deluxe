@@ -27,7 +27,7 @@ public class Provenance {
 	
 	public void addAction(ProvenanceAction action) {
 		if (action == null) {
-			throw new NullPointerException("action cannot be null");
+			throw new IllegalArgumentException("action cannot be null");
 		}
 		actions.add(action);
 	}
