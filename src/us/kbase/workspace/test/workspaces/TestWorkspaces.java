@@ -1249,7 +1249,6 @@ public class TestWorkspaces {
 				assertThat("ref resolved correctly", gotresolvedrefs.next(),
 						is(refmap.get(gotrefs.next())));
 			}
-			
 		}
 	}
 

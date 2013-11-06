@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +44,7 @@ import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
@@ -596,10 +598,134 @@ public class JSONRPCLayerTest {
 		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3"));
 		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
-		
-		//TODO provenance testing
 	}
 	
+	@Test
+	public void saveProvenance() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("provenance"));
+		long wsid = CLIENT1.getWorkspaceInfo(
+				new WorkspaceIdentity().withWorkspace("provenance")).getE1();
+		UObject data = new UObject(new HashMap<String, Object>());
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
+						.withType(SAFE_TYPE))));
+		
+		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(objects);
+		List<ProvenanceAction> prov = Arrays.asList(
+				new ProvenanceAction()
+					.withDescription("desc")
+					.withInputWsObjects(Arrays.asList("provenance/auto1/1"))
+					.withIntermediateIncoming(Arrays.asList("a", "b", "c"))
+					.withIntermediateOutgoing(Arrays.asList("d", "e", "f"))
+					.withMethod("meth")
+					.withMethodParams(Arrays.asList(new UObject("foo"),
+							new UObject(new HashMap<String, String>()),
+							new UObject(Arrays.asList("foo", "bar"))))
+					.withResolvedWsObjects(Arrays.asList("will be ignored"))
+					.withScript("script")
+					.withScriptCommandLine("cmd line")
+					.withScriptVer("1")
+					.withService("serv")
+					.withServiceVer("2")
+					.withTime("2013-04-26T12:52:06-0800"),
+				new ProvenanceAction());
+		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+				.withProvenance(prov));
+		CLIENT1.saveObjects(sop);
+		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
+				new ObjectIdentity().withWorkspace("provenance").withObjid(2L)));
+		Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("provenance/auto1/1", wsid + "/1/1");
+		Map<String, String> timemap = new HashMap<String, String>();
+		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
+		
+		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		
+		ProvenanceAction pa = new ProvenanceAction();
+		pa.setAdditionalProperties("foo", "bar");
+		objects.set(0, new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+				.withProvenance(Arrays.asList(pa)));
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save w/ prov w/ extra fields");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Unexpected arguments in ProvenanceAction: foo"));
+		}
+		
+		saveProvWithBadTime("2013-04-26T25:52:06-0800");
+		saveProvWithBadTime("2013-04-26T23:52:06-8000");
+		saveProvWithBadTime("2013-04-35T23:52:06-0800");
+		saveProvWithBadTime("2013-13-26T23:52:06-0800");
+		
+	}
+	
+	private void saveProvWithBadTime(String time) throws Exception {
+		UObject data = new UObject(new HashMap<String, Object>());
+		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+						.withProvenance(Arrays.asList(new ProvenanceAction()
+						.withTime(time)))));
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save w/ prov w/ bad time");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is(String.format("Unparseable date: \"%s\"", time)));
+		}
+	}
+	
+	private void checkProvenance(List<ProvenanceAction> expected,
+			List<ProvenanceAction> got, Map<String, String> refmap,
+			Map<String, String> timemap) {
+		assertThat("same number actions", got.size(),
+				is(expected.size()));
+		
+		Iterator<ProvenanceAction> gotAct = got.iterator();
+		Iterator<ProvenanceAction> expAct = expected.iterator();
+		while (gotAct.hasNext()) {
+			ProvenanceAction gotpa = gotAct.next();
+			ProvenanceAction exppa = expAct.next();
+			assertThat("cmd line equal", gotpa.getScriptCommandLine(), is(exppa.getScriptCommandLine()));
+			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
+			assertThat("inc args equal", gotpa.getIntermediateIncoming(), is(exppa.getIntermediateIncoming()));
+			assertThat("method equal", gotpa.getMethod(), is(exppa.getMethod()));
+			if (gotpa.getMethodParams() == null) {
+				assertThat("method param counts are both null", gotpa.getMethodParams(),
+						is(exppa.getMethodParams()));
+			} else {
+				assertThat("method param count equal", gotpa.getMethodParams().size(),
+						is(exppa.getMethodParams().size()));
+				Iterator<UObject> gotmeth = gotpa.getMethodParams().iterator();
+				Iterator<UObject> expmeth = exppa.getMethodParams().iterator();
+				while(gotmeth.hasNext()) {
+					assertThat("meth params equal", gotmeth.next().asClassInstance(Object.class),
+							is(expmeth.next().asClassInstance(Object.class)));
+				}
+			}
+			assertThat("out args equal", gotpa.getIntermediateOutgoing(), is(exppa.getIntermediateOutgoing()));
+			assertThat("script equal", gotpa.getScript(), is(exppa.getScript()));
+			assertThat("script ver equal", gotpa.getScriptVer(), is(exppa.getScriptVer()));
+			assertThat("service equal", gotpa.getService(), is(exppa.getService()));
+			assertThat("serv ver equal", gotpa.getServiceVer(), is(exppa.getServiceVer()));
+			assertThat("time equal", gotpa.getTime(), is(timemap.get(exppa.getTime())));
+			assertThat("refs equal", gotpa.getInputWsObjects(),
+					is(exppa.getInputWsObjects() == null ? new ArrayList<String>() :
+						exppa.getInputWsObjects()));
+			assertThat("correct number resolved refs", gotpa.getResolvedWsObjects().size(),
+					is(gotpa.getInputWsObjects().size()));
+			Iterator<String> gotrefs = gotpa.getInputWsObjects().iterator();
+			Iterator<String> gotresolvedrefs = gotpa.getResolvedWsObjects().iterator();
+			while (gotrefs.hasNext()) {
+				assertThat("ref resolved correctly", gotresolvedrefs.next(),
+						is(refmap.get(gotrefs.next())));
+			}
+		}
+	}
+
 	@Test
 	public void saveAndGetObjects() throws Exception {
 		
