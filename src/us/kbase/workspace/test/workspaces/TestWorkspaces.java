@@ -53,7 +53,6 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-//import us.kbase.workspace.database.mongo.ObjectIDResolvedWSNoVer;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.kbase.Util;
@@ -66,6 +65,9 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
 //TODO test objects slightly < 1GB and > 1GB
+//TODO test objects with subdata </> 15MB
+//TODO test provenance </> 100K
+//TODO test full provenance save, retrieve, ref rewrite
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -716,8 +718,6 @@ public class TestWorkspaces {
 	
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
-		//TODO test ref rewriting
-		//TODO test full provenance save, retrieve, ref rewrite
 		String mod = "TestTypeChecking";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(userfoo, mod);
@@ -1071,6 +1071,16 @@ public class TestWorkspaces {
 				new TypedObjectValidationException(
 						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
 		
+		//check references were rewritten correctly
+		for (int i = 3; i < 11; i++) {
+			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
+					new ObjectIdentifier(reftypecheck, i))).get(0);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> obj = (Map<String, Object>) wod.getData();
+			assertThat("reference rewritten correctly", (String) obj.get("ref"), is(reftypewsid + "/2/1"));
+		}
+		
+		//test the edge case where two keys in a hash resolve to the same reference
 		refdata.put("ref", "referencetypecheck/2/1");
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("referencetypecheck/2/1", "pootypoot");

@@ -963,6 +963,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						o.getRep().getJsonInstance(), Object.class);
 				json = MAPPER_SORTED.writeValueAsString(obj);
 			} catch (JsonProcessingException jpe) {
+				//should never happen
 				throw new IllegalArgumentException(
 						"Couldn't serialize data from object " +
 						getObjectErrorId(o.getObjectIdentifier(), objnum));
@@ -1097,7 +1098,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer o = p.wo.getObjectIdentifier();
 			if (o != null) {
-//				names.add(p.wo.getObjectIdentifier());
 				if (idToPkg.get(o) == null) {
 					idToPkg.put(o, new ArrayList<ObjectSavePackage>());
 				}
