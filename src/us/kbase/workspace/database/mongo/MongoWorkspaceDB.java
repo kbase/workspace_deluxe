@@ -925,7 +925,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//at this point the objects are expected to be validated and references rewritten
 	private List<ObjectSavePackage> saveObjectsBuildPackages(
 			final List<ResolvedSaveObject> objects) {
-		//TODO go over entire save method and write more tests
 		//this method must maintain the order of the objects
 		int objnum = 1;
 		final List<ObjectSavePackage> ret = new LinkedList<ObjectSavePackage>();

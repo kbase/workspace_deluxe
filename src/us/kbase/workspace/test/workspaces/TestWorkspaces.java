@@ -68,7 +68,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO test subdata access from independent mongo DB instance
 //TODO test objects slightly < 1GB and > 1GB
 //TODO test objects with subdata </> 15MB
-//TODO test provenance </> 100K
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 

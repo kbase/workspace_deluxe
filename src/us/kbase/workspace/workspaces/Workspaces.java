@@ -315,7 +315,6 @@ public class Workspaces {
 				"write to");
 		final TypedObjectValidator val = db.getTypeValidator();
 		//this method must maintain the order of the objects
-		//TODO tests for validation of objects
 		final Map<String, ObjectIdentifier> refToOid =
 				new HashMap<String, ObjectIdentifier>();
 		final Map<String, ObjectIdentifier> provRefToOid =
