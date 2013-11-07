@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +68,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
 //TODO test objects slightly < 1GB and > 1GB
-//TODO test objects with subdata </> 15MB
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -682,53 +682,53 @@ public class TestWorkspaces {
 		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, chksum1, 23);
 	}
 	
-	public static final String TEST_TYPE_CHECKING1 =
-			"module TestTypeChecking {" +
-				"/* @id ws */" +
-				"typedef string reference;" +
-				"/* @optional ref */" + 
-				"typedef structure {" +
-					"int foo;" +
-					"list<int> bar;" +
-					"string baz;" +
-					"reference ref;" +
-				"} CheckType;" +
-			"};";
-	
-	public static final String TEST_TYPE_CHECKING2 =
-			"module TestTypeChecking {" +
-				"/* @id ws */" +
-				"typedef string reference;" +
-				"/* @optional ref */" + 
-				"typedef structure {" +
-					"int foo;" +
-					"list<int> bar;" +
-					"int baz;" +
-					"reference ref;" +
-				"} CheckType;" +
-			"};";
-	
-	public static final String TEST_TYPE_CHECKING_REFTYPE =
-			"module TestTypeCheckingRefType {" +
-				"/* @id ws TestTypeChecking.CheckType */" +
-				"typedef string reference;" +
-				"/* @optional refmap */" +
-				"typedef structure {" +
-					"int foo;" +
-					"list<int> bar;" +
-					"string baz;" +
-					"reference ref;" +
-					"mapping<reference, string> refmap;" + 
-				"} CheckRefType;" +
-			"};";
-	
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
+		final String specTypeCheck1 =
+				"module TestTypeChecking {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"/* @optional ref */" + 
+					"typedef structure {" +
+						"int foo;" +
+						"list<int> bar;" +
+						"string baz;" +
+						"reference ref;" +
+					"} CheckType;" +
+				"};";
+		
+		final String specTypeCheck2 =
+				"module TestTypeChecking {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"/* @optional ref */" + 
+					"typedef structure {" +
+						"int foo;" +
+						"list<int> bar;" +
+						"int baz;" +
+						"reference ref;" +
+					"} CheckType;" +
+				"};";
+		
+		final String specTypeCheckRefs =
+				"module TestTypeCheckingRefType {" +
+					"/* @id ws TestTypeChecking.CheckType */" +
+					"typedef string reference;" +
+					"/* @optional refmap */" +
+					"typedef structure {" +
+						"int foo;" +
+						"list<int> bar;" +
+						"string baz;" +
+						"reference ref;" +
+						"mapping<reference, string> refmap;" + 
+					"} CheckRefType;" +
+				"};";
+		
 		String mod = "TestTypeChecking";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(userfoo, mod);
 		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING1, Arrays.asList("CheckType"), null, null, false, null);
+		ws.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
 		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0, 1);
 		TypeDefId abstype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
 		TypeDefId abstype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2, 0);
@@ -786,7 +786,7 @@ public class TestWorkspaces {
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
 		
-		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING2, null, null, null, false, null);
+		ws.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)));
@@ -994,7 +994,7 @@ public class TestWorkspaces {
 		String refmod = "TestTypeCheckingRefType";
 		ws.requestModuleRegistration(userfoo, refmod);
 		ws.resolveModuleRegistration(refmod, true);
-		ws.compileNewTypeSpec(userfoo, TEST_TYPE_CHECKING_REFTYPE, Arrays.asList("CheckRefType"), null, null, false, null);
+		ws.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
 		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 0, 1);
 
 		ws.createWorkspace(userfoo, "referencetypecheck", false, null);
@@ -1284,6 +1284,44 @@ public class TestWorkspaces {
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Object #1 provenance size exceeds limit of 1000000"));
+		}
+	}
+	
+	@Test
+	public void saveWithLargeSubdata() throws Exception {
+		final String specSubdata =
+				"module TestSubdata {" +
+					"/* @searchable ws_subset subset */" +
+					"typedef structure {" +
+						"list<string> subset;" +
+					"} SubSetType;" +
+				"};";
+		String mod = "TestSubdata";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetType"), null, null, false, null);
+		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetType"), 0, 1);
+		
+		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("bigsubdata");
+		ws.createWorkspace(userfoo, subdataws.getName(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<String> subdata = new LinkedList<String>();
+		data.put("subset", subdata);
+		for (int i = 0; i < 14955; i++) {
+			subdata.add(TEXT1000);
+		}
+		ws.saveObjects(userfoo, subdataws, Arrays.asList( //should work
+				new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)));
+		
+		subdata.add(TEXT1000);
+		try {
+			ws.saveObjects(userfoo, subdataws, Arrays.asList(
+					new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)));
+			fail("saved too big subdata");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Object #1 subdata size exceeds limit of 15000000"));
 		}
 	}
 
