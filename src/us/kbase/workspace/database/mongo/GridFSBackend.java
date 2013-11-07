@@ -1,8 +1,11 @@
 package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
@@ -32,7 +35,9 @@ public class GridFSBackend implements BlobStore {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
-		GridFSInputFile gif = gfs.createFile(data.getBytes());
+		//use input stream to avoid making copy of data in memory
+		GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
+				new StringReader(data), Charset.defaultCharset()), true);
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());
 		try {

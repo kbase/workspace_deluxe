@@ -970,7 +970,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			if (json.length() > MAX_OBJECT_SIZE) {
 				throw new IllegalArgumentException(String.format(
-						"Object %s size exceeds limit of %s",
+						"Object %s data size exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						MAX_OBJECT_SIZE));
 			}

@@ -1336,7 +1336,7 @@ public class TestWorkspaces {
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
-		for (int i = 0; i < 990000; i++) {
+		for (int i = 0; i < 997008; i++) {
 			subdata.add(TEXT1000);
 		}
 		ws.saveObjects(userfoo, biddataws, Arrays.asList( //should work
