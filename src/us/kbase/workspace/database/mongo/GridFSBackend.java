@@ -32,7 +32,6 @@ public class GridFSBackend implements BlobStore {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
-//		td.setGridFS();
 		GridFSInputFile gif = gfs.createFile(data.getBytes());
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());

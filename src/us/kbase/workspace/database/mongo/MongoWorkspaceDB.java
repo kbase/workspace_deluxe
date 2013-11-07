@@ -1055,7 +1055,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final int CODEPOINT_PNT = new String(".").codePointAt(0);
 	
 	private String mongoHTMLEscape(final String s) {
-		final StringBuffer ret = new StringBuffer();
+		final StringBuilder ret = new StringBuilder();
 		for (int offset = 0; offset < s.length(); ) {
 			final int codepoint = s.codePointAt(offset);
 			if (codepoint == CODEPOINT_PERC) {

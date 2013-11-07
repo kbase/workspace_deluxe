@@ -21,6 +21,7 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1324,6 +1325,35 @@ public class TestWorkspaces {
 					is("Object #1 subdata size exceeds limit of 15000000"));
 		}
 	}
+	
+	@Ignore
+	@Test
+	public void saveWithBigData() throws Exception {
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		
+		WorkspaceIdentifier biddataws = new WorkspaceIdentifier("bigdata");
+		ws.createWorkspace(userfoo, biddataws.getName(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<String> subdata = new LinkedList<String>();
+		data.put("subset", subdata);
+		for (int i = 0; i < 990000; i++) {
+			subdata.add(TEXT1000);
+		}
+		ws.saveObjects(userfoo, biddataws, Arrays.asList( //should work
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+		
+		subdata.add(TEXT1000);
+		try {
+			ws.saveObjects(userfoo, biddataws, Arrays.asList(
+					new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+			fail("saved too big data");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Object #1 data size exceeds limit of 1000000000"));
+		}
+	}
+	
+	//TODO test with some crazy unicode, make sure saves ok and hashes are the same when using 2 char and 4 char unicode chars
 
 	@Test
 	public void bigUserMetaErrors() throws Exception {
