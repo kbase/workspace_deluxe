@@ -1,11 +1,11 @@
 package us.kbase.shock.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +36,6 @@ import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
-
-//TODO finals... finals everywhere
 
 /**
  * A basic client for shock. Creating nodes, deleting nodes,
@@ -274,10 +272,11 @@ public class BasicShockClient {
 	}
 	
 	//TODO drop all byte[] based methods, make them InputStream based
-	//TODO method to calculate size of string/encoding combo - deal with chars outside BMP somehow
 	/**
 	 * Creates a node on the shock server containing a file.
 	 * @param file the file data.
+	 * @param filesize the length of the file. If the file length is not
+	 * accurate, an error will be thrown.
 	 * @param filename the name of the file.
 	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
@@ -285,15 +284,19 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockNode addNode(final byte[] file, final String filename)
+	public ShockNode addNode(final InputStream file, final long filesize,
+			final String filename)
 			throws IOException, ShockHttpException, TokenExpiredException {
 		if (file == null) {
 			throw new IllegalArgumentException("file may not be null");
 		}
+		if (filesize < 1) {
+			throw new IllegalArgumentException("filesize must be > 0");
+		}
 		if (filename == null) {
 			throw new IllegalArgumentException("filename may not be null");
 		}
-		return _addNode(null, file, filename);
+		return _addNode(null, file, filesize, filename);
 	}
 	
 	/**
@@ -301,6 +304,8 @@ public class BasicShockClient {
 	 * a file.
 	 * @param attributes the user-specified attributes.
 	 * @param file the file data.
+	 * @param filesize the length of the file. If the file length is not
+	 * accurate, an error will be thrown.
 	 * @param filename the name of the file.
 	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
@@ -311,7 +316,7 @@ public class BasicShockClient {
 	 * expired.
 	 */
 	public ShockNode addNode(final Map<String, Object> attributes,
-			final byte[] file, final String filename)
+			final InputStream file, final long filesize, final String filename)
 			throws IOException, ShockHttpException,
 			JsonProcessingException, TokenExpiredException {
 		if (attributes == null) {
@@ -320,10 +325,13 @@ public class BasicShockClient {
 		if (file == null) {
 			throw new IllegalArgumentException("file may not be null");
 		}
+		if (filesize < 1) {
+			throw new IllegalArgumentException("filesize must be > 0");
+		}
 		if (filename == null) {
 			throw new IllegalArgumentException("filename may not be null");
 		}
-		return _addNode(attributes, file, filename);
+		return _addNode(attributes, file, filesize, filename);
 	}
 	
 	private ShockNode _addNode(final Map<String, Object> attributes,
@@ -349,15 +357,32 @@ public class BasicShockClient {
 	}
 	
 	private ShockNode _addNode(final Map<String, Object> attributes,
-			final String file, final Charset encoding, final String filename)
+			final InputStream file, final Long filesize, final String filename)
 			throws IOException, ShockHttpException, JsonProcessingException,
 			TokenExpiredException {
 		//TODO test
-		if (file.length() <= CHUNK_SIZE) {
-			return _addNode(attributes, file.getBytes(encoding), filename);
+		if (file == null) {
+			return _addNode(attributes, null, null);
+		}
+		if (filesize <= CHUNK_SIZE) {
+			final byte[] b = new byte[(int) filesize.longValue()];
+			final int read = file.read(b);
+			if (read < 1) {
+				throw new IllegalArgumentException("No data provided");
+			}
+			if (read != filesize) {
+				throw new IllegalArgumentException("Incorrect file size: "
+						+ filesize);
+			}
+			final byte[] foo = new byte[1];
+			if (file.read(foo) > 0) {
+				throw new IllegalArgumentException("Incorrect file size: "
+						+ filesize);
+			}
+			return _addNode(attributes, b, filename);
 		}
 		final HttpPost htp = new HttpPost(nodeurl);
-		int chunks = new Double(Math.ceil((float) file.length()) /
+		int chunks = new Double(Math.ceil((float) filesize) /
 				CHUNK_SIZE).intValue();
 		if (attributes != null) {
 			final MultipartEntity mpe = new MultipartEntity();
@@ -372,31 +397,37 @@ public class BasicShockClient {
 				ShockNodeResponse.class);
 		sn.addClient(this);
 		
-		final URI targeturl;
-		try {
-			targeturl = nodeurl.resolve(sn.getId().getId());
-		} catch (ShockNodeDeletedException snde) {
-			throw new RuntimeException("can't have been deleted");
-		}
+		final URI targeturl = nodeurl.resolve(getIdIgnoreException(sn).getId());
 		for (int i = 0; i < chunks; i++) {
 			final HttpPost partpost = new HttpPost(targeturl);
-			final int start = i * CHUNK_SIZE;
-			final int next = start + CHUNK_SIZE;
-			final int end;
-			if (next >= file.length()) {
-				end = file.length();
-			} else {
-				end = next;
+			final byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
+			if (file.read(b) < 1) {
+				deleteNode(getIdIgnoreException(sn));
+				throw new IllegalArgumentException(
+						"reached EOF prior to filesize of " + filesize);
 			}
-			final byte[] chunk = file.substring(start, end).getBytes(encoding);
 			final MultipartEntity mpe = new MultipartEntity();
-			mpe.addPart("" + i, new ByteArrayBody(chunk, filename));
+			mpe.addPart("" + (i + 1), new ByteArrayBody(b, filename));
 			partpost.setEntity(mpe);
 			processRequest(partpost, ShockNodeResponse.class);
-			i = next;
+		}
+		final byte[] b = new byte[1];
+		if (file.read(b) > 0) {
+			deleteNode(getIdIgnoreException(sn));
+			throw new IllegalArgumentException(
+					"reached EOF prior to filesize of " + filesize);
 		}
 		return sn;
 	}
+	
+	private ShockNodeId getIdIgnoreException(final ShockNode node) {
+		try {
+			return node.getId();
+		} catch (ShockNodeDeletedException snde) {
+			throw new RuntimeException("Node is in an incorrect deleted state");
+		}
+	}
+		
 	
 	
 	/**

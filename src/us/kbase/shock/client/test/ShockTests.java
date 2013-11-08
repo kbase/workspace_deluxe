@@ -1,7 +1,9 @@
 package us.kbase.shock.client.test;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -17,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -154,7 +157,7 @@ public class ShockTests {
 		
 	}
 
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void addGetDeleteNodeBasic() throws Exception {
 		ShockNode sn = bsc1.addNode();
@@ -164,7 +167,7 @@ public class ShockTests {
 		getDeletedNode(sn.getId());
 	}
 	
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void getNodeBadId() throws Exception {
 		try {
@@ -186,7 +189,7 @@ public class ShockTests {
 		}
 	}
 	
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void deleteByNode() throws Exception {
 		ShockNode sn = bsc1.addNode();
@@ -249,9 +252,22 @@ public class ShockTests {
 	public void getNodeWithFile() throws Exception {
 		String content = "Been shopping? No, I've been shopping";
 		String name = "apistonengine.recipe";
-		ShockNode sn = bsc1.addNode(content.getBytes(), name);
+		ShockNode sn = addNode(bsc1, content, name);
 		testFile(content, name, sn);
 		bsc1.deleteNode(sn.getId());
+	}
+	
+	private ShockNode addNode(BasicShockClient bsc, String content, String name)
+			throws Exception {
+		return bsc.addNode(new ReaderInputStream(new StringReader(content)),
+				content.getBytes(StandardCharsets.UTF_8).length, name);
+	}
+	
+	private ShockNode addNode(BasicShockClient bsc, Map<String, Object> attribs,
+			String content, String name)
+			throws Exception {
+		return bsc.addNode(attribs, new ReaderInputStream(new StringReader(content)),
+				content.getBytes(StandardCharsets.UTF_8).length, name);
 	}
 	
 	@Test
@@ -261,7 +277,7 @@ public class ShockTests {
 	
 	private void testFile(String content, String name, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
-		String filecon = new String(bsc1.getFile(sn.getId()));
+		String filecon = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
 		String filefromnode = new String(snget.getFile());
 		Set<String> digestTypes = snget.getFileInformation().getChecksumTypes();
 		assertTrue(digestTypes.contains("md5"));
@@ -289,7 +305,7 @@ public class ShockTests {
 		String content = "Like the downy growth on the upper lip of a mediterranean girl";
 		String name = "bydemagogueryImeandemagoguery";
 		Map<String, Object> attribs = makeSomeAttribs("castellaandlillete");
-		ShockNode sn = bsc1.addNode(attribs, content.getBytes(), name);
+		ShockNode sn = addNode(bsc1, attribs, content, name);
 		testFile(content, name, sn);
 		testAttribs(attribs, sn);
 		sn.delete();
@@ -319,35 +335,35 @@ public class ShockTests {
 					is("attributes may not be null"));
 		}
 		try {
-			bsc1.addNode(null, "foo");
+			bsc1.addNode(null, 3, "foo");  //TODO test filesize < 1
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("file may not be null"));
 		}
 		try {
-			bsc1.addNode("foo".getBytes(), null);
+			addNode(bsc1, "foo", null);
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("filename may not be null"));
 		}
 		try {
-			bsc1.addNode(null, "foo".getBytes(), "foo");
+			addNode(bsc1, null, "foo", "foo");
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("attributes may not be null"));
 		}
 		try {
-			bsc1.addNode(attribs, null, "foo");
+			bsc1.addNode(attribs, null, 6, "foo");
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("file may not be null"));
 		}
 		try {
-			bsc1.addNode(attribs, "foo".getBytes(), null);
+			addNode(bsc1, attribs, "foo", null);
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
