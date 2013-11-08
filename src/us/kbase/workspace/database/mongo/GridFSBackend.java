@@ -36,7 +36,7 @@ public class GridFSBackend implements BlobStore {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
 		//use input stream to avoid making copy of data in memory
-		GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
+		final GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
 				new StringReader(data), StandardCharsets.UTF_8), true);
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());
@@ -53,9 +53,9 @@ public class GridFSBackend implements BlobStore {
 	@Override
 	public String getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
-		DBObject query = new BasicDBObject();
+		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
-		GridFSDBFile out;
+		final GridFSDBFile out;
 		try {
 			out = gfs.findOne(query);
 		} catch (MongoException me) {
@@ -68,7 +68,7 @@ public class GridFSBackend implements BlobStore {
 							md5.getMD5());
 		}
 		try {
-			return IOUtils.toString(out.getInputStream(), "UTF-8");
+			return IOUtils.toString(out.getInputStream(), StandardCharsets.UTF_8);
 		} catch (IOException ioe) {
 			//should never happen
 			throw new RuntimeException("GridFS is apparently buggy"); 
@@ -77,7 +77,7 @@ public class GridFSBackend implements BlobStore {
 
 	@Override
 	public void removeBlob(MD5 md5) throws BlobStoreCommunicationException {
-		DBObject query = new BasicDBObject();
+		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
 		try {
 			gfs.remove(query);

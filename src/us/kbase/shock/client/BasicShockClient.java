@@ -20,6 +20,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
@@ -33,6 +34,7 @@ import us.kbase.auth.AuthUser;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 //TODO finals... finals everywhere
@@ -57,6 +59,8 @@ public class BasicShockClient {
 	private static final String DOWNLOAD = "/?download";
 	private static final String ATTRIBFILE = "attribs";
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
+	
+	private static final int CHUNK_SIZE = 100000000; //~100 Mb
 	
 	/**
 	 * Create a new shock client authorized to act as a shock user.
@@ -222,6 +226,9 @@ public class BasicShockClient {
 	 */
 	public byte[] getFile(final ShockNodeId id) throws IOException,
 			ShockHttpException, TokenExpiredException {
+		if (id == null) {
+			throw new IllegalArgumentException("id may not be null");
+		}
 		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
 		authorize(htg);
@@ -229,7 +236,7 @@ public class BasicShockClient {
 		final int code = response.getStatusLine().getStatusCode();
 		if (code > 299) {
 			getShockData(response, ShockNodeResponse.class); //trigger errors
-		}
+		}//TODO return InputStream
 		return EntityUtils.toByteArray(response.getEntity());
 	}
 	
@@ -261,11 +268,13 @@ public class BasicShockClient {
 			IOException, ShockHttpException, JsonProcessingException,
 			TokenExpiredException {
 		if (attributes == null) {
-			throw new NullPointerException("attributes");
+			throw new IllegalArgumentException("attributes may not be null");
 		}
 		return _addNode(attributes, null, null);
 	}
 	
+	//TODO drop all byte[] based methods, make them InputStream based
+	//TODO method to calculate size of string/encoding combo - deal with chars outside BMP somehow
 	/**
 	 * Creates a node on the shock server containing a file.
 	 * @param file the file data.
@@ -279,31 +288,12 @@ public class BasicShockClient {
 	public ShockNode addNode(final byte[] file, final String filename)
 			throws IOException, ShockHttpException, TokenExpiredException {
 		if (file == null) {
-			throw new NullPointerException("file");
+			throw new IllegalArgumentException("file may not be null");
 		}
 		if (filename == null) {
-			throw new NullPointerException("filename");
+			throw new IllegalArgumentException("filename may not be null");
 		}
 		return _addNode(null, file, filename);
-	}
-	
-	/**
-	 * Creates a node on the shock server containing a file. If large, the
-	 * file is uploaded in chunks to avoid making a byte copy in memory.
-	 * @param file the file data.
-	 * @param filename the name of the file.
-	 * @param encoding the character encoding of the file data.
-	 * @return a shock node object.
-	 * @throws IOException if an IO problem occurs.
-	 * @throws ShockHttpException if the node could not be created.
-	 * @throws TokenExpiredException if the client authorization token has
-	 * expired.
-	 */
-	public ShockNode addNode(final String file, final Charset encoding,
-			final String filename)
-			throws IOException, ShockHttpException, TokenExpiredException {
-		//TODO
-		return null;
 	}
 	
 	/**
@@ -325,39 +315,15 @@ public class BasicShockClient {
 			throws IOException, ShockHttpException,
 			JsonProcessingException, TokenExpiredException {
 		if (attributes == null) {
-			throw new NullPointerException("attributes");
+			throw new IllegalArgumentException("attributes may not be null");
 		}
 		if (file == null) {
-			throw new NullPointerException("file");
+			throw new IllegalArgumentException("file may not be null");
 		}
 		if (filename == null) {
-			throw new NullPointerException("filename");
+			throw new IllegalArgumentException("filename may not be null");
 		}
 		return _addNode(attributes, file, filename);
-	}
-	
-	/**
-	 * Creates an node on the shock server with user-specified attributes and 
-	 * a file. If large, the file is uploaded in chunks to avoid making a byte
-	 * copy in memory.
-	 * @param attributes the user-specified attributes.
-	 * @param file the file data.
-	 * @param encoding the character encoding of the file data.
-	 * @param filename the name of the file.
-	 * @return a shock node object.
-	 * @throws IOException if an IO problem occurs.
-	 * @throws ShockHttpException if the node could not be created.
-	 * @throws JsonProcessingException if the <code>attributes</code> could
-	 * not be serialized to JSON.
-	 * @throws TokenExpiredException if the client authorization token has
-	 * expired.
-	 */
-	public ShockNode addNode(final Map<String, Object> attributes,
-			final String file, final Charset encoding, String filename)
-			throws IOException, ShockHttpException, JsonProcessingException,
-			TokenExpiredException {
-		//TODO
-		return null;
 	}
 	
 	private ShockNode _addNode(final Map<String, Object> attributes,
@@ -376,11 +342,62 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-		final ShockNode sn = (ShockNode)processRequest(htp,
+		final ShockNode sn = (ShockNode) processRequest(htp,
 				ShockNodeResponse.class);
 		sn.addClient(this);
 		return sn;
 	}
+	
+	private ShockNode _addNode(final Map<String, Object> attributes,
+			final String file, final Charset encoding, final String filename)
+			throws IOException, ShockHttpException, JsonProcessingException,
+			TokenExpiredException {
+		//TODO test
+		if (file.length() <= CHUNK_SIZE) {
+			return _addNode(attributes, file.getBytes(encoding), filename);
+		}
+		final HttpPost htp = new HttpPost(nodeurl);
+		int chunks = new Double(Math.ceil((float) file.length()) /
+				CHUNK_SIZE).intValue();
+		if (attributes != null) {
+			final MultipartEntity mpe = new MultipartEntity();
+			if (attributes != null) {
+				final byte[] attribs = mapper.writeValueAsBytes(attributes);
+				mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
+			}
+			mpe.addPart("parts", new StringBody("" + chunks));
+			htp.setEntity(mpe);
+		}
+		final ShockNode sn = (ShockNode) processRequest(htp,
+				ShockNodeResponse.class);
+		sn.addClient(this);
+		
+		final URI targeturl;
+		try {
+			targeturl = nodeurl.resolve(sn.getId().getId());
+		} catch (ShockNodeDeletedException snde) {
+			throw new RuntimeException("can't have been deleted");
+		}
+		for (int i = 0; i < chunks; i++) {
+			final HttpPost partpost = new HttpPost(targeturl);
+			final int start = i * CHUNK_SIZE;
+			final int next = start + CHUNK_SIZE;
+			final int end;
+			if (next >= file.length()) {
+				end = file.length();
+			} else {
+				end = next;
+			}
+			final byte[] chunk = file.substring(start, end).getBytes(encoding);
+			final MultipartEntity mpe = new MultipartEntity();
+			mpe.addPart("" + i, new ByteArrayBody(chunk, filename));
+			partpost.setEntity(mpe);
+			processRequest(partpost, ShockNodeResponse.class);
+			i = next;
+		}
+		return sn;
+	}
+	
 	
 	/**
 	 * Deletes a node on the shock server.
@@ -487,7 +504,7 @@ public class BasicShockClient {
 		try {
 			return uri.toURL();
 		} catch (MalformedURLException mue) {
-			throw new Error(mue); //something is seriously fuxxored
+			throw new RuntimeException(mue); //something is seriously fuxxored
 		}
 	}
 }

@@ -254,6 +254,11 @@ public class ShockTests {
 		bsc1.deleteNode(sn.getId());
 	}
 	
+	@Test
+	public void saveAndGetNodeWithBigFile() throws Exception {
+		//TODO
+	}
+	
 	private void testFile(String content, String name, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
 		String filecon = new String(bsc1.getFile(sn.getId()));
@@ -309,38 +314,44 @@ public class ShockTests {
 		try {
 			bsc1.addNode(null);
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("attributes"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("attributes may not be null"));
 		}
 		try {
 			bsc1.addNode(null, "foo");
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("file"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("file may not be null"));
 		}
 		try {
 			bsc1.addNode("foo".getBytes(), null);
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("filename"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("filename may not be null"));
 		}
 		try {
 			bsc1.addNode(null, "foo".getBytes(), "foo");
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("attributes"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("attributes may not be null"));
 		}
 		try {
 			bsc1.addNode(attribs, null, "foo");
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("file"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("file may not be null"));
 		}
 		try {
 			bsc1.addNode(attribs, "foo".getBytes(), null);
 			fail("called addNode with null value");
-		} catch (NullPointerException npe) {
-			assertThat("npe message incorrect", npe.getMessage(), is("filename"));
+		} catch (IllegalArgumentException npe) {
+			assertThat("npe message incorrect", npe.getMessage(),
+					is("filename may not be null"));
 		}
 	}
 	

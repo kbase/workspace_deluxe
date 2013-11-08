@@ -66,6 +66,7 @@ public class TypeData {
 			} else {
 				end = next;
 			}
+			//TODO does this handle characters outside the BMP correctly?
 			digest.update(data.substring(i, end).getBytes(
 					StandardCharsets.UTF_8));
 			i = next;
@@ -75,7 +76,7 @@ public class TypeData {
 		for (final byte b : d) {
 			sb.append(String.format("%02x", b));
 		}
-		return sb.toString();
+		return new String(sb);
 	}
 	
 	public String getTypeCollection() {

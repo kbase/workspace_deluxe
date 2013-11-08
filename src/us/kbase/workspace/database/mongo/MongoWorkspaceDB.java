@@ -959,6 +959,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkg.wo = o; //TODO don't do this if possible
 			final String json;
 			try {
+				//TODO check size without creating string, use inputstream and count bytes
+				//TODO leave as JSONNode and send stream to GridFS and Shock
+				//TODO catch OOM errors due to out of bounds allocation and ...?
 				final Object obj = MAPPER_SORTED.treeToValue(
 						o.getRep().getJsonInstance(), Object.class);
 				json = MAPPER_SORTED.writeValueAsString(obj);
@@ -993,6 +996,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final String prov;
 			try {
+				//TODO catch OOM errors due to out of bounds allocation and ...?
 				prov = MAPPER_DEFAULT.writeValueAsString(
 						o.getProvenance());
 			} catch (JsonProcessingException jpe) {
