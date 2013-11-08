@@ -37,7 +37,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "types",
     "included_spec_version",
-    "chsum"
+    "chsum",
+    "functions"
 })
 public class ModuleInfo {
 
@@ -55,6 +56,8 @@ public class ModuleInfo {
     private Map<String, Long> includedSpecVersion;
     @JsonProperty("chsum")
     private java.lang.String chsum;
+    @JsonProperty("functions")
+    private List<String> functions;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("owners")
@@ -162,6 +165,21 @@ public class ModuleInfo {
         return this;
     }
 
+    @JsonProperty("functions")
+    public List<String> getFunctions() {
+        return functions;
+    }
+
+    @JsonProperty("functions")
+    public void setFunctions(List<String> functions) {
+        this.functions = functions;
+    }
+
+    public ModuleInfo withFunctions(List<String> functions) {
+        this.functions = functions;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -174,7 +192,7 @@ public class ModuleInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", includedSpecVersion=")+ includedSpecVersion)+", chsum=")+ chsum)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", includedSpecVersion=")+ includedSpecVersion)+", chsum=")+ chsum)+", functions=")+ functions)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

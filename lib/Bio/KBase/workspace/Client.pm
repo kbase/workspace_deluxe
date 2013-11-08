@@ -2255,10 +2255,12 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	chsum has a value which is a string
+	functions has a value which is a reference to a list where each element is a Workspace.func_string
 username is a string
 typespec is a string
 type_string is a string
 jsonschema is a string
+func_string is a string
 
 </pre>
 
@@ -2281,10 +2283,12 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	chsum has a value which is a string
+	functions has a value which is a reference to a list where each element is a Workspace.func_string
 username is a string
 typespec is a string
 type_string is a string
 jsonschema is a string
+func_string is a string
 
 
 =end text
@@ -3447,7 +3451,8 @@ A provenance action.
         resolved_ws_objects should never be set by the user; it is set by the
         workspace service when returning data.
         
-        The maximum size of the entire provenance object is 1MB.
+        The maximum size of the entire provenance object, including all actions,
+        is 1MB.
         
         timestamp time - the time the action was started.
         string service - the name of the service that performed this action.
@@ -3879,6 +3884,54 @@ a string
 
 
 
+=head2 func_string
+
+=over 4
+
+
+
+=item Description
+
+A function string.
+Specifies the function and its version in a single string in the format
+[module].[funcname]-[major].[minor]:
+
+module - a string. The module name of the typespec containing the function.
+funcname - a string. The name of the function as assigned by the funcdef
+        statement.
+major - an integer. The major version of the function. A change in the
+        major version implies the function has changed in a non-backwards
+        compatible way.
+minor - an integer. The minor version of the function. A change in the
+        minor version implies that the function has changed in a way that is
+        backwards compatible with previous function definitions.
+
+In many cases, the major and minor versions are optional, and if not
+provided the most recent version will be used.
+
+Example: MyModule.MyFunc-3.1
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 spec_version
 
 =over 4
@@ -4213,6 +4266,7 @@ description has a value which is a string
 types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 chsum has a value which is a string
+functions has a value which is a reference to a list where each element is a Workspace.func_string
 
 </pre>
 
@@ -4228,6 +4282,7 @@ description has a value which is a string
 types has a value which is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
 included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 chsum has a value which is a string
+functions has a value which is a reference to a list where each element is a Workspace.func_string
 
 
 =end text

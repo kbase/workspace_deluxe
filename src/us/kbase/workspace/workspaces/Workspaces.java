@@ -701,7 +701,8 @@ public class Workspaces {
 				typedb.getModuleOwners(module.getModuleName()),
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
 				typedb.getJsonSchemasForAllTypes(module), 
-				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash());
+				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
+				new ArrayList<String>(moduleInfo.getFuncs().keySet()));
 	}
 	
 	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
