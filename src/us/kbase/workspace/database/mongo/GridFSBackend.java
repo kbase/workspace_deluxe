@@ -2,7 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.ReaderInputStream;
@@ -37,7 +37,7 @@ public class GridFSBackend implements BlobStore {
 		}
 		//use input stream to avoid making copy of data in memory
 		GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
-				new StringReader(data), Charset.defaultCharset()), true);
+				new StringReader(data), StandardCharsets.UTF_8), true);
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());
 		try {

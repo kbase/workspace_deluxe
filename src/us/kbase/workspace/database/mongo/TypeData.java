@@ -2,6 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.common.utils.StringUtils.checkString;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -65,7 +66,8 @@ public class TypeData {
 			} else {
 				end = next;
 			}
-			digest.update(data.substring(i, end).getBytes());
+			digest.update(data.substring(i, end).getBytes(
+					StandardCharsets.UTF_8));
 			i = next;
 		}
 		final byte[] d = digest.digest();
