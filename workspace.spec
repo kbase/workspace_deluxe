@@ -464,6 +464,27 @@ module Workspace {
 	
 	/* The name of a type in a KIDL typespec module. */
 	typedef string typename;
+
+	/* A function string.
+		Specifies the function and its version in a single string in the format
+		[module].[funcname]-[major].[minor]:
+		
+		module - a string. The module name of the typespec containing the function.
+		funcname - a string. The name of the function as assigned by the funcdef
+			statement.
+		major - an integer. The major version of the function. A change in the
+			major version implies the function has changed in a non-backwards
+			compatible way.
+		minor - an integer. The minor version of the function. A change in the
+			minor version implies that the function has changed in a way that is
+			backwards compatible with previous function definitions.
+		
+		In many cases, the major and minor versions are optional, and if not
+		provided the most recent version will be used.
+		
+		Example: MyModule.MyFunc-3.1
+	*/
+	typedef string func_string;
 	
 	/* The version of a typespec. */
 	typedef int spec_version;
@@ -620,6 +641,7 @@ module Workspace {
 		mapping<type_string, jsonschema> types;
 		mapping<modulename, spec_version> included_spec_version;
 		string chsum;
+		list<func_string> functions;
 	} ModuleInfo;
 	
 	funcdef get_module_info(GetModuleInfoParams params)

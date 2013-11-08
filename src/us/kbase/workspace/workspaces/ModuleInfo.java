@@ -1,6 +1,5 @@
 package us.kbase.workspace.workspaces;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,13 +12,15 @@ public class ModuleInfo {
 	private final Long version;
 	private final String description;
 	private final Map<AbsoluteTypeDefId, String> types;
-	private Map<String, Long> includedSpecVersions = new LinkedHashMap<String, Long>();
+	private Map<String, Long> includedSpecVersions;
 	private String md5hash;
+	private List<String> functions;
 	
 	ModuleInfo(final String typespec, final List<String> owners,
 			final Long version, final String description,
 			final Map<AbsoluteTypeDefId, String> types, 
-			Map<String, Long> includedSpecVersions, String md5hash) {
+			Map<String, Long> includedSpecVersions, String md5hash,
+			List<String> functions) {
 		//skip null checking, probably not needed
 		this.typespec = typespec;
 		this.owners = owners;
@@ -28,6 +29,7 @@ public class ModuleInfo {
 		this.types = types;
 		this.includedSpecVersions = includedSpecVersions;
 		this.md5hash = md5hash;
+		this.functions = functions;
 	}
 
 	public String getTypespec() {
@@ -58,11 +60,17 @@ public class ModuleInfo {
 		return md5hash;
 	}
 	
+	public List<String> getFunctions() {
+		return functions;
+	}
+
 	@Override
 	public String toString() {
 		return "ModuleInfo [typespec=" + typespec + ", owners=" + owners
 				+ ", version=" + version + ", description=" + description
-				+ ", types=" + types + "]";
+				+ ", types=" + types + ", includedSpecVersions="
+				+ includedSpecVersions + ", md5hash=" + md5hash
+				+ ", functions=" + functions + "]";
 	}
-
+	
 }

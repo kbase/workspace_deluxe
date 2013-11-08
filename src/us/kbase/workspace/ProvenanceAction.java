@@ -26,7 +26,8 @@ import us.kbase.common.service.UObject;
  *         resolved_ws_objects should never be set by the user; it is set by the
  *         workspace service when returning data.
  *         
- *         The maximum size of the entire provenance object is 1MB.
+ *         The maximum size of the entire provenance object, including all actions,
+ *         is 1MB.
  *         
  *         timestamp time - the time the action was started.
  *         string service - the name of the service that performed this action.

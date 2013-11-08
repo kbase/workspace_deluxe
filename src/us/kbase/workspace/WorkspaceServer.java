@@ -774,7 +774,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withVer(mi.getVersion())
 				.withTypes(types)
 				.withIncludedSpecVersion(mi.getIncludedSpecVersions())
-				.withChsum(mi.getMd5hash());
+				.withChsum(mi.getMd5hash())
+				.withFunctions(mi.getFunctions());
         //END get_module_info
         return returnVal;
     }
