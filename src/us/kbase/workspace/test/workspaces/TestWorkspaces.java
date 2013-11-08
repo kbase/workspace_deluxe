@@ -1351,6 +1351,8 @@ public class TestWorkspaces {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Object #1 data size exceeds limit of 1000000000"));
 		}
+		
+		//TODO get the file and make sure it's ok
 	}
 	
 	//TODO test with some crazy unicode, make sure saves ok and hashes are the same when using 2 char and 4 char unicode chars

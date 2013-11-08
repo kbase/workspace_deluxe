@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +35,11 @@ import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
+//TODO finals... finals everywhere
+
 /**
- * A basic client for shock. Creating nodes, deleting nodes, getting a subset of node data,
- * and altering read acls is currently supported.
+ * A basic client for shock. Creating nodes, deleting nodes,
+ * getting a subset of node data, and altering read acls is currently supported.
  * 
  * @author gaprice@lbl.gov
  *
@@ -64,8 +67,9 @@ public class BasicShockClient {
 	 * a shock server.
 	 * @throws TokenExpiredException if the <code>token</code> is expired.
 	 */
-	public BasicShockClient(URL url, AuthToken token) throws IOException, 
-			InvalidShockUrlException, TokenExpiredException {
+	public BasicShockClient(final URL url, final AuthToken token)
+			throws IOException, InvalidShockUrlException,
+			TokenExpiredException {
 		this(url);
 		updateToken(token);
 	}
@@ -78,7 +82,7 @@ public class BasicShockClient {
 	 * a shock server.
 	 */
 	@SuppressWarnings("unchecked")
-	public BasicShockClient(URL url) throws IOException, 
+	public BasicShockClient(final URL url) throws IOException, 
 			InvalidShockUrlException {
 
 		mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
@@ -95,7 +99,7 @@ public class BasicShockClient {
 		}
 		final HttpResponse response = client.execute(new HttpGet(turl));
 		final String resp = EntityUtils.toString(response.getEntity());
-		Map<String, Object> shockresp = null;
+		final Map<String, Object> shockresp;
 		try {
 			shockresp = mapper.readValue(resp, Map.class);
 		} catch (JsonParseException jpe) {
@@ -126,7 +130,8 @@ public class BasicShockClient {
 	 * @param token the new token
 	 * @throws TokenExpiredException if the <code>token</code> is expired.
 	 */
-	public void updateToken(AuthToken token) throws TokenExpiredException {
+	public void updateToken(final AuthToken token)
+			throws TokenExpiredException {
 		if (token == null) {
 			this.token = null;
 			return;
@@ -158,15 +163,15 @@ public class BasicShockClient {
 	}
 	
 	private <T extends ShockResponse> ShockData
-			processRequest(HttpRequestBase httpreq, Class<T> clazz) throws
-			IOException, ShockHttpException, TokenExpiredException {
+			processRequest(final HttpRequestBase httpreq, final Class<T> clazz)
+			throws IOException, ShockHttpException, TokenExpiredException {
 		authorize(httpreq);
 		final HttpResponse response = client.execute(httpreq);
 		return getShockData(response, clazz);
 	}
 	
 	private <T extends ShockResponse> ShockData
-			getShockData(HttpResponse response, Class<T> clazz) 
+			getShockData(final HttpResponse response, final Class<T> clazz) 
 			throws IOException, ShockHttpException {
 		final String resp = EntityUtils.toString(response.getEntity());
 		try {
@@ -176,7 +181,7 @@ public class BasicShockClient {
 		}
 	}
 	
-	private void authorize(HttpRequestBase httpreq) throws
+	private void authorize(final HttpRequestBase httpreq) throws
 			TokenExpiredException {
 		if (token != null) {
 			if (token.isExpired()) {
@@ -197,7 +202,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockNode getNode(ShockNodeId id) throws IOException,
+	public ShockNode getNode(final ShockNodeId id) throws IOException,
 			ShockHttpException, TokenExpiredException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
@@ -215,7 +220,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public byte[] getFile(ShockNodeId id) throws IOException,
+	public byte[] getFile(final ShockNodeId id) throws IOException,
 			ShockHttpException, TokenExpiredException {
 		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
 		final HttpGet htg = new HttpGet(targeturl);
@@ -243,6 +248,7 @@ public class BasicShockClient {
 	
 	/**
 	 * Creates an node on the shock server with user-specified attributes.
+	 * @param attributes the user-specified attributes.
 	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ShockHttpException if the node could not be created.
@@ -251,7 +257,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockNode addNode(Map<String, Object> attributes) throws
+	public ShockNode addNode(final Map<String, Object> attributes) throws
 			IOException, ShockHttpException, JsonProcessingException,
 			TokenExpiredException {
 		if (attributes == null) {
@@ -262,14 +268,16 @@ public class BasicShockClient {
 	
 	/**
 	 * Creates a node on the shock server containing a file.
+	 * @param file the file data.
+	 * @param filename the name of the file.
 	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ShockHttpException if the node could not be created.
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockNode addNode(byte[] file, String filename) throws IOException,
-			ShockHttpException, TokenExpiredException {
+	public ShockNode addNode(final byte[] file, final String filename)
+			throws IOException, ShockHttpException, TokenExpiredException {
 		if (file == null) {
 			throw new NullPointerException("file");
 		}
@@ -280,8 +288,30 @@ public class BasicShockClient {
 	}
 	
 	/**
+	 * Creates a node on the shock server containing a file. If large, the
+	 * file is uploaded in chunks to avoid making a byte copy in memory.
+	 * @param file the file data.
+	 * @param filename the name of the file.
+	 * @param encoding the character encoding of the file data.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws TokenExpiredException if the client authorization token has
+	 * expired.
+	 */
+	public ShockNode addNode(final String file, final Charset encoding,
+			final String filename)
+			throws IOException, ShockHttpException, TokenExpiredException {
+		//TODO
+		return null;
+	}
+	
+	/**
 	 * Creates an node on the shock server with user-specified attributes and 
 	 * a file.
+	 * @param attributes the user-specified attributes.
+	 * @param file the file data.
+	 * @param filename the name of the file.
 	 * @return a shock node object.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ShockHttpException if the node could not be created.
@@ -290,8 +320,9 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockNode addNode(Map<String, Object> attributes, byte[] file,
-			String filename) throws IOException, ShockHttpException,
+	public ShockNode addNode(final Map<String, Object> attributes,
+			final byte[] file, final String filename)
+			throws IOException, ShockHttpException,
 			JsonProcessingException, TokenExpiredException {
 		if (attributes == null) {
 			throw new NullPointerException("attributes");
@@ -305,9 +336,34 @@ public class BasicShockClient {
 		return _addNode(attributes, file, filename);
 	}
 	
-	private ShockNode _addNode(Map<String, Object> attributes, byte[] file,
-			String filename) throws IOException, ShockHttpException,
-			JsonProcessingException, TokenExpiredException {
+	/**
+	 * Creates an node on the shock server with user-specified attributes and 
+	 * a file. If large, the file is uploaded in chunks to avoid making a byte
+	 * copy in memory.
+	 * @param attributes the user-specified attributes.
+	 * @param file the file data.
+	 * @param encoding the character encoding of the file data.
+	 * @param filename the name of the file.
+	 * @return a shock node object.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the node could not be created.
+	 * @throws JsonProcessingException if the <code>attributes</code> could
+	 * not be serialized to JSON.
+	 * @throws TokenExpiredException if the client authorization token has
+	 * expired.
+	 */
+	public ShockNode addNode(final Map<String, Object> attributes,
+			final String file, final Charset encoding, String filename)
+			throws IOException, ShockHttpException, JsonProcessingException,
+			TokenExpiredException {
+		//TODO
+		return null;
+	}
+	
+	private ShockNode _addNode(final Map<String, Object> attributes,
+			final byte[] file, final String filename)
+			throws IOException, ShockHttpException, JsonProcessingException,
+			TokenExpiredException {
 		final HttpPost htp = new HttpPost(nodeurl);
 		if (attributes != null || file != null) {
 			final MultipartEntity mpe = new MultipartEntity();
@@ -320,7 +376,8 @@ public class BasicShockClient {
 			}
 			htp.setEntity(mpe);
 		}
-		ShockNode sn = (ShockNode)processRequest(htp, ShockNodeResponse.class);
+		final ShockNode sn = (ShockNode)processRequest(htp,
+				ShockNodeResponse.class);
 		sn.addClient(this);
 		return sn;
 	}
@@ -333,7 +390,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public void deleteNode(ShockNodeId id) throws IOException, 
+	public void deleteNode(final ShockNodeId id) throws IOException, 
 			ShockHttpException, TokenExpiredException {
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpDelete htd = new HttpDelete(targeturl);
@@ -351,8 +408,8 @@ public class BasicShockClient {
 	 * @throws UnvalidatedEmailException if the <code>user</code>'s email
 	 * address is unvalidated.
 	 */
-	public void setNodeReadable(ShockNodeId id, AuthUser user) throws 
-			IOException, ShockHttpException,TokenExpiredException,
+	public void setNodeReadable(final ShockNodeId id, final AuthUser user)
+			throws IOException, ShockHttpException,TokenExpiredException,
 			UnvalidatedEmailException {
 		if (!user.isEmailValidated()) {
 			throw new UnvalidatedEmailException(String.format(
@@ -374,8 +431,8 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public void setNodeWorldReadable(ShockNodeId id) throws IOException,
-	ShockHttpException, TokenExpiredException {
+	public void setNodeWorldReadable(final ShockNodeId id) throws IOException,
+			ShockHttpException, TokenExpiredException {
 		final List<ShockUserId> acls = getACLs(id, ACL_READ).getRead();
 		final List<String> userlist = new ArrayList<String>();
 		for (ShockUserId uid: acls) {
@@ -400,7 +457,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockACL getACLs(ShockNodeId id) throws IOException,
+	public ShockACL getACLs(final ShockNodeId id) throws IOException,
 			ShockHttpException, TokenExpiredException {
 		return getACLs(id, new ShockACLType());
 	}
@@ -418,7 +475,7 @@ public class BasicShockClient {
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
 	 */
-	public ShockACL getACLs(ShockNodeId id, ShockACLType acl) 
+	public ShockACL getACLs(final ShockNodeId id, final ShockACLType acl) 
 			throws IOException, ShockHttpException, TokenExpiredException {
 		final URI targeturl = nodeurl.resolve(id.getId() + acl.acl);
 		final HttpGet htg = new HttpGet(targeturl);
@@ -426,7 +483,7 @@ public class BasicShockClient {
 	}
 	
 	//for known good uris ONLY
-	private URL uriToUrl(URI uri) {
+	private URL uriToUrl(final URI uri) {
 		try {
 			return uri.toURL();
 		} catch (MalformedURLException mue) {
