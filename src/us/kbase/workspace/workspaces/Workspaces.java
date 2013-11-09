@@ -16,6 +16,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.FuncInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
@@ -697,12 +698,16 @@ public class Workspaces {
 			throws NoSuchModuleException, TypeStorageException {
 		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
 				typedb.getModuleInfo(module);
+		List<String> functions = new ArrayList<String>();
+		for (FuncInfo fi : moduleInfo.getFuncs().values())
+			functions.add(module.getModuleName() + "." + fi.getFuncName() + "-" + 
+					fi.getFuncVersion());
 		return new ModuleInfo(typedb.getModuleSpecDocument(module),
 				typedb.getModuleOwners(module.getModuleName()),
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
 				typedb.getJsonSchemasForAllTypes(module), 
 				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
-				new ArrayList<String>(moduleInfo.getFuncs().keySet()));
+				new ArrayList<String>(functions));
 	}
 	
 	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
