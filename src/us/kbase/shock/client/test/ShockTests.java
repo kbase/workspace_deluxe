@@ -1,7 +1,10 @@
 package us.kbase.shock.client.test;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
+import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -19,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.input.CharSequenceReader;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -270,9 +274,66 @@ public class ShockTests {
 				content.getBytes(StandardCharsets.UTF_8).length, name);
 	}
 	
+	private class CountingOutputStream extends OutputStream {
+		int total;
+
+		@Override
+		public void write(int i) {
+			throw new RuntimeException("don't use");
+//			total += 4;
+		}
+		@Override
+		public void write(byte[] b) {
+			total += b.length;
+		}
+
+		@Override public void write(byte[] b, int offset, int len) {
+			total += len - offset;
+		}
+	}
+	
+	private final static int ENCODE_CHUNK = 10000000;
+
+	private static void writeStringBuilder(final StringBuilder sb,
+			final Writer w) throws Exception {
+		for (int i = 0; i < sb.length(); ) {
+			int end = i + ENCODE_CHUNK;
+			if (end >= sb.length()) {
+				end = sb.length();
+			} else if (Character.isHighSurrogate(sb.charAt(end))) {
+				end++;
+			}
+			w.write(sb.substring(i, end));
+			i = end;
+		}
+	}
+
 	@Test
 	public void saveAndGetNodeWithBigFile() throws Exception {
+		StringBuilder sb = new StringBuilder(10000);
+		for (int i = 0; i < 1000; i++) {
+			sb.append("aaaaabbbbb");
+		}
+		System.out.println(Runtime.getRuntime().freeMemory());
+		System.out.println(Runtime.getRuntime().maxMemory());
+		String text10000 = new String(sb);
+		sb = new StringBuilder(1000000000);
+		for (int i = 0; i < 100000; i++) {
+			sb.append(text10000);
+		}
+		CountingOutputStream cos = new CountingOutputStream();
+		Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
+		writeStringBuilder(sb, writer);
+		writer.flush();
+		System.out.println(cos.total);
+		ShockNode sn = bsc1.addNode(new ReaderInputStream(
+				new CharSequenceReader(sb), StandardCharsets.UTF_8),
+				cos.total, "somefile");
+		System.out.println(sn);
+		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
+		
 		//TODO
+		bsc1.deleteNode(sn.getId());
 	}
 	
 	private void testFile(String content, String name, ShockNode sn) throws Exception {
