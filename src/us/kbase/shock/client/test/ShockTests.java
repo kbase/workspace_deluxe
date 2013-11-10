@@ -280,7 +280,6 @@ public class ShockTests {
 		@Override
 		public void write(int i) {
 			throw new RuntimeException("don't use");
-//			total += 4;
 		}
 		@Override
 		public void write(byte[] b) {
@@ -314,8 +313,8 @@ public class ShockTests {
 		for (int i = 0; i < 1000; i++) {
 			sb.append("aaaaabbbbb");
 		}
-		System.out.println(Runtime.getRuntime().freeMemory());
-		System.out.println(Runtime.getRuntime().maxMemory());
+//		System.out.println(Runtime.getRuntime().freeMemory());
+//		System.out.println(Runtime.getRuntime().maxMemory());
 		String text10000 = new String(sb);
 		sb = new StringBuilder(1000000000);
 		for (int i = 0; i < 100000; i++) {
@@ -325,11 +324,14 @@ public class ShockTests {
 		Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
 		writeStringBuilder(sb, writer);
 		writer.flush();
-		System.out.println(cos.total);
-		ShockNode sn = bsc1.addNode(new ReaderInputStream(
+//		System.out.println(cos.total);
+		Map<String, Object> attribs = new HashMap<String, Object>();
+		attribs.put("foo", "bar");
+		ShockNode sn = bsc1.addNode(attribs, new ReaderInputStream(
 				new CharSequenceReader(sb), StandardCharsets.UTF_8),
 				cos.total, "somefile");
-		System.out.println(sn);
+		sb = null;
+//		System.out.println(sn);
 		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
 		
 		//TODO

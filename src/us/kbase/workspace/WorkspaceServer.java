@@ -398,8 +398,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			count++;
 		}
-		params.setObjects(null); // garbage collect the objects
-		//setting params = null won't help since the method caller still has a ref
+		params.setObjects(null); // garbage collect the objects, although
+		// just passing a pointer around so no biggie
+		// setting params = null won't help since the method caller still has a ref
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc); 
 		returnVal = au.objInfoToTuple(meta);

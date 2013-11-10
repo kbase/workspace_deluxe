@@ -9,6 +9,8 @@ package us.kbase.shock.client.exceptions;
  *
  */
 public class ShockNodeDeletedException extends ShockException {
+	
+	//TODO make runtimeexception
 
 	private static final long serialVersionUID = 1L;
 	

@@ -1,7 +1,9 @@
 package us.kbase.shock.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -10,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -45,6 +48,9 @@ import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
  *
  */
 public class BasicShockClient {
+	
+	//TODO move to own repo
+	//TODO tests are leaving nodes, find and fix
 	
 	private final URI baseurl;
 	private final URI nodeurl;
@@ -381,25 +387,24 @@ public class BasicShockClient {
 			}
 			return _addNode(attributes, b, filename);
 		}
-		final HttpPost htp = new HttpPost(nodeurl);
 		int chunks = new Double(Math.ceil((float) filesize) /
 				CHUNK_SIZE).intValue();
-		if (attributes != null) {
+		final ShockNode sn;
+		{
+			final HttpPost htp = new HttpPost(nodeurl);
 			final MultipartEntity mpe = new MultipartEntity();
+			mpe.addPart("parts", new StringBody("" + chunks));
 			if (attributes != null) {
 				final byte[] attribs = mapper.writeValueAsBytes(attributes);
 				mpe.addPart("attributes", new ByteArrayBody(attribs, ATTRIBFILE));
 			}
-			mpe.addPart("parts", new StringBody("" + chunks));
 			htp.setEntity(mpe);
+			sn = (ShockNode) processRequest(htp, ShockNodeResponse.class);
 		}
-		final ShockNode sn = (ShockNode) processRequest(htp,
-				ShockNodeResponse.class);
 		sn.addClient(this);
-		
 		final URI targeturl = nodeurl.resolve(getIdIgnoreException(sn).getId());
 		for (int i = 0; i < chunks; i++) {
-			final HttpPost partpost = new HttpPost(targeturl);
+			final HttpPut htp = new HttpPut(targeturl);
 			final byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
 			if (file.read(b) < 1) {
 				deleteNode(getIdIgnoreException(sn));
@@ -408,8 +413,8 @@ public class BasicShockClient {
 			}
 			final MultipartEntity mpe = new MultipartEntity();
 			mpe.addPart("" + (i + 1), new ByteArrayBody(b, filename));
-			partpost.setEntity(mpe);
-			processRequest(partpost, ShockNodeResponse.class);
+			htp.setEntity(mpe);
+			processRequest(htp, ShockNodeResponse.class);
 		}
 		final byte[] b = new byte[1];
 		if (file.read(b) > 0) {
