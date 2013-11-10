@@ -8,7 +8,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -372,7 +374,7 @@ public class BasicShockClient {
 		}
 		if (filesize <= CHUNK_SIZE) {
 			final byte[] b = new byte[(int) filesize.longValue()];
-			final int read = file.read(b);
+			final int read = read(file, b);
 			if (read < 1) {
 				throw new IllegalArgumentException("No data provided");
 			}
@@ -387,8 +389,9 @@ public class BasicShockClient {
 			}
 			return _addNode(attributes, b, filename);
 		}
-		int chunks = new Double(Math.ceil((float) filesize) /
-				CHUNK_SIZE).intValue();
+		int chunks = new Double(Math.ceil((float) filesize /
+				CHUNK_SIZE)).intValue();
+		System.out.println(filesize + " " + CHUNK_SIZE + " " + chunks);
 		final ShockNode sn;
 		{
 			final HttpPost htp = new HttpPost(nodeurl);
@@ -405,24 +408,48 @@ public class BasicShockClient {
 		final URI targeturl = nodeurl.resolve(getIdIgnoreException(sn).getId());
 		for (int i = 0; i < chunks; i++) {
 			final HttpPut htp = new HttpPut(targeturl);
-			final byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
-			if (file.read(b) < 1) {
+			byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
+			int read = read(file, b);
+			if (read < 1) {
 				deleteNode(getIdIgnoreException(sn));
 				throw new IllegalArgumentException(
 						"reached EOF prior to filesize of " + filesize);
 			}
+			if (read < CHUNK_SIZE) {
+				b = Arrays.copyOf(b, read);
+			}
+			System.out.println(i + ": " + read + " / " + b.length);
 			final MultipartEntity mpe = new MultipartEntity();
 			mpe.addPart("" + (i + 1), new ByteArrayBody(b, filename));
 			htp.setEntity(mpe);
 			processRequest(htp, ShockNodeResponse.class);
 		}
-		final byte[] b = new byte[1];
-		if (file.read(b) > 0) {
+		final byte[] b = new byte[CHUNK_SIZE]; //TODO 1
+		int foo = file.read(b);
+		if (foo > 0) {
+			System.out.println(foo);
+//			System.out.println(Arrays.toString(b));
+			int i;
+			for (i = 0; i < b.length && b[i] != 0; i++) { }
+			System.out.println(new String(b, 0, i, StandardCharsets.UTF_8));
 			deleteNode(getIdIgnoreException(sn));
 			throw new IllegalArgumentException(
-					"reached EOF prior to filesize of " + filesize);
+					"filesize greater than provided filesize: " + filesize);
 		}
 		return sn;
+	}
+	
+	private int read(final InputStream file, final byte[] b)
+			throws IOException {
+		int pos = 0;
+		while (pos < b.length) {
+			final int read = file.read(b, pos, b.length - pos);
+			if (read == -1) {
+				break;
+			}
+			pos += read;
+		}
+		return pos;
 	}
 	
 	private ShockNodeId getIdIgnoreException(final ShockNode node) {

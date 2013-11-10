@@ -28,6 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.gc.iotools.stream.is.InputStreamFromOutputStream;
+
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -306,35 +308,79 @@ public class ShockTests {
 			i = end;
 		}
 	}
+	
+	final InputStreamFromOutputStream<String> isos =
+			new InputStreamFromOutputStream<String>() {
+		
+		@Override
+		public String produce(final OutputStream dataSink)
+				throws Exception {
+			StringBuilder sb = new StringBuilder(10010);
+			for (int i = 0; i < 1430; i++) {
+				sb.append("abcdefg");
+			}
+			final String text10010 = new String(sb);
+			System.out.println(text10010.length());
+			Writer writer = new OutputStreamWriter(dataSink,
+					StandardCharsets.UTF_8);
+			for (int i = 0; i < 100000; i++) {
+				writer.write(text10010);
+			}
+			writer.flush();
+			writer.close();
+			return null;
+		}
+	};
 
 	@Test
 	public void saveAndGetNodeWithBigFile() throws Exception {
-		StringBuilder sb = new StringBuilder(10000);
-		for (int i = 0; i < 1000; i++) {
-			sb.append("aaaaabbbbb");
-		}
+//		StringBuilder sb = new StringBuilder(10000);
+//		for (int i = 0; i < 1000; i++) {
+//			sb.append("aaaaabbbbb");
+//		}
 //		System.out.println(Runtime.getRuntime().freeMemory());
 //		System.out.println(Runtime.getRuntime().maxMemory());
-		String text10000 = new String(sb);
-		sb = new StringBuilder(1000000000);
-		for (int i = 0; i < 100000; i++) {
-			sb.append(text10000);
-		}
-		CountingOutputStream cos = new CountingOutputStream();
-		Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
-		writeStringBuilder(sb, writer);
-		writer.flush();
+//		final String text10000 = new String(sb);
+//		sb = new StringBuilder(1000000000);
+//		for (int i = 0; i < 100000; i++) {
+//			sb.append(text10000);
+//		}
+//		CountingOutputStream cos = new CountingOutputStream();
+//		Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
+//		writeStringBuilder(sb, writer);
+//		writer.flush();
 //		System.out.println(cos.total);
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		attribs.put("foo", "bar");
-		ShockNode sn = bsc1.addNode(attribs, new ReaderInputStream(
-				new CharSequenceReader(sb), StandardCharsets.UTF_8),
-				cos.total, "somefile");
-		sb = null;
+//		final InputStreamFromOutputStream<String> isos =
+//				new InputStreamFromOutputStream<String>() {
+//			
+//			@Override
+//			public String produce(final OutputStream dataSink)
+//					throws Exception {
+//				StringBuilder sb = new StringBuilder(10000);
+//				for (int i = 0; i < 1000; i++) {
+//					sb.append("aaaaabbbbb");
+//				}
+//				final String text10000 = new String(sb);
+//				Writer writer = new OutputStreamWriter(dataSink,
+//						StandardCharsets.UTF_8);
+//				for (int i = 0; i < 100000; i++) {
+//					writer.write(text10000);
+//				}
+//				dataSink.close();
+//				return null;
+//			}
+//		};
+
+		ShockNode sn = bsc1.addNode(attribs, isos, 1001000000, "somefile");
+		isos.close();
+//		sb = null;
 //		System.out.println(sn);
 		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
-		for (int i = 0; i < file.length(); i += 10) {
-			"aaaaabbbbb".equals(file.substring(i, i + 10));
+		System.out.println(file.length());
+		for (int i = 0; i < file.length(); i += 7) {
+			"abcdefg".equals(file.substring(i, i + 7));
 		}
 		
 		//TODO
