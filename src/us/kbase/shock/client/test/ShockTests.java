@@ -333,6 +333,9 @@ public class ShockTests {
 		sb = null;
 //		System.out.println(sn);
 		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
+		for (int i = 0; i < file.length(); i += 10) {
+			"aaaaabbbbb".equals(file.substring(i, i + 10));
+		}
 		
 		//TODO
 		bsc1.deleteNode(sn.getId());
