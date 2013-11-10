@@ -1,20 +1,16 @@
 package us.kbase.shock.client;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -242,7 +238,7 @@ public class BasicShockClient {
 		final int code = response.getStatusLine().getStatusCode();
 		if (code > 299) {
 			getShockData(response, ShockNodeResponse.class); //trigger errors
-		}//TODO return InputStream
+		}//TODO return OutputStream
 		return EntityUtils.toByteArray(response.getEntity());
 	}
 	
@@ -391,7 +387,6 @@ public class BasicShockClient {
 		}
 		int chunks = new Double(Math.ceil((float) filesize /
 				CHUNK_SIZE)).intValue();
-		System.out.println(filesize + " " + CHUNK_SIZE + " " + chunks);
 		final ShockNode sn;
 		{
 			final HttpPost htp = new HttpPost(nodeurl);
@@ -409,7 +404,7 @@ public class BasicShockClient {
 		for (int i = 0; i < chunks; i++) {
 			final HttpPut htp = new HttpPut(targeturl);
 			byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
-			int read = read(file, b);
+			final int read = read(file, b);
 			if (read < 1) {
 				deleteNode(getIdIgnoreException(sn));
 				throw new IllegalArgumentException(
@@ -418,20 +413,13 @@ public class BasicShockClient {
 			if (read < CHUNK_SIZE) {
 				b = Arrays.copyOf(b, read);
 			}
-			System.out.println(i + ": " + read + " / " + b.length);
 			final MultipartEntity mpe = new MultipartEntity();
 			mpe.addPart("" + (i + 1), new ByteArrayBody(b, filename));
 			htp.setEntity(mpe);
 			processRequest(htp, ShockNodeResponse.class);
 		}
-		final byte[] b = new byte[CHUNK_SIZE]; //TODO 1
-		int foo = file.read(b);
-		if (foo > 0) {
-			System.out.println(foo);
-//			System.out.println(Arrays.toString(b));
-			int i;
-			for (i = 0; i < b.length && b[i] != 0; i++) { }
-			System.out.println(new String(b, 0, i, StandardCharsets.UTF_8));
+		final byte[] foo = new byte[1];
+		if (file.read(foo) > 0) {
 			deleteNode(getIdIgnoreException(sn));
 			throw new IllegalArgumentException(
 					"filesize greater than provided filesize: " + filesize);
@@ -459,8 +447,6 @@ public class BasicShockClient {
 			throw new RuntimeException("Node is in an incorrect deleted state");
 		}
 	}
-		
-	
 	
 	/**
 	 * Deletes a node on the shock server.

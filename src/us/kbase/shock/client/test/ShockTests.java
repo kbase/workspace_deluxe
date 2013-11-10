@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.input.CharSequenceReader;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -276,114 +275,39 @@ public class ShockTests {
 				content.getBytes(StandardCharsets.UTF_8).length, name);
 	}
 	
-	private class CountingOutputStream extends OutputStream {
-		int total;
-
-		@Override
-		public void write(int i) {
-			throw new RuntimeException("don't use");
-		}
-		@Override
-		public void write(byte[] b) {
-			total += b.length;
-		}
-
-		@Override public void write(byte[] b, int offset, int len) {
-			total += len - offset;
-		}
-	}
-	
-	private final static int ENCODE_CHUNK = 10000000;
-
-	private static void writeStringBuilder(final StringBuilder sb,
-			final Writer w) throws Exception {
-		for (int i = 0; i < sb.length(); ) {
-			int end = i + ENCODE_CHUNK;
-			if (end >= sb.length()) {
-				end = sb.length();
-			} else if (Character.isHighSurrogate(sb.charAt(end))) {
-				end++;
-			}
-			w.write(sb.substring(i, end));
-			i = end;
-		}
-	}
-	
-	final InputStreamFromOutputStream<String> isos =
-			new InputStreamFromOutputStream<String>() {
-		
-		@Override
-		public String produce(final OutputStream dataSink)
-				throws Exception {
-			StringBuilder sb = new StringBuilder(10010);
-			for (int i = 0; i < 1430; i++) {
-				sb.append("abcdefg");
-			}
-			final String text10010 = new String(sb);
-			System.out.println(text10010.length());
-			Writer writer = new OutputStreamWriter(dataSink,
-					StandardCharsets.UTF_8);
-			for (int i = 0; i < 100000; i++) {
-				writer.write(text10010);
-			}
-			writer.flush();
-			writer.close();
-			return null;
-		}
-	};
-
 	@Test
 	public void saveAndGetNodeWithBigFile() throws Exception {
-//		StringBuilder sb = new StringBuilder(10000);
-//		for (int i = 0; i < 1000; i++) {
-//			sb.append("aaaaabbbbb");
-//		}
-//		System.out.println(Runtime.getRuntime().freeMemory());
-//		System.out.println(Runtime.getRuntime().maxMemory());
-//		final String text10000 = new String(sb);
-//		sb = new StringBuilder(1000000000);
-//		for (int i = 0; i < 100000; i++) {
-//			sb.append(text10000);
-//		}
-//		CountingOutputStream cos = new CountingOutputStream();
-//		Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
-//		writeStringBuilder(sb, writer);
-//		writer.flush();
-//		System.out.println(cos.total);
+		final InputStreamFromOutputStream<String> isos =
+				new InputStreamFromOutputStream<String>() {
+			
+			@Override
+			public String produce(final OutputStream dataSink)
+					throws Exception {
+				StringBuilder sb = new StringBuilder(10010);
+				for (int i = 0; i < 1430; i++) {
+					sb.append("abcdefg");
+				}
+				final String text10010 = new String(sb);
+				Writer writer = new OutputStreamWriter(dataSink,
+						StandardCharsets.UTF_8);
+				for (int i = 0; i < 100000; i++) {
+					writer.write(text10010);
+				}
+				writer.flush();
+				writer.close();
+				return null;
+			}
+		};
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		attribs.put("foo", "bar");
-//		final InputStreamFromOutputStream<String> isos =
-//				new InputStreamFromOutputStream<String>() {
-//			
-//			@Override
-//			public String produce(final OutputStream dataSink)
-//					throws Exception {
-//				StringBuilder sb = new StringBuilder(10000);
-//				for (int i = 0; i < 1000; i++) {
-//					sb.append("aaaaabbbbb");
-//				}
-//				final String text10000 = new String(sb);
-//				Writer writer = new OutputStreamWriter(dataSink,
-//						StandardCharsets.UTF_8);
-//				for (int i = 0; i < 100000; i++) {
-//					writer.write(text10000);
-//				}
-//				dataSink.close();
-//				return null;
-//			}
-//		};
 
 		ShockNode sn = bsc1.addNode(attribs, isos, 1001000000, "somefile");
 		isos.close();
-//		sb = null;
-//		System.out.println(sn);
 		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
-		System.out.println(file.length());
 		for (int i = 0; i < file.length(); i += 7) {
 			"abcdefg".equals(file.substring(i, i + 7));
 		}
-		
-		//TODO
+		//TODO get with streaming
 		bsc1.deleteNode(sn.getId());
 	}
 	
