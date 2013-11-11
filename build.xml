@@ -39,6 +39,8 @@
     <include name="apache_commons/http/httpclient-4.2.5.jar"/>
     <include name="apache_commons/http/httpcore-4.2.4.jar"/>
     <include name="apache_commons/http/httpmime-4.2.5.jar"/>
+    <include name="easystream/easystream-1.2.13.jar"/>
+    <include name="slf4j/slf4j-api-1.6.1.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="applicationlib">
@@ -187,7 +189,7 @@
     <condition property="test.mongo.pwd" else="" >
       <isset property="test.mongo.pwd" />
     </condition>
-    <junit failureproperty="test.failed">
+    <junit fork="yes" maxmemory="12G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>

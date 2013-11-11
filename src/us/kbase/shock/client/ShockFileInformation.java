@@ -21,7 +21,7 @@ public class ShockFileInformation {
 	@JsonProperty("checksum")
 	private Map<String, String> checksum;
 	private String name;
-	private int size;
+	private long size;
 	
 	//will be empty string if no file
 	/**
@@ -39,7 +39,7 @@ public class ShockFileInformation {
 	 * Get the file size.
 	 * @return the file size in bytes, or 0 if the shock node has no file.
 	 */
-	public int getSize() {
+	public long getSize() {
 		return size;
 	}
 	

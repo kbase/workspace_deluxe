@@ -9,10 +9,19 @@ public class MD5 {
 	private final String md5;
 	
 	public MD5(String md5) {
+		checkMD5(md5);
+		this.md5 = md5.toString();
+	}
+	
+	public MD5(StringBuilder md5) {
+		checkMD5(md5);
+		this.md5 = md5.toString();
+	}
+
+	private void checkMD5(CharSequence md5) {
 		if (!MD5pat.matcher(md5).matches()) {
 			throw new IllegalArgumentException(md5 + " is not a valid MD5 string");
 		}
-		this.md5 = md5;
 	}
 
 	public String getMD5() {

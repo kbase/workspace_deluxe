@@ -8,8 +8,8 @@ package us.kbase.shock.client.exceptions;
  * @author gaprice@lbl.gov
  *
  */
-public class ShockNodeDeletedException extends ShockException {
-
+public class ShockNodeDeletedException extends RuntimeException {
+	
 	private static final long serialVersionUID = 1L;
 	
 	public ShockNodeDeletedException() { super(); }

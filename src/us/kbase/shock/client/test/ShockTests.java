@@ -1,7 +1,14 @@
 package us.kbase.shock.client.test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringReader;
+import java.io.Writer;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -17,9 +24,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.gc.iotools.stream.is.InputStreamFromOutputStream;
+import com.gc.iotools.stream.os.OutputStreamToInputStream;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -154,7 +165,7 @@ public class ShockTests {
 		
 	}
 
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void addGetDeleteNodeBasic() throws Exception {
 		ShockNode sn = bsc1.addNode();
@@ -164,7 +175,7 @@ public class ShockTests {
 		getDeletedNode(sn.getId());
 	}
 	
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void getNodeBadId() throws Exception {
 		try {
@@ -186,7 +197,7 @@ public class ShockTests {
 		}
 	}
 	
-	@Ignore //TODO unignore when shock is updated
+	//@Ignore //TODO unignore when shock is updated
 	@Test
 	public void deleteByNode() throws Exception {
 		ShockNode sn = bsc1.addNode();
@@ -202,7 +213,7 @@ public class ShockTests {
 			fail("Method ran on deleted node");
 		} catch (ShockNodeDeletedException snde) {}
 		try {
-			sn.getFile();
+			sn.getFile(new ByteArrayOutputStream());
 			fail("Method ran on deleted node");
 		} catch (ShockNodeDeletedException snde) {}
 		try {
@@ -249,20 +260,106 @@ public class ShockTests {
 	public void getNodeWithFile() throws Exception {
 		String content = "Been shopping? No, I've been shopping";
 		String name = "apistonengine.recipe";
-		ShockNode sn = bsc1.addNode(content.getBytes(), name);
+		ShockNode sn = addNode(bsc1, content, name);
 		testFile(content, name, sn);
 		bsc1.deleteNode(sn.getId());
 	}
 	
+	private ShockNode addNode(BasicShockClient bsc, String content, String name)
+			throws Exception {
+		return bsc.addNode(new ReaderInputStream(new StringReader(content)),
+				content.getBytes(StandardCharsets.UTF_8).length, name);
+	}
+	
+	private ShockNode addNode(BasicShockClient bsc, Map<String, Object> attribs,
+			String content, String name)
+			throws Exception {
+		return bsc.addNode(attribs, new ReaderInputStream(new StringReader(content)),
+				content.getBytes(StandardCharsets.UTF_8).length, name);
+	}
+	
+	@Ignore //TODO uncomment when in separate repo
 	@Test
-	public void saveAndGetNodeWithBigFile() throws Exception {
-		//TODO
+	public void saveAndGetNodeWith4GBFile() throws Exception {
+		long smallfilesize = 1001000000;
+		final long filesize = smallfilesize * 4;
+		StringBuilder sb = new StringBuilder();
+		sb.append("abcd");
+		sb.appendCodePoint(8364);
+		final int teststrlenUTF8 = 7; //filesize mod this must = 0
+		final long writes = filesize / teststrlenUTF8;
+		final String testString = sb.toString();
+		
+		InputStreamFromOutputStream<String> isos =
+				new InputStreamFromOutputStream<String>() {
+			
+			@Override
+			public String produce(final OutputStream dataSink)
+					throws Exception {
+				Writer writer = new OutputStreamWriter(dataSink,
+						StandardCharsets.UTF_8);
+				for (int i = 0; i < writes; i++) {
+					writer.write(testString);
+				}
+				writer.flush();
+				writer.close();
+				return null;
+			}
+		};
+		Map<String, Object> attribs = new HashMap<String, Object>();
+		attribs.put("foo", "bar");
+
+		ShockNode sn = bsc1.addNode(attribs, isos, filesize, "somefile");
+		isos.close();
+		
+		OutputStreamToInputStream<String> osis =
+				new OutputStreamToInputStream<String>() {
+					
+			@Override
+			protected String doRead(InputStream is) throws Exception {
+				int read = 1;
+				byte[] data = new byte[teststrlenUTF8];
+				long size = 0;
+				byte[] shrt = null;
+				while (read > 0) {
+					if (shrt != null) {
+						is.read(data, shrt.length, teststrlenUTF8 - shrt.length);
+						for (int i = 0; i < shrt.length; i++) {
+							data[i] = shrt[i];
+						}
+						read = teststrlenUTF8;
+						shrt = null;
+					} else {
+						read = is.read(data);
+					}
+					if (read > 0) {
+						if (read < teststrlenUTF8) {
+							shrt = Arrays.copyOf(data, read);
+						} else {
+							assertThat("file incorrect at pos " + size, 
+									new String(data, StandardCharsets.UTF_8),
+									is(testString));
+							size += teststrlenUTF8;
+						}
+					}
+				}
+				assertThat("correct file size", size, is(filesize));
+				return null;
+			}
+		};
+		bsc1.getFile(sn, osis);
+		osis.close();
+		bsc1.deleteNode(sn.getId());
 	}
 	
 	private void testFile(String content, String name, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
-		String filecon = new String(bsc1.getFile(sn.getId()));
-		String filefromnode = new String(snget.getFile());
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		bsc1.getFile(sn, bos);
+		String filecon = bos.toString(StandardCharsets.UTF_8.name());
+		ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
+		snget.getFile(bos2);
+		String filefromnode = bos2.toString(StandardCharsets.UTF_8.name());
 		Set<String> digestTypes = snget.getFileInformation().getChecksumTypes();
 		assertTrue(digestTypes.contains("md5"));
 		assertTrue(digestTypes.contains("sha1"));
@@ -281,7 +378,7 @@ public class ShockTests {
 		assertThat("file from node != file from client", filefromnode, is(filecon));
 		assertThat("file content unequal", filecon, is(content));
 		assertThat("file name unequal", snget.getFileInformation().getName(), is(name));
-		assertThat("file size wrong", snget.getFileInformation().getSize(), is(content.length()));
+		assertThat("file size wrong", snget.getFileInformation().getSize(), is((long) content.length()));
 	}
 	
 	@Test
@@ -289,7 +386,7 @@ public class ShockTests {
 		String content = "Like the downy growth on the upper lip of a mediterranean girl";
 		String name = "bydemagogueryImeandemagoguery";
 		Map<String, Object> attribs = makeSomeAttribs("castellaandlillete");
-		ShockNode sn = bsc1.addNode(attribs, content.getBytes(), name);
+		ShockNode sn = addNode(bsc1, attribs, content, name);
 		testFile(content, name, sn);
 		testAttribs(attribs, sn);
 		sn.delete();
@@ -299,7 +396,7 @@ public class ShockTests {
 	public void invalidFileRequest() throws Exception {
 		ShockNode sn = bsc1.addNode();
 		try {
-			sn.getFile();
+			sn.getFile(new ByteArrayOutputStream());
 			fail("Got file from node w/o file");
 		} catch (ShockNoFileException snfe) {
 			assertThat("no file exc string incorrect", snfe.getLocalizedMessage(), 
@@ -319,35 +416,35 @@ public class ShockTests {
 					is("attributes may not be null"));
 		}
 		try {
-			bsc1.addNode(null, "foo");
+			bsc1.addNode(null, 3, "foo");  //TODO test filesize < 1
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("file may not be null"));
 		}
 		try {
-			bsc1.addNode("foo".getBytes(), null);
+			addNode(bsc1, "foo", null);
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("filename may not be null"));
 		}
 		try {
-			bsc1.addNode(null, "foo".getBytes(), "foo");
+			addNode(bsc1, null, "foo", "foo");
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("attributes may not be null"));
 		}
 		try {
-			bsc1.addNode(attribs, null, "foo");
+			bsc1.addNode(attribs, null, 6, "foo");
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
 					is("file may not be null"));
 		}
 		try {
-			bsc1.addNode(attribs, "foo".getBytes(), null);
+			addNode(bsc1, attribs, "foo", null);
 			fail("called addNode with null value");
 		} catch (IllegalArgumentException npe) {
 			assertThat("npe message incorrect", npe.getMessage(),
