@@ -50,7 +50,6 @@ import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 public class BasicShockClient {
 	
 	//TODO move to own repo
-	//TODO tests are leaving nodes, find and fix
 	
 	private final URI baseurl;
 	private final URI nodeurl;
@@ -60,7 +59,6 @@ public class BasicShockClient {
 	
 	private static final String AUTH = "Authorization";
 	private static final String OAUTH = "OAuth ";
-	private static final String DOWNLOAD = "/?download";
 	private static final String ATTRIBFILE = "attribs";
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
@@ -238,27 +236,19 @@ public class BasicShockClient {
 			throws IOException, ShockHttpException, TokenExpiredException,
 			ShockNodeDeletedException { //TODO delete exception
 		//TODO docs
+		//TODO test
 		getFile(getNode(id), file);
-//		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
-//		final HttpGet htg = new HttpGet(targeturl);
-//		authorize(htg);
-//		final HttpResponse response = client.execute(htg);
-//		final int code = response.getStatusLine().getStatusCode();
-//		if (code > 299) {
-//			getShockData(response, ShockNodeResponse.class); //trigger errors
-//		}//TODO return OutputStream, get file in chunks if necc.
-//		return EntityUtils.toByteArray(response.getEntity());
 	}
 	
 	public void getFile(final ShockNode sn, final OutputStream file)
 			throws TokenExpiredException, IOException, ShockHttpException,
 			ShockNodeDeletedException { //TODO lose exception
 		//TODO docs
+		//TODO test
 		if (sn == null || file == null) {
 			throw new IllegalArgumentException(
 					"Neither the shock node nor the file may be null");
 		}
-		System.out.println(sn);
 		if (sn.getFileInformation().getSize() == 0) {
 			throw new ShockNoFileException(400, "Node has no file");
 		}
@@ -268,7 +258,6 @@ public class BasicShockClient {
 				DOWNLOAD_CHUNK);
 		for (int i = 0; i < chunks; i++) {
 			final HttpGet htg = new HttpGet(targeturl.toString() + (i + 1));
-			System.out.println(htg);
 			authorize(htg);
 			final HttpResponse response = client.execute(htg);
 			final int code = response.getStatusLine().getStatusCode();
@@ -277,7 +266,6 @@ public class BasicShockClient {
 			}
 			file.write(EntityUtils.toByteArray(response.getEntity()));
 		}
-		//TODO id version should just call this version after retrieving node
 	}
 	
 	/**
@@ -313,7 +301,6 @@ public class BasicShockClient {
 		return _addNode(attributes, null, null);
 	}
 	
-	//TODO drop all byte[] based methods, make them InputStream based
 	/**
 	 * Creates a node on the shock server containing a file.
 	 * @param file the file data.

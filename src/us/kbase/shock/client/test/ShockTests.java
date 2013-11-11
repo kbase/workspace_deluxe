@@ -312,7 +312,6 @@ public class ShockTests {
 			//TODO nicer test
 			assertTrue("abcdefg".equals(file.substring(i, i + 7)));
 		}
-		//TODO get with streaming
 		bsc1.deleteNode(sn.getId());
 	}
 	
