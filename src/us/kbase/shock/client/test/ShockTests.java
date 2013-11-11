@@ -32,7 +32,6 @@ import org.junit.Test;
 import com.gc.iotools.stream.is.InputStreamFromOutputStream;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 
-import sun.corba.OutputStreamFactory;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -280,7 +279,16 @@ public class ShockTests {
 	}
 	
 	@Test
-	public void saveAndGetNodeWithBigFile() throws Exception {
+	public void saveAndGetNodeWith4GBFile() throws Exception {
+		long smallfilesize = 1001000000;
+		final long filesize = smallfilesize * 4;
+		StringBuilder sb = new StringBuilder();
+		sb.append("abcd");
+		sb.appendCodePoint(8364);
+		final int teststrlenUTF8 = 7; //filesize mod this must = 0
+		final long writes = filesize / teststrlenUTF8;
+		final String testString = sb.toString();
+		
 		InputStreamFromOutputStream<String> isos =
 				new InputStreamFromOutputStream<String>() {
 			
@@ -289,8 +297,8 @@ public class ShockTests {
 					throws Exception {
 				Writer writer = new OutputStreamWriter(dataSink,
 						StandardCharsets.UTF_8);
-				for (int i = 0; i < 143000000; i++) {
-					writer.write("abcdefg");
+				for (int i = 0; i < writes; i++) {
+					writer.write(testString);
 				}
 				writer.flush();
 				writer.close();
@@ -300,7 +308,7 @@ public class ShockTests {
 		Map<String, Object> attribs = new HashMap<String, Object>();
 		attribs.put("foo", "bar");
 
-		ShockNode sn = bsc1.addNode(attribs, isos, 1001000000, "somefile");
+		ShockNode sn = bsc1.addNode(attribs, isos, filesize, "somefile");
 		isos.close();
 		
 		OutputStreamToInputStream<String> osis =
@@ -309,32 +317,32 @@ public class ShockTests {
 			@Override
 			protected String doRead(InputStream is) throws Exception {
 				int read = 1;
-				byte[] data = new byte[7];
-				int size = 0;
+				byte[] data = new byte[teststrlenUTF8];
+				long size = 0;
 				byte[] shrt = null;
 				while (read > 0) {
 					if (shrt != null) {
-						is.read(data, shrt.length, 7 - shrt.length);
+						is.read(data, shrt.length, teststrlenUTF8 - shrt.length);
 						for (int i = 0; i < shrt.length; i++) {
 							data[i] = shrt[i];
 						}
-						read = 7;
+						read = teststrlenUTF8;
 						shrt = null;
 					} else {
 						read = is.read(data);
 					}
 					if (read > 0) {
-						if (read < 7) {
+						if (read < teststrlenUTF8) {
 							shrt = Arrays.copyOf(data, read);
 						} else {
 							assertThat("file incorrect at pos " + size, 
 									new String(data, StandardCharsets.UTF_8),
-									is("abcdefg"));
-							size += 7;
+									is(testString));
+							size += teststrlenUTF8;
 						}
 					}
 				}
-				assertThat("correct file size", size, is(1001000000));
+				assertThat("correct file size", size, is(filesize));
 				return null;
 			}
 		};
