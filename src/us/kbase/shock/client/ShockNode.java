@@ -1,6 +1,7 @@
 package us.kbase.shock.client;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 
 import us.kbase.auth.AuthUser;
@@ -170,9 +171,13 @@ public class ShockNode extends ShockData {
 	 * previously called.
 	 */
 	@JsonIgnore
-	public byte[] getFile() throws ShockHttpException, IOException,
-			TokenExpiredException, ShockNodeDeletedException {
-		return client.getFile(getId());
+	public void getFile(final OutputStream file)
+			throws ShockHttpException, IOException, TokenExpiredException,
+			ShockNodeDeletedException {
+		//TODO test
+		//TODO docs
+		checkDeleted();
+		client.getFile(this, file);
 	}
 	
 	/**

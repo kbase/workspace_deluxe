@@ -2,6 +2,7 @@ package us.kbase.shock.client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,6 +36,7 @@ import us.kbase.auth.AuthUser;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
+import us.kbase.shock.client.exceptions.ShockNoFileException;
 import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
@@ -63,6 +65,8 @@ public class BasicShockClient {
 	private static final ShockACLType ACL_READ = new ShockACLType("read");
 	
 	private static final int CHUNK_SIZE = 100000000; //~100 Mb
+	private static final String DOWNLOAD_CHUNK = 
+			"/?download&index=size&chunk_size=" + CHUNK_SIZE + "&part=";
 	
 	/**
 	 * Create a new shock client authorized to act as a shock user.
@@ -210,6 +214,9 @@ public class BasicShockClient {
 	 */
 	public ShockNode getNode(final ShockNodeId id) throws IOException,
 			ShockHttpException, TokenExpiredException {
+		if (id == null) {
+			throw new IllegalArgumentException("id may not be null");
+		}
 		final URI targeturl = nodeurl.resolve(id.getId());
 		final HttpGet htg = new HttpGet(targeturl);
 		final ShockNode sn = (ShockNode)processRequest(htg, ShockNodeResponse.class);
@@ -225,21 +232,52 @@ public class BasicShockClient {
 	 * @throws ShockHttpException if the file could not be fetched from shock.
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
+	 * @throws ShockNodeDeletedException 
 	 */
-	public byte[] getFile(final ShockNodeId id) throws IOException,
-			ShockHttpException, TokenExpiredException {
-		if (id == null) {
-			throw new IllegalArgumentException("id may not be null");
+	public void getFile(final ShockNodeId id, final OutputStream file)
+			throws IOException, ShockHttpException, TokenExpiredException,
+			ShockNodeDeletedException { //TODO delete exception
+		//TODO docs
+		getFile(getNode(id), file);
+//		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
+//		final HttpGet htg = new HttpGet(targeturl);
+//		authorize(htg);
+//		final HttpResponse response = client.execute(htg);
+//		final int code = response.getStatusLine().getStatusCode();
+//		if (code > 299) {
+//			getShockData(response, ShockNodeResponse.class); //trigger errors
+//		}//TODO return OutputStream, get file in chunks if necc.
+//		return EntityUtils.toByteArray(response.getEntity());
+	}
+	
+	public void getFile(final ShockNode sn, final OutputStream file)
+			throws TokenExpiredException, IOException, ShockHttpException,
+			ShockNodeDeletedException { //TODO lose exception
+		//TODO docs
+		if (sn == null || file == null) {
+			throw new IllegalArgumentException(
+					"Neither the shock node nor the file may be null");
 		}
-		final URI targeturl = nodeurl.resolve(id.getId() + DOWNLOAD);
-		final HttpGet htg = new HttpGet(targeturl);
-		authorize(htg);
-		final HttpResponse response = client.execute(htg);
-		final int code = response.getStatusLine().getStatusCode();
-		if (code > 299) {
-			getShockData(response, ShockNodeResponse.class); //trigger errors
-		}//TODO return OutputStream
-		return EntityUtils.toByteArray(response.getEntity());
+		System.out.println(sn);
+		if (sn.getFileInformation().getSize() == 0) {
+			throw new ShockNoFileException(400, "Node has no file");
+		}
+		int chunks = new Double(Math.ceil((float)
+				sn.getFileInformation().getSize() / CHUNK_SIZE)).intValue();
+		final URI targeturl = nodeurl.resolve(sn.getId().getId() +
+				DOWNLOAD_CHUNK);
+		for (int i = 0; i < chunks; i++) {
+			final HttpGet htg = new HttpGet(targeturl.toString() + (i + 1));
+			System.out.println(htg);
+			authorize(htg);
+			final HttpResponse response = client.execute(htg);
+			final int code = response.getStatusLine().getStatusCode();
+			if (code > 299) {
+				getShockData(response, ShockNodeResponse.class); //trigger errors
+			}
+			file.write(EntityUtils.toByteArray(response.getEntity()));
+		}
+		//TODO id version should just call this version after retrieving node
 	}
 	
 	/**
@@ -387,7 +425,7 @@ public class BasicShockClient {
 		}
 		int chunks = new Double(Math.ceil((float) filesize /
 				CHUNK_SIZE)).intValue();
-		final ShockNode sn;
+		ShockNode sn;
 		{
 			final HttpPost htp = new HttpPost(nodeurl);
 			final MultipartEntity mpe = new MultipartEntity();
@@ -399,7 +437,6 @@ public class BasicShockClient {
 			htp.setEntity(mpe);
 			sn = (ShockNode) processRequest(htp, ShockNodeResponse.class);
 		}
-		sn.addClient(this);
 		final URI targeturl = nodeurl.resolve(getIdIgnoreException(sn).getId());
 		for (int i = 0; i < chunks; i++) {
 			final HttpPut htp = new HttpPut(targeturl);
@@ -424,6 +461,8 @@ public class BasicShockClient {
 			throw new IllegalArgumentException(
 					"filesize greater than provided filesize: " + filesize);
 		}
+		sn = getNode(getIdIgnoreException(sn));
+		sn.addClient(this);
 		return sn;
 	}
 	

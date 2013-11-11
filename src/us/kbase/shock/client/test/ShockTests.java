@@ -1,5 +1,6 @@
 package us.kbase.shock.client.test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -210,7 +211,7 @@ public class ShockTests {
 			fail("Method ran on deleted node");
 		} catch (ShockNodeDeletedException snde) {}
 		try {
-			sn.getFile();
+			sn.getFile(new ByteArrayOutputStream());
 			fail("Method ran on deleted node");
 		} catch (ShockNodeDeletedException snde) {}
 		try {
@@ -303,9 +304,13 @@ public class ShockTests {
 
 		ShockNode sn = bsc1.addNode(attribs, isos, 1001000000, "somefile");
 		isos.close();
-		String file = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		bsc1.getFile(sn, bos);
+		//TODO stream the file checking
+		String file = bos.toString(StandardCharsets.UTF_8.name());
 		for (int i = 0; i < file.length(); i += 7) {
-			"abcdefg".equals(file.substring(i, i + 7));
+			//TODO nicer test
+			assertTrue("abcdefg".equals(file.substring(i, i + 7)));
 		}
 		//TODO get with streaming
 		bsc1.deleteNode(sn.getId());
@@ -313,8 +318,12 @@ public class ShockTests {
 	
 	private void testFile(String content, String name, ShockNode sn) throws Exception {
 		ShockNode snget = bsc1.getNode(sn.getId());
-		String filecon = new String(bsc1.getFile(sn.getId()), StandardCharsets.UTF_8);
-		String filefromnode = new String(snget.getFile());
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		bsc1.getFile(sn, bos);
+		String filecon = bos.toString(StandardCharsets.UTF_8.name());
+		ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
+		snget.getFile(bos2);
+		String filefromnode = bos2.toString(StandardCharsets.UTF_8.name());
 		Set<String> digestTypes = snget.getFileInformation().getChecksumTypes();
 		assertTrue(digestTypes.contains("md5"));
 		assertTrue(digestTypes.contains("sha1"));
@@ -333,7 +342,7 @@ public class ShockTests {
 		assertThat("file from node != file from client", filefromnode, is(filecon));
 		assertThat("file content unequal", filecon, is(content));
 		assertThat("file name unequal", snget.getFileInformation().getName(), is(name));
-		assertThat("file size wrong", snget.getFileInformation().getSize(), is(content.length()));
+		assertThat("file size wrong", snget.getFileInformation().getSize(), is((long) content.length()));
 	}
 	
 	@Test
@@ -351,7 +360,7 @@ public class ShockTests {
 	public void invalidFileRequest() throws Exception {
 		ShockNode sn = bsc1.addNode();
 		try {
-			sn.getFile();
+			sn.getFile(new ByteArrayOutputStream());
 			fail("Got file from node w/o file");
 		} catch (ShockNoFileException snfe) {
 			assertThat("no file exc string incorrect", snfe.getLocalizedMessage(), 
