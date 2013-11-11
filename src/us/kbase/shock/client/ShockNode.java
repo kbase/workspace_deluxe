@@ -54,7 +54,7 @@ public class ShockNode extends ShockData {
 		this.client = client;
 	}
 	
-	private void checkDeleted() throws ShockNodeDeletedException {
+	private void checkDeleted() {
 		if (deleted) {
 			throw new ShockNodeDeletedException();
 		}
@@ -64,10 +64,8 @@ public class ShockNode extends ShockData {
 	 * Get the shock node's attributes. Note mutating the attributes will
 	 * mutate the internal representation of the attributes in this object.
 	 * @return the shock node's attributes.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
-	public Map<String, Object> getAttributes() throws ShockNodeDeletedException {
+	public Map<String, Object> getAttributes() {
 		checkDeleted();
 		return attributes;
 	}
@@ -79,11 +77,9 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the shock server couldn't delete the node.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ExpiredTokenException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if this method has already been 
-	 * called on this object.
 	 */
 	public void delete() throws ShockHttpException, IOException,
-			TokenExpiredException, ShockNodeDeletedException {
+			TokenExpiredException {
 		client.deleteNode(getId());
 		client = null; //remove ref to client
 		deleted = true;
@@ -96,12 +92,10 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the shock server cannot retrieve the ACLs.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ExpiredTokenException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
 	@JsonIgnore
 	public ShockACL getACLs() throws ShockHttpException, IOException,
-			TokenExpiredException, ShockNodeDeletedException {
+			TokenExpiredException {
 		return client.getACLs(getId());
 	}
 	
@@ -114,12 +108,10 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the shock server cannot retrieve the ACL.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws TokenExpiredException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
 	@JsonIgnore
 	public ShockACL getACLs(ShockACLType acl) throws ShockHttpException,
-			IOException, TokenExpiredException, ShockNodeDeletedException {
+			IOException, TokenExpiredException {
 		return client.getACLs(getId(), acl);
 	}
 	
@@ -131,14 +123,12 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the read ACL could not be modified.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws TokenExpiredException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 * @throws UnvalidatedEmailException if the <code>user</code>'s email
 	 * address is unvalidated.
 	 */
 	@JsonIgnore
 	public void setReadable(AuthUser user) throws ShockHttpException,
-			IOException, TokenExpiredException, ShockNodeDeletedException,
+			IOException, TokenExpiredException,
 			UnvalidatedEmailException {
 		client.setNodeReadable(getId(), user);
 	}
@@ -151,12 +141,10 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the read ACL could not be modified.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws TokenExpiredException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
 	@JsonIgnore
 	public void setWorldReadable() throws ShockHttpException,
-			IOException, TokenExpiredException, ShockNodeDeletedException {
+			IOException, TokenExpiredException {
 		client.setNodeWorldReadable(getId());
 	}
 	
@@ -167,13 +155,10 @@ public class ShockNode extends ShockData {
 	 * @throws ShockHttpException if the file could not be retrieved from shock.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws TokenExpiredException if the client's token has expired.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
 	@JsonIgnore
 	public void getFile(final OutputStream file)
-			throws ShockHttpException, IOException, TokenExpiredException,
-			ShockNodeDeletedException {
+			throws ShockHttpException, IOException, TokenExpiredException {
 		//TODO test
 		//TODO docs
 		checkDeleted();
@@ -183,12 +168,9 @@ public class ShockNode extends ShockData {
 	/**
 	 * Get information about the file stored at this node.
 	 * @return file information.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
 	@JsonIgnore
-	public ShockFileInformation getFileInformation() throws 
-			ShockNodeDeletedException {
+	public ShockFileInformation getFileInformation() {
 		checkDeleted();
 		return file;
 	}
@@ -196,10 +178,8 @@ public class ShockNode extends ShockData {
 	/**
 	 * Get the id of this node.
 	 * @return this node's id.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
-	public ShockNodeId getId() throws ShockNodeDeletedException {
+	public ShockNodeId getId() {
 		checkDeleted();
 		return id;
 	}
@@ -207,10 +187,8 @@ public class ShockNode extends ShockData {
 	/**
 	 * Get the version of this node.
 	 * @return this node's current version.
-	 * @throws ShockNodeDeletedException if the {@link #delete()} method has been 
-	 * previously called.
 	 */
-	public ShockVersionStamp getVersion() throws ShockNodeDeletedException {
+	public ShockVersionStamp getVersion() {
 		checkDeleted();
 		return version;
 	}

@@ -127,12 +127,8 @@ public class ShockBackend implements BlobStore {
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
-		try {
-			dbo.put(Fields.SHOCK_NODE, sn.getId().getId());
-			dbo.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
-		} catch (ShockNodeDeletedException d) {
-			throw new RuntimeException("Shock is returning deleted nodes");
-		}
+		dbo.put(Fields.SHOCK_NODE, sn.getId().getId());
+		dbo.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		try {

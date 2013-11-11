@@ -37,7 +37,6 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.shock.client.exceptions.ShockNoFileException;
-import us.kbase.shock.client.exceptions.ShockNodeDeletedException;
 import us.kbase.shock.client.exceptions.UnvalidatedEmailException;
 
 /**
@@ -230,19 +229,16 @@ public class BasicShockClient {
 	 * @throws ShockHttpException if the file could not be fetched from shock.
 	 * @throws TokenExpiredException if the client authorization token has
 	 * expired.
-	 * @throws ShockNodeDeletedException 
 	 */
 	public void getFile(final ShockNodeId id, final OutputStream file)
-			throws IOException, ShockHttpException, TokenExpiredException,
-			ShockNodeDeletedException { //TODO delete exception
+			throws IOException, ShockHttpException, TokenExpiredException {
 		//TODO docs
 		//TODO test
 		getFile(getNode(id), file);
 	}
 	
 	public void getFile(final ShockNode sn, final OutputStream file)
-			throws TokenExpiredException, IOException, ShockHttpException,
-			ShockNodeDeletedException { //TODO lose exception
+			throws TokenExpiredException, IOException, ShockHttpException {
 		//TODO docs
 		//TODO test
 		if (sn == null || file == null) {
@@ -424,13 +420,13 @@ public class BasicShockClient {
 			htp.setEntity(mpe);
 			sn = (ShockNode) processRequest(htp, ShockNodeResponse.class);
 		}
-		final URI targeturl = nodeurl.resolve(getIdIgnoreException(sn).getId());
+		final URI targeturl = nodeurl.resolve(sn.getId().getId());
 		for (int i = 0; i < chunks; i++) {
 			final HttpPut htp = new HttpPut(targeturl);
 			byte[] b = new byte[CHUNK_SIZE]; //can this be moved outside the loop safely?
 			final int read = read(file, b);
 			if (read < 1) {
-				deleteNode(getIdIgnoreException(sn));
+				sn.delete();
 				throw new IllegalArgumentException(
 						"reached EOF prior to filesize of " + filesize);
 			}
@@ -444,11 +440,11 @@ public class BasicShockClient {
 		}
 		final byte[] foo = new byte[1];
 		if (file.read(foo) > 0) {
-			deleteNode(getIdIgnoreException(sn));
+			sn.delete();
 			throw new IllegalArgumentException(
 					"filesize greater than provided filesize: " + filesize);
 		}
-		sn = getNode(getIdIgnoreException(sn));
+		sn = getNode(sn.getId());
 		sn.addClient(this);
 		return sn;
 	}
@@ -464,14 +460,6 @@ public class BasicShockClient {
 			pos += read;
 		}
 		return pos;
-	}
-	
-	private ShockNodeId getIdIgnoreException(final ShockNode node) {
-		try {
-			return node.getId();
-		} catch (ShockNodeDeletedException snde) {
-			throw new RuntimeException("Node is in an incorrect deleted state");
-		}
 	}
 	
 	/**
