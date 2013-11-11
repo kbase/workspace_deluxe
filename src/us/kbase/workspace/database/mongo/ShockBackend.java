@@ -1,7 +1,14 @@
 package us.kbase.workspace.database.mongo;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.StringReader;
+import java.io.Writer;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.io.input.ReaderInputStream;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -107,9 +114,21 @@ public class ShockBackend implements BlobStore {
 			//go ahead, need to save
 		}
 		checkAuth();
+		final MD5DigestOutputStream md5stream = new MD5DigestOutputStream();
+		final Writer writer = new OutputStreamWriter(
+				md5stream, StandardCharsets.UTF_8);
+		try {
+			writer.write(data);
+			writer.flush();
+		} catch (IOException ioe) {
+			throw new RuntimeException("IOException caught when none possible",
+					ioe);
+		}
 		final ShockNode sn;
 		try {
-			sn = client.addNode(data.getBytes(), "workspace_" + md5.getMD5());
+			sn = client.addNode(new ReaderInputStream(
+					new StringReader(data), StandardCharsets.UTF_8),
+					md5stream.getSize(), "workspace_" + md5.getMD5());
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -163,9 +182,9 @@ public class ShockBackend implements BlobStore {
 		checkAuth();
 		final String node = getNode(md5);
 		
-		final String ret;
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
-			ret = new String(client.getFile(new ShockNodeId(node)));
+			client.getFile(new ShockNodeId(node), bos);
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -178,7 +197,9 @@ public class ShockBackend implements BlobStore {
 					"Failed to retrieve shock node: " +
 					she.getLocalizedMessage(), she);
 		}
-		return ret;
+		final byte[] data = bos.toByteArray();
+		bos = null;
+		return new String(data, StandardCharsets.UTF_8);
 	}
 
 	@Override

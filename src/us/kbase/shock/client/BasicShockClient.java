@@ -222,9 +222,9 @@ public class BasicShockClient {
 	}
 	
 	/**
-	 * Get a file from a shock node.
+	 * Equivalent to client.getFile(client.getNode(id), file)
 	 * @param id the ID of the shock node.
-	 * @return the contents of the file.
+	 * @param file the stream to which the file will be written.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws ShockHttpException if the file could not be fetched from shock.
 	 * @throws TokenExpiredException if the client authorization token has
@@ -232,14 +232,21 @@ public class BasicShockClient {
 	 */
 	public void getFile(final ShockNodeId id, final OutputStream file)
 			throws IOException, ShockHttpException, TokenExpiredException {
-		//TODO docs
 		//TODO test
 		getFile(getNode(id), file);
 	}
 	
+	/**
+	 * Get the file for this shock node.
+	 * @param sn the shock node from which to retrieve the file.
+	 * @param file the stream to which the file will be written.
+	 * @throws IOException if an IO problem occurs.
+	 * @throws ShockHttpException if the file could not be fetched from shock.
+	 * @throws TokenExpiredException if the client authorization token has
+	 * expired.
+	 */
 	public void getFile(final ShockNode sn, final OutputStream file)
 			throws TokenExpiredException, IOException, ShockHttpException {
-		//TODO docs
 		//TODO test
 		if (sn == null || file == null) {
 			throw new IllegalArgumentException(

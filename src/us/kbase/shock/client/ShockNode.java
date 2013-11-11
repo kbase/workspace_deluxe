@@ -149,9 +149,10 @@ public class ShockNode extends ShockData {
 	}
 	
 	/**
-	 * Proxy for {@link BasicShockClient#getFile(ShockNodeId) getFile()}.
+	 * Proxy for {@link BasicShockClient#getFile(ShockNode, OutputStream)
+	 * getFile()}.
 	 * Gets the file stored at this shock node.
-	 * @return the shock node's file.
+	 * @param file the stream to which the file will be written.
 	 * @throws ShockHttpException if the file could not be retrieved from shock.
 	 * @throws IOException if an IO problem occurs.
 	 * @throws TokenExpiredException if the client's token has expired.
@@ -160,7 +161,6 @@ public class ShockNode extends ShockData {
 	public void getFile(final OutputStream file)
 			throws ShockHttpException, IOException, TokenExpiredException {
 		//TODO test
-		//TODO docs
 		checkDeleted();
 		client.getFile(this, file);
 	}

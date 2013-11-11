@@ -1326,7 +1326,7 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Ignore
+//	@Ignore //TODO unignore when test doesn't take massive amounts of memory
 	@Test
 	public void saveWithBigData() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
