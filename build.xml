@@ -35,6 +35,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
+    <include name="kbase/shock/shock-client-1384204658-137e4fb.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.2.5.jar"/>
     <include name="apache_commons/http/httpcore-4.2.4.jar"/>
@@ -211,7 +212,6 @@
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
       <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"/>
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
-      <test name="us.kbase.shock.client.test.ShockTests"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
       <test name="us.kbase.workspace.test.workspaces.TestWorkspaces"/>
