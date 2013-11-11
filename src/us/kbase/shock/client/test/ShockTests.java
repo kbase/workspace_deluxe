@@ -2,6 +2,7 @@ package us.kbase.shock.client.test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
@@ -29,7 +30,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.gc.iotools.stream.is.InputStreamFromOutputStream;
+import com.gc.iotools.stream.os.OutputStreamToInputStream;
 
+import sun.corba.OutputStreamFactory;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -278,21 +281,16 @@ public class ShockTests {
 	
 	@Test
 	public void saveAndGetNodeWithBigFile() throws Exception {
-		final InputStreamFromOutputStream<String> isos =
+		InputStreamFromOutputStream<String> isos =
 				new InputStreamFromOutputStream<String>() {
 			
 			@Override
 			public String produce(final OutputStream dataSink)
 					throws Exception {
-				StringBuilder sb = new StringBuilder(10010);
-				for (int i = 0; i < 1430; i++) {
-					sb.append("abcdefg");
-				}
-				final String text10010 = new String(sb);
 				Writer writer = new OutputStreamWriter(dataSink,
 						StandardCharsets.UTF_8);
-				for (int i = 0; i < 100000; i++) {
-					writer.write(text10010);
+				for (int i = 0; i < 143000000; i++) {
+					writer.write("abcdefg");
 				}
 				writer.flush();
 				writer.close();
@@ -304,14 +302,44 @@ public class ShockTests {
 
 		ShockNode sn = bsc1.addNode(attribs, isos, 1001000000, "somefile");
 		isos.close();
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		bsc1.getFile(sn, bos);
-		//TODO stream the file checking
-		String file = bos.toString(StandardCharsets.UTF_8.name());
-		for (int i = 0; i < file.length(); i += 7) {
-			//TODO nicer test
-			assertTrue("abcdefg".equals(file.substring(i, i + 7)));
-		}
+		
+		OutputStreamToInputStream<String> osis =
+				new OutputStreamToInputStream<String>() {
+					
+			@Override
+			protected String doRead(InputStream is) throws Exception {
+				int read = 1;
+				byte[] data = new byte[7];
+				int size = 0;
+				byte[] shrt = null;
+				while (read > 0) {
+					if (shrt != null) {
+						is.read(data, shrt.length, 7 - shrt.length);
+						for (int i = 0; i < shrt.length; i++) {
+							data[i] = shrt[i];
+						}
+						read = 7;
+						shrt = null;
+					} else {
+						read = is.read(data);
+					}
+					if (read > 0) {
+						if (read < 7) {
+							shrt = Arrays.copyOf(data, read);
+						} else {
+							assertThat("file incorrect at pos " + size, 
+									new String(data, StandardCharsets.UTF_8),
+									is("abcdefg"));
+							size += 7;
+						}
+					}
+				}
+				assertThat("correct file size", size, is(1001000000));
+				return null;
+			}
+		};
+		bsc1.getFile(sn, osis);
+		osis.close();
 		bsc1.deleteNode(sn.getId());
 	}
 	
