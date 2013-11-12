@@ -2595,6 +2595,210 @@ sub translate_to_MD5_types
 
 
 
+=head2 get_type_info
+
+  $return = $obj->get_type_info($type)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$type is a Workspace.type_string
+$return is a Workspace.TypeInfo
+type_string is a string
+TypeInfo is a reference to a hash where the following keys are defined:
+	type_def has a value which is a Workspace.type_string
+	description has a value which is a string
+	spec_def has a value which is a string
+	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+	using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
+	using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+spec_version is an int
+func_string is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$type is a Workspace.type_string
+$return is a Workspace.TypeInfo
+type_string is a string
+TypeInfo is a reference to a hash where the following keys are defined:
+	type_def has a value which is a Workspace.type_string
+	description has a value which is a string
+	spec_def has a value which is a string
+	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+	using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
+	using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+spec_version is an int
+func_string is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+sub get_type_info
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_type_info (received $n, expecting 1)");
+    }
+    {
+	my($type) = @args;
+
+	my @_bad_arguments;
+        (!ref($type)) or push(@_bad_arguments, "Invalid type for argument 1 \"type\" (value was \"$type\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_type_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_type_info');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_type_info",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_type_info',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_type_info",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_type_info',
+				       );
+    }
+}
+
+
+
+=head2 get_func_info
+
+  $return = $obj->get_func_info($type)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$type is a Workspace.func_string
+$return is a Workspace.FuncInfo
+func_string is a string
+FuncInfo is a reference to a hash where the following keys are defined:
+	func_def has a value which is a Workspace.func_string
+	description has a value which is a string
+	spec_def has a value which is a string
+	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+spec_version is an int
+type_string is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$type is a Workspace.func_string
+$return is a Workspace.FuncInfo
+func_string is a string
+FuncInfo is a reference to a hash where the following keys are defined:
+	func_def has a value which is a Workspace.func_string
+	description has a value which is a string
+	spec_def has a value which is a string
+	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+spec_version is an int
+type_string is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+sub get_func_info
+{
+    my($self, @args) = @_;
+
+# Authentication: none
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_func_info (received $n, expecting 1)");
+    }
+    {
+	my($type) = @args;
+
+	my @_bad_arguments;
+        (!ref($type)) or push(@_bad_arguments, "Invalid type for argument 1 \"type\" (value was \"$type\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_func_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_func_info');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_func_info",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_func_info',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_func_info",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_func_info',
+				       );
+    }
+}
+
+
+
 =head2 administer
 
   $response = $obj->administer($command)
@@ -4283,6 +4487,122 @@ types has a value which is a reference to a hash where the key is a Workspace.ty
 included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 chsum has a value which is a string
 functions has a value which is a reference to a list where each element is a Workspace.func_string
+
+
+=end text
+
+=back
+
+
+
+=head2 TypeInfo
+
+=over 4
+
+
+
+=item Description
+
+Information about type
+
+        type_string type_def - resolved type definition id.
+        string description - the description of the type from spec-file.
+        string spec_def - reconstruction of type definition from spec-file.
+        list<spec_version> module_vers - versions of spec-files containing
+                given type version.
+        list<type_string> type_vers - all versions of type with given type name.
+        list<func_string> using_func_defs - list of functions (with versions)
+                refering to this type version.
+        list<type_string> using_type_defs - list of types (with versions)
+                refereing to this type version.
+        list<type_string> used_type_defs - list of types (with versions) 
+                refered from this type version.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+type_def has a value which is a Workspace.type_string
+description has a value which is a string
+spec_def has a value which is a string
+module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
+using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+type_def has a value which is a Workspace.type_string
+description has a value which is a string
+spec_def has a value which is a string
+module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
+using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+
+
+=end text
+
+=back
+
+
+
+=head2 FuncInfo
+
+=over 4
+
+
+
+=item Description
+
+Information about function
+
+        func_string func_def - resolved func definition id.
+        string description - the description of the function from spec-file.
+        string spec_def - reconstruction of function definition from spec-file.
+        list<spec_version> module_vers - versions of spec-files containing
+                given func version.
+        list<func_string> func_vers - all versions of function with given type name.
+        list<type_string> used_type_defs - list of types (with versions) 
+                refered from this function version.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+func_def has a value which is a Workspace.func_string
+description has a value which is a string
+spec_def has a value which is a string
+module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+func_def has a value which is a Workspace.func_string
+description has a value which is a string
+spec_def has a value which is a string
+module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 
 
 =end text

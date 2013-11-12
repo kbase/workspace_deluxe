@@ -1,7 +1,6 @@
 package us.kbase.typedobj.db;
 
 import java.util.List;
-import java.util.Map;
 
 public class FuncDetailedInfo {
 	private String funcDefId;

@@ -37,8 +37,10 @@ import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
+import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -829,6 +831,52 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN translate_to_MD5_types
         returnVal = ws.translateToMd5Types(arg1);
         //END translate_to_MD5_types
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_type_info</p>
+     * <pre>
+     * </pre>
+     * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     * @return   instance of type {@link us.kbase.workspace.TypeInfo TypeInfo}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_type_info")
+    public TypeInfo getTypeInfo(String type) throws Exception {
+        TypeInfo returnVal = null;
+        //BEGIN get_type_info
+        TypeDetailedInfo tdi = ws.getTypeInfo(type);
+        returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
+        		.withDescription(tdi.getDescription())
+        		.withSpecDef(tdi.getSpecDef())
+        		.withModuleVers(tdi.getModuleVersions())
+        		.withTypeVers(tdi.getTypeVersions())
+        		.withUsingFuncDefs(tdi.getUsingFuncDefIds())
+        		.withUsingTypeDefs(tdi.getUsingTypeDefIds())
+        		.withUsedTypeDefs(tdi.getUsedTypeDefIds());
+        //END get_type_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_func_info</p>
+     * <pre>
+     * </pre>
+     * @param   func   instance of original type "func_string" (A function string. Specifies the function and its version in a single string in the format [module].[funcname]-[major].[minor]: module - a string. The module name of the typespec containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
+     * @return   instance of type {@link us.kbase.workspace.FuncInfo FuncInfo}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_func_info")
+    public FuncInfo getFuncInfo(String func) throws Exception {
+        FuncInfo returnVal = null;
+        //BEGIN get_func_info
+        FuncDetailedInfo fdi = ws.getFuncInfo(func);
+        returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
+        		.withDescription(fdi.getDescription())
+        		.withSpecDef(fdi.getSpecDef())
+        		.withModuleVers(fdi.getModuleVersions())
+        		.withFuncVers(fdi.getFuncVersions())
+        		.withUsedTypeDefs(fdi.getUsedTypeDefIds());
+        //END get_func_info
         return returnVal;
     }
 

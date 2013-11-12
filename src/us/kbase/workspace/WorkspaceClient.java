@@ -524,6 +524,40 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_type_info</p>
+     * <pre>
+     * </pre>
+     * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
+     * @return   instance of type {@link us.kbase.workspace.TypeInfo TypeInfo}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public TypeInfo getTypeInfo(String type) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(type);
+        TypeReference<List<TypeInfo>> retType = new TypeReference<List<TypeInfo>>() {};
+        List<TypeInfo> res = caller.jsonrpcCall("Workspace.get_type_info", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_func_info</p>
+     * <pre>
+     * </pre>
+     * @param   func   instance of original type "func_string" (A function string. Specifies the function and its version in a single string in the format [module].[funcname]-[major].[minor]: module - a string. The module name of the typespec containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
+     * @return   instance of type {@link us.kbase.workspace.FuncInfo FuncInfo}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public FuncInfo getFuncInfo(String func) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(func);
+        TypeReference<List<FuncInfo>> retType = new TypeReference<List<FuncInfo>>() {};
+        List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: administer</p>
      * <pre>
      * The administration interface.
