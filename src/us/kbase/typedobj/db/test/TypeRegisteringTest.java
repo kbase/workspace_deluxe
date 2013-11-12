@@ -36,6 +36,7 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
@@ -44,6 +45,7 @@ import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.SemanticVersion;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
@@ -67,14 +69,14 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-//					"testSimple",
+					"testSimple",
 //					"testDescr",
 //					"testBackward",
 //					"testRollback",
 //					"testRestrict",
 //					"testMD5",
 //					"testRegistration",
-					"testError",
+//					"testError",
 //					"testStop"
 			};
 			for (String method : methods) {
@@ -200,6 +202,10 @@ public class TypeRegisteringTest {
 		String json2 = typeToJsonSchema2.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
 		Assert.assertNotNull(json2);
 		Assert.assertFalse(json1.equals(json2));
+		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
+		Assert.assertTrue(tdi.getSpecDef().contains("{"));
+		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null);
+		Assert.assertTrue(fdi.getSpecDef().contains("("));
 	}
 			
 	@Test

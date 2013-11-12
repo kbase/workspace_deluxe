@@ -50,7 +50,9 @@ public interface TypeStorage {
 	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType, String version) throws TypeStorageException;
 
 	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException;
-	
+
+	public Map<String, Boolean> getAllFuncVersions(String moduleName, String funcName) throws TypeStorageException;
+
 	public String getFuncParseRecord(String moduleName, String typeName, String version) throws TypeStorageException;
 
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc, String version) throws TypeStorageException;
@@ -60,7 +62,9 @@ public interface TypeStorage {
 	public Map<String, OwnerInfo> getModulesForOwner(String userId) throws TypeStorageException;
 
 	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName, String typeVersion) throws TypeStorageException;
-	
+
+	public Map<Long, Boolean> getModuleVersionsForFuncVersion(String moduleName, String funcName, String funcVersion) throws TypeStorageException;
+
 	public boolean getModuleSupportedState(String moduleName) throws TypeStorageException;
 
 	///////////////////////////////////// CHANGES //////////////////////////////////////////
