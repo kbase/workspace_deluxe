@@ -2701,7 +2701,7 @@ sub get_type_info
 
 =head2 get_func_info
 
-  $return = $obj->get_func_info($type)
+  $return = $obj->get_func_info($func)
 
 =over 4
 
@@ -2710,7 +2710,7 @@ sub get_type_info
 =begin html
 
 <pre>
-$type is a Workspace.func_string
+$func is a Workspace.func_string
 $return is a Workspace.FuncInfo
 func_string is a string
 FuncInfo is a reference to a hash where the following keys are defined:
@@ -2729,7 +2729,7 @@ type_string is a string
 
 =begin text
 
-$type is a Workspace.func_string
+$func is a Workspace.func_string
 $return is a Workspace.FuncInfo
 func_string is a string
 FuncInfo is a reference to a hash where the following keys are defined:
@@ -2765,10 +2765,10 @@ sub get_func_info
 							       "Invalid argument count for function get_func_info (received $n, expecting 1)");
     }
     {
-	my($type) = @args;
+	my($func) = @args;
 
 	my @_bad_arguments;
-        (!ref($type)) or push(@_bad_arguments, "Invalid type for argument 1 \"type\" (value was \"$type\")");
+        (!ref($func)) or push(@_bad_arguments, "Invalid type for argument 1 \"func\" (value was \"$func\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to get_func_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,

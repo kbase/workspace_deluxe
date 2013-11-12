@@ -2421,15 +2421,15 @@ public class TypeDefinitionDB {
 			for (String semantic : semanticToReleased.keySet())
 				if (semanticToReleased.get(semantic))
 					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
-			Set<RefInfo> funcRefs = storage.getFuncRefsByRef(moduleName, typeName, typeDef.getTypeString());
+			Set<RefInfo> funcRefs = storage.getFuncRefsByRef(moduleName, typeName, typeDef.getVerString());
 			List<String> usingFuncDefIds = new ArrayList<String>();
 			for (RefInfo ref : funcRefs)
 				usingFuncDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usingRefs = storage.getTypeRefsByRef(moduleName, typeName, typeDef.getTypeString());
+			Set<RefInfo> usingRefs = storage.getTypeRefsByRef(moduleName, typeName, typeDef.getVerString());
 			List<String> usingTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usingRefs)
 				usingTypeDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usedRefs = storage.getTypeRefsByDep(moduleName, typeName, typeDef.getTypeString());
+			Set<RefInfo> usedRefs = storage.getTypeRefsByDep(moduleName, typeName, typeDef.getVerString());
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());

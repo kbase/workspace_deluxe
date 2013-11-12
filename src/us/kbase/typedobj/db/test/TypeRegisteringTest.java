@@ -69,7 +69,7 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-					"testSimple",
+//					"testSimple",
 //					"testDescr",
 //					"testBackward",
 //					"testRollback",
@@ -77,7 +77,8 @@ public class TypeRegisteringTest {
 //					"testMD5",
 //					"testRegistration",
 //					"testError",
-//					"testStop"
+//					"testStop",
+					"testDeps"
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -202,6 +203,8 @@ public class TypeRegisteringTest {
 		String json2 = typeToJsonSchema2.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
 		Assert.assertNotNull(json2);
 		Assert.assertFalse(json1.equals(json2));
+		Set<RefInfo> depFuncs = db.getFuncRefsByRef(new TypeDefId("Regulation.new_regulator"));
+		Assert.assertEquals(1, depFuncs.size());
 		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
 		Assert.assertTrue(tdi.getSpecDef().contains("{"));
 		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null);
@@ -660,6 +663,18 @@ public class TypeRegisteringTest {
 		Assert.assertEquals("Test message", db.getModuleInfo("Dependant").getUploadComment());
 	}
 
+	@Test
+	public void testDeps() throws Exception {
+		initModule("SomeModule", adminUser);
+		db.registerModule(loadSpec("deps", "SomeModule"), Arrays.asList("AType"), adminUser);
+		releaseModule("SomeModule", adminUser);
+		initModule("DepModule", adminUser);
+		db.registerModule(loadSpec("deps", "DepModule"), Arrays.asList("BType"), adminUser);
+		releaseModule("DepModule", adminUser);
+		Set<RefInfo> funcs = db.getFuncRefsByRef(new TypeDefId("DepModule.BType", "1.0"));
+		System.out.println(funcs);
+	}
+	
 	private Map<String, Long> restrict(Object... params) {
 		Map<String, Long> restrictions = new HashMap<String, Long>();
 		for (int i = 0; i < params.length / 2; i++) {
