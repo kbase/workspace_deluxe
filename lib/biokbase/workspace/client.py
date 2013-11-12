@@ -1027,10 +1027,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_func_info(self, type):
+    def get_func_info(self, func):
 
         arg_hash = {'method': 'Workspace.get_func_info',
-                    'params': [type],
+                    'params': [func],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }
