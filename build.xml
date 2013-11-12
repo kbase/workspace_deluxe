@@ -35,7 +35,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-1384204658-137e4fb.jar"/>
+    <include name="kbase/shock/shock-client-0.0.1.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.2.5.jar"/>
     <include name="apache_commons/http/httpcore-4.2.4.jar"/>
