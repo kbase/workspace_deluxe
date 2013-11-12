@@ -147,7 +147,7 @@ undeploy:
 	-rm -rfv $(TARGET)/lib/$(CLIENT_JAR)
 
 clean:
+	$(ANT) clean
 	-rm -rf docs
-	-rm -rf dist
 	-rm -rf bin
 	@#TODO remove lib once files are generated on the fly
