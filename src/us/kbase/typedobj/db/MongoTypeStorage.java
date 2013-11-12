@@ -325,6 +325,8 @@ public class MongoTypeStorage implements TypeStorage {
 
 	@Override
 	public Map<String, Boolean> getAllTypeVersions(String moduleName, String typeName) throws TypeStorageException {
+		if (typeName.contains("'"))
+			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
 			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
 			Map<Long, String> typeMap = getProjection(schemas, "{moduleName:#,'types." + typeName + ".typeName':#}", 
@@ -338,6 +340,30 @@ public class MongoTypeStorage implements TypeStorage {
 				boolean prevTypeRet = ret.containsKey(typeVer) ? ret.get(typeVer) : false;
 				boolean newTypeRet = moduleMap.get(moduleVer);
 				ret.put(typeVer, prevTypeRet || newTypeRet);
+			}
+			return ret;
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	@Override
+	public Map<String, Boolean> getAllFuncVersions(String moduleName, String funcName) throws TypeStorageException {
+		if (funcName.contains("'"))
+			throw new TypeStorageException("Function names with symbol ['] are not supperted");
+		try {
+			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> funcMap = getProjection(schemas, "{moduleName:#,'funcs." + funcName + ".funcName':#}", 
+					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class, 
+					moduleName, funcName);
+			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
+			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
+			for (Map.Entry<Long, String> entry : funcMap.entrySet()) {
+				long moduleVer = entry.getKey();
+				String funcVer = entry.getValue();
+				boolean prevFuncRet = ret.containsKey(funcVer) ? ret.get(funcVer) : false;
+				boolean newFuncRet = moduleMap.get(moduleVer);
+				ret.put(funcVer, prevFuncRet || newFuncRet);
 			}
 			return ret;
 		} catch (Exception e) {
@@ -576,13 +602,28 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName, 
 			String typeVersion) throws TypeStorageException {
+		if (typeName.contains("'"))
+			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			if (typeName.contains("'"))
-				throw new TypeStorageException("Type names with symbol ['] are not supperted");
 			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
 			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#}", 
 					"versionTime", Long.class, "released", Boolean.class, 
 					moduleName, typeVersion);
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}
+	}
+	
+	@Override
+	public Map<Long, Boolean> getModuleVersionsForFuncVersion(String moduleName, 
+			String funcName, String funcVersion) throws TypeStorageException {
+		if (funcName.contains("'"))
+			throw new TypeStorageException("Function names with symbol ['] are not supperted");
+		try {
+			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+			return getProjection(infoCol, "{moduleName:#,'funcs." + funcName + ".funcVersion':#}", 
+					"versionTime", Long.class, "released", Boolean.class, 
+					moduleName, funcVersion);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}

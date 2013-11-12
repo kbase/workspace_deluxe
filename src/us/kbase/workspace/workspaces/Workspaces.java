@@ -16,13 +16,16 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.FuncInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
@@ -788,5 +791,17 @@ public class Workspaces {
 		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
 				userId, false, moduleVersionRestrictions);
 		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
+	}
+	
+	public TypeDetailedInfo getTypeInfo(String typeDef) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
+		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef));
+	}
+	
+	public FuncDetailedInfo getFuncInfo(String funcDef) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
+		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
+		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
+				tempDef.getType().getName(), tempDef.getVerString());
 	}
 }

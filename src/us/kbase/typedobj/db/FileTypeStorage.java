@@ -333,6 +333,22 @@ public class FileTypeStorage implements TypeStorage {
 		return ret;
 	}
 	
+	@Override
+	public Map<String, Boolean> getAllFuncVersions(String moduleName, String funcName) throws TypeStorageException {
+		Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
+		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
+			long moduleVersion = entry.getKey();
+			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
+			if (info.getFuncs().containsKey(funcName)) {
+				String funcVer = info.getFuncs().get(funcName).getFuncVersion();
+				boolean prevFuncRet = ret.containsKey(funcVer) ? ret.get(funcVer) : false;
+				boolean newFuncRet = entry.getValue();
+				ret.put(funcVer, prevFuncRet || newFuncRet);
+			}
+		}
+		return ret;
+	}
+	
 	private File getTypeParseFile(String moduleName, String typeName, String version, long moduleVersion) {
 		return new File(getTypeFilePrefix(moduleName, typeName) + "." + version + "-" + moduleVersion + ".prs");
 	}
@@ -734,6 +750,19 @@ public class FileTypeStorage implements TypeStorage {
 			long moduleVersion = entry.getKey();
 			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
 			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getTypeVersion().equals(typeVersion))
+				ret.put(moduleVersion, entry.getValue());
+		}
+		return ret;
+	}
+	
+	@Override
+	public Map<Long, Boolean> getModuleVersionsForFuncVersion(String moduleName, 
+			String funcName, String funcVersion) throws TypeStorageException {
+		Map<Long, Boolean> ret = new LinkedHashMap<Long, Boolean>();
+		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
+			long moduleVersion = entry.getKey();
+			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
+			if (info.getFuncs().containsKey(funcName) && info.getFuncs().get(funcName).getFuncVersion().equals(funcVersion))
 				ret.put(moduleVersion, entry.getValue());
 		}
 		return ret;

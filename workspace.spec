@@ -657,6 +657,56 @@ module Workspace {
 	/* Translation from types qualified with semantic versions to their MD5'ed versions */
 	funcdef translate_to_MD5_types(list<type_string>) 
 		returns(mapping<type_string, type_string>);
+
+	/* Information about type
+	
+		type_string type_def - resolved type definition id.
+		string description - the description of the type from spec-file.
+		string spec_def - reconstruction of type definition from spec-file.
+		list<spec_version> module_vers - versions of spec-files containing
+			given type version.
+		list<type_string> type_vers - all versions of type with given type name.
+		list<func_string> using_func_defs - list of functions (with versions)
+			refering to this type version.
+		list<type_string> using_type_defs - list of types (with versions)
+			refereing to this type version.
+		list<type_string> used_type_defs - list of types (with versions) 
+			refered from this type version.
+	*/
+	typedef structure {
+		type_string type_def;
+		string description;
+		string spec_def;
+		list<spec_version> module_vers;
+		list<type_string> type_vers;
+		list<func_string> using_func_defs;
+		list<type_string> using_type_defs;
+		list<type_string> used_type_defs;
+	} TypeInfo;
+	
+	funcdef get_type_info(type_string type) returns (TypeInfo);
+	
+	/* Information about function
+	
+		func_string func_def - resolved func definition id.
+		string description - the description of the function from spec-file.
+		string spec_def - reconstruction of function definition from spec-file.
+		list<spec_version> module_vers - versions of spec-files containing
+			given func version.
+		list<func_string> func_vers - all versions of function with given type name.
+		list<type_string> used_type_defs - list of types (with versions) 
+			refered from this function version.
+	*/
+	typedef structure {
+		func_string func_def;
+		string description;
+		string spec_def;
+		list<spec_version> module_vers;
+		list<func_string> func_vers;
+		list<type_string> used_type_defs;
+	} FuncInfo;
+	
+	funcdef get_func_info(func_string func) returns (FuncInfo);
 		
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)

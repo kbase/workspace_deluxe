@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.cfg.ValidationConfiguration;
@@ -2322,6 +2321,32 @@ public class TypeDefinitionDB {
 		}
 	}
 
+	private List<ModuleDefId> findModuleVersionsByFuncVersionNL(String moduleName, 
+			String funcName, String version) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
+		boolean withUnreleased = version != null;
+		if (version == null) {
+			SemanticVersion sv = findLastFuncVersion(moduleName, funcName);
+			if (sv == null)
+				throwNoSuchFuncException(moduleName, funcName, null);
+			version = sv.toString();
+		}
+		List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+		Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForFuncVersion(
+				moduleName, funcName, version);
+		if (withUnreleased) {
+			for (boolean isReleased : moduleVersions.values()) 
+				if (isReleased) {
+					withUnreleased = false;
+					break;
+				}
+		}
+		for (long moduleVersion : moduleVersions.keySet()) 
+			if (withUnreleased || moduleVersions.get(moduleVersion))
+				ret.add(new ModuleDefId(moduleName, moduleVersion));
+		return ret;
+	}
+
 	public List<String> getModulesByOwner(String userId) throws TypeStorageException {
 		return filterNotsupportedModules(storage.getModulesForOwner(userId).keySet());
 	}
@@ -2374,6 +2399,135 @@ public class TypeDefinitionDB {
 	
 	private void removeModuleInfoFromCache(String moduleName) {
 		moduleInfoCache.invalidate(moduleName);		
+	}
+	
+	public TypeDetailedInfo getTypeDetailedInfo(TypeDefId typeDef) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
+		String moduleName = typeDef.getType().getModule();
+		requestReadLock(moduleName);
+		try {
+			typeDef = resolveTypeDefIdNL(typeDef);
+			KbTypedef parsing = getTypeParsingDocumentNL(typeDef);
+			String description = parsing.getComment();
+			String typeName = typeDef.getType().getName();
+			String specDef = "typedef " + getTypeSpecText(moduleName, parsing.getAliasType()) + " " + typeName + ";";
+			List<ModuleDefId> moduleDefIds = findModuleVersionsByTypeVersion(typeDef);
+			List<Long> moduleVersions = new ArrayList<Long>();
+			for (ModuleDefId moduleDef : moduleDefIds)
+				moduleVersions.add(moduleDef.getVersion());
+			Map<String, Boolean> semanticToReleased = 
+					storage.getAllTypeVersions(moduleName, typeName);
+			List<String> typeVersions = new ArrayList<String>();
+			for (String semantic : semanticToReleased.keySet())
+				if (semanticToReleased.get(semantic))
+					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
+			Set<RefInfo> funcRefs = storage.getFuncRefsByRef(moduleName, typeName, typeDef.getTypeString());
+			List<String> usingFuncDefIds = new ArrayList<String>();
+			for (RefInfo ref : funcRefs)
+				usingFuncDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
+			Set<RefInfo> usingRefs = storage.getTypeRefsByRef(moduleName, typeName, typeDef.getTypeString());
+			List<String> usingTypeDefIds = new ArrayList<String>();
+			for (RefInfo ref : usingRefs)
+				usingTypeDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
+			Set<RefInfo> usedRefs = storage.getTypeRefsByDep(moduleName, typeName, typeDef.getTypeString());
+			List<String> usedTypeDefIds = new ArrayList<String>();
+			for (RefInfo ref : usedRefs)
+				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());
+			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, 
+					moduleVersions, typeVersions, usingFuncDefIds, usingTypeDefIds, usedTypeDefIds);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
+	public FuncDetailedInfo getFuncDetailedInfo(String moduleName, String funcName, String version) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
+		requestReadLock(moduleName);
+		try {
+			List<ModuleDefId> moduleDefIds = findModuleVersionsByFuncVersionNL(moduleName, funcName, version);
+			if (version == null) {
+				SemanticVersion sv = findLastFuncVersion(moduleName, funcName);
+				if (sv == null)
+					throwNoSuchFuncException(moduleName, funcName, null);
+				version = sv.toString();
+			}
+			KbFuncdef parsing = getFuncParsingDocumentNL(moduleName, funcName, version);
+			String description = parsing.getComment();
+			parsing.getParameters();
+			String specDef = "funcdef " + funcName + "(" + 
+					getParamsSpecText(moduleName, parsing.getParameters()) + ") returns (" + 
+					getParamsSpecText(moduleName, parsing.getReturnType()) + ") " +
+					"authentication " + parsing.getAuthentication() + ";";
+			List<Long> moduleVersions = new ArrayList<Long>();
+			for (ModuleDefId moduleDef : moduleDefIds)
+				moduleVersions.add(moduleDef.getVersion());
+			Map<String, Boolean> semanticToReleased = 
+					storage.getAllFuncVersions(moduleName, funcName);
+			List<String> funcVersions = new ArrayList<String>();
+			for (String semantic : semanticToReleased.keySet())
+				if (semanticToReleased.get(semantic))
+					funcVersions.add(moduleName + "." + funcName + "-" + semantic);
+			Set<RefInfo> usedRefs = storage.getFuncRefsByDep(moduleName, funcName, version);
+			List<String> usedTypeDefIds = new ArrayList<String>();
+			for (RefInfo ref : usedRefs)
+				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());
+			return new FuncDetailedInfo(moduleName + "." + funcName + "-" + version, 
+					description, specDef, moduleVersions, funcVersions, usedTypeDefIds);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
+	private static String getTypeSpecText(String curModule, KbType type) {
+		if (type instanceof KbTypedef) {
+			KbTypedef td = (KbTypedef)type;
+			String ret = td.getName();
+			if (!td.getModule().equals(curModule))
+				ret = td.getModule() + "." + ret;
+			return ret;
+		} else if (type instanceof KbScalar) {
+			KbScalar sc = (KbScalar)type;
+			return sc.getSpecName();
+		} else if (type instanceof KbList) {
+			KbList ls = (KbList)type;
+			return "list<" + getTypeSpecText(curModule, ls.getElementType()) + ">";
+		} else if (type instanceof KbMapping) {
+			KbMapping mp = (KbMapping)type;
+			return "mapping<" + getTypeSpecText(curModule, mp.getKeyType()) + ", " + 
+					getTypeSpecText(curModule, mp.getValueType()) + ">";
+		} else if (type instanceof KbTuple) {
+			KbTuple tp = (KbTuple)type;
+			StringBuilder ret = new StringBuilder();
+			for (KbType iType : tp.getElementTypes()) {
+				if (ret.length() > 0)
+					ret.append(", ");
+				ret.append(getTypeSpecText(curModule, iType));
+			}
+			return "tuple<" + ret + ">";
+		} else if (type instanceof KbStruct) {
+			KbStruct st = (KbStruct)type;
+			StringBuilder ret = new StringBuilder("structure {\n");
+			for (KbStructItem item : st.getItems())
+				ret.append("  ").append(getTypeSpecText(curModule, item.getItemType()))
+				.append(" ").append(item.getName()).append(";\n");
+			ret.append("}");
+			return ret.toString();
+		} else if (type instanceof KbUnspecifiedObject) {
+			return "UnspecifiedObject";
+		}
+		return "Unknown type: " + type.getClass().getSimpleName();
+	}
+	
+	private static String getParamsSpecText(String curModule, List<KbParameter> params) {
+		StringBuilder ret = new StringBuilder();
+		for (KbParameter param : params) {
+			if (ret.length() > 0)
+				ret.append(", ");
+			ret.append(getTypeSpecText(curModule, param.getType()));
+			if (param.getName() != null)
+				ret.append(" ").append(param.getName());
+		}
+		return ret.toString();
 	}
 	
 	private static class ComponentChange {
