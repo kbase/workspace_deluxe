@@ -24,8 +24,7 @@ CONFIG_OPTS = ['test.shock.url',
                'test.pwd1',
                'test.user2',
                'test.pwd2',
-               'test.user.noemail',
-               'test.pwd.noemail'
+               'test.user3',
                ]
 
 if __name__ == '__main__':

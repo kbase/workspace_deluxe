@@ -25,8 +25,6 @@ public class GridFSBackendTest {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	public static final String USER = "test.mongo.user";
-	public static final String PWD = "test.mongo.pwd";
 	private static GridFSBackend gfsb;
 	
 	@BeforeClass

@@ -118,9 +118,8 @@ public class TestWorkspaces {
 	public final Workspaces ws;
 	
 	public static void setUpWorkspaces() throws Exception {
-		//TODO get rid of noemail?
-		String shockuser = System.getProperty("test.user.noemail");
-		String shockpwd = System.getProperty("test.pwd.noemail");
+		String shockuser = System.getProperty("test.user1");
+		String shockpwd = System.getProperty("test.pwd1");
 		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
 		DB data2 = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
 		String host = WorkspaceTestCommon.getHost();

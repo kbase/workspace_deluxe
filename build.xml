@@ -181,8 +181,7 @@
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
     <fail unless="test.user2" message="property test.user2 not set."/>
     <fail unless="test.pwd2" message="property test.pwd2 not set."/>
-    <fail unless="test.user.noemail" message="property test.user.noemail not set."/>
-    <fail unless="test.pwd.noemail" message="property test.pwd.noemail not set."/>
+    <fail unless="test.user3" message="property test.user3 not set."/>
     <echo message="starting ${package} tests"/>
     <condition property="test.mongo.user" else="" >
       <isset property="test.mongo.user" />
@@ -205,8 +204,7 @@
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
-      <sysproperty key="test.user.noemail" value="${test.user.noemail}"/>
-      <sysproperty key="test.pwd.noemail" value="${test.pwd.noemail}"/>
+      <sysproperty key="test.user3" value="${test.user3}"/>
       <test name="us.kbase.typedobj.tests.TypeDefs"/>
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
