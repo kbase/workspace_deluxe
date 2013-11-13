@@ -119,6 +119,7 @@ public class TestWorkspaces {
 	public final Workspaces ws;
 	
 	public static void setUpWorkspaces() throws Exception {
+		//TODO get rid of noemail?
 		String shockuser = System.getProperty("test.user.noemail");
 		String shockpwd = System.getProperty("test.pwd.noemail");
 		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
@@ -1325,7 +1326,7 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Ignore //TODO unignore when test doesn't take massive amounts of memory
+//	@Ignore //TODO unignore when test doesn't take massive amounts of memory
 	@Test
 	public void saveWithBigData() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");

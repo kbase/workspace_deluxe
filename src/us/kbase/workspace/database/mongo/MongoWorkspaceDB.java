@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -929,29 +930,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-			final Set<String> refs = new HashSet<String>();
-			for (final Reference r: o.getRefs()) {
-				if (!(r instanceof MongoReference)) {
-					throw new RuntimeException(
-							"Improper reference implementation: " +
-							(r == null ? null : r.getClass()));
-				}
-				refs.add(r.toString());
-			}
-			pkg.refs = refs;
+			pkg.refs = checkRefsAreMongo(o.getRefs());
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
-			final List<String> provrefs = new LinkedList<String>();
-			for (final Reference r: o.getProvRefs()) {
-				if (!(r instanceof MongoReference)) {
-					throw new RuntimeException(
-							"Improper reference implementation: " +
-							(r == null ? null : r.getClass()));
-				}
-				provrefs.add(r.toString());
-			}
-			pkg.provrefs = provrefs;
+			pkg.provrefs = checkRefsAreMongo(o.getProvRefs());
 			pkg.wo = o; //TODO don't do this if possible
 
 			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
@@ -989,6 +972,32 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			objnum++;
 		}
 		return ret;
+	}
+	
+	//is there some way to combine these with generics?
+	private Set<String> checkRefsAreMongo(final Set<Reference> refs) {
+		final Set<String> newrefs = new HashSet<String>();
+		checkRefsAreMongoInternal(refs, newrefs);
+		return newrefs;
+	}
+	
+	//order must be maintained
+	private List<String> checkRefsAreMongo(final List<Reference> refs) {
+		final List<String> newrefs = new LinkedList<String>();
+		checkRefsAreMongoInternal(refs, newrefs);
+		return newrefs;
+	}
+
+	private void checkRefsAreMongoInternal(final Collection<Reference> refs,
+			final Collection<String> newrefs) {
+		for (final Reference r: refs) {
+			if (!(r instanceof MongoReference)) {
+				throw new RuntimeException(
+						"Improper reference implementation: " +
+						(r == null ? null : r.getClass()));
+			}
+			newrefs.add(r.toString());
+		}
 	}
 
 	private void checkObjectLength(final Object o, final long max,
