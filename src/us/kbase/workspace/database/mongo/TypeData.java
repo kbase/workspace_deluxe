@@ -2,8 +2,6 @@ package us.kbase.workspace.database.mongo;
 
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -54,15 +52,14 @@ public class TypeData {
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
-		final OutputStreamWriter out = new OutputStreamWriter(
-				md5,  StandardCharsets.UTF_8);
 		try {
-			MAPPER.writeValue(out, data);
+			//writes in UTF8
+			MAPPER.writeValue(md5, data);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something is broken here", ioe);
 		} finally {
 			try {
-				out.close();
+				md5.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("something is broken here", ioe);
 			}

@@ -2,8 +2,6 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
@@ -59,15 +57,14 @@ public class GridFSBackend implements BlobStore {
 				return null;
 			}
 		};
-		final OutputStreamWriter osw = new OutputStreamWriter(osis,
-				StandardCharsets.UTF_8);
 		try {
-			MAPPER.writeValue(osw, data);
+			//writes in UTF8
+			MAPPER.writeValue(osis, data);
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
 		} finally {
 			try {
-				osw.close();
+				osis.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("Something is broken", ioe);
 			}

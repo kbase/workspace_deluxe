@@ -2,9 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
@@ -106,7 +104,7 @@ public class ShockBackend implements BlobStore {
 	public void saveBlob(final MD5 md5, final JsonNode data)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		if(data == null) {
+		if (data == null) {
 			throw new IllegalArgumentException("data cannot be null");
 		}
 		try {
@@ -144,15 +142,14 @@ public class ShockBackend implements BlobStore {
 				return sn;
 			}
 		};
-		final OutputStreamWriter osw = new OutputStreamWriter(osis,
-				StandardCharsets.UTF_8);
 		try {
-			MAPPER.writeValue(osw, data);
+			//writes in UTF8
+			MAPPER.writeValue(osis, data);
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
 		} finally {
 			try {
-				osw.close();
+				osis.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("Something is broken", ioe);
 			}

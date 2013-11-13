@@ -5,11 +5,9 @@ import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1004,15 +1002,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectIDNoWSNoVer oi, final int objnum,
 			final String objtype) {
 		final CountingOutputStream cos = new CountingOutputStream();
-		final OutputStreamWriter osw = new OutputStreamWriter(cos,
-				StandardCharsets.UTF_8);
 		try {
-			MAPPER.writeValue(osw, o);
+			//writes in UTF8
+			MAPPER.writeValue(cos, o);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something's broken", ioe);
 		} finally {
 			try {
-				osw.close();
+				cos.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("something's broken", ioe);
 			}
