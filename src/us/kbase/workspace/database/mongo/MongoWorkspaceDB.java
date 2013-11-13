@@ -81,6 +81,7 @@ import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -910,7 +911,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final ObjectMapper MAPPER_DEFAULT = new ObjectMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
@@ -944,7 +945,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			try {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
-						MAPPER_DEFAULT.treeToValue(
+						MAPPER.treeToValue(
 								o.getRep().extractSearchableWsSubset(),
 								Map.class);
 				subdata = subdata2;
@@ -1006,7 +1007,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final OutputStreamWriter osw = new OutputStreamWriter(cos,
 				StandardCharsets.UTF_8);
 		try {
-			MAPPER_DEFAULT.writeValue(osw, o);
+			MAPPER.writeValue(osw, o);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something's broken", ioe);
 		} finally {
@@ -1434,7 +1435,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_META_PROV);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<String, Object> chksumToData = new HashMap<String, Object>();
+		final Map<String, JsonNode> chksumToData = new HashMap<String, JsonNode>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
@@ -1454,7 +1455,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.put(o, new WorkspaceObjectData(
 						chksumToData.get(meta.getCheckSum()), meta, prov));
 			} else {
-				final String data;
+				final JsonNode data;
 				try {
 					data = blob.getBlob(new MD5(meta.getCheckSum()));
 				} catch (BlobStoreCommunicationException e) {
@@ -1470,16 +1471,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							meta.getWorkspaceId(), meta.getObjectId(),
 							meta.getVersion()), e);
 				}
-				final Object object;
-				try {
-					object = MAPPER_DEFAULT.readValue(data, Object.class);
-				} catch (IOException e) {
-					throw new RuntimeException(String.format(
-							"Unable to deserialize object %s",
-							meta.getCheckSum()), e); 
-				}
-				chksumToData.put(meta.getCheckSum(), object);
-				ret.put(o, new WorkspaceObjectData(object, meta, prov));
+				chksumToData.put(meta.getCheckSum(), data);
+				ret.put(o, new WorkspaceObjectData(data, meta, prov));
 			}
 		}
 		return ret;
@@ -1824,7 +1817,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer("testobj"),
-					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
+					MAPPER.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>()));
@@ -1832,7 +1825,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(MAPPER_DEFAULT.valueToTree(data), at, data);
+			pkg.td = new TypeData(MAPPER.valueToTree(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;

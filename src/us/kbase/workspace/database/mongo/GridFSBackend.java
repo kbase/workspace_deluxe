@@ -5,8 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.io.IOUtils;
-
 import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -77,7 +75,7 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(MD5 md5) throws NoSuchBlobException,
+	public JsonNode getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
@@ -94,10 +92,9 @@ public class GridFSBackend implements BlobStore {
 							md5.getMD5());
 		}
 		try {
-			return IOUtils.toString(out.getInputStream(), StandardCharsets.UTF_8);
+			return MAPPER.readTree(out.getInputStream());
 		} catch (IOException ioe) {
-			//should never happen
-			throw new RuntimeException("GridFS is apparently buggy"); 
+			throw new RuntimeException("Something is broken", ioe);
 		}
 	}
 

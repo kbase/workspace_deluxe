@@ -71,7 +71,9 @@ public class ShockBackendTest {
 				is(sb.getExternalIdentifier(tdmd)));
 		TypeData faketd = new TypeData(MAPPER.valueToTree(data), wt, subdata); //use same data to get same chksum
 		MD5 tdfakemd = new MD5(faketd.getChksum());
-		assertThat("Shock data returned correctly", sb.getBlob(tdfakemd), is("{\"key\":\"value\"}"));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> ret = MAPPER.treeToValue(sb.getBlob(tdfakemd), Map.class);
+		assertThat("Shock data returned correctly", ret, is(data));
 		sb.removeBlob(tdfakemd);
 		try {
 			sb.getBlob(tdfakemd);

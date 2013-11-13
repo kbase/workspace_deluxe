@@ -12,7 +12,7 @@ public interface BlobStore {
 	public void saveBlob(MD5 md5, JsonNode data) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	
-	public String getBlob(MD5 md5) throws BlobStoreAuthorizationException,
+	public JsonNode getBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
 	/**

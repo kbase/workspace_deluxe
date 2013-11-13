@@ -47,8 +47,9 @@ public class GridFSBackendTest {
 		wt = new AbsoluteTypeDefId(new TypeDefName("foo1", "foo1"), 2, 1);
 		TypeData tdr = new TypeData(MAPPER.valueToTree(data), wt, subdata);
 		MD5 tdmdr = new MD5(tdr.getChksum());
-		String returned = gfsb.getBlob(tdmdr);
-		assertThat("Didn't get same data back from store", returned, is("{\"key\":\"value\"}"));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> returned = MAPPER.treeToValue(gfsb.getBlob(tdmdr), Map.class);
+		assertThat("Didn't get same data back from store", returned, is(data));
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdmdr) == null);
 		gfsb.saveBlob(tdmd, td.getData()); //should be able to save the same thing twice with no error
 		gfsb.removeBlob(tdmdr);
