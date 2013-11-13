@@ -125,8 +125,7 @@ public class ShockBackend implements BlobStore {
 			protected ShockNode doRead(InputStream is) throws Exception {
 				final ShockNode sn;
 				try {
-					sn = client.addNode(is,
-							"workspace_" + md5.getMD5());
+					sn = client.addNode(is, "workspace_" + md5.getMD5());
 				} catch (TokenExpiredException ete) {
 					//this should be impossible
 					throw new RuntimeException("Things are broke", ete);
@@ -142,6 +141,7 @@ public class ShockBackend implements BlobStore {
 							"Failed to create shock node: " +
 									she.getLocalizedMessage(), she);
 				}
+				is.close();
 				return sn;
 			}
 		};
@@ -149,10 +149,14 @@ public class ShockBackend implements BlobStore {
 				StandardCharsets.UTF_8);
 		try {
 			MAPPER.writeValue(osw, data);
-			osw.close();
-			osis.close();
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
+		} finally {
+			try {
+				osw.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
+			}
 		}
 		try {
 			sn = osis.getResult();

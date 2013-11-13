@@ -1326,25 +1326,25 @@ public class TestWorkspaces {
 		}
 	}
 	
-//	@Ignore //TODO unignore when test doesn't take massive amounts of memory
+	@Ignore //TODO unignore when test doesn't take massive amounts of memory
 	@Test
 	public void saveWithBigData() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
-		WorkspaceIdentifier biddataws = new WorkspaceIdentifier("bigdata");
-		ws.createWorkspace(userfoo, biddataws.getName(), false, null);
+		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
+		ws.createWorkspace(userfoo, bigdataws.getName(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
 		for (int i = 0; i < 997008; i++) {
 			subdata.add(TEXT1000);
 		}
-		ws.saveObjects(userfoo, biddataws, Arrays.asList( //should work
+		ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
 		
 		subdata.add(TEXT1000);
 		try {
-			ws.saveObjects(userfoo, biddataws, Arrays.asList(
+			ws.saveObjects(userfoo, bigdataws, Arrays.asList(
 					new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
 			fail("saved too big data");
 		} catch (IllegalArgumentException iae) {

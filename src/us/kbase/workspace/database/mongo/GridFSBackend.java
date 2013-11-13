@@ -65,10 +65,14 @@ public class GridFSBackend implements BlobStore {
 				StandardCharsets.UTF_8);
 		try {
 			MAPPER.writeValue(osw, data);
-			osw.close();
-			osis.close();
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
+		} finally {
+			try {
+				osw.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
+			}
 		}
 	}
 

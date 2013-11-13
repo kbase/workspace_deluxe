@@ -58,10 +58,14 @@ public class TypeData {
 				md5,  StandardCharsets.UTF_8);
 		try {
 			MAPPER.writeValue(out, data);
-			out.close();
-			md5.close();
 		} catch (IOException ioe) {
 			throw new RuntimeException("something is broken here", ioe);
+		} finally {
+			try {
+				out.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("something is broken here", ioe);
+			}
 		}
 		this.size = md5.getSize();
 		this.chksum = md5.getMD5().getMD5();

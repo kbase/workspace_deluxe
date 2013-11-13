@@ -945,7 +945,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER_DEFAULT.treeToValue(
-								pkg.wo.getRep().extractSearchableWsSubset(),
+								o.getRep().extractSearchableWsSubset(),
 								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
@@ -960,8 +960,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().getJsonInstance(),
-					o.getRep().getValidationTypeDefId(),
-					subdata);
+					o.getRep().getValidationTypeDefId(), subdata);
 			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size exceeds limit of %s",
@@ -1008,10 +1007,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				StandardCharsets.UTF_8);
 		try {
 			MAPPER_DEFAULT.writeValue(osw, o);
-			cos.close();
-			osw.close();
 		} catch (IOException ioe) {
 			throw new RuntimeException("something's broken", ioe);
+		} finally {
+			try {
+				osw.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("something's broken", ioe);
+			}
 		}
 		if (cos.getSize() > max) {
 			throw new IllegalArgumentException(String.format(
