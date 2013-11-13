@@ -195,7 +195,7 @@ public class TypeRegisteringTest {
 		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
 		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
-		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "0.1", true);
+		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "1.0", true);
 		Assert.assertEquals(2, db.getAllModuleVersions("Regulation").size());
 		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
 		Map<AbsoluteTypeDefId, String> typeToJsonSchema2 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
@@ -672,7 +672,7 @@ public class TypeRegisteringTest {
 		db.registerModule(loadSpec("deps", "DepModule"), Arrays.asList("BType"), adminUser);
 		releaseModule("DepModule", adminUser);
 		Set<RefInfo> funcs = db.getFuncRefsByRef(new TypeDefId("DepModule.BType", "1.0"));
-		System.out.println(funcs);
+		Assert.assertEquals(1, funcs.size());
 	}
 	
 	private Map<String, Long> restrict(Object... params) {

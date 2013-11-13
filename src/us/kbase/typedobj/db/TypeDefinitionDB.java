@@ -912,13 +912,12 @@ public class TypeDefinitionDB {
 		long version = storage.getLastModuleVersionWithUnreleased(moduleName);
 		checkModule(moduleName, version);
 		ModuleInfo info = storage.getModuleInfoRecord(moduleName, version);
-		//List<AbsoluteTypeDefId> ret = new ArrayList<AbsoluteTypeDefId>();
 		requestWriteLock(moduleName);
 		try {
-			List<String> typesTo10 = new ArrayList<String>();
+			Map<String, String> typesTo10 = new LinkedHashMap<String, String>();
 			for (String type : info.getTypes().keySet())
 				if (new SemanticVersion(info.getTypes().get(type).getTypeVersion()).getMajor() == 0)
-					typesTo10.add(type);
+					typesTo10.put(type, info.getTypes().get(type).getTypeVersion());
 			List<String> funcsTo10 = new ArrayList<String>();
 			for (String func : info.getFuncs().keySet())
 				if (new SemanticVersion(info.getFuncs().get(func).getFuncVersion()).getMajor() == 0)
@@ -928,22 +927,35 @@ public class TypeDefinitionDB {
 				info.setUploadMethod("releaseModule");
 				long transactionStartTime = storage.generateNewModuleVersion(moduleName);
 				try {
-					Set<RefInfo> newTypeRefs = new TreeSet<RefInfo>();
 					Set<RefInfo> newFuncRefs = new TreeSet<RefInfo>();
-					for (String type : typesTo10) {
-						String typeName = type;
+					Set<RefInfo> newTypeRefs = new TreeSet<RefInfo>();
+					for (String typeName : typesTo10.keySet()) {
 						TypeInfo ti = info.getTypes().get(typeName);
-						String jsonSchemaDocument = storage.getTypeSchemaRecord(moduleName, type, ti.getTypeVersion());
-						Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, ti.getTypeVersion());
+						ti.setTypeVersion(releaseVersion.toString());
+					}
+					for (String typeName : typesTo10.keySet()) {
+						String oldTypeVer = typesTo10.get(typeName);
+						String jsonSchemaDocument = storage.getTypeSchemaRecord(moduleName, typeName, oldTypeVer);
+						Set<RefInfo> deps = storage.getTypeRefsByDep(moduleName, typeName, oldTypeVer);
+						Set<RefInfo> usingTypes = storage.getTypeRefsByRef(moduleName, typeName, oldTypeVer);
+						Set<RefInfo> usingFuncs = storage.getFuncRefsByRef(moduleName, typeName, oldTypeVer);
 						try {
-							KbTypedef specParsing = getTypeParsingDocumentNL(new TypeDefId(moduleName + "." + type, ti.getTypeVersion()));
-							ti.setTypeVersion(releaseVersion.toString());
-							saveType(info, ti, jsonSchemaDocument, specParsing, deps, transactionStartTime);
+							KbTypedef specParsing = getTypeParsingDocumentNL(new TypeDefId(moduleName + "." + typeName, oldTypeVer));
+							saveType(info, info.getTypes().get(typeName), jsonSchemaDocument, specParsing, deps, transactionStartTime);
 							newTypeRefs.addAll(deps);
 						} catch (NoSuchTypeException ex) {
 							throw new IllegalStateException(ex);  // Can not occur anyways
 						}
-						//ret.add(new AbsoluteTypeDefId(new TypeDefName(moduleName, type), newVersion.getMajor(), newVersion.getMinor()));
+						for (RefInfo ref : usingTypes) 
+							if (ref.getDepModule().equals(moduleName)) { // This reference is internal
+								ref.setRefVersion(releaseVersion.toString());
+								newTypeRefs.add(ref);
+							}
+						for (RefInfo ref : usingFuncs) 
+							if (ref.getDepModule().equals(moduleName)) { // This reference is internal
+								ref.setRefVersion(releaseVersion.toString());
+								newFuncRefs.add(ref);
+							}
 					}
 					for (String funcName : funcsTo10) {
 						FuncInfo fi = info.getFuncs().get(funcName);
@@ -1449,10 +1461,25 @@ public class TypeDefinitionDB {
 		try {
 			String depType = depTypeDef.getType().getName();
 			String version = getTypeVersion(depTypeDef);
-			return storage.getTypeRefsByDep(depModule, depType, version);
+			return getTypeRefsByDepNL(depModule, depType, version, false);
 		} finally {
 			releaseReadLock(depModule);
 		}
+	}
+	
+	private Set<RefInfo> getTypeRefsByDepNL(String depModule, String depType, 
+			String version, boolean withUnreleased) throws TypeStorageException {
+		Set<RefInfo> set = storage.getTypeRefsByDep(depModule, depType, version);
+		Set<RefInfo> ret;
+		if (withUnreleased) {
+			ret = set;
+		} else {
+			ret = new LinkedHashSet<RefInfo>();
+			for (RefInfo ref : set)
+				if (checkTypeReleased(ref.getRefModule(), ref.getRefName(), ref.getRefVersion()))
+					ret.add(ref);
+		}
+		return ret;
 	}
 	
 	public Set<RefInfo> getTypeRefsByRef(TypeDefId refTypeDef) 
@@ -1462,19 +1489,35 @@ public class TypeDefinitionDB {
 		try {
 			String refType = refTypeDef.getType().getName();
 			String version = getTypeVersion(refTypeDef);
-			return storage.getTypeRefsByRef(refModule, refType, version);
+			return getTypeRefsByRefNL(refModule, refType, version, false);
 		} finally {
 			releaseReadLock(refModule);
 		}
 	}
 
+	private Set<RefInfo> getTypeRefsByRefNL(String refModule, String refType, 
+			String version, boolean withUnreleased) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		Set<RefInfo> set = storage.getTypeRefsByRef(refModule, refType, version);
+		Set<RefInfo> ret;
+		if (withUnreleased) {
+			ret = set;
+		} else {
+			ret = new LinkedHashSet<RefInfo>();
+			for (RefInfo ref : set)
+				if (checkTypeReleased(ref.getDepModule(), ref.getDepName(), ref.getDepVersion()))
+					ret.add(ref);
+		}
+		return ret;
+	}
+	
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc) 
 			throws TypeStorageException, NoSuchModuleException, NoSuchFuncException {
 		requestReadLock(depModule);
 		try {
 			checkModuleRegistered(depModule);
 			checkModuleSupported(depModule);
-			return storage.getFuncRefsByDep(depModule, depFunc, null);
+			return getFuncRefsByDepNL(depModule, depFunc, null, false);
 		} finally {
 			releaseReadLock(depModule);
 		}
@@ -1491,10 +1534,25 @@ public class TypeDefinitionDB {
 					throwNoSuchFuncException(depModule, depFunc, version);
 				version = sVer.toString();
 			}
-			return storage.getFuncRefsByDep(depModule, depFunc, version);
+			return getFuncRefsByDepNL(depModule, depFunc, version, false);
 		} finally {
 			releaseReadLock(depModule);
 		}
+	}
+	
+	private Set<RefInfo> getFuncRefsByDepNL(String depModule, String depFunc, 
+			String version, boolean withUnreleased) throws TypeStorageException {
+		Set<RefInfo> set = storage.getFuncRefsByDep(depModule, depFunc, version);
+		Set<RefInfo> ret;
+		if (withUnreleased) {
+			ret = set;
+		} else {
+			ret = new LinkedHashSet<RefInfo>();
+			for (RefInfo ref : set)
+				if (checkTypeReleased(ref.getRefModule(), ref.getRefName(), ref.getRefVersion()))
+					ret.add(ref);
+		}
+		return ret;
 	}
 	
 	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) 
@@ -1504,12 +1562,48 @@ public class TypeDefinitionDB {
 		try {
 			String refType = refTypeDef.getType().getName();
 			String version = getTypeVersion(refTypeDef);
-			return storage.getFuncRefsByRef(refModule, refType, version);
+			return getFuncRefsByRefNL(refModule, refType, version, false);
 		} finally {
 			releaseReadLock(refModule);
 		}
 	}
 	
+	private Set<RefInfo> getFuncRefsByRefNL(String refModule, String refType, 
+			String version, boolean withUnreleased) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		Set<RefInfo> set = storage.getFuncRefsByRef(refModule, refType, version);
+		Set<RefInfo> ret;
+		if (withUnreleased) {
+			ret = set;
+		} else {
+			ret = new LinkedHashSet<RefInfo>();
+			for (RefInfo ref : set)
+				if (checkFuncReleased(ref.getDepModule(), ref.getDepName(), ref.getDepVersion()))
+					ret.add(ref);
+		}
+		return ret;
+	}
+	
+	private boolean checkTypeReleased(String moduleName, String typeName, String version) 
+			throws TypeStorageException {
+		Map<Long, Boolean> moduleVerToReleased = 
+				storage.getModuleVersionsForTypeVersion(moduleName, typeName, version);
+		for (boolean released : moduleVerToReleased.values())
+			if (released)
+				return true;
+		return false;
+	}
+
+	private boolean checkFuncReleased(String moduleName, String funcName, String version) 
+			throws TypeStorageException {
+		Map<Long, Boolean> moduleVerToReleased = 
+				storage.getModuleVersionsForFuncVersion(moduleName, funcName, version);
+		for (boolean released : moduleVerToReleased.values())
+			if (released)
+				return true;
+		return false;
+	}
+
 	private File createTempDir() {
 		synchronized (tempDirLock) {
 			long suffix = System.currentTimeMillis();
@@ -2421,18 +2515,18 @@ public class TypeDefinitionDB {
 			for (String semantic : semanticToReleased.keySet())
 				if (semanticToReleased.get(semantic))
 					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
-			Set<RefInfo> funcRefs = storage.getFuncRefsByRef(moduleName, typeName, typeDef.getVerString());
+			Set<RefInfo> funcRefs = getFuncRefsByRefNL(moduleName, typeName, typeDef.getVerString(), false);
 			List<String> usingFuncDefIds = new ArrayList<String>();
 			for (RefInfo ref : funcRefs)
-				usingFuncDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usingRefs = storage.getTypeRefsByRef(moduleName, typeName, typeDef.getVerString());
+				usingFuncDefIds.add(ref.getDepModule() + "." + ref.getDepName() + "-" + ref.getDepVersion());
+			Set<RefInfo> usingRefs = getTypeRefsByRefNL(moduleName, typeName, typeDef.getVerString(), false);
 			List<String> usingTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usingRefs)
-				usingTypeDefIds.add(moduleName + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usedRefs = storage.getTypeRefsByDep(moduleName, typeName, typeDef.getVerString());
+				usingTypeDefIds.add(ref.getDepModule() + "." + ref.getDepName() + "-" + ref.getDepVersion());
+			Set<RefInfo> usedRefs = getTypeRefsByDepNL(moduleName, typeName, typeDef.getVerString(), false);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
-				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());
+				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
 			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, 
 					moduleVersions, typeVersions, usingFuncDefIds, usingTypeDefIds, usedTypeDefIds);
 		} finally {
@@ -2467,10 +2561,10 @@ public class TypeDefinitionDB {
 			for (String semantic : semanticToReleased.keySet())
 				if (semanticToReleased.get(semantic))
 					funcVersions.add(moduleName + "." + funcName + "-" + semantic);
-			Set<RefInfo> usedRefs = storage.getFuncRefsByDep(moduleName, funcName, version);
+			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, false);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
-				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());
+				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
 			return new FuncDetailedInfo(moduleName + "." + funcName + "-" + version, 
 					description, specDef, moduleVersions, funcVersions, usedTypeDefIds);
 		} finally {
