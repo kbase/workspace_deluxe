@@ -2,9 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -113,21 +111,11 @@ public class ShockBackend implements BlobStore {
 			//go ahead, need to save
 		}
 		checkAuth();
-		final MD5DigestOutputStream md5stream = new MD5DigestOutputStream();
-		final Writer writer = new OutputStreamWriter(
-				md5stream, StandardCharsets.UTF_8);
-		try {
-			writer.write(data);
-			writer.flush();
-		} catch (IOException ioe) {
-			throw new RuntimeException("IOException caught when none possible",
-					ioe);
-		}
 		final ShockNode sn;
 		try {
 			sn = client.addNode(new ReaderInputStream(
 					new StringReader(data), StandardCharsets.UTF_8),
-					md5stream.getSize(), "workspace_" + md5.getMD5());
+					"workspace_" + md5.getMD5());
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
