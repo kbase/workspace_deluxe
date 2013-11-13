@@ -5,9 +5,11 @@ import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -78,7 +80,6 @@ import us.kbase.workspace.workspaces.ResolvedSaveObject;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -952,61 +953,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			pkg.provrefs = provrefs;
 			pkg.wo = o; //TODO don't do this if possible
-//			final String json;
-//			try {
-				//TODO check size without creating string, use inputstream and count bytes
-				//TODO leave as JSONNode and send stream to GridFS and Shock
-				//TODO catch OOM errors due to out of bounds allocation and ...?
-//				final Object obj = MAPPER_SORTED.treeToValue(
-//						o.getRep().getJsonInstance(), Object.class);
-//				json = MAPPER_SORTED.writeValueAsString(obj);
-//			} catch (JsonProcessingException jpe) {
-//				//should never happen
-//				throw new IllegalArgumentException(
-//						"Couldn't serialize data from object " +
-//						getObjectErrorId(o.getObjectIdentifier(), objnum));
-//			}
-//			if (json.length() > MAX_OBJECT_SIZE) {
-//				throw new IllegalArgumentException(String.format(
-//						"Object %s data size exceeds limit of %s",
-//						getObjectErrorId(o.getObjectIdentifier(), objnum),
-//						MAX_OBJECT_SIZE));
-//			}
-			final JsonNode sd = pkg.wo.getRep().extractSearchableWsSubset();
-			//TODO stream the count
-			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s subdata size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_SUBDATA_SIZE));
-			}
+
+			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
+					o.getObjectIdentifier(), objnum, "provenance");
+			
 			final Map<String, Object> subdata;
 			try {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
-						MAPPER_DEFAULT.treeToValue(sd, Map.class);
+						MAPPER_DEFAULT.treeToValue(
+								pkg.wo.getRep().extractSearchableWsSubset(),
+								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
 			}
-			final String prov;
-			//TODO stream the count
-			try {
-				//TODO catch OOM errors due to out of bounds allocation and ...?
-				prov = MAPPER_DEFAULT.writeValueAsString(
-						o.getProvenance());
-			} catch (JsonProcessingException jpe) {
-				throw new RuntimeException(
-						"Should never get a JSON exception here", jpe);
-			}
-			if (prov.length() > MAX_PROV_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s provenance size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_PROV_SIZE));
-			}
+			
 			escapeSubdata(subdata);
+			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
+					o.getObjectIdentifier(), objnum, "subdata");
 			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
@@ -1023,6 +989,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			objnum++;
 		}
 		return ret;
+	}
+
+	private void checkObjectLength(final Object o, final long max,
+			final ObjectIDNoWSNoVer oi, final int objnum,
+			final String objtype) {
+		final CountingOutputStream cos = new CountingOutputStream();
+		final OutputStreamWriter osw = new OutputStreamWriter(cos,
+				StandardCharsets.UTF_8);
+		try {
+			MAPPER_DEFAULT.writeValue(osw, o);
+			cos.close();
+			osw.close();
+		} catch (IOException ioe) {
+			throw new RuntimeException("something's broken", ioe);
+		}
+		if (cos.getSize() > max) {
+			throw new IllegalArgumentException(String.format(
+					"Object %s %s size exceeds limit of %s",
+					getObjectErrorId(oi, objnum), objtype, max));
+		}
 	}
 	
 	private void escapeSubdata(final Map<String, Object> subdata) {
