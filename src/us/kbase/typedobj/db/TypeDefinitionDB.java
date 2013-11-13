@@ -2564,7 +2564,7 @@ public class TypeDefinitionDB {
 			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, false);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
-				usedTypeDefIds.add(moduleName + "." + ref.getRefName() + "-" + ref.getRefVersion());
+				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
 			return new FuncDetailedInfo(moduleName + "." + funcName + "-" + version, 
 					description, specDef, moduleVersions, funcVersions, usedTypeDefIds);
 		} finally {
