@@ -21,7 +21,6 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1326,7 +1325,6 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Ignore //TODO unignore when test doesn't take massive amounts of memory
 	@Test
 	public void saveWithBigData() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
