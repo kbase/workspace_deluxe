@@ -65,7 +65,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
 
-//TODO tests are leaving nodes, find and fix
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
 //TODO test objects slightly < 1GB and > 1GB

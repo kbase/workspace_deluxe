@@ -80,7 +80,6 @@ import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -910,10 +909,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final ObjectMapper MAPPER_DEFAULT = new ObjectMapper();
-	private static final ObjectMapper MAPPER_SORTED = new ObjectMapper();
-	static {
-		MAPPER_SORTED.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-	}
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
@@ -957,27 +952,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			pkg.provrefs = provrefs;
 			pkg.wo = o; //TODO don't do this if possible
-			final String json;
-			try {
+//			final String json;
+//			try {
 				//TODO check size without creating string, use inputstream and count bytes
 				//TODO leave as JSONNode and send stream to GridFS and Shock
 				//TODO catch OOM errors due to out of bounds allocation and ...?
-				final Object obj = MAPPER_SORTED.treeToValue(
-						o.getRep().getJsonInstance(), Object.class);
-				json = MAPPER_SORTED.writeValueAsString(obj);
-			} catch (JsonProcessingException jpe) {
-				//should never happen
-				throw new IllegalArgumentException(
-						"Couldn't serialize data from object " +
-						getObjectErrorId(o.getObjectIdentifier(), objnum));
-			}
-			if (json.length() > MAX_OBJECT_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s data size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_OBJECT_SIZE));
-			}
+//				final Object obj = MAPPER_SORTED.treeToValue(
+//						o.getRep().getJsonInstance(), Object.class);
+//				json = MAPPER_SORTED.writeValueAsString(obj);
+//			} catch (JsonProcessingException jpe) {
+//				//should never happen
+//				throw new IllegalArgumentException(
+//						"Couldn't serialize data from object " +
+//						getObjectErrorId(o.getObjectIdentifier(), objnum));
+//			}
+//			if (json.length() > MAX_OBJECT_SIZE) {
+//				throw new IllegalArgumentException(String.format(
+//						"Object %s data size exceeds limit of %s",
+//						getObjectErrorId(o.getObjectIdentifier(), objnum),
+//						MAX_OBJECT_SIZE));
+//			}
 			final JsonNode sd = pkg.wo.getRep().extractSearchableWsSubset();
+			//TODO stream the count
 			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s subdata size exceeds limit of %s",
@@ -995,6 +991,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Should never get a JSON exception here", jpe);
 			}
 			final String prov;
+			//TODO stream the count
 			try {
 				//TODO catch OOM errors due to out of bounds allocation and ...?
 				prov = MAPPER_DEFAULT.writeValueAsString(
@@ -1013,8 +1010,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, o.getRep().getValidationTypeDefId(),
+			pkg.td = new TypeData(o.getRep().getJsonInstance(),
+					o.getRep().getValidationTypeDefId(),
 					subdata);
+			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s data size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						MAX_OBJECT_SIZE));
+			}
 			ret.add(pkg);
 			objnum++;
 		}
@@ -1830,7 +1834,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
+			pkg.td = new TypeData(MAPPER_DEFAULT.valueToTree(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;

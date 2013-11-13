@@ -1,10 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.common.utils.StringUtils.checkString;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -14,17 +13,23 @@ import us.kbase.typedobj.core.TypeDefId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 public class TypeData {
 	
 	@JsonIgnore
-	private static final int DIGEST_BUFFER_SIZE = 100000; //100kB
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	static {
+		MAPPER.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+	}
 	
 	@JsonIgnore
 	public static final String TYPE_COL_PREFIX = "type_";
 	
 	@JsonIgnore
-	private String data = null;
+	private JsonNode data = null;
 	
 	//these attributes are actually saved in mongo
 	private String type = null;
@@ -33,9 +38,11 @@ public class TypeData {
 	private Map<String, Object> subdata;
 	private long size;
 	
-	public TypeData(final String data, final AbsoluteTypeDefId type,
-			final Map<String,Object> subdata) {
-		checkString(data, "data");
+	public TypeData(final JsonNode data, final AbsoluteTypeDefId type,
+			final Map<String,Object> subdata)  {
+		if (data == null) {
+			throw new IllegalArgumentException("data may not be null");
+		}
 		if (type == null) {
 			throw new IllegalArgumentException("type may not be null");
 		}
@@ -46,37 +53,18 @@ public class TypeData {
 		this.type = type.getType().getTypeString() +
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
-		this.size = data.length();
-		this.chksum = calcHexDigest(data);
-	}
-	
-	//Digest utils causes OOM on 1G data
-	private String calcHexDigest(String data) {
-		final MessageDigest digest;
+		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
+		final OutputStreamWriter out = new OutputStreamWriter(
+				md5,  StandardCharsets.UTF_8);
 		try {
-			digest = MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException nsae) {
-			throw new RuntimeException("There definitely should be an MD5 digest");
+			MAPPER.writeValue(out, data);
+			out.close();
+			md5.close();
+		} catch (IOException ioe) {
+			throw new RuntimeException("something is broken here", ioe);
 		}
-		for (int i = 0; i < data.length(); ) {
-			final int end;
-			final int next = i + DIGEST_BUFFER_SIZE;
-			if (next >= data.length()) {
-				end = data.length();
-			} else {
-				end = next;
-			}
-			//TODO does this handle characters outside the BMP correctly?
-			digest.update(data.substring(i, end).getBytes(
-					StandardCharsets.UTF_8));
-			i = next;
-		}
-		final byte[] d = digest.digest();
-		final StringBuilder sb = new StringBuilder();
-		for (final byte b : d) {
-			sb.append(String.format("%02x", b));
-		}
-		return new String(sb);
+		this.size = md5.getSize();
+		this.chksum = md5.getMD5().getMD5();
 	}
 	
 	public String getTypeCollection() {
@@ -99,7 +87,7 @@ public class TypeData {
 		return TYPE_COL_PREFIX + DigestUtils.md5Hex(t);
 	}
 
-	public String getData() {
+	public JsonNode getData() {
 		return data;
 	}
 	

@@ -1,16 +1,19 @@
 package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
-import java.io.StringReader;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.ReaderInputStream;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
@@ -20,6 +23,8 @@ import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 
 public class GridFSBackend implements BlobStore {
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private final GridFS gfs;
 	
@@ -31,22 +36,39 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(MD5 md5, String data) throws BlobStoreCommunicationException {
+	public void saveBlob(final MD5 md5, final JsonNode data)
+			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
-		//use input stream to avoid making copy of data in memory
-		final GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
-				new StringReader(data), StandardCharsets.UTF_8), true);
-		gif.setId(md5.getMD5());
-		gif.setFilename(md5.getMD5());
+		final OutputStreamToInputStream<String> osis =
+				new OutputStreamToInputStream<String>() {
+					
+			@Override
+			protected String doRead(InputStream is) throws Exception {
+				final GridFSInputFile gif = gfs.createFile(is, true);
+				gif.setId(md5.getMD5());
+				gif.setFilename(md5.getMD5());
+				try {
+					gif.save();
+				} catch (MongoException.DuplicateKey dk) {
+					// already here, done
+				} catch (MongoException me) {
+					throw new BlobStoreCommunicationException(
+							"Could not write to the mongo database", me);
+				}
+				is.close();
+				return null;
+			}
+		};
+		final OutputStreamWriter osw = new OutputStreamWriter(osis,
+				StandardCharsets.UTF_8);
 		try {
-			gif.save();
-		} catch (MongoException.DuplicateKey dk) {
-			// already here, done
-		} catch (MongoException me) {
-			throw new BlobStoreCommunicationException(
-					"Could not write to the mongo database", me);
+			MAPPER.writeValue(osw, data);
+			osw.close();
+			osis.close();
+		} catch (IOException ioe) {
+			throw new RuntimeException("Something is broken", ioe);
 		}
 	}
 

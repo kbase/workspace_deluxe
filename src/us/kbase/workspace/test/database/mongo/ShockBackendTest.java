@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
 import us.kbase.common.test.TestException;
@@ -27,6 +28,8 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class ShockBackendTest {
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static ShockBackend sb;
 	
@@ -56,8 +59,9 @@ public class ShockBackendTest {
 		int minorver = 1;
 		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName(mod, type), majorver, minorver);
 		Map<String, Object> subdata = new HashMap<String,Object>(); //subdata not used here
-		String data = "this is some data";
-		TypeData td = new TypeData(data, wt, subdata);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("key", "value");
+		TypeData td = new TypeData(MAPPER.valueToTree(data), wt, subdata);
 		MD5 tdmd = new MD5(td.getChksum());
 		sb.saveBlob(tdmd, td.getData());
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(tdmd));
@@ -65,24 +69,26 @@ public class ShockBackendTest {
 				UUID.matcher(id.getId()).matches());
 		assertThat("Ext id is the shock node", id.getId(),
 				is(sb.getExternalIdentifier(tdmd)));
-		TypeData faketd = new TypeData(data, wt, subdata); //use same data to get same chksum
+		TypeData faketd = new TypeData(MAPPER.valueToTree(data), wt, subdata); //use same data to get same chksum
 		MD5 tdfakemd = new MD5(faketd.getChksum());
-		assertThat("Shock data returned correctly", data, is(sb.getBlob(tdfakemd)));
+		assertThat("Shock data returned correctly", sb.getBlob(tdfakemd), is("{\"key\":\"value\"}"));
 		sb.removeBlob(tdfakemd);
 		try {
 			sb.getBlob(tdfakemd);
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
-					is("No blob saved with chksum 1463f25d10e363181d686d2484a9eab6"));
+					is("No blob saved with chksum a7353f7cddce808de0032747a0b7be50"));
 		}
-		TypeData badtd = new TypeData("nosuchdata", wt, subdata);
+		Map<String, Object> baddata = new HashMap<String, Object>();
+		data.put("keyfoo", "value");
+		TypeData badtd = new TypeData(MAPPER.valueToTree(baddata), wt, subdata);
 		try {
 			sb.getBlob(new MD5(badtd.getChksum()));
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
-					is("No blob saved with chksum 34626e65760b5b0bb9be303ac6520642"));
+					is("No blob saved with chksum 99914b932bd37a50b983c5e7c90ae93b"));
 		}
 	}
 }
