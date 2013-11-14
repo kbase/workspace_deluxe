@@ -793,15 +793,15 @@ public class Workspaces {
 		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
 	}
 	
-	public TypeDetailedInfo getTypeInfo(String typeDef) 
+	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef));
+		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks);
 	}
 	
-	public FuncDetailedInfo getFuncInfo(String funcDef) 
+	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
 		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
-				tempDef.getType().getName(), tempDef.getVerString());
+				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks);
 	}
 }
