@@ -88,10 +88,18 @@ public class GridFSBackend implements BlobStore {
 					"Attempt to retrieve non-existant blob with chksum " + 
 							md5.getMD5());
 		}
+		
+		final InputStream file = out.getInputStream();
 		try {
-			return MAPPER.readTree(out.getInputStream());
+			return MAPPER.readTree(file);
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
+		} finally {
+			try {
+				file.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
+			}
 		}
 	}
 

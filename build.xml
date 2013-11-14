@@ -189,7 +189,7 @@
     <condition property="test.mongo.pwd" else="" >
       <isset property="test.mongo.pwd" />
     </condition>
-    <junit failureproperty="test.failed">
+    <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
