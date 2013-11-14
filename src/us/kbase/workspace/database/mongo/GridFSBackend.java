@@ -1,16 +1,15 @@
 package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.ReaderInputStream;
+import java.io.InputStream;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
@@ -20,6 +19,8 @@ import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 
 public class GridFSBackend implements BlobStore {
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private final GridFS gfs;
 	
@@ -31,27 +32,47 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(MD5 md5, String data) throws BlobStoreCommunicationException {
+	public void saveBlob(final MD5 md5, final JsonNode data)
+			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
-		//use input stream to avoid making copy of data in memory
-		final GridFSInputFile gif = gfs.createFile(new ReaderInputStream(
-				new StringReader(data), StandardCharsets.UTF_8), true);
-		gif.setId(md5.getMD5());
-		gif.setFilename(md5.getMD5());
+		final OutputStreamToInputStream<String> osis =
+				new OutputStreamToInputStream<String>() {
+					
+			@Override
+			protected String doRead(InputStream is) throws Exception {
+				final GridFSInputFile gif = gfs.createFile(is, true);
+				gif.setId(md5.getMD5());
+				gif.setFilename(md5.getMD5());
+				try {
+					gif.save();
+				} catch (MongoException.DuplicateKey dk) {
+					// already here, done
+				} catch (MongoException me) {
+					throw new BlobStoreCommunicationException(
+							"Could not write to the mongo database", me);
+				}
+				is.close();
+				return null;
+			}
+		};
 		try {
-			gif.save();
-		} catch (MongoException.DuplicateKey dk) {
-			// already here, done
-		} catch (MongoException me) {
-			throw new BlobStoreCommunicationException(
-					"Could not write to the mongo database", me);
+			//writes in UTF8
+			MAPPER.writeValue(osis, data);
+		} catch (IOException ioe) {
+			throw new RuntimeException("Something is broken", ioe);
+		} finally {
+			try {
+				osis.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
+			}
 		}
 	}
 
 	@Override
-	public String getBlob(MD5 md5) throws NoSuchBlobException,
+	public JsonNode getBlob(MD5 md5) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
@@ -68,10 +89,9 @@ public class GridFSBackend implements BlobStore {
 							md5.getMD5());
 		}
 		try {
-			return IOUtils.toString(out.getInputStream(), StandardCharsets.UTF_8);
+			return MAPPER.readTree(out.getInputStream());
 		} catch (IOException ioe) {
-			//should never happen
-			throw new RuntimeException("GridFS is apparently buggy"); 
+			throw new RuntimeException("Something is broken", ioe);
 		}
 	}
 

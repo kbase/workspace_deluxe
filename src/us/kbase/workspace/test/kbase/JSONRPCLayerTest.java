@@ -21,12 +21,15 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthToken;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -64,7 +67,7 @@ public class JSONRPCLayerTest {
 	
 	private static WorkspaceServer SERVER1 = null;
 	private static WorkspaceClient CLIENT1 = null;
-	private static String USERNOEMAIL = null;
+	private static String USER3 = null;
 	private static String USER1 = null;
 	private static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	private static String USER2 = null;
@@ -128,7 +131,11 @@ public class JSONRPCLayerTest {
 		//TODO catch exceptions and print nice errors - next deploy
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
-		USERNOEMAIL = System.getProperty("test.user.noemail");
+		USER3 = System.getProperty("test.user3");
+		if (USER1.equals(USER2) || USER2.equals(USER3) || USER1.equals(USER3)) {
+			throw new TestException("All the test users must be unique: " + 
+					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
+		}
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
 		SERVER1 = startupWorkspaceServer(1);
@@ -145,6 +152,11 @@ public class JSONRPCLayerTest {
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
+		}
+		AuthToken t = AuthService.login(USER1, p1).getToken();
+		if (!AuthService.isValidUserName(Arrays.asList(USER3), t)
+				.containsKey(USER3)) {
+			throw new TestException(USER3 + " is not a valid kbase user");
 		}
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setAuthAllowedForHttp(true);
@@ -441,10 +453,10 @@ public class JSONRPCLayerTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("a").withUsers(Arrays.asList(USER2)));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
-				.withNewPermission("w").withUsers(Arrays.asList(USERNOEMAIL))); //should work
+				.withNewPermission("w").withUsers(Arrays.asList(USER3))); //should work
 		expected.put(USER1, "a");
 		expected.put(USER2, "a");
-		expected.put(USERNOEMAIL, "w");
+		expected.put(USER3, "w");
 		perms = CLIENT2.getPermissions(new WorkspaceIdentity()
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));

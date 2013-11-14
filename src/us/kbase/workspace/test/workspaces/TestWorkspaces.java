@@ -21,7 +21,6 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,7 +64,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
 
-//TODO tests are leaving nodes, find and fix
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
 //TODO test objects slightly < 1GB and > 1GB
@@ -120,8 +118,8 @@ public class TestWorkspaces {
 	public final Workspaces ws;
 	
 	public static void setUpWorkspaces() throws Exception {
-		String shockuser = System.getProperty("test.user.noemail");
-		String shockpwd = System.getProperty("test.pwd.noemail");
+		String shockuser = System.getProperty("test.user1");
+		String shockpwd = System.getProperty("test.pwd1");
 		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
 		DB data2 = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
 		String host = WorkspaceTestCommon.getHost();
@@ -1326,25 +1324,24 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Ignore //TODO unignore when test doesn't take massive amounts of memory
 	@Test
 	public void saveWithBigData() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
-		WorkspaceIdentifier biddataws = new WorkspaceIdentifier("bigdata");
-		ws.createWorkspace(userfoo, biddataws.getName(), false, null);
+		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
+		ws.createWorkspace(userfoo, bigdataws.getName(), false, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
 		for (int i = 0; i < 997008; i++) {
 			subdata.add(TEXT1000);
 		}
-		ws.saveObjects(userfoo, biddataws, Arrays.asList( //should work
+		ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
 		
 		subdata.add(TEXT1000);
 		try {
-			ws.saveObjects(userfoo, biddataws, Arrays.asList(
+			ws.saveObjects(userfoo, bigdataws, Arrays.asList(
 					new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
 			fail("saved too big data");
 		} catch (IllegalArgumentException iae) {

@@ -10,6 +10,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,7 +81,6 @@ import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -909,11 +909,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final ObjectMapper MAPPER_DEFAULT = new ObjectMapper();
-	private static final ObjectMapper MAPPER_SORTED = new ObjectMapper();
-	static {
-		MAPPER_SORTED.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-	}
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
@@ -933,92 +929,96 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-			final Set<String> refs = new HashSet<String>();
-			for (final Reference r: o.getRefs()) {
-				if (!(r instanceof MongoReference)) {
-					throw new RuntimeException(
-							"Improper reference implementation: " +
-							(r == null ? null : r.getClass()));
-				}
-				refs.add(r.toString());
-			}
-			pkg.refs = refs;
+			pkg.refs = checkRefsAreMongo(o.getRefs());
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
-			final List<String> provrefs = new LinkedList<String>();
-			for (final Reference r: o.getProvRefs()) {
-				if (!(r instanceof MongoReference)) {
-					throw new RuntimeException(
-							"Improper reference implementation: " +
-							(r == null ? null : r.getClass()));
-				}
-				provrefs.add(r.toString());
-			}
-			pkg.provrefs = provrefs;
+			pkg.provrefs = checkRefsAreMongo(o.getProvRefs());
 			pkg.wo = o; //TODO don't do this if possible
-			final String json;
-			try {
-				//TODO check size without creating string, use inputstream and count bytes
-				//TODO leave as JSONNode and send stream to GridFS and Shock
-				//TODO catch OOM errors due to out of bounds allocation and ...?
-				final Object obj = MAPPER_SORTED.treeToValue(
-						o.getRep().getJsonInstance(), Object.class);
-				json = MAPPER_SORTED.writeValueAsString(obj);
-			} catch (JsonProcessingException jpe) {
-				//should never happen
-				throw new IllegalArgumentException(
-						"Couldn't serialize data from object " +
-						getObjectErrorId(o.getObjectIdentifier(), objnum));
-			}
-			if (json.length() > MAX_OBJECT_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s data size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_OBJECT_SIZE));
-			}
-			final JsonNode sd = pkg.wo.getRep().extractSearchableWsSubset();
-			if (sd.toString().length() > MAX_SUBDATA_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s subdata size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_SUBDATA_SIZE));
-			}
+
+			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
+					o.getObjectIdentifier(), objnum, "provenance");
+			
 			final Map<String, Object> subdata;
 			try {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
-						MAPPER_DEFAULT.treeToValue(sd, Map.class);
+						MAPPER.treeToValue(
+								o.getRep().extractSearchableWsSubset(),
+								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
 			}
-			final String prov;
-			try {
-				//TODO catch OOM errors due to out of bounds allocation and ...?
-				prov = MAPPER_DEFAULT.writeValueAsString(
-						o.getProvenance());
-			} catch (JsonProcessingException jpe) {
-				throw new RuntimeException(
-						"Should never get a JSON exception here", jpe);
-			}
-			if (prov.length() > MAX_PROV_SIZE) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s provenance size exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_PROV_SIZE));
-			}
+			
 			escapeSubdata(subdata);
+			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
+					o.getObjectIdentifier(), objnum, "subdata");
 			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(json, o.getRep().getValidationTypeDefId(),
-					subdata);
+			pkg.td = new TypeData(o.getRep().getJsonInstance(),
+					o.getRep().getValidationTypeDefId(), subdata);
+			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s data size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						MAX_OBJECT_SIZE));
+			}
 			ret.add(pkg);
 			objnum++;
 		}
 		return ret;
+	}
+	
+	//is there some way to combine these with generics?
+	private Set<String> checkRefsAreMongo(final Set<Reference> refs) {
+		final Set<String> newrefs = new HashSet<String>();
+		checkRefsAreMongoInternal(refs, newrefs);
+		return newrefs;
+	}
+	
+	//order must be maintained
+	private List<String> checkRefsAreMongo(final List<Reference> refs) {
+		final List<String> newrefs = new LinkedList<String>();
+		checkRefsAreMongoInternal(refs, newrefs);
+		return newrefs;
+	}
+
+	private void checkRefsAreMongoInternal(final Collection<Reference> refs,
+			final Collection<String> newrefs) {
+		for (final Reference r: refs) {
+			if (!(r instanceof MongoReference)) {
+				throw new RuntimeException(
+						"Improper reference implementation: " +
+						(r == null ? null : r.getClass()));
+			}
+			newrefs.add(r.toString());
+		}
+	}
+
+	private void checkObjectLength(final Object o, final long max,
+			final ObjectIDNoWSNoVer oi, final int objnum,
+			final String objtype) {
+		final CountingOutputStream cos = new CountingOutputStream();
+		try {
+			//writes in UTF8
+			MAPPER.writeValue(cos, o);
+		} catch (IOException ioe) {
+			throw new RuntimeException("something's broken", ioe);
+		} finally {
+			try {
+				cos.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("something's broken", ioe);
+			}
+		}
+		if (cos.getSize() > max) {
+			throw new IllegalArgumentException(String.format(
+					"Object %s %s size exceeds limit of %s",
+					getObjectErrorId(oi, objnum), objtype, max));
+		}
 	}
 	
 	private void escapeSubdata(final Map<String, Object> subdata) {
@@ -1432,7 +1432,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_META_PROV);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<String, Object> chksumToData = new HashMap<String, Object>();
+		final Map<String, JsonNode> chksumToData = new HashMap<String, JsonNode>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
 		for (ObjectIDResolvedWS o: objectIDs) {
@@ -1452,7 +1452,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.put(o, new WorkspaceObjectData(
 						chksumToData.get(meta.getCheckSum()), meta, prov));
 			} else {
-				final String data;
+				final JsonNode data;
 				try {
 					data = blob.getBlob(new MD5(meta.getCheckSum()));
 				} catch (BlobStoreCommunicationException e) {
@@ -1468,16 +1468,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							meta.getWorkspaceId(), meta.getObjectId(),
 							meta.getVersion()), e);
 				}
-				final Object object;
-				try {
-					object = MAPPER_DEFAULT.readValue(data, Object.class);
-				} catch (IOException e) {
-					throw new RuntimeException(String.format(
-							"Unable to deserialize object %s",
-							meta.getCheckSum()), e); 
-				}
-				chksumToData.put(meta.getCheckSum(), object);
-				ret.put(o, new WorkspaceObjectData(object, meta, prov));
+				chksumToData.put(meta.getCheckSum(), data);
+				ret.put(o, new WorkspaceObjectData(data, meta, prov));
 			}
 		}
 		return ret;
@@ -1822,7 +1814,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer("testobj"),
-					MAPPER_DEFAULT.valueToTree(data), t, meta, p, false);
+					MAPPER.valueToTree(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>()));
@@ -1830,7 +1822,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
-			pkg.td = new TypeData(MAPPER_DEFAULT.writeValueAsString(data), at, data);
+			pkg.td = new TypeData(MAPPER.valueToTree(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;

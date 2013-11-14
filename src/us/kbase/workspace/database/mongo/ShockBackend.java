@@ -1,12 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
+import java.io.InputStream;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.input.ReaderInputStream;
+import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -25,6 +22,9 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -32,6 +32,8 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 public class ShockBackend implements BlobStore {
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private String user;
 	private String password;
@@ -99,9 +101,10 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(MD5 md5, String data) throws BlobStoreAuthorizationException,
+	public void saveBlob(final MD5 md5, final JsonNode data)
+			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		if(data == null) {
+		if (data == null) {
 			throw new IllegalArgumentException("data cannot be null");
 		}
 		try {
@@ -112,24 +115,51 @@ public class ShockBackend implements BlobStore {
 		}
 		checkAuth();
 		final ShockNode sn;
+		final OutputStreamToInputStream<ShockNode> osis =
+				new OutputStreamToInputStream<ShockNode>() {
+					
+			@Override
+			protected ShockNode doRead(InputStream is) throws Exception {
+				final ShockNode sn;
+				try {
+					sn = client.addNode(is, "workspace_" + md5.getMD5());
+				} catch (TokenExpiredException ete) {
+					//this should be impossible
+					throw new RuntimeException("Things are broke", ete);
+				} catch (JsonProcessingException jpe) {
+					//this should be impossible
+					throw new RuntimeException("Things are broke", jpe);
+				} catch (IOException ioe) {
+					throw new BlobStoreCommunicationException(
+							"Could not connect to the shock backend: " +
+									ioe.getLocalizedMessage(), ioe);
+				} catch (ShockHttpException she) {
+					throw new BlobStoreCommunicationException(
+							"Failed to create shock node: " +
+									she.getLocalizedMessage(), she);
+				}
+				is.close();
+				return sn;
+			}
+		};
 		try {
-			sn = client.addNode(new ReaderInputStream(
-					new StringReader(data), StandardCharsets.UTF_8),
-					"workspace_" + md5.getMD5());
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", ete);
-		} catch (JsonProcessingException jpe) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", jpe);
+			//writes in UTF8
+			MAPPER.writeValue(osis, data);
 		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
-					ioe.getLocalizedMessage(), ioe);
-		} catch (ShockHttpException she) {
-			throw new BlobStoreCommunicationException(
-					"Failed to create shock node: " +
-					she.getLocalizedMessage(), she);
+			throw new RuntimeException("Something is broken", ioe);
+		} finally {
+			try {
+				osis.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
+			}
+		}
+		try {
+			sn = osis.getResult();
+		} catch (InterruptedException ie) {
+			throw new RuntimeException("Something is broken", ie);
+		} catch (ExecutionException ee) {
+			throw new RuntimeException("Something is broken", ee);
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
@@ -164,14 +194,21 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public String getBlob(MD5 md5) throws BlobStoreAuthorizationException,
+	public JsonNode getBlob(MD5 md5) throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException, NoSuchBlobException {
 		checkAuth();
 		final String node = getNode(md5);
 		
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		final OutputStreamToInputStream<JsonNode> osis =
+				new OutputStreamToInputStream<JsonNode>() {
+					
+			@Override
+			protected JsonNode doRead(InputStream is) throws Exception {
+				return MAPPER.readTree(is);
+			}
+		};
 		try {
-			client.getFile(new ShockNodeId(node), bos);
+			client.getFile(new ShockNodeId(node), osis);
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -184,9 +221,18 @@ public class ShockBackend implements BlobStore {
 					"Failed to retrieve shock node: " +
 					she.getLocalizedMessage(), she);
 		}
-		final byte[] data = bos.toByteArray();
-		bos = null;
-		return new String(data, StandardCharsets.UTF_8);
+		try {
+			osis.close();
+		} catch (IOException ioe) {
+			throw new RuntimeException("Something is broken", ioe);
+		}
+		try {
+			return osis.getResult();
+		} catch (InterruptedException ie) {
+			throw new RuntimeException("Something is broken", ie);
+		} catch (ExecutionException ee) {
+			throw new RuntimeException("Something is broken", ee);
+		}
 	}
 
 	@Override
