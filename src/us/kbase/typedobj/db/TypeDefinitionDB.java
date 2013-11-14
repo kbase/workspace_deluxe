@@ -2495,7 +2495,7 @@ public class TypeDefinitionDB {
 		moduleInfoCache.invalidate(moduleName);		
 	}
 	
-	public TypeDetailedInfo getTypeDetailedInfo(TypeDefId typeDef) 
+	public TypeDetailedInfo getTypeDetailedInfo(TypeDefId typeDef, boolean markLinksInSpec) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
@@ -2504,8 +2504,13 @@ public class TypeDefinitionDB {
 			KbTypedef parsing = getTypeParsingDocumentNL(typeDef);
 			String description = parsing.getComment();
 			String typeName = typeDef.getType().getName();
-			String specDef = "typedef " + getTypeSpecText(moduleName, parsing.getAliasType()) + " " + typeName + ";";
 			List<ModuleDefId> moduleDefIds = findModuleVersionsByTypeVersion(typeDef);
+			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(moduleDefIds.get(0).getModuleName(),
+					moduleDefIds.get(0).getVersion());
+			Map<String, String> localUnregTypeToSpec = new LinkedHashMap<String, String>();
+			String specDef = "typedef " + getTypeSpecText(moduleName, parsing.getAliasType(), infoMap, 
+					localUnregTypeToSpec, markLinksInSpec) + " " + typeName + ";";
+			specDef = combineLocalUnregParts(description, specDef, localUnregTypeToSpec);
 			List<Long> moduleVersions = new ArrayList<Long>();
 			for (ModuleDefId moduleDef : moduleDefIds)
 				moduleVersions.add(moduleDef.getVersion());
@@ -2534,7 +2539,8 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	public FuncDetailedInfo getFuncDetailedInfo(String moduleName, String funcName, String version) 
+	public FuncDetailedInfo getFuncDetailedInfo(String moduleName, String funcName, 
+			String version, boolean markLinksInSpec) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		requestReadLock(moduleName);
 		try {
@@ -2548,10 +2554,15 @@ public class TypeDefinitionDB {
 			KbFuncdef parsing = getFuncParsingDocumentNL(moduleName, funcName, version);
 			String description = parsing.getComment();
 			parsing.getParameters();
-			String specDef = "funcdef " + funcName + "(" + 
-					getParamsSpecText(moduleName, parsing.getParameters()) + ") returns (" + 
-					getParamsSpecText(moduleName, parsing.getReturnType()) + ") " +
+			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(
+					moduleDefIds.get(0).getModuleName(), moduleDefIds.get(0).getVersion());
+			Map<String, String> localUnregTypeToSpec = new LinkedHashMap<String, String>();
+			String specDef = "funcdef " + funcName + "(" + getParamsSpecText(moduleName, 
+					parsing.getParameters(), infoMap, localUnregTypeToSpec, markLinksInSpec) + ") " +
+					"returns (" + getParamsSpecText(moduleName, parsing.getReturnType(), 
+							infoMap, localUnregTypeToSpec, markLinksInSpec) + ") " +
 					"authentication " + parsing.getAuthentication() + ";";
+			specDef = combineLocalUnregParts(description, specDef, localUnregTypeToSpec);
 			List<Long> moduleVersions = new ArrayList<Long>();
 			for (ModuleDefId moduleDef : moduleDefIds)
 				moduleVersions.add(moduleDef.getVersion());
@@ -2572,38 +2583,91 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	private static String getTypeSpecText(String curModule, KbType type) {
+	private String combineLocalUnregParts(String comment, String spec, Map<String, String> localUnregParts) {
+		StringBuilder ret = new StringBuilder();
+		for (String part : localUnregParts.values()) {
+			ret.append(part).append("\n\n");
+		}
+		if (comment != null && comment.trim().length() > 0)
+			ret.append("/*\n").append(comment).append("\n*/\n");
+		ret.append(spec);
+		return ret.toString();
+	}
+	
+	private void collectModuleInfoWithIncluded(String moduleName, long version, 
+			Map<String, ModuleInfo> ret) throws NoSuchModuleException, TypeStorageException {
+		if (ret.containsKey(moduleName))
+			return;
+		ModuleInfo info = getModuleInfoNL(moduleName, version);
+		ret.put(moduleName, info);
+		for (Map.Entry<String, Long> entry : info.getIncludedModuleNameToVersion().entrySet()) {
+			String includedModule = entry.getKey();
+			long includedVersion = entry.getValue();
+			collectModuleInfoWithIncluded(includedModule, includedVersion, ret);
+		}
+	}
+
+	private Map<String, ModuleInfo> getModuleInfoWithIncluded(String moduleName, 
+			long version) throws NoSuchModuleException, TypeStorageException {
+		Map<String, ModuleInfo> ret = new LinkedHashMap<String, ModuleInfo>();
+		collectModuleInfoWithIncluded(moduleName, version, ret);
+		return ret;
+	}
+	
+	private static String getTypeSpecText(String curModule, KbType type, 
+			Map<String, ModuleInfo> infoMap, Map<String, String> retLocalUnregTypeToSpec, 
+			boolean markLinksInSpec) {
 		if (type instanceof KbTypedef) {
 			KbTypedef td = (KbTypedef)type;
-			String ret = td.getName();
-			if (!td.getModule().equals(curModule))
-				ret = td.getModule() + "." + ret;
-			return ret;
+			boolean local = td.getModule().equals(curModule);
+			TypeInfo ti = infoMap.get(td.getModule()).getTypes().get(td.getName());
+			String version = ti == null ? null : ti.getTypeVersion();
+			if (markLinksInSpec && version != null) {
+				return "#" + td.getModule() + "." + td.getName() + "-" + version + "#";
+			} else {
+				if (local && version == null) {
+					String comment = td.getComment();
+					String spec = getTypeSpecText(curModule, td.getAliasType(), infoMap, 
+							retLocalUnregTypeToSpec, markLinksInSpec);
+					if (comment != null && comment.trim().length() > 0)
+						spec = "/*\n" + comment + "\n*/\n" + spec;
+					retLocalUnregTypeToSpec.put(td.getName(), spec);
+				}
+				String ret = td.getName();
+				if (!local)
+					ret = td.getModule() + "." + ret;
+				return ret;
+			}
 		} else if (type instanceof KbScalar) {
 			KbScalar sc = (KbScalar)type;
 			return sc.getSpecName();
 		} else if (type instanceof KbList) {
 			KbList ls = (KbList)type;
-			return "list<" + getTypeSpecText(curModule, ls.getElementType()) + ">";
+			return "list<" + getTypeSpecText(curModule, ls.getElementType(), infoMap, 
+					retLocalUnregTypeToSpec, markLinksInSpec) + ">";
 		} else if (type instanceof KbMapping) {
 			KbMapping mp = (KbMapping)type;
-			return "mapping<" + getTypeSpecText(curModule, mp.getKeyType()) + ", " + 
-					getTypeSpecText(curModule, mp.getValueType()) + ">";
+			return "mapping<" + getTypeSpecText(curModule, mp.getKeyType(), infoMap, 
+					retLocalUnregTypeToSpec, markLinksInSpec) + ", " + getTypeSpecText(curModule, 
+							mp.getValueType(), infoMap, retLocalUnregTypeToSpec, markLinksInSpec) + ">";
 		} else if (type instanceof KbTuple) {
 			KbTuple tp = (KbTuple)type;
 			StringBuilder ret = new StringBuilder();
 			for (KbType iType : tp.getElementTypes()) {
 				if (ret.length() > 0)
 					ret.append(", ");
-				ret.append(getTypeSpecText(curModule, iType));
+				ret.append(getTypeSpecText(curModule, iType, infoMap, retLocalUnregTypeToSpec,
+						markLinksInSpec));
 			}
 			return "tuple<" + ret + ">";
 		} else if (type instanceof KbStruct) {
 			KbStruct st = (KbStruct)type;
 			StringBuilder ret = new StringBuilder("structure {\n");
-			for (KbStructItem item : st.getItems())
-				ret.append("  ").append(getTypeSpecText(curModule, item.getItemType()))
-				.append(" ").append(item.getName()).append(";\n");
+			for (KbStructItem item : st.getItems()) {
+				ret.append("  ").append(getTypeSpecText(curModule, item.getItemType(), infoMap, 
+						retLocalUnregTypeToSpec, markLinksInSpec));
+				ret.append(" ").append(item.getName()).append(";\n");
+			}
 			ret.append("}");
 			return ret.toString();
 		} else if (type instanceof KbUnspecifiedObject) {
@@ -2612,12 +2676,15 @@ public class TypeDefinitionDB {
 		return "Unknown type: " + type.getClass().getSimpleName();
 	}
 	
-	private static String getParamsSpecText(String curModule, List<KbParameter> params) {
+	private static String getParamsSpecText(String curModule, List<KbParameter> params,
+			Map<String, ModuleInfo> infoMap, Map<String, String> retLocalUnregTypeToSpec, 
+			boolean markLinksInSpec) {
 		StringBuilder ret = new StringBuilder();
 		for (KbParameter param : params) {
 			if (ret.length() > 0)
 				ret.append(", ");
-			ret.append(getTypeSpecText(curModule, param.getType()));
+			ret.append(getTypeSpecText(curModule, param.getType(), infoMap, 
+					retLocalUnregTypeToSpec, markLinksInSpec));
 			if (param.getName() != null)
 				ret.append(" ").append(param.getName());
 		}

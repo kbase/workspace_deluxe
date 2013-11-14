@@ -205,9 +205,9 @@ public class TypeRegisteringTest {
 		Assert.assertFalse(json1.equals(json2));
 		Set<RefInfo> depFuncs = db.getFuncRefsByRef(new TypeDefId("Regulation.new_regulator"));
 		Assert.assertEquals(1, depFuncs.size());
-		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
+		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0), true);
 		Assert.assertTrue(tdi.getSpecDef().contains("{"));
-		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null);
+		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null, true);
 		Assert.assertTrue(fdi.getSpecDef().contains("("));
 	}
 			

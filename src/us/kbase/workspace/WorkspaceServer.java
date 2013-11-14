@@ -845,7 +845,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public TypeInfo getTypeInfo(String type) throws Exception {
         TypeInfo returnVal = null;
         //BEGIN get_type_info
-        TypeDetailedInfo tdi = ws.getTypeInfo(type);
+        TypeDetailedInfo tdi = ws.getTypeInfo(type, true);
         returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
@@ -869,7 +869,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public FuncInfo getFuncInfo(String func) throws Exception {
         FuncInfo returnVal = null;
         //BEGIN get_func_info
-        FuncDetailedInfo fdi = ws.getFuncInfo(func);
+        FuncDetailedInfo fdi = ws.getFuncInfo(func, true);
         returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
