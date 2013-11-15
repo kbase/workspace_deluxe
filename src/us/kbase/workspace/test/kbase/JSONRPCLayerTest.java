@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -99,7 +100,6 @@ public class JSONRPCLayerTest {
 			foo += "aaaaabbbbb";
 		}
 		TEXT1000 = foo;
-		System.out.println(TEXT1000.length());
 	}
 	
 	
@@ -1029,7 +1029,16 @@ public class JSONRPCLayerTest {
 		data = null;
 		subdata = null;
 		
-		
+		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
+				.withWorkspace("bigdata"))).get(0).getData().asInstance();
+		assertThat("correct obj keys", data.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
+		@SuppressWarnings("unchecked")
+		List<String> newsd = (List<String>) data.get("subset");
+		assertThat("correct subdata size", newsd.size(), is(997008));
+		for (String s: newsd) {
+			assertThat("correct string in subdata", s, is(TEXT1000));
+		}
 	}
 	
 	@Test
