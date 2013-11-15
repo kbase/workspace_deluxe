@@ -13,10 +13,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -102,11 +104,14 @@ public class TestWorkspaces {
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
+		printMem("*** startup ***");
 		setUpWorkspaces();
-		return Arrays.asList(new Object[][] {
+		List<Object[]> tests = Arrays.asList(new Object[][] {
 				{TEST_WORKSPACES[0]},
 				{TEST_WORKSPACES[1]}
 		});
+		printMem("*** startup complete ***");
+		return tests;
 	}
 	
 	@AfterClass
@@ -163,6 +168,12 @@ public class TestWorkspaces {
 	
 	public TestWorkspaces(Workspaces ws) {
 		this.ws = ws;
+	}
+	private static void printMem(String startmsg) {
+		System.out.println(startmsg);
+		System.out.println("free mem: " + Runtime.getRuntime().freeMemory());
+		System.out.println(" max mem: " + Runtime.getRuntime().maxMemory());
+		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
 	@Test
@@ -1326,6 +1337,8 @@ public class TestWorkspaces {
 	
 	@Test
 	public void saveWithBigData() throws Exception {
+//		System.gc();
+//		printMem("*** starting saveWithBigData, ran gc ***");
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
 		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
@@ -1334,12 +1347,14 @@ public class TestWorkspaces {
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
 		for (int i = 0; i < 997008; i++) {
-			subdata.add(TEXT1000);
+			//force allocation of a new char[]
+			subdata.add("" + TEXT1000);
 		}
+//		printMem("*** created object ***");
 		ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
-		
-		subdata.add(TEXT1000);
+//		printMem("*** saved object ***");
+		subdata.add("" + TEXT1000);
 		try {
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList(
 					new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
@@ -1348,8 +1363,32 @@ public class TestWorkspaces {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Object #1 data size exceeds limit of 1000000000"));
 		}
+		data = null;
+		subdata = null;
+//		System.gc();
 		
-		//TODO get the file and make sure it's ok
+//		printMem("*** released refs ***");
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getData();
+//		printMem("*** retrieved object ***");
+//		System.gc();
+//		printMem("*** ran gc after retrieve ***");
+		
+		assertThat("correct obj keys", newdata.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
+		@SuppressWarnings("unchecked")
+		List<String> newsd = (List<String>) newdata.get("subset");
+		assertThat("correct subdata size", newsd.size(), is(997008));
+		for (String s: newsd) {
+			assertThat("correct string in subdata", s, is(TEXT1000));
+		}
+//		newdata = null;
+//		newsd = null;
+//		printMem("*** released refs ***");
+//		System.gc();
+//		printMem("*** ran gc, exiting saveWithBigMeta ***");
 	}
 	
 	//TODO test with some crazy unicode, make sure saves ok and hashes are the same when using 2 char and 4 char unicode chars
