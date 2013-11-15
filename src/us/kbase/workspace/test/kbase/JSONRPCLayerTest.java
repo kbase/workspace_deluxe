@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.auth.AuthService;
@@ -81,18 +83,23 @@ public class JSONRPCLayerTest {
 		DATE_FORMAT.setLenient(false);
 	}
 	
-	private static String TEXT101;
+	private final static String TEXT101;
 	static {
+		String foo = "";
 		for (int i = 0; i < 10; i++) {
-			TEXT101 += "aaaaabbbbb";
+			foo += "aaaaabbbbb";
 		}
-		TEXT101 += "f";
+		foo += "f";
+		TEXT101 = foo;
 	}
-	private static String TEXT1000;
+	private final static String TEXT1000;
 	static {
+		String foo = "";
 		for (int i = 0; i < 100; i++) {
-			TEXT1000 += "aaaaabbbbb";
+			foo += "aaaaabbbbb";
 		}
+		TEXT1000 = foo;
+		System.out.println(TEXT1000.length());
 	}
 	
 	
@@ -1000,6 +1007,29 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception", se.getLocalizedMessage(),
 					is("Object 2 save error: Metadata is > 16000 bytes"));
 		}
+	}
+	
+	@Ignore
+	@Test
+	public void saveBigData() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
+		
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<String> subdata = new LinkedList<String>();
+		data.put("subset", subdata);
+		for (int i = 0; i < 997008; i++) {
+			//force allocation of a new char[]
+			subdata.add("" + TEXT1000);
+		}
+		// need 3g to get to this point
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("bigdata")
+				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
+						.withData(new UObject(data)))));
+		// need 7g to get past the UObject serializer
+		data = null;
+		subdata = null;
+		
+		
 	}
 	
 	@Test

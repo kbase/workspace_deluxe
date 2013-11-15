@@ -962,9 +962,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					o.getRep().getValidationTypeDefId(), subdata);
 			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
 				throw new IllegalArgumentException(String.format(
-						"Object %s data size exceeds limit of %s",
+						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						MAX_OBJECT_SIZE));
+						pkg.td.getSize(), MAX_OBJECT_SIZE));
 			}
 			ret.add(pkg);
 			objnum++;
@@ -1016,8 +1016,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (cos.getSize() > max) {
 			throw new IllegalArgumentException(String.format(
-					"Object %s %s size exceeds limit of %s",
-					getObjectErrorId(oi, objnum), objtype, max));
+					"Object %s %s size %s exceeds limit of %s",
+					getObjectErrorId(oi, objnum), objtype, cos.getSize(), max));
 		}
 	}
 	

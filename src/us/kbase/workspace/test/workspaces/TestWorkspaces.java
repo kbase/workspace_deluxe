@@ -89,6 +89,7 @@ public class TestWorkspaces {
 		for (int i = 0; i < 10; i++) {
 			TEXT1000 += TEXT100;
 		}
+		System.out.println(TEXT1000.length());
 	}
 	
 	public static ShockBackend sbe;
@@ -1293,7 +1294,7 @@ public class TestWorkspaces {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size exceeds limit of 1000000"));
+					is("Object #1 provenance size 1000251 exceeds limit of 1000000"));
 		}
 	}
 	
@@ -1331,7 +1332,7 @@ public class TestWorkspaces {
 			fail("saved too big subdata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 subdata size exceeds limit of 15000000"));
+					is("Object #1 subdata size 15000880 exceeds limit of 15000000"));
 		}
 	}
 	
@@ -1361,7 +1362,7 @@ public class TestWorkspaces {
 			fail("saved too big data");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 data size exceeds limit of 1000000000"));
+					is("Object #1 data size 1000000039 exceeds limit of 1000000000"));
 		}
 		data = null;
 		subdata = null;
