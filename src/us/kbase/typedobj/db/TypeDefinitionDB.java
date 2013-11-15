@@ -2627,8 +2627,8 @@ public class TypeDefinitionDB {
 			} else {
 				if (local && version == null) {
 					String comment = td.getComment();
-					String spec = getTypeSpecText(curModule, td.getAliasType(), infoMap, 
-							retLocalUnregTypeToSpec, markLinksInSpec);
+					String spec = "typedef " + getTypeSpecText(curModule, td.getAliasType(), infoMap, 
+							retLocalUnregTypeToSpec, markLinksInSpec) + " " + td.getName() + ";";
 					if (comment != null && comment.trim().length() > 0)
 						spec = "/*\n" + comment + "\n*/\n" + spec;
 					retLocalUnregTypeToSpec.put(td.getName(), spec);
