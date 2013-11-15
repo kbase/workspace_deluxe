@@ -1009,7 +1009,7 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
-	@Ignore
+	@Ignore //TODO unignore when mem issues sorted
 	@Test
 	public void saveBigData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
@@ -1039,6 +1039,56 @@ public class JSONRPCLayerTest {
 		for (String s: newsd) {
 			assertThat("correct string in subdata", s, is(TEXT1000));
 		}
+	}
+	
+	@Test
+	public void unicode() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
+		
+				Map<String, Object> data = new HashMap<String, Object>();
+		List<String> subdata = new LinkedList<String>();
+		StringBuilder sb = new StringBuilder();
+		//19 ttl bytes in UTF-8
+		sb.appendCodePoint(0x10310);
+		sb.appendCodePoint(0x4A);
+		sb.appendCodePoint(0x103B0);
+		sb.appendCodePoint(0x120);
+		sb.appendCodePoint(0x1D120);
+		sb.appendCodePoint(0x0A90);
+		sb.appendCodePoint(0x6A);
+		String test = sb.toString();
+		
+		data.put("subset", subdata);
+		for (int i = 0; i < 6000000; i++) {
+			subdata.add(test);
+		}
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
+				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
+						.withData(new UObject(data)))));
+		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
+				.withWorkspace("unicode"))).get(0).getData().asInstance();
+		
+		assertThat("correct obj keys", data.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
+		@SuppressWarnings("unchecked")
+		List<String> newsd = (List<String>) data.get("subset");
+		assertThat("correct subdata size", newsd.size(), is(6000000));
+		for (String s: newsd) {
+			assertThat("correct string in subdata", s, is(test));
+		}
+		
+		data.clear();
+		data.put(test, "foo");
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
+				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
+						.withData(new UObject(data)))));
+		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(2L)
+				.withWorkspace("unicode"))).get(0).getData().asInstance();
+		
+		assertThat("unicode key correct", data.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
+		assertThat("value correct", (String) data.get(test), is("foo"));
 	}
 	
 	@Test

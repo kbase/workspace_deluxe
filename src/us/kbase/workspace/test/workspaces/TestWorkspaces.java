@@ -89,7 +89,6 @@ public class TestWorkspaces {
 		for (int i = 0; i < 10; i++) {
 			TEXT1000 += TEXT100;
 		}
-		System.out.println(TEXT1000.length());
 	}
 	
 	public static ShockBackend sbe;
@@ -1390,6 +1389,55 @@ public class TestWorkspaces {
 //		printMem("*** released refs ***");
 //		System.gc();
 //		printMem("*** ran gc, exiting saveWithBigMeta ***");
+	}
+	
+	@Test
+	public void unicode() throws Exception {
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		
+		WorkspaceIdentifier unicode = new WorkspaceIdentifier("unicode");
+		ws.createWorkspace(userfoo, unicode.getName(), false, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<String> subdata = new LinkedList<String>();
+		StringBuilder sb = new StringBuilder();
+		//19 ttl bytes in UTF-8
+		sb.appendCodePoint(0x10310);
+		sb.appendCodePoint(0x4A);
+		sb.appendCodePoint(0x103B0);
+		sb.appendCodePoint(0x120);
+		sb.appendCodePoint(0x1D120);
+		sb.appendCodePoint(0x0A90);
+		sb.appendCodePoint(0x6A);
+		String test = sb.toString();
+		
+		data.put("subset", subdata);
+		for (int i = 0; i < 6000000; i++) {
+			subdata.add(test);
+		}
+		ws.saveObjects(userfoo, unicode, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
+		assertThat("correct obj keys", newdata.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
+		@SuppressWarnings("unchecked")
+		List<String> newsd = (List<String>) newdata.get("subset");
+		assertThat("correct subdata size", newsd.size(), is(6000000));
+		for (String s: newsd) {
+			assertThat("correct string in subdata", s, is(test));
+		}
+		
+		data.clear();
+		data.put(test, "foo");
+		ws.saveObjects(userfoo, unicode, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
+		assertThat("unicode key correct", newdata2.keySet(),
+				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
+		assertThat("value correct", (String) newdata2.get(test), is("foo"));
 	}
 	
 	//TODO test with some crazy unicode, make sure saves ok and hashes are the same when using 2 char and 4 char unicode chars
