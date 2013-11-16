@@ -229,8 +229,9 @@ public class JSONRPCLayerTest {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
-		if (iniFile.exists())
+		if (iniFile.exists()) {
 			iniFile.delete();
+		}
 		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
@@ -1021,16 +1022,16 @@ public class JSONRPCLayerTest {
 			//force allocation of a new char[]
 			subdata.add("" + TEXT1000);
 		}
-		// need 3g to get to this point
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("bigdata")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withData(new UObject(data)))));
-		// need 7g to get past the UObject serializer
 		data = null;
 		subdata = null;
 		
+		// need 3g to get to this point
 		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData().asInstance();
+		//need 7g to get past readTree()
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")

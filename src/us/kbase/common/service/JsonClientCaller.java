@@ -105,28 +105,32 @@ public class JsonClientCaller {
 			TypeReference<RET> cls, boolean ret, boolean authRequired)
 			throws IOException, JsonClientException {
 		HttpURLConnection conn = setupCall(authRequired);
-		OutputStream os = conn.getOutputStream();
-		JsonGenerator g = mapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
-
-		g.writeStartObject();
-		g.writeObjectField("params", arg);
-		g.writeStringField("method", method);
-		g.writeStringField("version", "1.1");
 		String id = ("" + Math.random()).replace(".", "");
-		g.writeStringField("id", id);
-		g.writeEndObject();
-		g.close();
-
+		// Calculate content-length before
+		final int[] sizeWrapper = new int[] {0};
+		OutputStream os = new OutputStream() {
+			@Override
+			public void write(int b) {sizeWrapper[0]++;}
+			@Override
+			public void write(byte[] b) {sizeWrapper[0] += b.length;}
+			@Override
+			public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
+		};
+		writeRequestData(method, arg, os, id);
+		// Set content-length
+		conn.setFixedLengthStreamingMode(sizeWrapper[0]);
+		// Write real data into http output stream
+		writeRequestData(method, arg, conn.getOutputStream(), id);
+		// Read response
 		int code = conn.getResponseCode();
 		conn.getResponseMessage();
-
 		InputStream istream;
 		if (code == 500) {
 			istream = conn.getErrorStream();
 		} else {
 			istream = conn.getInputStream();
 		}
-
+		// Parse response into json
 		JsonNode node = mapper.readTree(new UnclosableInputStream(istream));
 		if (node.has("error")) {
 			Map<String, String> ret_error = mapper.readValue(mapper.treeAsTokens(node.get("error")), 
@@ -143,6 +147,19 @@ public class JsonClientCaller {
 		if (res == null && ret)
 			throw new ServerException("An unknown server error occured", 0, "Unknown", null);
 		return res;
+	}
+
+	public void writeRequestData(String method, Object arg, OutputStream os, String id) 
+			throws IOException {
+		JsonGenerator g = mapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
+		g.writeStartObject();
+		g.writeObjectField("params", arg);
+		g.writeStringField("method", method);
+		g.writeStringField("version", "1.1");
+		g.writeStringField("id", id);
+		g.writeEndObject();
+		g.close();
+		os.flush();
 	}
 	
 	private static class UnclosableInputStream extends InputStream {
