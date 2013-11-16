@@ -68,7 +68,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
-//TODO test objects slightly < 1GB and > 1GB
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 
@@ -1440,8 +1439,6 @@ public class TestWorkspaces {
 		assertThat("value correct", (String) newdata2.get(test), is("foo"));
 	}
 	
-	//TODO test with some crazy unicode, make sure saves ok and hashes are the same when using 2 char and 4 char unicode chars
-
 	@Test
 	public void bigUserMetaErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");

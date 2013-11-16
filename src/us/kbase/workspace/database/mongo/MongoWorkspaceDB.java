@@ -892,7 +892,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	//TODO can get rid of this? or null out the ResolvedSaveObject?
 	private static class ObjectSavePackage {
 		
 		public ResolvedSaveObject wo;
@@ -934,8 +933,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//could be overwritten by a MongoReference if they have the same
 			//hash
 			pkg.provrefs = checkRefsAreMongo(o.getProvRefs());
-			pkg.wo = o; //TODO don't do this if possible
-
+			pkg.wo = o;
 			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
 					o.getObjectIdentifier(), objnum, "provenance");
 			
@@ -955,7 +953,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			escapeSubdata(subdata);
 			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
 					o.getObjectIdentifier(), objnum, "subdata");
-			//TODO null out the object packages after this
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().getJsonInstance(),
@@ -1345,7 +1342,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return refcounts;
 	}
 
-	//TODO break this up
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
@@ -1364,12 +1360,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (ObjectSavePackage p: pkgByType.get(type)) {
 				chksum.put(p.td.getChksum(), p.td);
 			}
-			final DBObject query = new BasicDBObject();
-			final DBObject inchk = new BasicDBObject(
-					"$in", new ArrayList<String>(chksum.keySet()));
-			query.put(Fields.TYPE_CHKSUM, inchk);
-			final DBObject proj = new BasicDBObject();
-			proj.put(Fields.TYPE_CHKSUM, 1);
+			final DBObject query = new BasicDBObject(Fields.TYPE_CHKSUM,
+					new BasicDBObject("$in", new ArrayList<String>(
+							chksum.keySet())));
+			final DBObject proj = new BasicDBObject(Fields.TYPE_CHKSUM, 1);
 			proj.put(Fields.MONGO_ID, 0);
 			DBCursor res;
 			try {

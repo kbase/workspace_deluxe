@@ -85,7 +85,7 @@ public class Workspaces {
 	//TODO BIG SEARCH index typespecs
 	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run? Test subdata creation
 	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
-	//TODO performance tests with large / many objects
+	//TODO test involved type checking & many references
 	
 	//TODO 1 lots of tests
 	
