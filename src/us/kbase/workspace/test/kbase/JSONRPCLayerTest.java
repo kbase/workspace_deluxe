@@ -1031,7 +1031,7 @@ public class JSONRPCLayerTest {
 		// need 3g to get to this point
 		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData().asInstance();
-		//need 7g to get past readTree()
+		//need 6g to get past readValueAsTree() in UObjectDeserializer
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")

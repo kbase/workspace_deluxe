@@ -13,8 +13,9 @@ import javax.net.ssl.HttpsURLConnection;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonClientCaller {
@@ -131,24 +132,40 @@ public class JsonClientCaller {
 			istream = conn.getInputStream();
 		}
 		// Parse response into json
-		JsonNode node = mapper.readTree(new UnclosableInputStream(istream));
-		if (node.has("error")) {
-			Map<String, String> ret_error = mapper.readValue(mapper.treeAsTokens(node.get("error")), 
-					new TypeReference<Map<String, String>>(){});
-			
-			String data = ret_error.get("data") == null ? ret_error.get("error") : ret_error.get("data");
-			throw new ServerException(ret_error.get("message"),
-					new Integer(ret_error.get("code")), ret_error.get("name"),
+		JsonParser jp = mapper.getFactory().createParser(new UnclosableInputStream(istream));
+		checkToken(JsonToken.START_OBJECT, jp.nextToken());
+		Map<String, String> retError = null;
+		RET res = null;
+		while (jp.nextToken() != JsonToken.END_OBJECT) {
+			checkToken(JsonToken.FIELD_NAME, jp.getCurrentToken());
+			String fieldName = jp.getCurrentName();
+			if (fieldName.equals("error")) {
+				jp.nextToken();
+				retError = jp.getCodec().readValue(jp, new TypeReference<Map<String, String>>(){});
+			} else if (fieldName.equals("result")) {
+				jp.nextToken();
+				res = jp.getCodec().readValue(jp, cls);
+			} else {
+				jp.nextToken();
+				jp.getCodec().readValue(jp, Object.class);
+			}
+		}
+		if (retError != null) {
+			String data = retError.get("data") == null ? retError.get("error") : retError.get("data");
+			throw new ServerException(retError.get("message"),
+					new Integer(retError.get("code")), retError.get("name"),
 					data);
 		}
-		RET res = null;
-		if (node.has("result"))
-			res = mapper.readValue(mapper.treeAsTokens(node.get("result")), cls);
 		if (res == null && ret)
 			throw new ServerException("An unknown server error occured", 0, "Unknown", null);
 		return res;
 	}
 
+	private static void checkToken(JsonToken expected, JsonToken actual) throws JsonClientException {
+		if (expected != actual)
+			throw new JsonClientException("Expected " + expected + " token but " + actual + " was occured");
+	}
+		
 	public void writeRequestData(String method, Object arg, OutputStream os, String id) 
 			throws IOException {
 		JsonGenerator g = mapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
