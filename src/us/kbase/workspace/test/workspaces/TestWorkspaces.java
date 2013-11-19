@@ -70,6 +70,9 @@ import us.kbase.workspace.workspaces.Workspaces;
 //TODO test subdata access from independent mongo DB instance
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
+	
+	//true if no net access since shock requires access to globus to work
+	private static final boolean SKIP_SHOCK = false;
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
@@ -105,18 +108,28 @@ public class TestWorkspaces {
 	public static Collection<Object[]> generateData() throws Exception {
 		printMem("*** startup ***");
 		setUpWorkspaces();
-		List<Object[]> tests = Arrays.asList(new Object[][] {
-				{TEST_WORKSPACES[0]},
-				{TEST_WORKSPACES[1]}
-		});
+		List<Object[]> tests;
+		if (SKIP_SHOCK) {
+			System.out.println("Skipping shock backend tests");
+			tests = Arrays.asList(new Object[][] {
+					{TEST_WORKSPACES[0]}
+			});
+		} else {
+			tests = Arrays.asList(new Object[][] {
+					{TEST_WORKSPACES[0]},
+					{TEST_WORKSPACES[1]}
+			});
+		}
 		printMem("*** startup complete ***");
 		return tests;
 	}
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		System.out.println("deleting all shock nodes");
-		sbe.removeAllBlobs();
+		if (!SKIP_SHOCK) {
+			System.out.println("deleting all shock nodes");
+			sbe.removeAllBlobs();
+		}
 	}
 	
 	public final Workspaces ws;
@@ -138,24 +151,31 @@ public class TestWorkspaces {
 		if (mUser != null) {
 			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null,
 					mUser, mPwd);
-			shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null,
-					mUser, mPwd);
+			if (!SKIP_SHOCK) {
+				shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null,
+						mUser, mPwd);
+			}
 		} else {
 			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null);
-			shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null);
+			if (!SKIP_SHOCK) {
+				shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null);
+			}
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs, new DefaultReferenceParser());
 		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
-		TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
-		assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
-		sbe = new ShockBackend(data2.getCollection("shockData"),
-				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+		if (!SKIP_SHOCK) {
+			TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
+			assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
+			sbe = new ShockBackend(data2.getCollection("shockData"),
+					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+		}
 		for (int i = 0; i < 17; i++) {
 			LONG_TEXT += LONG_TEXT_PART;
 		}
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		for (Integer i: Arrays.asList(0,1)) {
+		int backends = 1 + (SKIP_SHOCK ? 0 : 1);
+		for (int i = 0; i < backends; i ++) {
 			TEST_WORKSPACES[i].requestModuleRegistration(foo, "SomeModule");
 			TEST_WORKSPACES[i].resolveModuleRegistration("SomeModule", true);
 			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
@@ -1390,6 +1410,63 @@ public class TestWorkspaces {
 //		printMem("*** ran gc, exiting saveWithBigMeta ***");
 	}
 	
+	@Test
+	public void tenKrefs() throws Exception {
+		final String specRef =
+				"module Test10KRefs {\n" +
+					"typedef structure {\n" +
+						"float foo;\n" +
+						"list<int> bar;\n" +
+						"string baz;\n" +
+						"mapping <string, mapping<string, int>> map;\n" +
+					"} ToRefType;\n" +
+					"/* @id ws Test10KRefs.ToRefType */\n" +
+					"typedef string reference;\n" +
+					"typedef structure {\n" +
+						"mapping<reference, string> map;\n" +
+					"} FromRefType;\n" + 
+				"};\n";
+		String mod = "Test10KRefs";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, specRef,
+				Arrays.asList("ToRefType", "FromRefType"), null, null, false, null);
+		TypeDefId toRef = new TypeDefId(new TypeDefName(mod, "ToRefType"), 0, 1);
+		TypeDefId fromRef = new TypeDefId(new TypeDefName(mod, "FromRefType"), 0, 1);
+		
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		Map<String, Object> torefdata = new HashMap<String, Object>();
+		torefdata.put("foo", 3.2);
+		torefdata.put("baz", "astring");
+		torefdata.put("bar", Arrays.asList(-3, 1, 234567890));
+		Map<String, Integer> inner2 = new HashMap<String, Integer>();
+		inner2.put("Foo", 3);
+		inner2.put("bar", 6);
+		inner2.put("baz", 42);
+		Map<String, Map<String, Integer>> inner1 = new HashMap<String, Map<String,Integer>>();
+		inner1.put("string1", inner2);
+		inner1.put("string2", inner2);
+		torefdata.put("map", inner1);
+		
+		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		Map<String, String> refs = new HashMap<String, String>();
+		refdata.put("map", refs);
+		
+		for (int i = 1; i < 10001; i++) {
+			wsos.add(new WorkspaceSaveObject(torefdata, toRef, null, emptyprov, false));
+			refs.put("tenKrefs/auto" + i, "expected " + i);
+		}
+		ws.saveObjects(userfoo, wspace, wsos);
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)));
+		//TODO get ref object, make sure ok
+		//TODO put this test in the JSONRPCLayer tests
+	}
+
 	@Test
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");

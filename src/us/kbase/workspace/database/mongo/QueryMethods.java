@@ -269,6 +269,8 @@ public class QueryMethods {
 		return ret;
 	}
 	
+	//TODO get rid of $or queries - stupid slow
+	
 	private Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
 			queryVersions(final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids,
 			final Set<String> fields) throws WorkspaceCommunicationException {
@@ -278,28 +280,43 @@ public class QueryMethods {
 		//nested or queries are slow per the mongo docs so just query one
 		//workspace at a time. If profiling shows this is slow investigate
 		//further
+		//actually, $or queries just suck it seems. Way faster to do single queries
 		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
 			ret = new HashMap<ResolvedMongoWSID, Map<Long,Map<Integer,Map<String,Object>>>>();
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
 			ret.put(rwsi, new HashMap<Long, Map<Integer, Map<String,Object>>>());
-			final List<DBObject> orquery = new LinkedList<DBObject>();
+//			final List<DBObject> orquery = new LinkedList<DBObject>();
 			for (final Long objectID: ids.get(rwsi).keySet()) {
 				ret.get(rwsi).put(objectID,
 						new HashMap<Integer, Map<String, Object>>());
-				final DBObject q = new BasicDBObject(Fields.VER_VER,
+				final DBObject q;
+				if (ids.get(rwsi).get(objectID).size() == 1) {
+					q = new BasicDBObject(Fields.VER_VER,
+							ids.get(rwsi).get(objectID).get(0));
+				} else {
+					q = new BasicDBObject(Fields.VER_VER,
 						new BasicDBObject("$in", ids.get(rwsi).get(objectID)));
+				}
 				q.put(Fields.VER_ID, objectID);
-				orquery.add(q);
+				q.put(Fields.VER_WS_ID, rwsi.getID());
+				final List<Map<String, Object>> res = queryCollection(
+						versionCollection, q, fields);
+				for (final Map<String, Object> r: res) {
+					final Long id = (Long) r.get(Fields.VER_ID);
+					final Integer ver = (Integer) r.get(Fields.VER_VER);
+					ret.get(rwsi).get(id).put(ver, r);
+				}
+//				orquery.add(q);
 			}
-			final DBObject query = new BasicDBObject("$or", orquery);
-			query.put(Fields.VER_WS_ID, rwsi.getID());
-			final List<Map<String, Object>> res = queryCollection(
-					versionCollection, query, fields);
-			for (final Map<String, Object> r: res) {
-				final Long id = (Long) r.get(Fields.VER_ID);
-				final Integer ver = (Integer) r.get(Fields.VER_VER);
-				ret.get(rwsi).get(id).put(ver, r);
-			}
+//			final DBObject query = new BasicDBObject("$or", orquery);
+//			query.put(Fields.VER_WS_ID, rwsi.getID());
+//			final List<Map<String, Object>> res = queryCollection(
+//					versionCollection, query, fields);
+//			for (final Map<String, Object> r: res) {
+//				final Long id = (Long) r.get(Fields.VER_ID);
+//				final Integer ver = (Integer) r.get(Fields.VER_VER);
+//				ret.get(rwsi).get(id).put(ver, r);
+//			}
 		}
 		return ret;
 	}
