@@ -285,7 +285,6 @@ public class QueryMethods {
 			ret = new HashMap<ResolvedMongoWSID, Map<Long,Map<Integer,Map<String,Object>>>>();
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
 			ret.put(rwsi, new HashMap<Long, Map<Integer, Map<String,Object>>>());
-//			final List<DBObject> orquery = new LinkedList<DBObject>();
 			for (final Long objectID: ids.get(rwsi).keySet()) {
 				ret.get(rwsi).put(objectID,
 						new HashMap<Integer, Map<String, Object>>());
@@ -306,17 +305,7 @@ public class QueryMethods {
 					final Integer ver = (Integer) r.get(Fields.VER_VER);
 					ret.get(rwsi).get(id).put(ver, r);
 				}
-//				orquery.add(q);
 			}
-//			final DBObject query = new BasicDBObject("$or", orquery);
-//			query.put(Fields.VER_WS_ID, rwsi.getID());
-//			final List<Map<String, Object>> res = queryCollection(
-//					versionCollection, query, fields);
-//			for (final Map<String, Object> r: res) {
-//				final Long id = (Long) r.get(Fields.VER_ID);
-//				final Integer ver = (Integer) r.get(Fields.VER_VER);
-//				ret.get(rwsi).get(id).put(ver, r);
-//			}
 		}
 		return ret;
 	}

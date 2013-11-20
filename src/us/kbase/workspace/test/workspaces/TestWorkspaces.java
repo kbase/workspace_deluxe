@@ -18,11 +18,13 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1436,7 +1438,8 @@ public class TestWorkspaces {
 		TypeDefId fromRef = new TypeDefId(new TypeDefName(mod, "FromRefType"), 0, 1);
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
-		ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		long wsid = wi.getId();
 		Provenance emptyprov = new Provenance(userfoo);
 		Map<String, Object> torefdata = new HashMap<String, Object>();
 		torefdata.put("foo", 3.2);
@@ -1463,7 +1466,20 @@ public class TestWorkspaces {
 		ws.saveObjects(userfoo, wspace, wsos);
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)));
-		//TODO get ref object, make sure ok
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> ret = (Map<String, Object>) ws.getObjects(userfoo,
+				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
+				.get(0).getData();
+		@SuppressWarnings("unchecked")
+		Map<String, String> retrefs = (Map<String, String>) ret.get("map");
+		for (Entry<String, String> es: retrefs.entrySet()) {
+			long expected = Long.parseLong(es.getValue().split(" ")[1]);
+			ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
+			assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
+			assertThat("reference id is correct", oi.getId(), is(expected));
+			assertThat("reference ver is correct", oi.getVersion(), is(1));
+		}
 		//TODO put this test in the JSONRPCLayer tests
 	}
 
