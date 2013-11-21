@@ -37,7 +37,7 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple10;
-import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
@@ -277,22 +277,23 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void createWSandCheck() throws Exception {
-		Tuple6<Long, String, String, String, String, String> meta =
+		Tuple7<Long, String, String, String, Long, String, String> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
-		Tuple6<Long, String, String, String, String, String> metaget =
+		Tuple7<Long, String, String, String, Long, String, String> metaget =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
 		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
 		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
-		for (Tuple6<Long, String, String, String, String, String> m:
+		for (Tuple7<Long, String, String, String, Long, String, String> m:
 				Arrays.asList(meta, metaget)) {
 			assertThat("ws name correct", m.getE2(), is("foo"));
 			assertThat("user name correct", m.getE3(), is(USER1));
-			assertThat("permission correct", m.getE5(), is("a"));
-			assertThat("global read correct", m.getE6(), is("r"));
+			assertThat("obj counts are 0", m.getE5(), is(0L));
+			assertThat("permission correct", m.getE6(), is("a"));
+			assertThat("global read correct", m.getE7(), is("r"));
 		}
 		assertThat("description correct", CLIENT1.getWorkspaceDescription(
 				new WorkspaceIdentity().withWorkspace("foo")), is("boogabooga"));
@@ -305,9 +306,9 @@ public class JSONRPCLayerTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 		.withWorkspace("gl2").withGlobalread("n")); //should work fine w/o globalread
 		assertThat("globalread correct", CLIENT1.getWorkspaceInfo(
-				new WorkspaceIdentity().withWorkspace("gl1")).getE6(), is("n"));
+				new WorkspaceIdentity().withWorkspace("gl1")).getE7(), is("n"));
 		assertThat("globalread correct", CLIENT1.getWorkspaceInfo(
-				new WorkspaceIdentity().withWorkspace("gl2")).getE6(), is("n"));
+				new WorkspaceIdentity().withWorkspace("gl2")).getE7(), is("n"));
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("gl_fail").withGlobalread("w"));
@@ -486,7 +487,7 @@ public class JSONRPCLayerTest {
 		String ws = "idproc";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
 				.withDescription("foo"));
-		Tuple6<Long, String, String, String, String, String> meta =
+		Tuple7<Long, String, String, String, Long, String, String> meta =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(ws));
 		//these should work
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
@@ -781,10 +782,13 @@ public class JSONRPCLayerTest {
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withMeta(meta).withType(SAFE_TYPE)); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
-				.withMeta(meta2).withType(SAFE_TYPE).withName("foo")); 
+				.withMeta(meta2).withType(SAFE_TYPE).withName("foo"));
 		
 		List<Tuple9<Long, String, String, String, Long, String, Long, String, Long>> retmet =
 				CLIENT1.saveObjects(soc);
+
+		assertThat("max obj count correct", CLIENT1.getWorkspaceInfo(
+				new WorkspaceIdentity().withWorkspace("saveget")).getE5(), is(3L));
 		
 		assertThat("num metas correct", retmet.size(), is(3));
 		checkInfo(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "36c4f68f2c98971b9736839232eb08f4", 23);

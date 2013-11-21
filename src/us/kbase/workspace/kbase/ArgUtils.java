@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.Tuple10;
-import us.kbase.common.service.Tuple6;
+import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.UTCDateFormat;
@@ -90,11 +90,11 @@ public class ArgUtils {
 		return params;
 	}
 	
-	public List<Tuple6<Long, String, String, String, String, String>>
+	public List<Tuple7<Long, String, String, String, Long, String, String>>
 			wsInfoToTuple (final List<WorkspaceInformation> info) {
-		final List<Tuple6<Long, String, String, String, String, String>> ret =
-				new LinkedList<Tuple6<Long,String,String,String,String,
-				String>>();
+		final List<Tuple7<Long, String, String, String, Long, String, String>> ret =
+				new LinkedList<Tuple7<Long, String, String, String, Long,
+				String, String>>();
 		for (final WorkspaceInformation wi: info) {
 			ret.add(wsInfoToTuple(wi));
 		}
@@ -102,15 +102,16 @@ public class ArgUtils {
 		
 	}
 
-	public Tuple6<Long, String, String, String, String, String>
+	public Tuple7<Long, String, String, String, Long, String, String>
 			wsInfoToTuple (final WorkspaceInformation info) {
-		return new Tuple6<Long, String, String, String, String, String>()
+		return new Tuple7<Long, String, String, String, Long, String, String>()
 				.withE1(info.getId())
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
 				.withE4(dateFormat.formatDate(info.getModDate()))
-				.withE5(translatePermission(info.getUserPermission())) 
-				.withE6(translatePermission(info.isGloballyReadable()));
+				.withE5(info.getApproximateObjects())
+				.withE6(translatePermission(info.getUserPermission())) 
+				.withE7(translatePermission(info.isGloballyReadable()));
 	}
 	
 	public List<Tuple9<Long, String, String, String, Long, String,

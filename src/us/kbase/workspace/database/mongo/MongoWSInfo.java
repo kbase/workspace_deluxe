@@ -12,15 +12,18 @@ public class MongoWSInfo implements WorkspaceInformation {
 	final private String name;
 	final private WorkspaceUser owner;
 	final private Date modDate;
+	final private long approxObjs;
 	final private Permission userPermission;
 	final private boolean globalRead;
 	
-	MongoWSInfo(long id, String name, WorkspaceUser owner, Date modDate,
-			Permission userPermission, boolean globalRead) {
+	MongoWSInfo(final long id, final String name, final WorkspaceUser owner,
+			final Date modDate, final long approxObjs,
+			final Permission userPermission, final boolean globalRead) {
 		this.id = id;
 		this.name = name;
 		this.owner = owner;
 		this.modDate = modDate;
+		this.approxObjs = approxObjs;
 		this.userPermission = userPermission;
 		this.globalRead = globalRead;
 		
@@ -46,6 +49,10 @@ public class MongoWSInfo implements WorkspaceInformation {
 		return modDate;
 	}
 
+	@Override
+	public long getApproximateObjects() {
+		return approxObjs;
+	}
 
 	@Override
 	public Permission getUserPermission() {
@@ -63,5 +70,4 @@ public class MongoWSInfo implements WorkspaceInformation {
 				+ ", modDate=" + modDate + ", userPermission=" + userPermission 
 				+ ", globalRead=" + globalRead + "]";
 	}
-
 }

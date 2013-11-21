@@ -106,7 +106,7 @@ module Workspace {
 		permission global_permission - default permissions for the workspace
 			for all KBase users
 		ws_id num_id - numerical ID of the workspace
-			
+		
 	*/
 	typedef tuple<ws_name id, username owner, timestamp moddate,
 		int objects, permission user_permission, permission global_permission,
@@ -448,7 +448,8 @@ module Workspace {
 	} list_workspaces_params;
 	
 	/*
-		Lists the metadata of all workspaces a user has access to.
+		Lists the metadata of all workspaces a user has access to. Provided for
+		backwards compatibility - to be replaced by list_workspace_info
 	*/
 	funcdef list_workspaces(list_workspaces_params params)
 		returns (list<workspace_metadata> workspaces);

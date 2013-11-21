@@ -401,8 +401,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			setPermissions(new ResolvedMongoWSID(count),
 					Arrays.asList(allUsers), Permission.READ, false);
 		}
-		return new MongoWSInfo(count, wsname, user, moddate, Permission.OWNER,
-				globalRead);
+		return new MongoWSInfo(count, wsname, user, moddate, 0L,
+				Permission.OWNER, globalRead);
 	}
 	
 	//projection lists
@@ -620,9 +620,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return query.queryPermissions(query.convertResolvedWSID(rwsi));
 	}
 
-	private static final Set<String> FLDS_WS_ID_NAME_OWNER_MODDATE = 
+	private static final Set<String> FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
-					Fields.WS_MODDATE);
+					Fields.WS_MODDATE, Fields.WS_NUMPTR);
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
@@ -643,7 +643,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<ResolvedMongoWSID, Map<String, Object>> ws =
 				query.queryWorkspacesByResolvedID(rwsis,
-						FLDS_WS_ID_NAME_OWNER_MODDATE);
+						FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT);
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
 		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
@@ -660,7 +660,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			CorruptWorkspaceDBException {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
 		final Map<String, Object> ws = query.queryWorkspace(m,
-				FLDS_WS_ID_NAME_OWNER_MODDATE);
+				FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT);
 		final PermissionSet perms = getPermissions(user, m);
 		return generateWSInfo(user, rwsi, perms, ws);
 	}
@@ -673,6 +673,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
 				(Date) wsdata.get(Fields.WS_MODDATE),
+				(Long) wsdata.get(Fields.WS_NUMPTR),
 				perms.getUserPermission(rwsi),
 				perms.isWorldReadable(rwsi));
 	}

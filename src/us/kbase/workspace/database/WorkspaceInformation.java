@@ -10,6 +10,7 @@ public interface WorkspaceInformation {
 	public String getName();
 	public WorkspaceUser getOwner();
 	public Date getModDate();
+	public long getApproximateObjects();
 	public Permission getUserPermission();
 	public boolean isGloballyReadable();
 }
