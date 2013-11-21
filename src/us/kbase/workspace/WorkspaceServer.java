@@ -386,7 +386,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			final Provenance p = au.processProvenance(user,
 					d.getProvenance());
-			final boolean hidden = d.getHidden() != null && d.getHidden() != 0;
+			final boolean hidden = au.longToBoolean(d.getHidden());
 			try {
 				if (oi == null) {
 					woc.add(new WorkspaceSaveObject(d.getData().asJsonNode(),
@@ -444,10 +444,10 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple7<String, String, String, Long, String, String, Long>> listWorkspaces(ListWorkspacesParams params, AuthToken authPart) throws Exception {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
-		//TODO deal with excluding read only ws
 		//TODO tests
-		returnVal =  au.wsInfoToMetaTuple(
-				ws.listWorkspaces(getUser(params.getAuth(), authPart)));
+		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
+				getUser(params.getAuth(), authPart),
+				au.longToBoolean(params.getExcludeGlobal())));
         //END list_workspaces
         return returnVal;
     }
@@ -465,8 +465,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple7<Long, String, String, String, Long, String, String>> returnVal = null;
         //BEGIN list_workspace_info
 		//TODO tests
-		//TODO deal with excluding read only ws
-		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart)));
+		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
+				au.longToBoolean(params.getExcludeGlobal())));
         //END list_workspace_info
         return returnVal;
     }

@@ -489,7 +489,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"Permission cannot be null or NONE");
 		}
 		final Set<User> u = new HashSet<User>();
-		u.add(user);
+		if (user != null) {
+			u.add(user);
+		}
 		u.add(allUsers);
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms =
 				query.queryPermissions(u, perm);
@@ -620,16 +622,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return query.queryPermissions(query.convertResolvedWSID(rwsi));
 	}
 
-	private static final Set<String> FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT = 
+	private static final Set<String> FLDS_WS_NO_DESC = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
-					Fields.WS_MODDATE, Fields.WS_NUMPTR);
+					Fields.WS_MODDATE, Fields.WS_NUMPTR, Fields.WS_DEL);
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			final PermissionSet pset)
+			final PermissionSet pset, final boolean excludeGlobal)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		//TODO temporary function, replace with full fn
 		if (!(pset instanceof MongoPermissionSet)) {
 			throw new IllegalArgumentException(
 					"Illegal implementation of PermissionSet: " +
@@ -637,18 +638,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Set<ResolvedMongoWSID> rwsis = new HashSet<ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			if (pset.getUserPermission(rwsi).compareTo(Permission.READ) >= 1) {
+			if (pset.getUserPermission(rwsi).compareTo(Permission.READ) >= 1 ||
+				(!excludeGlobal && pset.isWorldReadable(rwsi))) {
 				rwsis.add(query.convertResolvedWSID(rwsi));
 			}
 		}
 		final Map<ResolvedMongoWSID, Map<String, Object>> ws =
 				query.queryWorkspacesByResolvedID(rwsis,
-						FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT);
+						FLDS_WS_NO_DESC);
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
 		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
-			//TODO don't show deleted workspaces
-			ret.add(generateWSInfo(pset.getUser(), rwsi, pset, ws.get(rwsi)));
+			if (!(Boolean) ws.get(rwsi).get(Fields.WS_DEL)) {
+				ret.add(generateWSInfo(pset.getUser(), rwsi, pset, ws.get(rwsi)));
+			}
 		}
 		return ret;
 	}
@@ -660,7 +663,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			CorruptWorkspaceDBException {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
 		final Map<String, Object> ws = query.queryWorkspace(m,
-				FLDS_WS_ID_NAME_OWNER_MODDATE_PTRCNT);
+				FLDS_WS_NO_DESC);
 		final PermissionSet perms = getPermissions(user, m);
 		return generateWSInfo(user, rwsi, perms, ws);
 	}

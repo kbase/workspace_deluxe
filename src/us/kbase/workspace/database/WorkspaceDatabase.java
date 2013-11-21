@@ -94,7 +94,7 @@ public interface WorkspaceDatabase {
 			CorruptWorkspaceDBException;
 
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			PermissionSet pset)
+			PermissionSet pset, boolean excludeGlobal)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(

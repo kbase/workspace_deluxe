@@ -549,12 +549,12 @@ public class Workspaces {
 	}
 	
 	public List<WorkspaceInformation> listWorkspaces(
-			final WorkspaceUser user)
+			final WorkspaceUser user, final boolean excludeGlobal)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		final PermissionSet perms =
 				db.getWorkspacesWithPermission(user, Permission.READ);
-		return db.getWorkspaceInformation(perms);
+		return db.getWorkspaceInformation(perms, excludeGlobal);
 	}
 	
 	public List<ObjectInformation> prealphaListObjects(final WorkspaceUser user,

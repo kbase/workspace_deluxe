@@ -272,4 +272,15 @@ public class ArgUtils {
 		}
 		return pas;
 	}
+	
+	public boolean longToBoolean(final Long b) {
+		return longToBoolean(b, false);
+	}
+	
+	public boolean longToBoolean(final Long b, final boolean def) {
+		if (b == null) {
+			return false;
+		}
+		return b != 0;
+	}
 }
