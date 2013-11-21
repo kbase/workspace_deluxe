@@ -84,7 +84,9 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
-	
+
+	//TODO save_object get_object get_objectmeta get_workspacemeta list_workspace_objects 
+
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -445,7 +447,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO deal with excluding read only ws
 		//TODO tests
 		returnVal =  au.wsInfoToMetaTuple(
-				ws.prealphaListWorkspaces(getUser(params.getAuth(), authPart)));
+				ws.listWorkspaces(getUser(params.getAuth(), authPart)));
         //END list_workspaces
         return returnVal;
     }
@@ -464,8 +466,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_workspace_info
 		//TODO tests
 		//TODO deal with excluding read only ws
-		returnVal =  au.wsInfoToTuple(
-				ws.prealphaListWorkspaces(getUser(authPart)));
+		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart)));
         //END list_workspace_info
         return returnVal;
     }

@@ -548,7 +548,7 @@ public class Workspaces {
 		return tove;
 	}
 	
-	public List<WorkspaceInformation> prealphaListWorkspaces(
+	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
