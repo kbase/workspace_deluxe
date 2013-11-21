@@ -992,7 +992,8 @@ ws_id is an int
 
 =item Description
 
-Lists the metadata of all workspaces a user has access to.
+Lists the metadata of all workspaces a user has access to. Provided for
+backwards compatibility - to be replaced by list_workspace_info
 
 =back
 
@@ -1046,7 +1047,7 @@ sub list_workspaces
 
 =head2 list_workspace_info
 
-  $wsinfo = $obj->list_workspace_info()
+  $wsinfo = $obj->list_workspace_info($params)
 
 =over 4
 
@@ -1055,7 +1056,11 @@ sub list_workspaces
 =begin html
 
 <pre>
+$params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
+ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
+	excludeGlobal has a value which is a Workspace.boolean
+boolean is an int
 workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
@@ -1076,7 +1081,11 @@ permission is a string
 
 =begin text
 
+$params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
+ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
+	excludeGlobal has a value which is a Workspace.boolean
+boolean is an int
 workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
@@ -1108,10 +1117,21 @@ sub list_workspace_info
 
 # Authentication: optional
 
-    if ((my $n = @args) != 0)
+    if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function list_workspace_info (received $n, expecting 0)");
+							       "Invalid argument count for function list_workspace_info (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_workspace_info:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_workspace_info');
+	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
@@ -4184,12 +4204,15 @@ provenance has a value which is a reference to a list where each element is a Wo
 
 =item Description
 
-Input parameters for the "list_workspaces" function.
+Input parameters for the "list_workspaces" function. Provided for
+backwards compatibility.
 
-        string auth - the authentication token of the KBase account accessing
-                the list of workspaces (an optional argument)
-        boolean excludeGlobal - if credentials are supplied and excludeGlobal is
-                true exclude world readable workspaces
+Optional parameters:
+string auth - the authentication token of the KBase account accessing
+        the list of workspaces. Overrides the client provided authorization
+        credentials if provided.
+boolean excludeGlobal - if excludeGlobal is true exclude world
+        readable workspaces
 
 
 =item Definition
@@ -4209,6 +4232,45 @@ excludeGlobal has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 auth has a value which is a string
+excludeGlobal has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 ListWorkspaceInfoParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "list_workspace_info" function.
+
+Optional parameters:
+boolean excludeGlobal - if excludeGlobal is true exclude world
+        readable workspaces
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+excludeGlobal has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
 excludeGlobal has a value which is a Workspace.boolean
 
 

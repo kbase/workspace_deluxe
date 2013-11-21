@@ -12,14 +12,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: list_workspaces_params</p>
+ * <p>Original spec-file type: ListWorkspaceInfoParams</p>
  * <pre>
- * Input parameters for the "list_workspaces" function. Provided for
- * backwards compatibility.
+ * Input parameters for the "list_workspace_info" function.
  * Optional parameters:
- * string auth - the authentication token of the KBase account accessing
- *         the list of workspaces. Overrides the client provided authorization
- *         credentials if provided.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces
  * </pre>
@@ -28,31 +24,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "auth",
     "excludeGlobal"
 })
-public class ListWorkspacesParams {
+public class ListWorkspaceInfoParams {
 
-    @JsonProperty("auth")
-    private String auth;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
-
-    @JsonProperty("auth")
-    public String getAuth() {
-        return auth;
-    }
-
-    @JsonProperty("auth")
-    public void setAuth(String auth) {
-        this.auth = auth;
-    }
-
-    public ListWorkspacesParams withAuth(String auth) {
-        this.auth = auth;
-        return this;
-    }
 
     @JsonProperty("excludeGlobal")
     public Long getExcludeGlobal() {
@@ -64,7 +42,7 @@ public class ListWorkspacesParams {
         this.excludeGlobal = excludeGlobal;
     }
 
-    public ListWorkspacesParams withExcludeGlobal(Long excludeGlobal) {
+    public ListWorkspaceInfoParams withExcludeGlobal(Long excludeGlobal) {
         this.excludeGlobal = excludeGlobal;
         return this;
     }
@@ -81,7 +59,7 @@ public class ListWorkspacesParams {
 
     @Override
     public String toString() {
-        return ((((((("ListWorkspacesParams"+" [auth=")+ auth)+", excludeGlobal=")+ excludeGlobal)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

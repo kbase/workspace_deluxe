@@ -432,10 +432,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def list_workspace_info(self):
+    def list_workspace_info(self, params):
 
         arg_hash = {'method': 'Workspace.list_workspace_info',
-                    'params': [],
+                    'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }

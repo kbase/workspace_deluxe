@@ -3,6 +3,7 @@ package us.kbase.workspace.kbase;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -14,7 +15,11 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.UTCDateFormat;
+import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.auth.TokenExpiredException;
+import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
@@ -99,11 +104,10 @@ public class ArgUtils {
 			ret.add(wsInfoToTuple(wi));
 		}
 		return ret;
-		
 	}
 
 	public Tuple7<Long, String, String, String, Long, String, String>
-			wsInfoToTuple (final WorkspaceInformation info) {
+			wsInfoToTuple(final WorkspaceInformation info) {
 		return new Tuple7<Long, String, String, String, Long, String, String>()
 				.withE1(info.getId())
 				.withE2(info.getName())
@@ -112,6 +116,29 @@ public class ArgUtils {
 				.withE5(info.getApproximateObjects())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()));
+	}
+	
+	public List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(
+			List<WorkspaceInformation> info) {
+		final List<Tuple7<String, String, String, Long, String, String, Long>> ret =
+				new LinkedList<Tuple7<String, String, String, Long, String,
+				String, Long>>();
+		for (final WorkspaceInformation wi: info) {
+			ret.add(wsInfoToMetaTuple(wi));
+		}
+		return ret;
+	}
+	
+	public Tuple7<String, String, String, Long, String, String, Long>
+				wsInfoToMetaTuple(final WorkspaceInformation info) {
+		return new Tuple7<String, String, String, Long, String, String, Long>()
+				.withE7(info.getId())
+				.withE1(info.getName())
+				.withE2(info.getOwner().getUser())
+				.withE3(dateFormat.formatDate(info.getModDate()))
+				.withE4(info.getApproximateObjects())
+				.withE5(translatePermission(info.getUserPermission())) 
+				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
 	public List<Tuple9<Long, String, String, String, Long, String,
@@ -173,6 +200,33 @@ public class ArgUtils {
 					.withE10(m.getUserMetaData()));
 		}
 		return ret;
+	}
+	
+	public static WorkspaceUser getUser(final String tokenstring,
+			final AuthToken token)
+			throws TokenExpiredException, TokenFormatException, IOException,
+			AuthException {
+		return getUser(tokenstring, token, false);
+	}
+	
+	public static WorkspaceUser getUser(final String tokenstring,
+			final AuthToken token, final boolean authrqd)
+			throws TokenExpiredException, TokenFormatException, IOException,
+			AuthException {
+		if (tokenstring != null) {
+			final AuthToken t = new AuthToken(tokenstring);
+			if (!AuthService.validateToken(t)) {
+				throw new AuthException("Token is invalid");
+			}
+			return new WorkspaceUser(t.getUserName());
+		}
+		if (token == null) {
+			if (authrqd) {
+				throw new AuthException("Authorization is required");
+			}
+			return null;
+		}
+		return new WorkspaceUser(token.getUserName());
 	}
 	
 	public static WorkspaceUser getUser(final AuthToken token) {

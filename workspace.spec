@@ -434,12 +434,16 @@ module Workspace {
 	funcdef get_objects(list<ObjectIdentity> object_ids)
 		returns (list<ObjectData> data);
 		
-	/* Input parameters for the "list_workspaces" function.
-	
+	/* 
+		Input parameters for the "list_workspaces" function. Provided for
+		backwards compatibility.
+		
+		Optional parameters:
 		string auth - the authentication token of the KBase account accessing
-			the list of workspaces (an optional argument)
-		boolean excludeGlobal - if credentials are supplied and excludeGlobal is
-			true exclude world readable workspaces
+			the list of workspaces. Overrides the client provided authorization
+			credentials if provided.
+		boolean excludeGlobal - if excludeGlobal is true exclude world
+			readable workspaces
 		
 	*/
 	typedef structure { 
@@ -454,10 +458,23 @@ module Workspace {
 	funcdef list_workspaces(list_workspaces_params params)
 		returns (list<workspace_metadata> workspaces);
 	
+	/* 
+		Input parameters for the "list_workspace_info" function.
+		
+		Optional parameters:
+		boolean excludeGlobal - if excludeGlobal is true exclude world
+			readable workspaces
+		
+	*/
+	typedef structure { 
+		boolean excludeGlobal;
+	} ListWorkspaceInfoParams;
+	
 	/*
 		Early version of list_workspace_info.
 	 */
-	funcdef list_workspace_info() returns(list<workspace_info> wsinfo);
+	funcdef list_workspace_info(ListWorkspaceInfoParams params)
+		returns(list<workspace_info> wsinfo);
 	
 	/*
 		Early version of list_objects.
