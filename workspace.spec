@@ -93,19 +93,41 @@ module Workspace {
 		ws_id id;
 	} WorkspaceIdentity;
 	
+	/* Meta data associated with a workspace. Provided for backwards
+		compatibility. To be replaced by workspace_info.
+	
+		ws_name id - name of the workspace 
+		username owner - name of the user who owns (who created) this object
+		timestamp moddate - date when the workspace was last modified
+		int objects - the approximate number of objects currently stored in
+			the workspace.
+		permission user_permission - permissions for the currently logged in
+			user for the workspace
+		permission global_permission - default permissions for the workspace
+			for all KBase users
+		ws_id num_id - numerical ID of the workspace
+			
+	*/
+	typedef tuple<ws_name id, username owner, timestamp moddate,
+		int objects, permission user_permission, permission global_permission,
+		ws_id num_id> workspace_metadata;
+	
 	/* Information about a workspace.
 	
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified.
+		int objects - the approximate number of objects currently stored in
+			the workspace.
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		permission user_permission, permission globalread> workspace_info;
+		int object, permission user_permission, permission globalread>
+		workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */
 	typedef int obj_id;
@@ -391,6 +413,8 @@ module Workspace {
 	funcdef save_objects(SaveObjectsParams params)
 		returns (list<object_info> info);
 	
+	authentication optional;
+	
 	/* The data and supplemental info for an object.
 	
 		UnspecifiedObject data - the object's data.
@@ -404,22 +428,41 @@ module Workspace {
 		list<ProvenanceAction> provenance;
 	} ObjectData;
 	
-	authentication optional;
-	
-	/* pre alpha version of list_workspaces so there's something to use.
-		No tests. */
-	funcdef prealpha_list_workspaces() returns(list<workspace_info> wsinfo);
-	
-	/* pre alpha version of list_objects so there's something to use.
-		No tests. */
-	funcdef prealpha_list_objects(WorkspaceIdentity wsi)
-		returns(list<object_info> objinfo);
-	
 	/* 
 		Get objects from the workspace.
 	*/
 	funcdef get_objects(list<ObjectIdentity> object_ids)
 		returns (list<ObjectData> data);
+		
+	/* Input parameters for the "list_workspaces" function.
+	
+		string auth - the authentication token of the KBase account accessing
+			the list of workspaces (an optional argument)
+		boolean excludeGlobal - if credentials are supplied and excludeGlobal is
+			true exclude world readable workspaces
+		
+	*/
+	typedef structure { 
+		string auth;
+		boolean excludeGlobal;
+	} list_workspaces_params;
+	
+	/*
+		Lists the metadata of all workspaces a user has access to.
+	*/
+	funcdef list_workspaces(list_workspaces_params params)
+		returns (list<workspace_metadata> workspaces);
+	
+	/*
+		Early version of list_workspace_info.
+	 */
+	funcdef list_workspace_info() returns(list<workspace_info> wsinfo);
+	
+	/*
+		Early version of list_objects.
+	*/
+	funcdef list_objects(WorkspaceIdentity wsi)
+		returns(list<object_info> objinfo);
 	
 	/* 
 		Get information about an object from the workspace.

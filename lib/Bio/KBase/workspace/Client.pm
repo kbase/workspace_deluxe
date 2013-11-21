@@ -98,13 +98,14 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -123,13 +124,14 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
 ws_id is an int
 username is a string
 timestamp is a string
@@ -209,13 +211,14 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
 username is a string
 timestamp is a string
 permission is a string
@@ -233,13 +236,14 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 6 items:
+workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
 username is a string
 timestamp is a string
 permission is a string
@@ -754,219 +758,6 @@ sub save_objects
 
 
 
-=head2 prealpha_list_workspaces
-
-  $wsinfo = $obj->prealpha_list_workspaces()
-
-=over 4
-
-=item Parameter and return types
-
-=begin html
-
-<pre>
-$wsinfo is a reference to a list where each element is a Workspace.workspace_info
-workspace_info is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
-ws_id is an int
-ws_name is a string
-username is a string
-timestamp is a string
-permission is a string
-
-</pre>
-
-=end html
-
-=begin text
-
-$wsinfo is a reference to a list where each element is a Workspace.workspace_info
-workspace_info is a reference to a list containing 6 items:
-	0: (id) a Workspace.ws_id
-	1: (workspace) a Workspace.ws_name
-	2: (owner) a Workspace.username
-	3: (moddate) a Workspace.timestamp
-	4: (user_permission) a Workspace.permission
-	5: (globalread) a Workspace.permission
-ws_id is an int
-ws_name is a string
-username is a string
-timestamp is a string
-permission is a string
-
-
-=end text
-
-=item Description
-
-pre alpha version of list_workspaces so there's something to use.
-No tests.
-
-=back
-
-=cut
-
-sub prealpha_list_workspaces
-{
-    my($self, @args) = @_;
-
-# Authentication: optional
-
-    if ((my $n = @args) != 0)
-    {
-	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function prealpha_list_workspaces (received $n, expecting 0)");
-    }
-
-    my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.prealpha_list_workspaces",
-	params => \@args,
-    });
-    if ($result) {
-	if ($result->is_error) {
-	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
-					       method_name => 'prealpha_list_workspaces',
-					      );
-	} else {
-	    return wantarray ? @{$result->result} : $result->result->[0];
-	}
-    } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method prealpha_list_workspaces",
-					    status_line => $self->{client}->status_line,
-					    method_name => 'prealpha_list_workspaces',
-				       );
-    }
-}
-
-
-
-=head2 prealpha_list_objects
-
-  $objinfo = $obj->prealpha_list_objects($wsi)
-
-=over 4
-
-=item Parameter and return types
-
-=begin html
-
-<pre>
-$wsi is a Workspace.WorkspaceIdentity
-$objinfo is a reference to a list where each element is a Workspace.object_info
-WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
-ws_name is a string
-ws_id is an int
-object_info is a reference to a list containing 9 items:
-	0: (objid) a Workspace.obj_id
-	1: (name) a Workspace.obj_name
-	2: (type) a Workspace.type_string
-	3: (save_date) a Workspace.timestamp
-	4: (version) an int
-	5: (created_by) a Workspace.username
-	6: (wsid) a Workspace.ws_id
-	7: (chsum) a string
-	8: (size) an int
-obj_id is an int
-obj_name is a string
-type_string is a string
-timestamp is a string
-username is a string
-
-</pre>
-
-=end html
-
-=begin text
-
-$wsi is a Workspace.WorkspaceIdentity
-$objinfo is a reference to a list where each element is a Workspace.object_info
-WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
-ws_name is a string
-ws_id is an int
-object_info is a reference to a list containing 9 items:
-	0: (objid) a Workspace.obj_id
-	1: (name) a Workspace.obj_name
-	2: (type) a Workspace.type_string
-	3: (save_date) a Workspace.timestamp
-	4: (version) an int
-	5: (created_by) a Workspace.username
-	6: (wsid) a Workspace.ws_id
-	7: (chsum) a string
-	8: (size) an int
-obj_id is an int
-obj_name is a string
-type_string is a string
-timestamp is a string
-username is a string
-
-
-=end text
-
-=item Description
-
-pre alpha version of list_objects so there's something to use.
-No tests.
-
-=back
-
-=cut
-
-sub prealpha_list_objects
-{
-    my($self, @args) = @_;
-
-# Authentication: optional
-
-    if ((my $n = @args) != 1)
-    {
-	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function prealpha_list_objects (received $n, expecting 1)");
-    }
-    {
-	my($wsi) = @args;
-
-	my @_bad_arguments;
-        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
-        if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to prealpha_list_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
-	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'prealpha_list_objects');
-	}
-    }
-
-    my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.prealpha_list_objects",
-	params => \@args,
-    });
-    if ($result) {
-	if ($result->is_error) {
-	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
-					       code => $result->content->{code},
-					       method_name => 'prealpha_list_objects',
-					      );
-	} else {
-	    return wantarray ? @{$result->result} : $result->result->[0];
-	}
-    } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method prealpha_list_objects",
-					    status_line => $self->{client}->status_line,
-					    method_name => 'prealpha_list_objects',
-				       );
-    }
-}
-
-
-
 =head2 get_objects
 
   $data = $obj->get_objects($object_ids)
@@ -1133,6 +924,333 @@ sub get_objects
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_objects",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_objects',
+				       );
+    }
+}
+
+
+
+=head2 list_workspaces
+
+  $workspaces = $obj->list_workspaces($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.list_workspaces_params
+$workspaces is a reference to a list where each element is a Workspace.workspace_metadata
+list_workspaces_params is a reference to a hash where the following keys are defined:
+	auth has a value which is a string
+	excludeGlobal has a value which is a Workspace.boolean
+boolean is an int
+workspace_metadata is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_name
+	1: (owner) a Workspace.username
+	2: (moddate) a Workspace.timestamp
+	3: (objects) an int
+	4: (user_permission) a Workspace.permission
+	5: (global_permission) a Workspace.permission
+	6: (num_id) a Workspace.ws_id
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+ws_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.list_workspaces_params
+$workspaces is a reference to a list where each element is a Workspace.workspace_metadata
+list_workspaces_params is a reference to a hash where the following keys are defined:
+	auth has a value which is a string
+	excludeGlobal has a value which is a Workspace.boolean
+boolean is an int
+workspace_metadata is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_name
+	1: (owner) a Workspace.username
+	2: (moddate) a Workspace.timestamp
+	3: (objects) an int
+	4: (user_permission) a Workspace.permission
+	5: (global_permission) a Workspace.permission
+	6: (num_id) a Workspace.ws_id
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+ws_id is an int
+
+
+=end text
+
+=item Description
+
+Lists the metadata of all workspaces a user has access to.
+
+=back
+
+=cut
+
+sub list_workspaces
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_workspaces (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_workspaces:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_workspaces');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_workspaces",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_workspaces',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_workspaces",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_workspaces',
+				       );
+    }
+}
+
+
+
+=head2 list_workspace_info
+
+  $wsinfo = $obj->list_workspace_info()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsinfo is a reference to a list where each element is a Workspace.workspace_info
+workspace_info is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+ws_id is an int
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsinfo is a reference to a list where each element is a Workspace.workspace_info
+workspace_info is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+ws_id is an int
+ws_name is a string
+username is a string
+timestamp is a string
+permission is a string
+
+
+=end text
+
+=item Description
+
+Early version of list_workspace_info.
+
+=back
+
+=cut
+
+sub list_workspace_info
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_workspace_info (received $n, expecting 0)");
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_workspace_info",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_workspace_info',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_workspace_info",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_workspace_info',
+				       );
+    }
+}
+
+
+
+=head2 list_objects
+
+  $objinfo = $obj->list_objects($wsi)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsi is a Workspace.WorkspaceIdentity
+$objinfo is a reference to a list where each element is a Workspace.object_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+object_info is a reference to a list containing 9 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+obj_id is an int
+obj_name is a string
+type_string is a string
+timestamp is a string
+username is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsi is a Workspace.WorkspaceIdentity
+$objinfo is a reference to a list where each element is a Workspace.object_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+object_info is a reference to a list containing 9 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (created_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (chsum) a string
+	8: (size) an int
+obj_id is an int
+obj_name is a string
+type_string is a string
+timestamp is a string
+username is a string
+
+
+=end text
+
+=item Description
+
+Early version of list_objects.
+
+=back
+
+=cut
+
+sub list_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_objects (received $n, expecting 1)");
+    }
+    {
+	my($wsi) = @args;
+
+	my @_bad_arguments;
+        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_objects',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_objects',
 				       );
     }
 }
@@ -3256,6 +3374,65 @@ id has a value which is a Workspace.ws_id
 
 
 
+=head2 workspace_metadata
+
+=over 4
+
+
+
+=item Description
+
+Meta data associated with a workspace. Provided for backwards
+compatibility. To be replaced by workspace_info.
+        
+ws_name id - name of the workspace 
+username owner - name of the user who owns (who created) this object
+timestamp moddate - date when the workspace was last modified
+int objects - the approximate number of objects currently stored in
+        the workspace.
+permission user_permission - permissions for the currently logged in
+        user for the workspace
+permission global_permission - default permissions for the workspace
+        for all KBase users
+ws_id num_id - numerical ID of the workspace
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a list containing 7 items:
+0: (id) a Workspace.ws_name
+1: (owner) a Workspace.username
+2: (moddate) a Workspace.timestamp
+3: (objects) an int
+4: (user_permission) a Workspace.permission
+5: (global_permission) a Workspace.permission
+6: (num_id) a Workspace.ws_id
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a list containing 7 items:
+0: (id) a Workspace.ws_name
+1: (owner) a Workspace.username
+2: (moddate) a Workspace.timestamp
+3: (objects) an int
+4: (user_permission) a Workspace.permission
+5: (global_permission) a Workspace.permission
+6: (num_id) a Workspace.ws_id
+
+
+=end text
+
+=back
+
+
+
 =head2 workspace_info
 
 =over 4
@@ -3270,6 +3447,8 @@ Information about a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
+        int objects - the approximate number of objects currently stored in
+                the workspace.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
@@ -3280,13 +3459,14 @@ Information about a workspace.
 =begin html
 
 <pre>
-a reference to a list containing 6 items:
+a reference to a list containing 7 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (user_permission) a Workspace.permission
-5: (globalread) a Workspace.permission
+4: (object) an int
+5: (user_permission) a Workspace.permission
+6: (globalread) a Workspace.permission
 
 </pre>
 
@@ -3294,13 +3474,14 @@ a reference to a list containing 6 items:
 
 =begin text
 
-a reference to a list containing 6 items:
+a reference to a list containing 7 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (user_permission) a Workspace.permission
-5: (globalread) a Workspace.permission
+4: (object) an int
+5: (user_permission) a Workspace.permission
+6: (globalread) a Workspace.permission
 
 
 =end text
@@ -3660,14 +3841,14 @@ A provenance action.
         
         timestamp time - the time the action was started.
         string service - the name of the service that performed this action.
-        int service_ver - the version of the service that performed this action.
+        string service_ver - the version of the service that performed this action.
         string method - the method of the service that performed this action.
         list<UnspecifiedObject> method_params - the parameters of the method
                 that performed this action. If an object in the parameters is a
                 workspace object, also put the object reference in the
                 input_ws_object list.
         string script - the name of the script that performed this action.
-        int script_ver - the version of the script that performed this action.
+        string script_ver - the version of the script that performed this action.
         string script_command_line - the command line provided to the script
                 that performed this action. If workspace objects were provided in
                 the command line, also put the object reference in the
@@ -3987,6 +4168,48 @@ a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info_full
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+
+
+=end text
+
+=back
+
+
+
+=head2 list_workspaces_params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "list_workspaces" function.
+
+        string auth - the authentication token of the KBase account accessing
+                the list of workspaces (an optional argument)
+        boolean excludeGlobal - if credentials are supplied and excludeGlobal is
+                true exclude world readable workspaces
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+auth has a value which is a string
+excludeGlobal has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+auth has a value which is a string
+excludeGlobal has a value which is a Workspace.boolean
 
 
 =end text
