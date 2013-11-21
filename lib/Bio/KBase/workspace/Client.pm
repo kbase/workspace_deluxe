@@ -193,6 +193,122 @@ sub create_workspace
 
 
 
+=head2 get_workspacemeta
+
+  $metadata = $obj->get_workspacemeta($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.get_workspacemeta_params
+$metadata is a Workspace.workspace_metadata
+get_workspacemeta_params is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	auth has a value which is a string
+ws_name is a string
+ws_id is an int
+workspace_metadata is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_name
+	1: (owner) a Workspace.username
+	2: (moddate) a Workspace.timestamp
+	3: (objects) an int
+	4: (user_permission) a Workspace.permission
+	5: (global_permission) a Workspace.permission
+	6: (num_id) a Workspace.ws_id
+username is a string
+timestamp is a string
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.get_workspacemeta_params
+$metadata is a Workspace.workspace_metadata
+get_workspacemeta_params is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	auth has a value which is a string
+ws_name is a string
+ws_id is an int
+workspace_metadata is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_name
+	1: (owner) a Workspace.username
+	2: (moddate) a Workspace.timestamp
+	3: (objects) an int
+	4: (user_permission) a Workspace.permission
+	5: (global_permission) a Workspace.permission
+	6: (num_id) a Workspace.ws_id
+username is a string
+timestamp is a string
+permission is a string
+
+
+=end text
+
+=item Description
+
+Retreives the metadata associated with the specified workspace.
+Provided for backwards compatibility. 
+@deprecated Workspace.get_workspace_info
+
+=back
+
+=cut
+
+sub get_workspacemeta
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_workspacemeta (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_workspacemeta:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_workspacemeta');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_workspacemeta",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_workspacemeta',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_workspacemeta",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_workspacemeta',
+				       );
+    }
+}
+
+
+
 =head2 get_workspace_info
 
   $info = $obj->get_workspace_info($wsi)
@@ -993,7 +1109,8 @@ ws_id is an int
 =item Description
 
 Lists the metadata of all workspaces a user has access to. Provided for
-backwards compatibility - to be replaced by list_workspace_info
+backwards compatibility - to be replaced by the functionality of
+list_workspace_info
 
 =back
 
@@ -1105,7 +1222,7 @@ permission is a string
 
 =item Description
 
-Early version of list_workspace_info.
+Early version of list_workspaces with full API.
 
 =back
 
@@ -3991,6 +4108,58 @@ description has a value which is a string
 
 
 
+=head2 get_workspacemeta_params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "get_workspacemeta" function. Provided for
+backwards compatibility.
+        
+One, and only one of:
+ws_name workspace - name of the workspace or the workspace ID in KBase
+        format, e.g. kb|ws.78.
+ws_id id - the numerical ID of the workspace.
+        
+Optional arguments:
+string auth - the authentication token of the KBase account accessing
+        the list of workspaces. Overrides the client provided authorization
+        credentials if they exist.
+
+@deprecated Workspace.WorkspaceIdentity
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+auth has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
 =head2 SetPermissionsParams
 
 =over 4
@@ -4210,9 +4379,9 @@ backwards compatibility.
 Optional parameters:
 string auth - the authentication token of the KBase account accessing
         the list of workspaces. Overrides the client provided authorization
-        credentials if provided.
+        credentials if they exist.
 boolean excludeGlobal - if excludeGlobal is true exclude world
-        readable workspaces
+        readable workspaces. Defaults to false.
 
 
 =item Definition
@@ -4253,7 +4422,7 @@ Input parameters for the "list_workspace_info" function.
 
 Optional parameters:
 boolean excludeGlobal - if excludeGlobal is true exclude world
-        readable workspaces
+        readable workspaces. Defaults to false.
 
 
 =item Definition

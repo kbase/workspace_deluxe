@@ -19,9 +19,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Optional parameters:
  * string auth - the authentication token of the KBase account accessing
  *         the list of workspaces. Overrides the client provided authorization
- *         credentials if provided.
+ *         credentials if they exist.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
- *         readable workspaces
+ *         readable workspaces. Defaults to false.
  * </pre>
  * 
  */

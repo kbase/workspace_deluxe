@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Input parameters for the "list_workspace_info" function.
  * Optional parameters:
  * boolean excludeGlobal - if excludeGlobal is true exclude world
- *         readable workspaces
+ *         readable workspaces. Defaults to false.
  * </pre>
  * 
  */

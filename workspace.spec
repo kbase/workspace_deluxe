@@ -187,6 +187,25 @@ module Workspace {
 		obj_ref ref;
 	} ObjectIdentity;
 	
+	/* Meta data associated with an object stored in a workspace. Provided for
+		backwards compatibility
+	
+		obj_name id - name of the object
+		type_string type - type of the object
+		timestamp moddate - date when the object was saved
+		ojb_ver instance - instance of the object, which is equal to the number
+			of times the user has overwritten the object + 1
+		username lastmodifier - name of the user who last modified the object
+		username owner - name of the user who owns (who created) this object
+		ws_id workspace - ID of the workspace in which the object is
+			stored
+		string chsum - checksum of the associated data object
+		mapping<string,string> metadata - custom metadata entered for data object during save operation 
+	
+	*/
+	/*typedef tuple<object_id id,object_type type,timestamp moddate,int instance,string command,username lastmodifier,username owner,workspace_id workspace,workspace_ref ref,string chsum,mapping<string,string> metadata> object_metadata;
+	ignore for now, needs discussion*/
+	
 	/* Information about an object.
 	
 		obj_id objid - the numerical id of the object.
@@ -315,6 +334,35 @@ module Workspace {
 	
 	authentication optional;
 	
+	/* Input parameters for the "get_workspacemeta" function. Provided for
+		backwards compatibility.
+	
+		One, and only one of:
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
+		ws_id id - the numerical ID of the workspace.
+			
+		Optional arguments:
+		string auth - the authentication token of the KBase account accessing
+			the list of workspaces. Overrides the client provided authorization
+			credentials if they exist.
+		
+		@deprecated Workspace.WorkspaceIdentity
+	*/
+	typedef structure { 
+		ws_name workspace;
+		ws_id id;
+		string auth;
+	} get_workspacemeta_params;
+	
+	/*
+		Retrieves the metadata associated with the specified workspace.
+		Provided for backwards compatibility. 
+		@deprecated Workspace.get_workspace_info
+	*/
+	funcdef get_workspacemeta(get_workspacemeta_params params) 
+		returns(workspace_metadata metadata);
+	
 	/*
 		Get information associated with a workspace.
 	*/
@@ -441,9 +489,9 @@ module Workspace {
 		Optional parameters:
 		string auth - the authentication token of the KBase account accessing
 			the list of workspaces. Overrides the client provided authorization
-			credentials if provided.
+			credentials if they exist.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
-			readable workspaces
+			readable workspaces. Defaults to false.
 		
 	*/
 	typedef structure { 
@@ -453,7 +501,8 @@ module Workspace {
 	
 	/*
 		Lists the metadata of all workspaces a user has access to. Provided for
-		backwards compatibility - to be replaced by list_workspace_info
+		backwards compatibility - to be replaced by the functionality of
+		list_workspace_info
 	*/
 	funcdef list_workspaces(list_workspaces_params params)
 		returns (list<workspace_metadata> workspaces);
@@ -463,7 +512,7 @@ module Workspace {
 		
 		Optional parameters:
 		boolean excludeGlobal - if excludeGlobal is true exclude world
-			readable workspaces
+			readable workspaces. Defaults to false.
 		
 	*/
 	typedef structure { 
@@ -471,7 +520,7 @@ module Workspace {
 	} ListWorkspaceInfoParams;
 	
 	/*
-		Early version of list_workspace_info.
+		Early version of list_workspaces with full API.
 	 */
 	funcdef list_workspace_info(ListWorkspaceInfoParams params)
 		returns(list<workspace_info> wsinfo);
