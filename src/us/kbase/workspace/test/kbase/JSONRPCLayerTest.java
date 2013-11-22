@@ -1100,6 +1100,61 @@ public class JSONRPCLayerTest {
 	}
 	
 	@Test
+	public void parseRef() throws Exception {
+		final String specParseRef =
+				"module TestKBaseRefParsing {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"typedef structure {" +
+						"reference ref1;" +
+						"reference ref2;" + 
+						"reference ref3;" +
+						"reference ref4;" +
+					"} ParseRef;" +
+				"};";
+		CLIENT1.requestModuleOwnership("TestKBaseRefParsing");
+		administerCommand(CLIENT2, "approveModRequest", "module", "TestKBaseRefParsing");
+		CLIENT1.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec(specParseRef)
+			.withNewTypes(Arrays.asList("ParseRef")));
+		String type ="TestKBaseRefParsing.ParseRef-0.1";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("parseref"));
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("parseref");
+		long wsid = CLIENT1.getWorkspaceInfo(wsi).getE1();
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("fubar", "foo");
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("parseref")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE));
+		CLIENT1.saveObjects(soc);
+		data.clear();
+		data.put("ref1", "kb|ws." + wsid + ".obj.1");
+		data.put("ref2", "kb|ws." + wsid + ".obj.1.ver.2");
+		data.put("ref3", "kb|ws." + wsid + ".obj.2");
+		data.put("ref4", "kb|ws." + wsid + ".obj.2.ver.1");
+		objects.clear();
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(type));
+		CLIENT1.saveObjects(soc);
+		Map<String, String> refs = CLIENT1.getObjects(Arrays.asList(
+				new ObjectIdentity().withWsid(wsid).withName("auto3")))
+				.get(0).getData().asInstance();
+		assertThat("correct ref parse/rewrite", refs.get("ref1"), is(wsid + "/1/3"));
+		assertThat("correct ref parse/rewrite", refs.get("ref2"), is(wsid + "/1/2"));
+		assertThat("correct ref parse/rewrite", refs.get("ref3"), is(wsid + "/2/1"));
+		assertThat("correct ref parse/rewrite", refs.get("ref4"), is(wsid + "/2/1"));
+	}
+	
+	@Test
 	public void deleteUndelete() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
