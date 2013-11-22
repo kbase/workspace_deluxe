@@ -395,10 +395,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setPermissionsForWorkspaceUsers(new ResolvedMongoWSID(count),
+		setPermissionsForWorkspaceUsers(new ResolvedMongoWSID(wsname, count),
 				Arrays.asList(user), Permission.OWNER, false);
 		if (globalRead) {
-			setPermissions(new ResolvedMongoWSID(count),
+			setPermissions(new ResolvedMongoWSID(wsname, count),
 					Arrays.asList(allUsers), Permission.READ, false);
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
@@ -407,8 +407,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	//projection lists
 	private static final Set<String> FLDS_WS_DESC = newHashSet(Fields.WS_DESC);
-	private static final Set<String> FLDS_WS_ID_DEL =
-			newHashSet(Fields.WS_ID, Fields.WS_DEL);
 	private static final Set<String> FLDS_WS_OWNER = newHashSet(Fields.WS_OWNER);
 	
 	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
@@ -451,6 +449,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return resolveWorkspaces(wsis, false);
 	}
 	
+	private static final Set<String> FLDS_WS_ID_NAME_DEL =
+			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_DEL);
+	
 	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			final Set<WorkspaceIdentifier> wsis, final boolean allowDeleted)
@@ -461,7 +462,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			return ret;
 		}
 		final Map<WorkspaceIdentifier, Map<String, Object>> res =
-				query.queryWorkspacesByIdentifier(wsis, FLDS_WS_ID_DEL);
+				query.queryWorkspacesByIdentifier(wsis, FLDS_WS_ID_NAME_DEL);
 		for (final WorkspaceIdentifier wsi: wsis) {
 			if (!res.containsKey(wsi)) {
 				throw new NoSuchWorkspaceException(String.format(
@@ -473,6 +474,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						wsi.getIdentifierString() + " is deleted", wsi);
 			}
 			ResolvedMongoWSID r = new ResolvedMongoWSID(
+					(String) res.get(wsi).get(Fields.WS_NAME),
 					(Long) res.get(wsi).get(Fields.WS_ID));
 			ret.put(wsi, r);
 		}
@@ -1819,7 +1821,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
-			ResolvedMongoWSID rwsi = new ResolvedMongoWSID(1);
+			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1);
 			pkg.td = new TypeData(MAPPER.valueToTree(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");

@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple7;
-import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.UTCDateFormat;
 import us.kbase.auth.AuthException;
@@ -141,19 +141,19 @@ public class ArgUtils {
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
-	public List<Tuple9<Long, String, String, String, Long, String,
-			Long, String, Long>>
+	public List<Tuple10<Long, String, String, String, Long, String,
+			Long, String, String, Long>>
 			objInfoToTuple (final List<ObjectInformation> info) {
 		
 		//oh the humanity
-		final List<Tuple9<Long, String, String, String, Long, String,
-				Long, String, Long>> ret = 
-			new ArrayList<Tuple9<Long, String, String, String, Long,
-			String, Long, String, Long>>();
+		final List<Tuple10<Long, String, String, String, Long, String,
+				Long, String, String, Long>> ret = 
+			new ArrayList<Tuple10<Long, String, String, String, Long,
+			String, Long, String, String, Long>>();
 		
 		for (ObjectInformation m: info) {
-			ret.add(new Tuple9<Long, String, String, String, Long,
-					String, Long, String, Long>()
+			ret.add(new Tuple10<Long, String, String, String, Long,
+					String, Long, String, String, Long>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
@@ -161,33 +161,34 @@ public class ArgUtils {
 					.withE5(new Long(m.getVersion()))
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
-					.withE8(m.getCheckSum())
-					.withE9(m.getSize()));
+					.withE8(m.getWorkspaceName())
+					.withE9(m.getCheckSum())
+					.withE10(m.getSize()));
 		}
 		return ret;
 }
 	
-	public Tuple10<Long, String, String, String, Long, String,
-			Long, String, Long, Map<String, String>>
+	public Tuple11<Long, String, String, String, Long, String,
+			Long, String, String, Long, Map<String, String>>
 			objInfoUserMetaToTuple (final ObjectInfoUserMeta info) {
 		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
 		m.add(info);
 		return objInfoUserMetaToTuple(m).get(0);
 	}
 	
-	public List<Tuple10<Long, String, String, String, Long, String,
-			Long, String, Long, Map<String, String>>>
+	public List<Tuple11<Long, String, String, String, Long, String,
+			Long, String, String, Long, Map<String, String>>>
 			objInfoUserMetaToTuple (final List<ObjectInfoUserMeta> info) {
 		
 		//oh the humanity
-		final List<Tuple10<Long, String, String, String, Long, String,
-			Long, String, Long, Map<String, String>>> ret = 
-			new ArrayList<Tuple10<Long, String, String, String, Long,
-			String, Long, String, Long, Map<String, String>>>();
+		final List<Tuple11<Long, String, String, String, Long, String,
+			Long, String, String, Long, Map<String, String>>> ret = 
+			new ArrayList<Tuple11<Long, String, String, String, Long,
+			String, Long, String, String, Long, Map<String, String>>>();
 		
 		for (ObjectInfoUserMeta m: info) {
-			ret.add(new Tuple10<Long, String, String, String, Long,
-					String, Long, String, Long, Map<String, String>>()
+			ret.add(new Tuple11<Long, String, String, String, Long,
+					String, Long, String, String, Long, Map<String, String>>()
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
@@ -195,9 +196,10 @@ public class ArgUtils {
 					.withE5(new Long(m.getVersion()))
 					.withE6(m.getCreator().getUser())
 					.withE7(m.getWorkspaceId())
-					.withE8(m.getCheckSum())
-					.withE9(m.getSize())
-					.withE10(m.getUserMetaData()));
+					.withE8(m.getWorkspaceName())
+					.withE9(m.getCheckSum())
+					.withE10(m.getSize())
+					.withE11(m.getUserMetaData()));
 		}
 		return ret;
 	}

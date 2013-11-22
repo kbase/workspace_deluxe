@@ -5,7 +5,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 
-public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+public class Tuple12 <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
     private T1 e1;
     private T2 e2;
     private T3 e3;
@@ -15,6 +15,9 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
     private T7 e7;
     private T8 e8;
     private T9 e9;
+    private T10 e10;
+    private T11 e11;
+    private T12 e12;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     public T1 getE1() {
@@ -25,7 +28,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e1 = e1;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE1(T1 e1) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE1(T1 e1) {
         this.e1 = e1;
         return this;
     }
@@ -38,7 +41,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e2 = e2;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE2(T2 e2) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE2(T2 e2) {
         this.e2 = e2;
         return this;
     }
@@ -51,7 +54,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e3 = e3;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE3(T3 e3) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE3(T3 e3) {
         this.e3 = e3;
         return this;
     }
@@ -64,7 +67,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e4 = e4;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE4(T4 e4) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE4(T4 e4) {
         this.e4 = e4;
         return this;
     }
@@ -77,7 +80,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e5 = e5;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE5(T5 e5) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE5(T5 e5) {
         this.e5 = e5;
         return this;
     }
@@ -90,7 +93,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e6 = e6;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE6(T6 e6) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE6(T6 e6) {
         this.e6 = e6;
         return this;
     }
@@ -103,7 +106,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e7 = e7;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE7(T7 e7) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE7(T7 e7) {
         this.e7 = e7;
         return this;
     }
@@ -116,7 +119,7 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e8 = e8;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE8(T8 e8) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE8(T8 e8) {
         this.e8 = e8;
         return this;
     }
@@ -129,14 +132,53 @@ public class Tuple9 <T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         this.e9 = e9;
     }
 
-    public Tuple9<T1, T2, T3, T4, T5, T6, T7, T8, T9> withE9(T9 e9) {
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE9(T9 e9) {
         this.e9 = e9;
+        return this;
+    }
+
+    public T10 getE10() {
+        return e10;
+    }
+
+    public void setE10(T10 e10) {
+        this.e10 = e10;
+    }
+
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE10(T10 e10) {
+        this.e10 = e10;
+        return this;
+    }
+
+    public T11 getE11() {
+        return e11;
+    }
+
+    public void setE11(T11 e11) {
+        this.e11 = e11;
+    }
+
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE11(T11 e11) {
+        this.e11 = e11;
+        return this;
+    }
+
+    public T12 getE12() {
+        return e12;
+    }
+
+    public void setE12(T12 e12) {
+        this.e12 = e12;
+    }
+
+    public Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> withE12(T12 e12) {
+        this.e12 = e12;
         return this;
     }
 
     @Override
     public String toString() {
-        return "Tuple9 [e1=" + e1 + ", e2=" + e2 + ", e3=" + e3 + ", e4=" + e4 + ", e5=" + e5 + ", e6=" + e6 + ", e7=" + e7 + ", e8=" + e8 + ", e9=" + e9 + "]";
+        return "Tuple12 [e1=" + e1 + ", e2=" + e2 + ", e3=" + e3 + ", e4=" + e4 + ", e5=" + e5 + ", e6=" + e6 + ", e7=" + e7 + ", e8=" + e8 + ", e9=" + e9 + ", e10=" + e10 + ", e11=" + e11 + ", e12=" + e12 + "]";
     }
 
     @JsonAnyGetter

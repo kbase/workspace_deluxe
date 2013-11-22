@@ -34,8 +34,8 @@ public class MongoObjectInfoUserMeta extends MongoObjectInfo implements
 				getObjectName() + ", type=" + getTypeString() + 
 				", createdDate=" + getCreatedDate() + ", version="
 				+ getVersion() + ", creator=" + getCreator() + ", workspaceId="
-				+ getWorkspaceId() + ", chksum=" + getCheckSum() + 
-				", userMeta=" + userMeta + "]";
+				+ getWorkspaceId() + ", workspaceName=" + getWorkspaceName() + 
+				", chksum=" + getCheckSum() + ", userMeta=" + userMeta + "]";
 	}
 
 }

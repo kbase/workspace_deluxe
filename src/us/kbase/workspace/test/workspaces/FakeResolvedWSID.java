@@ -5,17 +5,32 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 public class FakeResolvedWSID implements ResolvedWorkspaceID {
 	
 	private final long id;
+	private final String name;
 	
 	public FakeResolvedWSID(long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("ID must be >0");
 		}
 		this.id = id;
+		this.name = null;
+	}
+	
+	public FakeResolvedWSID(String name, long id) {
+		if (id < 1) {
+			throw new IllegalArgumentException("ID must be >0");
+		}
+		this.id = id;
+		this.name = name;
 	}
 
 	@Override
 	public long getID() {
 		return id;
+	}
+	
+	@Override
+	public String getName() {
+		return name;
 	}
 
 	@Override

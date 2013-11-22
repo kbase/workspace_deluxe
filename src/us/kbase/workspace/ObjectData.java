@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import us.kbase.common.service.Tuple10;
+import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.UObject;
 
 
@@ -36,7 +36,7 @@ public class ObjectData {
     @JsonProperty("data")
     private UObject data;
     @JsonProperty("info")
-    private Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info;
+    private Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -57,16 +57,16 @@ public class ObjectData {
     }
 
     @JsonProperty("info")
-    public Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> getInfo() {
+    public Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> getInfo() {
         return info;
     }
 
     @JsonProperty("info")
-    public void setInfo(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info) {
+    public void setInfo(Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info) {
         this.info = info;
     }
 
-    public ObjectData withInfo(Tuple10 <Long, String, String, String, Long, String, Long, String, Long, Map<String, String>> info) {
+    public ObjectData withInfo(Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info) {
         this.info = info;
         return this;
     }

@@ -13,6 +13,7 @@ public interface ObjectInformation {
 	public int getVersion();
 	public WorkspaceUser getCreator();
 	public long getWorkspaceId();
+	public String getWorkspaceName();
 	public String getCheckSum();
 	public int hashCode();
 	public boolean equals(Object obj);

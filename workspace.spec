@@ -107,6 +107,7 @@ module Workspace {
 			for all KBase users
 		ws_id num_id - numerical ID of the workspace
 		
+		@deprecated Workspace.workspace_info
 	*/
 	typedef tuple<ws_name id, username owner, timestamp moddate,
 		int objects, permission user_permission, permission global_permission,
@@ -150,8 +151,9 @@ module Workspace {
 			"MyFirstWorkspace/MyFirstObject/3" would identify the third version
 			of an object called MyFirstObject in the workspace called
 			MyFirstWorkspace. 42/Panic/1 would identify the first version of
-			the object name Panic in workspace 42. Towel/1/6 would identify
-			the 6th version of the object with id 1 in the Towel workspace. 
+			the object name Panic in workspace with id 42. Towel/1/6 would
+			identify the 6th version of the object with id 1 in the Towel
+			workspace. 
 		"kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
 			"kb|ws.23.obj.567.ver.2" would identify the second version of an
 			object with id 567 in a workspace with id 23.
@@ -188,23 +190,27 @@ module Workspace {
 	} ObjectIdentity;
 	
 	/* Meta data associated with an object stored in a workspace. Provided for
-		backwards compatibility
+		backwards compatibility.
 	
-		obj_name id - name of the object
-		type_string type - type of the object
+		obj_name id - name of the object.
+		type_string type - type of the object.
 		timestamp moddate - date when the object was saved
-		ojb_ver instance - instance of the object, which is equal to the number
-			of times the user has overwritten the object + 1
-		username lastmodifier - name of the user who last modified the object
-		username owner - name of the user who owns (who created) this object
-		ws_id workspace - ID of the workspace in which the object is
+		obj_ver instance - the version of the object
+		string command - Deprecated. Always returns the empty string.
+		username lastmodifier - name of the user who last saved the object
+		username owner - Deprecated. Same as lastmodifier.
+		ws_name workspace - name of the workspace in which the object is
 			stored
-		string chsum - checksum of the associated data object
-		mapping<string,string> metadata - custom metadata entered for data object during save operation 
-	
+		string ref - Deprecated. Always returns the empty string.
+		string chsum - the md5 checksum of the object.
+		usermeta metadata - arbitrary user-supplied metadata about
+			the object.
+		obj_id objid - the numerical id of the object.
 	*/
-	/*typedef tuple<object_id id,object_type type,timestamp moddate,int instance,string command,username lastmodifier,username owner,workspace_id workspace,workspace_ref ref,string chsum,mapping<string,string> metadata> object_metadata;
-	ignore for now, needs discussion*/
+	typedef tuple<obj_name id, type_string type, timestamp moddate,
+		int instance, string command, username lastmodifier, username owner,
+		ws_name workspace, string ref ,string chsum, usermeta metadata,
+		obj_id objid> object_metadata;
 	
 	/* Information about an object.
 	
@@ -215,13 +221,14 @@ module Workspace {
 		obj_ver ver - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
+		ws_name workspace - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp save_date, int version, username created_by,
-		ws_id wsid, string chsum, int size> object_info;
+		ws_id wsid, ws_name workspace, string chsum, int size> object_info;
 		
 	/* Information about an object, including user provided metadata.
 	
@@ -232,6 +239,7 @@ module Workspace {
 		obj_ver ver - the version of the object.
 		username created_by - the user that created the object.
 		ws_id wsid - the workspace containing the object.
+		ws_name workspace - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
 		int size - the size of the object in bytes.
 		usermeta meta - arbitrary user-supplied metadata about
@@ -240,7 +248,7 @@ module Workspace {
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp save_date, int version, username created_by,
-		ws_id wsid, string chsum, int size, usermeta meta>
+		ws_id wsid, ws_name workspace, string chsum, int size, usermeta meta>
 		object_info_full;
 	
 	/* A provenance action.
@@ -530,6 +538,39 @@ module Workspace {
 	*/
 	funcdef list_objects(WorkspaceIdentity wsi)
 		returns(list<object_info> objinfo);
+	
+	/* Input parameters for the "get_objectmeta" function.
+	
+		Required arguments:
+		ws_name workspace - name of the workspace containing the object for
+			 which metadata is to be retrieved
+		obj_name id - name of the object for which metadata is to be retrieved
+		
+		Optional arguments:
+		int instance - Version of the object for which metadata is to be
+			 retrieved, enabling retrieval of any previous version of an object
+		string auth - the authentication token of the KBase account accessing
+			the list of workspaces. Overrides the client provided authorization
+			credentials if they exist.
+			
+		@deprecated Workspace.ObjectIdentity
+	*/
+	typedef structure { 
+		obj_name id;
+		ws_name workspace;
+		int instance;
+		string auth;
+	} get_objectmeta_params;
+	
+	/*
+		Retrieves the metadata for a specified object from the specified
+		workspace. Provides access to metadata for all versions of the object
+		via the instance parameter. Provided for backwards compatibility.
+		
+		@deprecated Workspace.get_object_info
+	*/
+	funcdef get_objectmeta(get_objectmeta_params params) 
+		returns(object_metadata metadata) authentication optional; 
 	
 	/* 
 		Get information about an object from the workspace.

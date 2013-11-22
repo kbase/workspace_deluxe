@@ -14,6 +14,7 @@ public class MongoObjectInfo implements ObjectInformation {
 	final private int version;
 	final private WorkspaceUser creator;
 	final private long workspaceId;
+	final private String workspaceName;
 	final private String chksum;
 	final private long size;
 	
@@ -30,6 +31,7 @@ public class MongoObjectInfo implements ObjectInformation {
 		this.version = version;
 		this.creator = creator;
 		this.workspaceId = workspaceid.getID();
+		this.workspaceName = workspaceid.getName();
 		this.chksum = chksum;
 		this.size = size;
 		
@@ -69,6 +71,11 @@ public class MongoObjectInfo implements ObjectInformation {
 	public long getWorkspaceId() {
 		return workspaceId;
 	}
+	
+	@Override
+	public String getWorkspaceName() {
+		return workspaceName;
+	}
 
 	@Override
 	public String getCheckSum() {
@@ -83,10 +90,11 @@ public class MongoObjectInfo implements ObjectInformation {
 
 	@Override
 	public String toString() {
-		return "MongoObjectMeta [id=" + id + ", name=" + name + ", type="
+		return "MongoObjectInfo [id=" + id + ", name=" + name + ", type="
 				+ type + ", createdDate=" + createdDate + ", version="
 				+ version + ", creator=" + creator + ", workspaceId="
-				+ workspaceId + ", chksum=" + chksum + ", size=" + size + "]";
+				+ workspaceId + ", workspaceName=" + workspaceName
+				+ ", chksum=" + chksum + ", size=" + size + "]";
 	}
 
 }
