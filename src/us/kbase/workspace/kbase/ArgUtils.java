@@ -12,6 +12,7 @@ import java.util.Map;
 
 import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple11;
+import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.UTCDateFormat;
@@ -166,26 +167,26 @@ public class ArgUtils {
 					.withE10(m.getSize()));
 		}
 		return ret;
-}
-	
+	}
+
 	public Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>
-			objInfoUserMetaToTuple (final ObjectInfoUserMeta info) {
+			objInfoUserMetaToTuple(final ObjectInfoUserMeta info) {
 		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
 		m.add(info);
 		return objInfoUserMetaToTuple(m).get(0);
 	}
-	
+
 	public List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>>
-			objInfoUserMetaToTuple (final List<ObjectInfoUserMeta> info) {
-		
+			objInfoUserMetaToTuple(final List<ObjectInfoUserMeta> info) {
+
 		//oh the humanity
 		final List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>> ret = 
 			new ArrayList<Tuple11<Long, String, String, String, Long,
 			String, Long, String, String, Long, Map<String, String>>>();
-		
+
 		for (ObjectInfoUserMeta m: info) {
 			ret.add(new Tuple11<Long, String, String, String, Long,
 					String, Long, String, String, Long, Map<String, String>>()
@@ -200,6 +201,44 @@ public class ArgUtils {
 					.withE9(m.getCheckSum())
 					.withE10(m.getSize())
 					.withE11(m.getUserMetaData()));
+		}
+		return ret;
+	}
+	
+	
+	public Tuple12<String, String, String, Long, String, String, String,
+	String, String, String, Map<String, String>, Long>
+	objInfoUserMetaToMetaTuple(final ObjectInfoUserMeta info) {
+		final List<ObjectInfoUserMeta> m = new ArrayList<ObjectInfoUserMeta>();
+		m.add(info);
+		return objInfoUserMetaToMetaTuple(m).get(0);
+	}
+	
+	public List<Tuple12<String, String, String, Long, String, String, String,
+	String, String, String, Map<String, String>, Long>>
+	objInfoUserMetaToMetaTuple(final List<ObjectInfoUserMeta> info) {
+		
+		//oh the humanity
+		final List<Tuple12<String, String, String, Long, String, String, String,
+		String, String, String, Map<String, String>, Long>> ret = 
+		new ArrayList<Tuple12<String, String, String, Long, String, String,
+		String, String, String, String, Map<String, String>, Long>>();
+		
+		for (ObjectInfoUserMeta m: info) {
+			ret.add(new Tuple12<String, String, String, Long, String, String, String,
+					String, String, String, Map<String, String>, Long>()
+					.withE1(m.getObjectName())
+					.withE2(m.getTypeString())
+					.withE3(dateFormat.formatDate(m.getCreatedDate()))
+					.withE4(new Long(m.getVersion()))
+					.withE5("") //command is deprecated
+					.withE6(m.getCreator().getUser())
+					.withE7(m.getCreator().getUser()) //owner is deprecated
+					.withE8(m.getWorkspaceName())
+					.withE9("")//ref is deprecated
+					.withE10(m.getCheckSum())
+					.withE11(m.getUserMetaData())
+					.withE12(m.getObjectId()));
 		}
 		return ret;
 	}

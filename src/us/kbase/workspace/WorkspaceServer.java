@@ -17,6 +17,7 @@ import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
@@ -533,6 +534,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params, AuthToken authPart) throws Exception {
         Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> returnVal = null;
         //BEGIN get_objectmeta
+		final ObjectIdentifier oi = processObjectIdentifier(
+				params.getWorkspace(), null, params.getId(), null,
+				params.getInstance());
+		returnVal = au.objInfoUserMetaToMetaTuple(
+				ws.getObjectInformation(getUser(params.getAuth(), authPart),
+						Arrays.asList(oi)).get(0));
         //END get_objectmeta
         return returnVal;
     }

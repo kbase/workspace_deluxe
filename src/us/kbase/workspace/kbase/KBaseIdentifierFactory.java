@@ -92,19 +92,26 @@ public class KBaseIdentifierFactory {
 			verifyRefOnly(oi);
 			return processObjectReference(oi.getRef());
 		}
-		final Integer ver;
-		if (oi.getVer() != null) {
-			if (oi.getVer().longValue() > Integer.MAX_VALUE) {
+		return processObjectIdentifier(oi.getWorkspace(), oi.getWsid(),
+				oi.getName(), oi.getObjid(), oi.getVer());
+	}
+		
+	public static ObjectIdentifier processObjectIdentifier(
+			final String workspace, final Long wsid, final String objname,
+			final Long objid, final Long ver) {
+		final Integer intver;
+		if (ver != null) {
+			if (ver.longValue() > Integer.MAX_VALUE) {
 				throw new IllegalArgumentException("Maximum object version is "
 						+ Integer.MAX_VALUE);
 			}
-			ver = (int) oi.getVer().longValue();
+			intver = (int) ver.longValue();
 		} else {
-			ver = null;
+			intver = null;
 		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				oi.getWorkspace(), oi.getWsid());
-		return ObjectIdentifier.create(wsi, oi.getName(), oi.getObjid(), ver);
+				workspace, wsid);
+		return ObjectIdentifier.create(wsi, objname, objid, intver);
 	}
 
 	public static ObjectIdentifier processObjectReference(final String ref) {
