@@ -32,8 +32,8 @@ public class MongoObjectInfoUserMeta extends MongoObjectInfo implements
 	public String toString() {
 		return "MongoObjectMeta [id=" + getObjectId() + ", name=" + 
 				getObjectName() + ", type=" + getTypeString() + 
-				", createdDate=" + getCreatedDate() + ", version="
-				+ getVersion() + ", creator=" + getCreator() + ", workspaceId="
+				", createdDate=" + getSavedDate() + ", version="
+				+ getVersion() + ", creator=" + getSavedBy() + ", workspaceId="
 				+ getWorkspaceId() + ", workspaceName=" + getWorkspaceName() + 
 				", chksum=" + getCheckSum() + ", userMeta=" + userMeta + "]";
 	}

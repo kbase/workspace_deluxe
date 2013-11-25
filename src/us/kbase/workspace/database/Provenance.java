@@ -13,6 +13,7 @@ import us.kbase.common.exceptions.UnimplementedException;
 public class Provenance {
 	
 	private String user;
+	private Date date;
 	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
@@ -21,6 +22,7 @@ public class Provenance {
 			throw new IllegalArgumentException("user cannot be null");
 		}
 		this.user = user.getUser();
+		this.date = new Date();
 	}
 	
 	protected Provenance() {} //for subclasses using mongo
@@ -34,6 +36,10 @@ public class Provenance {
 	
 	public WorkspaceUser getUser() {
 		return new WorkspaceUser(user);
+	}
+	
+	public Date getDate() {
+		return date;
 	}
 
 	public List<ProvenanceAction> getActions() {

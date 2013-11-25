@@ -528,12 +528,12 @@ public class TestWorkspaces {
 		if (meta instanceof ObjectInfoUserMeta) {
 			throw new TestException("missed testing meta");
 		}
-		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
+		assertThat("Date is a date class", meta.getSavedDate(), is(Date.class));
 		assertThat("Object id correct", meta.getObjectId(), is(id));
 		assertThat("Object name is correct", meta.getObjectName(), is(name));
 		assertThat("Object type is correct", meta.getTypeString(), is(type));
 		assertThat("Object version is correct", meta.getVersion(), is(version));
-		assertThat("Object user is correct", meta.getCreator(), is(user));
+		assertThat("Object user is correct", meta.getSavedBy(), is(user));
 		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
 		assertThat("Object workspace name is correct", meta.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
@@ -544,12 +544,12 @@ public class TestWorkspaces {
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String wsname, String chksum, long size,
 			Map<String, String> usermeta) {
-		assertThat("Date is a date class", meta.getCreatedDate(), is(Date.class));
+		assertThat("Date is a date class", meta.getSavedDate(), is(Date.class));
 		assertThat("Object id correct", meta.getObjectId(), is(id));
 		assertThat("Object name is correct", meta.getObjectName(), is(name));
 		assertThat("Object type is correct", meta.getTypeString(), is(type));
 		assertThat("Object version is correct", meta.getVersion(), is(version));
-		assertThat("Object user is correct", meta.getCreator(), is(user));
+		assertThat("Object user is correct", meta.getSavedBy(), is(user));
 		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
 		assertThat("Object workspace name is correct", meta.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
@@ -1238,8 +1238,10 @@ public class TestWorkspaces {
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE, null, p2, false)));
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
+		Date date2 = got2.getDate();
 		checkProvenanceCorrect(p2, got2, new HashMap<String, String>());
-		
+		got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
+		assertThat("Prov date constant", got2.getDate(), is(date2));
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
@@ -1259,11 +1261,18 @@ public class TestWorkspaces {
 		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
 	}
 	
+	private Date getOlderDate(long ms) {
+		long now = new Date().getTime();
+		return new Date(now - ms);
+	}
+	
 	private void checkProvenanceCorrect(Provenance expected, Provenance got,
 			Map<String, String> refmap) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
+		assertTrue("date within the last 10 mins",
+				got.getDate().after(getOlderDate(10 * 60 * 1000)));
 		
 		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
 		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
@@ -1319,7 +1328,7 @@ public class TestWorkspaces {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size 1000251 exceeds limit of 1000000"));
+					is("Object #1 provenance size 1000272 exceeds limit of 1000000"));
 		}
 	}
 	

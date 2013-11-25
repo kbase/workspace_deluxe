@@ -9,9 +9,9 @@ public interface ObjectInformation {
 	public String getObjectName();
 	public String getTypeString();
 	public long getSize();
-	public Date getCreatedDate();
+	public Date getSavedDate();
 	public int getVersion();
-	public WorkspaceUser getCreator();
+	public WorkspaceUser getSavedBy();
 	public long getWorkspaceId();
 	public String getWorkspaceName();
 	public String getCheckSum();

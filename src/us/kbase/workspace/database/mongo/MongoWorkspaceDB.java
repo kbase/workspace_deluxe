@@ -749,7 +749,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		pointer.put(Fields.VER_WS_ID, wsid.getID());
 		pointer.put(Fields.VER_ID, objectid);
 		pointer.put(Fields.VER_VER, ver);
-		pointer.put(Fields.VER_CREATEBY, user.getUser());
+		pointer.put(Fields.VER_SAVEDBY, user.getUser());
 		pointer.put(Fields.VER_CHKSUM, pkg.td.getChksum());
 		final List<Map<String, String>> meta = 
 				new ArrayList<Map<String, String>>();
@@ -762,7 +762,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		pointer.put(Fields.VER_META, meta);
-		pointer.put(Fields.VER_CREATEDATE, created);
+		pointer.put(Fields.VER_SAVEDATE, created);
 		pointer.put(Fields.VER_REF, pkg.refs);
 		pointer.put(Fields.VER_PROVREF, pkg.provrefs);
 		pointer.put(Fields.VER_PROV, pkg.mprov.getMongoId());
@@ -1420,7 +1420,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final Set<String> FLDS_VER_META_PROV = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
-			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
+			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
 			Fields.VER_PROVREF);
 	
@@ -1517,9 +1517,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				roi.getId(),
 				roi.getName(),
 				(String) ver.get(Fields.VER_TYPE),
-				(Date) ver.get(Fields.VER_CREATEDATE),
+				(Date) ver.get(Fields.VER_SAVEDATE),
 				(Integer) ver.get(Fields.VER_VER),
-				new WorkspaceUser((String) ver.get(Fields.VER_CREATEBY)),
+				new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)),
 				roi.getWorkspaceIdentifier(),
 				(String) ver.get(Fields.VER_CHKSUM),
 				(Long) ver.get(Fields.VER_SIZE),
@@ -1597,7 +1597,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
-			Fields.VER_CREATEDATE, Fields.VER_CREATEBY,
+			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
 	@Override

@@ -2,6 +2,7 @@ package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -661,6 +663,10 @@ public class JSONRPCLayerTest {
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
+		assertThat("user correct", ret.get(0).getCreator(), is(USER1));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(ret.get(0).getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
 		
 		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
 		
@@ -681,6 +687,22 @@ public class JSONRPCLayerTest {
 		saveProvWithBadTime("2013-04-35T23:52:06-0800");
 		saveProvWithBadTime("2013-13-26T23:52:06-0800");
 		
+		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
+						.withType(SAFE_TYPE).withName("whoops"))));
+		ObjectData d = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
+			.withName("whoops").withWorkspace("provenance"))).get(0);
+		assertThat("user correct", d.getCreator(), is(USER2));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(d.getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
+	}
+	
+	private Date getOlderDate(long ms) {
+		long now = new Date().getTime();
+		return new Date(now - ms);
 	}
 	
 	private void saveProvWithBadTime(String time) throws Exception {

@@ -197,7 +197,8 @@ module Workspace {
 		timestamp moddate - date when the object was saved
 		obj_ver instance - the version of the object
 		string command - Deprecated. Always returns the empty string.
-		username lastmodifier - name of the user who last saved the object
+		username lastmodifier - name of the user who last saved the object,
+			including copying the object
 		username owner - Deprecated. Same as lastmodifier.
 		ws_name workspace - name of the workspace in which the object is
 			stored
@@ -219,7 +220,7 @@ module Workspace {
 		type_string type - the type of the object.
 		timestamp save_date - the save date of the object.
 		obj_ver ver - the version of the object.
-		username created_by - the user that created the object.
+		username saved_by - the user that saved or copied the object.
 		ws_id wsid - the workspace containing the object.
 		ws_name workspace - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
@@ -227,7 +228,7 @@ module Workspace {
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
-		timestamp save_date, int version, username created_by,
+		timestamp save_date, int version, username saved_by,
 		ws_id wsid, ws_name workspace, string chsum, int size> object_info;
 		
 	/* Information about an object, including user provided metadata.
@@ -237,7 +238,7 @@ module Workspace {
 		type_string type - the type of the object.
 		timestamp save_date - the save date of the object.
 		obj_ver ver - the version of the object.
-		username created_by - the user that created the object.
+		username saved_by - the user that saved or copied the object.
 		ws_id wsid - the workspace containing the object.
 		ws_name workspace - the workspace containing the object.
 		string chsum - the md5 checksum of the object.
@@ -247,7 +248,7 @@ module Workspace {
 
 	*/
 	typedef tuple<obj_id objid, obj_name name, type_string type,
-		timestamp save_date, int version, username created_by,
+		timestamp save_date, int version, username saved_by,
 		ws_id wsid, ws_name workspace, string chsum, int size, usermeta meta>
 		object_info_full;
 	
@@ -561,12 +562,18 @@ module Workspace {
 		UnspecifiedObject data - the object's data.
 		object_info_full info - information about the object.
 		list<ProvenanceAction> provenance - the object's provenance.
+		username creator - the user that first saved the object to the
+			workspace.
+		timestamp created - the date the object was first saved to the
+			workspace.
 		
 	*/
 	typedef structure {
 		UnspecifiedObject data;
 		object_info_full info;
 		list<ProvenanceAction> provenance;
+		username creator;
+		timestamp created;
 	} ObjectData;
 	
 	/* 
@@ -656,7 +663,7 @@ module Workspace {
 		@deprecated Workspace.list_objects
 	*/
 	funcdef list_workspace_objects(list_workspace_objects_params params)
-		returns(list<object_metadata> objects) authentication optional;
+		returns(list<object_metadata> objects);
 	
 	/* Parameters for the 'list_objects' function.
 
@@ -718,7 +725,7 @@ module Workspace {
 		@deprecated Workspace.get_object_info
 	*/
 	funcdef get_objectmeta(get_objectmeta_params params) 
-		returns(object_metadata metadata) authentication optional; 
+		returns(object_metadata metadata); 
 	
 	/* 
 		Get information about an object from the workspace.

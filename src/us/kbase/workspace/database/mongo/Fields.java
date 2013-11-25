@@ -46,9 +46,9 @@ public class Fields {
 	public static final String VER_WS_ID = "ws";
 	public static final String VER_ID = "id";
 	public static final String VER_VER = "ver";
-	public static final String VER_CREATEBY = "createdby";
+	public static final String VER_SAVEDBY = "savedby";
 	public static final String VER_CHKSUM = "chksum";
-	public static final String VER_CREATEDATE = "createdate";
+	public static final String VER_SAVEDATE = "savedate";
 	public static final String VER_PROV = "provenance";
 	public static final String VER_REF = "refs";
 	public static final String VER_PROVREF = "provrefs";
@@ -66,7 +66,6 @@ public class Fields {
 	public static final String TYPE_SIZE = "size";
 	public static final String TYPE_SUBDATA = "subdata";
 	public static final String TYPE_TYPE = "type";
-	public static final String TYPE_WS = "ws";
 
 	// shock fields
 	public static final String SHOCK_CHKSUM = "chksum";
