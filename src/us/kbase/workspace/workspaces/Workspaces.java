@@ -86,9 +86,9 @@ public class Workspaces {
 	//TODO BIG SEARCH index typespecs
 	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run? Test subdata creation
 	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
-	//TODO test involved type checking & many references
 	
 	//TODO 1 lots of tests
+	//TODO use new shock client
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
@@ -599,6 +599,18 @@ public class Workspaces {
 			ret.add(meta.get(ws.get(o)));
 		}
 		return ret;
+	}
+	
+	//TODO test
+	public void setObjectsHidden(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final boolean hide)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.WRITE,
+						(hide ? "" : "un") + "hide objects from");
+		db.setObjectsHidden(new HashSet<ObjectIDResolvedWS>(ws.values()),
+				hide);
 	}
 	
 	public void setObjectsDeleted(final WorkspaceUser user,

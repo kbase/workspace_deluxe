@@ -82,6 +82,10 @@ public interface WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
+	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,
+			boolean hide) throws NoSuchObjectException,
+			WorkspaceCommunicationException;
+	
 	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
 			boolean delete) throws NoSuchObjectException,
 			WorkspaceCommunicationException;

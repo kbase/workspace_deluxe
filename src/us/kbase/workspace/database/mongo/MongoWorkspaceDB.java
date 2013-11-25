@@ -27,38 +27,38 @@ import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInfoUserMeta;
+import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
-import us.kbase.workspace.database.TypeAndReference;
-import us.kbase.workspace.database.WorkspaceDatabase;
-import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.ObjectInfoUserMeta;
-import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -717,9 +717,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.PTR_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null}, $push: {%s: 0}}",
+			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
 			Fields.PTR_VCNT, Fields.PTR_DEL, Fields.PTR_MODDATE,
-			Fields.PTR_LATEST, Fields.PTR_REFCOUNTS);
+			Fields.PTR_LATEST, Fields.PTR_HIDE, Fields.PTR_REFCOUNTS);
 	
 	// save object in preexisting object container
 	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
@@ -730,11 +730,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final int ver;
 		final Date created = new Date();
 		try {
-			//TODO set hidden status here
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
-					.with(M_SAVEINS_WTH, created)
+					.with(M_SAVEINS_WTH, created, pkg.wo.isHidden())
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
 					.get(Fields.PTR_VCNT);
 		} catch (MongoException me) {
@@ -1708,6 +1707,51 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
+	@Override
+	public void setObjectsHidden(final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean hide)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		//TODO nearly identical to delete objects, generalize
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
+				resolveObjectIDs(objectIDs);
+		final Map<ResolvedMongoWSID, List<Long>> toModify =
+				new HashMap<ResolvedMongoWSID, List<Long>>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoWSID ws = query.convertResolvedWSID(
+					o.getWorkspaceIdentifier());
+			if (!toModify.containsKey(ws)) {
+				toModify.put(ws, new ArrayList<Long>());
+			}
+			toModify.get(ws).add(ids.get(o).getId());
+		}
+		//Do this by workspace since per mongo docs nested $ors are crappy
+		for (final ResolvedMongoWSID ws: toModify.keySet()) {
+			setObjectsHidden(ws, toModify.get(ws), hide);
+		}
+	}
+	
+	private static final String M_HIDOBJ_WTH = String.format(
+			"{$set: {%s: #}}", Fields.PTR_HIDE);
+	private static final String M_HIDOBJ_QRY = String.format(
+			"{%s: #, %s: {$in: #}}", Fields.PTR_WS_ID, Fields.PTR_ID);
+	
+	private void setObjectsHidden(final ResolvedMongoWSID ws,
+			final List<Long> objectIDs, final boolean hide)
+			throws WorkspaceCommunicationException {
+		//TODO make general set field method?
+		if (objectIDs.isEmpty()) {
+			throw new IllegalArgumentException("Object IDs cannot be empty");
+		}
+		try {
+			wsjongo.getCollection(COL_WORKSPACE_PTRS)
+					.update(M_HIDOBJ_QRY, ws.getID(), objectIDs).multi()
+					.with(M_HIDOBJ_WTH, hide);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+	
 	@Override
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)

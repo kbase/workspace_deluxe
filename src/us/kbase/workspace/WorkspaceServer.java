@@ -33,6 +33,7 @@ import java.util.Set;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
@@ -53,6 +54,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -87,7 +89,8 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 
-	//TODO save_object get_object get_objectmeta list_workspace_objects 
+	//TODO save_object get_object list_workspace_objects 
+    //TODO meta should be saved by; object should return creator & timestamp
 
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
@@ -369,6 +372,55 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: save_object</p>
+     * <pre>
+     * Saves the input object data and metadata into the selected workspace,
+     *         returning the object_metadata of the saved object. Provided
+     *         for backwards compatibility.
+     *         
+     * @deprecated Workspace.save_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.SaveObjectParams SaveObjectParams} (original type "save_object_params")
+     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     */
+    @JsonServerMethod(rpc = "Workspace.save_object", authOptional=true)
+    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params, AuthToken authPart) throws Exception {
+        Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> returnVal = null;
+        //BEGIN save_object
+        //TODO tests
+		final SaveObjectsParams sop = new SaveObjectsParams()
+			.withWorkspace(params.getWorkspace()).withObjects(Arrays.asList(
+					new ObjectSaveData().withData(params.getData())
+						.withMeta(params.getMetadata())
+						.withName(params.getId())
+						.withType(params.getType())));
+		if (params.getAuth() != null) {
+			authPart = new AuthToken(params.getAuth());
+			if (!AuthService.validateToken(authPart)) {
+				throw new AuthException("Token is invalid");
+			}
+		}
+		final Tuple10<Long, String, String, String, Long, String, Long, String,
+				String, Long> meta = saveObjects(sop, authPart).get(0);
+		returnVal = new Tuple12<String, String, String, Long, String, String,
+				String, String, String, String, Map<String,String>, Long>()
+				.withE1(meta.getE2()) //object name
+				.withE2(meta.getE3()) //type
+				.withE3(meta.getE4()) //time
+				.withE4(meta.getE5()) //ver
+				.withE5("") //command, deprecated
+				.withE6(meta.getE6()) //last mod
+				.withE7(meta.getE6()) //owner, deprecated
+				.withE8(meta.getE8()) //workspace name
+				.withE9("") //ref, deprecated
+				.withE10(meta.getE9()) //chsum
+				.withE11(params.getMetadata()) //meta
+				.withE12(meta.getE1()); // object id
+        //END save_object
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
      * Save objects to the workspace. Saving over a deleted object undeletes
@@ -440,6 +492,34 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_object</p>
+     * <pre>
+     * Retrieves the specified object from the specified workspace.
+     * Both the object data and metadata are returned.
+     * Provided for backwards compatibility.
+     * @deprecated Workspace.get_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjectParams GetObjectParams} (original type "get_object_params")
+     * @return   parameter "output" of type {@link us.kbase.workspace.GetObjectOutput GetObjectOutput} (original type "get_object_output")
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object", authOptional=true)
+    public GetObjectOutput getObject(GetObjectParams params, AuthToken authPart) throws Exception {
+        GetObjectOutput returnVal = null;
+        //BEGIN get_object
+        //TODO tests
+		final ObjectIdentifier oi = processObjectIdentifier(
+				params.getWorkspace(), null, params.getId(), null,
+				params.getInstance());
+		final WorkspaceObjectData ret = ws.getObjects(
+				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
+		returnVal = new GetObjectOutput()
+			.withData(new UObject(ret.getDataAsJsonNode()))
+			.withMetadata(au.objInfoUserMetaToMetaTuple(ret.getMeta()));
+        //END get_object
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
      * Get objects from the workspace.
@@ -500,23 +580,42 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: list_workspace_objects</p>
+     * <pre>
+     * Lists the metadata of all objects in the specified workspace with the
+     * specified type (or with any type). Provided for backwards compatibility.
+     * @deprecated Workspace.list_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceObjectsParams ListWorkspaceObjectsParams} (original type "list_workspace_objects_params")
+     * @return   parameter "objects" of list of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     */
+    @JsonServerMethod(rpc = "Workspace.list_workspace_objects", authOptional=true)
+    public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params, AuthToken authPart) throws Exception {
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> returnVal = null;
+        //BEGIN list_workspace_objects
+        //TODO list_workspace_objects
+        //END list_workspace_objects
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: list_objects</p>
      * <pre>
      * Early version of list_objects.
      * </pre>
-     * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
+     * @param   wsi   instance of type {@link us.kbase.workspace.ListObjectsParameters ListObjectsParameters}
      * @return   parameter "objinfo" of list of original type "object_info" (Information about an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "chsum" of String, parameter "size" of Long
      */
     @JsonServerMethod(rpc = "Workspace.list_objects", authOptional=true)
-    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
+    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(ListObjectsParameters wsi, AuthToken authPart) throws Exception {
         List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_objects
-		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = au.objInfoToTuple(
-				ws.prealphaListObjects(getUser(authPart), wksp));
-		//TODO make listobjects parameters object vs. wsi
+		return null; //TODO fix list_objects
+//		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+//		returnVal = au.objInfoToTuple(
+//				ws.prealphaListObjects(getUser(authPart), wksp));
         //END list_objects
-        return returnVal;
+//        return returnVal;
     }
 
     /**
@@ -534,6 +633,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params, AuthToken authPart) throws Exception {
         Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> returnVal = null;
         //BEGIN get_objectmeta
+        //TODO tests
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
@@ -561,6 +661,41 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.getObjectInformation(getUser(authPart), loi));
         //END get_object_info
         return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: hide_objects</p>
+     * <pre>
+     * Hide objects. All versions of an object are hidden, regardless of
+     * the version specified in the ObjectIdentity. Hidden objects do not
+     * appear in the list_objects method.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     */
+    @JsonServerMethod(rpc = "Workspace.hide_objects")
+    public void hideObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
+        //BEGIN hide_objects
+    	//TODO tests
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		ws.setObjectsHidden(getUser(authPart), loi, true);
+        //END hide_objects
+    }
+
+    /**
+     * <p>Original spec-file function name: unhide_objects</p>
+     * <pre>
+     * Unhide objects. All versions of an object are unhidden, regardless
+     * of the version specified in the ObjectIdentity.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     */
+    @JsonServerMethod(rpc = "Workspace.unhide_objects")
+    public void unhideObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
+        //BEGIN unhide_objects
+    	//TODO tests
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		ws.setObjectsHidden(getUser(authPart), loi, false);
+        //END unhide_objects
     }
 
     /**

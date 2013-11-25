@@ -23,9 +23,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         Optional arguments:
  *         int instance - Version of the object for which metadata is to be
  *                  retrieved, enabling retrieval of any previous version of an object
- *         string auth - the authentication token of the KBase account accessing
- *                 the list of workspaces. Overrides the client provided authorization
- *                 credentials if they exist.
+ *         string auth - the authentication token of the KBase account requesting
+ *                 access. Overrides the client provided authorization credentials if
+ *                 they exist.
  *                 
  *         @deprecated Workspace.ObjectIdentity
  * </pre>

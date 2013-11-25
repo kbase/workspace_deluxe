@@ -190,6 +190,28 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: save_object</p>
+     * <pre>
+     * Saves the input object data and metadata into the selected workspace,
+     *         returning the object_metadata of the saved object. Provided
+     *         for backwards compatibility.
+     *         
+     * @deprecated Workspace.save_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.SaveObjectParams SaveObjectParams} (original type "save_object_params")
+     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> retType = new TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>() {};
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.save_object", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: save_objects</p>
      * <pre>
      * Save objects to the workspace. Saving over a deleted object undeletes
@@ -205,6 +227,27 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>>>> retType = new TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>>>>() {};
         List<List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object</p>
+     * <pre>
+     * Retrieves the specified object from the specified workspace.
+     * Both the object data and metadata are returned.
+     * Provided for backwards compatibility.
+     * @deprecated Workspace.get_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjectParams GetObjectParams} (original type "get_object_params")
+     * @return   parameter "output" of type {@link us.kbase.workspace.GetObjectOutput GetObjectOutput} (original type "get_object_output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public GetObjectOutput getObject(GetObjectParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<GetObjectOutput>> retType = new TypeReference<List<GetObjectOutput>>() {};
+        List<GetObjectOutput> res = caller.jsonrpcCall("Workspace.get_object", args, retType, true, false);
         return res.get(0);
     }
 
@@ -265,16 +308,36 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: list_workspace_objects</p>
+     * <pre>
+     * Lists the metadata of all objects in the specified workspace with the
+     * specified type (or with any type). Provided for backwards compatibility.
+     * @deprecated Workspace.list_objects
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceObjectsParams ListWorkspaceObjectsParams} (original type "list_workspace_objects_params")
+     * @return   parameter "objects" of list of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>> retType = new TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>>() {};
+        List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> res = caller.jsonrpcCall("Workspace.list_workspace_objects", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: list_objects</p>
      * <pre>
      * Early version of list_objects.
      * </pre>
-     * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
+     * @param   wsi   instance of type {@link us.kbase.workspace.ListObjectsParameters ListObjectsParameters}
      * @return   parameter "objinfo" of list of original type "object_info" (Information about an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username created_by - the user that created the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "created_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "chsum" of String, parameter "size" of Long
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(ListObjectsParameters wsi) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>>>> retType = new TypeReference<List<List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>>>>() {};
@@ -319,6 +382,41 @@ public class WorkspaceClient {
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
         List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info", args, retType, true, false);
         return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: hide_objects</p>
+     * <pre>
+     * Hide objects. All versions of an object are hidden, regardless of
+     * the version specified in the ObjectIdentity. Hidden objects do not
+     * appear in the list_objects method.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void hideObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objectIds);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.hide_objects", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: unhide_objects</p>
+     * <pre>
+     * Unhide objects. All versions of an object are unhidden, regardless
+     * of the version specified in the ObjectIdentity.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void unhideObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objectIds);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.unhide_objects", args, retType, false, true);
     }
 
     /**

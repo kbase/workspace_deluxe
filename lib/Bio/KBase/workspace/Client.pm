@@ -701,6 +701,144 @@ sub get_permissions
 
 
 
+=head2 save_object
+
+  $metadata = $obj->save_object($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.save_object_params
+$metadata is a Workspace.object_metadata
+save_object_params is a reference to a hash where the following keys are defined:
+	id has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	workspace has a value which is a Workspace.ws_name
+	metadata has a value which is a reference to a hash where the key is a string and the value is a string
+	auth has a value which is a string
+obj_name is a string
+type_string is a string
+ws_name is a string
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.save_object_params
+$metadata is a Workspace.object_metadata
+save_object_params is a reference to a hash where the following keys are defined:
+	id has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	workspace has a value which is a Workspace.ws_name
+	metadata has a value which is a reference to a hash where the key is a string and the value is a string
+	auth has a value which is a string
+obj_name is a string
+type_string is a string
+ws_name is a string
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+
+=end text
+
+=item Description
+
+Saves the input object data and metadata into the selected workspace,
+        returning the object_metadata of the saved object. Provided
+        for backwards compatibility.
+        
+@deprecated Workspace.save_objects
+
+=back
+
+=cut
+
+sub save_object
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function save_object (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to save_object:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'save_object');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.save_object",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'save_object',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method save_object",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'save_object',
+				       );
+    }
+}
+
+
+
 =head2 save_objects
 
   $info = $obj->save_objects($params)
@@ -870,6 +1008,146 @@ sub save_objects
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method save_objects",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'save_objects',
+				       );
+    }
+}
+
+
+
+=head2 get_object
+
+  $output = $obj->get_object($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.get_object_params
+$output is a Workspace.get_object_output
+get_object_params is a reference to a hash where the following keys are defined:
+	id has a value which is a Workspace.obj_name
+	workspace has a value which is a Workspace.ws_name
+	instance has a value which is an int
+	auth has a value which is a string
+obj_name is a string
+ws_name is a string
+get_object_output is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	metadata has a value which is a Workspace.object_metadata
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.get_object_params
+$output is a Workspace.get_object_output
+get_object_params is a reference to a hash where the following keys are defined:
+	id has a value which is a Workspace.obj_name
+	workspace has a value which is a Workspace.ws_name
+	instance has a value which is an int
+	auth has a value which is a string
+obj_name is a string
+ws_name is a string
+get_object_output is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	metadata has a value which is a Workspace.object_metadata
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+
+=end text
+
+=item Description
+
+Retrieves the specified object from the specified workspace.
+Both the object data and metadata are returned.
+Provided for backwards compatibility.
+
+@deprecated Workspace.get_objects
+
+=back
+
+=cut
+
+sub get_object
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_object",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_object',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object',
 				       );
     }
 }
@@ -1278,6 +1556,143 @@ sub list_workspace_info
 
 
 
+=head2 list_workspace_objects
+
+  $objects = $obj->list_workspace_objects($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.list_workspace_objects_params
+$objects is a reference to a list where each element is a Workspace.object_metadata
+list_workspace_objects_params is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	type has a value which is a Workspace.type_string
+	showDeletedObject has a value which is a Workspace.boolean
+	showHidden has a value which is a Workspace.boolean
+	auth has a value which is a string
+ws_name is a string
+type_string is a string
+boolean is an int
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+obj_name is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.list_workspace_objects_params
+$objects is a reference to a list where each element is a Workspace.object_metadata
+list_workspace_objects_params is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	type has a value which is a Workspace.type_string
+	showDeletedObject has a value which is a Workspace.boolean
+	showHidden has a value which is a Workspace.boolean
+	auth has a value which is a string
+ws_name is a string
+type_string is a string
+boolean is an int
+object_metadata is a reference to a list containing 12 items:
+	0: (id) a Workspace.obj_name
+	1: (type) a Workspace.type_string
+	2: (moddate) a Workspace.timestamp
+	3: (instance) an int
+	4: (command) a string
+	5: (lastmodifier) a Workspace.username
+	6: (owner) a Workspace.username
+	7: (workspace) a Workspace.ws_name
+	8: (ref) a string
+	9: (chsum) a string
+	10: (metadata) a Workspace.usermeta
+	11: (objid) a Workspace.obj_id
+obj_name is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+obj_id is an int
+
+
+=end text
+
+=item Description
+
+Lists the metadata of all objects in the specified workspace with the
+specified type (or with any type). Provided for backwards compatibility.
+
+@deprecated Workspace.list_objects
+
+=back
+
+=cut
+
+sub list_workspace_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_workspace_objects (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_workspace_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_workspace_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_workspace_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'list_workspace_objects',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_workspace_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_workspace_objects',
+				       );
+    }
+}
+
+
+
 =head2 list_objects
 
   $objinfo = $obj->list_objects($wsi)
@@ -1289,13 +1704,18 @@ sub list_workspace_info
 =begin html
 
 <pre>
-$wsi is a Workspace.WorkspaceIdentity
+$wsi is a Workspace.ListObjectsParameters
 $objinfo is a reference to a list where each element is a Workspace.object_info
-WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+ListObjectsParameters is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
+	ids has a value which is a reference to a list where each element is a Workspace.ws_id
+	type has a value which is a Workspace.type_string
+	showDeleted has a value which is a Workspace.boolean
+	showHidden has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
+type_string is a string
+boolean is an int
 object_info is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1309,7 +1729,6 @@ object_info is a reference to a list containing 10 items:
 	9: (size) an int
 obj_id is an int
 obj_name is a string
-type_string is a string
 timestamp is a string
 username is a string
 
@@ -1319,13 +1738,18 @@ username is a string
 
 =begin text
 
-$wsi is a Workspace.WorkspaceIdentity
+$wsi is a Workspace.ListObjectsParameters
 $objinfo is a reference to a list where each element is a Workspace.object_info
-WorkspaceIdentity is a reference to a hash where the following keys are defined:
-	workspace has a value which is a Workspace.ws_name
-	id has a value which is a Workspace.ws_id
+ListObjectsParameters is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
+	ids has a value which is a reference to a list where each element is a Workspace.ws_id
+	type has a value which is a Workspace.type_string
+	showDeleted has a value which is a Workspace.boolean
+	showHidden has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
+type_string is a string
+boolean is an int
 object_info is a reference to a list containing 10 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1339,7 +1763,6 @@ object_info is a reference to a list containing 10 items:
 	9: (size) an int
 obj_id is an int
 obj_name is a string
-type_string is a string
 timestamp is a string
 username is a string
 
@@ -1666,6 +2089,217 @@ sub get_object_info
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_object_info',
+				       );
+    }
+}
+
+
+
+=head2 hide_objects
+
+  $obj->hide_objects($object_ids)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+
+=end text
+
+=item Description
+
+Hide objects. All versions of an object are hidden, regardless of
+the version specified in the ObjectIdentity. Hidden objects do not
+appear in the list_objects method.
+
+=back
+
+=cut
+
+sub hide_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function hide_objects (received $n, expecting 1)");
+    }
+    {
+	my($object_ids) = @args;
+
+	my @_bad_arguments;
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to hide_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'hide_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.hide_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'hide_objects',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method hide_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'hide_objects',
+				       );
+    }
+}
+
+
+
+=head2 unhide_objects
+
+  $obj->unhide_objects($object_ids)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+
+=end text
+
+=item Description
+
+Unhide objects. All versions of an object are unhidden, regardless
+of the version specified in the ObjectIdentity.
+
+=back
+
+=cut
+
+sub unhide_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function unhide_objects (received $n, expecting 1)");
+    }
+    {
+	my($object_ids) = @args;
+
+	my @_bad_arguments;
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to unhide_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'unhide_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.unhide_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'unhide_objects',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method unhide_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'unhide_objects',
 				       );
     }
 }
@@ -4434,6 +5068,68 @@ users has a value which is a reference to a list where each element is a Workspa
 
 
 
+=head2 save_object_params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "save_objects function. Provided for backwards
+compatibility.
+        
+Required arguments:
+type_string type - type of the object to be saved
+ws_name workspace - name of the workspace where the object is to be
+        saved
+obj_name id - name behind which the object will be saved in the
+        workspace
+UnspecifiedObject data - datastructure to be saved in the workspace
+
+Optional arguments:
+usermeta metadata - a hash of metadata to be associated with the object
+string auth - the authentication token of the KBase account accessing
+        the list of workspaces. Overrides the client provided authorization
+        credentials if they exist.
+
+@deprecated
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+id has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+workspace has a value which is a Workspace.ws_name
+metadata has a value which is a reference to a hash where the key is a string and the value is a string
+auth has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+id has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+workspace has a value which is a Workspace.ws_name
+metadata has a value which is a reference to a hash where the key is a string and the value is a string
+auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
 =head2 ObjectSaveData
 
 =over 4
@@ -4538,6 +5234,105 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 id has a value which is a Workspace.ws_id
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSaveData
+
+
+=end text
+
+=back
+
+
+
+=head2 get_object_params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "get_object" function. Provided for backwards
+compatibility.
+        
+Required arguments:
+ws_name workspace - Name of the workspace containing the object to be
+        retrieved
+obj_name id - Name of the object to be retrieved
+
+Optional arguments:
+int instance - Version of the object to be retrieved, enabling
+        retrieval of any previous version of an object
+string auth - the authentication token of the KBase account accessing
+        the list of workspaces. Overrides the client provided authorization
+        credentials if they exist.
+
+@deprecated Workspace.ObjectIdentity
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+id has a value which is a Workspace.obj_name
+workspace has a value which is a Workspace.ws_name
+instance has a value which is an int
+auth has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+id has a value which is a Workspace.obj_name
+workspace has a value which is a Workspace.ws_name
+instance has a value which is an int
+auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 get_object_output
+
+=over 4
+
+
+
+=item Description
+
+Output generated by the "get_object" function. Provided for backwards
+compatibility.
+        
+UnspecifiedObject data - The object's data.
+object_metadata metadata - Metadata for object retrieved/
+        
+@deprecated Workspaces.ObjectData
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+metadata has a value which is a Workspace.object_metadata
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+data has a value which is an UnspecifiedObject, which can hold any non-null object
+metadata has a value which is a Workspace.object_metadata
 
 
 =end text
@@ -4673,6 +5468,119 @@ excludeGlobal has a value which is a Workspace.boolean
 
 
 
+=head2 list_workspace_objects_params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "list_workspace_objects" function. Provided
+for backwards compatibility.
+
+Required arguments:
+ws_name workspace - Name of the workspace for which objects should be
+        listed
+
+Optional arguments:
+type_string type - type of the objects to be listed
+boolean showDeletedObject - show objects that have been deleted
+boolean showHidden - show hidden objects
+string auth - the authentication token of the KBase account requesting
+        access. Overrides the client provided authorization credentials if
+        they exist.
+        
+@deprecated Workspaces.ListWorkspaceInfoParams
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+type has a value which is a Workspace.type_string
+showDeletedObject has a value which is a Workspace.boolean
+showHidden has a value which is a Workspace.boolean
+auth has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+type has a value which is a Workspace.type_string
+showDeletedObject has a value which is a Workspace.boolean
+showHidden has a value which is a Workspace.boolean
+auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 ListObjectsParameters
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the 'list_objects' function.
+
+                At least one of the following filters must be provided. It is strongly
+                recommended that the list is restricted to the workspaces of interest,
+                or the results may be very large:
+                list<ws_id> ids - the numerical IDs of the workspaces of interest.
+                list<ws_name> workspaces - name of the workspaces of interest or the
+                        workspace IDs in KBase format, e.g. kb|ws.78.
+                type_string type - type of the objects to be listed.
+                
+                Optional arguments:
+                boolean showDeleted - show deleted objects
+                boolean showHidden - show hidden objects
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
+ids has a value which is a reference to a list where each element is a Workspace.ws_id
+type has a value which is a Workspace.type_string
+showDeleted has a value which is a Workspace.boolean
+showHidden has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
+ids has a value which is a reference to a list where each element is a Workspace.ws_id
+type has a value which is a Workspace.type_string
+showDeleted has a value which is a Workspace.boolean
+showHidden has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
 =head2 get_objectmeta_params
 
 =over 4
@@ -4691,9 +5599,9 @@ Input parameters for the "get_objectmeta" function.
         Optional arguments:
         int instance - Version of the object for which metadata is to be
                  retrieved, enabling retrieval of any previous version of an object
-        string auth - the authentication token of the KBase account accessing
-                the list of workspaces. Overrides the client provided authorization
-                credentials if they exist.
+        string auth - the authentication token of the KBase account requesting
+                access. Overrides the client provided authorization credentials if
+                they exist.
                 
         @deprecated Workspace.ObjectIdentity
 
