@@ -122,7 +122,8 @@ public class ShockBackend implements BlobStore {
 			protected ShockNode doRead(InputStream is) throws Exception {
 				final ShockNode sn;
 				try {
-					sn = client.addNode(is, "workspace_" + md5.getMD5());
+					sn = client.addNode(is, "workspace_" + md5.getMD5(),
+							"JSON");
 				} catch (TokenExpiredException ete) {
 					//this should be impossible
 					throw new RuntimeException("Things are broke", ete);

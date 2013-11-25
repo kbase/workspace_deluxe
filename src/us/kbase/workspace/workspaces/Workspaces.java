@@ -88,7 +88,6 @@ public class Workspaces {
 	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
 	
 	//TODO 1 lots of tests
-	//TODO use new shock client
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	

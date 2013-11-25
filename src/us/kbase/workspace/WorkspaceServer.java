@@ -89,8 +89,8 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 
-	//TODO save_object get_object list_workspace_objects 
-    //TODO meta should be saved by; object should return creator & timestamp
+	//TODO list_workspace_objects list_objects
+    //TODO meta creator should be saved_by; object should return creator & timestamp
 
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
@@ -594,6 +594,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> returnVal = null;
         //BEGIN list_workspace_objects
         //TODO list_workspace_objects
+        //TODO tests
         //END list_workspace_objects
         return returnVal;
     }
@@ -611,11 +612,12 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_objects
 		return null; //TODO fix list_objects
+		//TODO tests
 //		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 //		returnVal = au.objInfoToTuple(
 //				ws.prealphaListObjects(getUser(authPart), wksp));
         //END list_objects
-        return returnVal;
+//        return returnVal;
     }
 
     /**
