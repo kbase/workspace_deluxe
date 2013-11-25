@@ -1704,9 +1704,9 @@ sub list_workspace_objects
 =begin html
 
 <pre>
-$wsi is a Workspace.ListObjectsParameters
+$wsi is a Workspace.ListObjectsParams
 $objinfo is a reference to a list where each element is a Workspace.object_info
-ListObjectsParameters is a reference to a hash where the following keys are defined:
+ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
@@ -1738,9 +1738,9 @@ username is a string
 
 =begin text
 
-$wsi is a Workspace.ListObjectsParameters
+$wsi is a Workspace.ListObjectsParams
 $objinfo is a reference to a list where each element is a Workspace.object_info
-ListObjectsParameters is a reference to a hash where the following keys are defined:
+ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
@@ -5526,7 +5526,7 @@ auth has a value which is a string
 
 
 
-=head2 ListObjectsParameters
+=head2 ListObjectsParams
 
 =over 4
 

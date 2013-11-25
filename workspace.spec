@@ -672,12 +672,12 @@ module Workspace {
 		type_string type;
 		boolean showDeleted;
 		boolean showHidden;
-	} ListObjectsParameters;
+	} ListObjectsParams;
 	
 	/*
 		Early version of list_objects.
 	*/
-	funcdef list_objects(ListObjectsParameters wsi)
+	funcdef list_objects(ListObjectsParams wsi)
 		returns(list<object_info> objinfo);
 	
 	/* Input parameters for the "get_objectmeta" function.
