@@ -70,6 +70,8 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  */
 public class JSONRPCLayerTest {
 	
+	private static boolean printMemUsage = false;
+	
 	private static WorkspaceServer SERVER1 = null;
 	private static WorkspaceClient CLIENT1 = null;
 	private static String USER3 = null;
@@ -1044,10 +1046,13 @@ public class JSONRPCLayerTest {
 	public void saveBigData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
 		
-		waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before preparation", 1000000000L);
-		System.out.println("----------------------------------------------------------------------");
 		final boolean[] threadStopWrapper1 = {false};
-		Thread t1 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during preparation", threadStopWrapper1);
+		Thread t1 = null;
+		if (printMemUsage) {
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before preparation", 1000000000L);
+			System.out.println("----------------------------------------------------------------------");
+			t1 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during preparation", threadStopWrapper1);
+		}
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
@@ -1055,30 +1060,43 @@ public class JSONRPCLayerTest {
 			//force allocation of a new char[]
 			subdata.add("" + TEXT1000);
 		}
-		threadStopWrapper1[0] = true;
-		t1.join();
-		System.out.println("----------------------------------------------------------------------");
+		
 		final boolean[] threadStopWrapper2 = {false};
-		Thread t2 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during saveObject", threadStopWrapper2);
+		Thread t2 = null;
+		if (printMemUsage) {
+			threadStopWrapper1[0] = true;
+			t1.join();
+			System.out.println("----------------------------------------------------------------------");
+			t2 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during saveObject", threadStopWrapper2);
+		}
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("bigdata")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withData(new UObject(data)))));
-		threadStopWrapper2[0] = true;
-		t2.join();
+		if (printMemUsage) {
+			threadStopWrapper2[0] = true;
+			t2.join();
+		}
+		
 		data = null;
 		subdata = null;
-		System.out.println("----------------------------------------------------------------------");
-		waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before getObject", 1000000000L);
-		System.out.println("----------------------------------------------------------------------");
+		
 		final boolean[] threadStopWrapper3 = {false};
-		Thread t3 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during getObject", threadStopWrapper3);
+		Thread t3 = null;
+		if (printMemUsage) {
+			System.out.println("----------------------------------------------------------------------");
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before getObject", 1000000000L);
+			System.out.println("----------------------------------------------------------------------");
+			t3 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during getObject", threadStopWrapper3);
+		}
 		// need 3g to get to this point
 		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData().asInstance();
-		threadStopWrapper3[0] = true;
-		t3.join();
-		System.out.println("----------------------------------------------------------------------");
-		waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
+		if (printMemUsage) {
+			threadStopWrapper3[0] = true;
+			t3.join();
+			System.out.println("----------------------------------------------------------------------");
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
+		}
 		//need 6g to get past readValueAsTree() in UObjectDeserializer
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
