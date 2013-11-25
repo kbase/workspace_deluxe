@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         credentials if they exist.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
+ * @deprecated Workspace.ListWorkspaceInfoParams
  * </pre>
  * 
  */

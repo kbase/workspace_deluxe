@@ -17,12 +17,25 @@ public interface PermissionSet {
 	 * @return the user's explicit permission
 	 */
 	public Permission getUserPermission(ResolvedWorkspaceID rwsi);
+	/** Returns whether the user has a particular permission for the workspace
+	 * @param rwsi the workspace of interest
+	 * @param perm the permission to check
+	 * @return whether the user has that permission
+	 */
+	public boolean hasUserPermission(ResolvedWorkspaceID rwsi, Permission perm);
 	/** Returns the user's overall permission for the workspace, taking
 	 * world-readability into account
 	 * @param rwsi the workspace of interest
 	 * @return the user's overall permission
 	 */
 	public Permission getPermission(ResolvedWorkspaceID rwsi);
+	/** Returns whether the user has a particular permission for the workspace,
+	 * taking world-readability into account
+	 * @param rwsi the workspace of interest
+	 * @param perm the permission to check
+	 * @return the user's overall permission
+	 */
+	public boolean hasPermission(ResolvedWorkspaceID rwsi, Permission perm);
 	public boolean isWorldReadable(ResolvedWorkspaceID rwsi);
 	public Set<ResolvedWorkspaceID> getWorkspaces();
 }

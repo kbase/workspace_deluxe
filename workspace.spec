@@ -586,6 +586,7 @@ module Workspace {
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
 		
+		@deprecated Workspace.ListWorkspaceInfoParams
 	*/
 	typedef structure { 
 		string auth;
@@ -596,6 +597,8 @@ module Workspace {
 		Lists the metadata of all workspaces a user has access to. Provided for
 		backwards compatibility - to be replaced by the functionality of
 		list_workspace_info
+		
+		@deprecated Workspace.list_workspace_info
 	*/
 	funcdef list_workspaces(list_workspaces_params params)
 		returns (list<workspace_metadata> workspaces);
@@ -606,14 +609,17 @@ module Workspace {
 		Optional parameters:
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
+		boolean showDeleted - show deleted workspaces that are owned by the
+			user.
 		
 	*/
 	typedef structure { 
 		boolean excludeGlobal;
+		boolean showDeleted;
 	} ListWorkspaceInfoParams;
 	
 	/*
-		Early version of list_workspaces with full API.
+		Early version of list_workspaces.
 	 */
 	funcdef list_workspace_info(ListWorkspaceInfoParams params)
 		returns(list<workspace_info> wsinfo);
@@ -633,7 +639,7 @@ module Workspace {
 			access. Overrides the client provided authorization credentials if
 			they exist.
 			
-		@deprecated Workspaces.ListWorkspaceInfoParams		
+		@deprecated Workspaces.ListWorkspaceInfoParams
 	*/
 	typedef structure { 
 	   ws_name workspace;
@@ -649,7 +655,8 @@ module Workspace {
 		
 		@deprecated Workspace.list_objects
 	*/
-	funcdef list_workspace_objects(list_workspace_objects_params params) returns (list<object_metadata> objects) authentication optional;
+	funcdef list_workspace_objects(list_workspace_objects_params params)
+		returns(list<object_metadata> objects) authentication optional;
 	
 	/* Parameters for the 'list_objects' function.
 

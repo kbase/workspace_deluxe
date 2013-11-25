@@ -630,7 +630,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			final PermissionSet pset, final boolean excludeGlobal)
+			final PermissionSet pset, final boolean excludeGlobal,
+			final boolean showDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (!(pset instanceof MongoPermissionSet)) {
@@ -640,7 +641,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Set<ResolvedMongoWSID> rwsis = new HashSet<ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			if (pset.getUserPermission(rwsi).compareTo(Permission.READ) >= 1 ||
+			if (pset.hasUserPermission(rwsi, Permission.READ) ||
 				(!excludeGlobal && pset.isWorldReadable(rwsi))) {
 				rwsis.add(query.convertResolvedWSID(rwsi));
 			}
@@ -651,8 +652,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
 		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
-			if (!(Boolean) ws.get(rwsi).get(Fields.WS_DEL)) {
-				ret.add(generateWSInfo(pset.getUser(), rwsi, pset, ws.get(rwsi)));
+			if (!(Boolean) ws.get(rwsi).get(Fields.WS_DEL) ||
+					(showDeleted &&
+					pset.hasUserPermission(rwsi, Permission.OWNER))) {
+				ret.add(generateWSInfo(pset.getUser(), rwsi, pset,
+						ws.get(rwsi)));
 			}
 		}
 		return ret;

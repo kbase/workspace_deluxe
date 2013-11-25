@@ -18,18 +18,23 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Optional parameters:
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
+ * boolean showDeleted - show deleted workspaces that are owned by the
+ *         user.
  * </pre>
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "excludeGlobal"
+    "excludeGlobal",
+    "showDeleted"
 })
 public class ListWorkspaceInfoParams {
 
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
+    @JsonProperty("showDeleted")
+    private Long showDeleted;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("excludeGlobal")
@@ -47,6 +52,21 @@ public class ListWorkspaceInfoParams {
         return this;
     }
 
+    @JsonProperty("showDeleted")
+    public Long getShowDeleted() {
+        return showDeleted;
+    }
+
+    @JsonProperty("showDeleted")
+    public void setShowDeleted(Long showDeleted) {
+        this.showDeleted = showDeleted;
+    }
+
+    public ListWorkspaceInfoParams withShowDeleted(Long showDeleted) {
+        this.showDeleted = showDeleted;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -59,7 +79,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public String toString() {
-        return ((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

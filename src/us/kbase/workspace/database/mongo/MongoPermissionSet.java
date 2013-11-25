@@ -64,6 +64,13 @@ public class MongoPermissionSet implements PermissionSet {
 			return p;
 		}
 	}
+	
+	//TODO test
+	@Override
+	public boolean hasPermission(final ResolvedWorkspaceID rwsi,
+			final Permission perm) {
+		return getPermission(rwsi).compareTo(perm) > -1;
+	}
 
 	@Override
 	public Permission getUserPermission(final ResolvedWorkspaceID rwsi) {
@@ -72,6 +79,13 @@ public class MongoPermissionSet implements PermissionSet {
 					"Workspace not registered: " + rwsi);
 		}
 		return userPerms.get(rwsi);
+	}
+	
+	//TODO test
+	@Override
+	public boolean hasUserPermission(final ResolvedWorkspaceID rwsi,
+			final Permission perm) {
+		return getUserPermission(rwsi).compareTo(perm) > -1;
 	}
 
 	@Override

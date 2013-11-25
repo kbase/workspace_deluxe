@@ -1394,6 +1394,8 @@ Lists the metadata of all workspaces a user has access to. Provided for
 backwards compatibility - to be replaced by the functionality of
 list_workspace_info
 
+@deprecated Workspace.list_workspace_info
+
 =back
 
 =cut
@@ -1459,6 +1461,7 @@ $params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	excludeGlobal has a value which is a Workspace.boolean
+	showDeleted has a value which is a Workspace.boolean
 boolean is an int
 workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
@@ -1484,6 +1487,7 @@ $params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	excludeGlobal has a value which is a Workspace.boolean
+	showDeleted has a value which is a Workspace.boolean
 boolean is an int
 workspace_info is a reference to a list containing 7 items:
 	0: (id) a Workspace.ws_id
@@ -1504,7 +1508,7 @@ permission is a string
 
 =item Description
 
-Early version of list_workspaces with full API.
+Early version of list_workspaces.
 
 =back
 
@@ -5402,6 +5406,8 @@ string auth - the authentication token of the KBase account accessing
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
 
+@deprecated Workspace.ListWorkspaceInfoParams
+
 
 =item Definition
 
@@ -5442,6 +5448,8 @@ Input parameters for the "list_workspace_info" function.
 Optional parameters:
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
+boolean showDeleted - show deleted workspaces that are owned by the
+        user.
 
 
 =item Definition
@@ -5451,6 +5459,7 @@ boolean excludeGlobal - if excludeGlobal is true exclude world
 <pre>
 a reference to a hash where the following keys are defined:
 excludeGlobal has a value which is a Workspace.boolean
+showDeleted has a value which is a Workspace.boolean
 
 </pre>
 
@@ -5460,6 +5469,7 @@ excludeGlobal has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 excludeGlobal has a value which is a Workspace.boolean
+showDeleted has a value which is a Workspace.boolean
 
 
 =end text
