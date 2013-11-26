@@ -34,8 +34,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.db.FuncDetailedInfo;
+import us.kbase.typedobj.db.ModuleDefId;
+import us.kbase.typedobj.db.TypeDetailedInfo;
+import us.kbase.typedobj.exceptions.NoSuchFuncException;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -67,6 +74,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
+import us.kbase.workspace.workspaces.ModuleInfo;
 
 //TODO make sure ordered lists stay ordered
 //TODO test subdata access from independent mongo DB instance
@@ -178,12 +186,45 @@ public class TestWorkspaces {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		int backends = 1 + (SKIP_SHOCK ? 0 : 1);
 		for (int i = 0; i < backends; i ++) {
+			//simple spec
 			TEST_WORKSPACES[i].requestModuleRegistration(foo, "SomeModule");
 			TEST_WORKSPACES[i].resolveModuleRegistration("SomeModule", true);
 			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
 					"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 					Arrays.asList("AType"), null, null, false, null);
 			TEST_WORKSPACES[i].releaseTypes(foo, "SomeModule");
+			
+			// more complicated spec with two released versions and 1 unreleased version for type
+			// registration tests
+			TEST_WORKSPACES[i].requestModuleRegistration(foo, "TestModule");
+			TEST_WORKSPACES[i].resolveModuleRegistration("TestModule", true);
+			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
+					"module TestModule { " +
+							"typedef structure {string name; string seq;} Feature; "+
+							"typedef structure {string name; list<Feature> features;} Genome; "+
+							"typedef structure {string private_stuff;} InternalObj; "+
+							"funcdef getFeature(string fid, string pattern) returns (Feature);" +
+					"};",
+					Arrays.asList("Feature","Genome"), null, null, false, null);
+			TEST_WORKSPACES[i].releaseTypes(foo, "TestModule");
+			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
+					"module TestModule { " +
+							"typedef structure {string name; string seq;} Feature; "+
+							"typedef structure {string name; list<Feature> feature_list;} Genome; "+
+							"typedef structure {string private_stuff;} InternalObj; "+
+							"funcdef getFeature(string fid) returns (Feature);" +
+					"};",
+					null, null, null, false, null);
+			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
+					"module TestModule { " +
+							"typedef structure {string name; string seq;} Feature; "+
+							"typedef structure {string name; list<Feature> feature_list;} Genome; "+
+							"typedef structure {string private_stuff;} InternalObj; "+
+							"funcdef getFeature(string fid) returns (Feature);" +
+							"funcdef getGenome(string gid) returns (Genome);" +
+					"};",
+					null, null, null, false, null);
+			TEST_WORKSPACES[i].releaseTypes(foo, "TestModule");
 		}
 	}
 	
@@ -1361,6 +1402,7 @@ public class TestWorkspaces {
 		}
 	}
 	
+	@Ignore //TODO unignore when mem issues sorted
 	@Test
 	public void saveWithBigData() throws Exception {
 //		System.gc();
@@ -1487,7 +1529,7 @@ public class TestWorkspaces {
 		}
 		//TODO put this test in the JSONRPCLayer tests
 	}
-
+	
 	@Test
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
@@ -2085,6 +2127,7 @@ public class TestWorkspaces {
 	
 	@Test
 	public void testTypeMd5s() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
 		String typeDefName = "SomeModule.AType";
 		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName));
 		Assert.assertEquals(1, type2md5.size());
@@ -2104,8 +2147,99 @@ public class TestWorkspaces {
 	}
 	
 	@Test
+	public void testListModules() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
+		Map<String,String> moduleNamesInList = new HashMap<String,String>();
+		for(String mod:ws.listModules(null)) {
+			moduleNamesInList.put(mod, "");
+		}
+		Assert.assertTrue(moduleNamesInList.containsKey("SomeModule"));
+		Assert.assertTrue(moduleNamesInList.containsKey("TestModule"));
+	}
+	
+	@Test
 	public void testListModuleVersions() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
 		Assert.assertEquals(1, ws.getModuleVersions("SomeModule", null).size());
 		Assert.assertEquals(2, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
+		Assert.assertEquals(2, ws.getModuleVersions("TestModule", null).size());
+		Assert.assertEquals(5, ws.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
 	}
+	
+	@Test
+	public void testGetModuleInfo() throws Exception {
+		//TODO test if unregistered module name is given that exception is thrown
+		//see setUpWorkspaces() to find where needed specs are loaded
+		ModuleInfo m = ws.getModuleInfo(new ModuleDefId("TestModule"));
+		Map<String,String> funcNamesInList = new HashMap<String,String>();
+		for(String func : m.getFunctions() ){
+			funcNamesInList.put(func, "");
+		}
+		Assert.assertTrue(funcNamesInList.containsKey("TestModule.getFeature-2.0"));
+		Assert.assertTrue(funcNamesInList.containsKey("TestModule.getGenome-1.0"));
+
+		Map<String,String> typeNamesInList = new HashMap<String,String>();
+		for(Entry<AbsoluteTypeDefId, String> type : m.getTypes().entrySet() ){
+			typeNamesInList.put(type.getKey().getTypeString(),"");
+		}
+		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Genome-2.0"));
+		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Feature-1.0"));
+		
+		try {
+			ws.getModuleInfo(new ModuleDefId("MadeUpModuleThatIsNotThere"));
+			fail("getModuleInfo of non existant module should throw a NoSuchModuleException");
+		} catch (NoSuchModuleException e) {}
+	}
+	
+	@Test
+	public void testGetJsonSchema() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
+		try {
+			ws.getJsonSchema(new TypeDefId("TestModule.NonExistantType"));
+			fail("getJsonSchema of non existant type should throw a NoSuchTypeException");
+		} catch (NoSuchTypeException e) {}
+		
+		// get several different schemas, make sure that no exceptions are thrown and it is valid json!
+		String schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0));
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode schemaNode = mapper.readTree(schema);
+		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+		
+		schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2));
+		schemaNode = mapper.readTree(schema);
+		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+		
+		schema = ws.getJsonSchema(new TypeDefId("TestModule.Genome"));
+		schemaNode = mapper.readTree(schema);
+		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+	}
+	
+	@Test
+	public void testGetTypeInfo() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
+		TypeDetailedInfo info = ws.getTypeInfo("TestModule.Genome", false);
+		Assert.assertEquals("TestModule.Genome-2.0",info.getTypeDefId());
+		info = ws.getTypeInfo("TestModule.Feature", false);
+		Assert.assertEquals("TestModule.Feature-1.0",info.getTypeDefId());
+	}
+	
+	@Test
+	public void testGetFuncInfo() throws Exception {
+		//see setUpWorkspaces() to find where needed specs are loaded
+		try {
+			ws.getFuncInfo("NoModuleThatExists.getFeature", false);
+			fail("getFuncInfo of non existant module should throw a NoSuchModuleException");
+		} catch (NoSuchModuleException e) {}
+		try {
+			ws.getFuncInfo("TestModule.noFunctionThatIKnowOf", false);
+			fail("getFuncInfo of non existant module should throw a NoSuchFuncException");
+		} catch (NoSuchFuncException e) {}
+		
+		FuncDetailedInfo info = ws.getFuncInfo("TestModule.getFeature", false);
+		Assert.assertEquals("TestModule.getFeature-2.0",info.getFuncDefId());
+		info = ws.getFuncInfo("TestModule.getGenome-1.0", false);
+		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
+	}
+	
+	
 }
