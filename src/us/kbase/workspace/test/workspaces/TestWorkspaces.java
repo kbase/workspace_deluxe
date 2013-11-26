@@ -2177,7 +2177,6 @@ public class TestWorkspaces {
 	
 	@Test
 	public void testGetModuleInfo() throws Exception {
-		//TODO test if unregistered module name is given that exception is thrown
 		//see setUpWorkspaces() to find where needed specs are loaded
 		ModuleInfo m = ws.getModuleInfo(new ModuleDefId("TestModule"));
 		Map<String,String> funcNamesInList = new HashMap<String,String>();
