@@ -33,6 +33,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -48,6 +51,7 @@ import us.kbase.workspace.CompileTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.ListModuleVersionsParams;
+import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -1349,4 +1353,51 @@ public class JSONRPCLayerTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testTypeAndModuleLookups() throws Exception {
+		final String spec =
+				"module TestModule { " +
+						"typedef structure {string name; string seq;} Feature; "+
+						"typedef structure {string name; list<Feature> features;} Genome; "+
+						"typedef structure {string private_stuff;} InternalObj; "+
+						"funcdef getFeature(string fid, string pattern) returns (Feature);" +
+				"};";
+		CLIENT1.requestModuleOwnership("TestModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "TestModule");
+		CLIENT1.compileTypespec(new CompileTypespecParams()
+			.withDryrun(0L)
+			.withSpec(spec)
+			.withNewTypes(Arrays.asList("Feature","Genome")));
+		CLIENT1.releaseModule("TestModule");
+		
+		// make sure the list of modules includes the TestModule
+		Map<String,String> moduleNamesInList = new HashMap<String,String>();
+		for(String mod: CLIENT1.listModules(new ListModulesParams())) {
+			moduleNamesInList.put(mod, "");
+		}
+		Assert.assertTrue(moduleNamesInList.containsKey("TestModule"));
+		
+		// make sure that we can list the versions of this module, there should be just 2 visible to client1...
+		Assert.assertEquals(
+				2,
+				CLIENT1.listModuleVersions(new ListModuleVersionsParams().withMod("TestModule")).getVers().size());
+		
+		// make sure we can retrieve module info
+		Assert.assertEquals(
+				2,
+				CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod("TestModule")).getTypes().size());
+		
+		// make sure we can get a json schema and parse it as a json document
+		ObjectMapper map = new ObjectMapper();
+		JsonNode schema = map.readTree(CLIENT1.getJsonschema("TestModule.Feature"));
+		Assert.assertEquals("Feature", schema.get("id").asText());
+		
+		// make sure we can get type info
+		Assert.assertEquals("TestModule.Feature-1.0",CLIENT1.getTypeInfo("TestModule.Feature-1").getTypeDef());
+		
+		// make sure we can get func info
+		Assert.assertEquals("TestModule.getFeature-1.0",CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef());
+	}
+	
 }
