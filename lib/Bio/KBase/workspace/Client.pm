@@ -893,7 +893,7 @@ object_info is a reference to a list containing 10 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -949,7 +949,7 @@ object_info is a reference to a list containing 10 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -1184,13 +1184,15 @@ ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info_full
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
 object_info_full is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -1240,13 +1242,15 @@ ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info_full
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
 object_info_full is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -1726,7 +1730,7 @@ object_info is a reference to a list containing 10 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -1760,7 +1764,7 @@ object_info is a reference to a list containing 10 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -1993,7 +1997,7 @@ object_info_full is a reference to a list containing 11 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -2031,7 +2035,7 @@ object_info_full is a reference to a list containing 11 items:
 	2: (type) a Workspace.type_string
 	3: (save_date) a Workspace.timestamp
 	4: (version) an int
-	5: (created_by) a Workspace.username
+	5: (saved_by) a Workspace.username
 	6: (wsid) a Workspace.ws_id
 	7: (workspace) a Workspace.ws_name
 	8: (chsum) a string
@@ -4627,7 +4631,8 @@ type_string type - type of the object.
 timestamp moddate - date when the object was saved
 obj_ver instance - the version of the object
 string command - Deprecated. Always returns the empty string.
-username lastmodifier - name of the user who last saved the object
+username lastmodifier - name of the user who last saved the object,
+        including copying the object
 username owner - Deprecated. Same as lastmodifier.
 ws_name workspace - name of the workspace in which the object is
         stored
@@ -4699,7 +4704,7 @@ Information about an object.
         type_string type - the type of the object.
         timestamp save_date - the save date of the object.
         obj_ver ver - the version of the object.
-        username created_by - the user that created the object.
+        username saved_by - the user that saved or copied the object.
         ws_id wsid - the workspace containing the object.
         ws_name workspace - the workspace containing the object.
         string chsum - the md5 checksum of the object.
@@ -4717,7 +4722,7 @@ a reference to a list containing 10 items:
 2: (type) a Workspace.type_string
 3: (save_date) a Workspace.timestamp
 4: (version) an int
-5: (created_by) a Workspace.username
+5: (saved_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
 7: (workspace) a Workspace.ws_name
 8: (chsum) a string
@@ -4735,7 +4740,7 @@ a reference to a list containing 10 items:
 2: (type) a Workspace.type_string
 3: (save_date) a Workspace.timestamp
 4: (version) an int
-5: (created_by) a Workspace.username
+5: (saved_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
 7: (workspace) a Workspace.ws_name
 8: (chsum) a string
@@ -4763,7 +4768,7 @@ Information about an object, including user provided metadata.
         type_string type - the type of the object.
         timestamp save_date - the save date of the object.
         obj_ver ver - the version of the object.
-        username created_by - the user that created the object.
+        username saved_by - the user that saved or copied the object.
         ws_id wsid - the workspace containing the object.
         ws_name workspace - the workspace containing the object.
         string chsum - the md5 checksum of the object.
@@ -4783,7 +4788,7 @@ a reference to a list containing 11 items:
 2: (type) a Workspace.type_string
 3: (save_date) a Workspace.timestamp
 4: (version) an int
-5: (created_by) a Workspace.username
+5: (saved_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
 7: (workspace) a Workspace.ws_name
 8: (chsum) a string
@@ -4802,7 +4807,7 @@ a reference to a list containing 11 items:
 2: (type) a Workspace.type_string
 3: (save_date) a Workspace.timestamp
 4: (version) an int
-5: (created_by) a Workspace.username
+5: (saved_by) a Workspace.username
 6: (wsid) a Workspace.ws_id
 7: (workspace) a Workspace.ws_name
 8: (chsum) a string
@@ -5358,6 +5363,10 @@ The data and supplemental info for an object.
         UnspecifiedObject data - the object's data.
         object_info_full info - information about the object.
         list<ProvenanceAction> provenance - the object's provenance.
+        username creator - the user that first saved the object to the
+                workspace.
+        timestamp created - the date the object was first saved to the
+                workspace.
 
 
 =item Definition
@@ -5369,6 +5378,8 @@ a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info_full
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+creator has a value which is a Workspace.username
+created has a value which is a Workspace.timestamp
 
 </pre>
 
@@ -5380,6 +5391,8 @@ a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info_full
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+creator has a value which is a Workspace.username
+created has a value which is a Workspace.timestamp
 
 
 =end text

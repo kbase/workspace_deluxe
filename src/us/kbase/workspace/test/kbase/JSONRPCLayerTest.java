@@ -2,6 +2,7 @@ package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -67,6 +69,8 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
 public class JSONRPCLayerTest {
+	
+	private static boolean printMemUsage = false;
 	
 	private static WorkspaceServer SERVER1 = null;
 	private static WorkspaceClient CLIENT1 = null;
@@ -661,6 +665,10 @@ public class JSONRPCLayerTest {
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
+		assertThat("user correct", ret.get(0).getCreator(), is(USER1));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(ret.get(0).getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
 		
 		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
 		
@@ -681,6 +689,22 @@ public class JSONRPCLayerTest {
 		saveProvWithBadTime("2013-04-35T23:52:06-0800");
 		saveProvWithBadTime("2013-13-26T23:52:06-0800");
 		
+		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
+						.withType(SAFE_TYPE).withName("whoops"))));
+		ObjectData d = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
+			.withName("whoops").withWorkspace("provenance"))).get(0);
+		assertThat("user correct", d.getCreator(), is(USER2));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(d.getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
+	}
+	
+	private Date getOlderDate(long ms) {
+		long now = new Date().getTime();
+		return new Date(now - ms);
 	}
 	
 	private void saveProvWithBadTime(String time) throws Exception {
@@ -1022,6 +1046,13 @@ public class JSONRPCLayerTest {
 	public void saveBigData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
 		
+		final boolean[] threadStopWrapper1 = {false};
+		Thread t1 = null;
+		if (printMemUsage) {
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before preparation", 1000000000L);
+			System.out.println("----------------------------------------------------------------------");
+			t1 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during preparation", threadStopWrapper1);
+		}
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
@@ -1029,15 +1060,43 @@ public class JSONRPCLayerTest {
 			//force allocation of a new char[]
 			subdata.add("" + TEXT1000);
 		}
+		
+		final boolean[] threadStopWrapper2 = {false};
+		Thread t2 = null;
+		if (printMemUsage) {
+			threadStopWrapper1[0] = true;
+			t1.join();
+			System.out.println("----------------------------------------------------------------------");
+			t2 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during saveObject", threadStopWrapper2);
+		}
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("bigdata")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withData(new UObject(data)))));
+		if (printMemUsage) {
+			threadStopWrapper2[0] = true;
+			t2.join();
+		}
+		
 		data = null;
 		subdata = null;
 		
+		final boolean[] threadStopWrapper3 = {false};
+		Thread t3 = null;
+		if (printMemUsage) {
+			System.out.println("----------------------------------------------------------------------");
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before getObject", 1000000000L);
+			System.out.println("----------------------------------------------------------------------");
+			t3 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during getObject", threadStopWrapper3);
+		}
 		// need 3g to get to this point
 		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData().asInstance();
+		if (printMemUsage) {
+			threadStopWrapper3[0] = true;
+			t3.join();
+			System.out.println("----------------------------------------------------------------------");
+			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
+		}
 		//need 6g to get past readValueAsTree() in UObjectDeserializer
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
@@ -1046,6 +1105,43 @@ public class JSONRPCLayerTest {
 		assertThat("correct subdata size", newsd.size(), is(997008));
 		for (String s: newsd) {
 			assertThat("correct string in subdata", s, is(TEXT1000));
+		}
+	}
+
+	private static Thread watchForMem(final String header, final boolean[] threadStopWrapper) {
+		Thread ret = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true) {
+					Runtime r = Runtime.getRuntime();
+					long freeMem = r.freeMemory();
+					long totalMem = r.totalMemory();
+					long usedMem = totalMem - freeMem;
+					System.out.println(header + ": " + usedMem);
+					if (threadStopWrapper[0])
+						break;
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		ret.start();
+		return ret;
+	}
+	
+	private static void waitForGC(String header, long maxUsedMem) throws InterruptedException {
+		while (true) {
+			long freeMem = Runtime.getRuntime().freeMemory();
+			long totalMem = Runtime.getRuntime().totalMemory();
+			long usedMem = totalMem - freeMem;
+			System.out.println(header + ": " + usedMem);
+			if (usedMem < maxUsedMem)
+				break;
+			System.gc();
+			Thread.sleep(1000);
 		}
 	}
 	

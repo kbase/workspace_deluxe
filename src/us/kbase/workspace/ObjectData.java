@@ -21,6 +21,10 @@ import us.kbase.common.service.UObject;
  *         UnspecifiedObject data - the object's data.
  *         object_info_full info - information about the object.
  *         list<ProvenanceAction> provenance - the object's provenance.
+ *         username creator - the user that first saved the object to the
+ *                 workspace.
+ *         timestamp created - the date the object was first saved to the
+ *                 workspace.
  * </pre>
  * 
  */
@@ -29,7 +33,9 @@ import us.kbase.common.service.UObject;
 @JsonPropertyOrder({
     "data",
     "info",
-    "provenance"
+    "provenance",
+    "creator",
+    "created"
 })
 public class ObjectData {
 
@@ -39,6 +45,10 @@ public class ObjectData {
     private Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance;
+    @JsonProperty("creator")
+    private java.lang.String creator;
+    @JsonProperty("created")
+    private java.lang.String created;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -86,6 +96,36 @@ public class ObjectData {
         return this;
     }
 
+    @JsonProperty("creator")
+    public java.lang.String getCreator() {
+        return creator;
+    }
+
+    @JsonProperty("creator")
+    public void setCreator(java.lang.String creator) {
+        this.creator = creator;
+    }
+
+    public ObjectData withCreator(java.lang.String creator) {
+        this.creator = creator;
+        return this;
+    }
+
+    @JsonProperty("created")
+    public java.lang.String getCreated() {
+        return created;
+    }
+
+    @JsonProperty("created")
+    public void setCreated(java.lang.String created) {
+        this.created = created;
+    }
+
+    public ObjectData withCreated(java.lang.String created) {
+        this.created = created;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -98,7 +138,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

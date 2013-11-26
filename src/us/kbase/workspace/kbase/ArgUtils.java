@@ -158,9 +158,9 @@ public class ArgUtils {
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
-					.withE4(dateFormat.formatDate(m.getCreatedDate()))
+					.withE4(dateFormat.formatDate(m.getSavedDate()))
 					.withE5(new Long(m.getVersion()))
-					.withE6(m.getCreator().getUser())
+					.withE6(m.getSavedBy().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getWorkspaceName())
 					.withE9(m.getCheckSum())
@@ -193,9 +193,9 @@ public class ArgUtils {
 					.withE1(m.getObjectId())
 					.withE2(m.getObjectName())
 					.withE3(m.getTypeString())
-					.withE4(dateFormat.formatDate(m.getCreatedDate()))
+					.withE4(dateFormat.formatDate(m.getSavedDate()))
 					.withE5(new Long(m.getVersion()))
-					.withE6(m.getCreator().getUser())
+					.withE6(m.getSavedBy().getUser())
 					.withE7(m.getWorkspaceId())
 					.withE8(m.getWorkspaceName())
 					.withE9(m.getCheckSum())
@@ -229,11 +229,11 @@ public class ArgUtils {
 					String, String, String, Map<String, String>, Long>()
 					.withE1(m.getObjectName())
 					.withE2(m.getTypeString())
-					.withE3(dateFormat.formatDate(m.getCreatedDate()))
+					.withE3(dateFormat.formatDate(m.getSavedDate()))
 					.withE4(new Long(m.getVersion()))
 					.withE5("") //command is deprecated
-					.withE6(m.getCreator().getUser())
-					.withE7(m.getCreator().getUser()) //owner is deprecated
+					.withE6(m.getSavedBy().getUser())
+					.withE7(m.getSavedBy().getUser()) //owner is deprecated
 					.withE8(m.getWorkspaceName())
 					.withE9("")//ref is deprecated
 					.withE10(m.getCheckSum())
@@ -285,8 +285,10 @@ public class ArgUtils {
 					.withData(new UObject(o.getDataAsJsonNode()))
 					.withInfo(objInfoUserMetaToTuple(o.getMeta()))
 					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions())));
-			//TODO add user and timestamp
+							o.getProvenance().getActions()))
+					.withCreator(o.getProvenance().getUser().getUser())
+					.withCreated(dateFormat.formatDate(
+							o.getProvenance().getDate())));
 		}
 		return ret;
 	}

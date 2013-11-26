@@ -10,9 +10,9 @@ public class MongoObjectInfo implements ObjectInformation {
 	final private long id;
 	final private String name;
 	final private String type;
-	final private Date createdDate;
+	final private Date savedDate;
 	final private int version;
-	final private WorkspaceUser creator;
+	final private WorkspaceUser savedBy;
 	final private long workspaceId;
 	final private String workspaceName;
 	final private String chksum;
@@ -27,9 +27,9 @@ public class MongoObjectInfo implements ObjectInformation {
 		this.id = id;
 		this.name = name;
 		this.type = typeString;
-		this.createdDate = createdDate;
+		this.savedDate = createdDate;
 		this.version = version;
-		this.creator = creator;
+		this.savedBy = creator;
 		this.workspaceId = workspaceid.getID();
 		this.workspaceName = workspaceid.getName();
 		this.chksum = chksum;
@@ -53,8 +53,8 @@ public class MongoObjectInfo implements ObjectInformation {
 	}
 
 	@Override
-	public Date getCreatedDate() {
-		return createdDate;
+	public Date getSavedDate() {
+		return savedDate;
 	}
 
 	@Override
@@ -63,8 +63,8 @@ public class MongoObjectInfo implements ObjectInformation {
 	}
 
 	@Override
-	public WorkspaceUser getCreator() {
-		return creator;
+	public WorkspaceUser getSavedBy() {
+		return savedBy;
 	}
 
 	@Override
@@ -91,8 +91,8 @@ public class MongoObjectInfo implements ObjectInformation {
 	@Override
 	public String toString() {
 		return "MongoObjectInfo [id=" + id + ", name=" + name + ", type="
-				+ type + ", createdDate=" + createdDate + ", version="
-				+ version + ", creator=" + creator + ", workspaceId="
+				+ type + ", createdDate=" + savedDate + ", version="
+				+ version + ", creator=" + savedBy + ", workspaceId="
 				+ workspaceId + ", workspaceName=" + workspaceName
 				+ ", chksum=" + chksum + ", size=" + size + "]";
 	}
