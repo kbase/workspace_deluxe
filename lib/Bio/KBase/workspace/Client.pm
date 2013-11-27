@@ -1583,7 +1583,6 @@ list_workspace_objects_params is a reference to a hash where the following keys 
 	workspace has a value which is a Workspace.ws_name
 	type has a value which is a Workspace.type_string
 	showDeletedObject has a value which is a Workspace.boolean
-	showHidden has a value which is a Workspace.boolean
 	auth has a value which is a string
 ws_name is a string
 type_string is a string
@@ -1619,7 +1618,6 @@ list_workspace_objects_params is a reference to a hash where the following keys 
 	workspace has a value which is a Workspace.ws_name
 	type has a value which is a Workspace.type_string
 	showDeletedObject has a value which is a Workspace.boolean
-	showHidden has a value which is a Workspace.boolean
 	auth has a value which is a string
 ws_name is a string
 type_string is a string
@@ -5463,7 +5461,6 @@ ws_name workspace - Name of the workspace for which objects should be
 Optional arguments:
 type_string type - type of the objects to be listed
 boolean showDeletedObject - show objects that have been deleted
-boolean showHidden - show hidden objects
 string auth - the authentication token of the KBase account requesting
         access. Overrides the client provided authorization credentials if
         they exist.
@@ -5480,7 +5477,6 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 type has a value which is a Workspace.type_string
 showDeletedObject has a value which is a Workspace.boolean
-showHidden has a value which is a Workspace.boolean
 auth has a value which is a string
 
 </pre>
@@ -5493,7 +5489,6 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 type has a value which is a Workspace.type_string
 showDeletedObject has a value which is a Workspace.boolean
-showHidden has a value which is a Workspace.boolean
 auth has a value which is a string
 
 

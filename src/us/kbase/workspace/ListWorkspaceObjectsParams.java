@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Optional arguments:
  * type_string type - type of the objects to be listed
  * boolean showDeletedObject - show objects that have been deleted
- * boolean showHidden - show hidden objects
  * string auth - the authentication token of the KBase account requesting
  *         access. Overrides the client provided authorization credentials if
  *         they exist.
@@ -37,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "workspace",
     "type",
     "showDeletedObject",
-    "showHidden",
     "auth"
 })
 public class ListWorkspaceObjectsParams {
@@ -48,8 +46,6 @@ public class ListWorkspaceObjectsParams {
     private String type;
     @JsonProperty("showDeletedObject")
     private Long showDeletedObject;
-    @JsonProperty("showHidden")
-    private Long showHidden;
     @JsonProperty("auth")
     private String auth;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -99,21 +95,6 @@ public class ListWorkspaceObjectsParams {
         return this;
     }
 
-    @JsonProperty("showHidden")
-    public Long getShowHidden() {
-        return showHidden;
-    }
-
-    @JsonProperty("showHidden")
-    public void setShowHidden(Long showHidden) {
-        this.showHidden = showHidden;
-    }
-
-    public ListWorkspaceObjectsParams withShowHidden(Long showHidden) {
-        this.showHidden = showHidden;
-        return this;
-    }
-
     @JsonProperty("auth")
     public String getAuth() {
         return auth;
@@ -141,7 +122,7 @@ public class ListWorkspaceObjectsParams {
 
     @Override
     public String toString() {
-        return ((((((((((((("ListWorkspaceObjectsParams"+" [workspace=")+ workspace)+", type=")+ type)+", showDeletedObject=")+ showDeletedObject)+", showHidden=")+ showHidden)+", auth=")+ auth)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((("ListWorkspaceObjectsParams"+" [workspace=")+ workspace)+", type=")+ type)+", showDeletedObject=")+ showDeletedObject)+", auth=")+ auth)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

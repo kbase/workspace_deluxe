@@ -621,9 +621,11 @@ module Workspace {
 			listed
 		
 		Optional arguments:
-		type_string type - type of the objects to be listed
+		type_string type - type of the objects to be listed. Here, omitting
+			version information will find any objects that match the provided
+			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+			existing version.
 		boolean showDeletedObject - show objects that have been deleted
-		boolean showHidden - show hidden objects
 		string auth - the authentication token of the KBase account requesting
 			access. Overrides the client provided authorization credentials if
 			they exist.
@@ -634,7 +636,6 @@ module Workspace {
 	   ws_name workspace;
 	   type_string type;
 	   boolean showDeletedObject;
-	   boolean showHidden;
 	   string auth;
 	} list_workspace_objects_params;
 	
@@ -655,7 +656,10 @@ module Workspace {
 		list<ws_id> ids - the numerical IDs of the workspaces of interest.
 		list<ws_name> workspaces - name of the workspaces of interest or the
 			workspace IDs in KBase format, e.g. kb|ws.78.
-		type_string type - type of the objects to be listed.
+		type_string type - type of the objects to be listed.  Here, omitting
+			version information will find any objects that match the provided
+			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+			existing version.
 		
 		Optional arguments:
 		boolean showDeleted - show deleted objects in workspaces to which the

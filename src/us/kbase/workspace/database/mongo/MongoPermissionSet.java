@@ -19,7 +19,7 @@ public class MongoPermissionSet implements PermissionSet {
 	private final Map<ResolvedWorkspaceID, Boolean> worldRead = 
 			new HashMap<ResolvedWorkspaceID, Boolean>();
 	
-	private boolean hasNonePermission = false;
+	private boolean hasUnreadableWorkspace = false;
 	
 	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
 		if (globalUser == null) {
@@ -57,11 +57,12 @@ public class MongoPermissionSet implements PermissionSet {
 			throw new IllegalArgumentException(
 					"Illegal global permission in database: " + globalPerm);
 		}
-		if (userPerm.equals(Permission.NONE)) {
-			hasNonePermission = true;
+		final boolean globalread = Permission.READ.equals(globalPerm);
+		if (userPerm.equals(Permission.NONE) && !globalread) {
+			hasUnreadableWorkspace = true;
 		}
 		userPerms.put(rwsi, userPerm);
-		worldRead.put(rwsi, Permission.READ.equals(globalPerm));
+		worldRead.put(rwsi, globalread);
 	}
 	
 	@Override
@@ -117,7 +118,7 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 
 	@Override
-	public boolean hasNonePermission() {
-		return hasNonePermission;
+	public boolean hasUnreadableWorkspace() {
+		return hasUnreadableWorkspace;
 	}
 }

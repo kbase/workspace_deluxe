@@ -593,8 +593,17 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> returnVal = null;
         //BEGIN list_workspace_objects
-        //TODO list_workspace_objects
-        //TODO tests
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), null);
+		final TypeDefId type = params.getType() == null ? null :
+				TypeDefId.fromTypeString(params.getType());
+		final boolean showDeleted = au.longToBoolean(
+				params.getShowDeletedObject());
+		returnVal = au.objInfoToMetaTuple(
+				ws.listObjects(getUser(params.getAuth(), authPart),
+						Arrays.asList(wsi), type, false, showDeleted, false,
+						true));
+		//TODO tests
         //END list_workspace_objects
         return returnVal;
     }
@@ -611,7 +620,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN list_objects
-        //TODO tests
+		//TODO tests
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
 		if (params.getWorkspaces() != null) {
@@ -625,7 +634,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 		}
 		final TypeDefId type = params.getType() == null ? null :
-			TypeDefId.fromTypeString(params.getType());
+				TypeDefId.fromTypeString(params.getType());
 		final boolean showHidden = au.longToBoolean(params.getShowHidden());
 		final boolean showDeleted = au.longToBoolean(params.getShowDeleted());
 		final boolean showAllVers = au.longToBoolean(

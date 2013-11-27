@@ -1601,7 +1601,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
-		if (pset.hasNonePermission()) {
+		if (pset.hasUnreadableWorkspace()) {
 			throw new IllegalArgumentException(
 					"All workspaces in the permission set must be readable");
 		}
