@@ -433,6 +433,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
+		//TODO generalized method for setting fields?
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())

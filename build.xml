@@ -90,6 +90,7 @@
       <exclude name="common/service/JsonServer*"/>
       <exclude name="common/service/JacksonTupleModule.java"/>
       <exclude name="common/service/JsonClientCaller.java"/>
+      <exclude name="common/service/JsonTreeTraversingParser.java"/>
   </fileset>
 
   <fileset id="client-class-files" dir="${classes}" defaultexcludes="yes">
