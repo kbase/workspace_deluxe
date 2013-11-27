@@ -187,6 +187,22 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: set_workspace_description</p>
+     * <pre>
+     * Set the global permission for a workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.SetWorkspaceDescriptionParams SetWorkspaceDescriptionParams}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void setWorkspaceDescription(SetWorkspaceDescriptionParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true);
+    }
+
+    /**
      * <p>Original spec-file function name: get_permissions</p>
      * <pre>
      * Get permissions for a workspace.

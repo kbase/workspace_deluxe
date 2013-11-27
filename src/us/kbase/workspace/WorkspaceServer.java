@@ -364,6 +364,25 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: set_workspace_description</p>
+     * <pre>
+     * Set the global permission for a workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.SetWorkspaceDescriptionParams SetWorkspaceDescriptionParams}
+     */
+    @JsonServerMethod(rpc = "Workspace.set_workspace_description")
+    public void setWorkspaceDescription(SetWorkspaceDescriptionParams params, AuthToken authPart) throws Exception {
+        //BEGIN set_workspace_description
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		ws.setWorkspaceDescription(getUser(authPart), wsi,
+				params.getDescription());
+		//TODO test
+        //END set_workspace_description
+    }
+
+    /**
      * <p>Original spec-file function name: get_permissions</p>
      * <pre>
      * Get permissions for a workspace.
@@ -589,6 +608,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple7<Long, String, String, String, Long, String, String>> returnVal = null;
         //BEGIN list_workspace_info
 		//TODO tests
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted())));

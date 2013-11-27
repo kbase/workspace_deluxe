@@ -425,6 +425,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				FLDS_WS_DESC).get(Fields.WS_DESC);
 	}
 	
+	private final static String M_WS_ID_QRY = String.format("{%s: #}",
+			Fields.WS_ID);
+	private final static String M_WS_ID_WTH = String.format("{$set: {%s: #}}",
+			Fields.WS_DESC);
+	
+	@Override
+	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
+			final String description) throws WorkspaceCommunicationException {
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+				.update(M_WS_ID_QRY, rwsi.getID())
+				.with(M_WS_ID_WTH, description);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+	
 	@Override
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
@@ -685,8 +703,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private WorkspaceInformation generateWSInfo(final WorkspaceUser user,
 			final ResolvedWorkspaceID rwsi, final PermissionSet perms,
-			final Map<String, Object> wsdata)
-			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			final Map<String, Object> wsdata) {
 		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),

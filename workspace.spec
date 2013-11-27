@@ -415,6 +415,30 @@ module Workspace {
 	*/
 	funcdef set_global_permission(SetGlobalPermissionsParams params) returns ();
 	
+	/* Input parameters for the "set_workspace_description" function.
+	
+		One, and only one, of the following is required:
+		ws_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
+		
+		Optional arguments:
+		string description - A free-text description of the workspace, 1000
+			characters max. Longer strings will be mercilessly and brutally
+			truncated. If omitted, the description is set to null.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+		string description;
+	} SetWorkspaceDescriptionParams;
+	
+	/* 
+		Set the global permission for a workspace.
+	*/
+	funcdef set_workspace_description(SetWorkspaceDescriptionParams params)
+		returns ();
+	
 	/* 
 		Get permissions for a workspace.
 	*/

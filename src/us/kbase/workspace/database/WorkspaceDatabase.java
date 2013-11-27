@@ -65,6 +65,9 @@ public interface WorkspaceDatabase {
 	public WorkspaceInformation getWorkspaceInformation(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
 			WorkspaceCommunicationException;
+	
+	public void setWorkspaceDescription(ResolvedWorkspaceID wsid,
+			String description) throws WorkspaceCommunicationException;
 
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;

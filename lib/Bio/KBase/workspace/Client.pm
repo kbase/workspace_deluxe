@@ -699,6 +699,96 @@ sub set_global_permission
 
 
 
+=head2 set_workspace_description
+
+  $obj->set_workspace_description($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.SetWorkspaceDescriptionParams
+SetWorkspaceDescriptionParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	description has a value which is a string
+ws_name is a string
+ws_id is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.SetWorkspaceDescriptionParams
+SetWorkspaceDescriptionParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	description has a value which is a string
+ws_name is a string
+ws_id is an int
+
+
+=end text
+
+=item Description
+
+Set the global permission for a workspace.
+
+=back
+
+=cut
+
+sub set_workspace_description
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function set_workspace_description (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to set_workspace_description:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'set_workspace_description');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.set_workspace_description",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'set_workspace_description',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method set_workspace_description",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'set_workspace_description',
+				       );
+    }
+}
+
+
+
 =head2 get_permissions
 
   $perms = $obj->get_permissions($wsi)
@@ -5163,6 +5253,55 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 id has a value which is a Workspace.ws_id
 new_permission has a value which is a Workspace.permission
+
+
+=end text
+
+=back
+
+
+
+=head2 SetWorkspaceDescriptionParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "set_workspace_description" function.
+
+        One, and only one, of the following is required:
+        ws_id id - the numerical ID of the workspace.
+        ws_name workspace - name of the workspace or the workspace ID in KBase
+                format, e.g. kb|ws.78.
+        
+        Optional arguments:
+        string description - A free-text description of the workspace, 1000
+                characters max. Longer strings will be mercilessly and brutally
+                truncated. If omitted, the description is set to null.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+description has a value which is a string
 
 
 =end text

@@ -70,8 +70,6 @@ public class Workspaces {
 	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
-	//TODO set global read
-	//TODO set description
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
 	//TODO import shock objects
@@ -221,10 +219,26 @@ public class Workspaces {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
+		return db.createWorkspace(user, wsname, globalread,
+				pruneWorkspaceDescription(description));
+	}
+
+	private String pruneWorkspaceDescription(final String description) {
 		if(description != null && description.length() > MAX_WS_DESCRIPTION) {
-			description = description.substring(0, MAX_WS_DESCRIPTION);
+			return description.substring(0, MAX_WS_DESCRIPTION);
 		}
-		return db.createWorkspace(user, wsname, globalread, description);
+		return description;
+	}
+	
+
+	public void setWorkspaceDescription(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final String description)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
+				"set description on");
+		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+		//TODO test
 	}
 	
 	public String getWorkspaceDescription(final WorkspaceUser user,
