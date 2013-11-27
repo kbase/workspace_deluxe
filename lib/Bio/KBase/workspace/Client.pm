@@ -607,6 +607,98 @@ sub set_permissions
 
 
 
+=head2 set_global_permission
+
+  $obj->set_global_permission($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.SetGlobalPermissionsParams
+SetGlobalPermissionsParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	new_permission has a value which is a Workspace.permission
+ws_name is a string
+ws_id is an int
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.SetGlobalPermissionsParams
+SetGlobalPermissionsParams is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+	new_permission has a value which is a Workspace.permission
+ws_name is a string
+ws_id is an int
+permission is a string
+
+
+=end text
+
+=item Description
+
+Set the global permission for a workspace.
+
+=back
+
+=cut
+
+sub set_global_permission
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function set_global_permission (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to set_global_permission:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'set_global_permission');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.set_global_permission",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'set_global_permission',
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method set_global_permission",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'set_global_permission',
+				       );
+    }
+}
+
+
+
 =head2 get_permissions
 
   $perms = $obj->get_permissions($wsi)
@@ -5029,6 +5121,56 @@ users has a value which is a reference to a list where each element is a Workspa
 
 
 
+=head2 SetGlobalPermissionsParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "set_global_permission" function.
+
+        One, and only one, of the following is required:
+        ws_id id - the numerical ID of the workspace.
+        ws_name workspace - name of the workspace or the workspace ID in KBase
+                format, e.g. kb|ws.78.
+        
+        Required arguments:
+        permission new_permission - the permission to assign to all users,
+                either 'n' or 'r'. 'r' means that all users will be able to read
+                the workspace; otherwise users must have specific permission to
+                access the workspace.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+new_permission has a value which is a Workspace.permission
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+id has a value which is a Workspace.ws_id
+new_permission has a value which is a Workspace.permission
+
+
+=end text
+
+=back
+
+
+
 =head2 save_object_params
 
 =over 4
@@ -5037,7 +5179,7 @@ users has a value which is a reference to a list where each element is a Workspa
 
 =item Description
 
-Input parameters for the "save_objects function. Provided for backwards
+Input parameters for the "save_object" function. Provided for backwards
 compatibility.
         
 Required arguments:
@@ -5459,7 +5601,10 @@ ws_name workspace - Name of the workspace for which objects should be
         listed
 
 Optional arguments:
-type_string type - type of the objects to be listed
+type_string type - type of the objects to be listed. Here, omitting
+        version information will find any objects that match the provided
+        type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+        existing version.
 boolean showDeletedObject - show objects that have been deleted
 string auth - the authentication token of the KBase account requesting
         access. Overrides the client provided authorization credentials if
@@ -5514,7 +5659,10 @@ Parameters for the 'list_objects' function.
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
                 list<ws_name> workspaces - name of the workspaces of interest or the
                         workspace IDs in KBase format, e.g. kb|ws.78.
-                type_string type - type of the objects to be listed.
+                type_string type - type of the objects to be listed.  Here, omitting
+                        version information will find any objects that match the provided
+                        type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+                        existing version.
                 
                 Optional arguments:
                 boolean showDeleted - show deleted objects in workspaces to which the

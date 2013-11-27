@@ -445,11 +445,15 @@ public class QueryMethods {
 		
 		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
-		final Map<Long, DBObject> noWS = new HashMap<Long, DBObject>();
+		final Map<Long, List<DBObject>> noWS =
+				new HashMap<Long, List<DBObject>>();
 		for (final DBObject m: res) {
 			final Long id = (Long) m.get(Fields.ACL_WSID);
 			if (!idToWS.containsKey(id)) {
-				noWS.put(id, m); //TODO test
+				if (!noWS.containsKey(id)) {
+					noWS.put(id, new LinkedList<DBObject>());
+				}
+				noWS.get(id).add(m); //TODO test
 			} else {
 				final ResolvedMongoWSID wsid = idToWS.get(id);
 				addPerm(wsidToPerms, m, wsid);
@@ -469,7 +473,9 @@ public class QueryMethods {
 				final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
 						(String) ws.get(id).get(Fields.WS_NAME),
 						(Long) ws.get(id).get(Fields.WS_ID));
-				addPerm(wsidToPerms, noWS.get(id), wsid);
+				for (final DBObject m: noWS.get(id)) {
+					addPerm(wsidToPerms, m, wsid);
+				}
 			}
 		}
 		return wsidToPerms;

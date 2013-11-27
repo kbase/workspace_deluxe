@@ -22,7 +22,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
  *                 list<ws_name> workspaces - name of the workspaces of interest or the
  *                         workspace IDs in KBase format, e.g. kb|ws.78.
- *                 type_string type - type of the objects to be listed.
+ *                 type_string type - type of the objects to be listed.  Here, omitting
+ *                         version information will find any objects that match the provided
+ *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+ *                         existing version.
  *                 
  *                 Optional arguments:
  *                 boolean showDeleted - show deleted objects in workspaces to which the

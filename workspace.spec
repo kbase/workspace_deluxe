@@ -366,6 +366,8 @@ module Workspace {
 	funcdef get_workspace_description(WorkspaceIdentity wsi)
 		returns (string description);
 	
+	authentication required;
+	
 	/* Input parameters for the "set_permissions" function.
 	
 		One, and only one, of the following is required:
@@ -384,12 +386,34 @@ module Workspace {
 		list<username> users;
 	} SetPermissionsParams;
 	
-	authentication required;
-	
 	/* 
 		Set permissions for a workspace.
 	*/
 	funcdef set_permissions(SetPermissionsParams params) returns ();
+	
+	/* Input parameters for the "set_global_permission" function.
+	
+		One, and only one, of the following is required:
+		ws_id id - the numerical ID of the workspace.
+		ws_name workspace - name of the workspace or the workspace ID in KBase
+			format, e.g. kb|ws.78.
+		
+		Required arguments:
+		permission new_permission - the permission to assign to all users,
+			either 'n' or 'r'. 'r' means that all users will be able to read
+			the workspace; otherwise users must have specific permission to
+			access the workspace.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id id;
+		permission new_permission;
+	} SetGlobalPermissionsParams;
+	
+	/* 
+		Set the global permission for a workspace.
+	*/
+	funcdef set_global_permission(SetGlobalPermissionsParams params) returns ();
 	
 	/* 
 		Get permissions for a workspace.
@@ -397,7 +421,7 @@ module Workspace {
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms);
 	
-	/* Input parameters for the "save_objects function. Provided for backwards
+	/* Input parameters for the "save_object" function. Provided for backwards
 		compatibility.
 	
 		Required arguments:

@@ -520,6 +520,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				users, perm, true);
 	}
 	
+	@Override
+	public void setGlobalPermission(final ResolvedWorkspaceID rwsi,
+			final Permission perm)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		setPermissions(query.convertResolvedWSID(rwsi),
+				Arrays.asList(allUsers), perm, false);
+	}
+	
 	//wsid must exist as a workspace
 	private void setPermissionsForWorkspaceUsers(final ResolvedMongoWSID wsid,
 			final List<WorkspaceUser> users, final Permission perm, 

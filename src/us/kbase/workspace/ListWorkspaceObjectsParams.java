@@ -20,7 +20,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * ws_name workspace - Name of the workspace for which objects should be
  *         listed
  * Optional arguments:
- * type_string type - type of the objects to be listed
+ * type_string type - type of the objects to be listed. Here, omitting
+ *         version information will find any objects that match the provided
+ *         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+ *         existing version.
  * boolean showDeletedObject - show objects that have been deleted
  * string auth - the authentication token of the KBase account requesting
  *         access. Overrides the client provided authorization credentials if

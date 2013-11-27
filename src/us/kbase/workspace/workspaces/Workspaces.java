@@ -248,6 +248,20 @@ public class Workspaces {
 				"set permissions on");
 		db.setPermissions(wsid, users, permission);
 	}
+	
+	public void setGlobalPermission(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final Permission permission)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceAuthorizationException, WorkspaceCommunicationException {
+		if (Permission.READ.compareTo(permission) < 0) {
+			throw new IllegalArgumentException(
+					"Global permissions cannot be greater than read");
+		}
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
+				"set global permission on");
+		db.setGlobalPermission(wsid, permission);
+		//TODO test
+	}
 
 	//TODO refactor to use permission sets
 	public Map<User, Permission> getPermissions(final WorkspaceUser user,

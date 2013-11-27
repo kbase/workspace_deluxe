@@ -15,7 +15,7 @@ import us.kbase.common.service.UObject;
 /**
  * <p>Original spec-file type: save_object_params</p>
  * <pre>
- * Input parameters for the "save_objects function. Provided for backwards
+ * Input parameters for the "save_object" function. Provided for backwards
  * compatibility.
  *         
  * Required arguments:

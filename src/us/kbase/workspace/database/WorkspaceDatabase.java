@@ -43,12 +43,15 @@ public interface WorkspaceDatabase {
 			List<WorkspaceUser> users, Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
+			throws 	WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public Permission getPermission(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public PermissionSet getPermissions(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi) throws 
+	public PermissionSet getPermissions(WorkspaceUser user,
+			ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public PermissionSet getPermissions(WorkspaceUser user,

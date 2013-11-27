@@ -121,4 +121,12 @@ public class MongoPermissionSet implements PermissionSet {
 	public boolean hasUnreadableWorkspace() {
 		return hasUnreadableWorkspace;
 	}
+
+	@Override
+	public String toString() {
+		return "MongoPermissionSet [user=" + user + ", globalUser="
+				+ globalUser + ", userPerms=" + userPerms + ", worldRead="
+				+ worldRead + ", hasUnreadableWorkspace="
+				+ hasUnreadableWorkspace + "]";
+	}
 }

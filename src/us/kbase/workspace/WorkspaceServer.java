@@ -88,8 +88,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 
-	//TODO list_workspace_objects list_objects
-
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -344,6 +342,25 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		ws.setPermissions(getUser(authPart), wsi, users, p);
         //END set_permissions
+    }
+
+    /**
+     * <p>Original spec-file function name: set_global_permission</p>
+     * <pre>
+     * Set the global permission for a workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.SetGlobalPermissionsParams SetGlobalPermissionsParams}
+     */
+    @JsonServerMethod(rpc = "Workspace.set_global_permission")
+    public void setGlobalPermission(SetGlobalPermissionsParams params, AuthToken authPart) throws Exception {
+        //BEGIN set_global_permission
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		final Permission p = translatePermission(params.getNewPermission());
+		ws.setGlobalPermission(getUser(authPart), wsi, p);
+		//TODO test
+        //END set_global_permission
     }
 
     /**
