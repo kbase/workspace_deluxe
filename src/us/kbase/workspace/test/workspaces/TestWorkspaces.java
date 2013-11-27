@@ -1411,7 +1411,6 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Ignore //TODO unignore when mem issues sorted
 	@Test
 	public void saveWithBigData() throws Exception {
 //		System.gc();

@@ -25,10 +25,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 type_string type - type of the objects to be listed.
  *                 
  *                 Optional arguments:
- *                 boolean showDeleted - show deleted objects
- *                 boolean showHidden - show hidden objects
+ *                 boolean showDeleted - show deleted objects in workspaces to which the
+ *                         user has write access.
+ *                 boolean showHidden - show hidden objects.
  *                 boolean showAllVersions - show all versions of each object that match
- *                         the filters rather than only the most recent version
+ *                         the filters rather than only the most recent version.
  * </pre>
  * 
  */

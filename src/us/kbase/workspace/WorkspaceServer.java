@@ -613,6 +613,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_objects
         //TODO tests
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
 		if (params.getWorkspaces() != null) {
 			for (final String ws: params.getWorkspaces()) {
