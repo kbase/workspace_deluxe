@@ -161,7 +161,7 @@ public class TypeDefId {
 		return (minorVersion != null) || (md5 != null);
 	}
 	
-
+	//TODO test getTypePrefix()
 	public String getTypePrefix() {
 		String t = type.getTypeString() + TYPE_VER_SEP;
 		if (majorVersion == null) {
