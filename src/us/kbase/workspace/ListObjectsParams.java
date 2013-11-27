@@ -27,6 +27,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Optional arguments:
  *                 boolean showDeleted - show deleted objects
  *                 boolean showHidden - show hidden objects
+ *                 boolean showAllVersions - show all versions of each object that match
+ *                         the filters rather than only the most recent version
  * </pre>
  * 
  */
@@ -37,7 +39,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "ids",
     "type",
     "showDeleted",
-    "showHidden"
+    "showHidden",
+    "showAllVersions"
 })
 public class ListObjectsParams {
 
@@ -51,6 +54,8 @@ public class ListObjectsParams {
     private java.lang.Long showDeleted;
     @JsonProperty("showHidden")
     private java.lang.Long showHidden;
+    @JsonProperty("showAllVersions")
+    private java.lang.Long showAllVersions;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("workspaces")
@@ -128,6 +133,21 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("showAllVersions")
+    public java.lang.Long getShowAllVersions() {
+        return showAllVersions;
+    }
+
+    @JsonProperty("showAllVersions")
+    public void setShowAllVersions(java.lang.Long showAllVersions) {
+        this.showAllVersions = showAllVersions;
+    }
+
+    public ListObjectsParams withShowAllVersions(java.lang.Long showAllVersions) {
+        this.showAllVersions = showAllVersions;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -140,7 +160,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", showDeleted=")+ showDeleted)+", showHidden=")+ showHidden)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", showDeleted=")+ showDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

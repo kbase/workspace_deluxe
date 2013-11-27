@@ -90,7 +90,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO java doc - really low priority, sorry
 
 	//TODO list_workspace_objects list_objects
-    //TODO meta creator should be saved_by; object should return creator & timestamp
 
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
@@ -606,20 +605,38 @@ public class WorkspaceServer extends JsonServerServlet {
      * <pre>
      * Early version of list_objects.
      * </pre>
-     * @param   wsi   instance of type {@link us.kbase.workspace.ListObjectsParams ListObjectsParams}
+     * @param   params   instance of type {@link us.kbase.workspace.ListObjectsParams ListObjectsParams}
      * @return   parameter "objinfo" of list of original type "object_info" (Information about an object. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes.) &rarr; tuple of size 10: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "chsum" of String, parameter "size" of Long
      */
     @JsonServerMethod(rpc = "Workspace.list_objects", authOptional=true)
-    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(ListObjectsParams wsi, AuthToken authPart) throws Exception {
+    public List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> listObjects(ListObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_objects
-		return null; //TODO fix list_objects
-		//TODO tests
-//		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-//		returnVal = au.objInfoToTuple(
-//				ws.prealphaListObjects(getUser(authPart), wksp));
+        //TODO tests
+		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
+		if (params.getWorkspaces() != null) {
+			for (final String ws: params.getWorkspaces()) {
+				wsis.add(processWorkspaceIdentifier(ws, null));
+			}
+		}
+		if (params.getIds() != null) {
+			for (final Long id: params.getIds()) {
+				wsis.add(processWorkspaceIdentifier(null, id));
+			}
+		}
+		final TypeDefId type = params.getType() == null ? null :
+			TypeDefId.fromTypeString(params.getType());
+		final boolean showHidden = au.longToBoolean(params.getShowHidden());
+		final boolean showDeleted = au.longToBoolean(params.getShowDeleted());
+		final boolean showAllVers = au.longToBoolean(
+				params.getShowAllVersions());
+		//TODO include metadata or not
+		//TODO make all methods that use object info include meta or not less getObjects, which always has it
+		returnVal = au.objInfoToTuple(
+				ws.listObjects(getUser(authPart), wsis, type, 
+						showHidden, showDeleted, showAllVers, false));
         //END list_objects
-//        return returnVal;
+        return returnVal;
     }
 
     /**

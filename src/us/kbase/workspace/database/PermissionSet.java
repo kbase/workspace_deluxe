@@ -38,4 +38,6 @@ public interface PermissionSet {
 	public boolean hasPermission(ResolvedWorkspaceID rwsi, Permission perm);
 	public boolean isWorldReadable(ResolvedWorkspaceID rwsi);
 	public Set<ResolvedWorkspaceID> getWorkspaces();
+	public boolean isEmpty();
+	public boolean hasNonePermission();
 }

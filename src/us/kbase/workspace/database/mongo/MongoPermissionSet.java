@@ -19,6 +19,8 @@ public class MongoPermissionSet implements PermissionSet {
 	private final Map<ResolvedWorkspaceID, Boolean> worldRead = 
 			new HashMap<ResolvedWorkspaceID, Boolean>();
 	
+	private boolean hasNonePermission = false;
+	
 	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
 		if (globalUser == null) {
 			throw new IllegalArgumentException(
@@ -44,12 +46,19 @@ public class MongoPermissionSet implements PermissionSet {
 			throw new IllegalArgumentException(
 					"Mongo workspace ID cannot be null");
 		}
+		if (userPerms.containsKey(rwsi)) {
+			throw new IllegalArgumentException("Permissions for workspace " + 
+					rwsi.getID() + " have already been set");
+		}
 		if (userPerm == null) {
 			userPerm = Permission.NONE;
 		}
 		if (globalPerm != null && Permission.READ.compareTo(globalPerm) < 0) {
 			throw new IllegalArgumentException(
 					"Illegal global permission in database: " + globalPerm);
+		}
+		if (userPerm.equals(Permission.NONE)) {
+			hasNonePermission = true;
 		}
 		userPerms.put(rwsi, userPerm);
 		worldRead.put(rwsi, Permission.READ.equals(globalPerm));
@@ -100,5 +109,15 @@ public class MongoPermissionSet implements PermissionSet {
 	@Override
 	public Set<ResolvedWorkspaceID> getWorkspaces() {
 		return userPerms.keySet();
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		return userPerms.isEmpty() && worldRead.isEmpty();
+	}
+
+	@Override
+	public boolean hasNonePermission() {
+		return hasNonePermission;
 	}
 }

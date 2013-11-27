@@ -1049,7 +1049,7 @@ public class JSONRPCLayerTest {
 		final boolean[] threadStopWrapper1 = {false};
 		Thread t1 = null;
 		if (printMemUsage) {
-			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before preparation", 1000000000L);
+//			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before preparation", 1000000000L);
 			System.out.println("----------------------------------------------------------------------");
 			t1 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during preparation", threadStopWrapper1);
 		}
@@ -1084,7 +1084,7 @@ public class JSONRPCLayerTest {
 		Thread t3 = null;
 		if (printMemUsage) {
 			System.out.println("----------------------------------------------------------------------");
-			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before getObject", 1000000000L);
+//			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory before getObject", 1000000000L);
 			System.out.println("----------------------------------------------------------------------");
 			t3 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during getObject", threadStopWrapper3);
 		}
@@ -1095,7 +1095,7 @@ public class JSONRPCLayerTest {
 			threadStopWrapper3[0] = true;
 			t3.join();
 			System.out.println("----------------------------------------------------------------------");
-			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
+//			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
 		}
 		//need 6g to get past readValueAsTree() in UObjectDeserializer
 		assertThat("correct obj keys", data.keySet(),
@@ -1117,7 +1117,7 @@ public class JSONRPCLayerTest {
 					long freeMem = r.freeMemory();
 					long totalMem = r.totalMemory();
 					long usedMem = totalMem - freeMem;
-					System.out.println(header + ": " + usedMem);
+					System.out.println(header + ". used: " + usedMem + " total: " + totalMem);
 					if (threadStopWrapper[0])
 						break;
 					try {
@@ -1137,7 +1137,7 @@ public class JSONRPCLayerTest {
 			long freeMem = Runtime.getRuntime().freeMemory();
 			long totalMem = Runtime.getRuntime().totalMemory();
 			long usedMem = totalMem - freeMem;
-			System.out.println(header + ": " + usedMem);
+			System.out.println(header + ". used: " + usedMem + " total: " + totalMem);
 			if (usedMem < maxUsedMem)
 				break;
 			System.gc();

@@ -676,8 +676,11 @@ module Workspace {
 		type_string type - type of the objects to be listed.
 		
 		Optional arguments:
-		boolean showDeleted - show deleted objects
-		boolean showHidden - show hidden objects
+		boolean showDeleted - show deleted objects in workspaces to which the
+			user has write access.
+		boolean showHidden - show hidden objects.
+		boolean showAllVersions - show all versions of each object that match
+			the filters rather than only the most recent version.
 		
 	*/
 	typedef structure {
@@ -686,12 +689,13 @@ module Workspace {
 		type_string type;
 		boolean showDeleted;
 		boolean showHidden;
+		boolean showAllVersions;
 	} ListObjectsParams;
 	
 	/*
 		Early version of list_objects.
 	*/
-	funcdef list_objects(ListObjectsParams wsi)
+	funcdef list_objects(ListObjectsParams params)
 		returns(list<object_info> objinfo);
 	
 	/* Input parameters for the "get_objectmeta" function.

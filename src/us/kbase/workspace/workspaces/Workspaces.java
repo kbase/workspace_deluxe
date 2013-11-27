@@ -558,13 +558,28 @@ public class Workspaces {
 		return db.getWorkspaceInformation(perms, excludeGlobal, showDeleted);
 	}
 	
-	public List<ObjectInformation> prealphaListObjects(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi)
+	public List<ObjectInformation> listObjects(final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
+			final boolean showHidden, final boolean showDeleted,
+			final boolean showAllVers, final boolean includeMetaData)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
-				"read");
-		return db.getObjectInformation(wsid);
+		if (wsis.isEmpty() && type == null) {
+			throw new IllegalArgumentException("At least one filter must be specified.");
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
+				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
+		final HashSet<ResolvedWorkspaceID> rw =
+				new HashSet<ResolvedWorkspaceID>(rwsis.values());
+		final PermissionSet pset = db.getPermissions(user, rw);
+		if (!wsis.isEmpty()) {
+			for (final WorkspaceIdentifier wsi: wsis) {
+				comparePermission(user, Permission.READ,
+						pset.getPermission(rwsis.get(wsi)), wsi, "read");
+			}
+		}
+		return db.getObjectInformation(pset, type, showHidden, showDeleted,
+				showAllVers, includeMetaData);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

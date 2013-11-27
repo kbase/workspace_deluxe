@@ -1703,7 +1703,7 @@ sub list_workspace_objects
 
 =head2 list_objects
 
-  $objinfo = $obj->list_objects($wsi)
+  $objinfo = $obj->list_objects($params)
 
 =over 4
 
@@ -1712,7 +1712,7 @@ sub list_workspace_objects
 =begin html
 
 <pre>
-$wsi is a Workspace.ListObjectsParams
+$params is a Workspace.ListObjectsParams
 $objinfo is a reference to a list where each element is a Workspace.object_info
 ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
@@ -1720,6 +1720,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	type has a value which is a Workspace.type_string
 	showDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
+	showAllVersions has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -1746,7 +1747,7 @@ username is a string
 
 =begin text
 
-$wsi is a Workspace.ListObjectsParams
+$params is a Workspace.ListObjectsParams
 $objinfo is a reference to a list where each element is a Workspace.object_info
 ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
@@ -1754,6 +1755,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	type has a value which is a Workspace.type_string
 	showDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
+	showAllVersions has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -1797,10 +1799,10 @@ sub list_objects
 							       "Invalid argument count for function list_objects (received $n, expecting 1)");
     }
     {
-	my($wsi) = @args;
+	my($params) = @args;
 
 	my @_bad_arguments;
-        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to list_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -5570,6 +5572,8 @@ Parameters for the 'list_objects' function.
                 Optional arguments:
                 boolean showDeleted - show deleted objects
                 boolean showHidden - show hidden objects
+                boolean showAllVersions - show all versions of each object that match
+                        the filters rather than only the most recent version
 
 
 =item Definition
@@ -5583,6 +5587,7 @@ ids has a value which is a reference to a list where each element is a Workspace
 type has a value which is a Workspace.type_string
 showDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
+showAllVersions has a value which is a Workspace.boolean
 
 </pre>
 
@@ -5596,6 +5601,7 @@ ids has a value which is a reference to a list where each element is a Workspace
 type has a value which is a Workspace.type_string
 showDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
+showAllVersions has a value which is a Workspace.boolean
 
 
 =end text

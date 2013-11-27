@@ -486,6 +486,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final WorkspaceUser user, final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
+		//TODO exclude global read here
 		if (perm == null || Permission.NONE.equals(perm)) {
 			throw new IllegalArgumentException(
 					"Permission cannot be null or NONE");
@@ -1560,17 +1561,91 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private static final Set<String> FLDS_LIST_OBJ_VER = newHashSet(
+			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_SAVEDATE,
+			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
+			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID);
+	
+	private static final Set<String> FLDS_LIST_OBJ_PTR = newHashSet(
+			Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL, Fields.PTR_HIDE,
+			Fields.PTR_LATEST, Fields.PTR_VCNT);
+	
+	private static final String LATEST_VERSION = "latestVersion";
+
 	@Override
 	public List<ObjectInformation> getObjectInformation(
-			final ResolvedWorkspaceID wsid)
+			final PermissionSet pset, final TypeDefId type,
+			final boolean showHidden, final boolean showDeleted,
+			final boolean showAllVers, final boolean includeMetaData)
 			throws WorkspaceCommunicationException {
 		//TODO temporary method, does unnecessary query
+		/* Could make this method more efficient by doing different queries
+		 * based on the filters. If there's no filters except the workspace,
+		 * for example, just grab all the objects for the workspaces,
+		 * filtering out hidden and deleted in the query and pull the most
+		 * recent versions for the remaining objects. For now, just go
+		 * with a dumb general method and add smarter heuristics as needed.
+		 */
+		//TODO only have one mongo info class with meta that can be nullable
+		//TODO optionally include metadata back to user
+		if (!(pset instanceof MongoPermissionSet)) {
+			throw new IllegalArgumentException(
+					"Illegal implementation of PermissionSet: " +
+					pset.getClass().getName());
+		}
+		if (pset.isEmpty()) {
+			return new LinkedList<ObjectInformation>();
+		}
+		if (pset.hasNonePermission()) {
+			throw new IllegalArgumentException(
+					"All workspaces in the permission set must be readable");
+		}
+		final DBObject q = new BasicDBObject();
+		final List<Long> ids = new LinkedList<Long>();
+		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
+			ids.add(query.convertResolvedWSID(rwsi).getID());
+		}
+		q.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
+		if (type != null) {
+			q.put(Fields.VER_TYPE,
+					new BasicDBObject("$regex", "^" + type.getTypePrefix()));
+		}
+		final Set<String> fields;
+		if (includeMetaData) {
+			fields = new HashSet<String>(FLDS_LIST_OBJ_VER);
+			fields.add(Fields.VER_META);
+		} else {
+			fields = FLDS_LIST_OBJ_VER;
+		}
+		final List<Map<String, Object>> verobjs = query.queryCollection(
+				COL_WORKSPACE_VERS, q, fields);
+		//wsid -> obj id -> ver -> ver data
+		//TODO just need Map<Long, List<Long>>?
+		final Map<Long, Map<Long, Map<Integer, Map<String, Object>>>> verdata =
+				organizeVerData(verobjs);
+		
+		//TODO This $or query might be better as multiple individual queries, test
+		final List<DBObject> orquery = new LinkedList<DBObject>();
+		for (final Long wsid: verdata.keySet()) {
+			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
+			query.put(Fields.VER_ID, new BasicDBObject(
+					"$in", verdata.get(wsid).keySet()));
+			orquery.add(query);
+		}
+//		q = new BasicDBObject("$or", orquery);
+		//could exclude hidden and deleted objects here?
+		final List<Map<String, Object>> objs = query.queryCollection(
+				COL_WORKSPACE_VERS, q, FLDS_LIST_OBJ_PTR);
+		final Map<Long, Map<Long, Map<String, Object>>> ptrdata =
+				organizePtrData(objs);
+		objs.clear();
+		/*
 		final ResolvedMongoWSID rwsi = query.convertResolvedWSID(wsid);
 		final List<Map<String, Object>> objs = query.queryCollection(
 				COL_WORKSPACE_PTRS, String.format("{%s: %s}",
-						Fields.PTR_WS_ID, rwsi.getID()), FLDS_RESOLVE_OBJS);
-		final Set<ObjectIDResolvedWS> ids =
-				new HashSet<ObjectIDResolvedWS>();
+						Fields.PTR_WS_ID, rwsi.getID()), FLDS_RESOLVE_OBJS);*/
+		final Set<ObjectIDResolvedWS> fakeids =
+				new HashSet<ObjectIDResolvedWS>();/*
 		for (final Map<String, Object> o: objs) {
 			if ((Boolean) o.get(Fields.PTR_DEL)) {
 				continue;
@@ -1584,17 +1659,59 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				latestVersion = (Integer) o.get(Fields.PTR_LATEST);
 			}
 			ids.add(new ObjectIDResolvedWS(rwsi, id, latestVersion));
-		}
+		}*/
 		final LinkedList<ObjectInformation> ret;
 		try {
 			ret = new LinkedList<ObjectInformation>(
-				getObjectInformation(ids).values());
+				getObjectInformation(fakeids).values());
 		} catch (NoSuchObjectException nsoe) {
 			throw new RuntimeException("Just verified this object existed", nsoe);
 		}
 		return ret;
 	}
 	
+	private Map<Long, Map<Long, Map<String, Object>>> organizePtrData(
+			final List<Map<String, Object>> objs) {
+		final Map<Long, Map<Long, Map<String, Object>>> ret =
+				new HashMap<Long, Map<Long,Map<String,Object>>>();
+		for (final Map<String, Object> o: objs) {
+			final long wsid = (Long) o.get(Fields.PTR_WS_ID);
+			final long objid = (Long) o.get(Fields.PTR_ID);
+			final int latestVersion;
+			if ((Integer) o.get(Fields.PTR_LATEST) == null) {
+				latestVersion = (Integer) o.get(Fields.PTR_VCNT);
+			} else {
+				//TODO check this works with GC
+				latestVersion = (Integer) o.get(Fields.PTR_LATEST);
+			}
+			o.put(LATEST_VERSION, latestVersion);
+			if (!ret.containsKey(wsid)) {
+				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
+			}
+			ret.get(wsid).put(objid, o);
+		}
+		return ret;
+	}
+
+	private Map<Long, Map<Long, Map<Integer, Map<String, Object>>>> organizeVerData(
+			final List<Map<String, Object>> objs) {
+		final Map<Long, Map<Long, Map<Integer, Map<String, Object>>>> ret =
+				new HashMap<Long, Map<Long,Map<Integer,Map<String,Object>>>>();
+		for (final Map<String, Object> o: objs) {
+			final long wsid = (Long) o.get(Fields.VER_WS_ID);
+			final long objid = (Long) o.get(Fields.VER_ID);
+			final int ver = (Integer) o.get(Fields.VER_VER);
+			if (!ret.containsKey(wsid)) {
+				ret.put(wsid, new HashMap<Long, Map<Integer, Map<String, Object>>>());
+			}
+			if (!ret.get(wsid).containsKey(objid)) {
+				ret.get(wsid).put(objid, new HashMap<Integer, Map<String, Object>>());
+			}
+			ret.get(wsid).get(objid).put(ver, o);
+		}
+		return ret;
+	}
+
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,

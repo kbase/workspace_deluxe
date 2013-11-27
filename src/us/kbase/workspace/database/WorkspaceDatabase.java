@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -102,6 +103,7 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(
-			final ResolvedWorkspaceID wsid)
+			PermissionSet pset, TypeDefId type, boolean showHidden,
+			boolean showDeleted, boolean showAllVers, boolean includeMetaData)
 			throws WorkspaceCommunicationException;
 }

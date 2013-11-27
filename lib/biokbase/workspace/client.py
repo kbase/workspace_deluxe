@@ -607,10 +607,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def list_objects(self, wsi):
+    def list_objects(self, params):
 
         arg_hash = {'method': 'Workspace.list_objects',
-                    'params': [wsi],
+                    'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }
