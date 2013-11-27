@@ -212,24 +212,6 @@ module Workspace {
 		int instance, string command, username lastmodifier, username owner,
 		ws_name workspace, string ref ,string chsum, usermeta metadata,
 		obj_id objid> object_metadata;
-	
-	/* Information about an object.
-	
-		obj_id objid - the numerical id of the object.
-		obj_name name - the name of the object.
-		type_string type - the type of the object.
-		timestamp save_date - the save date of the object.
-		obj_ver ver - the version of the object.
-		username saved_by - the user that saved or copied the object.
-		ws_id wsid - the workspace containing the object.
-		ws_name workspace - the workspace containing the object.
-		string chsum - the md5 checksum of the object.
-		int size - the size of the object in bytes.
-
-	*/
-	typedef tuple<obj_id objid, obj_name name, type_string type,
-		timestamp save_date, int version, username saved_by,
-		ws_id wsid, ws_name workspace, string chsum, int size> object_info;
 		
 	/* Information about an object, including user provided metadata.
 	
@@ -250,7 +232,7 @@ module Workspace {
 	typedef tuple<obj_id objid, obj_name name, type_string type,
 		timestamp save_date, int version, username saved_by,
 		ws_id wsid, ws_name workspace, string chsum, int size, usermeta meta>
-		object_info_full;
+		object_info;
 	
 	/* A provenance action.
 	
@@ -560,7 +542,7 @@ module Workspace {
 	/* The data and supplemental info for an object.
 	
 		UnspecifiedObject data - the object's data.
-		object_info_full info - information about the object.
+		object_info info - information about the object.
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
 			workspace.
@@ -570,7 +552,7 @@ module Workspace {
 	*/
 	typedef structure {
 		UnspecifiedObject data;
-		object_info_full info;
+		object_info info;
 		list<ProvenanceAction> provenance;
 		username creator;
 		timestamp created;
@@ -681,6 +663,9 @@ module Workspace {
 		boolean showHidden - show hidden objects.
 		boolean showAllVersions - show all versions of each object that match
 			the filters rather than only the most recent version.
+		boolean includeMetadata - include the user provided metadata in the
+			returned object_info. If false (0 or null), the default, the
+			metadata will be null.
 		
 	*/
 	typedef structure {
@@ -690,6 +675,7 @@ module Workspace {
 		boolean showDeleted;
 		boolean showHidden;
 		boolean showAllVersions;
+		boolean includeMetadata;
 	} ListObjectsParams;
 	
 	/*
@@ -733,9 +719,12 @@ module Workspace {
 	
 	/* 
 		Get information about an object from the workspace.
+		
+		Set includeMetadata true to include the user specified metadata.
+		Otherwise the metadata in the object_info will be null.
 	*/
-	funcdef get_object_info(list<ObjectIdentity> object_ids)
-		returns (list<object_info_full> info);
+	funcdef get_object_info(list<ObjectIdentity> object_ids,
+		boolean includeMetadata) returns (list<object_info> info);
 	
 	authentication required;
 	

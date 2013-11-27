@@ -19,7 +19,7 @@ import us.kbase.common.service.UObject;
  * <pre>
  * The data and supplemental info for an object.
  *         UnspecifiedObject data - the object's data.
- *         object_info_full info - information about the object.
+ *         object_info info - information about the object.
  *         list<ProvenanceAction> provenance - the object's provenance.
  *         username creator - the user that first saved the object to the
  *                 workspace.

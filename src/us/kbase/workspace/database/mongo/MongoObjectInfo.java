@@ -1,6 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
+import java.util.Map;
 
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -17,12 +18,13 @@ public class MongoObjectInfo implements ObjectInformation {
 	final private String workspaceName;
 	final private String chksum;
 	final private long size;
+	final private Map<String, String> meta;
 	
 	MongoObjectInfo(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
-			final String chksum,
-			final long size) {
+			final String chksum, final long size,
+			final Map<String, String> meta) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
@@ -34,7 +36,7 @@ public class MongoObjectInfo implements ObjectInformation {
 		this.workspaceName = workspaceid.getName();
 		this.chksum = chksum;
 		this.size = size;
-		
+		this.meta = meta;
 	}
 
 	@Override
@@ -87,14 +89,19 @@ public class MongoObjectInfo implements ObjectInformation {
 	public long getSize() {
 		return size;
 	}
+	
+	@Override
+	public Map<String, String> getUserMetaData() {
+		return meta;
+	}
 
 	@Override
 	public String toString() {
 		return "MongoObjectInfo [id=" + id + ", name=" + name + ", type="
-				+ type + ", createdDate=" + savedDate + ", version="
-				+ version + ", creator=" + savedBy + ", workspaceId="
-				+ workspaceId + ", workspaceName=" + workspaceName
-				+ ", chksum=" + chksum + ", size=" + size + "]";
+				+ type + ", savedDate=" + savedDate + ", version=" + version
+				+ ", savedBy=" + savedBy + ", workspaceId=" + workspaceId
+				+ ", workspaceName=" + workspaceName + ", chksum=" + chksum
+				+ ", size=" + size + ", meta=" + meta + "]";
 	}
 
 }

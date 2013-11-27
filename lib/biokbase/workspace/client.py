@@ -677,10 +677,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def get_object_info(self, object_ids):
+    def get_object_info(self, object_ids, includeMetadata):
 
         arg_hash = {'method': 'Workspace.get_object_info',
-                    'params': [object_ids],
+                    'params': [object_ids, includeMetadata],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }

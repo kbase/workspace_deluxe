@@ -9,11 +9,11 @@ public class WorkspaceObjectData {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final JsonNode data;
-	private final ObjectInfoUserMeta meta;
+	private final ObjectInformation meta;
 	private final Provenance prov;
 
 	public WorkspaceObjectData(final JsonNode data,
-			final ObjectInfoUserMeta meta, final Provenance prov) {
+			final ObjectInformation meta, final Provenance prov) {
 		if (data == null || meta == null || prov == null) {
 			throw new IllegalArgumentException(
 					"data, prov and meta cannot be null");
@@ -36,7 +36,7 @@ public class WorkspaceObjectData {
 		}
 	}
 
-	public ObjectInfoUserMeta getMeta() {
+	public ObjectInformation getMeta() {
 		return meta;
 	}
 

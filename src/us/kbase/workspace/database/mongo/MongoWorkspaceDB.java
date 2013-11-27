@@ -46,7 +46,6 @@ import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectInfoUserMeta;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
@@ -780,7 +779,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return new MongoObjectInfo(objectid, pkg.name,
 				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
-				created, ver, user, wsid, pkg.td.getChksum(), pkg.td.getSize());
+				created, ver, user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
+				pkg.wo.getUserMeta());
 	}
 	
 	//TODO make all projections not include _id unless specified
@@ -1450,7 +1450,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
-			final MongoObjectInfoUserMeta meta = generateUserMetaInfo(
+			final MongoObjectInfo meta = generateUserMetaInfo(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
@@ -1509,19 +1509,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private MongoObjectInfoUserMeta generateUserMetaInfo(
+	private MongoObjectInfo generateUserMetaInfo(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		return generateUserMetaInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 
-	private MongoObjectInfoUserMeta generateUserMetaInfo(
+	private MongoObjectInfo generateUserMetaInfo(
 			final ResolvedMongoWSID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		return new MongoObjectInfoUserMeta(
+		return new MongoObjectInfo(
 				objid,
 				name,
 				(String) ver.get(Fields.VER_TYPE),
@@ -1593,8 +1593,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * recent versions for the remaining objects. For now, just go
 		 * with a dumb general method and add smarter heuristics as needed.
 		 */
-		//TODO only have one mongo info class with meta that can be nullable
-		//TODO optionally include metadata back to user
 		if (!(pset instanceof MongoPermissionSet)) {
 			throw new IllegalArgumentException(
 					"Illegal implementation of PermissionSet: " +
@@ -1708,22 +1706,30 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_META = newHashSet(
-			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
+			Fields.VER_VER, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectInformation(
-			final Set<ObjectIDResolvedWS> objectIDs) throws
+	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean includeMetadata) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
 				resolveObjectIDs(objectIDs);
+		final Set<String> fields;
+		if (includeMetadata) {
+			fields = new HashSet<String>(FLDS_VER_META);
+			fields.add(Fields.VER_META);
+		} else {
+			fields = FLDS_VER_META;
+		}
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_META);
-		final Map<ObjectIDResolvedWS, ObjectInfoUserMeta> ret =
-				new HashMap<ObjectIDResolvedWS, ObjectInfoUserMeta>();
+						fields);
+		final Map<ObjectIDResolvedWS, ObjectInformation> ret =
+				new HashMap<ObjectIDResolvedWS, ObjectInformation>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {

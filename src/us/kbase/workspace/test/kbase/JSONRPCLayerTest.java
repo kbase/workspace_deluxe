@@ -41,7 +41,6 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
-import us.kbase.common.service.Tuple10;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.UObject;
@@ -812,16 +811,17 @@ public class JSONRPCLayerTest {
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMeta(meta2).withType(SAFE_TYPE).withName("foo"));
 		
-		List<Tuple10<Long, String, String, String, Long, String, Long, String, String, Long>> retmet =
+		List<Tuple11<Long, String, String, String, Long, String, Long, String,
+			String, Long, Map<String, String>>> retmet =
 				CLIENT1.saveObjects(soc);
 
 		assertThat("max obj count correct", CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("saveget")).getE5(), is(3L));
 		
 		assertThat("num metas correct", retmet.size(), is(3));
-		checkInfo(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkInfo(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23);
-		checkInfo(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24);
+		checkInfo(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta);
+		checkInfo(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta);
+		checkInfo(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		
 		
 		objects.clear();
@@ -831,7 +831,7 @@ public class JSONRPCLayerTest {
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
-		checkInfo(retmet.get(0), 2, "auto2", SAFE_TYPE, 2, USER1, wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24);
+		checkInfo(retmet.get(0), 2, "auto2", SAFE_TYPE, 2, USER1, wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
@@ -874,7 +874,7 @@ public class JSONRPCLayerTest {
 		}
 		
 		try {
-			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>());
+			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>(), 0L);
 			fail("called get meta with no ids");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
@@ -938,7 +938,7 @@ public class JSONRPCLayerTest {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectInfo(loi);
+			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got meta with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -958,13 +958,22 @@ public class JSONRPCLayerTest {
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>>> retusermeta =
-				CLIENT1.getObjectInfo(loi);
+				CLIENT1.getObjectInfo(loi, 1L);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
 				String, String, Long, Map<String, String>> o: retusermeta) {
-			checkInfoUserMeta(o, id, name, type, ver, user, wsid, wsname,
+			checkInfo(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta);
+		}
+		
+		retusermeta = CLIENT1.getObjectInfo(loi, 0L);
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (Tuple11<Long, String, String, String, Long, String, Long,
+				String, String, Long, Map<String, String>> o: retusermeta) {
+			checkInfo(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, null);
 		}
 	}
 
@@ -976,11 +985,11 @@ public class JSONRPCLayerTest {
 		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
 		
-		checkInfoUserMeta(retdata.getInfo(), id, name, typeString, ver, user,
+		checkInfo(retdata.getInfo(), id, name, typeString, ver, user,
 				wsid, wsname, chksum, size, meta);
 	}
 
-	private void checkInfoUserMeta(
+	private void checkInfo(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> infousermeta,
 			long id, String name, String typeString, int ver, String user,
 			long wsid, String wsname, String chksum, long size, Map<String, String> meta)
@@ -996,23 +1005,6 @@ public class JSONRPCLayerTest {
 		assertThat("ws name is correct", infousermeta.getE8(), is(wsname));
 		assertThat("chksum is correct", infousermeta.getE9(), is(chksum));
 		assertThat("size is correct", infousermeta.getE10(), is(size));
-		assertThat("meta is correct", infousermeta.getE11(), is(meta));
-	}
-	private void checkInfo(
-			Tuple10<Long, String, String, String, Long, String, Long, String, String, Long> objinfo,
-			long id, String name, String typeString, int ver, String user,
-			long wsid, String wsname, String chksum, long size) throws Exception {
-		
-		assertThat("id is correct", objinfo.getE1(), is(id));
-		assertThat("name is correct", objinfo.getE2(), is(name));
-		assertThat("type is correct", objinfo.getE3(), is(typeString));
-		DATE_FORMAT.parse(objinfo.getE4()); //should throw error if bad format
-		assertThat("version is correct", (int) objinfo.getE5().longValue(), is(ver));
-		assertThat("user is correct", objinfo.getE6(), is(user));
-		assertThat("wsid is correct", objinfo.getE7(), is(wsid));
-		assertThat("ws name is correct", objinfo.getE8(), is(wsname));
-		assertThat("chksum is correct", objinfo.getE9(), is(chksum));
-		assertThat("size is correct", objinfo.getE10(), is(size));
 	}
 	
 	@Test

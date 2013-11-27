@@ -75,9 +75,9 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public Map<ObjectIDResolvedWS, ObjectInfoUserMeta> getObjectInformation(
-			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
-			WorkspaceCommunicationException;
+	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
+			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
