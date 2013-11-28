@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * <p>Original spec-file type: TypeInfo</p>
  * <pre>
- * Information about type
+ * Information about a type
  *         type_string type_def - resolved type definition id.
  *         string description - the description of the type from spec-file.
  *         string spec_def - reconstruction of type definition from spec-file.

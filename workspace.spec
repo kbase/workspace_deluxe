@@ -780,6 +780,23 @@ module Workspace {
 	
 	authentication required;
 	
+	/* Input parameters for the 'rename_objects' function.
+		
+		Required arguments:
+		ObjectIdentity obj - the object to rename.
+		obj_name new_name - the new name for the object.
+	*/
+	typedef structure {
+		ObjectIdentity obj;
+		obj_name new_name;
+	} RenameObjectsParams;
+	
+	/* 
+		Rename objects. User meta data is always returned as null.
+	*/
+	funcdef rename_objects(RenameObjectsParams params)
+		returns(object_info renamed);
+	
 	/* 
 		Hide objects. All versions of an object are hidden, regardless of
 		the version specified in the ObjectIdentity. Hidden objects do not
@@ -1022,7 +1039,7 @@ module Workspace {
 	funcdef translate_to_MD5_types(list<type_string>) 
 		returns(mapping<type_string, type_string>);
 
-	/* Information about type
+	/* Information about a type
 	
 		type_string type_def - resolved type definition id.
 		string description - the description of the type from spec-file.

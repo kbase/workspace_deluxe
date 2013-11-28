@@ -1,6 +1,7 @@
 package us.kbase.workspace.workspaces;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -644,6 +645,17 @@ public class Workspaces {
 			ret.add(meta.get(ws.get(o)));
 		}
 		return ret;
+	}
+	
+	//TODO test
+	public ObjectInformation renameObjects(final WorkspaceUser user,
+			final ObjectIdentifier oi, final String newname)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = checkPerms(user,
+				Arrays.asList(oi), Permission.WRITE, "rename objects in");
+		ObjectIDNoWSNoVer.checkObjectName(newname);
+		return db.renameObject(ws.get(oi), newname);
 	}
 	
 	//TODO test

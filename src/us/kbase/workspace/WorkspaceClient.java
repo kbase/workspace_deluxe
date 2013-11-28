@@ -421,6 +421,24 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: rename_objects</p>
+     * <pre>
+     * Rename objects.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.RenameObjectsParams RenameObjectsParams}
+     * @return   parameter "renamed" of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> renameObjects(RenameObjectsParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_objects", args, retType, true, true);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: hide_objects</p>
      * <pre>
      * Hide objects. All versions of an object are hidden, regardless of
