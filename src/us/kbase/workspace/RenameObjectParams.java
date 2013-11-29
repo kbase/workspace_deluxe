@@ -12,9 +12,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: RenameObjectsParams</p>
+ * <p>Original spec-file type: RenameObjectParams</p>
  * <pre>
- * Input parameters for the 'rename_objects' function.
+ * Input parameters for the 'rename_object' function.
  * Required arguments:
  * ObjectIdentity obj - the object to rename.
  * obj_name new_name - the new name for the object.
@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "obj",
     "new_name"
 })
-public class RenameObjectsParams {
+public class RenameObjectParams {
 
     /**
      * <p>Original spec-file type: ObjectIdentity</p>
@@ -111,7 +111,7 @@ public class RenameObjectsParams {
         this.obj = obj;
     }
 
-    public RenameObjectsParams withObj(ObjectIdentity obj) {
+    public RenameObjectParams withObj(ObjectIdentity obj) {
         this.obj = obj;
         return this;
     }
@@ -126,7 +126,7 @@ public class RenameObjectsParams {
         this.newName = newName;
     }
 
-    public RenameObjectsParams withNewName(String newName) {
+    public RenameObjectParams withNewName(String newName) {
         this.newName = newName;
         return this;
     }
@@ -143,7 +143,7 @@ public class RenameObjectsParams {
 
     @Override
     public String toString() {
-        return ((((((("RenameObjectsParams"+" [obj=")+ obj)+", newName=")+ newName)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("RenameObjectParams"+" [obj=")+ obj)+", newName=")+ newName)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

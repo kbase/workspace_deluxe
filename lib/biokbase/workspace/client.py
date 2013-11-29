@@ -782,9 +782,9 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def rename_objects(self, params):
+    def rename_object(self, params):
 
-        arg_hash = {'method': 'Workspace.rename_objects',
+        arg_hash = {'method': 'Workspace.rename_object',
                     'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]

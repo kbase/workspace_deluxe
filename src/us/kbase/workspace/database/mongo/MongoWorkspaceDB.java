@@ -321,6 +321,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			BlobStore bs;
 			try {
+				//TODO hand the shock backend a collection prefix to use
 				bs = new ShockBackend(wsmongo.getCollection(COL_SHOCK),
 						shockurl, settings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
@@ -790,6 +791,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
+		//TODO several failure modes: 1) save a pointer, crash w/ 0 versions. 2) increment versions, crash w/o saveing
+		//TODO several failure modes: check all places pointer incremented (ws, obj, ver) to see if any other problems
+		//TODO several failure modes: known issues in resolveObjects and listObjects
+		//TODO several failure modes: can't necc count on the fact that vercount or latestVerfsion is accurate
 		final int ver;
 		final Date created = new Date();
 		try {
@@ -1712,6 +1717,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final int lastver = (Integer) ptr.get(LATEST_VERSION);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
 			if (!showAllVers && lastver != ver) {
+				//TODO listObjects: this could miss objects if ver count was inc but server went down before save
+				//TODO listObjects: but if just take max, could include non-latest objects
 				continue;
 			}
 			if ((Boolean) ptr.get(Fields.PTR_HIDE) && !showHidden) {
@@ -1867,6 +1874,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			if (oid.getVersion() == null ||
 					oid.getVersion().equals(latestVersion)) {
+				//TODO this could be wrong if the pointer was incremented without a ver, should verify and then sort if needed
 				ret.put(oid, new FullyResolvedMongoOID(
 						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
 						name, id, latestVersion));
@@ -2006,6 +2014,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static class TestMongoInternals {
 		
 		//screwy tests for methods that can't be tested in a black box manner
+		//TODO test turn this into a normal test. Use mongoDB to screw up the database then run the test.
 	
 		private static MongoWorkspaceDB testdb;
 		

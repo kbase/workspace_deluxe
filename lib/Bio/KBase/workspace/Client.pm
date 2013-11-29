@@ -737,7 +737,7 @@ ws_id is an int
 
 =item Description
 
-Set the global permission for a workspace.
+Set the description for a workspace.
 
 =back
 
@@ -2301,9 +2301,9 @@ sub get_object_info
 
 
 
-=head2 rename_objects
+=head2 rename_object
 
-  $renamed = $obj->rename_objects($params)
+  $renamed = $obj->rename_object($params)
 
 =over 4
 
@@ -2312,9 +2312,9 @@ sub get_object_info
 =begin html
 
 <pre>
-$params is a Workspace.RenameObjectsParams
+$params is a Workspace.RenameObjectParams
 $renamed is a Workspace.object_info
-RenameObjectsParams is a reference to a hash where the following keys are defined:
+RenameObjectParams is a reference to a hash where the following keys are defined:
 	obj has a value which is a Workspace.ObjectIdentity
 	new_name has a value which is a Workspace.obj_name
 ObjectIdentity is a reference to a hash where the following keys are defined:
@@ -2353,9 +2353,9 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =begin text
 
-$params is a Workspace.RenameObjectsParams
+$params is a Workspace.RenameObjectParams
 $renamed is a Workspace.object_info
-RenameObjectsParams is a reference to a hash where the following keys are defined:
+RenameObjectParams is a reference to a hash where the following keys are defined:
 	obj has a value which is a Workspace.ObjectIdentity
 	new_name has a value which is a Workspace.obj_name
 ObjectIdentity is a reference to a hash where the following keys are defined:
@@ -2393,13 +2393,13 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-Rename objects.
+Rename an object. User meta data is always returned as null.
 
 =back
 
 =cut
 
-sub rename_objects
+sub rename_object
 {
     my($self, @args) = @_;
 
@@ -2408,7 +2408,7 @@ sub rename_objects
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function rename_objects (received $n, expecting 1)");
+							       "Invalid argument count for function rename_object (received $n, expecting 1)");
     }
     {
 	my($params) = @args;
@@ -2416,29 +2416,29 @@ sub rename_objects
 	my @_bad_arguments;
         (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to rename_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to rename_object:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'rename_objects');
+								   method_name => 'rename_object');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.rename_objects",
+	method => "Workspace.rename_object",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'rename_objects',
+					       method_name => 'rename_object',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method rename_objects",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method rename_object",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'rename_objects',
+					    method_name => 'rename_object',
 				       );
     }
 }
@@ -6049,7 +6049,7 @@ auth has a value which is a string
 
 
 
-=head2 RenameObjectsParams
+=head2 RenameObjectParams
 
 =over 4
 
@@ -6057,7 +6057,7 @@ auth has a value which is a string
 
 =item Description
 
-Input parameters for the 'rename_objects' function.
+Input parameters for the 'rename_object' function.
 
 Required arguments:
 ObjectIdentity obj - the object to rename.

@@ -62,11 +62,10 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
-	//TODO rename workspace / object
+	//TODO rename workspace
 	//TODO clone workspace
 	//TODO get history of object
 	//TODO copy object(s)
-	//TODO move objects(s) ? needed?
 	//TODO revert object
 	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)

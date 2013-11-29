@@ -366,7 +366,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: set_workspace_description</p>
      * <pre>
-     * Set the global permission for a workspace.
+     * Set the description for a workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.SetWorkspaceDescriptionParams SetWorkspaceDescriptionParams}
      */
@@ -735,23 +735,23 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
-     * <p>Original spec-file function name: rename_objects</p>
+     * <p>Original spec-file function name: rename_object</p>
      * <pre>
-     * Rename objects.
+     * Rename an object. User meta data is always returned as null.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.RenameObjectsParams RenameObjectsParams}
+     * @param   params   instance of type {@link us.kbase.workspace.RenameObjectParams RenameObjectParams}
      * @return   parameter "renamed" of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
-    @JsonServerMethod(rpc = "Workspace.rename_objects")
-    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> renameObjects(RenameObjectsParams params, AuthToken authPart) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.rename_object")
+    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> renameObject(RenameObjectParams params, AuthToken authPart) throws Exception {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
-        //BEGIN rename_objects
+        //BEGIN rename_object
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
 		returnVal = au.objInfoToTuple(ws.renameObjects(getUser(authPart),
 				oi, params.getNewName()));
 		//TODO test
-        //END rename_objects
+        //END rename_object
         return returnVal;
     }
 

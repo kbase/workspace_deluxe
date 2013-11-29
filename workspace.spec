@@ -434,7 +434,7 @@ module Workspace {
 	} SetWorkspaceDescriptionParams;
 	
 	/* 
-		Set the global permission for a workspace.
+		Set the description for a workspace.
 	*/
 	funcdef set_workspace_description(SetWorkspaceDescriptionParams params)
 		returns ();
@@ -780,7 +780,7 @@ module Workspace {
 	
 	authentication required;
 	
-	/* Input parameters for the 'rename_objects' function.
+	/* Input parameters for the 'rename_object' function.
 		
 		Required arguments:
 		ObjectIdentity obj - the object to rename.
@@ -789,12 +789,12 @@ module Workspace {
 	typedef structure {
 		ObjectIdentity obj;
 		obj_name new_name;
-	} RenameObjectsParams;
+	} RenameObjectParams;
 	
 	/* 
-		Rename objects. User meta data is always returned as null.
+		Rename an object. User meta data is always returned as null.
 	*/
-	funcdef rename_objects(RenameObjectsParams params)
+	funcdef rename_object(RenameObjectParams params)
 		returns(object_info renamed);
 	
 	/* 
