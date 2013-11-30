@@ -44,7 +44,7 @@ public class ShockBackendTest {
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
-			sb = new ShockBackend(mongo.getCollection("shockData"), url, u1, p1);
+			sb = new ShockBackend(mongo, "shock_", url, u1, p1);
 		} catch (BlobStoreAuthorizationException bsae) {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", bsae);

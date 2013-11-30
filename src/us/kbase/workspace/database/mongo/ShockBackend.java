@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -34,6 +35,7 @@ import com.mongodb.MongoException;
 public class ShockBackend implements BlobStore {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final String nodeMap = "nodeMap";
 	
 	private String user;
 	private String password;
@@ -42,13 +44,15 @@ public class ShockBackend implements BlobStore {
 	
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBackend(DBCollection collection, URL url, String user,
-			String password) throws BlobStoreAuthorizationException,
+	public ShockBackend(final DB mongoDB, final String collectionPrefix,
+			final URL url, final String user, final String password)
+			throws BlobStoreAuthorizationException,
 			BlobStoreException {
-		if (collection == null) {
-			throw new NullPointerException("Collection cannot be null");
+		if (collectionPrefix == null || mongoDB == null) {
+			throw new IllegalArgumentException(
+					"mongoDB and collectionPrefix cannot be null");
 		}
-		this.mongoCol = collection;
+		this.mongoCol = mongoDB.getCollection(collectionPrefix + nodeMap);
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();
@@ -176,7 +180,7 @@ public class ShockBackend implements BlobStore {
 		}
 	}
 	
-	private String getNode(MD5 md5) throws
+	private String getNode(final MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
@@ -195,8 +199,9 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public JsonNode getBlob(MD5 md5) throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException, NoSuchBlobException {
+	public JsonNode getBlob(final MD5 md5) throws
+			BlobStoreAuthorizationException, BlobStoreCommunicationException,
+			NoSuchBlobException {
 		checkAuth();
 		final String node = getNode(md5);
 		
@@ -237,7 +242,8 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
+	public void removeBlob(final MD5 md5)
+			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		checkAuth();
 		final String node;
@@ -285,7 +291,7 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public String getExternalIdentifier(MD5 md5) throws
+	public String getExternalIdentifier(final MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
 		return getNode(md5);
 	}

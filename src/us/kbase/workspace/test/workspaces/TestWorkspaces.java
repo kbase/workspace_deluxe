@@ -173,7 +173,7 @@ public class TestWorkspaces {
 		if (!SKIP_SHOCK) {
 			TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
 			assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
-			sbe = new ShockBackend(data2.getCollection("shockData"),
+			sbe = new ShockBackend(data2, "shock_",
 					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
 		}
 		for (int i = 0; i < 17; i++) {

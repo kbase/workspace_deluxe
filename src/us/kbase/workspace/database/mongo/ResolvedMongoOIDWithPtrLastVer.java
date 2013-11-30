@@ -17,9 +17,9 @@ package us.kbase.workspace.database.mongo;
  * @author gaprice@lbl.gov
  *
  */
-public class FullyResolvedMongoOID extends ResolvedMongoObjectID {
+public class ResolvedMongoOIDWithPtrLastVer extends ResolvedMongoObjectID {
 	
-	FullyResolvedMongoOID(final ResolvedMongoWSID rwsi, final String name,
+	ResolvedMongoOIDWithPtrLastVer(final ResolvedMongoWSID rwsi, final String name,
 			final long id, final int version) {
 		super(rwsi, name, id, version);
 	}

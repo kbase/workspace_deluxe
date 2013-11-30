@@ -100,7 +100,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WORKSPACE_PTRS = "workspaceObjects";
 	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_PROVENANCE = "provenance";
-	private static final String COL_SHOCK = "shockData";
+	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User allUsers = new AllUsers('*');
 	
 	private static final long MAX_OBJECT_SIZE = 1000000000;
@@ -321,8 +321,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			BlobStore bs;
 			try {
-				//TODO hand the shock backend a collection prefix to use
-				bs = new ShockBackend(wsmongo.getCollection(COL_SHOCK),
+				bs = new ShockBackend(wsmongo, COL_SHOCK_PREFIX,
 						shockurl, settings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
@@ -791,10 +790,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
-		//TODO several failure modes: 1) save a pointer, crash w/ 0 versions. 2) increment versions, crash w/o saveing
-		//TODO several failure modes: check all places pointer incremented (ws, obj, ver) to see if any other problems
-		//TODO several failure modes: known issues in resolveObjects and listObjects
-		//TODO several failure modes: can't necc count on the fact that vercount or latestVerfsion is accurate
+		/* TODO deal with rare failure modes below as much as possible at some point. Not high prio since rare
+		 * 1) save a pointer, crash w/ 0 versions. 2) increment versions, crash w/o saving
+		 * check all places pointer incremented (ws, obj, ver) to see if any other problems
+		 * known issues in resolveObjects and listObjects
+		 * can't necc count on the fact that vercount or latestVerfsion is accurate
+		 * ignore listObjs for now, in resolveObjs mark vers with class and
+		 * have queryVersions pull the right version if it's missing. Make a test for this.
+		 * Have queryVersions revert to the newest version if the latest is missing, autorevert
+		 * 
+		 * None of the above addresses the pointer w/ 0 versions failure. Not sure what to do about that.
+		 * 
+		*/
 		final int ver;
 		final Date created = new Date();
 		try {
@@ -1717,8 +1724,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final int lastver = (Integer) ptr.get(LATEST_VERSION);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
 			if (!showAllVers && lastver != ver) {
-				//TODO listObjects: this could miss objects if ver count was inc but server went down before save
-				//TODO listObjects: but if just take max, could include non-latest objects
+				/* this is tricky. As is, if there's a failure between incrementing
+				 * an object pointer and saving the object version no latest
+				 * ver will be listed. On the other hand, if we just take
+				 * the max ver we'd be adding incorrect latest vers when filters
+				 * exclude the real max ver. To do this correctly we've have to
+				 * get the max ver for all objects which is really expensive.
+				 * Since the failure mode should be very rare and it fixable
+				 * by simply reverting the object do nothing for now.
+				 */
 				continue;
 			}
 			if ((Boolean) ptr.get(Fields.PTR_HIDE) && !showHidden) {
@@ -1875,7 +1889,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (oid.getVersion() == null ||
 					oid.getVersion().equals(latestVersion)) {
 				//TODO this could be wrong if the pointer was incremented without a ver, should verify and then sort if needed
-				ret.put(oid, new FullyResolvedMongoOID(
+				ret.put(oid, new ResolvedMongoOIDWithPtrLastVer(
 						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
 						name, id, latestVersion));
 			} else {
