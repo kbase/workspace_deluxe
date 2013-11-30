@@ -775,6 +775,44 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	// save object in preexisting object container
+	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
+			final ResolvedMongoWSID wsid, final long objectid,
+			final ObjectSavePackage pkg)
+			throws WorkspaceCommunicationException {
+		final DBObject version = new BasicDBObject();
+		version.put(Fields.VER_SAVEDBY, user.getUser());
+		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
+		final List<Map<String, String>> meta = 
+				new ArrayList<Map<String, String>>();
+		if (pkg.wo.getUserMeta() != null) {
+			for (String key: pkg.wo.getUserMeta().keySet()) {
+				Map<String, String> m = new HashMap<String, String>();
+				m.put(Fields.VER_META_KEY, key);
+				m.put(Fields.VER_META_VALUE, pkg.wo.getUserMeta().get(key));
+				meta.add(m);
+			}
+		}
+		version.put(Fields.VER_META, meta);
+		version.put(Fields.VER_REF, pkg.refs);
+		version.put(Fields.VER_PROVREF, pkg.provrefs);
+		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
+		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
+				.getTypeString());
+		version.put(Fields.VER_SIZE, pkg.td.getSize());
+		version.put(Fields.VER_RVRT, null);
+		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
+				pkg.wo.isHidden());
+		
+		return new MongoObjectInfo(objectid, pkg.name,
+				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
+				(Date) version.get(Fields.VER_SAVEDATE),
+				(Integer) version.get(Fields.VER_VER),
+				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
+				pkg.wo.getUserMeta());
+	}
+	
+
 	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
 			Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
@@ -784,10 +822,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
 	
-	// save object in preexisting object container
-	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
+	private void saveObjectVersions(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
-			final ObjectSavePackage pkg)
+			final List<DBObject> versions, final boolean hidden)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
 		/* TODO deal with rare failure modes below as much as possible at some point. Not high prio since rare
@@ -803,55 +840,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * 
 		*/
 		final int ver;
-		final Date created = new Date();
+		final Date saved = new Date();
 		try {
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
-					.with(M_SAVEINS_WTH, created, pkg.wo.isHidden())
+					.with(M_SAVEINS_WTH, saved, hidden)
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
 					.get(Fields.OBJ_VCNT);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		
-		final DBObject version = new BasicDBObject();
-		version.put(Fields.VER_WS_ID, wsid.getID());
-		version.put(Fields.VER_ID, objectid);
-		version.put(Fields.VER_VER, ver);
-		version.put(Fields.VER_SAVEDBY, user.getUser());
-		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
-		final List<Map<String, String>> meta = 
-				new ArrayList<Map<String, String>>();
-		if (pkg.wo.getUserMeta() != null) {
-			for (String key: pkg.wo.getUserMeta().keySet()) {
-				Map<String, String> m = new HashMap<String, String>();
-				m.put(Fields.VER_META_KEY, key);
-				m.put(Fields.VER_META_VALUE, pkg.wo.getUserMeta().get(key));
-				meta.add(m);
-			}
+		for (final DBObject v: versions) {
+			v.put(Fields.VER_SAVEDATE, saved);
+			v.put(Fields.VER_WS_ID, wsid.getID());
+			v.put(Fields.VER_ID, objectid);
+			v.put(Fields.VER_VER, ver);
 		}
-		version.put(Fields.VER_META, meta);
-		version.put(Fields.VER_SAVEDATE, created);
-		version.put(Fields.VER_REF, pkg.refs);
-		version.put(Fields.VER_PROVREF, pkg.provrefs);
-		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
-		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
-				.getTypeString());
-		version.put(Fields.VER_SIZE, pkg.td.getSize());
-		version.put(Fields.VER_RVRT, null);
 
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(version);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(versions);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return new MongoObjectInfo(objectid, pkg.name,
-				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
-				created, ver, user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
-				pkg.wo.getUserMeta());
 	}
 	
 	//TODO make all projections not include _id unless specified
