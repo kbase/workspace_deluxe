@@ -200,22 +200,22 @@ public class QueryMethods {
 		//TODO This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID,
+			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
 					rwsi.getID());
-			query.put(Fields.PTR_NAME, new BasicDBObject(
+			query.put(Fields.OBJ_NAME, new BasicDBObject(
 					"$in", names.get(rwsi).keySet()));
 			orquery.add(query);
 		}
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID,
+			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
 					rwsi.getID());
-			query.put(Fields.PTR_ID, new BasicDBObject(
+			query.put(Fields.OBJ_ID, new BasicDBObject(
 					"$in", ids.get(rwsi).keySet()));
 			orquery.add(query);
 		}
-		fields.add(Fields.PTR_ID);
-		fields.add(Fields.PTR_NAME);
-		fields.add(Fields.PTR_WS_ID);
+		fields.add(Fields.OBJ_ID);
+		fields.add(Fields.OBJ_NAME);
+		fields.add(Fields.OBJ_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
 				pointerCollection, new BasicDBObject("$or", orquery), fields);
 
@@ -223,9 +223,9 @@ public class QueryMethods {
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
 			final ResolvedMongoWSID rwsi =
-					idToWS.get((Long) m.get(Fields.PTR_WS_ID));
-			final String name = (String) m.get(Fields.PTR_NAME);
-			final Long id = (Long) m.get(Fields.PTR_ID);
+					idToWS.get((Long) m.get(Fields.OBJ_WS_ID));
+			final String name = (String) m.get(Fields.OBJ_NAME);
+			final Long id = (Long) m.get(Fields.OBJ_ID);
 			if (names.containsKey(rwsi) && names.get(rwsi).containsKey(name)) {
 				ret.put(names.get(rwsi).get(name), m);
 			}

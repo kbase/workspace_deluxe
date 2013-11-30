@@ -97,7 +97,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WS_CNT = "workspaceCounter";
 	private static final String COL_WORKSPACES = "workspaces";
 	private static final String COL_WS_ACLS = "workspaceACLs";
-	private static final String COL_WORKSPACE_PTRS = "workspaceObjects";
+	private static final String COL_WORKSPACE_OBJS = "workspaceObjects";
 	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_PROVENANCE = "provenance";
 	private static final String COL_SHOCK_PREFIX = "shock_";
@@ -143,19 +143,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsACL.put(Arrays.asList(Fields.ACL_USER, Fields.ACL_PERM, Fields.ACL_WSID), Arrays.asList(""));
 		INDEXES.put(COL_WS_ACLS, wsACL);
 		
-		//workspace pointer indexes
-		Map<List<String>, List<String>> wsPtr = new HashMap<List<String>, List<String>>();
+		//workspace object indexes
+		Map<List<String>, List<String>> wsObj = new HashMap<List<String>, List<String>>();
 		//find objects by workspace id & name
-		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_NAME), Arrays.asList(IDX_UNIQ));
+		wsObj.put(Arrays.asList(Fields.OBJ_WS_ID, Fields.OBJ_NAME), Arrays.asList(IDX_UNIQ));
 		//find object by workspace id & object id
-		wsPtr.put(Arrays.asList(Fields.PTR_WS_ID, Fields.PTR_ID), Arrays.asList(IDX_UNIQ));
+		wsObj.put(Arrays.asList(Fields.OBJ_WS_ID, Fields.OBJ_ID), Arrays.asList(IDX_UNIQ));
 		//find recently modified objects
-		wsPtr.put(Arrays.asList(Fields.PTR_MODDATE), Arrays.asList(""));
+		wsObj.put(Arrays.asList(Fields.OBJ_MODDATE), Arrays.asList(""));
 		//find object to garbage collect
-		wsPtr.put(Arrays.asList(Fields.PTR_DEL, Fields.PTR_REFCOUNTS), Arrays.asList(""));
-		INDEXES.put(COL_WORKSPACE_PTRS, wsPtr);
+		wsObj.put(Arrays.asList(Fields.OBJ_DEL, Fields.OBJ_REFCOUNTS), Arrays.asList(""));
+		INDEXES.put(COL_WORKSPACE_OBJS, wsObj);
 
-		//workspace pointer version indexes
+		//workspace object version indexes
 		Map<List<String>, List<String>> wsVer = new HashMap<List<String>, List<String>>();
 		//find versions
 		wsVer.put(Arrays.asList(Fields.VER_WS_ID, Fields.VER_ID,
@@ -183,7 +183,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
-				COL_WORKSPACE_PTRS, COL_WORKSPACE_VERS, COL_WS_ACLS);
+				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
@@ -207,7 +207,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
-				COL_WORKSPACE_PTRS, COL_WORKSPACE_VERS, COL_WS_ACLS);
+				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
@@ -382,7 +382,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_MODDATE, moddate);
 		ws.put(Fields.WS_NAME, wsname);
 		ws.put(Fields.WS_DEL, false);
-		ws.put(Fields.WS_NUMPTR, 0L);
+		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
@@ -405,9 +405,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	final private static String M_RENAME_QRY = String.format(
-			"{%s: #, %s: #}", Fields.PTR_WS_ID, Fields.PTR_ID);
+			"{%s: #, %s: #}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	final private static String M_RENAME_WTH = String.format(
-			"{$set: {%s: #}}", Fields.PTR_NAME);
+			"{$set: {%s: #}}", Fields.OBJ_NAME);
 	
 	@Override
 	public ObjectInformation renameObject(final ObjectIDResolvedWS oi,
@@ -421,7 +421,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					newname);
 		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACE_PTRS)
+			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_RENAME_QRY, roi.getWorkspaceIdentifier().getID(),
 							roi.getId())
 					.with(M_RENAME_WTH, newname);
@@ -686,7 +686,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_WS_NO_DESC = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
-					Fields.WS_MODDATE, Fields.WS_NUMPTR, Fields.WS_DEL);
+					Fields.WS_MODDATE, Fields.WS_NUMOBJ, Fields.WS_DEL);
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
@@ -741,7 +741,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
 				(Date) wsdata.get(Fields.WS_MODDATE),
-				(Long) wsdata.get(Fields.WS_NUMPTR),
+				(Long) wsdata.get(Fields.WS_NUMOBJ),
 				perms.getUserPermission(rwsi),
 				perms.isWorldReadable(rwsi));
 	}
@@ -776,13 +776,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
-			Fields.PTR_WS_ID, Fields.PTR_ID);
+			Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
-			Fields.PTR_VCNT, Fields.MONGO_ID);
+			Fields.OBJ_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
 			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
-			Fields.PTR_VCNT, Fields.PTR_DEL, Fields.PTR_MODDATE,
-			Fields.PTR_LATEST, Fields.PTR_HIDE, Fields.PTR_REFCOUNTS);
+			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
+			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
 	
 	// save object in preexisting object container
 	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
@@ -791,37 +791,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
 		/* TODO deal with rare failure modes below as much as possible at some point. Not high prio since rare
-		 * 1) save a pointer, crash w/ 0 versions. 2) increment versions, crash w/o saving
-		 * check all places pointer incremented (ws, obj, ver) to see if any other problems
+		 * 1) save an object, crash w/ 0 versions. 2) increment versions, crash w/o saving
+		 * check all places counter incremented (ws, obj, ver) to see if any other problems
 		 * known issues in resolveObjects and listObjects
-		 * can't necc count on the fact that vercount or latestVerfsion is accurate
+		 * can't necc count on the fact that vercount or latestVersion is accurate
 		 * ignore listObjs for now, in resolveObjs mark vers with class and
 		 * have queryVersions pull the right version if it's missing. Make a test for this.
 		 * Have queryVersions revert to the newest version if the latest is missing, autorevert
 		 * 
-		 * None of the above addresses the pointer w/ 0 versions failure. Not sure what to do about that.
+		 * None of the above addresses the objedt w/ 0 versions failure. Not sure what to do about that.
 		 * 
 		*/
 		final int ver;
 		final Date created = new Date();
 		try {
-			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_PTRS)
+			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
 					.with(M_SAVEINS_WTH, created, pkg.wo.isHidden())
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
-					.get(Fields.PTR_VCNT);
+					.get(Fields.OBJ_VCNT);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
 		
-		final DBObject pointer = new BasicDBObject();
-		pointer.put(Fields.VER_WS_ID, wsid.getID());
-		pointer.put(Fields.VER_ID, objectid);
-		pointer.put(Fields.VER_VER, ver);
-		pointer.put(Fields.VER_SAVEDBY, user.getUser());
-		pointer.put(Fields.VER_CHKSUM, pkg.td.getChksum());
+		final DBObject version = new BasicDBObject();
+		version.put(Fields.VER_WS_ID, wsid.getID());
+		version.put(Fields.VER_ID, objectid);
+		version.put(Fields.VER_VER, ver);
+		version.put(Fields.VER_SAVEDBY, user.getUser());
+		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
 		final List<Map<String, String>> meta = 
 				new ArrayList<Map<String, String>>();
 		if (pkg.wo.getUserMeta() != null) {
@@ -832,18 +832,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				meta.add(m);
 			}
 		}
-		pointer.put(Fields.VER_META, meta);
-		pointer.put(Fields.VER_SAVEDATE, created);
-		pointer.put(Fields.VER_REF, pkg.refs);
-		pointer.put(Fields.VER_PROVREF, pkg.provrefs);
-		pointer.put(Fields.VER_PROV, pkg.mprov.getMongoId());
-		pointer.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
+		version.put(Fields.VER_META, meta);
+		version.put(Fields.VER_SAVEDATE, created);
+		version.put(Fields.VER_REF, pkg.refs);
+		version.put(Fields.VER_PROVREF, pkg.provrefs);
+		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
+		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
 				.getTypeString());
-		pointer.put(Fields.VER_SIZE, pkg.td.getSize());
-		pointer.put(Fields.VER_RVRT, null);
+		version.put(Fields.VER_SIZE, pkg.td.getSize());
+		version.put(Fields.VER_RVRT, null);
 
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(pointer);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(version);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -857,10 +857,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//TODO make all projections not include _id unless specified
 	
 	private static final String M_UNIQ_NAME_QRY = String.format(
-			"{%s: #, %s: {$regex: '^#(-\\\\d+)?$'}}", Fields.PTR_WS_ID,
-			Fields.PTR_NAME);
+			"{%s: #, %s: {$regex: '^#(-\\\\d+)?$'}}", Fields.OBJ_WS_ID,
+			Fields.OBJ_NAME);
 	private static final String M_UNIQ_NAME_PROJ = String.format(
-			"{%s: 1, %s: 0}", Fields.PTR_NAME, Fields.MONGO_ID);
+			"{%s: 1, %s: 0}", Fields.OBJ_NAME, Fields.MONGO_ID);
 	
 	private String generateUniqueNameForObject(final ResolvedWorkspaceID wsid,
 			final long objectid) throws WorkspaceCommunicationException {
@@ -868,7 +868,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		@SuppressWarnings("rawtypes")
 		Iterable<Map> ids;
 		try {
-			ids = wsjongo.getCollection(COL_WORKSPACE_PTRS)
+			ids = wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.find(M_UNIQ_NAME_QRY, wsid.getID(), prefix)
 					.projection(M_UNIQ_NAME_PROJ).as(Map.class);
 		} catch (MongoException me) {
@@ -879,7 +879,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Set<Long> suffixes = new HashSet<Long>();
 		for (@SuppressWarnings("rawtypes") Map m: ids) {
 			
-			final String[] id = ((String) m.get(Fields.PTR_NAME)).split("-");
+			final String[] id = ((String) m.get(Fields.OBJ_NAME)).split("-");
 			if (id.length == 2) {
 				try {
 					suffixes.add(Long.parseLong(id[1]));
@@ -916,19 +916,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			newName = generateUniqueNameForObject(wsid, objectid);
 		}
 		final DBObject dbo = new BasicDBObject();
-		dbo.put(Fields.PTR_WS_ID, wsid.getID());
-		dbo.put(Fields.PTR_ID, objectid);
-		dbo.put(Fields.PTR_VCNT, 0); //Integer
-		dbo.put(Fields.PTR_REFCOUNTS, new LinkedList<Integer>());
-		dbo.put(Fields.PTR_NAME, newName);
-		dbo.put(Fields.PTR_LATEST, null);
-		dbo.put(Fields.PTR_DEL, false);
-		dbo.put(Fields.PTR_HIDE, false);
+		dbo.put(Fields.OBJ_WS_ID, wsid.getID());
+		dbo.put(Fields.OBJ_ID, objectid);
+		dbo.put(Fields.OBJ_VCNT, 0); //Integer
+		dbo.put(Fields.OBJ_REFCOUNTS, new LinkedList<Integer>());
+		dbo.put(Fields.OBJ_NAME, newName);
+		dbo.put(Fields.OBJ_LATEST, null);
+		dbo.put(Fields.OBJ_DEL, false);
+		dbo.put(Fields.OBJ_HIDE, false);
 		try {
 			//maybe could speed things up with batch inserts but dealing with
 			//errors would really suck
 			//do this later if it becomes a bottleneck
-			wsmongo.getCollection(COL_WORKSPACE_PTRS).insert(dbo);
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).insert(dbo);
 		} catch (MongoException.DuplicateKey dk) {
 			//ok, someone must've just this second added this name to an object
 			//asshole
@@ -1157,9 +1157,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVE_QRY = String.format("{%s: #}",
 					Fields.WS_ID);
 	private static final String M_SAVE_WTH = String.format("{$inc: {%s: #}}",
-					Fields.WS_NUMPTR);
+					Fields.WS_NUMOBJ);
 	private static final String M_SAVE_PROJ = String.format("{%s: 1, %s: 0}",
-			Fields.WS_NUMPTR, Fields.MONGO_ID);
+			Fields.WS_NUMOBJ, Fields.MONGO_ID);
 			
 	//at this point the objects are expected to be validated and references rewritten
 	@Override
@@ -1218,7 +1218,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.findAndModify(M_SAVE_QRY, wsidmongo.getID())
 					.returnNew().with(M_SAVE_WTH, (long) newobjects)
 					.projection(M_SAVE_PROJ)
-					.as(DBObject.class).get(Fields.WS_NUMPTR)).longValue();
+					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -1374,17 +1374,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<Long, List<Long>> wsToObjs)
 			throws WorkspaceCommunicationException {
 		final DBObject update = new BasicDBObject("$inc",
-				new BasicDBObject(Fields.PTR_REFCOUNTS + "." + (vc.ver - 1),
+				new BasicDBObject(Fields.OBJ_REFCOUNTS + "." + (vc.ver - 1),
 						vc.count));
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final Long ws: wsToObjs.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.PTR_WS_ID, ws);
-			query.put(Fields.PTR_ID, new BasicDBObject("$in",
+			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID, ws);
+			query.put(Fields.OBJ_ID, new BasicDBObject("$in",
 					wsToObjs.get(ws)));
 			orquery.add(query);
 		}
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_PTRS).update(
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
 					new BasicDBObject("$or", orquery), update, false, true);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -1539,7 +1539,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							e);
 				} catch (NoSuchBlobException e) {
 					throw new CorruptWorkspaceDBException(String.format(
-							"No data present for valid pointer %s.%s.%s",
+							"No data present for valid object %s.%s.%s",
 							meta.getWorkspaceId(), meta.getObjectId(),
 							meta.getVersion()), e);
 				}
@@ -1644,9 +1644,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
 			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID);
 	
-	private static final Set<String> FLDS_LIST_OBJ_PTR = newHashSet(
-			Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL, Fields.PTR_HIDE,
-			Fields.PTR_LATEST, Fields.PTR_VCNT, Fields.PTR_WS_ID);
+	private static final Set<String> FLDS_LIST_OBJ = newHashSet(
+			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
+			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
 	
 	private static final String LATEST_VERSION = "latestVersion";
 
@@ -1710,22 +1710,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"$in", verdata.get(wsid)));
 			orquery.add(query);
 		}
-		final DBObject ptrq = new BasicDBObject("$or", orquery);
+		final DBObject objq = new BasicDBObject("$or", orquery);
 		//could exclude hidden and deleted objects here?
-		final Map<Long, Map<Long, Map<String, Object>>> ptrdata =
-				organizePtrData(query.queryCollection(
-						COL_WORKSPACE_PTRS, ptrq, FLDS_LIST_OBJ_PTR));
+		final Map<Long, Map<Long, Map<String, Object>>> objdata =
+				organizeObjData(query.queryCollection(
+						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
 		final List<ObjectInformation> ret = new LinkedList<ObjectInformation>();
 		for (final Map<String, Object> vo: verobjs) {
 			final long wsid = (Long) vo.get(Fields.VER_WS_ID);
 			final long id = (Long) vo.get(Fields.VER_ID);
 			final int ver = (Integer) vo.get(Fields.VER_VER);
-			final Map<String, Object> ptr = ptrdata.get(wsid).get(id);
-			final int lastver = (Integer) ptr.get(LATEST_VERSION);
+			final Map<String, Object> obj = objdata.get(wsid).get(id);
+			final int lastver = (Integer) obj.get(LATEST_VERSION);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
 			if (!showAllVers && lastver != ver) {
 				/* this is tricky. As is, if there's a failure between incrementing
-				 * an object pointer and saving the object version no latest
+				 * an object ver count and saving the object version no latest
 				 * ver will be listed. On the other hand, if we just take
 				 * the max ver we'd be adding incorrect latest vers when filters
 				 * exclude the real max ver. To do this correctly we've have to
@@ -1735,32 +1735,32 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				 */
 				continue;
 			}
-			if ((Boolean) ptr.get(Fields.PTR_HIDE) && !showHidden) {
+			if ((Boolean) obj.get(Fields.OBJ_HIDE) && !showHidden) {
 				continue;
 			}
-			if ((Boolean) ptr.get(Fields.PTR_DEL) && (!showDeleted ||
+			if ((Boolean) obj.get(Fields.OBJ_DEL) && (!showDeleted ||
 					!pset.hasPermission(rwsi, Permission.WRITE))) {
 				continue;
 			}
 			ret.add(generateUserMetaInfo(rwsi, id,
-					(String) ptr.get(Fields.PTR_NAME), vo));
+					(String) obj.get(Fields.OBJ_NAME), vo));
 		}
 		return ret;
 	}
 	
-	private Map<Long, Map<Long, Map<String, Object>>> organizePtrData(
+	private Map<Long, Map<Long, Map<String, Object>>> organizeObjData(
 			final List<Map<String, Object>> objs) {
 		final Map<Long, Map<Long, Map<String, Object>>> ret =
 				new HashMap<Long, Map<Long,Map<String,Object>>>();
 		for (final Map<String, Object> o: objs) {
-			final long wsid = (Long) o.get(Fields.PTR_WS_ID);
-			final long objid = (Long) o.get(Fields.PTR_ID);
+			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
+			final long objid = (Long) o.get(Fields.OBJ_ID);
 			final int latestVersion;
-			if ((Integer) o.get(Fields.PTR_LATEST) == null) {
-				latestVersion = (Integer) o.get(Fields.PTR_VCNT);
+			if ((Integer) o.get(Fields.OBJ_LATEST) == null) {
+				latestVersion = (Integer) o.get(Fields.OBJ_VCNT);
 			} else {
 				//TODO check this works with GC
-				latestVersion = (Integer) o.get(Fields.PTR_LATEST);
+				latestVersion = (Integer) o.get(Fields.OBJ_LATEST);
 			}
 			o.put(LATEST_VERSION, latestVersion);
 			if (!ret.containsKey(wsid)) {
@@ -1835,8 +1835,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_RESOLVE_OBJS =
-			newHashSet(Fields.PTR_ID, Fields.PTR_NAME, Fields.PTR_DEL,
-					Fields.PTR_LATEST, Fields.PTR_VCNT);
+			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
+					Fields.OBJ_LATEST, Fields.OBJ_VCNT);
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
@@ -1872,24 +1872,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					continue;
 				}
 			}
-			final String name = (String) ids.get(o).get(Fields.PTR_NAME);
-			final long id = (Long) ids.get(o).get(Fields.PTR_ID);
-			if (exceptIfDeleted && (Boolean) ids.get(o).get(Fields.PTR_DEL)) {
+			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
+			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
+			if (exceptIfDeleted && (Boolean) ids.get(o).get(Fields.OBJ_DEL)) {
 				throw new NoSuchObjectException(String.format(
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
 			final Integer latestVersion;
-			if ((Integer) ids.get(o).get(Fields.PTR_LATEST) == null) {
-				latestVersion = (Integer) ids.get(o).get(Fields.PTR_VCNT);
+			if ((Integer) ids.get(o).get(Fields.OBJ_LATEST) == null) {
+				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_VCNT);
 			} else {
 				//TODO check this works with GC
-				latestVersion = (Integer) ids.get(o).get(Fields.PTR_LATEST);
+				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_LATEST);
 			}
 			if (oid.getVersion() == null ||
 					oid.getVersion().equals(latestVersion)) {
-				//TODO this could be wrong if the pointer was incremented without a ver, should verify and then sort if needed
-				ret.put(oid, new ResolvedMongoOIDWithPtrLastVer(
+				//TODO this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed
+				ret.put(oid, new ResolvedMongoOIDWithObjLastVer(
 						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
 						name, id, latestVersion));
 			} else {
@@ -1934,9 +1934,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final String M_HIDOBJ_WTH = String.format(
-			"{$set: {%s: #}}", Fields.PTR_HIDE);
+			"{$set: {%s: #}}", Fields.OBJ_HIDE);
 	private static final String M_HIDOBJ_QRY = String.format(
-			"{%s: #, %s: {$in: #}}", Fields.PTR_WS_ID, Fields.PTR_ID);
+			"{%s: #, %s: {$in: #}}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	
 	private void setObjectsHidden(final ResolvedMongoWSID ws,
 			final List<Long> objectIDs, final boolean hide)
@@ -1946,7 +1946,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException("Object IDs cannot be empty");
 		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACE_PTRS)
+			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_HIDOBJ_QRY, ws.getID(), objectIDs).multi()
 					.with(M_HIDOBJ_WTH, hide);
 		} catch (MongoException me) {
@@ -1978,7 +1978,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final String M_DELOBJ_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.PTR_DEL, Fields.PTR_MODDATE);
+			"{$set: {%s: #, %s: #}}", Fields.OBJ_DEL, Fields.OBJ_MODDATE);
 	
 	private void setObjectsDeleted(final ResolvedMongoWSID ws,
 			final List<Long> objectIDs, final boolean delete)
@@ -1986,16 +1986,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final String query;
 		if (objectIDs.isEmpty()) {
 			query = String.format(
-					"{%s: %s, %s: %s}", Fields.PTR_WS_ID, ws.getID(),
-					Fields.PTR_DEL, !delete);
+					"{%s: %s, %s: %s}", Fields.OBJ_WS_ID, ws.getID(),
+					Fields.OBJ_DEL, !delete);
 		} else {
 			query = String.format(
 					"{%s: %s, %s: {$in: [%s]}, %s: %s}",
-					Fields.PTR_WS_ID, ws.getID(), Fields.PTR_ID,
-					StringUtils.join(objectIDs, ", "), Fields.PTR_DEL, !delete);
+					Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_ID,
+					StringUtils.join(objectIDs, ", "), Fields.OBJ_DEL, !delete);
 		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACE_PTRS).update(query).multi()
+			wsjongo.getCollection(COL_WORKSPACE_OBJS).update(query).multi()
 					.with(M_DELOBJ_WTH, delete, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -2049,7 +2049,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		
 		@Test
-		public void createPointer() throws Exception {
+		public void createObject() throws Exception {
 			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null);
 			Map<String, Object> data = new HashMap<String, Object>();
 			Map<String, String> meta = new HashMap<String, String>();

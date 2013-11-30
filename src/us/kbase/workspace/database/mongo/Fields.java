@@ -23,7 +23,7 @@ public class Fields {
 	public static final String WS_MODDATE = "moddate"; //TODO when should this be updated? currently never
 	public static final String WS_NAME = "name";
 	public static final String WS_DEL = "del";
-	public static final String WS_NUMPTR = "numpnter";
+	public static final String WS_NUMOBJ = "numObj";
 	public static final String WS_DESC = "desc";
 
 	// workspace acl fields
@@ -31,16 +31,16 @@ public class Fields {
 	public static final String ACL_PERM = "perm";
 	public static final String ACL_USER = "user";
 
-	// workspace pointer fields
-	public static final String PTR_WS_ID = "ws";
-	public static final String PTR_ID = "id";
-	public static final String PTR_NAME = "name";
-	public static final String PTR_MODDATE = "moddate";
-	public static final String PTR_VCNT = "numver";
-	public static final String PTR_DEL = "del";
-	public static final String PTR_HIDE = "hide";
-	public static final String PTR_REFCOUNTS = "refcnt";
-	public static final String PTR_LATEST = "latest";
+	// workspace object fields
+	public static final String OBJ_WS_ID = "ws";
+	public static final String OBJ_ID = "id";
+	public static final String OBJ_NAME = "name";
+	public static final String OBJ_MODDATE = "moddate";
+	public static final String OBJ_VCNT = "numver";
+	public static final String OBJ_DEL = "del";
+	public static final String OBJ_HIDE = "hide";
+	public static final String OBJ_REFCOUNTS = "refcnt";
+	public static final String OBJ_LATEST = "latest";
 
 	// workspace version fields
 	public static final String VER_WS_ID = "ws";
