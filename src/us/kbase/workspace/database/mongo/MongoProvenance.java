@@ -20,8 +20,11 @@ public class MongoProvenance extends Provenance {
 		}
 	}
 	
-	void resolveReferences(List<String> resolvedRefs) {
-		final List<String> refs = new LinkedList<String>(resolvedRefs);
+	void resolveReferences(final List<String> resolvedRefs) {
+		final List<String> refs = new LinkedList<String>();
+		for (final String s: resolvedRefs) {//stupid LazyBSONLists
+			refs.add(s);
+		}
 		final List<ProvenanceAction> actions =
 				new LinkedList<ProvenanceAction>();
 		for (Provenance.ProvenanceAction pa: this.actions) {

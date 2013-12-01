@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -780,7 +781,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoWSID wsid, final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
-		final DBObject version = new BasicDBObject();
+		final Map<String, Object> version = new HashMap<String, Object>();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
 		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
 		final List<Map<String, String>> meta = 
@@ -824,7 +825,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private void saveObjectVersions(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
-			final List<DBObject> versions, final boolean hidden)
+			final List<Map<String, Object>> versions, final boolean hidden)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
 		/* TODO deal with rare failure modes below as much as possible at some point. Not high prio since rare
@@ -853,16 +854,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		for (final DBObject v: versions) {
+		//TODO look into why saving array of maps via List.ToArray() /w Jongo makes Lazy*Objects return, which screw up everything
+		final List<DBObject> dbo = new LinkedList<DBObject>();
+		for (final Map<String, Object> v: versions) {
 			v.put(Fields.VER_SAVEDATE, saved);
 			v.put(Fields.VER_WS_ID, wsid.getID());
 			v.put(Fields.VER_ID, objectid);
 			v.put(Fields.VER_VER, ver++);
+			final DBObject d = new BasicDBObject();
+			for (final Entry<String, Object> e: v.entrySet()) {
+				d.put(e.getKey(), e.getValue());
+			}
+			dbo.add(d);
 		}
 
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(
-					versions);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(dbo);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
