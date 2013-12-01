@@ -1128,6 +1128,7 @@ public class JSONRPCLayerTest {
 		return ret;
 	}
 	
+	@SuppressWarnings("unused")
 	private static void waitForGC(String header, long maxUsedMem) throws InterruptedException {
 		while (true) {
 			long freeMem = Runtime.getRuntime().freeMemory();

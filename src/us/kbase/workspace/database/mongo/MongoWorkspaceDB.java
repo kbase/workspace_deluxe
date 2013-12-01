@@ -2050,7 +2050,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static class TestMongoInternals {
 		
 		//screwy tests for methods that can't be tested in a black box manner
-		//TODO test turn this into a normal test. Use mongoDB to screw up the database then run the test.
 	
 		private static MongoWorkspaceDB testdb;
 		
