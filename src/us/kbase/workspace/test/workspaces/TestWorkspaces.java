@@ -23,7 +23,6 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
-import org.jongo.Jongo;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,9 +84,6 @@ public class TestWorkspaces {
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
 	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
-	public static DB gridFSDB;
-	public static DB shockDB;
-	
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
 	public static String TEXT100 = "";
@@ -123,12 +119,12 @@ public class TestWorkspaces {
 		if (SKIP_SHOCK) {
 			System.out.println("Skipping shock backend tests");
 			tests = Arrays.asList(new Object[][] {
-					{TEST_WORKSPACES[0], gridFSDB}
+					{TEST_WORKSPACES[0]}
 			});
 		} else {
 			tests = Arrays.asList(new Object[][] {
-					{TEST_WORKSPACES[0], gridFSDB},
-					{TEST_WORKSPACES[1], shockDB}
+					{TEST_WORKSPACES[0]},
+					{TEST_WORKSPACES[1]}
 			});
 		}
 		printMem("*** startup complete ***");
@@ -143,11 +139,13 @@ public class TestWorkspaces {
 		}
 	}
 	
+	public final Workspaces ws;
+	
 	public static void setUpWorkspaces() throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
-		gridFSDB = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
-		shockDB = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
+		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
+		DB data2 = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
@@ -175,7 +173,7 @@ public class TestWorkspaces {
 		if (!SKIP_SHOCK) {
 			TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
 			assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
-			sbe = new ShockBackend(shockDB, "shock_",
+			sbe = new ShockBackend(data2, "shock_",
 					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
 		}
 		for (int i = 0; i < 17; i++) {
@@ -227,15 +225,8 @@ public class TestWorkspaces {
 		}
 	}
 	
-	
-	public final Workspaces ws;
-	public final DB db;
-	public final Jongo jdb;
-	
-	public TestWorkspaces(Workspaces ws, DB db) {
+	public TestWorkspaces(Workspaces ws) {
 		this.ws = ws;
-		this.db = db;
-		this.jdb = new Jongo(db);
 	}
 	private static void printMem(String startmsg) {
 		System.out.println(startmsg);
@@ -817,7 +808,7 @@ public class TestWorkspaces {
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("typecheck");
-		long typecheckwsid = ws.createWorkspace(userfoo, wspace.getName(), false, null).getId();
+		ws.createWorkspace(userfoo, wspace.getName(), false, null);
 		Provenance emptyprov = new Provenance(userfoo);
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
@@ -978,22 +969,6 @@ public class TestWorkspaces {
 					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		}
 		
-		//check that reference counting is correct
-		@SuppressWarnings("unchecked")
-		Map<String, Object> typecheckrefed = jdb.getCollection("workspaceObjects")
-				.findOne("{ws: #, id: 1}", typecheckwsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts = (List<Integer>) typecheckrefed.get("refcnt");
-		assertThat("correct reference counting", refcnts, is(Arrays.asList(2)));
-		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> typecheckrefed2 = jdb.getCollection("workspaceObjects")
-				.findOne("{ws: #, id: 2}", typecheckwsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts2 = (List<Integer>) typecheckrefed2.get("refcnt");
-		assertThat("correct reference counting", refcnts2, is(Arrays.asList(0)));
-		
-		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces
 		Map<String, Object> refdata = new HashMap<String, Object>(data1);
 		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
@@ -1029,9 +1004,8 @@ public class TestWorkspaces {
 				new TypedObjectValidationException(
 						"Object #1 has inaccessible provenance reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
 		
-		
 		//test inaccessible reference due to missing or deleted objects, incl bad versions
-		long referencetestingwsid = ws.createWorkspace(userfoo, "referencetesting", false, null).getId();
+		ws.createWorkspace(userfoo, "referencetesting", false, null);
 		WorkspaceIdentifier reftest = new WorkspaceIdentifier("referencetesting");
 		ws.saveObjects(userfoo, reftest, Arrays.asList(
 				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
@@ -1082,22 +1056,6 @@ public class TestWorkspaces {
 				new TypedObjectValidationException(
 						"Object #1 has inaccessible provenance reference referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
-		
-		//check that reference counting is correct
-		@SuppressWarnings("unchecked")
-		Map<String, Object> reftestrefed1 = jdb.getCollection("workspaceObjects")
-		.findOne("{ws: #, id: 1}", referencetestingwsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts3 = (List<Integer>) reftestrefed1.get("refcnt");
-		assertThat("correct reference counting", refcnts3, is(Arrays.asList(2)));
-
-		@SuppressWarnings("unchecked")
-		Map<String, Object> reftestrefed2 = jdb.getCollection("workspaceObjects")
-		.findOne("{ws: #, id: 2}", referencetestingwsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts4 = (List<Integer>) reftestrefed2.get("refcnt");
-		assertThat("correct reference counting", refcnts4, is(Arrays.asList(0)));
-		
 		
 		//TODO test references against garbage collected objects
 		
@@ -1197,22 +1155,6 @@ public class TestWorkspaces {
 			assertThat("reference rewritten correctly", (String) obj.get("ref"), is(reftypewsid + "/2/1"));
 		}
 		
-		//check that reference counting is correct
-		@SuppressWarnings("unchecked")
-		Map<String, Object> reftypecheck1 = jdb.getCollection("workspaceObjects")
-		.findOne("{ws: #, id: 1}", reftypewsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts5 = (List<Integer>) reftypecheck1.get("refcnt");
-		assertThat("correct reference counting", refcnts5, is(Arrays.asList(0)));
-
-		@SuppressWarnings("unchecked")
-		Map<String, Object> reftypecheck2 = jdb.getCollection("workspaceObjects")
-		.findOne("{ws: #, id: 2}", reftypewsid).as(Map.class);
-		@SuppressWarnings("unchecked")
-		List<Integer> refcnts6 = (List<Integer>) reftypecheck2.get("refcnt");
-		assertThat("correct reference counting", refcnts6, is(Arrays.asList(8)));
-		
-		
 		//test the edge case where two keys in a hash resolve to the same reference
 		refdata.put("ref", "referencetypecheck/2/1");
 		Map<String, String> refmap = new HashMap<String, String>();
@@ -1241,80 +1183,6 @@ public class TestWorkspaces {
 					is(exception.getLocalizedMessage()));
 			assertThat("correct exception type", e, is(exception.getClass()));
 		}
-	}
-	
-	@Test
-	public void refCounting() throws Exception {
-		final String refcntspec =
-				"module RefCount {" +
-					"/* @id ws */" +
-					"typedef string reference;" +
-					"/* @optional ref */" + 
-					"typedef structure {" +
-						"reference ref;" +
-					"} RefType;" +
-				"};";
-		
-		String mod = "RefCount";
-		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, refcntspec, Arrays.asList("RefType"), null, null, false, null);
-		TypeDefId refcounttype = new TypeDefId(new TypeDefName(mod, "RefType"), 0, 1);
-		
-		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");
-		long wsid = ws.createWorkspace(userfoo, wspace.getName(), false, null).getId();
-		Provenance emptyprov = new Provenance(userfoo);
-		Map<String, Object> data1 = new HashMap<String, Object>();
-		data1.put("foo", 3);
-		
-		for (int i = 1; i < 5; i++) {
-			for (int j = 0; j < 4; j++) {
-				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj" + i),
-								data1, SAFE_TYPE, null, emptyprov, false)));
-			}
-		}
-		// now we've got a 4x4 set of objects
-		
-		int[][] expected = new int[5][5];
-		
-		for (int i = 0; i < 16; i++) {
-			int obj = (int) (Math.random() * 4.0) + 1;
-			int ver = (int) (Math.random() * 4.0) + 1;
-			expected[obj][ver]++;
-			if (i % 2 == 0) {
-				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(withRef(data1, wsid, "obj" + obj, ver),
-						refcounttype, null, emptyprov, false)));
-			} else {
-				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(withRef(data1, wsid, obj, ver),
-						refcounttype, null, emptyprov, false)));
-			}
-		}
-		
-		for (int i = 1; i < 5; i++) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> obj = jdb.getCollection("workspaceObjects")
-					.findOne("{ws: #, id: #}", wsid, i).as(Map.class);
-			@SuppressWarnings("unchecked")
-			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
-			for (int j = 0; j < 4; j++) {
-				assertThat("correct ref count", refcnts.get(j), is(expected[i][j + 1]));
-			}
-		}
-	}
-	
-	private Map<String, Object> withRef(Map<String, Object> map, long wsid,
-			int name, int ver) {
-		return withRef(map, wsid, "" + name, ver);
-	}
-	
-	private Map<String, Object> withRef(Map<String, Object> map, long wsid,
-			String name, int ver) {
-		map.put("ref", wsid + "/" + name + "/" + ver);
-		return map;
 	}
 	
 	@Test

@@ -213,6 +213,7 @@
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
+      <test name="us.kbase.workspace.test.database.mongo.TestMongoInternals"/>
       <test name="us.kbase.workspace.test.workspaces.TestWorkspaces"/>
       <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"/>
     </junit>

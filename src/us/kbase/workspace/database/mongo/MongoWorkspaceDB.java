@@ -1443,7 +1443,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<Reference> refs = new HashSet<Reference>();
 			refs.addAll(p.wo.getRefs());
 			refs.addAll(p.wo.getProvRefs());
-			countReferenceForObject(refcounts, refs);
+			countReferences(refcounts, refs);
 		}
 		return refcounts;
 	}
@@ -1463,12 +1463,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (final String s: objrefs) {
 				refs.add(new MongoReference(s));
 			}
-			countReferenceForObject(refcounts, refs);
+			countReferences(refcounts, refs);
 		}
 		return refcounts;
 	}
 
-	private void countReferenceForObject(
+	private void countReferences(
 			final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts,
 			final Set<Reference> refs) {
 		for (final Reference r: refs) {
