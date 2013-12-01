@@ -9,13 +9,22 @@ public class MongoReference implements Reference {
 	private final long objectID;
 	private final int version;
 
-	MongoReference(long workspaceID, long objectID, int version) {
+	MongoReference(final long workspaceID, final long objectID,
+			final int version) {
 		if (workspaceID < 1 || objectID < 1 || version < 1) {
 			throw new IllegalArgumentException("All arguments must be > 0");
 		}
 		this.workspaceID = workspaceID;
 		this.objectID = objectID;
 		this.version = version;
+	}
+	
+	MongoReference(final String ref) {
+		final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(ref);
+		//will throw an NPE if not a correct reference
+		workspaceID = oi.getWorkspaceIdentifier().getId();
+		objectID = oi.getId();
+		version = oi.getVersion();
 	}
 
 	@Override

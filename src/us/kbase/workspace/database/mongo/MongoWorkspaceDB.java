@@ -1370,6 +1370,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * probably minimize the number of updates by running one update
 		 * per version/count combination
 		 */
+		updateReferenceCounts(refcounts);
+	}
+	
+	private void updateReferenceCountsForVersions(
+			final List<Map<String, Object>> versions)
+			throws WorkspaceCommunicationException {
+		//TODO when garbage collection working much more testing of these methods
+		final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts = 
+				countReferencesForVersions(versions);
+		/* since the version numbers are probably highly skewed towards 1 and
+		 * the reference counts are also highly skewed towards 1 we can 
+		 * probably minimize the number of updates by running one update
+		 * per version/count combination
+		 */
+		updateReferenceCounts(refcounts);
+	}
+
+	private void updateReferenceCounts(
+			final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts)
+			throws WorkspaceCommunicationException {
 		final Map<VerCount, Map<Long, List<Long>>> queries = 
 				new HashMap<VerCount, Map<Long,List<Long>>>();
 		for (final Long ws: refcounts.keySet()) {
@@ -1423,26 +1443,52 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<Reference> refs = new HashSet<Reference>();
 			refs.addAll(p.wo.getRefs());
 			refs.addAll(p.wo.getProvRefs());
-			for (final Reference r: refs) {
-				if (!refcounts.containsKey(r.getWorkspaceID())) {
-					refcounts.put(r.getWorkspaceID(),
-							new HashMap<Long, Map<Integer, Counter>>());
-				}
-				if (!refcounts.get(r.getWorkspaceID())
-						.containsKey(r.getObjectID())) {
-					refcounts.get(r.getWorkspaceID()).put(r.getObjectID(),
-							new HashMap<Integer, Counter>());
-				}
-				if (!refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
-						.containsKey(r.getVersion())) {
-					refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
-						.put(r.getVersion(), new Counter());
-				}
-				refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
-					.get(r.getVersion()).increment();
-			}
+			countReferenceForObject(refcounts, refs);
 		}
 		return refcounts;
+	}
+	
+	private Map<Long, Map<Long, Map<Integer, Counter>>> countReferencesForVersions(
+			final List<Map<String, Object>> versions) {
+		final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts =
+				new HashMap<Long, Map<Long,Map<Integer,Counter>>>();
+		for (final Map<String, Object> p: versions) {
+			//these were checked to be MongoReferences in saveObjectBuildPackages
+			final Set<Reference> refs = new HashSet<Reference>();
+			@SuppressWarnings("unchecked")
+			final List<String> objrefs = (List<String>) p.get(Fields.VER_REF);
+			@SuppressWarnings("unchecked")
+			final List<String> provrefs = (List<String>) p.get(Fields.VER_PROVREF);
+			objrefs.addAll(provrefs);
+			for (final String s: objrefs) {
+				refs.add(new MongoReference(s));
+			}
+			countReferenceForObject(refcounts, refs);
+		}
+		return refcounts;
+	}
+
+	private void countReferenceForObject(
+			final Map<Long, Map<Long, Map<Integer, Counter>>> refcounts,
+			final Set<Reference> refs) {
+		for (final Reference r: refs) {
+			if (!refcounts.containsKey(r.getWorkspaceID())) {
+				refcounts.put(r.getWorkspaceID(),
+						new HashMap<Long, Map<Integer, Counter>>());
+			}
+			if (!refcounts.get(r.getWorkspaceID())
+					.containsKey(r.getObjectID())) {
+				refcounts.get(r.getWorkspaceID()).put(r.getObjectID(),
+						new HashMap<Integer, Counter>());
+			}
+			if (!refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+					.containsKey(r.getVersion())) {
+				refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+					.put(r.getVersion(), new Counter());
+			}
+			refcounts.get(r.getWorkspaceID()).get(r.getObjectID())
+				.get(r.getVersion()).increment();
+		}
 	}
 
 	private void saveData(final ResolvedMongoWSID workspaceid,
