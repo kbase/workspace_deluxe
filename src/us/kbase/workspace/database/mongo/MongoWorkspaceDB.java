@@ -818,7 +818,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.OBJ_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: 1}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
 	
@@ -839,15 +839,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * None of the above addresses the objedt w/ 0 versions failure. Not sure what to do about that.
 		 * 
 		*/
-		final int ver;
+		int ver;
 		final Date saved = new Date();
 		try {
 			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew()
-					.with(M_SAVEINS_WTH, saved, hidden)
+					.with(M_SAVEINS_WTH, versions.size(), saved, hidden)
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
-					.get(Fields.OBJ_VCNT);
+					.get(Fields.OBJ_VCNT)
+					- versions.size() + 1;
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -856,11 +857,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			v.put(Fields.VER_SAVEDATE, saved);
 			v.put(Fields.VER_WS_ID, wsid.getID());
 			v.put(Fields.VER_ID, objectid);
-			v.put(Fields.VER_VER, ver);
+			v.put(Fields.VER_VER, ver++);
 		}
 
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(versions);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(
+					versions);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
