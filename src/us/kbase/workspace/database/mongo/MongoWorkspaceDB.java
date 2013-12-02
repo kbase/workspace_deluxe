@@ -487,7 +487,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, toWS, objid, versions,
 				false);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
-		info.remove(Fields.VER_META);
 		return generateUserMetaInfo(toWS, objid, rto == null ? to.getName() :
 				rto.getName(), info);
 	}

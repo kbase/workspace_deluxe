@@ -818,8 +818,7 @@ module Workspace {
 	} CopyObjectParams;
 	
 	/* 
-		Copy an object. Returns the object_info for the newest version. User
-		meta data is always returned as null.
+		Copy an object. Returns the object_info for the newest version.
 	*/
 	funcdef copy_object(CopyObjectParams params)
 		returns(object_info copied);

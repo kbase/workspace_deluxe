@@ -44,6 +44,7 @@ public class ShockBackend implements BlobStore {
 	
 	private static final String IDX_UNIQ = "unique";
 	
+	//TODO readonly mode & user
 	public ShockBackend(final DB mongoDB, final String collectionPrefix,
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
