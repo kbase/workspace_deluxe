@@ -626,6 +626,15 @@ public class Workspaces {
 		return ret;
 	}
 	
+	//TODO test
+	public List<ObjectInformation> getObjectHistory(WorkspaceUser user,
+			ObjectIdentifier oi) throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, Arrays.asList(oi), Permission.READ, "read");
+		return db.getObjectHistory(ws.get(oi));
+	}
+	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final boolean includeMetadata)

@@ -1918,6 +1918,30 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private static final Set<String> FLDS_VER_OBJ_HIST = newHashSet(
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
+			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY);
+	
+	@Override
+	public List<ObjectInformation> getObjectHistory(
+			final ObjectIDResolvedWS oi)
+		throws NoSuchObjectException, WorkspaceCommunicationException {
+		final ResolvedMongoObjectID roi = resolveObjectIDs(
+				new HashSet<ObjectIDResolvedWS>(Arrays.asList(oi))).get(oi);
+		final ResolvedMongoObjectIDNoVer o =
+				new ResolvedMongoObjectIDNoVer(roi);
+		final List<Map<String, Object>> versions = query.queryAllVersions(
+				new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
+				FLDS_VER_OBJ_HIST).get(o);
+		final LinkedList<ObjectInformation> ret =
+				new LinkedList<ObjectInformation>();
+		for (final Map<String, Object> v: versions) {
+			ret.add(generateUserMetaInfo(roi, v));
+		}
+		return ret;
+	}
+	
 	private Map<Long, Map<Long, Map<String, Object>>> organizeObjData(
 			final List<Map<String, Object>> objs) {
 		final Map<Long, Map<Long, Map<String, Object>>> ret =

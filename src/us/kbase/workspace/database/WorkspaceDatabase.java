@@ -124,4 +124,8 @@ public interface WorkspaceDatabase {
 			PermissionSet pset, TypeDefId type, boolean showHidden,
 			boolean showDeleted, boolean showAllVers, boolean includeMetaData)
 			throws WorkspaceCommunicationException;
+
+	public List<ObjectInformation> getObjectHistory(
+			ObjectIDResolvedWS objectIDResolvedWS)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 }

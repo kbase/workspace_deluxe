@@ -615,6 +615,13 @@ module Workspace {
 		returns (list<ObjectData> data);
 		
 	/* 
+		Get an object's history. The version argument of the ObjectIdentity is
+		ignored.
+	*/
+	funcdef get_object_history(ObjectIdentity object)
+		 returns (list<object_info> history);
+		
+	/* 
 		Input parameters for the "list_workspaces" function. Provided for
 		backwards compatibility.
 		
