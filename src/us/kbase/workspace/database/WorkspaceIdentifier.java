@@ -18,13 +18,13 @@ public class WorkspaceIdentifier {
 	private final Long id;
 	private final String wsname;
 	
-	public WorkspaceIdentifier(String wsname) {
+	public WorkspaceIdentifier(final String wsname) {
 		checkWorkspaceName(wsname, null);
 		this.id = null;
 		this.wsname = wsname;
 	}
 	
-	public WorkspaceIdentifier(String wsname, WorkspaceUser user) {
+	public WorkspaceIdentifier(final String wsname, final WorkspaceUser user) {
 		if (user == null) {
 			throw new IllegalArgumentException("user cannot be null");
 		}
@@ -33,7 +33,7 @@ public class WorkspaceIdentifier {
 		this.wsname = wsname;
 	}
 	
-	public WorkspaceIdentifier(long id) {
+	public WorkspaceIdentifier(final long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("Workspace id must be > 0");
 		}
@@ -41,11 +41,12 @@ public class WorkspaceIdentifier {
 		this.wsname = null;
 	}
 	
-	public static void checkWorkspaceName(String name) {
+	public static void checkWorkspaceName(final String name) {
 		checkWorkspaceName(name, null);
 	}
 
-	public static void checkWorkspaceName(String name, WorkspaceUser user) {
+	public static void checkWorkspaceName(final String name,
+			final WorkspaceUser user) {
 		checkString(name, "Workspace name", MAX_NAME_LENGTH);
 		int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
@@ -65,7 +66,7 @@ public class WorkspaceIdentifier {
 			if (user != null && !user_ws[0].equals(user.getUser())){
 				throw new IllegalArgumentException(String.format(
 						"Workspace name %s must only contain the user name %s prior to the %s delimiter",
-						name, user, WS_NAME_DELIMITER));
+						name, user.getUser(), WS_NAME_DELIMITER));
 			}
 		}
 		final Matcher m = INVALID_WS_NAMES.matcher(name);

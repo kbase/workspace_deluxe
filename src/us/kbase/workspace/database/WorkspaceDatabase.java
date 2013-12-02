@@ -97,8 +97,12 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS target)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
+			ResolvedWorkspaceID wsid, String newname)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public ObjectInformation renameObject(
-			ObjectIDResolvedWS objectIDResolvedWS, String newname)
+			ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,

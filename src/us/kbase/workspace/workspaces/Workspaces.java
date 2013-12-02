@@ -62,11 +62,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
-	//TODO rename workspace
 	//TODO clone workspace
-	//TODO get history of object
-	//TODO copy object(s)
-	//TODO revert object
 	//TODO lock workspace, publish workspace
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
@@ -653,6 +649,17 @@ public class Workspaces {
 			ret.add(meta.get(ws.get(o)));
 		}
 		return ret;
+	}
+	
+	//TODO test
+	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final String newname)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
+				"rename");
+		new WorkspaceIdentifier(newname, user); //check for errors
+		return db.renameWorkspace(user, wsid, newname);
 	}
 	
 	//TODO test

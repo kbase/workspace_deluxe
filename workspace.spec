@@ -28,7 +28,8 @@ module Workspace {
 	
 	/* A string used as a name for a workspace.
 		Any string consisting of alphanumeric characters and "_" that is not an
-		integer is acceptable.
+		integer is acceptable. The name may optionally be prefixed with the
+		workspace owner's user name and a colon, e.g. kbasetest:my_workspace.
 	*/
 	typedef string ws_name;
 	
@@ -788,6 +789,23 @@ module Workspace {
 		boolean includeMetadata) returns (list<object_info> info);
 	
 	authentication required;
+	
+	/* Input parameters for the 'rename_workspace' function.
+		
+		Required arguments:
+		WorkspaceIdentity ws - the workspace to rename.
+		ws_name new_name - the new name for the workspace.
+	*/
+	typedef structure {
+		WorkspaceIdentity ws;
+		ws_name new_name;
+	} RenameWorkspaceParams;
+	
+	/* 
+		Rename a workspace.
+	*/
+	funcdef rename_workspace(RenameWorkspaceParams params)
+		returns(workspace_info renamed);
 	
 	/* Input parameters for the 'rename_object' function.
 		

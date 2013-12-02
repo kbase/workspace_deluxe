@@ -487,13 +487,42 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, toWS, objid, versions,
 				false);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
-		return generateUserMetaInfo(toWS, objid, rto == null ? to.getName() :
+		return generateObjectInfo(toWS, objid, rto == null ? to.getName() :
 				rto.getName(), info);
 	}
 	
-	final private static String M_RENAME_QRY = String.format(
+	final private static String M_RENAME_WS_QRY = String.format(
+			"{%s: #}", Fields.WS_ID);
+	final private static String M_RENAME_WS_WTH = String.format(
+			"{$set: {%s: #}}", Fields.WS_NAME);
+	
+	@Override
+	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
+			final ResolvedWorkspaceID rwsi, final String newname)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		//TODO update ws mod date?
+		if (newname.equals(rwsi.getName())) {
+			throw new IllegalArgumentException("Workspace is already named " +
+					newname);
+		}
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+					.update(M_RENAME_WS_QRY, rwsi.getID())
+					.with(M_RENAME_WS_WTH, newname);
+		} catch (MongoException.DuplicateKey medk) {
+			throw new IllegalArgumentException(
+					"There is already a workspace named " + newname);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		return getWorkspaceInformation(user, rwsi);
+	}
+	
+	final private static String M_RENAME_OBJ_QRY = String.format(
 			"{%s: #, %s: #}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
-	final private static String M_RENAME_WTH = String.format(
+	final private static String M_RENAME_OBJ_WTH = String.format(
 			"{$set: {%s: #}}", Fields.OBJ_NAME);
 	
 	@Override
@@ -509,9 +538,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		try {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.update(M_RENAME_QRY, roi.getWorkspaceIdentifier().getID(),
+					.update(M_RENAME_OBJ_QRY, roi.getWorkspaceIdentifier().getID(),
 							roi.getId())
-					.with(M_RENAME_WTH, newname);
+					.with(M_RENAME_OBJ_WTH, newname);
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -804,8 +833,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (!(Boolean) ws.get(rwsi).get(Fields.WS_DEL) ||
 					(showDeleted &&
 					pset.hasUserPermission(rwsi, Permission.OWNER))) {
-				ret.add(generateWSInfo(pset.getUser(), rwsi, pset,
-						ws.get(rwsi)));
+				ret.add(generateWSInfo(rwsi, pset, ws.get(rwsi)));
 			}
 		}
 		return ret;
@@ -820,12 +848,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Object> ws = query.queryWorkspace(m,
 				FLDS_WS_NO_DESC);
 		final PermissionSet perms = getPermissions(user, m);
-		return generateWSInfo(user, rwsi, perms, ws);
+		return generateWSInfo(rwsi, perms, ws);
 	}
 
-	private WorkspaceInformation generateWSInfo(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi, final PermissionSet perms,
-			final Map<String, Object> wsdata) {
+	private WorkspaceInformation generateWSInfo(final ResolvedWorkspaceID rwsi,
+			final PermissionSet perms, final Map<String, Object> wsdata) {
 		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
@@ -943,7 +970,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		//TODO look into why saving array of maps via List.ToArray() /w Jongo makes Lazy*Objects return, which screw up everything
+		//TODO look into why saving array of maps via List.ToArray() /w Jongo makes Lazy?Objects return, which screw up everything
 		final List<DBObject> dbo = new LinkedList<DBObject>();
 		for (final Map<String, Object> v: versions) {
 			v.put(Fields.VER_SAVEDATE, saved);
@@ -1691,7 +1718,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final MongoObjectInfo meta = generateUserMetaInfo(
+			final MongoObjectInfo meta = generateObjectInfo(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
@@ -1750,13 +1777,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private MongoObjectInfo generateUserMetaInfo(
+	private MongoObjectInfo generateObjectInfo(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
-		return generateUserMetaInfo(roi.getWorkspaceIdentifier(), roi.getId(),
+		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 
-	private MongoObjectInfo generateUserMetaInfo(
+	private MongoObjectInfo generateObjectInfo(
 			final ResolvedMongoWSID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
@@ -1912,7 +1939,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					!pset.hasPermission(rwsi, Permission.WRITE))) {
 				continue;
 			}
-			ret.add(generateUserMetaInfo(rwsi, id,
+			ret.add(generateObjectInfo(rwsi, id,
 					(String) obj.get(Fields.OBJ_NAME), vo));
 		}
 		return ret;
@@ -1937,7 +1964,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final LinkedList<ObjectInformation> ret =
 				new LinkedList<ObjectInformation>();
 		for (final Map<String, Object> v: versions) {
-			ret.add(generateUserMetaInfo(roi, v));
+			ret.add(generateObjectInfo(roi, v));
 		}
 		return ret;
 	}
@@ -2013,7 +2040,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						roi.getVersion(), 
 						roi.getWorkspaceIdentifier().getID()), o);
 			}
-			ret.put(o, generateUserMetaInfo(roi, vers.get(roi)));
+			ret.put(o, generateObjectInfo(roi, vers.get(roi)));
 		}
 		return ret;
 	}

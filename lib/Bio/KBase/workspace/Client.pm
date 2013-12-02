@@ -2442,6 +2442,124 @@ sub get_object_info
 
 
 
+=head2 rename_workspace
+
+  $renamed = $obj->rename_workspace($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.RenameWorkspaceParams
+$renamed is a Workspace.workspace_info
+RenameWorkspaceParams is a reference to a hash where the following keys are defined:
+	ws has a value which is a Workspace.WorkspaceIdentity
+	new_name has a value which is a Workspace.ws_name
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+workspace_info is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+username is a string
+timestamp is a string
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.RenameWorkspaceParams
+$renamed is a Workspace.workspace_info
+RenameWorkspaceParams is a reference to a hash where the following keys are defined:
+	ws has a value which is a Workspace.WorkspaceIdentity
+	new_name has a value which is a Workspace.ws_name
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+workspace_info is a reference to a list containing 7 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+username is a string
+timestamp is a string
+permission is a string
+
+
+=end text
+
+=item Description
+
+Rename a workspace.
+
+=back
+
+=cut
+
+sub rename_workspace
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function rename_workspace (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to rename_workspace:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'rename_workspace');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.rename_workspace",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'rename_workspace',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method rename_workspace",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'rename_workspace',
+				       );
+    }
+}
+
+
+
 =head2 rename_object
 
   $renamed = $obj->rename_object($params)
@@ -4815,7 +4933,8 @@ an int
 
 A string used as a name for a workspace.
 Any string consisting of alphanumeric characters and "_" that is not an
-integer is acceptable.
+integer is acceptable. The name may optionally be prefixed with the
+workspace owner's user name and a colon, e.g. kbasetest:my_workspace.
 
 
 =item Definition
@@ -6470,6 +6589,47 @@ id has a value which is a Workspace.obj_name
 workspace has a value which is a Workspace.ws_name
 instance has a value which is an int
 auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 RenameWorkspaceParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the 'rename_workspace' function.
+
+Required arguments:
+WorkspaceIdentity ws - the workspace to rename.
+ws_name new_name - the new name for the workspace.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+ws has a value which is a Workspace.WorkspaceIdentity
+new_name has a value which is a Workspace.ws_name
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+ws has a value which is a Workspace.WorkspaceIdentity
+new_name has a value which is a Workspace.ws_name
 
 
 =end text
