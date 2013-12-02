@@ -1370,6 +1370,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1428,6 +1429,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -6030,6 +6032,7 @@ The data and supplemental info for an object.
                 workspace.
         timestamp created - the date the object was first saved to the
                 workspace.
+        list<obj_ref> - the references contained within the object.
 
 
 =item Definition
@@ -6043,6 +6046,7 @@ info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
+refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 </pre>
 
@@ -6056,6 +6060,7 @@ info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
+refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text

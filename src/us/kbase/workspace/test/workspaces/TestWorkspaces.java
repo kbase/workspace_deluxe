@@ -1153,6 +1153,8 @@ public class TestWorkspaces {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> obj = (Map<String, Object>) wod.getData();
 			assertThat("reference rewritten correctly", (String) obj.get("ref"), is(reftypewsid + "/2/1"));
+			assertThat("reference included correctly", wod.getReferences(),
+					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
 		
 		//test the edge case where two keys in a hash resolve to the same reference
@@ -1506,18 +1508,22 @@ public class TestWorkspaces {
 		Map<String, String> refs = new HashMap<String, String>();
 		refdata.put("map", refs);
 		
+		Set<String> expectedRefs = new HashSet<String>();
 		for (int i = 1; i < 10001; i++) {
 			wsos.add(new WorkspaceSaveObject(torefdata, toRef, null, emptyprov, false));
 			refs.put("tenKrefs/auto" + i, "expected " + i);
+			expectedRefs.add(wsid + "/" + i + "/" + 1);
 		}
 		ws.saveObjects(userfoo, wspace, wsos);
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)));
 		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> ret = (Map<String, Object>) ws.getObjects(userfoo,
+		WorkspaceObjectData wod = ws.getObjects(userfoo,
 				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
-				.get(0).getData();
+				.get(0);
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> ret = (Map<String, Object>) wod.getData();
 		@SuppressWarnings("unchecked")
 		Map<String, String> retrefs = (Map<String, String>) ret.get("map");
 		for (Entry<String, String> es: retrefs.entrySet()) {
@@ -1527,6 +1533,8 @@ public class TestWorkspaces {
 			assertThat("reference id is correct", oi.getId(), is(expected));
 			assertThat("reference ver is correct", oi.getVersion(), is(1));
 		}
+		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
+				is(expectedRefs));
 		//TODO put this test in the JSONRPCLayer tests
 	}
 	

@@ -259,7 +259,8 @@ public class ArgUtils {
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withCreated(dateFormat.formatDate(
-							o.getProvenance().getDate())));
+							o.getProvenance().getDate()))
+					.withRefs(o.getReferences()));
 		}
 		return ret;
 	}

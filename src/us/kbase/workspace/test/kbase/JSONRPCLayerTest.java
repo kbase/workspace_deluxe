@@ -1230,21 +1230,29 @@ public class JSONRPCLayerTest {
 				.withType(SAFE_TYPE));
 		CLIENT1.saveObjects(soc);
 		data.clear();
+		Set<String> expectedRefs = new HashSet<String>();
 		data.put("ref1", "kb|ws." + wsid + ".obj.1");
+		expectedRefs.add(wsid + "/1/3");
 		data.put("ref2", "kb|ws." + wsid + ".obj.1.ver.2");
+		expectedRefs.add(wsid + "/1/2");
 		data.put("ref3", "kb|ws." + wsid + ".obj.2");
+		expectedRefs.add(wsid + "/2/1");
 		data.put("ref4", "kb|ws." + wsid + ".obj.2.ver.1");
+		expectedRefs.add(wsid + "/2/1");
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(type));
 		CLIENT1.saveObjects(soc);
-		Map<String, String> refs = CLIENT1.getObjects(Arrays.asList(
+		ObjectData od = CLIENT1.getObjects(Arrays.asList(
 				new ObjectIdentity().withWsid(wsid).withName("auto3")))
-				.get(0).getData().asInstance();
+				.get(0);
+		Map<String, String> refs = od.getData().asInstance();
 		assertThat("correct ref parse/rewrite", refs.get("ref1"), is(wsid + "/1/3"));
 		assertThat("correct ref parse/rewrite", refs.get("ref2"), is(wsid + "/1/2"));
 		assertThat("correct ref parse/rewrite", refs.get("ref3"), is(wsid + "/2/1"));
 		assertThat("correct ref parse/rewrite", refs.get("ref4"), is(wsid + "/2/1"));
+		assertThat("correct refs returned", new HashSet<String>(od.getRefs()),
+				is(expectedRefs));
 	}
 	
 	@Test

@@ -25,6 +25,7 @@ import us.kbase.common.service.UObject;
  *                 workspace.
  *         timestamp created - the date the object was first saved to the
  *                 workspace.
+ *         list<obj_ref> - the references contained within the object.
  * </pre>
  * 
  */
@@ -35,7 +36,8 @@ import us.kbase.common.service.UObject;
     "info",
     "provenance",
     "creator",
-    "created"
+    "created",
+    "refs"
 })
 public class ObjectData {
 
@@ -49,6 +51,8 @@ public class ObjectData {
     private java.lang.String creator;
     @JsonProperty("created")
     private java.lang.String created;
+    @JsonProperty("refs")
+    private List<String> refs;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -126,6 +130,21 @@ public class ObjectData {
         return this;
     }
 
+    @JsonProperty("refs")
+    public List<String> getRefs() {
+        return refs;
+    }
+
+    @JsonProperty("refs")
+    public void setRefs(List<String> refs) {
+        this.refs = refs;
+    }
+
+    public ObjectData withRefs(List<String> refs) {
+        this.refs = refs;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -138,7 +157,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

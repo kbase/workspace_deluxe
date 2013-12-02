@@ -1662,7 +1662,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
-			Fields.VER_PROVREF);
+			Fields.VER_PROVREF, Fields.VER_REF);
 	
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
@@ -1689,11 +1689,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
+			@SuppressWarnings("unchecked")
+			final List<String> refs =
+					(List<String>) vers.get(roi).get(Fields.VER_REF);
 			final MongoObjectInfo meta = generateUserMetaInfo(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
 				ret.put(o, new WorkspaceObjectData(
-						chksumToData.get(meta.getCheckSum()), meta, prov));
+						chksumToData.get(meta.getCheckSum()), meta, prov, refs));
 			} else {
 				final JsonNode data;
 				try {
@@ -1712,7 +1715,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							meta.getVersion()), e);
 				}
 				chksumToData.put(meta.getCheckSum(), data);
-				ret.put(o, new WorkspaceObjectData(data, meta, prov));
+				ret.put(o, new WorkspaceObjectData(data, meta, prov, refs));
 			}
 		}
 		return ret;

@@ -596,6 +596,7 @@ module Workspace {
 			workspace.
 		timestamp created - the date the object was first saved to the
 			workspace.
+		list<obj_ref> - the references contained within the object.
 		
 	*/
 	typedef structure {
@@ -604,6 +605,7 @@ module Workspace {
 		list<ProvenanceAction> provenance;
 		username creator;
 		timestamp created;
+		list<obj_ref> refs;
 	} ObjectData;
 	
 	/* 
