@@ -670,6 +670,16 @@ public class Workspaces {
 	}
 	
 	//TODO test
+	public ObjectInformation revertObject(WorkspaceUser user,
+			ObjectIdentifier oi)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		final ObjectIDResolvedWS target = checkPerms(user,
+				Arrays.asList(oi), Permission.WRITE, "write to").get(oi);
+		return db.revertObject(user, target);
+	}
+	
+	//TODO test
 	public void setObjectsHidden(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean hide)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,

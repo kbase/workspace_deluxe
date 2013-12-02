@@ -822,6 +822,14 @@ module Workspace {
 	funcdef copy_object(CopyObjectParams params)
 		returns(object_info copied);
 	
+	/* Revert an object.
+	
+		The object specified in the ObjectIdentity is reverted to the version
+		specified in the ObjectIdentity. 
+	*/
+	funcdef revert_object(ObjectIdentity object)
+		returns(object_info reverted);
+	
 	/* 
 		Hide objects. All versions of an object are hidden, regardless of
 		the version specified in the ObjectIdentity. Hidden objects do not

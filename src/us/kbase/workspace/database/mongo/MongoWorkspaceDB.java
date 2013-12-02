@@ -409,18 +409,38 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
-			Fields.VER_UUID, Fields.VER_META); //TODO remove UUID?
+			Fields.VER_COPIED, Fields.VER_UUID, Fields.VER_META); //TODO remove UUID?
 	
 	@Override
 	public ObjectInformation copyObject(final WorkspaceUser user,
 			final ObjectIDResolvedWS from, final ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
+		return copyOrRevert(user, from, to, false);
+	}
+	
+	@Override
+	public ObjectInformation revertObject(final WorkspaceUser user,
+			final ObjectIDResolvedWS oi)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		return copyOrRevert(user, oi, null, true);
+	}
+		
+	private ObjectInformation copyOrRevert(final WorkspaceUser user,
+			final ObjectIDResolvedWS from, ObjectIDResolvedWS to,
+			final boolean revert)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
 		//TODO update WS moddate?
 		final ResolvedMongoObjectID rfrom = resolveObjectIDs(
 				new HashSet<ObjectIDResolvedWS>(Arrays.asList(from))).get(from);
-		final ResolvedMongoObjectID rto = resolveObjectIDs(
-				new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
-				true, false).get(to); //don't except if there's no object
+		final ResolvedMongoObjectID rto;
+		if (revert) {
+			to = from;
+			rto = rfrom;
+		} else {
+			rto = resolveObjectIDs(
+					new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
+					true, false).get(to); //don't except if there's no object
+		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
 					"Copy destination is specified as object id %s in workspace %s which does not exist.",
@@ -439,15 +459,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					FLDS_VER_COPYOBJ).get(rfrom));
 		}
 		for (final Map<String, Object> v: versions) {
+			int ver = (Integer) v.get(Fields.VER_VER);
 			v.remove(Fields.MONGO_ID);
-			v.put(Fields.VER_RVRT, null);
 			v.put(Fields.VER_SAVEDBY, user.getUser());
-			//TODO test copy saved
-			v.put(Fields.VER_COPIED, new MongoReference(
-					rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
-					(Integer) v.get(Fields.VER_VER)).toString());
+			if (revert) {
+				v.put(Fields.VER_RVRT, ver);
+				v.put(Fields.VER_COPIED, null);
+			} else {
+				v.put(Fields.VER_RVRT, null);
+				//TODO test copy saved in internals
+				v.put(Fields.VER_COPIED, new MongoReference(
+						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
+						ver).toString());
+			}
 		}
-		//TODO test copy ref counts works
+		//TODO test copy ref counts works in internals
 		updateReferenceCountsForVersions(versions);
 		final ResolvedMongoWSID toWS = query.convertResolvedWSID(
 				to.getWorkspaceIdentifier());
@@ -1530,8 +1556,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> objrefs = (List<String>) p.get(Fields.VER_REF);
 			@SuppressWarnings("unchecked")
 			final List<String> provrefs = (List<String>) p.get(Fields.VER_PROVREF);
-			objrefs.addAll(provrefs);
+//			objrefs.addAll(provrefs); //DON'T DO THIS YOU MORON
 			for (final String s: objrefs) {
+				refs.add(new MongoReference(s));
+			}
+			for (final String s: provrefs) {
 				refs.add(new MongoReference(s));
 			}
 			countReferences(refcounts, refs);

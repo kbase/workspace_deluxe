@@ -93,6 +93,10 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS from, ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	public ObjectInformation revertObject(WorkspaceUser user,
+			ObjectIDResolvedWS target)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
 	public ObjectInformation renameObject(
 			ObjectIDResolvedWS objectIDResolvedWS, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
