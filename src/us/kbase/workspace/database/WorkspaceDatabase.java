@@ -89,6 +89,10 @@ public interface WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
+	public ObjectInformation copyObject(WorkspaceUser user, 
+			ObjectIDResolvedWS from, ObjectIDResolvedWS to)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
 	public ObjectInformation renameObject(
 			ObjectIDResolvedWS objectIDResolvedWS, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;

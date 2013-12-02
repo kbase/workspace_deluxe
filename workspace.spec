@@ -796,6 +796,31 @@ module Workspace {
 	*/
 	funcdef rename_object(RenameObjectParams params)
 		returns(object_info renamed);
+		
+	/* Input parameters for the 'copy_object' function. 
+	
+		If the 'from' ObjectIdentity includes no version and the object is
+		copied to a new name, the entire version history of the object is
+		copied. In all other cases only the version specified, or the latest
+		version if no version is specified, is copied.
+		
+		The version from the 'to' ObjectIdentity is always ignored.
+		
+		Required arguments:
+		ObjectIdentity from - the object to copy.
+		ObjectIdentity to - where to copy the object.
+	*/
+	typedef structure {
+		ObjectIdentity from;
+		ObjectIdentity to;
+	} CopyObjectParams;
+	
+	/* 
+		Copy an object. Returns the object_info for the newest version. User
+		meta data is always returned as null.
+	*/
+	funcdef copy_object(CopyObjectParams params)
+		returns(object_info copied);
 	
 	/* 
 		Hide objects. All versions of an object are hidden, regardless of

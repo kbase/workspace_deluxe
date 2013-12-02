@@ -2,6 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -274,6 +275,43 @@ public class QueryMethods {
 		return ret;
 	}
 	
+	Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
+			final HashSet<ResolvedMongoObjectIDNoVer> objIDs,
+			final Set<String> fields)
+			throws WorkspaceCommunicationException {
+		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids =
+				new HashMap<ResolvedMongoWSID, Map<Long,List<Integer>>>();
+		
+		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
+			final ResolvedMongoWSID rwsi =
+					convertResolvedWSID(roi.getWorkspaceIdentifier());
+			if (ids.get(rwsi) == null) {
+				ids.put(rwsi, new HashMap<Long, List<Integer>>());
+			}
+			ids.get(rwsi).put(roi.getId(), new LinkedList<Integer>());
+		}
+		// ws id, obj id, obj version, version data map
+		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
+				queryVersions(ids, fields);
+		
+		final Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> ret =
+				new HashMap<ResolvedMongoObjectIDNoVer, List<Map<String,Object>>>();
+		
+		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
+			final Map<Integer, Map<String, Object>> d = data.get(
+					roi.getWorkspaceIdentifier()).get(roi.getId());
+			final List<Integer> sorted = new ArrayList<Integer>(d.keySet());
+			Collections.sort(sorted);
+			final List<Map<String, Object>> r =
+					new LinkedList<Map<String,Object>>();
+			for (final Integer i: sorted) {
+				r.add(d.get(i));
+			}
+			ret.put(roi, r);
+		}
+		return ret;
+	}
+	
 	private Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
 			queryVersions(final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids,
 			final Set<String> fields) throws WorkspaceCommunicationException {
@@ -292,7 +330,9 @@ public class QueryMethods {
 				ret.get(rwsi).put(objectID,
 						new HashMap<Integer, Map<String, Object>>());
 				final DBObject q;
-				if (ids.get(rwsi).get(objectID).size() == 1) {
+				if (ids.get(rwsi).get(objectID).size() == 0) {
+					q = new BasicDBObject();
+				} else if (ids.get(rwsi).get(objectID).size() == 1) {
 					q = new BasicDBObject(Fields.VER_VER,
 							ids.get(rwsi).get(objectID).get(0));
 				} else {

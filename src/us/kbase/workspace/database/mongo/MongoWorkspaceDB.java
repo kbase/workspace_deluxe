@@ -405,6 +405,67 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				Permission.OWNER, globalRead);
 	}
 	
+	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
+			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
+			Fields.VER_UUID, Fields.VER_META); //TODO remove UUID?
+	
+	@Override
+	public ObjectInformation copyObject(final WorkspaceUser user,
+			final ObjectIDResolvedWS from, final ObjectIDResolvedWS to)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		//TODO update WS moddate?
+		final ResolvedMongoObjectID rfrom = resolveObjectIDs(
+				new HashSet<ObjectIDResolvedWS>(Arrays.asList(from))).get(from);
+		final ResolvedMongoObjectID rto = resolveObjectIDs(
+				new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
+				true, false).get(to); //don't except if there's no object
+		if (rto == null && to.getId() != null) {
+			throw new NoSuchObjectException(String.format(
+					"Copy destination is specified as object id %s in workspace %s which does not exist.",
+					to.getId(), to.getWorkspaceIdentifier().getID()));
+		}
+		final List<Map<String, Object>> versions;
+		if (rto == null && from.getVersion() == null) {
+			final ResolvedMongoObjectIDNoVer o =
+					new ResolvedMongoObjectIDNoVer(rfrom);
+			versions = query.queryAllVersions(
+					new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
+					FLDS_VER_COPYOBJ).get(o);
+		} else {
+			versions = Arrays.asList(query.queryVersions(
+					new HashSet<ResolvedMongoObjectID>(Arrays.asList(rfrom)),
+					FLDS_VER_COPYOBJ).get(rfrom));
+		}
+		for (final Map<String, Object> v: versions) {
+			v.remove(Fields.MONGO_ID);
+			v.put(Fields.VER_RVRT, null);
+			v.put(Fields.VER_SAVEDBY, user.getUser());
+			//TODO test copy saved
+			v.put(Fields.VER_COPIED, new MongoReference(
+					rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
+					(Integer) v.get(Fields.VER_VER)).toString());
+		}
+		//TODO test copy ref counts works
+		updateReferenceCountsForVersions(versions);
+		final ResolvedMongoWSID toWS = query.convertResolvedWSID(
+				to.getWorkspaceIdentifier());
+		final long objid;
+		if (rto == null) { //need to make a new object
+			final long id = incrementWorkspaceCounter(toWS, 1);
+			objid = saveWorkspaceObject(toWS, id, to.getName()).id;
+		} else {
+			objid = rto.getId();
+		}
+		saveObjectVersions(user, toWS, objid, versions,
+				false);
+		final Map<String, Object> info = versions.get(versions.size() - 1);
+		info.remove(Fields.VER_META);
+		return generateUserMetaInfo(toWS, objid, rto == null ? to.getName() :
+				rto.getName(), info);
+	}
+	
 	final private static String M_RENAME_QRY = String.format(
 			"{%s: #, %s: #}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	final private static String M_RENAME_WTH = String.format(
@@ -467,6 +528,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
 		//TODO generalized method for setting fields?
+		//TODO set workspace change date
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
@@ -577,6 +639,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
+		//TODO should update workspace change date?
 		setPermissions(query.convertResolvedWSID(rwsi),
 				Arrays.asList(allUsers), perm, false);
 	}
@@ -802,6 +865,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				.getTypeString());
 		version.put(Fields.VER_SIZE, pkg.td.getSize());
 		version.put(Fields.VER_RVRT, null);
+		version.put(Fields.VER_COPIED, null);
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
@@ -1234,17 +1298,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveData(wsidmongo, packages);
 		saveProvenance(packages);
 		updateReferenceCounts(packages);
-		final long lastid;
-		try {
-			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
-					.findAndModify(M_SAVE_QRY, wsidmongo.getID())
-					.returnNew().with(M_SAVE_WTH, (long) newobjects)
-					.projection(M_SAVE_PROJ)
-					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
+		long newid = incrementWorkspaceCounter(wsidmongo, newobjects);
 		/*  alternate impl: 1) make all save objects 2) increment all version
 		 *  counters 3) batch save versions
 		 *  This probably won't help much. Firstly, saving the same object
@@ -1261,7 +1315,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 *  Summary: probably not worth the trouble and increase in code
 		 *  complexity.
 		 */
-		long newid = lastid - newobjects + 1;
 		final List<ObjectInformation> ret = new ArrayList<ObjectInformation>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
@@ -1287,6 +1340,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		return ret;
+	}
+
+	//returns starting object number
+	private long incrementWorkspaceCounter(final ResolvedMongoWSID wsidmongo,
+			final int newobjects) throws WorkspaceCommunicationException {
+		final long lastid;
+		try {
+			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
+					.findAndModify(M_SAVE_QRY, wsidmongo.getID())
+					.returnNew().with(M_SAVE_WTH, (long) newobjects)
+					.projection(M_SAVE_PROJ)
+					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		long newid = lastid - newobjects + 1;
+		return newid;
 	}
 	
 	private void saveProvenance(final List<ObjectSavePackage> packages)
@@ -2027,6 +2098,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
+		//TODO should set workspace change date?
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedMongoWSID, List<Long>> toModify =

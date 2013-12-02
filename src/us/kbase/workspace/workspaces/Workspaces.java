@@ -647,7 +647,7 @@ public class Workspaces {
 	}
 	
 	//TODO test
-	public ObjectInformation renameObjects(final WorkspaceUser user,
+	public ObjectInformation renameObject(final WorkspaceUser user,
 			final ObjectIdentifier oi, final String newname)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
@@ -655,6 +655,18 @@ public class Workspaces {
 				Arrays.asList(oi), Permission.WRITE, "rename objects in");
 		ObjectIDNoWSNoVer.checkObjectName(newname);
 		return db.renameObject(ws.get(oi), newname);
+	}
+	
+	//TODO test
+	public ObjectInformation copyObject(final WorkspaceUser user,
+			final ObjectIdentifier from, final ObjectIdentifier to)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		final ObjectIDResolvedWS f = checkPerms(user,
+				Arrays.asList(from), Permission.READ, "read").get(from);
+		final ObjectIDResolvedWS t = checkPerms(user,
+				Arrays.asList(to), Permission.WRITE, "write to").get(to);
+		return db.copyObject(user, f, t);
 	}
 	
 	//TODO test

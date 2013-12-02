@@ -2445,6 +2445,150 @@ sub rename_object
 
 
 
+=head2 copy_object
+
+  $copied = $obj->copy_object($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.CopyObjectParams
+$copied is a Workspace.object_info
+CopyObjectParams is a reference to a hash where the following keys are defined:
+	from has a value which is a Workspace.ObjectIdentity
+	to has a value which is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.CopyObjectParams
+$copied is a Workspace.object_info
+CopyObjectParams is a reference to a hash where the following keys are defined:
+	from has a value which is a Workspace.ObjectIdentity
+	to has a value which is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Copy an object. User meta data is always returned as null.
+
+=back
+
+=cut
+
+sub copy_object
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function copy_object (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to copy_object:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'copy_object');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.copy_object",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'copy_object',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method copy_object",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'copy_object',
+				       );
+    }
+}
+
+
+
 =head2 hide_objects
 
   $obj->hide_objects($object_ids)
@@ -6082,6 +6226,54 @@ new_name has a value which is a Workspace.obj_name
 a reference to a hash where the following keys are defined:
 obj has a value which is a Workspace.ObjectIdentity
 new_name has a value which is a Workspace.obj_name
+
+
+=end text
+
+=back
+
+
+
+=head2 CopyObjectParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the 'copy_object' function. 
+
+        If the 'from' ObjectIdentity includes no version and the object is
+        copied to a new name, the entire version history of the object is
+        copied. In all other cases only the version specified, or the latest
+        version if no version is specified, is copied.
+        
+        The version from the 'to' ObjectIdentity is always ignored.
+        
+        Required arguments:
+        ObjectIdentity from - the object to copy.
+        ObjectIdentity to - where to copy the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+from has a value which is a Workspace.ObjectIdentity
+to has a value which is a Workspace.ObjectIdentity
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+from has a value which is a Workspace.ObjectIdentity
+to has a value which is a Workspace.ObjectIdentity
 
 
 =end text

@@ -57,6 +57,7 @@ public class Fields {
 	public static final String VER_RVRT = "revert";
 	public static final String VER_UUID = "legacyUUID";
 	public static final String VER_META = "meta";
+	public static final String VER_COPIED = "copied";
 	// meta document key & value
 	public static final String VER_META_KEY = "k";
 	public static final String VER_META_VALUE = "v";
