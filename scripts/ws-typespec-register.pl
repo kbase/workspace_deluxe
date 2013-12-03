@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use JSON;
 use Getopt::Long;
 use Term::ReadKey;
 use File::Slurp;
@@ -23,11 +24,12 @@ DESCRIPTION
       -t [FileName], --typespec [FileName]
                specify the name of the typespec file to register
                
-      --add [Type1];[Type2]; ...
-               specify the set of new types defined in the typespec for registration
+      --add '[Type1];[Type2];' ...
+               specify the set of new types defined in the typespec for registration; enclose
+               the list in quotes
       
-      --remove [Type1];[Type2]; ...
-               specify the set of types to remove from registration
+      --remove '[Type1];[Type2];' ...
+               specify the set of types to remove from registration; enclose the list in quotes
      
       -j, --jsonschema
                if set, when printing results of a registration the new json schema representation
@@ -38,8 +40,14 @@ DESCRIPTION
                actually register the typespec (which cannot be undone) you must set this flag.
       
       --release [ModuleName]
-               release the specified module, this takes precedence over any other option except help
-                         
+               release the specified module, this takes precedence over any other option except
+               for --help and --request
+     
+      --request [ModuleName]
+               request ownership of the specified module; the request must be approved before you
+               are granted ownership; currently you must notify the workspace team if you need
+               a request to be approved
+     
       -u [UserName], --user  [UserName]
                the user name; required for registration of a typespec
       
@@ -79,6 +87,10 @@ my $commit;
 my $printJsonSchema;
 
 my $releasedModule;
+
+my $requestModuleOwnership;
+
+my $adminCommands;
 my $owner;
 my $all;
 
@@ -92,6 +104,8 @@ my $opt = GetOptions (
         "commit" => \$commit,
         "jsonschema|j" => \$printJsonSchema,
         "release=s" => \$releasedModule,
+        "request=s" => \$requestModuleOwnership,
+        "admin=s" => \$adminCommands,
         "user|u=s" => \$user,
         "password|p=s" => \$password,
         "url|e=s" => \$url,
@@ -109,15 +123,37 @@ if (defined($user)) {
      if (!defined($password)) { $password = get_pass(); }
      $ws = Bio::KBase::workspace::Client->new($url,user_id=>$user,password=>$password);
 } else {
-     print STDERR "User name is required to register type specifications.\n";
+     print STDERR "User name is always required to register type specifications.\n";
      print STDERR "Rerun with --help for usage information\n";
      exit 1;
 }
 
 
+if (defined($adminCommands)) {
+     my $json_parser = JSON->new->allow_nonref->pretty;
+     my $response = $ws->administer($json_parser->decode($adminCommands));
+     print STDOUT $json_parser->encode($response)."\n";
+     exit 0;
+}
+
 my $n_args = $#ARGV+1;
 if($n_args==0) {
-     if (defined($releasedModule)) {
+     if (defined($requestModuleOwnership)) {
+          ##user wants to release a module
+          eval { $ws->request_module_ownership($requestModuleOwnership); };
+          if($@) {
+               print STDERR "Error in requesting ownership of a module.\n";
+               print STDERR $@->{message}."\n";
+               if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
+               print STDERR "\n";
+               exit 1;
+          }
+          print STDOUT "You have requested ownership of the Module: '$requestModuleOwnership'\n";
+          print STDOUT "This request must now be approved by the KBase team before you can register new\n";
+          print STDOUT "type specifications for this module.  We do not yet have a notification system in place,\n";
+          print STDOUT "so you should email whoever told you to request module ownership so that your request\n";
+          print STDOUT "can be approved.\n\n";
+     } elsif (defined($releasedModule)) {
           #user wants to release a module
           my $releasedTypes;
           eval { $releasedTypes = $ws->release_module($releasedModule); };

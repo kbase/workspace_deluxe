@@ -49,6 +49,7 @@ module KB {
 
 
 	/*
+	@searchable ws_subset name
 	*/
 	typedef structure {
 		string name;
@@ -69,6 +70,14 @@ module KB {
 		mapping<string,Subdata> dm;
 		mapping<string,list<Subdata>> dml;
 	} NestedData;
+
+
+	
+	
+	
+	
+	
+	
 
 };
 
