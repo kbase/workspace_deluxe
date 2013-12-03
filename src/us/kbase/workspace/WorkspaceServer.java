@@ -268,7 +268,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple8<Long, String, String, String, Long, String, String, String> lockWorkspace(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Tuple8<Long, String, String, String, Long, String, String, String> returnVal = null;
         //BEGIN lock_workspace
-		final WorkspaceIdentifier wsid= processWorkspaceIdentifier(wsi);
+		final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
 		returnVal = au.wsInfoToTuple(ws.lockWorkspace(getUser(authPart), wsid));
 		//TODO test
         //END lock_workspace
