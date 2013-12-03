@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the 'rename_workspace' function.
  * Required arguments:
- * WorkspaceIdentity ws - the workspace to rename.
+ * WorkspaceIdentity wsi - the workspace to rename.
  * ws_name new_name - the new name for the workspace.
  * </pre>
  * 
@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "ws",
+    "wsi",
     "new_name"
 })
 public class RenameWorkspaceParams {
@@ -42,8 +42,8 @@ public class RenameWorkspaceParams {
      * </pre>
      * 
      */
-    @JsonProperty("ws")
-    private WorkspaceIdentity ws;
+    @JsonProperty("wsi")
+    private WorkspaceIdentity wsi;
     @JsonProperty("new_name")
     private String newName;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -61,9 +61,9 @@ public class RenameWorkspaceParams {
      * </pre>
      * 
      */
-    @JsonProperty("ws")
-    public WorkspaceIdentity getWs() {
-        return ws;
+    @JsonProperty("wsi")
+    public WorkspaceIdentity getWsi() {
+        return wsi;
     }
 
     /**
@@ -79,13 +79,13 @@ public class RenameWorkspaceParams {
      * </pre>
      * 
      */
-    @JsonProperty("ws")
-    public void setWs(WorkspaceIdentity ws) {
-        this.ws = ws;
+    @JsonProperty("wsi")
+    public void setWsi(WorkspaceIdentity wsi) {
+        this.wsi = wsi;
     }
 
-    public RenameWorkspaceParams withWs(WorkspaceIdentity ws) {
-        this.ws = ws;
+    public RenameWorkspaceParams withWsi(WorkspaceIdentity wsi) {
+        this.wsi = wsi;
         return this;
     }
 
@@ -116,7 +116,7 @@ public class RenameWorkspaceParams {
 
     @Override
     public String toString() {
-        return ((((((("RenameWorkspaceParams"+" [ws=")+ ws)+", newName=")+ newName)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("RenameWorkspaceParams"+" [wsi=")+ wsi)+", newName=")+ newName)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

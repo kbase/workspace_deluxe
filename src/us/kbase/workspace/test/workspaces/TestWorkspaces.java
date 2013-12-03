@@ -266,32 +266,34 @@ public class TestWorkspaces {
 	}
 	
 	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, long id, Date moddate) {
-		checkWSMeta(meta, owner, name, objs, perm, globalread);
+			long objs, Permission perm, boolean globalread, long id, Date moddate,
+			String lockstate) {
+		checkWSMeta(meta, owner, name, objs, perm, globalread, lockstate);
 		assertThat("ws id correct", meta.getId(), is(id));
 		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
 	}
 	
 	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread) {
+			long objs, Permission perm, boolean globalread, String lockstate) {
 		assertThat("ws owner correct", meta.getOwner(), is(owner));
 		assertThat("ws name correct", meta.getName(), is(name));
 		assertThat("ws max obj correct", meta.getApproximateObjects(), is(objs));
 		assertThat("ws permissions correct", meta.getUserPermission(), is(perm));
 		assertThat("ws global read correct", meta.isGloballyReadable(), is(globalread));
+		assertThat("ws lockstate correct", meta.getLockState(), is(lockstate));
 	}
 	
 	@Test
 	public void testCreateWorkspaceAndGetMeta() throws Exception {
 		WorkspaceInformation meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false);
+		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
 		long id = meta.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = meta.getModDate();
 		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate);
+		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
 		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate);
+		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
 		
 		try {
 			ws.getWorkspaceInformation(BUSER, wsi);
@@ -310,13 +312,13 @@ public class TestWorkspaces {
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
 		meta = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked");
 		id = meta.getId();
 		moddate = meta.getModDate();
 		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
 		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate);
+		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
 	}
 	
 	@Test
@@ -510,7 +512,7 @@ public class TestWorkspaces {
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
 		WorkspaceInformation meta= ws.getWorkspaceInformation(null, wsiGL);
-		checkWSMeta(meta, AUSER, "perms_global", 0, Permission.NONE, true);
+		checkWSMeta(meta, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked");
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -2024,7 +2026,7 @@ public class TestWorkspaces {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false);
+		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
@@ -2100,7 +2102,7 @@ public class TestWorkspaces {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false);
+		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		

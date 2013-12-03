@@ -105,6 +105,7 @@ public class ShockBackend implements BlobStore {
 		}
 	}
 
+	//TODO throw better exceptions w/ runtime exceptions
 	@Override
 	public void saveBlob(final MD5 md5, final JsonNode data)
 			throws BlobStoreAuthorizationException,
@@ -131,7 +132,7 @@ public class ShockBackend implements BlobStore {
 							"JSON");
 				} catch (TokenExpiredException ete) {
 					//this should be impossible
-					throw new RuntimeException("Things are broke", ete);
+					throw new RuntimeException("Things are broke: " + ete.getLocalizedMessage(), ete);
 				} catch (JsonProcessingException jpe) {
 					//this should be impossible
 					throw new RuntimeException("Things are broke", jpe);

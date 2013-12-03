@@ -8,6 +8,10 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoWSInfo implements WorkspaceInformation {
 	
+	public static final String UNLOCKED = "unlocked";
+	public static final String LOCKED = "locked";
+	public static final String PUBLISHED = "published";
+	
 	final private long id;
 	final private String name;
 	final private WorkspaceUser owner;
@@ -15,10 +19,12 @@ public class MongoWSInfo implements WorkspaceInformation {
 	final private long approxObjs;
 	final private Permission userPermission;
 	final private boolean globalRead;
+	final private boolean locked;
 	
 	MongoWSInfo(final long id, final String name, final WorkspaceUser owner,
 			final Date modDate, final long approxObjs,
-			final Permission userPermission, final boolean globalRead) {
+			final Permission userPermission, final boolean globalRead,
+			final boolean locked) {
 		this.id = id;
 		this.name = name;
 		this.owner = owner;
@@ -26,7 +32,7 @@ public class MongoWSInfo implements WorkspaceInformation {
 		this.approxObjs = approxObjs;
 		this.userPermission = userPermission;
 		this.globalRead = globalRead;
-		
+		this.locked = locked;
 	}
 
 	@Override
@@ -62,6 +68,17 @@ public class MongoWSInfo implements WorkspaceInformation {
 	@Override
 	public boolean isGloballyReadable() {
 		return globalRead;
+	}
+	
+	@Override
+	public String getLockState() {
+		if (!locked) {
+			return UNLOCKED;
+		}
+		if (!isGloballyReadable()) {
+			return LOCKED;
+		}
+		return PUBLISHED;
 	}
 
 	@Override

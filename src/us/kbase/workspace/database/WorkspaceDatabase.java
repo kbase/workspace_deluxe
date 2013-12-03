@@ -39,6 +39,10 @@ public interface WorkspaceDatabase {
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
+	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
+			ResolvedWorkspaceID wsid)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public void setPermissions(ResolvedWorkspaceID rwsi,
 			List<WorkspaceUser> users, Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;

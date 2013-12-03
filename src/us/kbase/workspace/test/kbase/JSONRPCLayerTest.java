@@ -42,7 +42,7 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
-import us.kbase.common.service.Tuple7;
+import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
@@ -284,23 +284,24 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void createWSandCheck() throws Exception {
-		Tuple7<Long, String, String, String, Long, String, String> meta =
+		Tuple8<Long, String, String, String, Long, String, String, String> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
-		Tuple7<Long, String, String, String, Long, String, String> metaget =
+		Tuple8<Long, String, String, String, Long, String, String, String> metaget =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
 		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
 		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
-		for (Tuple7<Long, String, String, String, Long, String, String> m:
+		for (Tuple8<Long, String, String, String, Long, String, String, String> m:
 				Arrays.asList(meta, metaget)) {
 			assertThat("ws name correct", m.getE2(), is("foo"));
 			assertThat("user name correct", m.getE3(), is(USER1));
 			assertThat("obj counts are 0", m.getE5(), is(0L));
 			assertThat("permission correct", m.getE6(), is("a"));
 			assertThat("global read correct", m.getE7(), is("r"));
+			assertThat("lockstate correct", m.getE8(), is("unlocked"));
 		}
 		assertThat("description correct", CLIENT1.getWorkspaceDescription(
 				new WorkspaceIdentity().withWorkspace("foo")), is("boogabooga"));
@@ -494,7 +495,7 @@ public class JSONRPCLayerTest {
 		String ws = "idproc";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
 				.withDescription("foo"));
-		Tuple7<Long, String, String, String, Long, String, String> meta =
+		Tuple8<Long, String, String, String, Long, String, String, String> meta =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(ws));
 		//these should work
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())

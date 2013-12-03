@@ -385,6 +385,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_DEL, false);
 		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
+		ws.put(Fields.WS_LOCKED, false);
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
@@ -395,14 +396,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setPermissionsForWorkspaceUsers(new ResolvedMongoWSID(wsname, count),
+		setPermissionsForWorkspaceUsers(
+				new ResolvedMongoWSID(wsname, count, false),
 				Arrays.asList(user), Permission.OWNER, false);
 		if (globalRead) {
-			setPermissions(new ResolvedMongoWSID(wsname, count),
+			setPermissions(new ResolvedMongoWSID(wsname, count, false),
 					Arrays.asList(allUsers), Permission.READ, false);
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
-				Permission.OWNER, globalRead);
+				Permission.OWNER, globalRead, false);
+	}
+	
+	private final static String M_LOCK_WS_QRY = String.format("{%s: #}",
+			Fields.WS_ID);
+	private final static String M_LOCK_WS_WTH = String.format("{$set: {%s: #}}",
+			Fields.WS_LOCKED);
+	
+	@Override
+	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
+			final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		//TODO set workspace change date
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+				.update(M_LOCK_WS_QRY, rwsi.getID())
+				.with(M_LOCK_WS_WTH, true);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		return getWorkspaceInformation(user, rwsi);
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
@@ -617,7 +641,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_WS_ID_NAME_DEL =
-			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_DEL);
+			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_DEL,
+					Fields.WS_LOCKED);
 	
 	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
@@ -642,7 +667,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			ResolvedMongoWSID r = new ResolvedMongoWSID(
 					(String) res.get(wsi).get(Fields.WS_NAME),
-					(Long) res.get(wsi).get(Fields.WS_ID));
+					(Long) res.get(wsi).get(Fields.WS_ID),
+					(Boolean) res.get(wsi).get(Fields.WS_LOCKED));
 			ret.put(wsi, r);
 		}
 		return ret;
@@ -804,7 +830,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_WS_NO_DESC = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
-					Fields.WS_MODDATE, Fields.WS_NUMOBJ, Fields.WS_DEL);
+					Fields.WS_MODDATE, Fields.WS_NUMOBJ, Fields.WS_DEL,
+					Fields.WS_LOCKED);
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
@@ -859,7 +886,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(Date) wsdata.get(Fields.WS_MODDATE),
 				(Long) wsdata.get(Fields.WS_NUMOBJ),
 				perms.getUserPermission(rwsi),
-				perms.isWorldReadable(rwsi));
+				perms.isWorldReadable(rwsi),
+				(Boolean) wsdata.get(Fields.WS_LOCKED));
 	}
 	
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
@@ -2247,7 +2275,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		setObjectsDeleted(mrwsi, new ArrayList<Long>(), delete);
 	}
 	
-	public static class TestMongoInternals {
+	public static class TestMongoSuperInternals {
 		
 		//screwy tests for methods that can't be tested in a black box manner
 	
@@ -2290,7 +2318,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
-			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1);
+			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1, false);
 			pkg.td = new TypeData(MAPPER.valueToTree(data), at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");

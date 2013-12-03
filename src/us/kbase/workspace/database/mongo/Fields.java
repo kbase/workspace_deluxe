@@ -25,6 +25,7 @@ public class Fields {
 	public static final String WS_DEL = "del";
 	public static final String WS_NUMOBJ = "numObj";
 	public static final String WS_DESC = "desc";
+	public static final String WS_LOCKED = "lock";
 
 	// workspace acl fields
 	public static final String ACL_WSID = "id";
