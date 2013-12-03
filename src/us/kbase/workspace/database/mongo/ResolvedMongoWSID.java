@@ -9,14 +9,17 @@ class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	
 	private final long id;
 	private final String wsname;
+	private final boolean locked;
 	
-	public ResolvedMongoWSID(final String name, final long id) {
+	public ResolvedMongoWSID(final String name, final long id,
+			final boolean locked) {
 		if (id < 1) {
 			throw new IllegalArgumentException("ID must be >0");
 		}
 		checkString(name, "name", WorkspaceIdentifier.MAX_NAME_LENGTH);
 		this.id = id;
 		this.wsname = name;
+		this.locked = locked;
 	}
 
 	@Override
@@ -28,10 +31,16 @@ class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	public String getName() {
 		return wsname;
 	}
+	
+	@Override
+	public boolean isLocked() {
+		return locked;
+	}
 
 	@Override
 	public String toString() {
-		return "ResolvedMongoWSID [id=" + id + ", wsname=" + wsname + "]";
+		return "ResolvedMongoWSID [id=" + id + ", wsname=" + wsname
+				+ ", locked=" + locked + "]";
 	}
 
 	@Override
@@ -39,6 +48,7 @@ class ResolvedMongoWSID implements ResolvedWorkspaceID {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (int) (id ^ (id >>> 32));
+		result = prime * result + (locked ? 1231 : 1237);
 		result = prime * result + ((wsname == null) ? 0 : wsname.hashCode());
 		return result;
 	}
@@ -56,6 +66,9 @@ class ResolvedMongoWSID implements ResolvedWorkspaceID {
 		}
 		ResolvedMongoWSID other = (ResolvedMongoWSID) obj;
 		if (id != other.id) {
+			return false;
+		}
+		if (locked != other.locked) {
 			return false;
 		}
 		if (wsname == null) {

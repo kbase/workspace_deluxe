@@ -13,4 +13,5 @@ public interface WorkspaceInformation {
 	public long getApproximateObjects();
 	public Permission getUserPermission();
 	public boolean isGloballyReadable();
+	public String getLockState();
 }

@@ -79,6 +79,11 @@ module Workspace {
 	*/
 	typedef mapping<string, string> usermeta;
 	
+	/* The lock status of a workspace.
+		One of 'unlocked', 'locked', or 'published'.
+	*/
+	typedef string lock_status;
+	
 	/* A workspace identifier.
 
 		Select a workspace by one, and only one, of the numerical id or name,
@@ -128,8 +133,8 @@ module Workspace {
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		int object, permission user_permission, permission globalread>
-		workspace_info;
+		int object, permission user_permission, permission globalread,
+		lock_status lockstat> workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */
 	typedef int obj_id;
@@ -299,6 +304,7 @@ module Workspace {
 		string description;
 	} ProvenanceAction;
 
+	 authentication required;
 
 	/* Input parameters for the "create_workspace" function.
 	
@@ -322,7 +328,20 @@ module Workspace {
 		Creates a new workspace.
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
-		(workspace_info info) authentication required;
+		(workspace_info info);
+	
+	/* Lock a workspace, preventing further changes.
+	
+		WARNING: Locking a workspace is permanent. A workspace, once locked,
+		cannot be unlocked.
+		
+		The only changes allowed for a locked workspace are changing user
+		based permissions or making a private workspace globally readable,
+		thus permanently publishing the workspace. A locked, globally readable
+		workspace cannot be made private.
+	*/
+	funcdef lock_workspace(WorkspaceIdentity wsi) returns(workspace_info info);
+	
 	
 	authentication optional;
 	
@@ -793,11 +812,11 @@ module Workspace {
 	/* Input parameters for the 'rename_workspace' function.
 		
 		Required arguments:
-		WorkspaceIdentity ws - the workspace to rename.
+		WorkspaceIdentity wsi - the workspace to rename.
 		ws_name new_name - the new name for the workspace.
 	*/
 	typedef structure {
-		WorkspaceIdentity ws;
+		WorkspaceIdentity wsi;
 		ws_name new_name;
 	} RenameWorkspaceParams;
 	

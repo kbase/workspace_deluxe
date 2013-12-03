@@ -7,6 +7,10 @@ package us.kbase.workspace.database;
  * Those classes should ensure that the class passed to their methods is
  * the correct implementation.
  * 
+ * Note that a set of resolved IDs will be consistent if they're pulled from
+ * the database at the same time, but may not be consistent if not pulled in
+ * the same batch.
+ * 
  * @author gaprice@lbl.gov
  *
  */
@@ -14,6 +18,7 @@ public interface ResolvedWorkspaceID {
 	
 	public long getID();
 	public String getName();
+	public boolean isLocked();
 	public int hashCode();
 	public boolean equals(Object obj);
 

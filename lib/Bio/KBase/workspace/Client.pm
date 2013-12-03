@@ -98,7 +98,7 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -106,9 +106,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 ws_id is an int
 username is a string
 timestamp is a string
+lock_status is a string
 
 </pre>
 
@@ -124,7 +126,7 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	description has a value which is a string
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -132,9 +134,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 ws_id is an int
 username is a string
 timestamp is a string
+lock_status is a string
 
 
 =end text
@@ -187,6 +191,130 @@ sub create_workspace
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method create_workspace",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'create_workspace',
+				       );
+    }
+}
+
+
+
+=head2 lock_workspace
+
+  $info = $obj->lock_workspace($wsi)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$wsi is a Workspace.WorkspaceIdentity
+$info is a Workspace.workspace_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+workspace_info is a reference to a list containing 8 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
+username is a string
+timestamp is a string
+permission is a string
+lock_status is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$wsi is a Workspace.WorkspaceIdentity
+$info is a Workspace.workspace_info
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+workspace_info is a reference to a list containing 8 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
+username is a string
+timestamp is a string
+permission is a string
+lock_status is a string
+
+
+=end text
+
+=item Description
+
+Lock a workspace, preventing further changes.
+
+        WARNING: Locking a workspace is permanent. A workspace, once locked,
+        cannot be unlocked.
+        
+        The only changes allowed for a locked workspace are changing user
+        based permissions or making a private workspace globally readable,
+        thus permanently publishing the workspace. A locked, globally readable
+        workspace cannot be made private.
+
+=back
+
+=cut
+
+sub lock_workspace
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function lock_workspace (received $n, expecting 1)");
+    }
+    {
+	my($wsi) = @args;
+
+	my @_bad_arguments;
+        (ref($wsi) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"wsi\" (value was \"$wsi\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to lock_workspace:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'lock_workspace');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.lock_workspace",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'lock_workspace',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method lock_workspace",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'lock_workspace',
 				       );
     }
 }
@@ -327,7 +455,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -335,9 +463,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 </pre>
 
@@ -352,7 +482,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -360,9 +490,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 
 =end text
@@ -1792,7 +1924,7 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 boolean is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -1800,11 +1932,13 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 ws_id is an int
 ws_name is a string
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 </pre>
 
@@ -1818,7 +1952,7 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 boolean is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -1826,11 +1960,13 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 ws_id is an int
 ws_name is a string
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 
 =end text
@@ -2456,14 +2592,14 @@ sub get_object_info
 $params is a Workspace.RenameWorkspaceParams
 $renamed is a Workspace.workspace_info
 RenameWorkspaceParams is a reference to a hash where the following keys are defined:
-	ws has a value which is a Workspace.WorkspaceIdentity
+	wsi has a value which is a Workspace.WorkspaceIdentity
 	new_name has a value which is a Workspace.ws_name
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -2471,9 +2607,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 </pre>
 
@@ -2484,14 +2622,14 @@ permission is a string
 $params is a Workspace.RenameWorkspaceParams
 $renamed is a Workspace.workspace_info
 RenameWorkspaceParams is a reference to a hash where the following keys are defined:
-	ws has a value which is a Workspace.WorkspaceIdentity
+	wsi has a value which is a Workspace.WorkspaceIdentity
 	new_name has a value which is a Workspace.ws_name
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 7 items:
+workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -2499,9 +2637,11 @@ workspace_info is a reference to a list containing 7 items:
 	4: (object) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
 username is a string
 timestamp is a string
 permission is a string
+lock_status is a string
 
 
 =end text
@@ -5138,6 +5278,38 @@ a reference to a hash where the key is a string and the value is a string
 
 
 
+=head2 lock_status
+
+=over 4
+
+
+
+=item Description
+
+The lock status of a workspace.
+One of 'unlocked', 'locked', or 'published'.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 WorkspaceIdentity
 
 =over 4
@@ -5269,7 +5441,7 @@ Information about a workspace.
 =begin html
 
 <pre>
-a reference to a list containing 7 items:
+a reference to a list containing 8 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
@@ -5277,6 +5449,7 @@ a reference to a list containing 7 items:
 4: (object) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
+7: (lockstat) a Workspace.lock_status
 
 </pre>
 
@@ -5284,7 +5457,7 @@ a reference to a list containing 7 items:
 
 =begin text
 
-a reference to a list containing 7 items:
+a reference to a list containing 8 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
@@ -5292,6 +5465,7 @@ a reference to a list containing 7 items:
 4: (object) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
+7: (lockstat) a Workspace.lock_status
 
 
 =end text
@@ -6608,7 +6782,7 @@ auth has a value which is a string
 Input parameters for the 'rename_workspace' function.
 
 Required arguments:
-WorkspaceIdentity ws - the workspace to rename.
+WorkspaceIdentity wsi - the workspace to rename.
 ws_name new_name - the new name for the workspace.
 
 
@@ -6618,7 +6792,7 @@ ws_name new_name - the new name for the workspace.
 
 <pre>
 a reference to a hash where the following keys are defined:
-ws has a value which is a Workspace.WorkspaceIdentity
+wsi has a value which is a Workspace.WorkspaceIdentity
 new_name has a value which is a Workspace.ws_name
 
 </pre>
@@ -6628,7 +6802,7 @@ new_name has a value which is a Workspace.ws_name
 =begin text
 
 a reference to a hash where the following keys are defined:
-ws has a value which is a Workspace.WorkspaceIdentity
+wsi has a value which is a Workspace.WorkspaceIdentity
 new_name has a value which is a Workspace.ws_name
 
 

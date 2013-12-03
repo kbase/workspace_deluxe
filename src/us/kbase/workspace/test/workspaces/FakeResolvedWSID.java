@@ -34,6 +34,11 @@ public class FakeResolvedWSID implements ResolvedWorkspaceID {
 	}
 
 	@Override
+	public boolean isLocked() {
+		return false;
+	}
+	
+	@Override
 	public String toString() {
 		return "FakeResolvedWSID [id=" + id + "]";
 	}

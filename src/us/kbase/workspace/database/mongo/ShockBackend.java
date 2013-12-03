@@ -131,10 +131,12 @@ public class ShockBackend implements BlobStore {
 							"JSON");
 				} catch (TokenExpiredException ete) {
 					//this should be impossible
-					throw new RuntimeException("Things are broke", ete);
+					throw new RuntimeException("Token magically expired: "
+							+ ete.getLocalizedMessage(), ete);
 				} catch (JsonProcessingException jpe) {
 					//this should be impossible
-					throw new RuntimeException("Things are broke", jpe);
+					throw new RuntimeException("JsonNode serialization failed: "
+							+ jpe.getLocalizedMessage(), jpe);
 				} catch (IOException ioe) {
 					throw new BlobStoreCommunicationException(
 							"Could not connect to the shock backend: " +
@@ -152,20 +154,27 @@ public class ShockBackend implements BlobStore {
 			//writes in UTF8
 			MAPPER.writeValue(osis, data);
 		} catch (IOException ioe) {
-			throw new RuntimeException("Something is broken", ioe);
+			throw new RuntimeException("IO Error during streaming of JsonNode: "
+					+ ioe.getLocalizedMessage(), ioe);
 		} finally {
 			try {
 				osis.close();
 			} catch (IOException ioe) {
-				throw new RuntimeException("Something is broken", ioe);
+				throw new RuntimeException(
+						"Couldn't close JsonNode output stream: " +
+								ioe.getLocalizedMessage(), ioe);
 			}
 		}
 		try {
 			sn = osis.getResult();
 		} catch (InterruptedException ie) {
-			throw new RuntimeException("Something is broken", ie);
+			throw new RuntimeException(
+					"Interrupt trying to retrieve JsonNode from EasyStream instance: "
+					+ ie.getLocalizedMessage(), ie);
 		} catch (ExecutionException ee) {
-			throw new RuntimeException("Something is broken", ee);
+			throw new RuntimeException(
+					"Excecution error trying to retrieve JsonNode from EasyStream instance: "
+					+ ee.getLocalizedMessage(), ee);
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());

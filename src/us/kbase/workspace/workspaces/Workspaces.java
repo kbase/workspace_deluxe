@@ -145,21 +145,35 @@ public class Workspaces {
 		return null;
 	}
 	
+	private void checkLocked(final Permission perm,
+			final ResolvedWorkspaceID rwsi)
+			throws WorkspaceAuthorizationException {
+		if (perm.compareTo(Permission.READ) > 0 && rwsi.isLocked()) {
+			throw new WorkspaceAuthorizationException("The workspace with id "
+					+ rwsi.getID() + ", name " + rwsi.getName() +
+					", is locked and may not be modified");
+		}
+	}
+	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final Permission perm,
 			final String operation)
 			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return checkPerms(user, wsi, perm, operation, false);
+		return checkPerms(user, wsi, perm, operation, false, false);
 	}
 	
 	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final Permission perm,
-			final String operation, boolean allowDeletedWorkspace)
+			final String operation, final boolean allowDeletedWorkspace,
+			final boolean ignoreLock)
 			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
 				allowDeletedWorkspace);
+		if (!ignoreLock) {
+			checkLocked(perm, wsid);
+		}
 		comparePermission(user, perm, db.getPermission(user, wsid),
 				wsi, operation);
 		return wsid;
@@ -197,6 +211,7 @@ public class Workspaces {
 		for (final ObjectIdentifier o: loi) {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
+				checkLocked(perm, r);
 				comparePermission(user, perm, perms.getPermission(r), o,
 						operation);
 			} catch (WorkspaceAuthorizationException wae) {
@@ -218,6 +233,16 @@ public class Workspaces {
 		return db.createWorkspace(user, wsname, globalread,
 				pruneWorkspaceDescription(description));
 	}
+	
+	//TODO test
+	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
+				"lock");
+		return db.lockWorkspace(user, wsid);
+	}
 
 	private String pruneWorkspaceDescription(final String description) {
 		if(description != null && description.length() > MAX_WS_DESCRIPTION) {
@@ -225,8 +250,8 @@ public class Workspaces {
 		}
 		return description;
 	}
-	
 
+	//TODO test
 	public void setWorkspaceDescription(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String description)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
@@ -234,7 +259,6 @@ public class Workspaces {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"set description on");
 		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
-		//TODO test
 	}
 	
 	public String getWorkspaceDescription(final WorkspaceUser user,
@@ -255,7 +279,7 @@ public class Workspaces {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set permissions on");
+				"set permissions on", false, true);
 		db.setPermissions(wsid, users, permission);
 	}
 	
@@ -267,8 +291,9 @@ public class Workspaces {
 			throw new IllegalArgumentException(
 					"Global permissions cannot be greater than read");
 		}
+		final boolean ignoreLock = permission.equals(Permission.READ);
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set global permission on");
+				"set global permission on", false, ignoreLock);
 		db.setGlobalPermission(wsid, permission);
 		//TODO test
 	}
@@ -723,7 +748,7 @@ public class Workspaces {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
-				(delete ? "" : "un") + "delete", !delete);
+				(delete ? "" : "un") + "delete", !delete, false);
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
