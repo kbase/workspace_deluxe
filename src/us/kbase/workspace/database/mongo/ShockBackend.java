@@ -44,7 +44,6 @@ public class ShockBackend implements BlobStore {
 	
 	private static final String IDX_UNIQ = "unique";
 	
-	//TODO readonly mode & user
 	public ShockBackend(final DB mongoDB, final String collectionPrefix,
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
@@ -146,7 +145,7 @@ public class ShockBackend implements BlobStore {
 							"Failed to create shock node: " +
 									she.getLocalizedMessage(), she);
 				}
-				is.close();
+//				is.close(); closing the stream has caused deadlocks in other applications
 				return sn;
 			}
 		};

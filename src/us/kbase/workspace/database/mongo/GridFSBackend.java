@@ -53,7 +53,7 @@ public class GridFSBackend implements BlobStore {
 					throw new BlobStoreCommunicationException(
 							"Could not write to the mongo database", me);
 				}
-				is.close();
+//				is.close(); closing the is has caused deadlocks in other applications
 				return null;
 			}
 		};

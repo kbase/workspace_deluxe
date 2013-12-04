@@ -231,7 +231,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.create_workspace")
     public Tuple8<Long, String, String, String, Long, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple8<Long, String, String, String, Long, String, String, String> returnVal = null;
-		//BEGIN create_workspace
+        //BEGIN create_workspace
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		Permission p = au.getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(getUser(authPart),

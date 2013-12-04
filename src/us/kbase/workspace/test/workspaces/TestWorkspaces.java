@@ -114,6 +114,7 @@ public class TestWorkspaces {
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
+		//TODO use 1 db at a time, do all init in the TW constructor
 		printMem("*** startup ***");
 		setUpWorkspaces();
 		List<Object[]> tests;
