@@ -3883,7 +3883,7 @@ modulename is a string
 
 =item Description
 
-Request ownership of a module name.
+Request ownership of a module name. A Workspace administrator must approve the request.
 
 =back
 
@@ -3935,9 +3935,9 @@ sub request_module_ownership
 
 
 
-=head2 compile_typespec
+=head2 register_typespec
 
-  $return = $obj->compile_typespec($params)
+  $return = $obj->register_typespec($params)
 
 =over 4
 
@@ -3946,9 +3946,9 @@ sub request_module_ownership
 =begin html
 
 <pre>
-$params is a Workspace.CompileTypespecParams
+$params is a Workspace.RegisterTypespecParams
 $return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
-CompileTypespecParams is a reference to a hash where the following keys are defined:
+RegisterTypespecParams is a reference to a hash where the following keys are defined:
 	spec has a value which is a Workspace.typespec
 	mod has a value which is a Workspace.modulename
 	new_types has a value which is a reference to a list where each element is a Workspace.typename
@@ -3970,9 +3970,9 @@ jsonschema is a string
 
 =begin text
 
-$params is a Workspace.CompileTypespecParams
+$params is a Workspace.RegisterTypespecParams
 $return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.jsonschema
-CompileTypespecParams is a reference to a hash where the following keys are defined:
+RegisterTypespecParams is a reference to a hash where the following keys are defined:
 	spec has a value which is a Workspace.typespec
 	mod has a value which is a Workspace.modulename
 	new_types has a value which is a reference to a list where each element is a Workspace.typename
@@ -3993,14 +3993,15 @@ jsonschema is a string
 
 =item Description
 
-Compile a new typespec or recompile an existing typespec. 
+Register a new typespec or recompile a previously registered typespec with new options.
+See the documentation of RegisterTypespecParams for more details.
 Also see the release_types function.
 
 =back
 
 =cut
 
-sub compile_typespec
+sub register_typespec
 {
     my($self, @args) = @_;
 
@@ -4009,7 +4010,7 @@ sub compile_typespec
     if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function compile_typespec (received $n, expecting 1)");
+							       "Invalid argument count for function register_typespec (received $n, expecting 1)");
     }
     {
 	my($params) = @args;
@@ -4017,38 +4018,38 @@ sub compile_typespec
 	my @_bad_arguments;
         (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to compile_typespec:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to register_typespec:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'compile_typespec');
+								   method_name => 'register_typespec');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.compile_typespec",
+	method => "Workspace.register_typespec",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'compile_typespec',
+					       method_name => 'register_typespec',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method compile_typespec",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method register_typespec",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'compile_typespec',
+					    method_name => 'register_typespec',
 				       );
     }
 }
 
 
 
-=head2 compile_typespec_copy
+=head2 register_typespec_copy
 
-  $new_local_version = $obj->compile_typespec_copy($external_workspace_url, $mod, $version_in_external_workspace)
+  $new_local_version = $obj->register_typespec_copy($external_workspace_url, $mod, $version_in_external_workspace)
 
 =over 4
 
@@ -4082,7 +4083,7 @@ spec_version is an int
 
 =item Description
 
-Compile a copy of new typespec or recompile an existing typespec which is loaded 
+Register a copy of new typespec or refresh an existing typespec which is loaded 
 from another workspace for synchronization. Method returns new version of module 
 in current workspace. Also see the release_types function.
 
@@ -4090,7 +4091,7 @@ in current workspace. Also see the release_types function.
 
 =cut
 
-sub compile_typespec_copy
+sub register_typespec_copy
 {
     my($self, @args) = @_;
 
@@ -4099,7 +4100,7 @@ sub compile_typespec_copy
     if ((my $n = @args) != 3)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function compile_typespec_copy (received $n, expecting 3)");
+							       "Invalid argument count for function register_typespec_copy (received $n, expecting 3)");
     }
     {
 	my($external_workspace_url, $mod, $version_in_external_workspace) = @args;
@@ -4109,29 +4110,29 @@ sub compile_typespec_copy
         (!ref($mod)) or push(@_bad_arguments, "Invalid type for argument 2 \"mod\" (value was \"$mod\")");
         (!ref($version_in_external_workspace)) or push(@_bad_arguments, "Invalid type for argument 3 \"version_in_external_workspace\" (value was \"$version_in_external_workspace\")");
         if (@_bad_arguments) {
-	    my $msg = "Invalid arguments passed to compile_typespec_copy:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    my $msg = "Invalid arguments passed to register_typespec_copy:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
-								   method_name => 'compile_typespec_copy');
+								   method_name => 'register_typespec_copy');
 	}
     }
 
     my $result = $self->{client}->call($self->{url}, {
-	method => "Workspace.compile_typespec_copy",
+	method => "Workspace.register_typespec_copy",
 	params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
 	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
 					       code => $result->content->{code},
-					       method_name => 'compile_typespec_copy',
+					       method_name => 'register_typespec_copy',
 					      );
 	} else {
 	    return wantarray ? @{$result->result} : $result->result->[0];
 	}
     } else {
-        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method compile_typespec_copy",
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method register_typespec_copy",
 					    status_line => $self->{client}->status_line,
-					    method_name => 'compile_typespec_copy',
+					    method_name => 'register_typespec_copy',
 				       );
     }
 }
@@ -7091,7 +7092,7 @@ to has a value which is a Workspace.ObjectIdentity
 
 =item Description
 
-A KBase Interface Definition Language (KIDL) typespec.
+A type specification (typespec) file in the KBase Interface Description Language (KIDL).
 
 
 =item Definition
@@ -7122,7 +7123,7 @@ a string
 
 =item Description
 
-The module name of a KIDL typespec.
+A module name defined in a KIDL typespec.
 
 
 =item Definition
@@ -7153,7 +7154,7 @@ a string
 
 =item Description
 
-The name of a type in a KIDL typespec module.
+A type definition name in a KIDL typespec.
 
 
 =item Definition
@@ -7184,11 +7185,11 @@ a string
 
 =item Description
 
-A function string.
+A function string for referencing a funcdef.
 Specifies the function and its version in a single string in the format
-[module].[funcname]-[major].[minor]:
+[modulename].[funcname]-[major].[minor]:
 
-module - a string. The module name of the typespec containing the function.
+modulename - a string. The name of the module containing the function.
 funcname - a string. The name of the function as assigned by the funcdef
         statement.
 major - an integer. The major version of the function. A change in the
@@ -7232,7 +7233,7 @@ a string
 
 =item Description
 
-The version of a typespec.
+The version of a typespec file.
 
 
 =item Definition
@@ -7263,7 +7264,7 @@ an int
 
 =item Description
 
-The JSON Schema for a type.
+The JSON Schema (v4) representation of a type definition.
 
 
 =item Definition
@@ -7286,7 +7287,7 @@ a string
 
 
 
-=head2 CompileTypespecParams
+=head2 RegisterTypespecParams
 
 =over 4
 
@@ -7294,12 +7295,12 @@ a string
 
 =item Description
 
-Parameters for the compile_typespec function.
+Parameters for the register_typespec function.
 
         Required arguments:
         One of:
-        typespec spec - the new typespec to compile.
-        modulename mod - the module to recompile.
+         typespec spec - the new typespec to register.
+         modulename mod - the module to recompile with updated options (see below).
         
         Optional arguments:
         boolean dryrun - Return, but do not save, the results of compiling the 

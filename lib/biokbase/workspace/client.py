@@ -1272,9 +1272,9 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def compile_typespec(self, params):
+    def register_typespec(self, params):
 
-        arg_hash = {'method': 'Workspace.compile_typespec',
+        arg_hash = {'method': 'Workspace.register_typespec',
                     'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
@@ -1307,9 +1307,9 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def compile_typespec_copy(self, external_workspace_url, mod, version_in_external_workspace):
+    def register_typespec_copy(self, external_workspace_url, mod, version_in_external_workspace):
 
-        arg_hash = {'method': 'Workspace.compile_typespec_copy',
+        arg_hash = {'method': 'Workspace.register_typespec_copy',
                     'params': [external_workspace_url, mod, version_in_external_workspace],
                     'version': '1.1',
                     'id': str(random.random())[2:]
