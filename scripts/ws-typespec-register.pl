@@ -197,7 +197,7 @@ if($n_args==0) {
                
                # do the registration
                my $releasedTypes;
-               eval { $releasedTypes = $ws->compile_typespec($registerTypespecOptions); };
+               eval { $releasedTypes = $ws->register_typespec($registerTypespecOptions); };
                if($@) {
                     print STDERR "Error in registering a module.\n";
                     print STDERR $@->{message}."\n";

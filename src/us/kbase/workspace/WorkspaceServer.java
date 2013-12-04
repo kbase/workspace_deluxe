@@ -987,9 +987,9 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: request_module_ownership</p>
      * <pre>
-     * Request ownership of a module name.
+     * Request ownership of a module name. A Workspace administrator must approve the request.
      * </pre>
-     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
      */
     @JsonServerMethod(rpc = "Workspace.request_module_ownership")
     public void requestModuleOwnership(String mod, AuthToken authPart) throws Exception {
@@ -1002,18 +1002,19 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
-     * <p>Original spec-file function name: compile_typespec</p>
+     * <p>Original spec-file function name: register_typespec</p>
      * <pre>
-     * Compile a new typespec or recompile an existing typespec. 
+     * Register a new typespec or recompile a previously registered typespec with new options.
+     * See the documentation of RegisterTypespecParams for more details.
      * Also see the release_types function.
      * </pre>
-     * @param   params   instance of type {@link us.kbase.workspace.CompileTypespecParams CompileTypespecParams}
-     * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1) to original type "jsonschema" (The JSON Schema for a type.)
+     * @param   params   instance of type {@link us.kbase.workspace.RegisterTypespecParams RegisterTypespecParams}
+     * @return   instance of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1) to original type "jsonschema" (The JSON Schema (v4) representation of a type definition.)
      */
-    @JsonServerMethod(rpc = "Workspace.compile_typespec")
-    public Map<String,String> compileTypespec(CompileTypespecParams params, AuthToken authPart) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.register_typespec")
+    public Map<String,String> registerTypespec(RegisterTypespecParams params, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
-        //BEGIN compile_typespec
+        //BEGIN register_typespec
 		//TODO improve parse errors, don't need include path, currentlyCompiled
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		if (!(params.getMod() == null) ^ (params.getSpec() == null)) {
@@ -1043,26 +1044,26 @@ public class WorkspaceServer extends JsonServerServlet {
 						tc.getJsonSchema());
 			}
 		}
-        //END compile_typespec
+        //END register_typespec
         return returnVal;
     }
 
     /**
-     * <p>Original spec-file function name: compile_typespec_copy</p>
+     * <p>Original spec-file function name: register_typespec_copy</p>
      * <pre>
-     * Compile a copy of new typespec or recompile an existing typespec which is loaded 
+     * Register a copy of new typespec or refresh an existing typespec which is loaded 
      * from another workspace for synchronization. Method returns new version of module 
      * in current workspace. Also see the release_types function.
      * </pre>
      * @param   externalWorkspaceUrl   instance of String
-     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
-     * @param   versionInExternalWorkspace   instance of original type "spec_version" (The version of a typespec.)
-     * @return   parameter "new_local_version" of original type "spec_version" (The version of a typespec.)
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
+     * @param   versionInExternalWorkspace   instance of original type "spec_version" (The version of a typespec file.)
+     * @return   parameter "new_local_version" of original type "spec_version" (The version of a typespec file.)
      */
-    @JsonServerMethod(rpc = "Workspace.compile_typespec_copy")
-    public Long compileTypespecCopy(String externalWorkspaceUrl, String mod, Long versionInExternalWorkspace, AuthToken authPart) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.register_typespec_copy")
+    public Long registerTypespecCopy(String externalWorkspaceUrl, String mod, Long versionInExternalWorkspace, AuthToken authPart) throws Exception {
         Long returnVal = null;
-        //BEGIN compile_typespec_copy
+        //BEGIN register_typespec_copy
 		WorkspaceClient client = new WorkspaceClient(new URL(externalWorkspaceUrl), authPart);
 		if (!externalWorkspaceUrl.startsWith("https:"))
 			client.setAuthAllowedForHttp(true);
@@ -1083,7 +1084,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
 		returnVal = ws.compileTypeSpecCopy(mod, specDocument, extTypeSet, userId, includesToMd5, 
 				extInfo.getIncludedSpecVersion());
-        //END compile_typespec_copy
+        //END register_typespec_copy
         return returnVal;
     }
 
@@ -1103,7 +1104,7 @@ public class WorkspaceServer extends JsonServerServlet {
      *         will be used. This means that newer, unreleased versions of the
      *         type may be skipped.
      * </pre>
-     * @param   mod   instance of original type "modulename" (The module name of a KIDL typespec.)
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
      * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
      */
     @JsonServerMethod(rpc = "Workspace.release_module")
@@ -1126,7 +1127,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * List typespec modules.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListModulesParams ListModulesParams}
-     * @return   parameter "modules" of list of original type "modulename" (The module name of a KIDL typespec.)
+     * @return   parameter "modules" of list of original type "modulename" (A module name defined in a KIDL typespec.)
      */
     @JsonServerMethod(rpc = "Workspace.list_modules")
     public List<String> listModules(ListModulesParams params) throws Exception {
@@ -1222,7 +1223,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Get JSON schema for a type.
      * </pre>
      * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
-     * @return   parameter "schema" of original type "jsonschema" (The JSON Schema for a type.)
+     * @return   parameter "schema" of original type "jsonschema" (The JSON Schema (v4) representation of a type definition.)
      */
     @JsonServerMethod(rpc = "Workspace.get_jsonschema")
     public String getJsonschema(String type) throws Exception {
@@ -1295,7 +1296,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_func_info</p>
      * <pre>
      * </pre>
-     * @param   func   instance of original type "func_string" (A function string. Specifies the function and its version in a single string in the format [module].[funcname]-[major].[minor]: module - a string. The module name of the typespec containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
+     * @param   func   instance of original type "func_string" (A function string for referencing a funcdef. Specifies the function and its version in a single string in the format [modulename].[funcname]-[major].[minor]: modulename - a string. The name of the module containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
      * @return   instance of type {@link us.kbase.workspace.FuncInfo FuncInfo}
      */
     @JsonServerMethod(rpc = "Workspace.get_func_info")

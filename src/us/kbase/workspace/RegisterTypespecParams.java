@@ -13,13 +13,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: CompileTypespecParams</p>
+ * <p>Original spec-file type: RegisterTypespecParams</p>
  * <pre>
- * Parameters for the compile_typespec function.
+ * Parameters for the register_typespec function.
  *         Required arguments:
  *         One of:
- *         typespec spec - the new typespec to compile.
- *         modulename mod - the module to recompile.
+ *          typespec spec - the new typespec to register.
+ *          modulename mod - the module to recompile with updated options (see below).
  *         
  *         Optional arguments:
  *         boolean dryrun - Return, but do not save, the results of compiling the 
@@ -54,7 +54,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "dryrun",
     "prev_ver"
 })
-public class CompileTypespecParams {
+public class RegisterTypespecParams {
 
     @JsonProperty("spec")
     private java.lang.String spec;
@@ -82,7 +82,7 @@ public class CompileTypespecParams {
         this.spec = spec;
     }
 
-    public CompileTypespecParams withSpec(java.lang.String spec) {
+    public RegisterTypespecParams withSpec(java.lang.String spec) {
         this.spec = spec;
         return this;
     }
@@ -97,7 +97,7 @@ public class CompileTypespecParams {
         this.mod = mod;
     }
 
-    public CompileTypespecParams withMod(java.lang.String mod) {
+    public RegisterTypespecParams withMod(java.lang.String mod) {
         this.mod = mod;
         return this;
     }
@@ -112,7 +112,7 @@ public class CompileTypespecParams {
         this.newTypes = newTypes;
     }
 
-    public CompileTypespecParams withNewTypes(List<String> newTypes) {
+    public RegisterTypespecParams withNewTypes(List<String> newTypes) {
         this.newTypes = newTypes;
         return this;
     }
@@ -127,7 +127,7 @@ public class CompileTypespecParams {
         this.removeTypes = removeTypes;
     }
 
-    public CompileTypespecParams withRemoveTypes(List<String> removeTypes) {
+    public RegisterTypespecParams withRemoveTypes(List<String> removeTypes) {
         this.removeTypes = removeTypes;
         return this;
     }
@@ -142,7 +142,7 @@ public class CompileTypespecParams {
         this.dependencies = dependencies;
     }
 
-    public CompileTypespecParams withDependencies(Map<String, Long> dependencies) {
+    public RegisterTypespecParams withDependencies(Map<String, Long> dependencies) {
         this.dependencies = dependencies;
         return this;
     }
@@ -157,7 +157,7 @@ public class CompileTypespecParams {
         this.dryrun = dryrun;
     }
 
-    public CompileTypespecParams withDryrun(java.lang.Long dryrun) {
+    public RegisterTypespecParams withDryrun(java.lang.Long dryrun) {
         this.dryrun = dryrun;
         return this;
     }
@@ -172,7 +172,7 @@ public class CompileTypespecParams {
         this.prevVer = prevVer;
     }
 
-    public CompileTypespecParams withPrevVer(java.lang.Long prevVer) {
+    public RegisterTypespecParams withPrevVer(java.lang.Long prevVer) {
         this.prevVer = prevVer;
         return this;
     }
@@ -189,7 +189,7 @@ public class CompileTypespecParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("CompileTypespecParams"+" [spec=")+ spec)+", mod=")+ mod)+", newTypes=")+ newTypes)+", removeTypes=")+ removeTypes)+", dependencies=")+ dependencies)+", dryrun=")+ dryrun)+", prevVer=")+ prevVer)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("RegisterTypespecParams"+" [spec=")+ spec)+", mod=")+ mod)+", newTypes=")+ newTypes)+", removeTypes=")+ removeTypes)+", dependencies=")+ dependencies)+", dryrun=")+ dryrun)+", prevVer=")+ prevVer)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

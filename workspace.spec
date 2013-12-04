@@ -944,20 +944,20 @@ module Workspace {
 	
 	/* **************** Type registering functions ******************** */
 	
-	/* A KBase Interface Definition Language (KIDL) typespec. */
+	/* A type specification (typespec) file in the KBase Interface Description Language (KIDL). */
 	typedef string typespec;
 	 
-	/* The module name of a KIDL typespec. */
+	/* A module name defined in a KIDL typespec. */
 	typedef string modulename;
 	
-	/* The name of a type in a KIDL typespec module. */
+	/* A type definition name in a KIDL typespec. */
 	typedef string typename;
 
-	/* A function string.
+	/* A function string for referencing a funcdef.
 		Specifies the function and its version in a single string in the format
-		[module].[funcname]-[major].[minor]:
+		[modulename].[funcname]-[major].[minor]:
 		
-		module - a string. The module name of the typespec containing the function.
+		modulename - a string. The name of the module containing the function.
 		funcname - a string. The name of the function as assigned by the funcdef
 			statement.
 		major - an integer. The major version of the function. A change in the
@@ -974,23 +974,23 @@ module Workspace {
 	*/
 	typedef string func_string;
 	
-	/* The version of a typespec. */
+	/* The version of a typespec file. */
 	typedef int spec_version;
 	
-	/* The JSON Schema for a type. */
+	/* The JSON Schema (v4) representation of a type definition. */
 	typedef string jsonschema;
 	
 	authentication required;
 	
-	/* Request ownership of a module name. */
+	/* Request ownership of a module name. A Workspace administrator must approve the request. */
 	funcdef request_module_ownership(modulename mod) returns();
 	
-	/* Parameters for the compile_typespec function.
+	/* Parameters for the register_typespec function.
 	
 		Required arguments:
 		One of:
-		typespec spec - the new typespec to compile.
-		modulename mod - the module to recompile.
+		 typespec spec - the new typespec to register.
+		 modulename mod - the module to recompile with updated options (see below).
 		
 		Optional arguments:
 		boolean dryrun - Return, but do not save, the results of compiling the 
@@ -1020,22 +1020,23 @@ module Workspace {
 		mapping<modulename, spec_version> dependencies;
 		boolean dryrun;
 		spec_version prev_ver;
-	} CompileTypespecParams;
+	} RegisterTypespecParams;
 	
-	/* Compile a new typespec or recompile an existing typespec. 
+	/* Register a new typespec or recompile a previously registered typespec with new options.
+		See the documentation of RegisterTypespecParams for more details.
 		Also see the release_types function.
 	*/
-	funcdef compile_typespec(CompileTypespecParams params)
-		returns(mapping<type_string, jsonschema>);
-
+	funcdef register_typespec(RegisterTypespecParams params)
+		returns (mapping<type_string,jsonschema>);
+	
 	/* 
-	Compile a copy of new typespec or recompile an existing typespec which is loaded 
+	Register a copy of new typespec or refresh an existing typespec which is loaded 
 	from another workspace for synchronization. Method returns new version of module 
 	in current workspace. Also see the release_types function.
 	*/
-	funcdef compile_typespec_copy(string external_workspace_url, modulename mod, 
+	funcdef register_typespec_copy(string external_workspace_url, modulename mod, 
 		spec_version version_in_external_workspace) returns(spec_version new_local_version);
-		
+	
 	/* Release a module for general use of its types.
 		
 		Releases the most recent version of a module. Releasing a module does
