@@ -234,7 +234,7 @@ public class JsonServerServlet extends HttpServlet {
 			InputStream input = request.getInputStream();
 			JsonNode node;
 			try {
-				node = mapper.readTree(new UnclosableInputStream(input));
+				node = mapper.readTree(new KBaseJsonParser(mapper.getFactory(), new UnclosableInputStream(input)));
 			} catch (Exception ex) {
 				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", output);
 				return;

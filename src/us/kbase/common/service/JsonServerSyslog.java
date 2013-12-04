@@ -17,6 +17,9 @@ import org.productivity.java.syslog4j.SyslogIF;
 import org.productivity.java.syslog4j.impl.unix.socket.UnixSocketSyslog;
 import org.productivity.java.syslog4j.impl.unix.socket.UnixSocketSyslogConfig;
 
+/**
+ * Class is used by server side for logging into linux/macos system syslog.
+ */
 public class JsonServerSyslog {
 	private final String serviceName;
 	private final SyslogIF log;
@@ -107,6 +110,11 @@ public class JsonServerSyslog {
 	
 	public void logErr(Throwable err, String caller) {
 		List<String> messages = new ArrayList<String>();
+		extractErrorLines(err, false, messages);
+		log(LOG_LEVEL_ERR, caller, messages.toArray(new String[messages.size()]));
+	}
+
+	private void extractErrorLines(Throwable err, boolean isCause, List<String> messages) {
 		StackTraceElement[] st = err.getStackTrace();
 		int firstPos = 0;
 		String packageName = "us.kbase";
@@ -126,15 +134,18 @@ public class JsonServerSyslog {
 					(!st[lastPos].getClassName().equals(className2)))
 				break;
 		}
+		String errorPrefix = err.getClass().equals(Exception.class) ? "Error: " :
+			(err.getClass().getName() + ": ");
+		if (isCause)
+			errorPrefix = "Cause of error above: " + errorPrefix;
+		messages.add(errorPrefix + err.getMessage());
 		messages.add("Traceback (most recent call last):");
 		for (int pos = lastPos; pos >= firstPos; pos--) {
 			messages.add("Class \"" + st[pos].getClassName() + "\", file \"" + st[pos].getFileName() + 
 					"\", line " + st[pos].getLineNumber() + ", in " + st[pos].getMethodName());
 		}
-		String errorPrefix = err.getClass().equals(Exception.class) ? "Error: " :
-			(err.getClass().getName() + ": ");
-		messages.add(0, errorPrefix + err.getMessage());
-		log(LOG_LEVEL_ERR, caller, messages.toArray(new String[messages.size()]));
+		if (err.getCause() != null)
+			extractErrorLines(err.getCause(), true, messages);
 	}
 	
 	public void logInfo(String message) {
@@ -274,9 +285,7 @@ public class JsonServerSyslog {
 			String configPath = System.getProperty(configPathParam) == null ?
 					System.getenv(configPathParam) : System.getProperty(configPathParam);
 			if (configPath == null) {
-				file = new File("/etc/mlog/mlog.conf");
-				if (!file.exists())
-					return;
+				return;
 			} else {
 				file = new File(configPath);
 			}
