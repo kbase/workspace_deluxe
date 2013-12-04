@@ -46,7 +46,7 @@ import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
-import us.kbase.workspace.CompileTypespecParams;
+import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.ListModuleVersionsParams;
@@ -179,7 +179,7 @@ public class JSONRPCLayerTest {
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
-		CLIENT1.compileTypespec(new CompileTypespecParams()
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
@@ -191,25 +191,25 @@ public class JSONRPCLayerTest {
 		clientForSrv2.setAuthAllowedForHttp(true);
 		clientForSrv2.requestModuleOwnership("SomeModule");
 		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
-		clientForSrv2.compileTypespec(new CompileTypespecParams()
+		clientForSrv2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		clientForSrv2.releaseModule("SomeModule");
 		clientForSrv2.requestModuleOwnership("DepModule");
 		administerCommand(clientForSrv2, "approveModRequest", "module", "DepModule");
-		clientForSrv2.compileTypespec(new CompileTypespecParams()
+		clientForSrv2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Arrays.asList("BType")));
 		clientForSrv2.releaseModule("DepModule");
-		clientForSrv2.compileTypespec(new CompileTypespecParams()
+		clientForSrv2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Collections.<String>emptyList()));
 		clientForSrv2.releaseModule("SomeModule");
-		clientForSrv2.compileTypespec(new CompileTypespecParams()
+		clientForSrv2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
@@ -1208,7 +1208,7 @@ public class JSONRPCLayerTest {
 				"};";
 		CLIENT1.requestModuleOwnership("TestKBaseRefParsing");
 		administerCommand(CLIENT2, "approveModRequest", "module", "TestKBaseRefParsing");
-		CLIENT1.compileTypespec(new CompileTypespecParams()
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(specParseRef)
 			.withNewTypes(Arrays.asList("ParseRef")));
@@ -1343,7 +1343,7 @@ public class JSONRPCLayerTest {
 		for (long ver : vers.getVers()) {
 			boolean ok = true;
 			try {
-				CLIENT1.compileTypespecCopy(urlForSrv2, "DepModule", ver);
+				CLIENT1.registerTypespecCopy(urlForSrv2, "DepModule", ver);
 			} catch (Exception ignore) {
 				ok = false;
 			}
@@ -1367,7 +1367,7 @@ public class JSONRPCLayerTest {
 				"};";
 		CLIENT1.requestModuleOwnership("TestModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "TestModule");
-		CLIENT1.compileTypespec(new CompileTypespecParams()
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(spec)
 			.withNewTypes(Arrays.asList("Feature","Genome")));
