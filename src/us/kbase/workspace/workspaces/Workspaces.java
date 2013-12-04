@@ -62,8 +62,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
-	//TODO clone workspace
-	//TODO lock workspace, publish workspace
+	//TODO recompile with roman's changes to the type compiler
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get objects by ref chain
@@ -226,11 +225,25 @@ public class Workspaces {
 	}
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
-			final String wsname, boolean globalread, String description)
+			final String wsname, boolean globalread, final String description)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
 		return db.createWorkspace(user, wsname, globalread,
+				pruneWorkspaceDescription(description));
+	}
+	
+	//TODO test
+	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final String newname,
+			final boolean globalread, final String description)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException,
+			PreExistingWorkspaceException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
+				"read");
+		new WorkspaceIdentifier(newname, user); //check for errors
+		return db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description));
 	}
 	

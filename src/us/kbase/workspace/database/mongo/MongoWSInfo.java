@@ -71,6 +71,11 @@ public class MongoWSInfo implements WorkspaceInformation {
 	}
 	
 	@Override
+	public boolean isLocked() {
+		return locked;
+	}
+	
+	@Override
 	public String getLockState() {
 		if (!locked) {
 			return UNLOCKED;

@@ -1,6 +1,8 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
+import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
@@ -24,6 +26,7 @@ import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -300,5 +303,18 @@ public class ArgUtils {
 			return false;
 		}
 		return b != 0;
+	}
+	
+	public Permission getGlobalWSPerm(final String globalRead) {
+		Permission p = Permission.NONE;
+		if (globalRead != null) {
+			if (!globalRead.equals(PERM_READ) && 
+					!globalRead.equals(PERM_NONE)) {
+				throw new IllegalArgumentException(String.format(
+						"globalread must be %s or %s", PERM_NONE, PERM_READ));
+			}
+			p = translatePermission(globalRead);
+		}
+		return p;
 	}
 }

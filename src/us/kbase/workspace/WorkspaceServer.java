@@ -14,8 +14,6 @@ import us.kbase.common.service.UObject;
 //BEGIN_HEADER
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
-import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
-import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
@@ -210,8 +208,10 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws = null;
 				wsadmin = null;
 			} else {
-				System.out.println(String.format("Initialized %s backend", db.getBackendType()));
-				logInfo(String.format("Initialized %s backend", db.getBackendType()));
+				System.out.println(String.format("Initialized %s backend",
+						db.getBackendType()));
+				logInfo(String.format("Initialized %s backend",
+						db.getBackendType()));
 				ws = new Workspaces(db, new KBaseReferenceParser());
 				wsadmin = new WorkspaceAdministration(ws);
 				wsadmin.addAdministrator(wsConfig.get(WSADMIN));
@@ -231,21 +231,39 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.create_workspace")
     public Tuple8<Long, String, String, String, Long, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple8<Long, String, String, String, Long, String, String, String> returnVal = null;
-        //BEGIN create_workspace
+		//BEGIN create_workspace
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = Permission.NONE;
-		if (params.getGlobalread() != null) {
-			if (!params.getGlobalread().equals(PERM_READ) && !params.getGlobalread().equals(PERM_NONE)) {
-				throw new IllegalArgumentException(String.format(
-						"globalread must be %s or %s", PERM_NONE, PERM_READ));
-			}
-			p = translatePermission(params.getGlobalread());
-		}
+		Permission p = au.getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(getUser(authPart),
 				params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription());
 		returnVal = au.wsInfoToTuple(meta);
         //END create_workspace
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: clone_workspace</p>
+     * <pre>
+     * Creates a new workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.CloneWorkspaceParams CloneWorkspaceParams}
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the approximate number of objects currently stored in the workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable.) &rarr; tuple of size 8: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.)
+     */
+    @JsonServerMethod(rpc = "Workspace.clone_workspace")
+    public Tuple8<Long, String, String, String, Long, String, String, String> cloneWorkspace(CloneWorkspaceParams params, AuthToken authPart) throws Exception {
+        Tuple8<Long, String, String, String, Long, String, String, String> returnVal = null;
+        //BEGIN clone_workspace
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		Permission p = au.getGlobalWSPerm(params.getGlobalread());
+		final WorkspaceIdentifier wsi =
+				processWorkspaceIdentifier(params.getWsi());
+		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
+				wsi, params.getWorkspace(), p.equals(Permission.READ),
+				params.getDescription());
+		returnVal = au.wsInfoToTuple(meta);
+		//TODO test
+        //END clone_workspace
         return returnVal;
     }
 

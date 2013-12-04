@@ -39,6 +39,12 @@ public interface WorkspaceDatabase {
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
+	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
+			ResolvedWorkspaceID wsid, String newname, boolean globalread,
+			String description)
+			throws PreExistingWorkspaceException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;

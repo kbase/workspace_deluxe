@@ -197,6 +197,132 @@ sub create_workspace
 
 
 
+=head2 clone_workspace
+
+  $info = $obj->clone_workspace($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.CloneWorkspaceParams
+$info is a Workspace.workspace_info
+CloneWorkspaceParams is a reference to a hash where the following keys are defined:
+	wsi has a value which is a Workspace.WorkspaceIdentity
+	workspace has a value which is a Workspace.ws_name
+	globalread has a value which is a Workspace.permission
+	description has a value which is a string
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+permission is a string
+workspace_info is a reference to a list containing 8 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
+username is a string
+timestamp is a string
+lock_status is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.CloneWorkspaceParams
+$info is a Workspace.workspace_info
+CloneWorkspaceParams is a reference to a hash where the following keys are defined:
+	wsi has a value which is a Workspace.WorkspaceIdentity
+	workspace has a value which is a Workspace.ws_name
+	globalread has a value which is a Workspace.permission
+	description has a value which is a string
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+permission is a string
+workspace_info is a reference to a list containing 8 items:
+	0: (id) a Workspace.ws_id
+	1: (workspace) a Workspace.ws_name
+	2: (owner) a Workspace.username
+	3: (moddate) a Workspace.timestamp
+	4: (object) an int
+	5: (user_permission) a Workspace.permission
+	6: (globalread) a Workspace.permission
+	7: (lockstat) a Workspace.lock_status
+username is a string
+timestamp is a string
+lock_status is a string
+
+
+=end text
+
+=item Description
+
+Creates a new workspace.
+
+=back
+
+=cut
+
+sub clone_workspace
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function clone_workspace (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to clone_workspace:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'clone_workspace');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.clone_workspace",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'clone_workspace',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method clone_workspace",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'clone_workspace',
+				       );
+    }
+}
+
+
+
 =head2 lock_workspace
 
   $info = $obj->lock_workspace($wsi)
@@ -5937,9 +6063,9 @@ Input parameters for the "create_workspace" function.
         ws_name workspace - name of the workspace to be created.
         
         Optional arguments:
-        permission globalread - 'r' to set workspace globally readable,
+        permission globalread - 'r' to set the new workspace globally readable,
                 default 'n'.
-        string description - A free-text description of the workspace, 1000
+        string description - A free-text description of the new workspace, 1000
                 characters max. Longer strings will be mercilessly and brutally
                 truncated.
 
@@ -5961,6 +6087,62 @@ description has a value which is a string
 =begin text
 
 a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+globalread has a value which is a Workspace.permission
+description has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 CloneWorkspaceParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "clone_workspace" function.
+
+        Note that deleted objects are not cloned, although hidden objects are
+        and remain hidden in the new workspace.
+
+        Required arguments:
+        WorkspaceIdentity wsi - the workspace to be cloned.
+        ws_name workspace - name of the workspace to be cloned into. This must
+                be a non-existant workspace name.
+        
+        Optional arguments:
+        permission globalread - 'r' to set the new workspace globally readable,
+                default 'n'.
+        string description - A free-text description of the new workspace, 1000
+                characters max. Longer strings will be mercilessly and brutally
+                truncated.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+wsi has a value which is a Workspace.WorkspaceIdentity
+workspace has a value which is a Workspace.ws_name
+globalread has a value which is a Workspace.permission
+description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+wsi has a value which is a Workspace.WorkspaceIdentity
 workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string

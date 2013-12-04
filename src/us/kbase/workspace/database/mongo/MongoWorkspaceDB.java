@@ -407,6 +407,55 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				Permission.OWNER, globalRead, false);
 	}
 	
+	private static final Set<String> FLDS_CLONE_WS =
+			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
+					Fields.OBJ_HIDE);
+
+	@Override
+	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
+			final ResolvedWorkspaceID wsid, final String newname,
+			final boolean globalRead, final String description)
+			throws PreExistingWorkspaceException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		// looked at using copyObject to do this but was too messy
+		final ResolvedMongoWSID fromWS = query.convertResolvedWSID(wsid);
+		final WorkspaceInformation wsinfo =
+				createWorkspace(user, newname, globalRead, description);
+		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
+				wsinfo.getId(), wsinfo.isLocked());
+		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
+		final List<Map<String, Object>> wsobjects =
+				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS);
+		for (Map<String, Object> o: wsobjects) {
+			if ((Boolean) o.get(Fields.OBJ_DEL)) {
+				continue;
+			}
+			final long oldid = (Long) o.get(Fields.OBJ_ID);
+			final String name = (String) o.get(Fields.OBJ_NAME);
+			final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
+			final ResolvedMongoObjectIDNoVer roi = 
+					new ResolvedMongoObjectIDNoVer(fromWS, name, oldid);
+			final List<Map<String, Object>> versions = query.queryAllVersions(
+					new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(roi)),
+					FLDS_VER_COPYOBJ).get(roi);
+			for (final Map<String, Object> v: versions) {
+				final int ver = (Integer) v.get(Fields.VER_VER);
+				v.remove(Fields.MONGO_ID);
+				v.put(Fields.VER_SAVEDBY, user.getUser());
+				v.put(Fields.VER_RVRT, null);
+				//TODO test copy saved in internals
+				v.put(Fields.VER_COPIED, new MongoReference(
+						fromWS.getID(), oldid, ver).toString());
+			}
+			//TODO test copy ref counts works in internals
+			updateReferenceCountsForVersions(versions);
+			final long newid = incrementWorkspaceCounter(toWS, 1);
+			final long objid = saveWorkspaceObject(toWS, newid, name).id;
+			saveObjectVersions(user, toWS, objid, versions, hidden);
+		}
+		return getWorkspaceInformation(user, toWS);
+	}
+	
 	private final static String M_LOCK_WS_QRY = String.format("{%s: #}",
 			Fields.WS_ID);
 	private final static String M_LOCK_WS_WTH = String.format("{$set: {%s: #}}",
@@ -508,8 +557,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			objid = rto.getId();
 		}
-		saveObjectVersions(user, toWS, objid, versions,
-				false);
+		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
 		return generateObjectInfo(toWS, objid, rto == null ? to.getName() :
 				rto.getName(), info);
@@ -966,10 +1014,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
+	private static final String M_SAVEINS_NO_HIDE_WTH = String.format(
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: 0}}",
+			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
+			Fields.OBJ_LATEST, Fields.OBJ_REFCOUNTS);
 	
 	private void saveObjectVersions(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
-			final List<Map<String, Object>> versions, final boolean hidden)
+			final List<Map<String, Object>> versions, final Boolean hidden)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
 		/* TODO deal with rare failure modes below as much as possible at some point. Not high prio since rare
@@ -981,16 +1033,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * have queryVersions pull the right version if it's missing. Make a test for this.
 		 * Have queryVersions revert to the newest version if the latest is missing, autorevert
 		 * 
-		 * None of the above addresses the objedt w/ 0 versions failure. Not sure what to do about that.
+		 * None of the above addresses the object w/ 0 versions failure. Not sure what to do about that.
 		 * 
 		*/
 		int ver;
 		final Date saved = new Date();
 		try {
-			ver = (Integer) wsjongo.getCollection(COL_WORKSPACE_OBJS)
+			FindAndModify q = wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
-					.returnNew()
-					.with(M_SAVEINS_WTH, versions.size(), saved, hidden)
+					.returnNew();
+			if (hidden == null) {
+				q = q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
+						saved);
+			} else {
+				q = q.with(M_SAVEINS_WTH, versions.size(), saved,
+						hidden);
+			}
+			ver = (Integer) q
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)
 					.get(Fields.OBJ_VCNT)
 					- versions.size() + 1;

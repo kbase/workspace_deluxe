@@ -312,9 +312,9 @@ module Workspace {
 		ws_name workspace - name of the workspace to be created.
 		
 		Optional arguments:
-		permission globalread - 'r' to set workspace globally readable,
+		permission globalread - 'r' to set the new workspace globally readable,
 			default 'n'.
-		string description - A free-text description of the workspace, 1000
+		string description - A free-text description of the new workspace, 1000
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
 	*/
@@ -329,6 +329,36 @@ module Workspace {
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
 		(workspace_info info);
+		
+	/* Input parameters for the "clone_workspace" function.
+	
+		Note that deleted objects are not cloned, although hidden objects are
+		and remain hidden in the new workspace.
+	
+		Required arguments:
+		WorkspaceIdentity wsi - the workspace to be cloned.
+		ws_name workspace - name of the workspace to be cloned into. This must
+			be a non-existant workspace name.
+		
+		Optional arguments:
+		permission globalread - 'r' to set the new workspace globally readable,
+			default 'n'.
+		string description - A free-text description of the new workspace, 1000
+			characters max. Longer strings will be mercilessly and brutally
+			truncated.
+	*/
+	typedef structure { 
+		WorkspaceIdentity wsi;
+		ws_name workspace;
+		permission globalread;
+		string description;
+	} CloneWorkspaceParams;
+	
+	/*
+		Creates a new workspace.
+	*/
+	funcdef clone_workspace(CloneWorkspaceParams params) returns
+		(workspace_info info);
 	
 	/* Lock a workspace, preventing further changes.
 	
@@ -341,7 +371,6 @@ module Workspace {
 		workspace cannot be made private.
 	*/
 	funcdef lock_workspace(WorkspaceIdentity wsi) returns(workspace_info info);
-	
 	
 	authentication optional;
 	
