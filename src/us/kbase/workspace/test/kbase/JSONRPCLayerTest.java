@@ -46,6 +46,7 @@ import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetModuleInfoParams;
@@ -1343,7 +1344,9 @@ public class JSONRPCLayerTest {
 		for (long ver : vers.getVers()) {
 			boolean ok = true;
 			try {
-				CLIENT1.registerTypespecCopy(urlForSrv2, "DepModule", ver);
+				CLIENT1.registerTypespecCopy(new RegisterTypespecCopyParams()
+					.withExternalWorkspaceUrl(urlForSrv2).withMod("DepModule")
+					.withVersion(ver));
 			} catch (Exception ignore) {
 				ok = false;
 			}

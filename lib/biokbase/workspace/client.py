@@ -1307,10 +1307,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def register_typespec_copy(self, external_workspace_url, mod, version_in_external_workspace):
+    def register_typespec_copy(self, params):
 
         arg_hash = {'method': 'Workspace.register_typespec_copy',
-                    'params': [external_workspace_url, mod, version_in_external_workspace],
+                    'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }
@@ -1517,10 +1517,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def translate_from_MD5_types(self, arg_1):
+    def translate_from_MD5_types(self, md5_types):
 
         arg_hash = {'method': 'Workspace.translate_from_MD5_types',
-                    'params': [arg_1],
+                    'params': [md5_types],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }
@@ -1552,10 +1552,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def translate_to_MD5_types(self, arg_1):
+    def translate_to_MD5_types(self, sem_types):
 
         arg_hash = {'method': 'Workspace.translate_to_MD5_types',
-                    'params': [arg_1],
+                    'params': [sem_types],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }

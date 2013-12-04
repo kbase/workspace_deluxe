@@ -944,7 +944,9 @@ module Workspace {
 	
 	/* **************** Type registering functions ******************** */
 	
-	/* A type specification (typespec) file in the KBase Interface Description Language (KIDL). */
+	/* A type specification (typespec) file in the KBase Interface Description
+		Language (KIDL).
+	*/
 	typedef string typespec;
 	 
 	/* A module name defined in a KIDL typespec. */
@@ -982,7 +984,9 @@ module Workspace {
 	
 	authentication required;
 	
-	/* Request ownership of a module name. A Workspace administrator must approve the request. */
+	/* Request ownership of a module name. A Workspace administrator
+		must approve the request.
+	*/
 	funcdef request_module_ownership(modulename mod) returns();
 	
 	/* Parameters for the register_typespec function.
@@ -1022,20 +1026,40 @@ module Workspace {
 		spec_version prev_ver;
 	} RegisterTypespecParams;
 	
-	/* Register a new typespec or recompile a previously registered typespec with new options.
+	/* Register a new typespec or recompile a previously registered typespec
+		with new options.
 		See the documentation of RegisterTypespecParams for more details.
 		Also see the release_types function.
 	*/
 	funcdef register_typespec(RegisterTypespecParams params)
 		returns (mapping<type_string,jsonschema>);
 	
-	/* 
-	Register a copy of new typespec or refresh an existing typespec which is loaded 
-	from another workspace for synchronization. Method returns new version of module 
-	in current workspace. Also see the release_types function.
+	/* Parameters for the register_typespec_copy function.
+	
+		Required arguments:
+		string external_workspace_url - the URL of the  workspace server from
+			which to copy a typespec.
+		modulename mod - the name of the module in the workspace server
+		
+		Optional arguments:
+		spec_version version - the version of the module in the workspace
+			server
+
 	*/
-	funcdef register_typespec_copy(string external_workspace_url, modulename mod, 
-		spec_version version_in_external_workspace) returns(spec_version new_local_version);
+	typedef structure {
+		string external_workspace_url;
+		modulename mod;
+		spec_version version;
+	} RegisterTypespecCopyParams;
+	
+	/* Register a copy of new typespec or refresh an existing typespec which is
+		loaded from another workspace for synchronization. Method returns new
+		version of module in current workspace.
+		
+		Also see the release_types function.
+	*/
+	funcdef register_typespec_copy(RegisterTypespecCopyParams params)
+		returns(spec_version new_local_version);
 	
 	/* Release a module for general use of its types.
 		
@@ -1140,12 +1164,12 @@ module Workspace {
 	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
 
 	/* Translation from types qualified with MD5 to their semantic versions */
-	funcdef translate_from_MD5_types(list<type_string>) 
-		returns(mapping<type_string, list<type_string>>);
+	funcdef translate_from_MD5_types(list<type_string> md5_types) 
+		returns(mapping<type_string, list<type_string>> sem_types);
 
 	/* Translation from types qualified with semantic versions to their MD5'ed versions */
-	funcdef translate_to_MD5_types(list<type_string>) 
-		returns(mapping<type_string, type_string>);
+	funcdef translate_to_MD5_types(list<type_string> sem_types) 
+		returns(mapping<type_string, type_string> md5_types);
 
 	/* Information about a type
 	
@@ -1173,7 +1197,7 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} TypeInfo;
 	
-	funcdef get_type_info(type_string type) returns (TypeInfo);
+	funcdef get_type_info(type_string type) returns (TypeInfo info);
 	
 	/* Information about function
 	
@@ -1195,7 +1219,7 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} FuncInfo;
 	
-	funcdef get_func_info(func_string func) returns (FuncInfo);
+	funcdef get_func_info(func_string func) returns (FuncInfo info);
 		
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)

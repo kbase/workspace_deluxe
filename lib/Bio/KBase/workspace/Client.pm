@@ -3883,7 +3883,8 @@ modulename is a string
 
 =item Description
 
-Request ownership of a module name. A Workspace administrator must approve the request.
+Request ownership of a module name. A Workspace administrator
+must approve the request.
 
 =back
 
@@ -3993,7 +3994,8 @@ jsonschema is a string
 
 =item Description
 
-Register a new typespec or recompile a previously registered typespec with new options.
+Register a new typespec or recompile a previously registered typespec
+with new options.
 See the documentation of RegisterTypespecParams for more details.
 Also see the release_types function.
 
@@ -4049,7 +4051,7 @@ sub register_typespec
 
 =head2 register_typespec_copy
 
-  $new_local_version = $obj->register_typespec_copy($external_workspace_url, $mod, $version_in_external_workspace)
+  $new_local_version = $obj->register_typespec_copy($params)
 
 =over 4
 
@@ -4058,10 +4060,12 @@ sub register_typespec
 =begin html
 
 <pre>
-$external_workspace_url is a string
-$mod is a Workspace.modulename
-$version_in_external_workspace is a Workspace.spec_version
+$params is a Workspace.RegisterTypespecCopyParams
 $new_local_version is a Workspace.spec_version
+RegisterTypespecCopyParams is a reference to a hash where the following keys are defined:
+	external_workspace_url has a value which is a string
+	mod has a value which is a Workspace.modulename
+	version has a value which is a Workspace.spec_version
 modulename is a string
 spec_version is an int
 
@@ -4071,10 +4075,12 @@ spec_version is an int
 
 =begin text
 
-$external_workspace_url is a string
-$mod is a Workspace.modulename
-$version_in_external_workspace is a Workspace.spec_version
+$params is a Workspace.RegisterTypespecCopyParams
 $new_local_version is a Workspace.spec_version
+RegisterTypespecCopyParams is a reference to a hash where the following keys are defined:
+	external_workspace_url has a value which is a string
+	mod has a value which is a Workspace.modulename
+	version has a value which is a Workspace.spec_version
 modulename is a string
 spec_version is an int
 
@@ -4083,9 +4089,11 @@ spec_version is an int
 
 =item Description
 
-Register a copy of new typespec or refresh an existing typespec which is loaded 
-from another workspace for synchronization. Method returns new version of module 
-in current workspace. Also see the release_types function.
+Register a copy of new typespec or refresh an existing typespec which is
+loaded from another workspace for synchronization. Method returns new
+version of module in current workspace.
+
+Also see the release_types function.
 
 =back
 
@@ -4097,18 +4105,16 @@ sub register_typespec_copy
 
 # Authentication: required
 
-    if ((my $n = @args) != 3)
+    if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function register_typespec_copy (received $n, expecting 3)");
+							       "Invalid argument count for function register_typespec_copy (received $n, expecting 1)");
     }
     {
-	my($external_workspace_url, $mod, $version_in_external_workspace) = @args;
+	my($params) = @args;
 
 	my @_bad_arguments;
-        (!ref($external_workspace_url)) or push(@_bad_arguments, "Invalid type for argument 1 \"external_workspace_url\" (value was \"$external_workspace_url\")");
-        (!ref($mod)) or push(@_bad_arguments, "Invalid type for argument 2 \"mod\" (value was \"$mod\")");
-        (!ref($version_in_external_workspace)) or push(@_bad_arguments, "Invalid type for argument 3 \"version_in_external_workspace\" (value was \"$version_in_external_workspace\")");
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to register_typespec_copy:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -4625,7 +4631,7 @@ sub get_jsonschema
 
 =head2 translate_from_MD5_types
 
-  $return = $obj->translate_from_MD5_types($arg_1)
+  $sem_types = $obj->translate_from_MD5_types($md5_types)
 
 =over 4
 
@@ -4634,8 +4640,8 @@ sub get_jsonschema
 =begin html
 
 <pre>
-$arg_1 is a reference to a list where each element is a Workspace.type_string
-$return is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
+$md5_types is a reference to a list where each element is a Workspace.type_string
+$sem_types is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
 type_string is a string
 
 </pre>
@@ -4644,8 +4650,8 @@ type_string is a string
 
 =begin text
 
-$arg_1 is a reference to a list where each element is a Workspace.type_string
-$return is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
+$md5_types is a reference to a list where each element is a Workspace.type_string
+$sem_types is a reference to a hash where the key is a Workspace.type_string and the value is a reference to a list where each element is a Workspace.type_string
 type_string is a string
 
 
@@ -4671,10 +4677,10 @@ sub translate_from_MD5_types
 							       "Invalid argument count for function translate_from_MD5_types (received $n, expecting 1)");
     }
     {
-	my($arg_1) = @args;
+	my($md5_types) = @args;
 
 	my @_bad_arguments;
-        (ref($arg_1) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"arg_1\" (value was \"$arg_1\")");
+        (ref($md5_types) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"md5_types\" (value was \"$md5_types\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to translate_from_MD5_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -4707,7 +4713,7 @@ sub translate_from_MD5_types
 
 =head2 translate_to_MD5_types
 
-  $return = $obj->translate_to_MD5_types($arg_1)
+  $md5_types = $obj->translate_to_MD5_types($sem_types)
 
 =over 4
 
@@ -4716,8 +4722,8 @@ sub translate_from_MD5_types
 =begin html
 
 <pre>
-$arg_1 is a reference to a list where each element is a Workspace.type_string
-$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
+$sem_types is a reference to a list where each element is a Workspace.type_string
+$md5_types is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
 type_string is a string
 
 </pre>
@@ -4726,8 +4732,8 @@ type_string is a string
 
 =begin text
 
-$arg_1 is a reference to a list where each element is a Workspace.type_string
-$return is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
+$sem_types is a reference to a list where each element is a Workspace.type_string
+$md5_types is a reference to a hash where the key is a Workspace.type_string and the value is a Workspace.type_string
 type_string is a string
 
 
@@ -4753,10 +4759,10 @@ sub translate_to_MD5_types
 							       "Invalid argument count for function translate_to_MD5_types (received $n, expecting 1)");
     }
     {
-	my($arg_1) = @args;
+	my($sem_types) = @args;
 
 	my @_bad_arguments;
-        (ref($arg_1) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"arg_1\" (value was \"$arg_1\")");
+        (ref($sem_types) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"sem_types\" (value was \"$sem_types\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to translate_to_MD5_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -4789,7 +4795,7 @@ sub translate_to_MD5_types
 
 =head2 get_type_info
 
-  $return = $obj->get_type_info($type)
+  $info = $obj->get_type_info($type)
 
 =over 4
 
@@ -4799,7 +4805,7 @@ sub translate_to_MD5_types
 
 <pre>
 $type is a Workspace.type_string
-$return is a Workspace.TypeInfo
+$info is a Workspace.TypeInfo
 type_string is a string
 TypeInfo is a reference to a hash where the following keys are defined:
 	type_def has a value which is a Workspace.type_string
@@ -4820,7 +4826,7 @@ func_string is a string
 =begin text
 
 $type is a Workspace.type_string
-$return is a Workspace.TypeInfo
+$info is a Workspace.TypeInfo
 type_string is a string
 TypeInfo is a reference to a hash where the following keys are defined:
 	type_def has a value which is a Workspace.type_string
@@ -4893,7 +4899,7 @@ sub get_type_info
 
 =head2 get_func_info
 
-  $return = $obj->get_func_info($func)
+  $info = $obj->get_func_info($func)
 
 =over 4
 
@@ -4903,7 +4909,7 @@ sub get_type_info
 
 <pre>
 $func is a Workspace.func_string
-$return is a Workspace.FuncInfo
+$info is a Workspace.FuncInfo
 func_string is a string
 FuncInfo is a reference to a hash where the following keys are defined:
 	func_def has a value which is a Workspace.func_string
@@ -4922,7 +4928,7 @@ type_string is a string
 =begin text
 
 $func is a Workspace.func_string
-$return is a Workspace.FuncInfo
+$info is a Workspace.FuncInfo
 func_string is a string
 FuncInfo is a reference to a hash where the following keys are defined:
 	func_def has a value which is a Workspace.func_string
@@ -7092,7 +7098,8 @@ to has a value which is a Workspace.ObjectIdentity
 
 =item Description
 
-A type specification (typespec) file in the KBase Interface Description Language (KIDL).
+A type specification (typespec) file in the KBase Interface Description
+Language (KIDL).
 
 
 =item Definition
@@ -7351,6 +7358,54 @@ remove_types has a value which is a reference to a list where each element is a 
 dependencies has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 dryrun has a value which is a Workspace.boolean
 prev_ver has a value which is a Workspace.spec_version
+
+
+=end text
+
+=back
+
+
+
+=head2 RegisterTypespecCopyParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the register_typespec_copy function.
+
+        Required arguments:
+        string external_workspace_url - the URL of the  workspace server from
+                which to copy a typespec.
+        modulename mod - the name of the module in the workspace server
+        
+        Optional arguments:
+        spec_version version - the version of the module in the workspace
+                server
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+external_workspace_url has a value which is a string
+mod has a value which is a Workspace.modulename
+version has a value which is a Workspace.spec_version
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+external_workspace_url has a value which is a string
+mod has a value which is a Workspace.modulename
+version has a value which is a Workspace.spec_version
 
 
 =end text
