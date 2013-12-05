@@ -2,7 +2,7 @@ WORKSPACE SERVICE OVERVIEW
 -----------------------------------------
 The Workspace Service (WSS) is primarily a language independent remote storage
 and retrieval system for KBase typed objects (TO) defined with the KBase
-Interface Definition Language (KIDL). It has the following primary features:
+Interface Description Language (KIDL). It has the following primary features:
 - Immutable storage of TOs with
 	- user defined metadata 
 	- data provenance
