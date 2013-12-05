@@ -55,9 +55,8 @@ public class WorkspaceAdministration {
 				return null;
 			}
 			if ("listAdmins".equals(fn)) {
-				final Set<WorkspaceUser> admins = ws.getAdmins();
 				final Set<String> strAdm = new HashSet<String>();
-				for (final WorkspaceUser u: admins) {
+				for (final WorkspaceUser u: ws.getAdmins()) {
 					strAdm.add(u.getUser());
 				}
 				strAdm.addAll(internaladmins);
@@ -88,7 +87,6 @@ public class WorkspaceAdministration {
 		} else {
 			ws.addAdmin(new WorkspaceUser(user));
 		}
-		
 	}
 
 	private void approveModRequest(final String module, final boolean approve)
