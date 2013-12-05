@@ -73,5 +73,8 @@ public class Fields {
 	public static final String SHOCK_CHKSUM = "chksum";
 	public static final String SHOCK_NODE = "node";
 	public static final String SHOCK_VER = "ver";
+	
+	// admin fields
+	public static final String ADMIN_NAME = "user";
 
 }

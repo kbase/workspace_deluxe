@@ -213,8 +213,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo(String.format("Initialized %s backend",
 						db.getBackendType()));
 				ws = new Workspaces(db, new KBaseReferenceParser());
-				wsadmin = new WorkspaceAdministration(ws);
-				wsadmin.addAdministrator(wsConfig.get(WSADMIN));
+				wsadmin = new WorkspaceAdministration(ws, wsConfig.get(WSADMIN));
 			}
 		}
         //END_CONSTRUCTOR
