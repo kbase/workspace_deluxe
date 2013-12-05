@@ -1,19 +1,24 @@
 /*
 
-The workspace service at its core is a storage and retrieval system for 
-typed objects. Objects are organized by the user into one or more workspaces.
+The Workspace Service (WSS) is primarily a language independent remote storage
+and retrieval system for KBase typed objects (TO) defined with the KBase
+Interface Definition Language (KIDL). It has the following primary features:
+- Immutable storage of TOs with
+	- user defined metadata 
+	- data provenance
+- Versioning of TOs
+- Referencing from TO to TO
+- Typechecking of all saved objects against a KIDL specification
+- Collecting typed objects into a workspace
+- Sharing workspaces with specific KBase users or the world
+- Freezing and publishing workspaces
 
-Features:
+Size limits:
+TOs are limited to 1GB
+TO subdata is limited to 15MB
+TO provenance is limited to 1MB
 
-Versioning of objects
-Data provenenance
-Object to object references
-Workspace sharing
-***Add stuff here***
-
-Notes about deletion and GC
-
-BINARY DATA:
+NOTE ON BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
 Attempting to send binary data via a workspace client will cause errors.
 

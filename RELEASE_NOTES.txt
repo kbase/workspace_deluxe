@@ -1,0 +1,244 @@
+WORKSPACE SERVICE OVERVIEW
+-----------------------------------------
+The Workspace Service (WSS) is primarily a language independent remote storage
+and retrieval system for KBase typed objects (TO) defined with the KBase
+Interface Definition Language (KIDL). It has the following primary features:
+- Immutable storage of TOs with
+	- user defined metadata 
+	- data provenance
+- Versioning of TOs
+- Referencing from TO to TO
+- Typechecking of all saved objects against a KIDL specification
+- Collecting typed objects into a workspace
+- Sharing workspaces with specific KBase users or the world
+- Freezing and publishing workspaces
+
+Size limits:
+TOs are limited to 1GB
+TO subdata is limited to 15MB
+TO provenance is limited to 1MB
+
+VERSION: 0.1.0 (Released TBD)
+--------------------------------------
+PREAMBLE:
+0.1.0 is a complete rewrite of the workspace service and thus has many changes
+to the API. A function change list is below.
+
+NEW FEATURES:
+- The WSS is configurable to save TOs in MongoDB/GridFS or Shock.
+- Load, compile, and view KIDL typespecs.
+- Objects are type checked against a KIDL typespec before saving.
+- Save provenance information with an object.
+- References to other workspace objects in a TO or TO provenance
+	are confirmed accessible and type checked before saving.
+- A list of references from a TO or TO provenance to other workspace objects is
+	saved and retrievable.
+- Hide objects. Hidden objects, by default, do not appear in the list_*
+	methods.
+- Lock a workspace, freezing it permanently. Locked, publicly readable
+	workspaces are published.
+- Workspaces and objects have a permanent autoincrementing ID as well as a
+	mutable name. An object may be addressed by any combination of the
+	workspace and object name or id plus a version number, or the KBase ID
+	kb|ws.[workspace id].obj.[object id].ver.[object version].
+- Workspaces may have a <1000 character description.
+- Workspace names may be prefixed by the user's username and a colon. This
+	provides a unique per user namespace for workspace names.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Many methods now operate on multiple objects rather than one object per
+	method call.
+- list_objects can list objects from multiple workspaces at once.
+- Rename an object or workspace.
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- Unified WS / Shock ACLs
+- Pointers to shock data too large to fit in the workspace
+- Get objects by reference chain
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing queue (share specific versions of objects)
+- Add mutable metadata to a workspace
+- Filter list_workspace_info by metadata, owner, permissions
+- Filter list_objects by metadata, owner, permissions
+- Import TOs from shock
+- Update copied objects from source
+- Return subset of object
+- Find TOs that reference another TO
+
+FUNCTION CHANGE LIST:
+
+- Deprecated functions, and their replacement -
+get_workspacemeta -> get_workspace_info
+get_objectmeta -> get_object_info
+save_object -> save_objects
+get_object -> get_objects
+list_workspaces -> list_workspace_info
+list_workspace_objects -> list_objects
+
+- Functions with an altered api. Please see the API documentation for details -
+create_workspace
+clone_workspace
+get_objects
+copy_object
+revert_object
+object_history -> get_object_history
+set_global_workspace_permissions -> set_global_permission
+set_workspace_permissions -> set_permissions
+get_workspacepermissions -> get_permissions
+delete_workspace -> deleted_workspace and undelete_workspace
+delete_object -> delete_objects and undelete_objects
+
+- Removed functions -
+move_object -> use rename_object or copy_object and delete_object
+has_object -> use get_object_info
+delete_object_permanently
+add_type -> various new functions below
+get_types -> various new functions below
+remove_type
+load_media_from_bio
+import_bio
+import_map
+queue_job -> AWE and / or the UserJobStateService
+set_job_status -> AWE and / or the UserJobStateService
+get_jobs -> AWE and / or the UserJobStateService
+get_object_by_ref
+save_object_by_ref
+get_objectmeta_by_ref
+get_user_settings -> UserJobStateService
+set_user_settings -> UserJobStateService
+
+- New functions -
+get_workspace_description
+set_workspace_description
+lock_workspace
+rename_workspace
+rename_object
+hide_objects
+unhide_objects
+request_module_ownership
+register_typespec
+register_typespec_copy
+release_module
+list_modules
+list_module_versions
+get_module_info
+get_jsonschema
+translate_from_MD5_types
+translate_to_MD5_types
+get_type_info
+get_func_info
+administer
+
+VERSION: 0.0.5 (Released 11/19/2013)
+--------------------------------------
+NEW FEATURES:
+- Type compiler provided embedded authorization works
+- Connect to mongodb databases requiring authorization
+- Optionally exclude world readable workspaces from the output of
+    list_workspaces()
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Authentication is required for all writes, including workspace creation. The
+    'public' user is now no different from any other user
+- Workspace default permissions are now limited to none and read only
+- A user must have at least read access to a workspace to get its metadata
+- Only the user's own permission level is now returned by 
+    get_workspacepermissions() if a user has read or write access to a workspace 
+- Only the workspace's owner can change the owner's permissions
+- Type names are now limited to ascii alphanumeric characters and _
+- Object names are now limited to ascii alphanumeric characters and .|_-
+- Object names must now be unique per workspace, even if the objects are
+    different types
+- Object and workspace names may not be integers
+- Removed one of the two python clients in lib/, as it was not being updated on
+    a make while the other was
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Shock integration
+- More rigorous handling of types using something like JSON schema
+- Rework of object references, automatic reference verification
+- Remove or alter many object deletion methods to prevent breaking references
+- Data provenance
+- Freeze and publish workspaces
+- Workspaces namespaced by user
+- Permissions for Globus groups
+- Workspace descriptions
+
+VERSION: 0.0.4 (Released 8/13/2013)
+--------------------------------------
+NEW FEATURES:
+- Connect to mongodb databases requiring authorization
+- get_objects() method
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Authentication will be required for all writes, including workspace creation. 
+    The 'public' user will be no different from any other user
+- Workspace default permissions will be limited to none and read only
+- A user must have at least read access to a workspace to get its metadata
+- Only the user's own permission level is returned by 
+    get_workspacepermissions() if a user has read or write access to a workspace 
+- Only the workspace's owner can change the owner's permissions
+- Type names will be limited to ascii alphanumeric characters and _
+- Object names will be limited to ascii alphanumeric characters and .|_-
+- Object names will be unique per workspace, even if the objects are
+    different types
+- Type compiler provided embedded authorization
+- Optionally exclude world readable workspaces from the output of
+    list_workspaces()
+- Shock integration
+- More rigorous handling of types using something like JSON schema
+- Rework of object references, automatic reference verification
+- Remove or alter many object deletion methods to prevent breaking references
+- Data provenance
+- Freeze and publish workspaces
+- Workspaces namespaced by user
+- Permissions for Globus groups
+- Workspace descriptions
+
+VERSION: 0.0.3 (Released 1/1/2012)
+------------------------------------------
+NEW FEATURES:
+-Added functions to manage the addition and removal of types.
+-Added functions to handle job management to support running jobs on local clusters
+-Added "instance" argument to "get_object" to enable users to access all object instances
+-Created a complete set of command line scripts for interacting with workspace
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+-Added ability to retrieve specific instances of objects
+-Fixed bug in deletion of workspaces
+-Fixed bug in object reversion
+-Fixed bug in object retrieval
+-Fixed bug in management of persistant state in workspace
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+-More strict rigorous handling of types using something like JSON scheme
+
+VERSION: 0.0.2 (Released 11/30/2012)
+------------------------------------------
+NEW FEATURES:
+-This is the first public release of the Workspace Services.
+-adjusted functions to accept arguments as a hash instead of an array
+-added ability to provide authentication token in input arguments
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+-none.
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+-add "instance" argument to "get_object" to enable users to access all object instances
+-add services to support management of types
+
+VERSION: 0.0.1 (Released 10/12/2012)
+------------------------------------------
+NEW FEATURES:
+-This is the first internal release of the Workspace Service, all methods are new.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+-none.
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+-public release of the service

@@ -764,7 +764,6 @@ public class Workspaces {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
-	//TODO tests for module registration/compile/list/update etc.
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
