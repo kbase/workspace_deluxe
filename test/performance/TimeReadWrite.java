@@ -13,7 +13,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 
-public class TimeShockClient {
+public class TimeReadWrite {
 	
 	private static final int writes = 100;
 	
