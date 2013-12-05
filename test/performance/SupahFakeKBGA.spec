@@ -1,7 +1,7 @@
 /*
 @author chenry
 */
-module KBGA {
+module SupahFakeKBGA {
     /*
     	Reference to a ContigSet object containing the contigs for this genome in the workspace
 		@id ws KBGA.ContigSet
