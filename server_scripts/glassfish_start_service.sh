@@ -72,9 +72,11 @@ $asadmin deploy --virtualservers server-${TARGET_PORT} --contextroot / --name ap
 curl -s localhost:${TARGET_PORT} | grep 32603 > /dev/null
 if [ $? -eq 0 ]; then
 	echo "The server failed to start up successfully and is running in protected mode. Please check the system and glassfish logs."
-fi
-
-curl -s localhost:${TARGET_PORT} | grep 32300 > /dev/null
-if [ $? -eq 1 ]; then
-	echo "The server failed to start up successfully and is not running. Please check the system and glassfish logs."
+else 
+	curl -s localhost:${TARGET_PORT} | grep 32300 > /dev/null
+	if [ $? -eq 1 ]; then
+		echo "The server failed to start up successfully and is not running. Please check the system and glassfish logs."
+	else
+		echo "The server started successfully".
+	fi
 fi
