@@ -218,7 +218,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				wsadmin = new WorkspaceAdministration(ws, wsConfig.get(WSADMIN));
 				final String mem = String.format(
 						"Started workspace server instance %s. Free mem: %s Max mem: %s",
-						instanceCount++, Runtime.getRuntime().freeMemory(),
+						++instanceCount, Runtime.getRuntime().freeMemory(),
 						Runtime.getRuntime().maxMemory());
 				System.out.println(mem);
 				logInfo(mem);

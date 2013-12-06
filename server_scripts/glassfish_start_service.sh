@@ -1,14 +1,16 @@
 #!/bin/bash
 
-if (( $# != 3 ))
+if (( $# != 5 ))
 then
-    echo "Usage: glassfish_start_service <path_to_war> <target_port> <threadpool_size>"
+    echo "Usage: glassfish_start_service <path_to_war> <target_port> <threadpool_size> <MB memory> <MB max memory>"
     exit
 fi
 
 TARGET_PORT=$2
 SOURCE_PATH=$1
 THREADPOOL_SIZE=$3
+MEMORY=$4
+MAX_MEMORY=$5
 
 if [ -z "$KB_RUNTIME" ]
 then
@@ -28,6 +30,9 @@ if [ $? -eq 0 ]; then
 else
     $asadmin start-domain
 fi
+
+$asadmin create-jvm-options -Xmx${MAX_MEMORY}m
+$asadmin create-jvm-options -Xms${MEMORY}m
 
 $asadmin list-virtual-servers | grep server-${TARGET_PORT} > /dev/null
 if [ $? -eq 0 ]; then

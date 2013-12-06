@@ -5,6 +5,8 @@ CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 
 THREADPOOL_SIZE = 20
+MEMORY = 4000
+MAX_MEMORY=10000
 
 #End of user defined variables
 
@@ -134,7 +136,7 @@ deploy-service-scripts:
 	echo "then" >> $(SERVICE_DIR)/start_service
 	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
 	echo "fi" >> $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" >> $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE) $(MEMORY) $(MAX_MEMORY)" >> $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
 	echo "$(SERVICE_DIR)/glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service

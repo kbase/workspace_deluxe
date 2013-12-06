@@ -9,6 +9,12 @@ COMPILATION REQUIREMENTS:
 typecomp dev-prototypes branch
 java_type_generator dev branch
 
+MEMORY REQUIREMENTS:
+A minimum of 100Mb per thread. Currently the Makefile specifies 20 threads.
+Generally speaking, the more memory the better. Multiple people trying to save
+multiple large objects may cause OOMs if there is not enough memory for said
+objects.
+
 For now, all compiled files are checked in.
 
 SETUP

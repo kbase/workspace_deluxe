@@ -35,6 +35,7 @@ import us.kbase.workspace.WorkspaceClient;
 public class TimeReadWrite {
 	
 	//TODO bypass JSONRPC, use ws directly
+	//TODO start up glassfish with custom mem, prop needs py script
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
@@ -42,7 +43,7 @@ public class TimeReadWrite {
 		String pwd = args[2];
 		new TimeReadWrite(writes, user, pwd, "http://localhost:7044",
 				"http://localhost:7058",
-				Arrays.asList(1, 2, 3, 4, 5, 7, 10));//, 16));//, 20));
+				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
 	private static final String TYPE = "SupahFakeKBGA.Genome";
@@ -205,15 +206,16 @@ public class TimeReadWrite {
 		public WriteThread(int writes, int id) {
 			this.writes = writes;
 			this.objs = null;
-			printID(id);
+//			printID(id);
 		}
 		
 		public WriteThread(List<Map<String, Object>> writes, int id) {
 			this.writes = writes.size();
 			this.objs = writes;
-			printID(id);
+//			printID(id);
 		}
 		
+		@SuppressWarnings("unused")
 		private void printID(int id) {
 			System.out.println(String.format("Creating thread id %s with %s and %s writes",
 					id, objs == null ? "no objects, shock thread," : (objs.size() + " objects"), writes));
