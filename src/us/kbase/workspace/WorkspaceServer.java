@@ -103,6 +103,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static Map<String, String> wsConfig = null;
 	
+	private static int instanceCount = 0;
+	
 	private final Workspaces ws;
 	private final WorkspaceAdministration wsadmin;
 	
@@ -214,6 +216,12 @@ public class WorkspaceServer extends JsonServerServlet {
 						db.getBackendType()));
 				ws = new Workspaces(db, new KBaseReferenceParser());
 				wsadmin = new WorkspaceAdministration(ws, wsConfig.get(WSADMIN));
+				final String mem = String.format(
+						"Started workspace server instance %s. Free mem: %s Max mem: %s",
+						instanceCount++, Runtime.getRuntime().freeMemory(),
+						Runtime.getRuntime().maxMemory());
+				System.out.println(mem);
+				logInfo(mem);
 			}
 		}
         //END_CONSTRUCTOR
