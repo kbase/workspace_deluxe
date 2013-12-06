@@ -28,7 +28,7 @@ public class TimeReadWrite {
 		String shockUrl = args[4];
 		String workspaceUrl = args[5];
 		new TimeReadWrite(writes, file, user, pwd, shockUrl, workspaceUrl,
-				Arrays.asList(1, 2, 4, 10, 15, 20));
+				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
 	private final int writes;
@@ -45,11 +45,16 @@ public class TimeReadWrite {
 		threads = threadCounts;
 		this.writes = writes;
 		data = Files.readAllBytes(Paths.get(file));
-		System.out.println("writes: " + writes);
-		System.out.println("file bytes: " + data.length);
-		Map<Integer, Perf> results = new HashMap<Integer, TimeReadWrite.Perf>(); 
-		results.put(1, measurePerformance(1));
-		System.out.println("Threads\twrite (s)\twrite (Mbps)\tread (s)\tread (Mbps)");
+		System.out.println(String.format(
+				"Writing a file %s times, then reading it back %s times",
+				writes, writes));
+		System.out.println(String.format("file size: %,dB", data.length));
+		Map<Integer, Perf> results = new HashMap<Integer, TimeReadWrite.Perf>();
+		for (Integer threadCount: threads) {
+			System.out.println("Measuring performance with " + threadCount + " threads");
+			results.put(threadCount, measurePerformance(threadCount));
+		}
+		System.out.println("Threads\twrite (s)\twrite (MBps)\tread (s)\tread (MBps)");
 		List<Integer> sorted = new ArrayList<Integer>(results.keySet());
 		Collections.sort(sorted);
 		for (Integer i: sorted) {
@@ -61,13 +66,25 @@ public class TimeReadWrite {
 	
 	private Perf measurePerformance(int threads) throws Exception {
 		WriteThread[] writethreads = new WriteThread[threads];
+		boolean hasMod = writes % threads != 0;
+		int minWrites = writes / threads;
+		int remainder = writes; //lazy bastard
+		List<Integer> threadDist = new LinkedList<Integer>();
 		for (int i = 0; i < threads; i++) {
-			if (threads != 1 && i == threads - 1) {
-				writethreads[i] = new WriteThread(writes % threads);
+			if (i + 1 == threads) {
+				writethreads[i] = new WriteThread(remainder);
+				threadDist.add(remainder);
+			} else if (hasMod && i % 2 == 1) {
+				writethreads[i] = new WriteThread(minWrites + 1);
+				remainder -= minWrites + 1;
+				threadDist.add(minWrites + 1);
 			} else {
-				writethreads[i] = new WriteThread(writes / threads);
+				writethreads[i] = new WriteThread(minWrites);
+				remainder -= minWrites;
+				threadDist.add(minWrites);
 			}
 		}
+		System.out.println("Thread distribution: " + threadDist);
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
 			writethreads[i].start();
@@ -100,15 +117,13 @@ public class TimeReadWrite {
 	
 	private static List<Double> summarize(int writes, int bytes, long start, long stop) {
 		double elapsedsec = (stop - start) / 1000000000.0;
-		double bps = (double) writes * (double) bytes / elapsedsec / 1000000.0;
-//		System.out.println(String.format("Saved %d bytestreams in %,.4f sec at %,.2f bps",
-//				writes, elapsedsec, bps));
-		return Arrays.asList(elapsedsec, bps);
+		double mbps = (double) writes * (double) bytes / elapsedsec / 1000000.0;
+		return Arrays.asList(elapsedsec, mbps);
 	}
 	
 	private class WriteThread extends Thread {
 		
-		private final int writes;
+		public final int writes;
 		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
 		
 		public WriteThread(int writes) {
