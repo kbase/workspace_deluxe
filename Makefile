@@ -29,10 +29,13 @@ SERVICE_DIR ?= $(TARGET)/services/$(SERVICE)
 
 ANT = ant
 
+SRC_PERL = $(wildcard scripts/*.pl)
+BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
+
 # make sure our make test works
 .PHONY : test
 
-default: init build-libs build-docs
+default: init build-libs build-docs scriptbin
 
 # fake deploy-cfg target for when this is run outside the dev_container
 deploy-cfg:
@@ -83,6 +86,8 @@ compile-typespec:
 		$(SERVICE).spec lib
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
+
+scriptbin: $(BIN_PERL)
 
 test: test-client test-service test-scripts
 	
