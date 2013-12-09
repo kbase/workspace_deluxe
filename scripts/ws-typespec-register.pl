@@ -8,6 +8,7 @@ use File::Slurp;
 use Data::Dumper;
 use File::Basename;
 use Bio::KBase::workspace::Client;
+use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL get_ws_client);
 
 my $DESCRIPTION =
 "
@@ -19,7 +20,8 @@ SYNOPSIS
 
 DESCRIPTION
       
-      Register and release modules and associated types with the workspace.
+      Register and release modules and associated types with the workspace. Use 'ws-url' to
+      set the workspace url.
       
       -t [FileName], --typespec [FileName]
                specify the name of the typespec file to register
@@ -49,13 +51,11 @@ DESCRIPTION
                a request to be approved
      
       -u [UserName], --user  [UserName]
-               the user name; required for registration of a typespec
+               the user name (optional, if not given will default to logged in user)
       
       -p [Password], --password [Password]
-               user password; if not given, you will be prompted to provide it
-
-      -e [URL], --url [URL]
-               the url of the workspace service; optional
+               user password; (optional, if not given, you will be prompted to provide it if you
+               are not logged in)
       
       -h, --help
                display this help message, ignore all arguments
@@ -76,7 +76,6 @@ my $module;
 
 my $user;
 my $password;
-my $url = "http://140.221.84.170:7058";
 
 my $listtypes;
 
@@ -108,7 +107,6 @@ my $opt = GetOptions (
         "admin=s" => \$adminCommands,
         "user|u=s" => \$user,
         "password|p=s" => \$password,
-        "url|e=s" => \$url,
         "help|h" => \$help,
         );
 
@@ -121,11 +119,9 @@ if(defined($help)) {
 my $ws;
 if (defined($user)) {
      if (!defined($password)) { $password = get_pass(); }
-     $ws = Bio::KBase::workspace::Client->new($url,user_id=>$user,password=>$password);
+     $ws = Bio::KBase::workspace::Client->new(workspaceURL(),user_id=>$user,password=>$password);
 } else {
-     print STDERR "User name is always required to register type specifications.\n";
-     print STDERR "Rerun with --help for usage information\n";
-     exit 1;
+     $ws = get_ws_client();
 }
 
 

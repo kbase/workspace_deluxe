@@ -7,6 +7,7 @@ use File::Slurp;
 use Data::Dumper;
 use File::Basename;
 use Bio::KBase::workspace::Client;
+use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL get_ws_client);
 
 my $DESCRIPTION =
 "
@@ -18,7 +19,7 @@ SYNOPSIS
 
 DESCRIPTION
       
-      List modules or types registered with the workspace.
+      List modules or types registered with the workspace.  Use 'ws-url' to set the workspace url.
       
       If no module/type name is given, this will list the set of available modules.
       
@@ -38,8 +39,6 @@ DESCRIPTION
       
       -v, --versions     if set, list all versions of the given module or type instead
       
-      -e, --url          the url of the workspace service; optional
-      
       -h, --help         display this help message, ignore all arguments
 
 AUTHOR
@@ -58,7 +57,6 @@ my $module;
 
 my $user;
 my $password;
-my $url = "http://140.221.84.170:7058";
 
 my $listtypes;
 
@@ -78,7 +76,6 @@ my $opt = GetOptions (
         "owner|u=s" => \$owner,
         "user|u=s" => \$user,
         "password|p=s" => \$password,
-        "url|e=s" => \$url,
         "help|h" => \$help,
         );
 
@@ -91,9 +88,9 @@ if(defined($help)) {
 my $ws;
 if (defined($user)) {
      if (!defined($password)) { $password = get_pass(); }
-     $ws = Bio::KBase::workspace::Client->new($url,user_id=>$user,password=>$password);
+     $ws = Bio::KBase::workspace::Client->new(workspaceURL(),user_id=>$user,password=>$password);
 } else {
-     $ws = Bio::KBase::workspace::Client->new($url);
+     $ws = get_ws_client();
 }
 
 
