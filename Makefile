@@ -35,7 +35,7 @@ BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
 # make sure our make test works
 .PHONY : test
 
-default: init build-libs build-docs scriptbin
+default: init build-libs build-docs
 
 # fake deploy-cfg target for when this is run outside the dev_container
 deploy-cfg:
@@ -87,7 +87,7 @@ compile-typespec:
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
 
-scriptbin: $(BIN_PERL)
+#scriptbin: $(BIN_PERL)
 
 test: test-client test-service test-scripts
 	

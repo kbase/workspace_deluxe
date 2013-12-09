@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 import subprocess
 import os
 import xml.etree.ElementTree as ET
+import urllib2
 
 
 def _parseArgs():
@@ -33,6 +34,8 @@ def _parseArgs():
     parser.add_argument('-x', '--Xmx', type=int,
                          help='maximum memory for the domain in MB. ' +
                          'This will cause a domain restart if changed.')
+    parser.add_argument('-r', '--properties', nargs='*',
+                         help='JVM system properties to add to the server.')
     return parser.parse_args()
 
 
@@ -68,14 +71,16 @@ class CommandGlassfishDomain(object):
             print ("Domain " + self.domain + " is already running on port " +
                    self.adminport)
         else:
-            print(self._run_local_command('start-domain', self.domain))
+            print(self._run_local_command('start-domain', self.domain)
+                  .rstrip())
             print("Domain " + self.domain + " is now running on port " +
                    self.adminport)
 
     def restart_domain(self):
         if self.is_running():
             print("Restarting " + self.domain + ", please wait")
-            print(self._run_local_command('restart-domain', self.domain))
+            print(self._run_local_command('restart-domain', self.domain)
+                  .rstrip())
         else:
             self.start_domain()
 
@@ -84,6 +89,62 @@ class CommandGlassfishDomain(object):
 
     def is_running(self):
         return self.domain + " running" in self._list_domains()
+
+    def start_service(self, war, port, threads):
+        portstr = str(port)
+        threadstr = str(threads)
+        if 'server-' + portstr in self._run_remote_command(
+            'list-virtual-servers'):
+            print("Virtual server already exists")
+        else:
+            print(self._run_remote_command(
+                'create-virtual-server', '--hosts',
+                '${com.sun.aas.hostName}', 'server-' + portstr).rstrip())
+        if 'thread-pool-' + portstr in self._run_remote_command(
+            'list-threadpools', 'server'):
+            print("Threadpool already exists")
+        else:
+            print(self._run_remote_command(
+                'create-threadpool', '--maxthreadpoolsize=' + threadstr,
+                '--minthreadpoolsize=' + threadstr, 'thread-pool-' + portstr)
+                  .rstrip())
+        if 'http-listener-' + portstr in self._run_remote_command(
+            'list-http-listeners'):
+            print('Http listener already exists')
+        else:
+            print(self._run_remote_command(
+                'create-http-listener', '--listeneraddress', '0.0.0.0',
+                '--listenerport', portstr,
+                '--default-virtual-server', 'server-' + portstr,
+                '--securityEnabled=false', '--acceptorthreads=' + threadstr,
+                'http-listener-' + portstr).rstrip())
+            print(self._run_remote_command(
+                'set', 'server.network-config.network-listeners.' +
+                'network-listener.http-listener-' + portstr +
+                '.thread-pool=thread-pool-' + portstr).rstrip())
+            print(self._run_remote_command(
+                'set', 'server.network-config.protocols.protocol.' +
+                'http-listener-' + portstr + '.http.timeout-seconds=1800')
+                .rstrip())
+        if 'app-' + portstr in self._run_remote_command('list-applications'):
+            print(self._run_remote_command('undeploy', 'app-' + portstr)
+                  .rstrip())
+        print(self._run_remote_command(
+            'deploy', '--virtualservers', 'server-' + portstr,
+            '--contextroot', '/', '--name', 'app-' + portstr, war).rstrip())
+        try:
+            urllib2.urlopen('http://localhost:' + portstr)
+        except urllib2.HTTPError as h:
+            resp = h.read()
+        if '32603' in resp:
+            print('The server failed to start up successfully and is ' +
+                  'running in protected mode. Please check the system and ' +
+                  'glassfish logs.')
+        elif '32300' in resp:
+            print('The server started successfully.')
+        else:
+            print('The server failed to start up successfully and is not '
+                  + 'running. Please check the system and glassfish logs.')
 
     def set_min_max_memory(self, minm, maxm):
         # will restart the domain if changes are necessary
@@ -106,13 +167,17 @@ class CommandGlassfishDomain(object):
                                     + str(maxm) + 'm', xmx)
         if changed or changed2:
             self.restart_domain()
-        #TODO check if same, if not do nothing, resart if changed
+
+    def create_property(self, prop):
+        print('Creating property ' + prop)
+        print(self._run_remote_command('create-system-properties', prop)
+              .rstrip())
 
     def _set_memory(self, memstr, memlist):
         if (memstr is not None and [memstr] != memlist):
             print("Removing options " + str(memlist))
             for o in memlist:
-                self.remove_option(o)
+                self._remove_option(o)
             print("Setting option " + memstr)
             self._set_option(memstr)
             return True
@@ -122,7 +187,7 @@ class CommandGlassfishDomain(object):
     def _set_option(self, opt):
         self._run_remote_command('create-jvm-options', opt)
 
-    def remove_option(self, opt):
+    def _remove_option(self, opt):
         self._run_remote_command('delete-jvm-options', opt)
 
     def _list_domains(self):
@@ -139,7 +204,11 @@ class CommandGlassfishDomain(object):
 if __name__ == '__main__':
     args = _parseArgs()
     gf = CommandGlassfishDomain(args.admin, args.domain)
-    #TODO if no WAR, shutdown
-    gf.start_domain()
-    gf.set_min_max_memory(args.Xms, args.Xmx)
-    print(args)
+    if (args.war == None):
+        gf.stop_service()
+    else:
+        gf.start_domain()
+        gf.set_min_max_memory(args.Xms, args.Xmx)
+        for p in args.properties:
+            gf.create_property(p)
+        gf.start_service(args.war, args.port, args.threads)
