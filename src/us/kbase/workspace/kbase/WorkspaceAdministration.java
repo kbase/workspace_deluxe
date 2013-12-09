@@ -67,6 +67,10 @@ public class WorkspaceAdministration {
 				return null;
 			}
 			if ("removeAdmin".equals(fn)) {
+				final String admin = (String) c.get("user");
+				if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
+					internaladmins.remove(admin);
+				}
 				setAdmin((String) c.get("user"), token, true);
 				return null;
 			}

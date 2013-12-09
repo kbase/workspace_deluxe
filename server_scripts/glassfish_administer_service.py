@@ -9,17 +9,19 @@ import subprocess
 
 
 def _parseArgs():
-    parser = ArgumentParser(description='script to start a Glassfish ' +
+    parser = ArgumentParser(description='script to administer a Glassfish ' +
                             ' application.')
-    parser.add_argument('-p', '--port', required=True, type=int,
-                         help='the port where the application will run.')
-    parser.add_argument('-w', '--war', required=True,
-                         help='path to the application WAR file.')
-    parser.add_argument('-d', '--domain', required=True,
-                         help='name of the Glassfish domain where the ' +
-                         'application will be installed.')
+    parser.add_argument('-w', '--war',
+                         help='path to the application WAR file. If ' +
+                         'omitted, the service at the port and domain is ' +
+                         'stopped.')
     parser.add_argument('-a', '--admin', required=True,
                          help='location of the Glassfish asadmin program.')
+    parser.add_argument('-d', '--domain', required=True,
+                         help='name of the Glassfish domain where the ' +
+                         'application is or will be installed.')
+    parser.add_argument('-p', '--port', required=True, type=int,
+                         help='the port where the application runs.')
     parser.add_argument('-t', '--threads', type=int, default=20,
                          help='the number of threads for the application.')
     parser.add_argument('-s', '--Xms', type=int,
@@ -53,8 +55,10 @@ class CommandGlassfishDomain(object):
         return self.domain + " running" in self._list_domains()
 
     def set_min_max_memory(self, minm, maxm):
+        #TODO needs to specify domain
         # will restart the domain if changes are necessary
-        print self._run_command('list-jvm-options').split('\n')
+        print self._run_command('list-jvm-options', '--target ' +
+                                self.domain).split('\n')
 
     def _list_domains(self):
         return self._run_command('list-domains')

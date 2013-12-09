@@ -63,6 +63,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspaces {
 	
 	//TODO profiling
+	//TODO get_subdata lib method for testing
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get objects by ref chain
