@@ -47,9 +47,11 @@ class CommandGlassfishDomain(object):
         if self.exists():
             print("Domain " + self.domain + " exists, skipping creation")
         else:
-            self._run_local_command('create-domain', '--nopassword=true',
-                               self.domain)
+            print("Creating domain " + self.domain)
+            print(self._run_local_command('create-domain', '--nopassword=true',
+                               self.domain).rstrip())
         self.adminport = self.get_admin_port()
+        self.start_domain()
 
     def get_admin_port(self):
         #the fact I have to do this is moronic
@@ -71,10 +73,10 @@ class CommandGlassfishDomain(object):
             print ("Domain " + self.domain + " is already running on port " +
                    self.adminport)
         else:
+            print("Starting domain " + self.domain + " on port " +
+                   self.adminport)
             print(self._run_local_command('start-domain', self.domain)
                   .rstrip())
-            print("Domain " + self.domain + " is now running on port " +
-                   self.adminport)
 
     def restart_domain(self):
         if self.is_running():
@@ -146,6 +148,28 @@ class CommandGlassfishDomain(object):
             print('The server failed to start up successfully and is not '
                   + 'running. Please check the system and glassfish logs.')
 
+    def stop_service(self, port):
+        portstr = str(port)
+        if 'app-' + portstr in self._run_remote_command('list-applications'):
+            print(self._run_remote_command('undeploy', 'app-' + portstr)
+                  .rstrip())
+        if 'http-listener-' + portstr in self._run_remote_command(
+            'list-http-listeners'):
+            print(self._run_remote_command(
+                'delete-http-listener', 'http-listener-' + portstr).rstrip())
+        if 'http-listener-' + portstr in self._run_remote_command(
+            'list-protocols'):
+            print(self._run_remote_command(
+                'delete-protocol', 'http-listener-' + portstr).rstrip())
+        if 'thread-pool-' + portstr in self._run_remote_command(
+            'list-threadpools', 'server'):
+            print(self._run_remote_command(
+                'delete-threadpool', 'thread-pool-' + portstr).rstrip())
+        if 'server-' + portstr in self._run_remote_command(
+            'list-virtual-servers'):
+            print(self._run_remote_command(
+                'delete-virtual-server', 'server-' + portstr).rstrip())
+
     def set_min_max_memory(self, minm, maxm):
         # will restart the domain if changes are necessary
         xmx = []
@@ -205,9 +229,8 @@ if __name__ == '__main__':
     args = _parseArgs()
     gf = CommandGlassfishDomain(args.admin, args.domain)
     if (args.war == None):
-        gf.stop_service()
+        gf.stop_service(args.port)
     else:
-        gf.start_domain()
         gf.set_min_max_memory(args.Xms, args.Xmx)
         for p in args.properties:
             gf.create_property(p)
