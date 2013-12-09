@@ -10,6 +10,8 @@ import subprocess
 import os
 import xml.etree.ElementTree as ET
 import urllib2
+from subprocess import CalledProcessError
+import sys
 
 
 def _parseArgs():
@@ -49,7 +51,7 @@ class CommandGlassfishDomain(object):
         else:
             print("Creating domain " + self.domain)
             print(self._run_local_command('create-domain', '--nopassword=true',
-                               self.domain).rstrip())
+                                          self.domain).rstrip())
         self.adminport = self.get_admin_port()
         self.start_domain()
 
@@ -73,10 +75,10 @@ class CommandGlassfishDomain(object):
             print ("Domain " + self.domain + " is already running on port " +
                    self.adminport)
         else:
-            print("Starting domain " + self.domain + " on port " +
-                   self.adminport)
+            print("Starting domain " + self.domain)
             print(self._run_local_command('start-domain', self.domain)
                   .rstrip())
+            self.adminport = self.get_admin_port()
 
     def restart_domain(self):
         if self.is_running():
@@ -218,11 +220,19 @@ class CommandGlassfishDomain(object):
         return self._run_local_command('list-domains')
 
     def _run_local_command(self, *cmd):
-        return subprocess.check_output([self.asadminpath] + list(cmd))
+        try:
+            return subprocess.check_output([self.asadminpath] + list(cmd))
+        except CalledProcessError as cpe:
+            print(cpe.output.rstrip())
+            sys.exit(1)
 
     def _run_remote_command(self, *cmd):
-        return subprocess.check_output([self.asadminpath, '-p', self.adminport]
-                                       + list(cmd))
+        try:
+            return subprocess.check_output([self.asadminpath, '-p',
+                                             self.adminport] + list(cmd))
+        except CalledProcessError as cpe:
+            print(cpe.output.rstrip())
+            sys.exit(1)
 
 
 if __name__ == '__main__':
