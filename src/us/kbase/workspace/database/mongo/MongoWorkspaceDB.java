@@ -649,18 +649,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private final static String M_WS_ID_QRY = String.format("{%s: #}",
 			Fields.WS_ID);
-	private final static String M_WS_ID_WTH = String.format("{$set: {%s: #}}",
-			Fields.WS_DESC);
+	private final static String M_WS_ID_WTH = String.format(
+			"{$set: {%s: #, %s: #}}", Fields.WS_DESC, Fields.WS_MODDATE);
 	
 	@Override
 	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
 		//TODO generalized method for setting fields?
-		//TODO set workspace change date
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_WS_ID_WTH, description);
+				.with(M_WS_ID_WTH, description, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
