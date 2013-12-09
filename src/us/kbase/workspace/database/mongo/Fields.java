@@ -20,7 +20,7 @@ public class Fields {
 	// workspace fields
 	public static final String WS_OWNER = "owner";
 	public static final String WS_ID = "ws";
-	public static final String WS_MODDATE = "moddate"; //TODO when should this be updated? currently never
+	public static final String WS_MODDATE = "moddate";
 	public static final String WS_NAME = "name";
 	public static final String WS_DEL = "del";
 	public static final String WS_NUMOBJ = "numObj";

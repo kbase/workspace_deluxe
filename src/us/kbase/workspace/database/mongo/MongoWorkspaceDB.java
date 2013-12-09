@@ -471,7 +471,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		//TODO set workspace change date
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_LOCK_WS_QRY, rwsi.getID())
@@ -507,7 +506,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectIDResolvedWS from, ObjectIDResolvedWS to,
 			final boolean revert)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		//TODO update WS moddate?
 		final ResolvedMongoObjectID rfrom = resolveObjectIDs(
 				new HashSet<ObjectIDResolvedWS>(Arrays.asList(from))).get(from);
 		final ResolvedMongoObjectID rto;
@@ -571,14 +569,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	final private static String M_RENAME_WS_QRY = String.format(
 			"{%s: #}", Fields.WS_ID);
 	final private static String M_RENAME_WS_WTH = String.format(
-			"{$set: {%s: #}}", Fields.WS_NAME);
+			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
 	@Override
 	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
 			final ResolvedWorkspaceID rwsi, final String newname)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		//TODO update ws mod date?
 		if (newname.equals(rwsi.getName())) {
 			throw new IllegalArgumentException("Workspace is already named " +
 					newname);
@@ -586,7 +583,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_RENAME_WS_QRY, rwsi.getID())
-					.with(M_RENAME_WS_WTH, newname);
+					.with(M_RENAME_WS_WTH, newname, new Date());
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
@@ -600,7 +597,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	final private static String M_RENAME_OBJ_QRY = String.format(
 			"{%s: #, %s: #}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	final private static String M_RENAME_OBJ_WTH = String.format(
-			"{$set: {%s: #}}", Fields.OBJ_NAME);
+			"{$set: {%s: #, %s: #}}", Fields.OBJ_NAME, Fields.OBJ_MODDATE);
 	
 	@Override
 	public ObjectInformation renameObject(final ObjectIDResolvedWS oi,
@@ -617,7 +614,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_RENAME_OBJ_QRY, roi.getWorkspaceIdentifier().getID(),
 							roi.getId())
-					.with(M_RENAME_OBJ_WTH, newname);
+					.with(M_RENAME_OBJ_WTH, newname, new Date()); //TODO internal test such that dates are correct
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -772,7 +769,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		//TODO should update workspace change date?
 		setPermissions(query.convertResolvedWSID(rwsi),
 				Arrays.asList(allUsers), perm, false);
 	}
@@ -2272,7 +2268,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		//TODO should set workspace change date?
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedMongoWSID, List<Long>> toModify =
