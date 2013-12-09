@@ -35,7 +35,7 @@ BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
 # make sure our make test works
 .PHONY : test
 
-default: init build-libs build-docs
+default: init build-libs build-docs scriptbin
 
 # fake deploy-cfg target for when this is run outside the dev_container
 deploy-cfg:
@@ -87,7 +87,12 @@ compile-typespec:
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
 
-#scriptbin: $(BIN_PERL)
+# only deploy scripts to the dev_container bin if we are in dev_container
+ifeq ($(TOP_DIR_NAME), dev_container)
+scriptbin: $(BIN_PERL)
+else
+scriptbin:
+endif
 
 test: test-client test-service test-scripts
 	
@@ -116,8 +121,25 @@ deploy-docs:
 	mkdir -p $(SERVICE_DIR)/webroot
 	cp  -r docs/* $(SERVICE_DIR)/webroot/.
 
+# if we are not in dev container, we need to copy in the deploy scripts target
+ifndef WRAP_PERL_SCRIPT
 deploy-scripts:
-	@echo no scripts to deploy
+	$(warning Warning! Scripts not deployed because WRAP_PERL_SCRIPT makefile variable is not defined.)
+else ifneq ($(TOP_DIR_NAME), dev_container)
+deploy-scripts: deploy-perl-scripts
+
+deploy-perl-scripts:
+	export KB_TOP=$(TARGET); \
+	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
+	export KB_PERL_PATH=$(TARGET)/lib ; \
+	for src in $(SRC_PERL) ; do \
+		basefile=`basename $$src`; \
+		base=`basename $$src .pl`; \
+		echo install $$src $$base ; \
+		cp $$src $(TARGET)/plbin ; \
+		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
+	done
+endif
 
 deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
 
