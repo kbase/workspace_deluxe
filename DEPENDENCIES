@@ -1,3 +1,5 @@
 jars
 java_common
+kbapi_common
+auth
 shock_service
