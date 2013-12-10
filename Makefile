@@ -5,8 +5,8 @@ CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 
 THREADPOOL_SIZE = 20
-MEMORY = 4000
-MAX_MEMORY = 10000
+MEMORY = 10000
+MAX_MEMORY = 15000
 
 #End of user defined variables
 
