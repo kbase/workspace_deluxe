@@ -603,7 +603,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public ObjectInformation renameObject(final ObjectIDResolvedWS oi,
 			final String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
+		Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oi));
 		final ResolvedMongoObjectID roi = resolveObjectIDs(input).get(oi);
 		if (newname.equals(roi.getName())) {
@@ -612,8 +612,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		try {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.update(M_RENAME_OBJ_QRY, roi.getWorkspaceIdentifier().getID(),
-							roi.getId())
+					.update(M_RENAME_OBJ_QRY,
+							roi.getWorkspaceIdentifier().getID(), roi.getId())
 					.with(M_RENAME_OBJ_WTH, newname, new Date()); //TODO internal test such that dates are correct
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
@@ -623,7 +623,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return getObjectInformation(input, false).get(oi);
+		final ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
+				roi.getWorkspaceIdentifier(), roi.getId(), roi.getVersion());
+		input = new HashSet<ObjectIDResolvedWS>(Arrays.asList(oid));
+		return getObjectInformation(input, false).get(oid);
 	}
 	
 	//projection lists
