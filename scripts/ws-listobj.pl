@@ -66,8 +66,9 @@ if ($opt->{showerror} == 0){
 		print STDERR "\n";
 		exit 1;
 	}
-}else{
-    $output = $serv->$servercommand($params);
+} else {
+	#use Data::Dumper; print STDERR "parameters to $servercommand :\n".Dumper($params)."\n";
+	$output = $serv->$servercommand($params);
 }
 
 #Checking output and report results
@@ -84,7 +85,7 @@ if (!defined($output)) {
 	    push(@{$tbl},[$r->[0],$r->[1],$r->[4],$r->[2],$r->[7],$r->[5],$r->[3],$r->[9]]);
 	}
 	my $table = Text::Table->new(
-		'ID', 'Name', 'Vers', 'Type', 'WS','Last_modby','Moddate','Size(bytes)'
+		'ID', 'ObjName', 'Vers', 'Type', 'WS','Last_modby','Moddate','Size(bytes)'
 		);
 	$table->load(@$tbl);
 	print $table;

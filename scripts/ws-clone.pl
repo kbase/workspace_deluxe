@@ -8,66 +8,65 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client parseWorkspaceInfo);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseWorkspaceInfo);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = ["Workspace ID"];
-my $servercommand = "create_workspace";
+my $primaryArgs = ["Destination workspace name"];
+my $servercommand = "clone_workspace";
 my $translation = {
-	"Workspace ID" => "workspace",
+	"globalread"=>"globalread",
+	"description"=>"description"
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kb_createws <'.join("> <",@{$primaryArgs}).'> %o',
-    [ 'description|d=s', 'Workspace description (1000 characters max)',{"default"=>''}],
+    'kbws-clone <'.join("> <",@{$primaryArgs}).'> %o',
+    [ 'workspace|w:s', 'Name of the workspace to clone', {"default" => workspace()} ],
+    [ 'description|d=s', 'New workspace description (1000 characters max)',{"default"=>''}],
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>'n'}],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
-    [ 'verbose|v', 'Print verbose messages' ],
-    [ 'help|h|?', 'Print this usage information' ],
+    [ 'help|h|?', 'Print this usage information' ]
 );
 if (defined($opt->{help})) {
 	print $usage;
-	exit 0;
+	exit;
 }
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
 		print $usage;
-		exit 0;
+		exit;
 	}
 }
+
 #Instantiating parameters
-my $params = { };
+my $params = {
+	      wsi => { workspace=>$opt->{workspace} },
+	      workspace => $opt->{"Destination workspace name"}
+	      };
 foreach my $key (keys(%{$translation})) {
 	if (defined($opt->{$key})) {
 		$params->{$translation->{$key}} = $opt->{$key};
 	}
 }
-if (defined($opt->{description})) {
-	$params->{"description"} = $opt->{description};
-}
-if (defined($opt->{globalread})) {
-	$params->{"globalread"} = $opt->{globalread};
-}
-
 #Calling the server
 my $output;
 if ($opt->{showerror} == 0){
 	eval { $output = $serv->$servercommand($params); };
 	if($@) {
-		print "Workspace creation failed! Run with -e for full stack trace.\n";
+		print "Workspace could not be cloned!\n";
 		print STDERR $@->{message}."\n";
 		if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
 		print STDERR "\n";
 		exit 1;
 	}
-} else{
-    $output = $serv->$servercommand($params);
+    
+} else {
+	$output = $serv->$servercommand($params);
 }
 
 my $obj = parseWorkspaceInfo($output);
-print "Workspace created with name: ".$obj->{workspace}." and id: ".$obj->{id}."\n";
+print "Workspace with ".$obj->{objects}." objects cloned into: ".$obj->{workspace}." with id: ".$obj->{id}."\n";
 
 exit 0;
