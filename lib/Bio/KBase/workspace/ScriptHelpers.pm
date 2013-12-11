@@ -191,15 +191,15 @@ sub parseObjectMeta {
 sub printObjectMeta {
 	my $meta = shift;
 	my $obj = parseObjectMeta($meta);
-	print "Object ID: ".$obj->{id}."\n";
+	print "Object Name: ".$obj->{id}."\n";
 	print "Type: ".$obj->{type}."\n";
+	print "Instance: ".$obj->{instance}."\n";
 	print "Workspace: ".$obj->{workspace}."\n";
 	print "Owner: ".$obj->{owner}."\n";
-	print "Instance: ".$obj->{instance}."\n";
 	print "Moddate: ".$obj->{moddate}."\n";
-	print "Last cmd: ".$obj->{command}."\n";
+	#print "Last cmd: ".$obj->{command}."\n";
 	print "Modified by: ".$obj->{lastmodifier}."\n";
-	print "Perm ref: ".$obj->{reference}."\n";
+	#print "Perm ref: ".$obj->{reference}."\n";
 	print "Checksum: ".$obj->{chsum}."\n";
 	if (defined($obj->{metadata})) {
 		foreach my $key (keys(%{$obj->{metadata}})) {

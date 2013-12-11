@@ -110,5 +110,9 @@ if ($opt->{showerror} == 0){
 if (!defined($output)) {
 	print "Object could not be saved!\n";
 } else {
-	print "Object saved:\n".printObjectMeta($output)."\n";
+	print "Object saved.  Details:\n";
+	printObjectMeta($output);
+	print "\n";
 }
+
+exit 0;
