@@ -35,7 +35,6 @@ import us.kbase.workspace.WorkspaceClient;
 public class TimeReadWrite {
 	
 	//TODO bypass JSONRPC, use ws directly
-	//TODO start up glassfish with custom mem, prop needs py script
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
@@ -60,6 +59,8 @@ public class TimeReadWrite {
 	public TimeReadWrite(int writes, String user, String pwd,
 			String shockURL, String workspaceURL, List<Integer> threadCounts)
 					throws Exception {
+		System.out.println(
+				"Timing read/write against shock and the workspace service");
 		System.out.println("logging in " + user);
 		AuthToken t = AuthService.login(user, pwd).getToken();
 		bsc = new BasicShockClient(new URL(shockURL), t);

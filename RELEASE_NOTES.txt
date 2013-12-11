@@ -88,11 +88,11 @@ object_history -> get_object_history
 set_global_workspace_permissions -> set_global_permission
 set_workspace_permissions -> set_permissions
 get_workspacepermissions -> get_permissions
-delete_workspace -> deleted_workspace and undelete_workspace
+delete_workspace -> delete_workspace and undelete_workspace
 delete_object -> delete_objects and undelete_objects
 
 - Removed functions -
-move_object -> use rename_object or copy_object and delete_object
+move_object -> use rename_object or copy_object and delete_objects
 has_object -> use get_object_info
 delete_object_permanently
 add_type -> various new functions below
