@@ -43,7 +43,7 @@ public class TimeReadWrite {
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044",
-				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceSingle"),
+				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceJSON1ObjPer"),
 				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
@@ -51,17 +51,21 @@ public class TimeReadWrite {
 			new HashMap<String, Class<? extends AbstractReadWriteTest>>();
 	static {
 		configMap.put("Shock", ShockThread.class);
-		configMap.put("WorkspaceSingle", WorkspaceJsonRPCThread.class);
+		configMap.put("WorkspaceJSON1ObjPer", WorkspaceJsonRPCThread.class);
 	}
+	
+	private static final String file = "83333.2.txt";
 	
 	private static final String TYPE = "SupahFakeKBGA.Genome";
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
 	private static byte[] data;
-	private static BasicShockClient bsc;
-	private static WorkspaceClient wsc;
+	private static AuthToken token;
+	private static URL shockURL;
+	private static URL workspace0_1_0URL;
 	
-	public static void timeReadWrite(int writes, String user, String pwd, String shockURL,
+	
+	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
 			String workspaceURL,  List<String> configs, List<Integer> threadCounts)
 					throws Exception {
 		System.out.println(
@@ -69,17 +73,20 @@ public class TimeReadWrite {
 		System.out.println("Shock url: " + shockURL);
 		System.out.println("Workspace url: " + workspaceURL);
 		System.out.println("logging in " + user);
-		AuthToken t = AuthService.login(user, pwd).getToken();
-		bsc = new BasicShockClient(new URL(shockURL), t);
-		wsc = new WorkspaceClient(new URL(workspaceURL), t);
-		wsc.setAuthAllowedForHttp(true);
-		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream("83333.2.txt"));
+		
+		token = AuthService.login(user, pwd).getToken();
+		shockURL = new URL(shockurl);
+		workspace0_1_0URL = new URL(workspaceURL);
+		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(file));
+		
 		System.out.println(String.format(
 				"Writing a file %s times, then reading it back %s times",
 				writes, writes));
 		System.out.println(String.format("file size: %,dB", data.length));
+		
 		Map<String, Map<Integer, Perf>> results =
 				new HashMap<String, Map<Integer, TimeReadWrite.Perf>>();
+		
 		for (String config: configs) {
 			if (!configMap.containsKey(config)) {
 				throw new IllegalArgumentException("No test config " + config);
@@ -100,7 +107,7 @@ public class TimeReadWrite {
 		tbl.addCell("write (MBps)");
 		tbl.addCell("read (s)");
 		tbl.addCell("read (MBps)");
-		for (String config: results.keySet()) {
+		for (String config: configs) {
 			List<Integer> sorted = new ArrayList<Integer>(results.get(config).keySet());
 			Collections.sort(sorted);
 			for (Integer threads: sorted) {
@@ -108,23 +115,29 @@ public class TimeReadWrite {
 				tbl.addCell(config);
 				tbl.addCell("" + threads);
 				tbl.addCell(String.format("%,.4f", p.writeSec));
-				tbl.addCell(String.format("%,.3f", p.writeBPS));
+				tbl.addCell(String.format("%,.3f", calcMBps(writes, p.writeSec)));
 				tbl.addCell(String.format("%,.4f", p.readSec));
-				tbl.addCell(String.format("%,.3f", p.readBPS));
+				tbl.addCell(String.format("%,.3f", calcMBps(writes, p.readSec)));
 			}
 		}
 		System.out.println(tbl.render());
-		
 	}
+	
+	private static double calcMBps(int writes, double elapsedSec) {
+		return (double) writes * (double) data.length / elapsedSec / 1000000.0;
+	}
+	
 	
 	private static Perf measurePerformance(int writes, int threads,
 			Class<? extends AbstractReadWriteTest> clazz)
 			throws Exception {
+		
 		AbstractReadWriteTest[] rwthreads = new AbstractReadWriteTest[threads]; 
 		boolean hasMod = writes % threads != 0;
 		int minWrites = writes / threads;
 		int pos = 0;
 		List<Integer> threadDist = new LinkedList<Integer>();
+		
 		for (int i = 0; i < threads; i++) {
 			if (i + 1 == threads) {
 				int threadSize = writes - pos;
@@ -152,7 +165,7 @@ public class TimeReadWrite {
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].join();
 		}
-		List<Double> shockWriteRes = summarize(writes, data.length, start, System.nanoTime());
+		long writeNanoSec = System.nanoTime() - start;
 		
 		start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
@@ -161,25 +174,18 @@ public class TimeReadWrite {
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].join();
 		}
-		List<Double> shockReadRes = summarize(writes, data.length, start, System.nanoTime());
+		long readNanoSec = System.nanoTime() - start;
 		
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].cleanUp();
 		}
 
-		return new Perf(shockWriteRes.get(0), shockWriteRes.get(1),
-				shockReadRes.get(0), shockReadRes.get(1));
-	}
-	
-	//TODO just record the time, summarize when building table
-	private static List<Double> summarize(int writes, int bytes, long start, long stop) {
-		double elapsedsec = (stop - start) / 1000000000.0;
-		double mbps = (double) writes * (double) bytes / elapsedsec / 1000000.0;
-		return Arrays.asList(elapsedsec, mbps);
+		return new Perf(writeNanoSec, readNanoSec);
 	}
 	
 	public static class WorkspaceJsonRPCThread extends AbstractReadWriteTest {
 
+		private WorkspaceClient wsc;
 		private int writes;
 		@SuppressWarnings("unused")
 		private int id;
@@ -188,7 +194,10 @@ public class TimeReadWrite {
 		private String workspace;
 		
 		public WorkspaceJsonRPCThread() throws Exception {
-			workspace = "SupahFake" + new String("" + Math.random()).substring(2);
+			wsc = new WorkspaceClient(workspace0_1_0URL, token);
+			wsc.setAuthAllowedForHttp(true);
+			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
+					.replace("-", ""); //in case it's E-X
 			try {
 				wsc.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 			} catch (ServerException se) {
@@ -234,12 +243,14 @@ public class TimeReadWrite {
 	// use builder in future, not really worth the time here
 	public static class ShockThread extends AbstractReadWriteTest {
 		
+		private BasicShockClient bsc;
 		private int writes;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
 		
-		public void initialize(int writes, int id) {
+		public void initialize(int writes, int id) throws Exception {
+			this.bsc = new BasicShockClient(shockURL, token);
 			this.writes = writes;
 			this.id = id;
 		}
@@ -323,19 +334,11 @@ public class TimeReadWrite {
 	private static class Perf {
 		
 		public final double writeSec;
-		public final double writeBPS;
 		public final double readSec;
-		public final double readBPS;
 		
-		public Perf(double shockWriteSec, double shockWriteBPS, double shockReadSec,
-				double shockReadBPS) {
-			super();
-			this.writeSec = shockWriteSec;
-			this.writeBPS = shockWriteBPS;
-			this.readSec = shockReadSec;
-			this.readBPS = shockReadBPS;
+		public Perf(double writeNanoSec, double readNanoSec) {
+			writeSec = ((double) writeNanoSec) / 1000000000.0;
+			readSec = ((double) readNanoSec) / 1000000000.0;
 		}
-		
 	}
-
 }
