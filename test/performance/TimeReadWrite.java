@@ -36,6 +36,8 @@ import us.kbase.workspace.WorkspaceIdentity;
  */
 public class TimeReadWrite {
 	
+	//TODO doesn't seem to be threaded anymore? Check
+	
 	//TODO bypass JSONRPC, use ws directly
 	
 	public static void main(String[] args) throws Exception {
@@ -57,13 +59,11 @@ public class TimeReadWrite {
 	private static final String TYPE = "SupahFakeKBGA.Genome";
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
-	private static int writes; //TODO local
 	private static byte[] data;
 	private static BasicShockClient bsc;
 	private static WorkspaceClient wsc;
-	private static List<Integer> threads; //TODO local
 	
-	public static void timeReadWrite(int methwrites, String user, String pwd, String shockURL,
+	public static void timeReadWrite(int writes, String user, String pwd, String shockURL,
 			String workspaceURL,  List<String> configs, List<Integer> threadCounts)
 					throws Exception {
 		System.out.println(
@@ -75,14 +75,6 @@ public class TimeReadWrite {
 		bsc = new BasicShockClient(new URL(shockURL), t);
 		wsc = new WorkspaceClient(new URL(workspaceURL), t);
 		wsc.setAuthAllowedForHttp(true);
-//		workspace = "SupahFake" + new String("" + Math.random()).substring(2);
-//		try {
-//			wsc.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-//		} catch (ServerException se) {
-//			//probably just created already
-//		}
-		threads = threadCounts;
-		writes = methwrites;
 		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream("83333.2.txt"));
 		System.out.println(String.format(
 				"Writing a file %s times, then reading it back %s times",
@@ -95,11 +87,11 @@ public class TimeReadWrite {
 				throw new IllegalArgumentException("No test config " + config);
 			}
 			results.put(config, new HashMap<Integer, TimeReadWrite.Perf>());
-			for (Integer threadCount: threads) {
+			for (Integer threadCount: threadCounts) {
 				System.out.println("Measuring config " + config + " performance with "
 						+ threadCount + " threads");
 				results.get(config).put(threadCount, measurePerformance(
-						threadCount, configMap.get(config)));
+						writes, threadCount, configMap.get(config)));
 			}
 		}
 		
@@ -117,37 +109,20 @@ public class TimeReadWrite {
 				Perf p = results.get(config).get(threads);
 				tbl.addCell(config);
 				tbl.addCell("" + threads);
-				tbl.addCell(String.format("%,.4f", p.shockWriteSec));
-				tbl.addCell(String.format("%,.3f", p.shockWriteBPS));
-				tbl.addCell(String.format("%,.4f", p.shockReadSec));
-				tbl.addCell(String.format("%,.3f", p.shockReadBPS));
+				tbl.addCell(String.format("%,.4f", p.writeSec));
+				tbl.addCell(String.format("%,.3f", p.writeBPS));
+				tbl.addCell(String.format("%,.4f", p.readSec));
+				tbl.addCell(String.format("%,.3f", p.readBPS));
 			}
 		}
 		System.out.println(tbl.render());
 		
-//		System.out.println("Shock");
-//		System.out.println("Threads\twrite (s)\twrite (MBps)\tread (s)\tread (MBps)");
-//		List<Integer> sorted = new ArrayList<Integer>(results.keySet());
-//		Collections.sort(sorted);
-//		for (Integer i: sorted) {
-//			Perf p = results.get(i);
-//			System.out.println(String.format("%d\t%,.4f\t\t%,.3f\t\t%,.4f\t\t%,.3f",
-//					i, p.shockWriteSec, p.shockWriteBPS, p.shockReadSec, p.shockReadBPS));
-//		}
-//		System.out.println("Workspace");
-//		System.out.println("Threads\twrite (s)\twrite (MBps)\tread (s)\tread (MBps)");
-//		for (Integer i: sorted) {
-//			Perf p = results.get(i);
-//			System.out.println(String.format("%d\t%,.4f\t\t%,.3f\t\t%,.4f\t\t%,.3f",
-//					i, p.wsWriteSec, p.wsWriteBPS, p.wsReadSec, p.wsReadBPS));
-//		}
 	}
 	
-	private static Perf measurePerformance(int threads, Class<? extends ReadWriteAbstractThread> clazz)
+	private static Perf measurePerformance(int writes, int threads,
+			Class<? extends ReadWriteAbstractThread> clazz)
 			throws Exception {
 		ReadWriteAbstractThread[] rwthreads = new ReadWriteAbstractThread[threads]; 
-//		WriteThread[] shockWrites = new WriteThread[threads];
-//		WriteThread[] wsWrites = new WriteThread[threads];
 		boolean hasMod = writes % threads != 0;
 		int minWrites = writes / threads;
 		int pos = 0;
@@ -157,27 +132,21 @@ public class TimeReadWrite {
 				int threadSize = writes - pos;
 				rwthreads[i] = clazz.newInstance();
 				rwthreads[i].setWrites(threadSize);
-//				shockWrites[i] = new WriteThread(threadSize, i);
-//				wsWrites[i] = new WriteThread(objdata.subList(pos, objdata.size()), i);
 				threadDist.add(threadSize);
 			} else if (hasMod && i % 2 == 1) {
 				rwthreads[i] = clazz.newInstance();
 				rwthreads[i].setWrites(minWrites + 1);
-//				shockWrites[i] = new WriteThread(minWrites + 1, i);
-//				wsWrites[i] = new WriteThread(objdata.subList(pos, pos + minWrites + 1), i);
 				pos += minWrites + 1;
 				threadDist.add(minWrites + 1);
 			} else {
 				rwthreads[i] = clazz.newInstance();
 				rwthreads[i].setWrites(minWrites);
-//				shockWrites[i] = new WriteThread(minWrites, i);
-//				wsWrites[i] = new WriteThread(objdata.subList(pos, pos + minWrites), i);
 				pos += minWrites;
 				threadDist.add(minWrites);
 			}
 		}
 		System.out.println("Thread distribution: " + threadDist);
-		//Shock
+
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].doWrites();
@@ -187,10 +156,6 @@ public class TimeReadWrite {
 		}
 		List<Double> shockWriteRes = summarize(writes, data.length, start, System.nanoTime());
 		
-//		ReadThread[] shockReads = new ReadThread[threads];
-//		for (int i = 0; i < threads; i++) {
-//			shockReads[i] = new ReadThread(shockWrites[i].nodes, null);
-//		}
 		start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].doReads();
@@ -202,37 +167,10 @@ public class TimeReadWrite {
 		
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].cleanUp();
-//			for (ShockNode sn: shockWrites[i].nodes) {
-//				sn.delete();
-//			}
 		}
-		
-		//Workspace
-//		start = System.nanoTime();
-//		for (int i = 0; i < threads; i++) {
-//			wsWrites[i].start();
-//		}
-//		for (int i = 0; i < threads; i++) {
-//			wsWrites[i].join();
-//		}
-//		List<Double> wsWriteRes = summarize(writes, data.length, start, System.nanoTime());
-//
-//		ReadThread[] wsReads = new ReadThread[threads];
-//		for (int i = 0; i < threads; i++) {
-//			wsReads[i] = new ReadThread(null, wsWrites[i].wsids);
-//		}
-//		start = System.nanoTime();
-//		for (int i = 0; i < threads; i++) {
-//			wsReads[i].start();
-//		}
-//		for (int i = 0; i < threads; i++) {
-//			wsReads[i].join();
-//		}
-//		List<Double> wsReadRes = summarize(writes, data.length, start, System.nanoTime());
-		
+
 		return new Perf(shockWriteRes.get(0), shockWriteRes.get(1),
-				shockReadRes.get(0), shockReadRes.get(1));//, wsWriteRes.get(0),
-//				wsWriteRes.get(1), wsReadRes.get(0), wsReadRes.get(1));
+				shockReadRes.get(0), shockReadRes.get(1));
 	}
 	
 	//TODO just record the time, summarize when building table
@@ -241,89 +179,6 @@ public class TimeReadWrite {
 		double mbps = (double) writes * (double) bytes / elapsedsec / 1000000.0;
 		return Arrays.asList(elapsedsec, mbps);
 	}
-	
-//	private class WriteThread extends Thread {
-//		
-//		public final int writes;
-//		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
-//		final List<String> wsids = new LinkedList<String>();
-//		private List<Map<String,Object>> objs;
-//		
-//		public WriteThread(int writes, int id) {
-//			this.writes = writes;
-//			this.objs = null;
-////			printID(id);
-//		}
-//		
-//		public WriteThread(List<Map<String, Object>> writes, int id) {
-//			this.writes = writes.size();
-//			this.objs = writes;
-////			printID(id);
-//		}
-//		
-//		@SuppressWarnings("unused")
-//		private void printID(int id) {
-//			System.out.println(String.format("Creating thread id %s with %s and %s writes",
-//					id, objs == null ? "no objects, shock thread," : (objs.size() + " objects"), writes));
-//		}
-//		
-//		@Override
-//		public void run() {
-//			try {
-//				if (objs != null) {
-//					for (Map<String, Object> o: objs) {
-//						wsids.add(wsc.saveObjects(new SaveObjectsParams()
-//							.withWorkspace(workspace)
-//							.withObjects(Arrays.asList(new ObjectSaveData()
-//								.withData(new UObject(o))
-//								.withType(TYPE)))).get(0).getE2());
-//					}
-//				} else {
-//					for (int i = 0; i < writes; i++) {
-//						nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
-//					}
-//				}
-//			} catch (Exception e) {
-//				if (e instanceof ServerException) {
-//					System.out.println(((ServerException) e).getData());
-//				}
-//			}
-//		}
-//	}
-//	
-//	private class ReadThread extends Thread {
-//		
-//		public final List<ShockNode> nodes;
-//		private List<String> wsids;
-//		
-//		public ReadThread(List<ShockNode> nodes, List<String> wsids) {
-//			this.nodes = nodes;
-//			this.wsids = wsids;
-//		}
-//		
-//		@Override
-//		public void run() {
-//			try {
-//				if (wsids != null) {
-//					for (String id: wsids) {
-//						wsc.getObjects(Arrays.asList(new ObjectIdentity()
-//							.withWorkspace(workspace).withName(id)));
-//					}
-//				} else {
-//					for (ShockNode sn: nodes) {
-//						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//						sn.getFile(baos);
-//						baos.toByteArray();
-//					}
-//				}
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//				if (e instanceof ServerException) {
-//					System.out.println(((ServerException) e).getData());
-//				}
-//			}
-//		}
-//	}
 	
 	public static class WorkspaceJsonRPCThread extends ReadWriteAbstractThread {
 
@@ -448,27 +303,18 @@ public class TimeReadWrite {
 	
 	private static class Perf {
 		
-		public final double shockWriteSec;
-		public final double shockWriteBPS;
-		public final double shockReadSec;
-		public final double shockReadBPS;
-//		public final double wsWriteSec;
-//		public final double wsWriteBPS;
-//		public final double wsReadSec;
-//		public final double wsReadBPS;
+		public final double writeSec;
+		public final double writeBPS;
+		public final double readSec;
+		public final double readBPS;
 		
 		public Perf(double shockWriteSec, double shockWriteBPS, double shockReadSec,
-				double shockReadBPS) {//, double wsWriteSec, double wsWriteBPS,
-//				double wsReadSec, double wsReadBPS) {
+				double shockReadBPS) {
 			super();
-			this.shockWriteSec = shockWriteSec;
-			this.shockWriteBPS = shockWriteBPS;
-			this.shockReadSec = shockReadSec;
-			this.shockReadBPS = shockReadBPS;
-//			this.wsWriteSec = wsWriteSec;
-//			this.wsWriteBPS = wsWriteBPS;
-//			this.wsReadSec = wsReadSec;
-//			this.wsReadBPS = wsReadBPS;
+			this.writeSec = shockWriteSec;
+			this.writeBPS = shockWriteBPS;
+			this.readSec = shockReadSec;
+			this.readBPS = shockReadBPS;
 		}
 		
 	}
