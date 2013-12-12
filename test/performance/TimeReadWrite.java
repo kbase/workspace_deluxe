@@ -36,8 +36,6 @@ import us.kbase.workspace.WorkspaceIdentity;
  */
 public class TimeReadWrite {
 	
-	//TODO doesn't seem to be threaded anymore? Check
-	
 	//TODO bypass JSONRPC, use ws directly
 	
 	public static void main(String[] args) throws Exception {
@@ -46,11 +44,11 @@ public class TimeReadWrite {
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044",
 				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceSingle"),
-				Arrays.asList(16)); //1, 2, 3, 4, 5, 7, 10, 16, 20));
+				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
-	private static final Map<String, Class<? extends ReadWriteAbstractThread>> configMap =
-			new HashMap<String, Class<? extends ReadWriteAbstractThread>>();
+	private static final Map<String, Class<? extends AbstractReadWriteTest>> configMap =
+			new HashMap<String, Class<? extends AbstractReadWriteTest>>();
 	static {
 		configMap.put("Shock", ShockThread.class);
 		configMap.put("WorkspaceSingle", WorkspaceJsonRPCThread.class);
@@ -120,9 +118,9 @@ public class TimeReadWrite {
 	}
 	
 	private static Perf measurePerformance(int writes, int threads,
-			Class<? extends ReadWriteAbstractThread> clazz)
+			Class<? extends AbstractReadWriteTest> clazz)
 			throws Exception {
-		ReadWriteAbstractThread[] rwthreads = new ReadWriteAbstractThread[threads]; 
+		AbstractReadWriteTest[] rwthreads = new AbstractReadWriteTest[threads]; 
 		boolean hasMod = writes % threads != 0;
 		int minWrites = writes / threads;
 		int pos = 0;
@@ -149,14 +147,10 @@ public class TimeReadWrite {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
-			System.out.println("Starting thread " + (i + 1));
 			rwthreads[i].doWrites();
-			System.out.println("Started thread " + (i + 1));
 		}
 		for (int i = 0; i < threads; i++) {
-			System.out.println("Joining thread " + (i + 1));
 			rwthreads[i].join();
-			System.out.println("Joined thread " + (i + 1));
 		}
 		List<Double> shockWriteRes = summarize(writes, data.length, start, System.nanoTime());
 		
@@ -184,9 +178,10 @@ public class TimeReadWrite {
 		return Arrays.asList(elapsedsec, mbps);
 	}
 	
-	public static class WorkspaceJsonRPCThread extends ReadWriteAbstractThread {
+	public static class WorkspaceJsonRPCThread extends AbstractReadWriteTest {
 
 		private int writes;
+		@SuppressWarnings("unused")
 		private int id;
 		final List<String> wsids = new LinkedList<String>();
 		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
@@ -221,7 +216,6 @@ public class TimeReadWrite {
 
 		@Override
 		public void performWrites() throws Exception {
-			System.out.println("Thread " + id + " starting writes");
 			for (Map<String, Object> o: objs) {
 				wsids.add(wsc.saveObjects(new SaveObjectsParams()
 					.withWorkspace(workspace)
@@ -229,7 +223,6 @@ public class TimeReadWrite {
 						.withData(new UObject(o))
 						.withType(TYPE)))).get(0).getE2());
 			}
-			System.out.println("Thread " + id + " completed writes");
 		}
 
 		@Override
@@ -239,9 +232,10 @@ public class TimeReadWrite {
 	}
 	
 	// use builder in future, not really worth the time here
-	public static class ShockThread extends ReadWriteAbstractThread {
+	public static class ShockThread extends AbstractReadWriteTest {
 		
 		private int writes;
+		@SuppressWarnings("unused")
 		private int id;
 		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
 		
@@ -261,11 +255,9 @@ public class TimeReadWrite {
 
 		@Override
 		public void performWrites() throws Exception {
-			System.out.println("Thread " + id + " starting writes");
 			for (int i = 0; i < this.writes; i++) {
 				nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
 			}
-			System.out.println("Thread " + id + " completed writes");
 		}
 
 		@Override
@@ -276,15 +268,13 @@ public class TimeReadWrite {
 		}
 	}
 	
-	public static abstract class ReadWriteAbstractThread {
+	public static abstract class AbstractReadWriteTest {
 		
-//		private boolean read;
 		private Thread thread;
 		
-		public ReadWriteAbstractThread() {}
+		public AbstractReadWriteTest() {}
 		
 		public void doReads() {
-//			read = true;
 			thread = new Thread() {
 				
 				@Override
@@ -303,7 +293,6 @@ public class TimeReadWrite {
 		}
 		
 		public void doWrites() {
-//			read = false;
 			thread = new Thread() {
 				
 				@Override
@@ -329,22 +318,6 @@ public class TimeReadWrite {
 		public abstract void performReads() throws Exception;
 		public abstract void performWrites() throws Exception;
 		public abstract void cleanUp() throws Exception;
-		
-//		@Override
-//		public void run() {
-//			try {
-//				if (read) {
-//					performReads();
-//				} else {
-//					performWrites();
-//				}
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//				if (e instanceof ServerException) {
-//					System.out.println(((ServerException) e).getData());
-//				}
-//			}
-//		}
 	}
 	
 	private static class Perf {
