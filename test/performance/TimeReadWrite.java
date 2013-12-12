@@ -46,7 +46,7 @@ public class TimeReadWrite {
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044",
 				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceSingle"),
-				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
+				Arrays.asList(16)); //1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
 	private static final Map<String, Class<? extends ReadWriteAbstractThread>> configMap =
@@ -131,16 +131,16 @@ public class TimeReadWrite {
 			if (i + 1 == threads) {
 				int threadSize = writes - pos;
 				rwthreads[i] = clazz.newInstance();
-				rwthreads[i].setWrites(threadSize);
+				rwthreads[i].initialize(threadSize, i + 1);
 				threadDist.add(threadSize);
 			} else if (hasMod && i % 2 == 1) {
 				rwthreads[i] = clazz.newInstance();
-				rwthreads[i].setWrites(minWrites + 1);
+				rwthreads[i].initialize(minWrites + 1, i + 1);
 				pos += minWrites + 1;
 				threadDist.add(minWrites + 1);
 			} else {
 				rwthreads[i] = clazz.newInstance();
-				rwthreads[i].setWrites(minWrites);
+				rwthreads[i].initialize(minWrites, i + 1);
 				pos += minWrites;
 				threadDist.add(minWrites);
 			}
@@ -149,10 +149,14 @@ public class TimeReadWrite {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
+			System.out.println("Starting thread " + (i + 1));
 			rwthreads[i].doWrites();
+			System.out.println("Started thread " + (i + 1));
 		}
 		for (int i = 0; i < threads; i++) {
+			System.out.println("Joining thread " + (i + 1));
 			rwthreads[i].join();
+			System.out.println("Joined thread " + (i + 1));
 		}
 		List<Double> shockWriteRes = summarize(writes, data.length, start, System.nanoTime());
 		
@@ -183,6 +187,7 @@ public class TimeReadWrite {
 	public static class WorkspaceJsonRPCThread extends ReadWriteAbstractThread {
 
 		private int writes;
+		private int id;
 		final List<String> wsids = new LinkedList<String>();
 		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
 		private String workspace;
@@ -197,8 +202,9 @@ public class TimeReadWrite {
 		};
 		
 		@SuppressWarnings("unchecked")
-		public void setWrites(int writes) throws Exception {
+		public void initialize(int writes, int id) throws Exception {
 			this.writes = writes;
+			this.id = id;
 			for (int i = 0; i < this.writes; i++) {
 				objs.add((Map<String, Object>) MAP.readValue(data, Map.class));
 				objs.get(i).put("fakekey", Math.random());
@@ -215,6 +221,7 @@ public class TimeReadWrite {
 
 		@Override
 		public void performWrites() throws Exception {
+			System.out.println("Thread " + id + " starting writes");
 			for (Map<String, Object> o: objs) {
 				wsids.add(wsc.saveObjects(new SaveObjectsParams()
 					.withWorkspace(workspace)
@@ -222,6 +229,7 @@ public class TimeReadWrite {
 						.withData(new UObject(o))
 						.withType(TYPE)))).get(0).getE2());
 			}
+			System.out.println("Thread " + id + " completed writes");
 		}
 
 		@Override
@@ -230,13 +238,16 @@ public class TimeReadWrite {
 		}
 	}
 	
+	// use builder in future, not really worth the time here
 	public static class ShockThread extends ReadWriteAbstractThread {
 		
 		private int writes;
+		private int id;
 		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
 		
-		public void setWrites(int writes) {
+		public void initialize(int writes, int id) {
 			this.writes = writes;
+			this.id = id;
 		}
 		
 		@Override
@@ -250,9 +261,11 @@ public class TimeReadWrite {
 
 		@Override
 		public void performWrites() throws Exception {
+			System.out.println("Thread " + id + " starting writes");
 			for (int i = 0; i < this.writes; i++) {
 				nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
 			}
+			System.out.println("Thread " + id + " completed writes");
 		}
 
 		@Override
@@ -263,42 +276,75 @@ public class TimeReadWrite {
 		}
 	}
 	
-	public static abstract class ReadWriteAbstractThread extends Thread {
+	public static abstract class ReadWriteAbstractThread {
 		
-		private boolean read;
+//		private boolean read;
+		private Thread thread;
 		
 		public ReadWriteAbstractThread() {}
 		
 		public void doReads() {
-			read = true;
-			run();
+//			read = true;
+			thread = new Thread() {
+				
+				@Override
+				public void run() {
+					try {
+						performReads();
+					} catch (Exception e) {
+						e.printStackTrace();
+						if (e instanceof ServerException) {
+							System.out.println(((ServerException) e).getData());
+						}
+					}
+				}
+			};
+			thread.start();
 		}
 		
 		public void doWrites() {
-			read = false;
-			run();
+//			read = false;
+			thread = new Thread() {
+				
+				@Override
+				public void run() {
+					try {
+						performWrites();
+					} catch (Exception e) {
+						e.printStackTrace();
+						if (e instanceof ServerException) {
+							System.out.println(((ServerException) e).getData());
+						}
+					}
+				}
+			};
+			thread.start();
 		}
 		
-		public abstract void setWrites(int writes) throws Exception;
+		public void join() throws Exception {
+			thread.join();
+		}
+		
+		public abstract void initialize(int writes, int id) throws Exception;
 		public abstract void performReads() throws Exception;
 		public abstract void performWrites() throws Exception;
 		public abstract void cleanUp() throws Exception;
 		
-		@Override
-		public void run() {
-			try {
-				if (read) {
-					performReads();
-				} else {
-					performWrites();
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				if (e instanceof ServerException) {
-					System.out.println(((ServerException) e).getData());
-				}
-			}
-		}
+//		@Override
+//		public void run() {
+//			try {
+//				if (read) {
+//					performReads();
+//				} else {
+//					performWrites();
+//				}
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//				if (e instanceof ServerException) {
+//					System.out.println(((ServerException) e).getData());
+//				}
+//			}
+//		}
 	}
 	
 	private static class Perf {
