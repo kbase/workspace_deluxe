@@ -280,6 +280,103 @@ public class TimeReadWrite {
 		}
 	}
 	
+	private class WorkspaceJsonRPCThread extends ReadWriteAbstractThread {
+
+		private final int writes;
+		final List<String> wsids = new LinkedList<String>();
+		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
+		
+		@SuppressWarnings("unchecked")
+		public WorkspaceJsonRPCThread(int writes) throws Exception {
+			super();
+			this.writes = writes;
+			for (int i = 0; i < this.writes; i++) {
+				objs.add((Map<String, Object>) MAP.readValue(data, Map.class));
+				objs.get(i).put("fakekey", Math.random());
+			}
+		}
+
+		@Override
+		public void performReads() throws Exception {
+			for (String id: wsids) {
+				wsc.getObjects(Arrays.asList(new ObjectIdentity()
+					.withWorkspace(workspace).withName(id)));
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (Map<String, Object> o: objs) {
+				wsids.add(wsc.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(o))
+						.withType(TYPE)))).get(0).getE2());
+			}
+		}
+	}
+	
+	private class ShockThread extends ReadWriteAbstractThread {
+		
+		private final int writes;
+		public final List<ShockNode> nodes = new LinkedList<ShockNode>();
+		
+		public ShockThread(int writes) {
+			super();
+			this.writes = writes;
+		}
+		
+		@Override
+		public void performReads() throws Exception {
+			for (ShockNode sn: nodes) {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				sn.getFile(baos);
+				baos.toByteArray();
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (int i = 0; i < writes; i++) {
+				nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
+			}
+		}
+	}
+	
+	private abstract class ReadWriteAbstractThread extends Thread {
+		
+		private boolean read;
+		
+		public void doReads() {
+			read = true;
+			run();
+		}
+		
+		public void doWrites() {
+			read = false;
+			run();
+		}
+		
+		public abstract void performReads() throws Exception;
+		public abstract void performWrites() throws Exception;
+		
+		@Override
+		public void run() {
+			try {
+				if (read) {
+					performReads();
+				} else {
+					performWrites();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				if (e instanceof ServerException) {
+					System.out.println(((ServerException) e).getData());
+				}
+			}
+		}
+	}
+	
 	private class Perf {
 		
 		public final double shockWriteSec;
