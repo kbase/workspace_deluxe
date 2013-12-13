@@ -64,8 +64,8 @@ public class TimeReadWrite {
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058",
-				Arrays.asList("Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock"),
-//						"WorkspaceJSON1ObjPerShock"),
+				Arrays.asList("Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock",
+						"WorkspaceJSON1ObjPerShock"),
 				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
 	}
 
@@ -94,12 +94,14 @@ public class TimeReadWrite {
 	
 	private static byte[] data;
 	private static JsonNode jsonData;
+	private static Map<String, Object> mapData;
 	private static AuthToken token;
 	private static String password;
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
 	
 	
+	@SuppressWarnings("unchecked")
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
 			String workspaceURL,  List<String> configs, List<Integer> threadCounts)
 					throws Exception {
@@ -115,6 +117,7 @@ public class TimeReadWrite {
 		workspace0_1_0URL = new URL(workspaceURL);
 		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(FILE));
 		jsonData = MAP.readTree(data);
+		mapData = MAP.treeToValue(jsonData, Map.class);
 		String spec = IOUtils.toString(TimeReadWrite.class.getResourceAsStream(SPEC_FILE));
 		
 		System.setProperty("test.mongo.db1", MONGO_DB);
@@ -236,7 +239,6 @@ public class TimeReadWrite {
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {
 
 		private WorkspaceClient wsc;
-		private int writes;
 		@SuppressWarnings("unused")
 		private int id;
 		final List<String> wsids = new LinkedList<String>();
@@ -255,12 +257,10 @@ public class TimeReadWrite {
 			}
 		};
 		
-		@SuppressWarnings("unchecked")
 		public void initialize(int writes, int id) throws Exception {
-			this.writes = writes;
 			this.id = id;
-			for (int i = 0; i < this.writes; i++) {
-				objs.add((Map<String, Object>) MAP.readValue(data, Map.class));
+			for (int i = 0; i < writes; i++) {
+				objs.add(new HashMap<String, Object>(mapData));
 				objs.get(i).put("fakekey", Math.random());
 			}
 		}
