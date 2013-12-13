@@ -46,6 +46,10 @@ import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
+import us.kbase.workspaceservice.DeleteWorkspaceParams;
+import us.kbase.workspaceservice.GetObjectParams;
+import us.kbase.workspaceservice.SaveObjectParams;
+import us.kbase.workspaceservice.WorkspaceServiceClient;
 
 /* DO NOT run these tests on the production workspace.
  * 
@@ -54,7 +58,6 @@ import us.kbase.workspace.workspaces.Workspaces;
  */
 public class TimeReadWrite {
 	
-	//TODO time 0.0.5 ws
 	//TODO time with gridfs
 	//TODO time w/o subsetting
 	//TODO profiling
@@ -63,8 +66,8 @@ public class TimeReadWrite {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
-		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058",
-				Arrays.asList("Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock",
+		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
+				Arrays.asList("Workspace005", "Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock",
 						"WorkspaceJSON1ObjPerShock"),
 				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
 	}
@@ -77,6 +80,7 @@ public class TimeReadWrite {
 		configMap.put("WorkspaceLibJsonNodeShock", WorkspaceLibJsonNodeShock.class);
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
 		configMap.put("ShockBackend", ShockBackendOnly.class);
+		configMap.put("Workspace005", Workspace005JsonRPCShock.class);
 	}
 	
 	private static final String FILE = "83333.2.txt";
@@ -97,13 +101,15 @@ public class TimeReadWrite {
 	private static Map<String, Object> mapData;
 	private static AuthToken token;
 	private static String password;
+	
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
+	private static URL workspace0_0_5URL;
 	
 	
 	@SuppressWarnings("unchecked")
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
-			String workspaceURL,  List<String> configs, List<Integer> threadCounts)
+			String workspaceURL, String workspace005URL, List<String> configs, List<Integer> threadCounts)
 					throws Exception {
 		System.out.println(
 				"Timing read/write against shock and the workspace service");
@@ -115,6 +121,7 @@ public class TimeReadWrite {
 		token = AuthService.login(user, pwd).getToken();
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
+		workspace0_0_5URL = new URL(workspace005URL);
 		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(FILE));
 		jsonData = MAP.readTree(data);
 		mapData = MAP.treeToValue(jsonData, Map.class);
@@ -234,6 +241,61 @@ public class TimeReadWrite {
 		}
 
 		return new Perf(writeNanoSec, readNanoSec);
+	}
+	
+	public static class Workspace005JsonRPCShock extends AbstractReadWriteTest {
+
+		private WorkspaceServiceClient wsc;
+		@SuppressWarnings("unused")
+		private int id;
+		final List<String> wsids = new LinkedList<String>();
+		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
+		private String workspace;
+		
+		public Workspace005JsonRPCShock() throws Exception {
+			wsc = new WorkspaceServiceClient(workspace0_0_5URL, token);
+			wsc.setAuthAllowedForHttp(true);
+			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
+					.replace("-", ""); //in case it's E-X
+			try {
+				wsc.createWorkspace(new us.kbase.workspaceservice.CreateWorkspaceParams()
+					.withWorkspace(workspace));
+			} catch (ServerException se) {
+				//probably just created already
+			}
+		};
+		
+		public void initialize(int writes, int id) throws Exception {
+			this.id = id;
+			for (int i = 0; i < writes; i++) {
+				objs.add(new HashMap<String, Object>(mapData));
+				String name = "id" + ("" + Math.random()).substring(2).replace("-", "");
+				objs.get(i).put("fakekey", name);
+				wsids.add(name);
+			}
+		}
+
+		@Override
+		public void performReads() throws Exception {
+			for (String id: wsids) {
+				wsc.getObject(new GetObjectParams().withWorkspace(workspace)
+						.withId(id).withType(M_TYPE));
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (Map<String, Object> o: objs) {
+				String id = (String) o.get("fakekey");
+				wsc.saveObject(new SaveObjectParams().withWorkspace(workspace)
+						.withId(id).withType(M_TYPE).withData(new UObject(mapData)));
+			}
+		}
+
+		@Override
+		public void cleanUp() throws Exception {
+			wsc.deleteWorkspace(new DeleteWorkspaceParams().withWorkspace(workspace));
+		}
 	}
 	
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {
