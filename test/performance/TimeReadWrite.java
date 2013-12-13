@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
@@ -20,10 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -36,7 +40,9 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 import us.kbase.workspace.workspaces.Workspaces;
@@ -51,23 +57,26 @@ public class TimeReadWrite {
 	//TODO time 0.0.5 ws
 	//TODO time with gridfs
 	//TODO time w/o subsetting
+	//TODO profiling
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
-		timeReadWrite(writes, user, pwd, "http://localhost:7044",
-				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceLibJsonNode",
-						"WorkspaceJSON1ObjPer"),
+		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058",
+				Arrays.asList("Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock"),
+//						"WorkspaceJSON1ObjPerShock"),
 				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
 	}
 
 	private static final Map<String, Class<? extends AbstractReadWriteTest>> configMap =
 			new HashMap<String, Class<? extends AbstractReadWriteTest>>();
 	static {
-		configMap.put("Shock", ShockThread.class);
-		configMap.put("WorkspaceJSON1ObjPer", WorkspaceJsonRPCThread.class);
-		configMap.put("WorkspaceLibJsonNode", WorkspaceLibJsonNode.class);
+		configMap.put("Shock", ShockClient.class);
+		configMap.put("WorkspaceJSON1ObjPerShock", WorkspaceJsonRPCShock.class);
+		configMap.put("WorkspaceLibJsonNodeShock", WorkspaceLibJsonNodeShock.class);
+		configMap.put("GridFSBackend", GridFSBackendOnly.class);
+		configMap.put("ShockBackend", ShockBackendOnly.class);
 	}
 	
 	private static final String FILE = "83333.2.txt";
@@ -84,6 +93,7 @@ public class TimeReadWrite {
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
 	private static byte[] data;
+	private static JsonNode jsonData;
 	private static AuthToken token;
 	private static String password;
 	private static URL shockURL;
@@ -104,6 +114,7 @@ public class TimeReadWrite {
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
 		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(FILE));
+		jsonData = MAP.readTree(data);
 		String spec = IOUtils.toString(TimeReadWrite.class.getResourceAsStream(SPEC_FILE));
 		
 		System.setProperty("test.mongo.db1", MONGO_DB);
@@ -222,7 +233,7 @@ public class TimeReadWrite {
 		return new Perf(writeNanoSec, readNanoSec);
 	}
 	
-	public static class WorkspaceJsonRPCThread extends AbstractReadWriteTest {
+	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {
 
 		private WorkspaceClient wsc;
 		private int writes;
@@ -232,7 +243,7 @@ public class TimeReadWrite {
 		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
 		private String workspace;
 		
-		public WorkspaceJsonRPCThread() throws Exception {
+		public WorkspaceJsonRPCShock() throws Exception {
 			wsc = new WorkspaceClient(workspace0_1_0URL, token);
 			wsc.setAuthAllowedForHttp(true);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -279,7 +290,7 @@ public class TimeReadWrite {
 		}
 	}
 	
-	public static class WorkspaceLibJsonNode extends AbstractReadWriteTest {
+	public static class WorkspaceLibJsonNodeShock extends AbstractReadWriteTest {
 
 		private static final WorkspaceUser foo = new WorkspaceUser("foo");
 		
@@ -291,7 +302,7 @@ public class TimeReadWrite {
 		private List<JsonNode> objs = new LinkedList<JsonNode>();
 		private String workspace;
 		
-		public WorkspaceLibJsonNode() throws Exception {
+		public WorkspaceLibJsonNodeShock() throws Exception {
 			
 			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
 					new DefaultReferenceParser());
@@ -335,8 +346,85 @@ public class TimeReadWrite {
 		}
 	}
 	
+	public static class ShockBackendOnly extends AbstractReadWriteTest {
+		
+		private ShockBackend sb;
+		@SuppressWarnings("unused")
+		private int id;
+		public final List<MD5> md5s = new LinkedList<MD5>();
+		
+		public void initialize(int writes, int id) throws Exception {
+			Random rand = new Random();
+			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
+					"temp_shock_node_map", shockURL, token.getUserName(), password);
+			for (int i = 0; i < writes; i++) {
+				byte[] r = new byte[16]; //128 bit
+				rand.nextBytes(r);
+				md5s.add(new MD5(Hex.encodeHexString(r)));
+			}
+			this.id = id;
+		}
+		
+		@Override
+		public void performReads() throws Exception {
+			for (MD5 md5: md5s) {
+				sb.getBlob(md5);
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (MD5 md5: md5s) {
+				sb.saveBlob(md5, jsonData);
+			}
+		}
+
+		@Override
+		public void cleanUp() throws Exception {
+			sb.removeAllBlobs();
+		}
+	}
+	
+	public static class GridFSBackendOnly extends AbstractReadWriteTest {
+		
+		private GridFSBackend gfsb;
+		@SuppressWarnings("unused")
+		private int id;
+		public final List<MD5> md5s = new LinkedList<MD5>();
+		
+		public void initialize(int writes, int id) throws Exception {
+			Random rand = new Random();
+			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			for (int i = 0; i < writes; i++) {
+				byte[] r = new byte[16]; //128 bit
+				rand.nextBytes(r);
+				md5s.add(new MD5(Hex.encodeHexString(r)));
+			}
+			this.id = id;
+		}
+		
+		@Override
+		public void performReads() throws Exception {
+			for (MD5 md5: md5s) {
+				gfsb.getBlob(md5);
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (MD5 md5: md5s) {
+				gfsb.saveBlob(md5, jsonData);
+			}
+		}
+
+		@Override
+		public void cleanUp() throws Exception {
+			//Database will be deleted next time anyway
+		}
+	}
+	
 	// use builder in future, not really worth the time here
-	public static class ShockThread extends AbstractReadWriteTest {
+	public static class ShockClient extends AbstractReadWriteTest {
 		
 		private BasicShockClient bsc;
 		private int writes;
