@@ -51,7 +51,7 @@ import us.kbase.workspaceservice.GetObjectParams;
 import us.kbase.workspaceservice.SaveObjectParams;
 import us.kbase.workspaceservice.WorkspaceServiceClient;
 
-/* DO NOT run these tests on the production workspace.
+/* DO NOT run these tests on production workspaces.
  * 
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
@@ -61,13 +61,16 @@ public class TimeReadWrite {
 	//TODO time with gridfs
 	//TODO time w/o subsetting
 	//TODO profiling
+	//TODO count errors
+	//TODO halt on errors
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
-				Arrays.asList("Workspace005", "Shock", "ShockBackend", "GridFSBackend", "WorkspaceLibJsonNodeShock",
+				Arrays.asList("Workspace005", "Shock", "ShockBackend", "GridFSBackend",
+						"WorkspaceLibJsonNodeShockEmptyType", "WorkspaceLibJsonNodeShock",
 						"WorkspaceJSON1ObjPerShock"),
 				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
 	}
@@ -81,6 +84,7 @@ public class TimeReadWrite {
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
 		configMap.put("ShockBackend", ShockBackendOnly.class);
 		configMap.put("Workspace005", Workspace005JsonRPCShock.class);
+		configMap.put("WorkspaceLibJsonNodeShockEmptyType", WorkspaceLibJsonNodeShockEmptySpec.class);
 	}
 	
 	private static final String FILE = "83333.2.txt";
@@ -93,7 +97,15 @@ public class TimeReadWrite {
 	private static final String MODULE = "SupahFakeKBGA";
 	private static final String M_TYPE = "Genome";
 	private static final String TYPE = MODULE + "." + M_TYPE;
-	private static final TypeDefId TYPEDEF = new TypeDefId(TYPE); 
+	private static final TypeDefId TYPEDEF = new TypeDefId(TYPE);
+	
+	private static final String SIMPLE_MODULE = "SomeModule";
+	private static final String SIMPLE_M_TYPE = "AType";
+	private static final String SIMPLE_TYPE = SIMPLE_MODULE + "." + SIMPLE_M_TYPE;
+	private static final TypeDefId SIMPLE_TYPEDEF = new TypeDefId(SIMPLE_TYPE);
+	private static final String SIMPLE_SPEC =
+			"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};";
+	
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
 	private static byte[] data;
@@ -113,8 +125,9 @@ public class TimeReadWrite {
 					throws Exception {
 		System.out.println(
 				"Timing read/write against shock and the workspace service");
-		System.out.println("Shock url: " + shockURL);
+		System.out.println("Shock url: " + shockurl);
 		System.out.println("Workspace url: " + workspaceURL);
+		System.out.println("v0.0.5 Workspace url: " + workspace005URL);
 		System.out.println("logging in " + user);
 		
 		password = pwd;
@@ -134,10 +147,17 @@ public class TimeReadWrite {
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
 		Workspaces ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
 				new DefaultReferenceParser());
-		ws.requestModuleRegistration(new WorkspaceUser("foo"), MODULE);
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
-		ws.compileNewTypeSpec(new WorkspaceUser("foo"), spec, Arrays.asList(M_TYPE), null, null, false, null);
-		ws.releaseTypes(new WorkspaceUser("foo"), MODULE);
+		ws.compileNewTypeSpec(foo, spec, Arrays.asList(M_TYPE), null, null, false, null);
+		ws.releaseTypes(foo, MODULE);
+		
+		ws.requestModuleRegistration(foo, SIMPLE_MODULE);
+		ws.resolveModuleRegistration(SIMPLE_MODULE, true);
+		ws.compileNewTypeSpec(foo, SIMPLE_SPEC,
+				Arrays.asList(SIMPLE_M_TYPE), null, null, false, null);
+		ws.releaseTypes(foo, SIMPLE_MODULE);
 		
 		
 		System.out.println(String.format(
@@ -352,9 +372,18 @@ public class TimeReadWrite {
 		}
 	}
 	
+	public static class WorkspaceLibJsonNodeShockEmptySpec extends WorkspaceLibJsonNodeShock {
+		
+		public WorkspaceLibJsonNodeShockEmptySpec() throws Exception {
+			super();
+			type = SIMPLE_TYPEDEF;
+		}
+	}
+	
 	public static class WorkspaceLibJsonNodeShock extends AbstractReadWriteTest {
 
 		private static final WorkspaceUser foo = new WorkspaceUser("foo");
+		protected TypeDefId type;
 		
 		private Workspaces ws;
 		private int writes;
@@ -371,6 +400,7 @@ public class TimeReadWrite {
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null);
+			type = TYPEDEF;
 		};
 		
 		@SuppressWarnings("unchecked")
@@ -397,7 +427,7 @@ public class TimeReadWrite {
 			for (JsonNode o: objs) {
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(
-								o, TYPEDEF, null, new Provenance(foo), false)))
+								o, type, null, new Provenance(foo), false)))
 						.get(0).getObjectName());
 			}
 		}
