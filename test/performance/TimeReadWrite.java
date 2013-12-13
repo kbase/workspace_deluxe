@@ -14,6 +14,7 @@ import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.nocrala.tools.texttablefmt.Table;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
@@ -22,12 +23,22 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.workspaces.WorkspaceSaveObject;
+import us.kbase.workspace.workspaces.Workspaces;
 
 /* DO NOT run these tests on the production workspace.
  * 
@@ -36,14 +47,13 @@ import us.kbase.workspace.WorkspaceIdentity;
  */
 public class TimeReadWrite {
 	
-	//TODO bypass JSONRPC, use ws directly
-	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044",
-				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceJSON1ObjPer"),
+				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceLibJsonNode",
+						"WorkspaceJSON1ObjPer"),
 				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
 	}
 
@@ -52,15 +62,25 @@ public class TimeReadWrite {
 	static {
 		configMap.put("Shock", ShockThread.class);
 		configMap.put("WorkspaceJSON1ObjPer", WorkspaceJsonRPCThread.class);
+		configMap.put("WorkspaceLibJsonNode", WorkspaceLibJsonNode.class);
 	}
 	
-	private static final String file = "83333.2.txt";
+	private static final String FILE = "83333.2.txt";
+	private static final String SPEC_FILE = "SupahFakeKBGA.spec";
+	private static final String MONGO_HOST = "localhost";
+	private static final String MONGO_DB = "delete_this_ws";
+	private static final String TYPE_DB = "delete_this_type";
 	
-	private static final String TYPE = "SupahFakeKBGA.Genome";
+	
+	private static final String MODULE = "SupahFakeKBGA";
+	private static final String M_TYPE = "Genome";
+	private static final String TYPE = MODULE + "." + M_TYPE;
+	private static final TypeDefId TYPEDEF = new TypeDefId(TYPE); 
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
 	private static byte[] data;
 	private static AuthToken token;
+	private static String password;
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
 	
@@ -74,10 +94,25 @@ public class TimeReadWrite {
 		System.out.println("Workspace url: " + workspaceURL);
 		System.out.println("logging in " + user);
 		
+		password = pwd;
 		token = AuthService.login(user, pwd).getToken();
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
-		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(file));
+		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(FILE));
+		String spec = IOUtils.toString(TimeReadWrite.class.getResourceAsStream(SPEC_FILE));
+		
+		System.setProperty("test.mongo.db1", MONGO_DB);
+		System.setProperty("test.mongo.db.types1", TYPE_DB);
+		System.setProperty("test.mongo.host", MONGO_HOST);
+		System.setProperty("test.shock.url", shockurl);
+		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
+		Workspaces ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
+				new DefaultReferenceParser());
+		ws.requestModuleRegistration(new WorkspaceUser("foo"), MODULE);
+		ws.resolveModuleRegistration(MODULE, true);
+		ws.compileNewTypeSpec(new WorkspaceUser("foo"), spec, Arrays.asList(M_TYPE), null, null, false, null);
+		ws.releaseTypes(new WorkspaceUser("foo"), MODULE);
+		
 		
 		System.out.println(String.format(
 				"Writing a file %s times, then reading it back %s times",
@@ -237,6 +272,62 @@ public class TimeReadWrite {
 		@Override
 		public void cleanUp() throws Exception {
 			wsc.deleteWorkspace(new WorkspaceIdentity().withWorkspace(workspace));
+		}
+	}
+	
+	public static class WorkspaceLibJsonNode extends AbstractReadWriteTest {
+
+		private static final WorkspaceUser foo = new WorkspaceUser("foo");
+		
+		private Workspaces ws;
+		private int writes;
+		@SuppressWarnings("unused")
+		private int id;
+		final List<String> wsids = new LinkedList<String>();
+		private List<JsonNode> objs = new LinkedList<JsonNode>();
+		private String workspace;
+		
+		public WorkspaceLibJsonNode() throws Exception {
+			
+			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
+					new DefaultReferenceParser());
+			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
+					.replace("-", ""); //in case it's E-X
+			ws.createWorkspace(foo, workspace, false, null);
+		};
+		
+		@SuppressWarnings("unchecked")
+		public void initialize(int writes, int id) throws Exception {
+			this.writes = writes;
+			this.id = id;
+			for (int i = 0; i < this.writes; i++) {
+				Map<String, Object> foo = (Map<String, Object>) MAP.readValue(data, Map.class);
+				foo.put("fakekey", Math.random());
+				objs.add(MAP.valueToTree(foo));
+			}
+		}
+
+		@Override
+		public void performReads() throws Exception {
+			for (String id: wsids) {
+				ws.getObjects(foo, Arrays.asList(
+						new ObjectIdentifier(new WorkspaceIdentifier(workspace), id)));
+			}
+		}
+
+		@Override
+		public void performWrites() throws Exception {
+			for (JsonNode o: objs) {
+				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
+						Arrays.asList(new WorkspaceSaveObject(
+								o, TYPEDEF, null, new Provenance(foo), false)))
+						.get(0).getObjectName());
+			}
+		}
+
+		@Override
+		public void cleanUp() throws Exception {
+			ws.setWorkspaceDeleted(foo, new WorkspaceIdentifier(workspace), true);
 		}
 	}
 	
