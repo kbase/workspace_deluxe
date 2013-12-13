@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,6 +48,10 @@ import us.kbase.workspace.workspaces.Workspaces;
  */
 public class TimeReadWrite {
 	
+	//TODO time 0.0.5 ws
+	//TODO time with gridfs
+	//TODO time w/o subsetting
+	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
@@ -54,7 +59,7 @@ public class TimeReadWrite {
 		timeReadWrite(writes, user, pwd, "http://localhost:7044",
 				"http://localhost:7058", Arrays.asList("Shock", "WorkspaceLibJsonNode",
 						"WorkspaceJSON1ObjPer"),
-				Arrays.asList(1, 2, 3, 4, 5, 7, 10, 16, 20));
+				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
 	}
 
 	private static final Map<String, Class<? extends AbstractReadWriteTest>> configMap =
@@ -135,19 +140,18 @@ public class TimeReadWrite {
 			}
 		}
 		
-		Table tbl = new Table(6);
-		tbl.addCell("Configuration");
+		Table tbl = new Table(5);
 		tbl.addCell("Threads");
 		tbl.addCell("write (s)");
 		tbl.addCell("write (MBps)");
 		tbl.addCell("read (s)");
 		tbl.addCell("read (MBps)");
 		for (String config: configs) {
+			tbl.addCell(config, new CellStyle(CellStyle.HorizontalAlign.center), 5);
 			List<Integer> sorted = new ArrayList<Integer>(results.get(config).keySet());
 			Collections.sort(sorted);
 			for (Integer threads: sorted) {
 				Perf p = results.get(config).get(threads);
-				tbl.addCell(config);
 				tbl.addCell("" + threads);
 				tbl.addCell(String.format("%,.4f", p.writeSec));
 				tbl.addCell(String.format("%,.3f", calcMBps(writes, p.writeSec)));
