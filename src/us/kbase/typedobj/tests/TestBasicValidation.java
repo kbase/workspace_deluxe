@@ -171,7 +171,7 @@ public class TestBasicValidation {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
+		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","RandomObject");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
@@ -239,6 +239,7 @@ public class TestBasicValidation {
 				//System.out.println(report.toString());
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
+				System.out.println(e);
 				fail("("+instance.resourceName+") does not validate, but should");
 			}
 		} else {

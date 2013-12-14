@@ -20,7 +20,7 @@ public class Fields {
 	// workspace fields
 	public static final String WS_OWNER = "owner";
 	public static final String WS_ID = "ws";
-	public static final String WS_MODDATE = "moddate"; //TODO when should this be updated? currently never
+	public static final String WS_MODDATE = "moddate";
 	public static final String WS_NAME = "name";
 	public static final String WS_DEL = "del";
 	public static final String WS_NUMOBJ = "numObj";
@@ -56,7 +56,6 @@ public class Fields {
 	public static final String VER_TYPE = "type";
 	public static final String VER_SIZE = "size";
 	public static final String VER_RVRT = "revert";
-	public static final String VER_UUID = "legacyUUID";
 	public static final String VER_META = "meta";
 	public static final String VER_COPIED = "copied";
 	// meta document key & value
@@ -73,5 +72,8 @@ public class Fields {
 	public static final String SHOCK_CHKSUM = "chksum";
 	public static final String SHOCK_NODE = "node";
 	public static final String SHOCK_VER = "ver";
+	
+	// admin fields
+	public static final String ADMIN_NAME = "user";
 
 }

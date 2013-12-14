@@ -46,6 +46,12 @@ module KB {
 	} FeatureGroup;
 
 
+	typedef structure {
+		string name;
+		UnspecifiedObject stuff;
+	} RandomObject;
+
+
 };
 
 

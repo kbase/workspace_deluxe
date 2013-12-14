@@ -1,37 +1,41 @@
 package us.kbase.workspace.kbase;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.workspaces.Workspaces;
 
 public class WorkspaceAdministration {
 	
 	private final Workspaces ws;
+	private static final String ROOT = "workspaceadmin";
 	
-	//TODO add remove admin users in mongo
+	//TODO tests for all this
+	private final Set<String> internaladmins = new HashSet<String>(); 
 	
-	//TODO temp storage for admins, remove
-	private final Set<String> admins = new HashSet<String>(); 
-	
-	public WorkspaceAdministration(final Workspaces ws) {
+	public WorkspaceAdministration(final Workspaces ws, final String admin) {
 		this.ws = ws;
-		admins.add("workspaceadmin");
+		internaladmins.add(ROOT);
+		if (admin != null && !admin.isEmpty()) {
+			internaladmins.add(admin);
+		}
 	}
 
-	public void addAdministrator(String admin) {
-		if (admin == null || admin.equals("")) {
-			return;
-		}
-		admins.add(admin);
-	}
-	
 	public Object runCommand(AuthToken token, Object cmd)
-			throws TypeStorageException {
-		if (!admins.contains(token.getUserName())) {
+			throws TypeStorageException, IOException, AuthException,
+			WorkspaceCommunicationException {
+		final String putativeAdmin = token.getUserName();
+		if (!(internaladmins.contains(putativeAdmin) ||
+				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
 			throw new IllegalArgumentException("User " + token.getUserName()
 					+ " is not an admin");
 		}
@@ -51,11 +55,42 @@ public class WorkspaceAdministration {
 				return null;
 			}
 			if ("listAdmins".equals(fn)) {
-				return admins;
+				final Set<String> strAdm = new HashSet<String>();
+				for (final WorkspaceUser u: ws.getAdmins()) {
+					strAdm.add(u.getUser());
+				}
+				strAdm.addAll(internaladmins);
+				return strAdm;
+			}
+			if ("addAdmin".equals(fn)) {
+				setAdmin((String) c.get("user"), token, false);
+				return null;
+			}
+			if ("removeAdmin".equals(fn)) {
+				final String admin = (String) c.get("user");
+				if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
+					internaladmins.remove(admin);
+				}
+				setAdmin((String) c.get("user"), token, true);
+				return null;
 			}
 		}
 		throw new IllegalArgumentException(
 				"I don't know how to process the command:\n" + cmd);
+	}
+	
+	private void setAdmin(final String user, final AuthToken token,
+			final boolean remove)
+			throws IOException, AuthException, WorkspaceCommunicationException {
+		if (!AuthService.isValidUserName(Arrays.asList(user), token).get(user)) {
+			throw new IllegalArgumentException(user +
+					" is not a valid KBase user");
+		}
+		if (remove) {
+			ws.removeAdmin(new WorkspaceUser(user));
+		} else {
+			ws.addAdmin(new WorkspaceUser(user));
+		}
 	}
 
 	private void approveModRequest(final String module, final boolean approve)

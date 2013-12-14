@@ -1,19 +1,24 @@
 /*
 
-The workspace service at its core is a storage and retrieval system for 
-typed objects. Objects are organized by the user into one or more workspaces.
+The Workspace Service (WSS) is primarily a language independent remote storage
+and retrieval system for KBase typed objects (TO) defined with the KBase
+Interface Description Language (KIDL). It has the following primary features:
+- Immutable storage of TOs with
+	- user defined metadata 
+	- data provenance
+- Versioning of TOs
+- Referencing from TO to TO
+- Typechecking of all saved objects against a KIDL specification
+- Collecting typed objects into a workspace
+- Sharing workspaces with specific KBase users or the world
+- Freezing and publishing workspaces
 
-Features:
+Size limits:
+TOs are limited to 1GB
+TO subdata is limited to 15MB
+TO provenance is limited to 1MB
 
-Versioning of objects
-Data provenenance
-Object to object references
-Workspace sharing
-***Add stuff here***
-
-Notes about deletion and GC
-
-BINARY DATA:
+NOTE ON BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
 Attempting to send binary data via a workspace client will cause errors.
 
@@ -103,7 +108,7 @@ module Workspace {
 		compatibility. To be replaced by workspace_info.
 	
 		ws_name id - name of the workspace 
-		username owner - name of the user who owns (who created) this object
+		username owner - name of the user who owns (who created) this workspace
 		timestamp moddate - date when the workspace was last modified
 		int objects - the approximate number of objects currently stored in
 			the workspace.
@@ -355,7 +360,7 @@ module Workspace {
 	} CloneWorkspaceParams;
 	
 	/*
-		Creates a new workspace.
+		Clones a workspace.
 	*/
 	funcdef clone_workspace(CloneWorkspaceParams params) returns
 		(workspace_info info);
@@ -384,7 +389,7 @@ module Workspace {
 			
 		Optional arguments:
 		string auth - the authentication token of the KBase account accessing
-			the list of workspaces. Overrides the client provided authorization
+			the workspace. Overrides the client provided authorization
 			credentials if they exist.
 		
 		@deprecated Workspace.WorkspaceIdentity
@@ -503,12 +508,12 @@ module Workspace {
 			saved
 		obj_name id - name behind which the object will be saved in the
 			workspace
-		UnspecifiedObject data - datastructure to be saved in the workspace
+		UnspecifiedObject data - data to be saved in the workspace
 		
 		Optional arguments:
 		usermeta metadata - a hash of metadata to be associated with the object
 		string auth - the authentication token of the KBase account accessing
-			the list of workspaces. Overrides the client provided authorization
+			the workspace. Overrides the client provided authorization
 			credentials if they exist.
 		
 		@deprecated
@@ -601,7 +606,7 @@ module Workspace {
 		int instance - Version of the object to be retrieved, enabling
 			retrieval of any previous version of an object
 		string auth - the authentication token of the KBase account accessing
-			the list of workspaces. Overrides the client provided authorization
+			the object. Overrides the client provided authorization
 			credentials if they exist.
 		
 		@deprecated Workspace.ObjectIdentity	
@@ -760,7 +765,7 @@ module Workspace {
 		recommended that the list is restricted to the workspaces of interest,
 		or the results may be very large:
 		list<ws_id> ids - the numerical IDs of the workspaces of interest.
-		list<ws_name> workspaces - name of the workspaces of interest or the
+		list<ws_name> workspaces - names of the workspaces of interest or the
 			workspace IDs in KBase format, e.g. kb|ws.78.
 		type_string type - type of the objects to be listed.  Here, omitting
 			version information will find any objects that match the provided
@@ -993,8 +998,8 @@ module Workspace {
 	
 		Required arguments:
 		One of:
-		 typespec spec - the new typespec to register.
-		 modulename mod - the module to recompile with updated options (see below).
+		typespec spec - the new typespec to register.
+		modulename mod - the module to recompile with updated options (see below).
 		
 		Optional arguments:
 		boolean dryrun - Return, but do not save, the results of compiling the 
@@ -1178,17 +1183,17 @@ module Workspace {
 	/* Information about a type
 	
 		type_string type_def - resolved type definition id.
-		string description - the description of the type from spec-file.
-		string spec_def - reconstruction of type definition from spec-file.
+		string description - the description of the type from spec file.
+		string spec_def - reconstruction of type definition from spec file.
 		list<spec_version> module_vers - versions of spec-files containing
 			given type version.
 		list<type_string> type_vers - all versions of type with given type name.
 		list<func_string> using_func_defs - list of functions (with versions)
-			refering to this type version.
+			referring to this type version.
 		list<type_string> using_type_defs - list of types (with versions)
-			refereing to this type version.
+			referring to this type version.
 		list<type_string> used_type_defs - list of types (with versions) 
-			refered from this type version.
+			referred from this type version.
 	*/
 	typedef structure {
 		type_string type_def;
@@ -1203,16 +1208,17 @@ module Workspace {
 	
 	funcdef get_type_info(type_string type) returns (TypeInfo info);
 	
-	/* Information about function
+	/* Information about a function
 	
 		func_string func_def - resolved func definition id.
-		string description - the description of the function from spec-file.
-		string spec_def - reconstruction of function definition from spec-file.
-		list<spec_version> module_vers - versions of spec-files containing
+		string description - the description of the function from spec file.
+		string spec_def - reconstruction of function definition from spec file.
+		list<spec_version> module_vers - versions of spec files containing
 			given func version.
-		list<func_string> func_vers - all versions of function with given type name.
+		list<func_string> func_vers - all versions of function with given type
+			name.
 		list<type_string> used_type_defs - list of types (with versions) 
-			refered from this function version.
+			referred to from this function version.
 	*/
 	typedef structure {
 		func_string func_def;

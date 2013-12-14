@@ -142,4 +142,16 @@ public interface WorkspaceDatabase {
 	public List<ObjectInformation> getObjectHistory(
 			ObjectIDResolvedWS objectIDResolvedWS)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
+
+	public boolean isAdmin(WorkspaceUser putativeAdmin)
+			throws WorkspaceCommunicationException;
+
+	public Set<WorkspaceUser> getAdmins()
+			throws WorkspaceCommunicationException;
+
+	public void removeAdmin(WorkspaceUser user)
+			throws WorkspaceCommunicationException;
+
+	public void addAdmin(WorkspaceUser user)
+			throws WorkspaceCommunicationException;
 }

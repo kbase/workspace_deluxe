@@ -120,7 +120,11 @@ public class TypedObjectValidationReport {
 				if(instance!=null) {
 					instancePointer = instance.get("pointer");
 					if(instancePointer!=null) {
-						foundPositionString = ", at "+instancePointer.asText();
+						String locationString = instancePointer.asText();
+						if(locationString.isEmpty()) {
+							locationString="/";
+						}
+						foundPositionString = ", at "+locationString;
 					}
 				}
 				errMssgs.add(pm.getMessage()+foundPositionString);

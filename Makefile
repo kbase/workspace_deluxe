@@ -5,6 +5,8 @@ CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 
 THREADPOOL_SIZE = 20
+MEMORY = 10000
+MAX_MEMORY = 15000
 
 #End of user defined variables
 
@@ -24,13 +26,19 @@ endif
 DEPLOY_RUNTIME ?= /kb/runtime
 TARGET ?= /kb/deployment
 SERVICE_DIR ?= $(TARGET)/services/$(SERVICE)
+GLASSFISH_HOME ?= $(DEPLOY_RUNTIME)/glassfish3
+
+ASADMIN = $(GLASSFISH_HOME)/glassfish/bin/asadmin
 
 ANT = ant
+
+SRC_PERL = $(wildcard scripts/*.pl)
+BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
 
 # make sure our make test works
 .PHONY : test
 
-default: init build-libs build-docs
+default: init build-libs build-docs scriptbin
 
 # fake deploy-cfg target for when this is run outside the dev_container
 deploy-cfg:
@@ -82,6 +90,13 @@ compile-typespec:
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
 
+# only deploy scripts to the dev_container bin if we are in dev_container
+ifeq ($(TOP_DIR_NAME), dev_container)
+scriptbin: $(BIN_PERL)
+else
+scriptbin:
+endif
+
 test: test-client test-service test-scripts
 	
 test-client: test-service
@@ -109,8 +124,25 @@ deploy-docs:
 	mkdir -p $(SERVICE_DIR)/webroot
 	cp  -r docs/* $(SERVICE_DIR)/webroot/.
 
+# if we are not in dev container, we need to copy in the deploy scripts target
+ifndef WRAP_PERL_SCRIPT
 deploy-scripts:
-	@echo no scripts to deploy
+	$(warning Warning! Scripts not deployed because WRAP_PERL_SCRIPT makefile variable is not defined.)
+else ifneq ($(TOP_DIR_NAME), dev_container)
+deploy-scripts: deploy-perl-scripts
+
+deploy-perl-scripts:
+	export KB_TOP=$(TARGET); \
+	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
+	export KB_PERL_PATH=$(TARGET)/lib ; \
+	for src in $(SRC_PERL) ; do \
+		basefile=`basename $$src`; \
+		base=`basename $$src .pl`; \
+		echo install $$src $$base ; \
+		cp $$src $(TARGET)/plbin ; \
+		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
+	done
+endif
 
 deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
 
@@ -134,9 +166,9 @@ deploy-service-scripts:
 	echo "then" >> $(SERVICE_DIR)/start_service
 	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
 	echo "fi" >> $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_start_service.sh $(SERVICE_DIR)/$(WAR) $(SERVICE_PORT) $(THREADPOOL_SIZE)" >> $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -w $(SERVICE_DIR)/$(WAR) -p $(SERVICE_PORT) -t $(THREADPOOL_SIZE) -s $(MEMORY) -x $(MAX_MEMORY) -r KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG" >> $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_stop_service.sh $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
+	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -p $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service
 
 undeploy:

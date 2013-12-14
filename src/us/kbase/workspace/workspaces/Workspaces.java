@@ -62,6 +62,8 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspaces {
 	
+	//TODO profiling
+	//TODO get_subdata lib method for testing
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get objects by ref chain
@@ -764,7 +766,6 @@ public class Workspaces {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
-	//TODO tests for module registration/compile/list/update etc.
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
@@ -948,5 +949,28 @@ public class Workspaces {
 		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
 		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
 				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks);
+	}
+
+	/* these admin functions are provided as a convenience and have nothing
+	 * to do with the rest of the DB, really. 
+	 */
+	public boolean isAdmin(WorkspaceUser putativeAdmin)
+			throws WorkspaceCommunicationException {
+		return db.isAdmin(putativeAdmin);
+	}
+
+	public Set<WorkspaceUser> getAdmins()
+			throws WorkspaceCommunicationException {
+		return db.getAdmins();
+	}
+
+	public void removeAdmin(WorkspaceUser user)
+			throws WorkspaceCommunicationException {
+		db.removeAdmin(user);
+	}
+
+	public void addAdmin(WorkspaceUser user)
+			throws WorkspaceCommunicationException {
+		db.addAdmin(user);
 	}
 }
