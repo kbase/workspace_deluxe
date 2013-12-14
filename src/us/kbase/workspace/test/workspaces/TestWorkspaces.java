@@ -2187,7 +2187,7 @@ public class TestWorkspaces {
 	@Test
 	public void testGetModuleInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		ModuleInfo m = ws.getModuleInfo(new ModuleDefId("TestModule"), null);
+		ModuleInfo m = ws.getModuleInfo(null, new ModuleDefId("TestModule"));
 		Assert.assertTrue(m.isReleased());
 		Map<String,String> funcNamesInList = new HashMap<String,String>();
 		for(String func : m.getFunctions() ){
@@ -2204,10 +2204,10 @@ public class TestWorkspaces {
 		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Feature-1.0"));
 		
 		try {
-			ws.getModuleInfo(new ModuleDefId("MadeUpModuleThatIsNotThere"), null);
+			ws.getModuleInfo(null, new ModuleDefId("MadeUpModuleThatIsNotThere"));
 			fail("getModuleInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
-		ModuleInfo m2 = ws.getModuleInfo(new ModuleDefId("UnreleasedModule"), new WorkspaceUser("foo"));
+		ModuleInfo m2 = ws.getModuleInfo(new WorkspaceUser("foo"), new ModuleDefId("UnreleasedModule"));
 		Assert.assertEquals("foo", m2.getOwners().get(0));
 		Assert.assertFalse(m2.isReleased());
 		List<Long> verList = ws.getModuleVersions("UnreleasedModule", new WorkspaceUser("foo"));

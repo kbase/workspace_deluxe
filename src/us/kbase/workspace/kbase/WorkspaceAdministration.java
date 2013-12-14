@@ -1,6 +1,7 @@
 package us.kbase.workspace.kbase;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -9,21 +10,35 @@ import java.util.Set;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.UObject;
+import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
+import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.workspaces.Workspaces;
 
 public class WorkspaceAdministration {
 	
 	private final Workspaces ws;
+	private final WorkspaceServerMethods wsmeth;
 	private static final String ROOT = "workspaceadmin";
 	
 	//TODO tests for all this
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
-	public WorkspaceAdministration(final Workspaces ws, final String admin) {
+	public WorkspaceAdministration(final Workspaces ws, 
+			final WorkspaceServerMethods wsmeth, final String admin) {
 		this.ws = ws;
+		this.wsmeth = wsmeth;
 		internaladmins.add(ROOT);
 		if (admin != null && !admin.isEmpty()) {
 			internaladmins.add(admin);
@@ -32,7 +47,11 @@ public class WorkspaceAdministration {
 
 	public Object runCommand(AuthToken token, Object cmd)
 			throws TypeStorageException, IOException, AuthException,
-			WorkspaceCommunicationException {
+			WorkspaceCommunicationException, PreExistingWorkspaceException,
+			CorruptWorkspaceDBException, NoSuchObjectException,
+			NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			TypedObjectValidationException, BadJsonSchemaDocumentException,
+			InstanceValidationException, ParseException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
@@ -73,6 +92,18 @@ public class WorkspaceAdministration {
 				}
 				setAdmin((String) c.get("user"), token, true);
 				return null;
+			}
+			if ("createWorkspace".equals(fn)) {
+				final CreateWorkspaceParams params = UObject.transformObjectToObject(
+						c.get("params"), CreateWorkspaceParams.class);
+				final WorkspaceUser user = new WorkspaceUser((String) c.get("user"));
+				return wsmeth.createWorkspace(params, user);
+			}
+			if ("saveObjects".equals(fn)) {
+				final SaveObjectsParams params = UObject.transformObjectToObject(
+						c.get("params"), SaveObjectsParams.class);
+				final WorkspaceUser user = new WorkspaceUser((String) c.get("user"));
+				return wsmeth.saveObjects(params, user);
 			}
 		}
 		throw new IllegalArgumentException(

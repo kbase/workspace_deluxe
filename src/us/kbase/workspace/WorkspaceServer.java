@@ -43,15 +43,12 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
@@ -60,7 +57,7 @@ import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
+import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.workspaces.Workspaces;
 //END_HEADER
 
@@ -106,6 +103,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static int instanceCount = 0;
 	
 	private final Workspaces ws;
+	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
@@ -186,6 +184,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (failed) {
 			fail("Server startup failed - all calls will error out.");
 			ws = null;
+			wsmeth = null;
 			wsadmin = null;
 		} else {
 			final String kidlpath = new Util().getKIDLpath();
@@ -208,6 +207,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;
+				wsmeth = null;
 				wsadmin = null;
 			} else {
 				System.out.println(String.format("Initialized %s backend",
@@ -215,7 +215,9 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo(String.format("Initialized %s backend",
 						db.getBackendType()));
 				ws = new Workspaces(db, new KBaseReferenceParser());
-				wsadmin = new WorkspaceAdministration(ws, wsConfig.get(WSADMIN));
+				wsmeth = new WorkspaceServerMethods(ws);
+				wsadmin = new WorkspaceAdministration(ws, wsmeth,
+						wsConfig.get(WSADMIN));
 				final String mem = String.format(
 						"Started workspace server instance %s. Free mem: %s Max mem: %s",
 						++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -239,12 +241,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple8<Long, String, String, String, Long, String, String, String> createWorkspace(CreateWorkspaceParams params, AuthToken authPart) throws Exception {
         Tuple8<Long, String, String, String, Long, String, String, String> returnVal = null;
         //BEGIN create_workspace
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = au.getGlobalWSPerm(params.getGlobalread());
-		final WorkspaceInformation meta = ws.createWorkspace(getUser(authPart),
-				params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription());
-		returnVal = au.wsInfoToTuple(meta);
+		returnVal = wsmeth.createWorkspace(params, getUser(authPart));
         //END create_workspace
         return returnVal;
     }
@@ -519,60 +516,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN save_objects
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWorkspace(), params.getId());
-		final WorkspaceUser user = getUser(authPart);
-		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		int count = 1;
-		if (params.getObjects().isEmpty()) {
-			throw new IllegalArgumentException("No data provided");
-		}
-		for (ObjectSaveData d: params.getObjects()) {
-			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			ObjectIDNoWSNoVer oi = null;
-			if (d.getName() != null || d.getObjid() != null) {
-				 oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
-			}
-			String errprefix = "Object ";
-			if (oi == null) {
-				errprefix += count;
-			} else {
-				errprefix += count + ", " + oi.getIdentifierString() + ",";
-			}
-			if (d.getData() == null) {
-				throw new IllegalArgumentException(errprefix + " has no data");
-			}
-			TypeDefId t;
-			try {
-				t = TypeDefId.fromTypeString(d.getType());
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(errprefix + " type error: "
-						+ iae.getLocalizedMessage(), iae);
-			}
-			final Provenance p = au.processProvenance(user,
-					d.getProvenance());
-			final boolean hidden = au.longToBoolean(d.getHidden());
-			try {
-				if (oi == null) {
-					woc.add(new WorkspaceSaveObject(d.getData().asJsonNode(),
-							t, d.getMeta(), p, hidden));
-				} else {
-					woc.add(new WorkspaceSaveObject(oi,
-							d.getData().asJsonNode(), t, d.getMeta(), p,
-							hidden));
-				}
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(errprefix + " save error: "
-						+ iae.getLocalizedMessage(), iae);
-			}
-			count++;
-		}
-		params.setObjects(null); // garbage collect the objects, although
-		// just passing a pointer around so no biggie
-		// setting params = null won't help since the method caller still has a ref
-		
-		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc); 
-		returnVal = au.objInfoToTuple(meta);
+		returnVal = wsmeth.saveObjects(params, getUser(authPart));
         //END save_objects
         return returnVal;
     }
@@ -1222,9 +1166,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			module = new ModuleDefId(params.getMod());
 		}
-		WorkspaceUser user = authPart == null ? null : new WorkspaceUser(authPart.getClientId());
+		WorkspaceUser user = getUser(authPart);
 		final us.kbase.workspace.workspaces.ModuleInfo mi =
-				ws.getModuleInfo(module, user);
+				ws.getModuleInfo(user, module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
 			types.put(t.getTypeString(), mi.getTypes().get(t));

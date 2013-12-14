@@ -842,7 +842,7 @@ public class Workspaces {
 		return typedb.getModulesByOwner(user.getUser());
 	}
 	
-	public ModuleInfo getModuleInfo(final ModuleDefId module, WorkspaceUser user)
+	public ModuleInfo getModuleInfo(final WorkspaceUser user, final ModuleDefId module)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String userId = user == null ? null : user.getUser();
 		final us.kbase.typedobj.db.ModuleInfo moduleInfo =

@@ -58,11 +58,9 @@ import us.kbase.workspaceservice.WorkspaceServiceClient;
  */
 public class TimeReadWrite {
 	
-	//TODO time with gridfs
-	//TODO time w/o subsetting
 	//TODO profiling
 	//TODO count errors
-	//TODO halt on errors
+	//TODO warn at end on errors
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
