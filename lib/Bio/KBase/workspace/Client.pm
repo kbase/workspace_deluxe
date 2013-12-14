@@ -4454,11 +4454,13 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	chsum has a value which is a string
 	functions has a value which is a reference to a list where each element is a Workspace.func_string
+	is_released has a value which is a Workspace.boolean
 username is a string
 typespec is a string
 type_string is a string
 jsonschema is a string
 func_string is a string
+boolean is an int
 
 </pre>
 
@@ -4482,11 +4484,13 @@ ModuleInfo is a reference to a hash where the following keys are defined:
 	included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 	chsum has a value which is a string
 	functions has a value which is a reference to a list where each element is a Workspace.func_string
+	is_released has a value which is a Workspace.boolean
 username is a string
 typespec is a string
 type_string is a string
 jsonschema is a string
 func_string is a string
+boolean is an int
 
 
 =end text
@@ -4503,7 +4507,7 @@ sub get_module_info
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -7599,6 +7603,9 @@ Information about a module.
         mapping<modulename, spec_version> included_spec_version - names of 
                 included modules associated with their versions.
         string chsum - the md5 checksum of the object.
+        list<func_string> functions - list of names of functions registered in spec.
+        boolean is_released - shows if this version of module was released (and
+                hence can be seen by others).
 
 
 =item Definition
@@ -7615,6 +7622,7 @@ types has a value which is a reference to a hash where the key is a Workspace.ty
 included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 chsum has a value which is a string
 functions has a value which is a reference to a list where each element is a Workspace.func_string
+is_released has a value which is a Workspace.boolean
 
 </pre>
 
@@ -7631,6 +7639,7 @@ types has a value which is a reference to a hash where the key is a Workspace.ty
 included_spec_version has a value which is a reference to a hash where the key is a Workspace.modulename and the value is a Workspace.spec_version
 chsum has a value which is a string
 functions has a value which is a reference to a list where each element is a Workspace.func_string
+is_released has a value which is a Workspace.boolean
 
 
 =end text

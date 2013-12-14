@@ -15,12 +15,13 @@ public class ModuleInfo {
 	private Map<String, Long> includedSpecVersions;
 	private String md5hash;
 	private List<String> functions;
+	private final boolean isReleased; 
 	
 	ModuleInfo(final String typespec, final List<String> owners,
 			final Long version, final String description,
 			final Map<AbsoluteTypeDefId, String> types, 
 			Map<String, Long> includedSpecVersions, String md5hash,
-			List<String> functions) {
+			List<String> functions, boolean isReleased) {
 		//skip null checking, probably not needed
 		this.typespec = typespec;
 		this.owners = owners;
@@ -30,6 +31,7 @@ public class ModuleInfo {
 		this.includedSpecVersions = includedSpecVersions;
 		this.md5hash = md5hash;
 		this.functions = functions;
+		this.isReleased = isReleased;
 	}
 
 	public String getTypespec() {
@@ -64,13 +66,17 @@ public class ModuleInfo {
 		return functions;
 	}
 
+	public boolean isReleased() {
+		return isReleased;
+	}
+
 	@Override
 	public String toString() {
 		return "ModuleInfo [typespec=" + typespec + ", owners=" + owners
 				+ ", version=" + version + ", description=" + description
 				+ ", types=" + types + ", includedSpecVersions="
 				+ includedSpecVersions + ", md5hash=" + md5hash
-				+ ", functions=" + functions + "]";
+				+ ", functions=" + functions + ", isReleased=" + isReleased
+				+ "]";
 	}
-	
 }

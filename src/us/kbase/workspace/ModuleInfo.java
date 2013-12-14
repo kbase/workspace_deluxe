@@ -25,6 +25,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         mapping<modulename, spec_version> included_spec_version - names of 
  *                 included modules associated with their versions.
  *         string chsum - the md5 checksum of the object.
+ *         list<func_string> functions - list of names of functions registered in spec.
+ *         boolean is_released - shows if this version of module was released (and
+ *                 hence can be seen by others).
  * </pre>
  * 
  */
@@ -38,7 +41,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "types",
     "included_spec_version",
     "chsum",
-    "functions"
+    "functions",
+    "is_released"
 })
 public class ModuleInfo {
 
@@ -58,6 +62,8 @@ public class ModuleInfo {
     private java.lang.String chsum;
     @JsonProperty("functions")
     private List<String> functions;
+    @JsonProperty("is_released")
+    private java.lang.Long isReleased;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("owners")
@@ -180,6 +186,21 @@ public class ModuleInfo {
         return this;
     }
 
+    @JsonProperty("is_released")
+    public java.lang.Long getIsReleased() {
+        return isReleased;
+    }
+
+    @JsonProperty("is_released")
+    public void setIsReleased(java.lang.Long isReleased) {
+        this.isReleased = isReleased;
+    }
+
+    public ModuleInfo withIsReleased(java.lang.Long isReleased) {
+        this.isReleased = isReleased;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -192,7 +213,7 @@ public class ModuleInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", includedSpecVersion=")+ includedSpecVersion)+", chsum=")+ chsum)+", functions=")+ functions)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("ModuleInfo"+" [owners=")+ owners)+", ver=")+ ver)+", spec=")+ spec)+", description=")+ description)+", types=")+ types)+", includedSpecVersion=")+ includedSpecVersion)+", chsum=")+ chsum)+", functions=")+ functions)+", isReleased=")+ isReleased)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

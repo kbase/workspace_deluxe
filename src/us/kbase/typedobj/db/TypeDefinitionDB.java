@@ -379,10 +379,22 @@ public class TypeDefinitionDB {
 			return info.getVersionTime();
 		return storage.getLastReleasedModuleVersion(moduleName);
 	}
-	
+
 	private long findModuleVersion(ModuleDefId moduleDef) throws NoSuchModuleException, TypeStorageException {
+		try {
+			return findModuleVersion(moduleDef, null);
+		} catch (NoSuchPrivilegeException e) {
+			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
+		}
+	}
+	
+	private long findModuleVersion(ModuleDefId moduleDef, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		if (moduleDef.getVersion() == null) {
 			checkModuleSupported(moduleDef.getModuleName());
+			if (userId != null && isOwnerOfModule(moduleDef.getModuleName(), userId)) {
+				return getLatestModuleVersionWithUnreleased(moduleDef.getModuleName(), userId);
+			}
 			return getLastReleasedModuleVersion(moduleDef.getModuleName());
 		}
 		long version = moduleDef.getVersion();
@@ -391,13 +403,22 @@ public class TypeDefinitionDB {
 					" for version " + version);
 		return version;
 	}
-	
+
 	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
+		try {
+			return getJsonSchemasForAllTypes(moduleDef, null);
+		} catch (NoSuchPrivilegeException e) {
+			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
+		}
+	}
+	
+	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
-			long moduleVersion = findModuleVersion(moduleDef);
+			long moduleVersion = findModuleVersion(moduleDef, userId);
 			ModuleInfo info = storage.getModuleInfoRecord(moduleName, moduleVersion);
 			Map<AbsoluteTypeDefId, String> ret = new HashMap<AbsoluteTypeDefId, String>();
 			for (TypeInfo ti : info.getTypes().values()) {
@@ -1076,11 +1097,20 @@ public class TypeDefinitionDB {
 
 	public String getModuleSpecDocument(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
+		try {
+			return getModuleSpecDocument(moduleDef, null);
+		} catch (NoSuchPrivilegeException e) {
+			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
+		}
+	}
+	
+	public String getModuleSpecDocument(ModuleDefId moduleDef, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
-			long version = findModuleVersion(moduleDef);
+			long version = findModuleVersion(moduleDef, userId);
 			checkModule(moduleName, version);
 			return storage.getModuleSpecRecord(moduleName, version);
 		} finally {
@@ -1184,10 +1214,19 @@ public class TypeDefinitionDB {
 
 	public ModuleInfo getModuleInfo(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
+		try {
+			return getModuleInfo(moduleDef, null);
+		} catch (NoSuchPrivilegeException e) {
+			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
+		}
+	}
+	
+	public ModuleInfo getModuleInfo(ModuleDefId moduleDef, String userId) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
-			return getModuleInfoNL(moduleName, findModuleVersion(moduleDef));
+			return getModuleInfoNL(moduleName, findModuleVersion(moduleDef, userId));
 		} finally {
 			releaseReadLock(moduleName);
 		}

@@ -1200,8 +1200,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   params   instance of type {@link us.kbase.workspace.GetModuleInfoParams GetModuleInfoParams}
      * @return   parameter "info" of type {@link us.kbase.workspace.ModuleInfo ModuleInfo}
      */
-    @JsonServerMethod(rpc = "Workspace.get_module_info")
-    public ModuleInfo getModuleInfo(GetModuleInfoParams params) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_module_info", authOptional=true)
+    public ModuleInfo getModuleInfo(GetModuleInfoParams params, AuthToken authPart) throws Exception {
         ModuleInfo returnVal = null;
         //BEGIN get_module_info
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
@@ -1215,8 +1215,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			module = new ModuleDefId(params.getMod());
 		}
+		WorkspaceUser user = authPart == null ? null : new WorkspaceUser(authPart.getClientId());
 		final us.kbase.workspace.workspaces.ModuleInfo mi =
-				ws.getModuleInfo(module);
+				ws.getModuleInfo(module, user);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
 			types.put(t.getTypeString(), mi.getTypes().get(t));
@@ -1229,7 +1230,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withTypes(types)
 				.withIncludedSpecVersion(mi.getIncludedSpecVersions())
 				.withChsum(mi.getMd5hash())
-				.withFunctions(mi.getFunctions());
+				.withFunctions(mi.getFunctions())
+				.withIsReleased(mi.isReleased() ? 1L : 0L);
         //END get_module_info
         return returnVal;
     }

@@ -224,6 +224,12 @@ public class TestWorkspaces {
 					"};",
 					null, null, null, false, null);
 			TEST_WORKSPACES[i].releaseTypes(foo, "TestModule");
+			
+			TEST_WORKSPACES[i].requestModuleRegistration(foo, "UnreleasedModule");
+			TEST_WORKSPACES[i].resolveModuleRegistration("UnreleasedModule", true);
+			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
+					"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType;};",
+					Arrays.asList("AType"), null, null, false, null);
 		}
 	}
 	
@@ -2181,7 +2187,8 @@ public class TestWorkspaces {
 	@Test
 	public void testGetModuleInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		ModuleInfo m = ws.getModuleInfo(new ModuleDefId("TestModule"));
+		ModuleInfo m = ws.getModuleInfo(new ModuleDefId("TestModule"), null);
+		Assert.assertTrue(m.isReleased());
 		Map<String,String> funcNamesInList = new HashMap<String,String>();
 		for(String func : m.getFunctions() ){
 			funcNamesInList.put(func, "");
@@ -2197,9 +2204,15 @@ public class TestWorkspaces {
 		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Feature-1.0"));
 		
 		try {
-			ws.getModuleInfo(new ModuleDefId("MadeUpModuleThatIsNotThere"));
+			ws.getModuleInfo(new ModuleDefId("MadeUpModuleThatIsNotThere"), null);
 			fail("getModuleInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
+		ModuleInfo m2 = ws.getModuleInfo(new ModuleDefId("UnreleasedModule"), new WorkspaceUser("foo"));
+		Assert.assertEquals("foo", m2.getOwners().get(0));
+		Assert.assertFalse(m2.isReleased());
+		List<Long> verList = ws.getModuleVersions("UnreleasedModule", new WorkspaceUser("foo"));
+		Assert.assertEquals(1, verList.size());
+		Assert.assertEquals(m2.getVersion(), verList.get(0));
 	}
 	
 	@Test

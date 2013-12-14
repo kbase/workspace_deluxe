@@ -841,20 +841,21 @@ public class Workspaces {
 		return typedb.getModulesByOwner(user.getUser());
 	}
 	
-	public ModuleInfo getModuleInfo(final ModuleDefId module)
-			throws NoSuchModuleException, TypeStorageException {
+	public ModuleInfo getModuleInfo(final ModuleDefId module, WorkspaceUser user)
+			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+		String userId = user == null ? null : user.getUser();
 		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
-				typedb.getModuleInfo(module);
+				typedb.getModuleInfo(module, userId);
 		List<String> functions = new ArrayList<String>();
 		for (FuncInfo fi : moduleInfo.getFuncs().values())
 			functions.add(module.getModuleName() + "." + fi.getFuncName() + "-" + 
 					fi.getFuncVersion());
-		return new ModuleInfo(typedb.getModuleSpecDocument(module),
+		return new ModuleInfo(typedb.getModuleSpecDocument(module, userId),
 				typedb.getModuleOwners(module.getModuleName()),
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
-				typedb.getJsonSchemasForAllTypes(module), 
+				typedb.getJsonSchemasForAllTypes(module, userId), 
 				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
-				new ArrayList<String>(functions));
+				new ArrayList<String>(functions), moduleInfo.isReleased());
 	}
 	
 	public List<Long> getModuleVersions(final String module, WorkspaceUser user)

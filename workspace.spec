@@ -1145,6 +1145,9 @@ module Workspace {
 		mapping<modulename, spec_version> included_spec_version - names of 
 			included modules associated with their versions.
 		string chsum - the md5 checksum of the object.
+		list<func_string> functions - list of names of functions registered in spec.
+		boolean is_released - shows if this version of module was released (and
+			hence can be seen by others).
 	*/
 	typedef structure {
 		list<username> owners;
@@ -1155,10 +1158,11 @@ module Workspace {
 		mapping<modulename, spec_version> included_spec_version;
 		string chsum;
 		list<func_string> functions;
+		boolean is_released;
 	} ModuleInfo;
 	
 	funcdef get_module_info(GetModuleInfoParams params)
-		returns(ModuleInfo info);
+		returns(ModuleInfo info) authentication optional;
 		
 	/* Get JSON schema for a type. */
 	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
