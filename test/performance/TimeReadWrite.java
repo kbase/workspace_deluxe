@@ -6,6 +6,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -139,6 +140,8 @@ public class TimeReadWrite {
 				"Writing a file %s times, then reading it back %s times",
 				writes, writes));
 		System.out.println(String.format("file size: %,dB", data.length));
+		Date start = new Date();
+		System.out.println("started at " + start);
 		
 		System.setProperty("test.mongo.db1", MONGO_DB);
 		System.setProperty("test.mongo.db.types1", TYPE_DB);
@@ -198,6 +201,17 @@ public class TimeReadWrite {
 			}
 		}
 		System.out.println(tbl.render());
+		Date complete = new Date();
+		System.out.println("Completed: " + complete);
+		System.out.println("Elapsed: " + calculateElapsed(start, complete));
+	}
+	
+	public static String calculateElapsed(Date start, Date complete) {
+		double secdiff = ((double) (complete.getTime() - start.getTime())) / 1000.0;
+		long hours = (long) secdiff / 3600;
+		long mins = (long) secdiff / 60;
+		double secs = secdiff % 60;
+		return hours + "h " + mins + "m " + String.format("%.3fs", secs);
 	}
 	
 	private static double calcMBps(int writes, double elapsedSec) {
