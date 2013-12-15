@@ -69,7 +69,7 @@ public class TimeReadWrite {
 				Arrays.asList("Workspace005",
 						"Shock", "ShockBackend", "GridFSBackend",
 						"WorkspaceLibShockEmptyType", "WorkspaceLibShock",
-						"WorkspaceJSON1ObjPerShock"),
+						"WS_JSONRPCShock1ObjPerCall"),
 				Arrays.asList(1, 2, 3, 4, 5, 6, 7));
 	}
 
@@ -77,7 +77,7 @@ public class TimeReadWrite {
 			new HashMap<String, Class<? extends AbstractReadWriteTest>>();
 	static {
 		configMap.put("Shock", ShockClient.class);
-		configMap.put("WorkspaceJSON1ObjPerShock", WorkspaceJsonRPCShock.class);
+		configMap.put("WS_JSONRPCShock1ObjPerCall", WorkspaceJsonRPCShock.class);
 		configMap.put("WorkspaceLibShock", WorkspaceLibShock.class);
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
 		configMap.put("ShockBackend", ShockBackendOnly.class);
@@ -278,7 +278,6 @@ public class TimeReadWrite {
 	public static class Workspace005JsonRPCShock extends AbstractReadWriteTest {
 
 		private WorkspaceServiceClient wsc;
-		@SuppressWarnings("unused")
 		private int id;
 		final List<String> wsids = new LinkedList<String>();
 		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
@@ -319,8 +318,11 @@ public class TimeReadWrite {
 								.withId(id).withType(M_TYPE));
 						error = false;
 					} catch (Exception e) {
-						e.printStackTrace();
 						errcount++;
+						System.out.println(String.format(
+								"error # %s in read thread w/ id %s on object %s",
+								errcount, this.id, id));
+						e.printStackTrace();
 					}
 				}
 			}
@@ -333,14 +335,17 @@ public class TimeReadWrite {
 			for (Map<String, Object> o: objs) {
 				boolean error = true;
 				while (error) {
+					String id = (String) o.get("fakekey");
 					try {
-						String id = (String) o.get("fakekey");
 						wsc.saveObject(new SaveObjectParams().withWorkspace(workspace)
 								.withId(id).withType(M_TYPE).withData(new UObject(mapData)));
 						error = false;
 					} catch (Exception e) {
-						e.printStackTrace();
 						errcount++;
+						System.out.println(String.format(
+								"error # %s in write thread w/ id %s on object %s",
+								errcount, this.id, id));
+						e.printStackTrace();
 					}
 				}
 			}
