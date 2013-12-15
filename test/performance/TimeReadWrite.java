@@ -59,7 +59,6 @@ import us.kbase.workspaceservice.WorkspaceServiceClient;
 public class TimeReadWrite {
 	
 	//TODO profiling
-	//TODO more cores should help parallelization
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
@@ -68,9 +67,9 @@ public class TimeReadWrite {
 		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
 				Arrays.asList("Workspace005",
 						"Shock", "ShockBackend", "GridFSBackend",
-						"WorkspaceLibJsonNodeShockEmptyType", "WorkspaceLibJsonNodeShock",
+						"WorkspaceLibShockEmptyType", "WorkspaceLibShock",
 						"WorkspaceJSON1ObjPerShock"),
-				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
+				Arrays.asList(1, 2, 3, 4, 5, 6, 7));
 	}
 
 	private static final Map<String, Class<? extends AbstractReadWriteTest>> configMap =
@@ -78,11 +77,11 @@ public class TimeReadWrite {
 	static {
 		configMap.put("Shock", ShockClient.class);
 		configMap.put("WorkspaceJSON1ObjPerShock", WorkspaceJsonRPCShock.class);
-		configMap.put("WorkspaceLibJsonNodeShock", WorkspaceLibJsonNodeShock.class);
+		configMap.put("WorkspaceLibShock", WorkspaceLibShock.class);
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
 		configMap.put("ShockBackend", ShockBackendOnly.class);
 		configMap.put("Workspace005", Workspace005JsonRPCShock.class);
-		configMap.put("WorkspaceLibJsonNodeShockEmptyType", WorkspaceLibJsonNodeShockEmptySpec.class);
+		configMap.put("WorkspaceLibShockEmptyType", WorkspaceLibShockEmptySpec.class);
 	}
 	
 	private static final String FILE = "83333.2.txt";
@@ -90,7 +89,6 @@ public class TimeReadWrite {
 	private static final String MONGO_HOST = "localhost";
 	private static final String MONGO_DB = "delete_this_ws";
 	private static final String TYPE_DB = "delete_this_type";
-	
 	
 	private static final String MODULE = "SupahFakeKBGA";
 	private static final String M_TYPE = "Genome";
@@ -116,7 +114,6 @@ public class TimeReadWrite {
 	private static URL workspace0_1_0URL;
 	private static URL workspace0_0_5URL;
 	
-	
 	@SuppressWarnings("unchecked")
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
 			String workspaceURL, String workspace005URL, List<String> configs, List<Integer> threadCounts)
@@ -138,6 +135,11 @@ public class TimeReadWrite {
 		mapData = MAP.treeToValue(jsonData, Map.class);
 		String spec = IOUtils.toString(TimeReadWrite.class.getResourceAsStream(SPEC_FILE));
 		
+		System.out.println(String.format(
+				"Writing a file %s times, then reading it back %s times",
+				writes, writes));
+		System.out.println(String.format("file size: %,dB", data.length));
+		
 		System.setProperty("test.mongo.db1", MONGO_DB);
 		System.setProperty("test.mongo.db.types1", TYPE_DB);
 		System.setProperty("test.mongo.host", MONGO_HOST);
@@ -156,12 +158,6 @@ public class TimeReadWrite {
 		ws.compileNewTypeSpec(foo, SIMPLE_SPEC,
 				Arrays.asList(SIMPLE_M_TYPE), null, null, false, null);
 		ws.releaseTypes(foo, SIMPLE_MODULE);
-		
-		
-		System.out.println(String.format(
-				"Writing a file %s times, then reading it back %s times",
-				writes, writes));
-		System.out.println(String.format("file size: %,dB", data.length));
 		
 		Map<String, Map<Integer, Perf>> results =
 				new HashMap<String, Map<Integer, TimeReadWrite.Perf>>();
@@ -208,7 +204,6 @@ public class TimeReadWrite {
 		return (double) writes * (double) data.length / elapsedSec / 1000000.0;
 	}
 	
-	
 	private static Perf measurePerformance(int writes, int threads,
 			Class<? extends AbstractReadWriteTest> clazz)
 			throws Exception {
@@ -238,6 +233,7 @@ public class TimeReadWrite {
 			}
 		}
 		System.out.println("Thread distribution: " + threadDist);
+		
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].doWrites();
@@ -400,15 +396,15 @@ public class TimeReadWrite {
 		}
 	}
 	
-	public static class WorkspaceLibJsonNodeShockEmptySpec extends WorkspaceLibJsonNodeShock {
+	public static class WorkspaceLibShockEmptySpec extends WorkspaceLibShock {
 		
-		public WorkspaceLibJsonNodeShockEmptySpec() throws Exception {
+		public WorkspaceLibShockEmptySpec() throws Exception {
 			super();
 			type = SIMPLE_TYPEDEF;
 		}
 	}
 	
-	public static class WorkspaceLibJsonNodeShock extends AbstractReadWriteTest {
+	public static class WorkspaceLibShock extends AbstractReadWriteTest {
 
 		private static final WorkspaceUser foo = new WorkspaceUser("foo");
 		protected TypeDefId type;
@@ -421,7 +417,7 @@ public class TimeReadWrite {
 		private List<JsonNode> objs = new LinkedList<JsonNode>();
 		private String workspace;
 		
-		public WorkspaceLibJsonNodeShock() throws Exception {
+		public WorkspaceLibShock() throws Exception {
 			super();
 			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
 					new DefaultReferenceParser());
@@ -594,7 +590,6 @@ public class TimeReadWrite {
 		
 		private Thread thread;
 		private int errors = 0;
-		
 		
 		public AbstractReadWriteTest() {}
 		
