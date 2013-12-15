@@ -24,6 +24,8 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gc.iotools.stream.base.ExecutionModel;
+import com.gc.iotools.stream.base.ExecutorServiceFactory;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -215,7 +217,9 @@ public class ShockBackend implements BlobStore {
 		final String node = getNode(md5);
 		
 		final OutputStreamToInputStream<JsonNode> osis =
-				new OutputStreamToInputStream<JsonNode>() {
+				new OutputStreamToInputStream<JsonNode>(true,
+						ExecutorServiceFactory.getExecutor(
+								ExecutionModel.THREAD_PER_INSTANCE), 10000000) { //speeds up by 2-3x
 					
 			@Override
 			protected JsonNode doRead(InputStream is) throws Exception {

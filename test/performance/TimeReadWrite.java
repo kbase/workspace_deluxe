@@ -59,15 +59,15 @@ import us.kbase.workspaceservice.WorkspaceServiceClient;
 public class TimeReadWrite {
 	
 	//TODO profiling
-	//TODO count errors
-	//TODO warn at end on errors
+	//TODO more cores should help parallelization
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
-				Arrays.asList("Workspace005", "Shock", "ShockBackend", "GridFSBackend",
+				Arrays.asList("Workspace005",
+						"Shock", "ShockBackend", "GridFSBackend",
 						"WorkspaceLibJsonNodeShockEmptyType", "WorkspaceLibJsonNodeShock",
 						"WorkspaceJSON1ObjPerShock"),
 				Arrays.asList(1, 2, 3, 4));//, 5, 7, 10, 16, 20));
@@ -179,14 +179,16 @@ public class TimeReadWrite {
 			}
 		}
 		
-		Table tbl = new Table(5);
+		final int width = 6;
+		Table tbl = new Table(width);
 		tbl.addCell("Threads");
 		tbl.addCell("write (s)");
 		tbl.addCell("write (MBps)");
 		tbl.addCell("read (s)");
 		tbl.addCell("read (MBps)");
+		tbl.addCell("errors");
 		for (String config: configs) {
-			tbl.addCell(config, new CellStyle(CellStyle.HorizontalAlign.center), 5);
+			tbl.addCell(config, new CellStyle(CellStyle.HorizontalAlign.center), width);
 			List<Integer> sorted = new ArrayList<Integer>(results.get(config).keySet());
 			Collections.sort(sorted);
 			for (Integer threads: sorted) {
@@ -196,6 +198,7 @@ public class TimeReadWrite {
 				tbl.addCell(String.format("%,.3f", calcMBps(writes, p.writeSec)));
 				tbl.addCell(String.format("%,.4f", p.readSec));
 				tbl.addCell(String.format("%,.3f", calcMBps(writes, p.readSec)));
+				tbl.addCell("" + p.errors);
 			}
 		}
 		System.out.println(tbl.render());
@@ -235,7 +238,6 @@ public class TimeReadWrite {
 			}
 		}
 		System.out.println("Thread distribution: " + threadDist);
-
 		long start = System.nanoTime();
 		for (int i = 0; i < threads; i++) {
 			rwthreads[i].doWrites();
@@ -253,12 +255,14 @@ public class TimeReadWrite {
 			rwthreads[i].join();
 		}
 		long readNanoSec = System.nanoTime() - start;
-		
+
+		int errors = 0;
 		for (int i = 0; i < threads; i++) {
+			errors += rwthreads[i].getErrorCount();
 			rwthreads[i].cleanUp();
 		}
 
-		return new Perf(writeNanoSec, readNanoSec);
+		return new Perf(writeNanoSec, readNanoSec, errors);
 	}
 	
 	public static class Workspace005JsonRPCShock extends AbstractReadWriteTest {
@@ -271,6 +275,7 @@ public class TimeReadWrite {
 		private String workspace;
 		
 		public Workspace005JsonRPCShock() throws Exception {
+			super();
 			wsc = new WorkspaceServiceClient(workspace0_0_5URL, token);
 			wsc.setAuthAllowedForHttp(true);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -294,20 +299,42 @@ public class TimeReadWrite {
 		}
 
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
+			int errcount = 0;
 			for (String id: wsids) {
-				wsc.getObject(new GetObjectParams().withWorkspace(workspace)
-						.withId(id).withType(M_TYPE));
+				boolean error = true;
+				while (error) {
+					try {
+						wsc.getObject(new GetObjectParams().withWorkspace(workspace)
+								.withId(id).withType(M_TYPE));
+						error = false;
+					} catch (Exception e) {
+						e.printStackTrace();
+						errcount++;
+					}
+				}
 			}
+			return errcount;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
+			int errcount = 0;
 			for (Map<String, Object> o: objs) {
-				String id = (String) o.get("fakekey");
-				wsc.saveObject(new SaveObjectParams().withWorkspace(workspace)
-						.withId(id).withType(M_TYPE).withData(new UObject(mapData)));
+				boolean error = true;
+				while (error) {
+					try {
+						String id = (String) o.get("fakekey");
+						wsc.saveObject(new SaveObjectParams().withWorkspace(workspace)
+								.withId(id).withType(M_TYPE).withData(new UObject(mapData)));
+						error = false;
+					} catch (Exception e) {
+						e.printStackTrace();
+						errcount++;
+					}
+				}
 			}
+			return errcount;
 		}
 
 		@Override
@@ -326,6 +353,7 @@ public class TimeReadWrite {
 		private String workspace;
 		
 		public WorkspaceJsonRPCShock() throws Exception {
+			super();
 			wsc = new WorkspaceClient(workspace0_1_0URL, token);
 			wsc.setAuthAllowedForHttp(true);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -346,15 +374,16 @@ public class TimeReadWrite {
 		}
 
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
 			for (String id: wsids) {
 				wsc.getObjects(Arrays.asList(new ObjectIdentity()
 					.withWorkspace(workspace).withName(id)));
 			}
+			return 0;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
 			for (Map<String, Object> o: objs) {
 				wsids.add(wsc.saveObjects(new SaveObjectsParams()
 					.withWorkspace(workspace)
@@ -362,6 +391,7 @@ public class TimeReadWrite {
 						.withData(new UObject(o))
 						.withType(TYPE)))).get(0).getE2());
 			}
+			return 0;
 		}
 
 		@Override
@@ -392,7 +422,7 @@ public class TimeReadWrite {
 		private String workspace;
 		
 		public WorkspaceLibJsonNodeShock() throws Exception {
-			
+			super();
 			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
 					new DefaultReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -413,21 +443,23 @@ public class TimeReadWrite {
 		}
 
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
 			for (String id: wsids) {
 				ws.getObjects(foo, Arrays.asList(
 						new ObjectIdentifier(new WorkspaceIdentifier(workspace), id)));
 			}
+			return 0;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
 			for (JsonNode o: objs) {
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(
 								o, type, null, new Provenance(foo), false)))
 						.get(0).getObjectName());
 			}
+			return 0;
 		}
 
 		@Override
@@ -456,17 +488,19 @@ public class TimeReadWrite {
 		}
 		
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
 				sb.getBlob(md5);
 			}
+			return 0;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
 				sb.saveBlob(md5, jsonData);
 			}
+			return 0;
 		}
 
 		@Override
@@ -494,17 +528,19 @@ public class TimeReadWrite {
 		}
 		
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
 				gfsb.getBlob(md5);
 			}
+			return 0;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
 				gfsb.saveBlob(md5, jsonData);
 			}
+			return 0;
 		}
 
 		@Override
@@ -529,19 +565,21 @@ public class TimeReadWrite {
 		}
 		
 		@Override
-		public void performReads() throws Exception {
+		public int performReads() throws Exception {
 			for (ShockNode sn: nodes) {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				sn.getFile(baos);
 				baos.toByteArray();
 			}
+			return 0;
 		}
 
 		@Override
-		public void performWrites() throws Exception {
+		public int performWrites() throws Exception {
 			for (int i = 0; i < this.writes; i++) {
 				nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
 			}
+			return 0;
 		}
 
 		@Override
@@ -555,6 +593,8 @@ public class TimeReadWrite {
 	public static abstract class AbstractReadWriteTest {
 		
 		private Thread thread;
+		private int errors = 0;
+		
 		
 		public AbstractReadWriteTest() {}
 		
@@ -564,7 +604,7 @@ public class TimeReadWrite {
 				@Override
 				public void run() {
 					try {
-						performReads();
+						errors += performReads();
 					} catch (Exception e) {
 						e.printStackTrace();
 						if (e instanceof ServerException) {
@@ -582,7 +622,7 @@ public class TimeReadWrite {
 				@Override
 				public void run() {
 					try {
-						performWrites();
+						errors += performWrites();
 					} catch (Exception e) {
 						e.printStackTrace();
 						if (e instanceof ServerException) {
@@ -598,9 +638,13 @@ public class TimeReadWrite {
 			thread.join();
 		}
 		
+		public int getErrorCount() {
+			return errors;
+		}
+		
 		public abstract void initialize(int writes, int id) throws Exception;
-		public abstract void performReads() throws Exception;
-		public abstract void performWrites() throws Exception;
+		public abstract int performReads() throws Exception;
+		public abstract int performWrites() throws Exception;
 		public abstract void cleanUp() throws Exception;
 	}
 	
@@ -608,10 +652,12 @@ public class TimeReadWrite {
 		
 		public final double writeSec;
 		public final double readSec;
+		public final int errors;
 		
-		public Perf(double writeNanoSec, double readNanoSec) {
+		public Perf(double writeNanoSec, double readNanoSec, int errors) {
 			writeSec = ((double) writeNanoSec) / 1000000000.0;
 			readSec = ((double) readNanoSec) / 1000000000.0;
+			this.errors = errors;
 		}
 	}
 }
