@@ -55,7 +55,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.workspaces.Workspaces;
@@ -92,8 +91,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String WSADMIN = "ws-admin";
 	//required backend param:
 	private static final String BACKEND_SECRET = "backend-secret"; 
-	//type db param:
-	private static final String TYPEDB_DIR = "temp-dir";
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
@@ -107,8 +104,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String kidlpath, final String tempdir,
-			final String user, final String pwd) {
+			final String secret, final String user, final String pwd) {
 		try {
 			if (user != null) {
 				return new MongoWorkspaceDB(host, dbs, secret, user, pwd);
@@ -187,7 +183,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			//TODO get rid of kidlpath everywhere
 			//TODO incl make/start_service etc
-			final String kidlpath = new Util().getKIDLpath();
 			final String user = wsConfig.get(USER);
 			final String pwd = wsConfig.get(PWD);
 			String params = "";
@@ -203,8 +198,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
 			//TODO get rid of TYPEDB_DIR everywhere
-			final WorkspaceDatabase db = getDB(host, dbs, secret,
-					kidlpath, wsConfig.get(TYPEDB_DIR), user, pwd);
+			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;

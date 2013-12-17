@@ -70,12 +70,12 @@ build-docs: build-libs
 	rm -f pod2htm?.tmp
 	cp $(SERVICE).spec docs/.
 
-compile: compile-typespec compile-java
+compile: compile-typespec compile-typespec-java
 
 compile-java-client:
 	$(ANT) compile_client
 
-compile-java:
+compile-typespec-java:
 	gen_java_types -S -o . -u http://kbase.us/services/$(SERVICE)/ $(SERVICE).spec
 	-rm lib/*.jar
 
@@ -150,16 +150,9 @@ endif
 deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
 
 deploy-service-libs:
-	echo $(SERVICE_DIR) > classes/kidlinit
 	$(ANT) buildwar
 	mkdir -p $(SERVICE_DIR)
 	cp dist/$(WAR) $(SERVICE_DIR)
-	cp -r typecomp $(SERVICE_DIR)
-	mkdir -p $(SERVICE_DIR)/bin
-	echo "export PATH=$(DEPLOY_RUNTIME)/bin" > $(SERVICE_DIR)/bin/compile_typespec
-	echo "export PERL5LIB=$(SERVICE_DIR)/typecomp/lib" >> $(SERVICE_DIR)/bin/compile_typespec
-	echo "perl $(SERVICE_DIR)/typecomp/scripts/compile_typespec.pl \"\$$@\"" >> $(SERVICE_DIR)/bin/compile_typespec
-	chmod a+x $(SERVICE_DIR)/bin/compile_typespec
 	echo $(GITCOMMIT) > $(SERVICE_DIR)/$(SERVICE).serverdist
 	echo $(TAGS) >> $(SERVICE_DIR)/$(SERVICE).serverdist
 	
