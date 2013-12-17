@@ -182,8 +182,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, final String kidlpath,
-			final String typeDBdir)
+			final String backendSecret)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
 		wsmongo = GetMongoDB.getDB(host, database);
@@ -198,15 +197,39 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase())),
-								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null), kidlpath, null));
+								new UserInfoProviderForTests(null)));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
-
+	
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, final String kidlpath,
-			final String typeDBdir, final String user, final String password)
+			final String backendSecret, final String user,
+			final String password)
+			throws UnknownHostException, WorkspaceDBException,
+			TypeStorageException, IOException, InvalidHostException,
+			MongoAuthException {
+		wsmongo = GetMongoDB.getDB(host, database, user, password);
+		wsjongo = new Jongo(wsmongo);
+		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
+				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
+		final Settings settings = getSettings();
+		blob = setupBlobStore(settings, backendSecret);
+		updateWScounter = buildCounterQuery(wsjongo);
+		this.typeValidator = new TypedObjectValidator(
+				new TypeDefinitionDB(
+						new MongoTypeStorage(
+								GetMongoDB.getDB(host, settings.getTypeDatabase(),
+										user, password)),
+								new UserInfoProviderForTests(null)));
+		ensureIndexes();
+		ensureTypeIndexes();
+	}
+	
+	//test constructor - runs both the java and perl type compilers
+	public MongoWorkspaceDB(final String host, final String database,
+			final String backendSecret, final String user,
+			final String password, final String kidlpath,
+			final String typeDBdir)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException {
@@ -223,7 +246,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
 								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null), kidlpath, null));
+								new UserInfoProviderForTests(null), kidlpath, "both"));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
@@ -2484,10 +2507,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
 			final String kidlpath = new Util().getKIDLpath();
 			if (mUser == null || mUser == "") {
-				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", null);
+				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", "foo",
+						"foo", null);
 			} else {
-				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", null,
-						mUser, mPwd);
+				testdb = new MongoWorkspaceDB(host, db1, kidlpath, mUser, mPwd,
+						"foo", null);
 			}
 		}
 		

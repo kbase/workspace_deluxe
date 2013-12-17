@@ -49,10 +49,11 @@ public class TestMongoInternals {
 		final String kidlpath = new Util().getKIDLpath();
 		
 		if (mUser != null) {
-			mwdb = new MongoWorkspaceDB(host, db1, "fOo", kidlpath, null,
-					mUser, mPwd);
+			mwdb = new MongoWorkspaceDB(host, db1, "fOo", mUser, mPwd,
+					kidlpath, null);
 		} else {
-			mwdb = new MongoWorkspaceDB(host, db1, "foo", kidlpath, null);
+			mwdb = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
+					kidlpath, null);
 		}
 		ws = new Workspaces(mwdb, new DefaultReferenceParser());
 		assertTrue("GridFS backend setup failed", ws.getBackendType().equals("GridFS"));

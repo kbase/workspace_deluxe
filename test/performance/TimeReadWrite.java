@@ -59,8 +59,6 @@ import us.kbase.workspaceservice.WorkspaceServiceClient;
  */
 public class TimeReadWrite {
 	
-	//TODO profiling
-	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
@@ -153,7 +151,7 @@ public class TimeReadWrite {
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
-		Workspaces ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
+		Workspaces ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
 				new DefaultReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
@@ -443,7 +441,7 @@ public class TimeReadWrite {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, null, null),
+			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
 					new DefaultReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X

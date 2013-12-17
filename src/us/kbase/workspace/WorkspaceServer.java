@@ -111,11 +111,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			final String user, final String pwd) {
 		try {
 			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, kidlpath,
-						tempdir, user, pwd);
+				return new MongoWorkspaceDB(host, dbs, secret, user, pwd);
 			} else {
-				return new MongoWorkspaceDB(host, dbs, secret, kidlpath,
-						tempdir);
+				return new MongoWorkspaceDB(host, dbs, secret);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
