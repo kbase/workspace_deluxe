@@ -66,10 +66,15 @@ public class TimeReadWrite {
 		String user = args[1];
 		String pwd = args[2];
 		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
-				Arrays.asList("Workspace005",
-						"Shock", "ShockBackend", "GridFSBackend",
-						"WorkspaceLibShockEmptyType", "WorkspaceLibShock",
-						"WS_JSONRPCShock1ObjPerCall"),
+				Arrays.asList(
+						"Workspace005",
+						"Shock",
+						"ShockBackend",
+						"GridFSBackend",
+						"WorkspaceLibShockEmptyType",
+						"WorkspaceLibShock",
+						"WS_JSONRPCShock1ObjPerCall"
+						),
 				Arrays.asList(1, 2, 3, 4, 5, 6, 7));
 	}
 

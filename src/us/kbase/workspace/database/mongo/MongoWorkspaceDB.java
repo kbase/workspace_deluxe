@@ -1331,6 +1331,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		escapeSubdataInternal(subdata);
 	}
 	
+	//rewrite w/o recursion?
 	private void escapeSubdataInternal(final Object o) {
 		if (o instanceof String || o instanceof Number ||
 				o instanceof Boolean || o == null) {
@@ -1364,6 +1365,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final int CODEPOINT_DLR = new String("$").codePointAt(0);
 	private static final int CODEPOINT_PNT = new String(".").codePointAt(0);
 	
+	//might be faster just using std string replace() method
 	private String mongoHTMLEscape(final String s) {
 		final StringBuilder ret = new StringBuilder();
 		for (int offset = 0; offset < s.length(); ) {
@@ -1381,6 +1383,80 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return ret.toString();
 	}
+	
+	/* The implementation below is slightly faster than the above, although
+	 * the overall performance improvement is negligible. Once there are 
+	 * tests covering the subdata thoroughly swap it out.
+	//rewrite w/o recursion?
+	private Object escapeSubdataInternal(final Object o) {
+		if (o instanceof String || o instanceof Number ||
+				o instanceof Boolean || o == null) {
+			return o;
+		} else if (o instanceof List) {
+			@SuppressWarnings("unchecked")
+			final List<Object> l = (List<Object>)o;
+			for (Object lo: l) {
+				escapeSubdataInternal(lo);
+			}
+			return o;
+		} else if (o instanceof Map) {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> m = (Map<String, Object>)o;
+			//save updated keys in separate map so we don't overwrite
+			//keys before they're escaped
+			final Map<String, Object> newm = new HashMap<String, Object>();
+			for (final Entry<String, Object> e: m.entrySet()) {
+				final String key = e.getKey();
+				//need side effect
+				final Object value = escapeSubdataInternal(e.getValue());
+				final String newkey = mongoHTMLEscape(key);
+				//works since mongoHTMLEscape returns same string object if no change
+				if (key != newkey) {
+					m.remove(key);
+					newm.put(newkey, value);
+				}
+				if (m.containsKey("fig|83333.1.trm.2")) {
+					System.out.println("woo");
+				}
+			}
+			m.putAll(newm);
+			return o;
+		} else {
+			throw new RuntimeException("Unsupported class: " + o.getClass());
+		}
+	}
+	
+	private static final int CODEPOINT_PERC = new String("%").codePointAt(0);
+	private static final int CODEPOINT_DLR = new String("$").codePointAt(0);
+	private static final int CODEPOINT_PNT = new String(".").codePointAt(0);
+	
+	//might be faster just using std string replace() method
+	private String mongoHTMLEscape(final String s) {
+		final StringBuilder ret = new StringBuilder();
+		boolean mod = false;
+		for (int offset = 0; offset < s.length(); ) {
+			final int codepoint = s.codePointAt(offset);
+			if (codepoint == CODEPOINT_PERC) {
+				ret.append("%25");
+				mod = true;
+			} else if (codepoint == CODEPOINT_DLR) {
+				ret.append("%24");
+				mod = true;
+			} else if (codepoint == CODEPOINT_PNT) {
+				ret.append("%2e");
+				mod = true;
+			} else {
+				ret.appendCodePoint(codepoint);
+			}
+			offset += Character.charCount(codepoint);
+		}
+		if (mod) {
+			return ret.toString();
+		} else {
+			return s;
+		}
+	}
+	 */
 	
 	private static final String M_SAVE_QRY = String.format("{%s: #}",
 					Fields.WS_ID);
