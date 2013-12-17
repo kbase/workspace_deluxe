@@ -72,6 +72,9 @@ build-docs: build-libs
 
 compile: compile-typespec compile-java
 
+compile-java-client:
+	$(ANT) compile_client
+
 compile-java:
 	gen_java_types -S -o . -u http://kbase.us/services/$(SERVICE)/ $(SERVICE).spec
 	-rm lib/*.jar

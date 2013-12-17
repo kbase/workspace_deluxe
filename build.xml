@@ -13,6 +13,7 @@
   <property name="test" location="test"/>
   <property name="jardir" location="../jars/lib/jars/"/>
   <property name="classes" location="classes"/>
+  <property name="client_classes" location="client_classes"/>
   <property name="jar.file" value="WorkspaceService.jar"/>
   <property name="war.file" value="WorkspaceService.war"/>
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
@@ -122,6 +123,24 @@
     <mkdir dir="${dist}"/>
   </target>
 
+  <target name="compile_client" description="compile only the client">
+    <mkdir dir="${client_classes}"/>
+    <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
+      debug="true" classpathref="compile.classpath">
+      <src path="${src}"/>
+      <exclude name="us/kbase/common/service/JsonServer*"/>
+      <exclude name="us/kbase/typedobj/**"/>
+      <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
+      <exclude name="us/kbase/workspace/database/**"/>
+      <exclude name="us/kbase/workspace/exceptions/**"/>
+      <exclude name="us/kbase/workspace/kbase/**"/>
+      <exclude name="us/kbase/workspace/test/**"/>
+      <exclude name="us/kbase/workspace/workspaces/**"/>
+    </javac>
+    <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
+  	<delete dir="${client_classes}"/>
+  </target>
+
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" includeantruntime="false" target="1.6" source="1.6"
@@ -221,7 +240,7 @@
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
 	
-  <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
+  <target name="test_client_import" description="make sure the client jar contains all files">
     <javac destdir="${test}" srcdir="${test}" includeantruntime="false" target="1.6" source="1.6"
           debug="true" classpathref="test.client.import.classpath">
       <src path="${test}"/>
