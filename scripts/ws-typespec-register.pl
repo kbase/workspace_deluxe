@@ -8,7 +8,7 @@ use File::Slurp;
 use Data::Dumper;
 use File::Basename;
 use Bio::KBase::workspace::Client;
-use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL get_ws_client);
+use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL get_ws_client getUser);
 
 my $DESCRIPTION =
 "
@@ -122,6 +122,7 @@ if (defined($user)) {
      $ws = Bio::KBase::workspace::Client->new(workspaceURL(),user_id=>$user,password=>$password);
 } else {
      $ws = get_ws_client();
+     $user = getUser();
 }
 
 
@@ -228,7 +229,12 @@ if($n_args==0) {
      
      } else {
           # No options given, so just list the modules owned by this user
-          my $listOptions = {owner=>$user};
+          my $listOptions = {};
+          if (defined($user)) {
+               if ($user ne '') {
+                    $listOptions->{owner}=$user;
+               }
+          }
           my $moduleList;
           eval { $moduleList = $ws->list_modules($listOptions); };
           if($@) {
@@ -238,9 +244,17 @@ if($n_args==0) {
                print STDERR "\n";
                exit 1;
           }
-          print STDOUT "You are the owner of the following modules:\n";
-          foreach my $moduleName (@$moduleList) {
-               print STDOUT "\t".$moduleName."\n";
+          if (defined($listOptions->{owner})) {
+               print STDOUT "You are the owner of the following modules:\n";
+          } else {
+               print STDOUT "You are not logged in, but here is a list of registered modules:\n";
+          }
+          if (scalar(@$moduleList)==0) {
+               print STDOUT "\tnone\n";
+          } else {
+               foreach my $moduleName (@$moduleList) {
+                    print STDOUT "\t".$moduleName."\n";
+               }
           }
      }
      
