@@ -158,16 +158,18 @@ public class TestWorkspaces {
 		WorkspaceDatabase gfs = null;
 		WorkspaceDatabase shock = null;
 		if (mUser != null) {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null,
-					mUser, mPwd);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
+					kidlpath, null);
 			if (!SKIP_SHOCK) {
-				shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null,
-						mUser, mPwd);
+				shock = new MongoWorkspaceDB(host, db2, shockpwd, mUser, mPwd,
+						kidlpath, null);
 			}
 		} else {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, kidlpath, null);
+			gfs = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
+					kidlpath, null);
 			if (!SKIP_SHOCK) {
-				shock = new MongoWorkspaceDB(host, db2, shockpwd, kidlpath, null);
+				shock = new MongoWorkspaceDB(host, db2, shockpwd, "foo", "foo",
+						kidlpath, null);
 			}
 		}
 		TEST_WORKSPACES[0] = new Workspaces(gfs, new DefaultReferenceParser());
