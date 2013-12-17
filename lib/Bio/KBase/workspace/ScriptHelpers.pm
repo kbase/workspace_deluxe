@@ -6,9 +6,9 @@ use Exporter;
 use Config::Simple;
 use Data::Dumper;
 use parent qw(Exporter);
-our @EXPORT_OK = qw(loadTableFile printJobData getToken get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta);
+our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta);
 #our $defaultURL = "http://kbase.us/services/workspace/";
-our $defaultURL = "http://140.221.84.170:7058";
+our $defaultURL = "https://kbase.us/services/workspace";
 
 sub get_ws_client {
 	my $url = shift;
@@ -22,6 +22,9 @@ sub get_ws_client {
 	#}
 	if ($url eq "localhost") {
 		$url = "http://127.0.0.1:7058"
+	}
+	if ($url eq "dev") {
+		$url = "http://140.221.84.170:7058"
 	}
 	return Bio::KBase::workspace::Client->new($url);
 }
@@ -37,6 +40,18 @@ sub getToken {
 		$cfg->close();
 	}
 	return $token;
+}
+sub getUser {
+	my $user_id='';
+	my $kbConfPath = glob "~/.kbase_config";
+	if (defined($ENV{KB_RUNNING_IN_IRIS})) {
+		
+	} elsif ( -e $kbConfPath ) {
+		my $cfg = new Config::Simple($kbConfPath);
+		$user_id = $cfg->param("authentication.user_id");
+		$cfg->close();
+	}
+	return $user_id;
 }
 
 
