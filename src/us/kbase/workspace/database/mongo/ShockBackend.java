@@ -216,6 +216,8 @@ public class ShockBackend implements BlobStore {
 		checkAuth();
 		final String node = getNode(md5);
 		
+		
+		//TODO allocate buffer intelligently based on size)
 		final OutputStreamToInputStream<JsonNode> osis =
 				new OutputStreamToInputStream<JsonNode>(true,
 						ExecutorServiceFactory.getExecutor(

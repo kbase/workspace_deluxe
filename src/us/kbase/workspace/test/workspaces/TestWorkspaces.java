@@ -23,6 +23,7 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
+import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -163,50 +164,39 @@ public class TestWorkspaces {
 	}
 	
 	private Workspaces setUpMongo() throws Exception {
-		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
-		String host = WorkspaceTestCommon.getHost();
-		String mUser = WorkspaceTestCommon.getMongoUser();
-		String mPwd = WorkspaceTestCommon.getMongoPwd();
-		String db1 = WorkspaceTestCommon.getDB1();
-		final String kidlpath = new Util().getKIDLpath();
-		
-		WorkspaceDatabase gfs = null;
-		if (mUser != null) {
-			gfs = new MongoWorkspaceDB(host, db1, "foo", mUser, mPwd,
-					kidlpath, null);
-		} else {
-			gfs = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
-					kidlpath, null);
-		}
-		Workspaces work = new Workspaces(gfs, new DefaultReferenceParser());
-		assertTrue("GridFS backend setup failed", work.getBackendType().equals("GridFS"));
-		installSpecs(work);
-		return work;
+		return setUpWorkspaces("gridFS", "foo", "foo");
 	}
 	
 	private Workspaces setUpShock() throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
-		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, "shock", shockuser);
+		return setUpWorkspaces("shock", shockuser, shockpwd);
+	}
+	
+	private Workspaces setUpWorkspaces(String type, String shockuser,
+			String shockpwd) throws Exception {
+		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
 		String db1 = WorkspaceTestCommon.getDB1();
 		final String kidlpath = new Util().getKIDLpath();
 
-		WorkspaceDatabase shock = null;
+		WorkspaceDatabase wsdb = null;
 		if (mUser != null) {
-			shock = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
+			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
 					kidlpath, null);
 		} else {
-			shock = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
+			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null);
 		}
-		Workspaces work = new Workspaces(shock, new DefaultReferenceParser());
-		assertTrue("Shock backend setup failed", work.getBackendType().equals("Shock"));
+		Workspaces work = new Workspaces(wsdb, new DefaultReferenceParser());
+		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
-		sbe = new ShockBackend(db, "shock_",
-				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+		if ("shock".equals(type)) {
+			sbe = new ShockBackend(db, "shock_",
+					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+		}
 		return work;
 	}
 		
