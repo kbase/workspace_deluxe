@@ -181,8 +181,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			wsmeth = null;
 			wsadmin = null;
 		} else {
-			//TODO get rid of kidlpath everywhere
-			//TODO incl make/start_service etc
 			final String user = wsConfig.get(USER);
 			final String pwd = wsConfig.get(PWD);
 			String params = "";
@@ -197,7 +195,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			//TODO get rid of TYPEDB_DIR everywhere
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");

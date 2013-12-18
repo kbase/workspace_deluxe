@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
@@ -84,9 +85,13 @@ public class TestWorkspaces {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
-	public static final Workspaces[] TEST_WORKSPACES = new Workspaces[2];
 	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	public static String LONG_TEXT = "";
+	static {
+		for (int i = 0; i < 17; i++) {
+			LONG_TEXT += LONG_TEXT_PART;
+		}
+	}
 	public static String TEXT100 = "";
 	static {
 		for (int i = 0; i < 10; i++) {
@@ -101,7 +106,7 @@ public class TestWorkspaces {
 		}
 	}
 	
-	public static ShockBackend sbe;
+	public static ShockBackend sbe = null;
 	
 	public static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	public static final WorkspaceUser AUSER = new WorkspaceUser("a");
@@ -116,17 +121,16 @@ public class TestWorkspaces {
 	public static Collection<Object[]> generateData() throws Exception {
 		//TODO use 1 db at a time, do all init in the TW constructor
 		printMem("*** startup ***");
-		setUpWorkspaces();
 		List<Object[]> tests;
 		if (SKIP_SHOCK) {
 			System.out.println("Skipping shock backend tests");
 			tests = Arrays.asList(new Object[][] {
-					{TEST_WORKSPACES[0]}
+					{"mongo"}
 			});
 		} else {
 			tests = Arrays.asList(new Object[][] {
-					{TEST_WORKSPACES[0]},
-					{TEST_WORKSPACES[1]}
+					{"mongo"},
+					{"shock"}
 			});
 		}
 		printMem("*** startup complete ***");
@@ -135,109 +139,127 @@ public class TestWorkspaces {
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		if (!SKIP_SHOCK) {
+		if (sbe != null) {
 			System.out.println("deleting all shock nodes");
 			sbe.removeAllBlobs();
 		}
 	}
 	
+	public static final Map<String, Workspaces> configs =
+			new HashMap<String, Workspaces>();
 	public final Workspaces ws;
 	
-	public static void setUpWorkspaces() throws Exception {
-		String shockuser = System.getProperty("test.user1");
-		String shockpwd = System.getProperty("test.pwd1");
+	public TestWorkspaces(String config) throws Exception {
+		if (!configs.containsKey(config)) {
+			if ("shock".equals(config)) {
+				configs.put(config, setUpShock());
+			} else if("mongo".equals(config)) {
+				configs.put(config, setUpMongo());
+			} else {
+				throw new TestException("Unknown test config: " + config);
+			}
+		}
+		ws = configs.get(config);
+	}
+	
+	private Workspaces setUpMongo() throws Exception {
 		WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
-		DB data2 = WorkspaceTestCommon.destroyAndSetupDB(2, "shock", shockuser);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
 		String db1 = WorkspaceTestCommon.getDB1();
-		String db2 = WorkspaceTestCommon.getDB2();
 		final String kidlpath = new Util().getKIDLpath();
 		
 		WorkspaceDatabase gfs = null;
-		WorkspaceDatabase shock = null;
 		if (mUser != null) {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
+			gfs = new MongoWorkspaceDB(host, db1, "foo", mUser, mPwd,
 					kidlpath, null);
-			if (!SKIP_SHOCK) {
-				shock = new MongoWorkspaceDB(host, db2, shockpwd, mUser, mPwd,
-						kidlpath, null);
-			}
 		} else {
-			gfs = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
+			gfs = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
 					kidlpath, null);
-			if (!SKIP_SHOCK) {
-				shock = new MongoWorkspaceDB(host, db2, shockpwd, "foo", "foo",
-						kidlpath, null);
-			}
 		}
-		TEST_WORKSPACES[0] = new Workspaces(gfs, new DefaultReferenceParser());
-		assertTrue("GridFS backend setup failed", TEST_WORKSPACES[0].getBackendType().equals("GridFS"));
-		if (!SKIP_SHOCK) {
-			TEST_WORKSPACES[1] = new Workspaces(shock, new DefaultReferenceParser());
-			assertTrue("Shock backend setup failed", TEST_WORKSPACES[1].getBackendType().equals("Shock"));
-			sbe = new ShockBackend(data2, "shock_",
-					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
-		}
-		for (int i = 0; i < 17; i++) {
-			LONG_TEXT += LONG_TEXT_PART;
-		}
-		//make a general spec that tests that don't worry about typechecking can use
-		WorkspaceUser foo = new WorkspaceUser("foo");
-		int backends = 1 + (SKIP_SHOCK ? 0 : 1);
-		for (int i = 0; i < backends; i ++) {
-			//simple spec
-			TEST_WORKSPACES[i].requestModuleRegistration(foo, "SomeModule");
-			TEST_WORKSPACES[i].resolveModuleRegistration("SomeModule", true);
-			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
-					"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
-					Arrays.asList("AType"), null, null, false, null);
-			TEST_WORKSPACES[i].releaseTypes(foo, "SomeModule");
-			
-			// more complicated spec with two released versions and 1 unreleased version for type
-			// registration tests
-			TEST_WORKSPACES[i].requestModuleRegistration(foo, "TestModule");
-			TEST_WORKSPACES[i].resolveModuleRegistration("TestModule", true);
-			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
-					"module TestModule { " +
-							"typedef structure {string name; string seq;} Feature; "+
-							"typedef structure {string name; list<Feature> features;} Genome; "+
-							"typedef structure {string private_stuff;} InternalObj; "+
-							"funcdef getFeature(string fid, string pattern) returns (Feature);" +
-					"};",
-					Arrays.asList("Feature","Genome"), null, null, false, null);
-			TEST_WORKSPACES[i].releaseTypes(foo, "TestModule");
-			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
-					"module TestModule { " +
-							"typedef structure {string name; string seq;} Feature; "+
-							"typedef structure {string name; list<Feature> feature_list;} Genome; "+
-							"typedef structure {string private_stuff;} InternalObj; "+
-							"funcdef getFeature(string fid) returns (Feature);" +
-					"};",
-					null, null, null, false, null);
-			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
-					"module TestModule { " +
-							"typedef structure {string name; string seq;} Feature; "+
-							"typedef structure {string name; list<Feature> feature_list;} Genome; "+
-							"typedef structure {string private_stuff;} InternalObj; "+
-							"funcdef getFeature(string fid) returns (Feature);" +
-							"funcdef getGenome(string gid) returns (Genome);" +
-					"};",
-					null, null, null, false, null);
-			TEST_WORKSPACES[i].releaseTypes(foo, "TestModule");
-			
-			TEST_WORKSPACES[i].requestModuleRegistration(foo, "UnreleasedModule");
-			TEST_WORKSPACES[i].resolveModuleRegistration("UnreleasedModule", true);
-			TEST_WORKSPACES[i].compileNewTypeSpec(foo, 
-					"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType;};",
-					Arrays.asList("AType"), null, null, false, null);
-		}
+		Workspaces work = new Workspaces(gfs, new DefaultReferenceParser());
+		assertTrue("GridFS backend setup failed", work.getBackendType().equals("GridFS"));
+		installSpecs(work);
+		return work;
 	}
 	
-	public TestWorkspaces(Workspaces ws) {
-		this.ws = ws;
+	private Workspaces setUpShock() throws Exception {
+		String shockuser = System.getProperty("test.user1");
+		String shockpwd = System.getProperty("test.pwd1");
+		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, "shock", shockuser);
+		String host = WorkspaceTestCommon.getHost();
+		String mUser = WorkspaceTestCommon.getMongoUser();
+		String mPwd = WorkspaceTestCommon.getMongoPwd();
+		String db1 = WorkspaceTestCommon.getDB1();
+		final String kidlpath = new Util().getKIDLpath();
+
+		WorkspaceDatabase shock = null;
+		if (mUser != null) {
+			shock = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
+					kidlpath, null);
+		} else {
+			shock = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
+					kidlpath, null);
+		}
+		Workspaces work = new Workspaces(shock, new DefaultReferenceParser());
+		assertTrue("Shock backend setup failed", work.getBackendType().equals("Shock"));
+		installSpecs(work);
+		sbe = new ShockBackend(db, "shock_",
+				new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+		return work;
 	}
+		
+	private void installSpecs(Workspaces work) throws Exception {
+		//make a general spec that tests that don't worry about typechecking can use
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		//simple spec
+		work.requestModuleRegistration(foo, "SomeModule");
+		work.resolveModuleRegistration("SomeModule", true);
+		work.compileNewTypeSpec(foo, 
+				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
+				Arrays.asList("AType"), null, null, false, null);
+		work.releaseTypes(foo, "SomeModule");
+
+		// more complicated spec with two released versions and 1 unreleased version for type
+		// registration tests
+		work.requestModuleRegistration(foo, "TestModule");
+		work.resolveModuleRegistration("TestModule", true);
+		work.compileNewTypeSpec(foo, 
+				"module TestModule { " +
+						"typedef structure {string name; string seq;} Feature; "+
+						"typedef structure {string name; list<Feature> features;} Genome; "+
+						"typedef structure {string private_stuff;} InternalObj; "+
+						"funcdef getFeature(string fid, string pattern) returns (Feature);" +
+						"};",
+						Arrays.asList("Feature","Genome"), null, null, false, null);
+		work.releaseTypes(foo, "TestModule");
+		work.compileNewTypeSpec(foo, 
+				"module TestModule { " +
+						"typedef structure {string name; string seq;} Feature; "+
+						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
+						"typedef structure {string private_stuff;} InternalObj; "+
+						"funcdef getFeature(string fid) returns (Feature);" +
+						"};",
+						null, null, null, false, null);
+		work.compileNewTypeSpec(foo, 
+				"module TestModule { " +
+						"typedef structure {string name; string seq;} Feature; "+
+						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
+						"typedef structure {string private_stuff;} InternalObj; "+
+						"funcdef getFeature(string fid) returns (Feature);" +
+						"funcdef getGenome(string gid) returns (Genome);" +
+						"};",
+						null, null, null, false, null);
+		work.releaseTypes(foo, "TestModule");
+
+		work.requestModuleRegistration(foo, "UnreleasedModule");
+		work.resolveModuleRegistration("UnreleasedModule", true);
+		work.compileNewTypeSpec(foo, 
+				"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType;};",
+				Arrays.asList("AType"), null, null, false, null);
+	}
+	
 	private static void printMem(String startmsg) {
 		System.out.println(startmsg);
 		System.out.println("free mem: " + Runtime.getRuntime().freeMemory());
@@ -1417,7 +1439,7 @@ public class TestWorkspaces {
 		}
 	}
 	
-	@Test
+	@Test @Ignore
 	public void saveWithBigData() throws Exception {
 //		System.gc();
 //		printMem("*** starting saveWithBigData, ran gc ***");
