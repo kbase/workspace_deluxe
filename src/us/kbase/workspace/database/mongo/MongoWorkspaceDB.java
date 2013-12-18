@@ -253,6 +253,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private void ensureIndexes() {
 		for (String col: INDEXES.keySet()) {
+			wsmongo.getCollection(col).resetIndexCache();
 			for (List<String> idx: INDEXES.get(col).keySet()) {
 				final DBObject index = new BasicDBObject();
 				final DBObject opts = new BasicDBObject();
@@ -289,6 +290,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		chksum.put(Fields.TYPE_CHKSUM, 1);
 		final DBObject unique = new BasicDBObject();
 		unique.put(IDX_UNIQ, 1);
+		wsmongo.getCollection(col).resetIndexCache();
 		wsmongo.getCollection(col).ensureIndex(chksum, unique);
 		typeIndexEnsured.add(col);
 	}

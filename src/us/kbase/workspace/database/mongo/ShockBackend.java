@@ -184,6 +184,8 @@ public class ShockBackend implements BlobStore {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		try {
+			//possible that this was inserted just prior to saving the object
+			//so do update vs. insert since the data must be the same
 			mongoCol.update(query, dbo, true, false);
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(

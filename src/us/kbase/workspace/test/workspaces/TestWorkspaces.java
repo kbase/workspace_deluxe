@@ -81,6 +81,8 @@ import us.kbase.workspace.workspaces.ModuleInfo;
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 	
+	//TODO use the @Time junit annotation to fail slow tests
+	
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
@@ -120,7 +122,6 @@ public class TestWorkspaces {
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
-		//TODO use 1 db at a time, do all init in the TW constructor
 		printMem("*** startup ***");
 		List<Object[]> tests;
 		if (SKIP_SHOCK) {
