@@ -81,8 +81,6 @@ import us.kbase.workspace.workspaces.ModuleInfo;
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 	
-	//TODO use the @Time junit annotation to fail slow tests
-	
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
@@ -1486,7 +1484,7 @@ public class TestWorkspaces {
 //		printMem("*** ran gc, exiting saveWithBigMeta ***");
 	}
 	
-	@Test
+	@Test(timeout=40000)
 	public void tenKrefs() throws Exception {
 		final String specRef =
 				"module Test10KRefs {\n" +
@@ -1563,7 +1561,7 @@ public class TestWorkspaces {
 		//TODO put this test in the JSONRPCLayer tests
 	}
 	
-	@Test
+	@Test(timeout=30000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
