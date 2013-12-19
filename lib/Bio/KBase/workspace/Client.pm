@@ -1929,6 +1929,18 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 
 Get portions of objects from the workspace.
 
+When selecting a subset of an array in an object, the returned
+array is compressed to the size of the subset, but the ordering of
+the array is maintained. For example, if the array stored at the
+'feature' key of a Genome object has 4000 entries, and the object paths
+provided are:
+        /feature/7
+        /feature/3015
+        /feature/700
+The returned feature array will be of length three and the entries will
+consist, in order, of the 7th, 700th, and 3015th entries of the
+original array.
+
 =back
 
 =cut

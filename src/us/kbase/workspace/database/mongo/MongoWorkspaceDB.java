@@ -105,7 +105,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	private static final String COL_PROVENANCE = "provenance";
 	private static final String COL_SHOCK_PREFIX = "shock_";
-	private static final User allUsers = new AllUsers('*');
+	private static final User ALL_USERS = new AllUsers('*');
 	
 	private static final long MAX_OBJECT_SIZE = 1000000000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
@@ -190,7 +190,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			WorkspaceDBException, TypeStorageException {
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
-		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
+		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
@@ -213,7 +213,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			MongoAuthException {
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
-		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
+		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
@@ -238,7 +238,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			TypeStorageException {
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
-		query = new QueryMethods(wsmongo, (AllUsers) allUsers, COL_WORKSPACES,
+		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
 		blob = setupBlobStore(settings, backendSecret);
@@ -434,7 +434,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				Arrays.asList(user), Permission.OWNER, false);
 		if (globalRead) {
 			setPermissions(new ResolvedMongoWSID(wsname, count, false),
-					Arrays.asList(allUsers), Permission.READ, false);
+					Arrays.asList(ALL_USERS), Permission.READ, false);
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
 				Permission.OWNER, globalRead, false);
@@ -768,13 +768,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (user != null) {
 			u.add(user);
 		}
-		u.add(allUsers);
+		u.add(ALL_USERS);
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms =
 				query.queryPermissions(u, perm);
-		final MongoPermissionSet pset = new MongoPermissionSet(user, allUsers);
+		final MongoPermissionSet pset = new MongoPermissionSet(user, ALL_USERS);
 		for (final ResolvedMongoWSID rwsi: perms.keySet()) {
 			pset.setPermission(rwsi, perms.get(rwsi).get(user), perms.get(rwsi)
-					.get(allUsers));
+					.get(ALL_USERS));
 		}
 		return pset;
 	}
@@ -800,7 +800,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		setPermissions(query.convertResolvedWSID(rwsi),
-				Arrays.asList(allUsers), perm, false);
+				Arrays.asList(ALL_USERS), perm, false);
 	}
 	
 	//wsid must exist as a workspace
@@ -885,17 +885,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (user != null) {
 			users.add(user);
 		}
-		users.add(allUsers);
+		users.add(ALL_USERS);
 		final Set<ResolvedMongoWSID> rm = new HashSet<ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID r: rwsis) {
 			rm.add(query.convertResolvedWSID(r));
 		}
 		final Map<ResolvedMongoWSID, Map<User, Permission>> perms = 
 				query.queryPermissions(rm, users);
-		final MongoPermissionSet pset = new MongoPermissionSet(user, allUsers);
+		final MongoPermissionSet pset = new MongoPermissionSet(user, ALL_USERS);
 		for (ResolvedMongoWSID r: perms.keySet()) {
 			pset.setPermission(r, perms.get(r).get(user),
-					perms.get(r).get(allUsers));
+					perms.get(r).get(ALL_USERS));
 		}
 		return pset;
 	}
