@@ -77,7 +77,6 @@ import us.kbase.workspace.workspaces.Workspaces;
 import us.kbase.workspace.workspaces.ModuleInfo;
 
 //TODO make sure ordered lists stay ordered
-//TODO test subdata access from independent mongo DB instance
 @RunWith(Parameterized.class)
 public class TestWorkspaces {
 	

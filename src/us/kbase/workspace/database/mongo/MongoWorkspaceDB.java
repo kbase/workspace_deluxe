@@ -1875,7 +1875,75 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final Set<String> FLDS_VER_META_PROV = newHashSet(
+	private static final Set<String> FLDS_VER_GET_OBJECT_SUBDATA = newHashSet(
+			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_CHKSUM);
+	
+	private static final String M_GETOBJSUB_QRY = String.format(
+			"{%s: {$in: #}}", Fields.TYPE_CHKSUM);
+	private static final String M_GETOBJSUB_PROJ = String.format(
+			"{%s: 1, %s: 1, %s: 0}",
+			Fields.TYPE_CHKSUM, Fields.TYPE_SUBDATA, Fields.MONGO_ID);
+	
+	public Map<ObjectIDResolvedWS, Map<String, Object>> getObjectSubData(
+			final Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		//keep doing the next two lines over and over, should probably extract
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+				resolveObjectIDs(objectIDs);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						FLDS_VER_GET_OBJECT_SUBDATA);
+		final Map<TypeDefId, Map<String, Set<ObjectIDResolvedWS>>> toGet =
+				new HashMap<TypeDefId, Map<String,Set<ObjectIDResolvedWS>>>();
+		for (final ObjectIDResolvedWS oid: objectIDs) {
+			final ResolvedMongoObjectID roi = oids.get(oid);
+			if (!vers.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), oid);
+			}
+			final Map<String, Object> v = vers.get(roi);
+			final TypeDefId type = TypeDefId.fromTypeString(
+					(String) v.get(Fields.VER_TYPE));
+			final String md5 = (String) v.get(Fields.VER_CHKSUM);
+			if (!toGet.containsKey(type)) {
+				toGet.put(type, new HashMap<String, Set<ObjectIDResolvedWS>>());
+			}
+			if (!toGet.get(type).containsKey(md5)) {
+				toGet.get(type).put(md5, new HashSet<ObjectIDResolvedWS>());
+			}
+			toGet.get(type).get(md5).add(oid);
+		}
+		final Map<ObjectIDResolvedWS, Map<String, Object>> ret =
+				new HashMap<ObjectIDResolvedWS, Map<String,Object>>();
+		for (final TypeDefId type: toGet.keySet()) {
+			@SuppressWarnings("rawtypes")
+			final Iterable<Map> subdata;
+			try {
+				subdata = wsjongo.getCollection(TypeData.getTypeCollection(type))
+						.find(M_GETOBJSUB_QRY, toGet.get(type).keySet())
+						.projection(M_GETOBJSUB_PROJ).as(Map.class);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			for (@SuppressWarnings("rawtypes") final Map m: subdata) {
+				final String md5 = (String) m.get(Fields.TYPE_CHKSUM);
+				@SuppressWarnings("unchecked")
+				final Map<String, Object> sd =
+						(Map<String, Object>) m.get(Fields.TYPE_SUBDATA);
+				for (final ObjectIDResolvedWS o: toGet.get(type).get(md5)) {
+					ret.put(o, sd);
+				}
+			}
+		}
+		return ret;
+	}
+	
+	private static final Set<String> FLDS_VER_GET_OBJECT = newHashSet(
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
@@ -1890,7 +1958,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_META_PROV);
+						FLDS_VER_GET_OBJECT);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, JsonNode> chksumToData = new HashMap<String, JsonNode>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
