@@ -1,0 +1,13 @@
+{
+	"paths":["list/3","list/1","otherlist/2/junk"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"list":["a","b","c","d","e"],
+		"otherlist":[{},{},{"junk":"stuff","stuff":"junk"},{},{}]
+	},
+	"extract": {
+		"list":["b","d"],
+		"otherlist":[{"junk":"stuff"}]
+	}
+}

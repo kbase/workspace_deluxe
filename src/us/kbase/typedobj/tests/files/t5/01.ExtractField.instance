@@ -1,0 +1,15 @@
+{
+	"paths":["/name","id/","stuff"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":[54,42],
+		"otherstuff":[22],
+		"things":{}
+	},
+	"extract": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":[54,42]
+	}
+}

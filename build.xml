@@ -155,6 +155,7 @@
           <include name="**/*.properties"/>
           <include name="**/*.spec"/>
           <include name="**/*.instance.*"/>
+          <include name="**/*.instance"/>
         </patternset>
       </fileset>
     </copy>
@@ -230,6 +231,7 @@
       <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
       <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
       <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"/>
+      <test name="us.kbase.typedobj.tests.TestObjectExtractionByPath"/>
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>

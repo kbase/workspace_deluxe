@@ -1,0 +1,25 @@
+{
+	"paths":["list/[*]","betterlist/[*]/id"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"list":[{"a":1},{"a":2},{"a":3},{"a":4},{"a":5}],
+		"betterlist":[
+			{"id":1,"data":"xxx"},
+			{"id":2,"data":"xxx"},
+			{"id":3,"data":"xxx"},
+			{"id":4,"data":"xxx"},
+			{"id":5,"data":"xxx"}
+		]
+	},
+	"extract": {
+		"list":[{"a":1},{"a":2},{"a":3},{"a":4},{"a":5}],
+		"betterlist":[
+			{"id":1},
+			{"id":2},
+			{"id":3},
+			{"id":4},
+			{"id":5}
+		]
+	}
+}

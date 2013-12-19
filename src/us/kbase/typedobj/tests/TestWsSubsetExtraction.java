@@ -164,7 +164,7 @@ public class TestWsSubsetExtraction {
 				instanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
 			}
 		}
-		if(VERBOSE) System.out.println(" " + instanceResources.size() + "found");
+		if(VERBOSE) System.out.println(" " + instanceResources.size() + " found");
 	}
 	
 	
