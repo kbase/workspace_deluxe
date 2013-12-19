@@ -44,6 +44,7 @@ NEW FEATURES:
 - Workspaces may have a <1000 character description.
 - Workspace names may be prefixed by the user's username and a colon. This
 	provides a unique per user namespace for workspace names.
+- Return only a user specified subset of an object.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Many methods now operate on multiple objects rather than one object per
@@ -65,7 +66,7 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Filter list_objects by metadata, owner, permissions
 - Import TOs from shock
 - Update copied objects from source
-- Return subset of object
+- Improvements to returning the subset of an object
 - Find TOs that reference another TO
 
 FUNCTION CHANGE LIST:
@@ -111,6 +112,7 @@ get_user_settings -> UserJobStateService
 set_user_settings -> UserJobStateService
 
 - New functions -
+get_object_subset
 get_workspace_description
 set_workspace_description
 lock_workspace
