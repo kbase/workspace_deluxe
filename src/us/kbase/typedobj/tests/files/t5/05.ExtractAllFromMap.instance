@@ -1,0 +1,25 @@
+{
+	"paths":["map/*","bettermap/*/id"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"map":{"a":1,"b":2,"c":3,"d":4,"e":5},
+		"bettermap":{
+			"a":{"id":1,"data":"xxx"},
+			"b":{"id":2,"data":"xxx"},
+			"c":{"id":3,"data":"xxx"},
+			"d":{"id":4,"data":"xxx"},
+			"e":{"id":5,"data":"xxx"}
+		}
+	},
+	"extract": {
+		"map":{"a":1,"b":2,"c":3,"d":4,"e":5},
+		"bettermap":{
+			"a":{"id":1},
+			"b":{"id":2},
+			"c":{"id":3},
+			"d":{"id":4},
+			"e":{"id":5}
+		}
+	}
+}

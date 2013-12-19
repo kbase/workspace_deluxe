@@ -45,7 +45,6 @@ public class TypedObjectExtractor {
 		JsonNode extraction = mapper.createObjectNode();
 		
 		for(String p : paths) {
-			System.out.println(p);
 			String [] parsedPath = parsePath(p);
 			
 			// if we selected nothing, we return nothing
@@ -57,32 +56,8 @@ public class TypedObjectExtractor {
 				// if we selected everything in a list, that is bad because root objects are not lists!!
 				if(parsedPath[0].equals("[*]")) { throw new TypedObjectExtractionException("Cannot select elements of a list at the root of the object."); }
 			}
-			
+			// finally add the specified path to extraction
 			addFromPath(parsedPath,0,data,extraction);
-			
-			
-			//for(int k=0;k<p.length; k++) {
-			//	System.out.println(" - "+p[k]);
-			//}
-			
-			
-			
-			
-			
-			//return getAtPath(s,data);
-			
-//			return 
-//			String [] tokens = s.split("::");
-//			if(tokens.length == 1) {
-//				// only a path set, which is great!  we can just split and return 
-//				System.out.println();
-//				extract.add(getAtPath(tokens[0],data));
-//			} else if(tokens.length ==2) {
-//				JsonNode startPos = getAtPath(tokens[0],data);
-//				extract.add(getSelection(tokens[1],startPos));
-//			} else {
-//				throw new TypedObjectExtractionException("Malformed selection string, expecting only one occurence of '::'");
-//			}
 		}
 		return extraction;
 	}
@@ -109,12 +84,8 @@ public class TypedObjectExtractor {
 	}
 	
 	
-	static protected void addFromPath(String [] path, int pathPos, JsonNode data, JsonNode extract) throws TypedObjectExtractionException {
-		
-		System.out.println(pathPos+" "+path.length);
-		
-		// TODO pull this out of every call!
-		ObjectMapper mapper = new ObjectMapper();
+	static protected void addFromPath(String [] path, int pathPos, JsonNode data, JsonNode extract) 
+			throws TypedObjectExtractionException {
 		
 		// first handle the end of recursion condition, which is that we are
 		// at the last element, and so we add the entire contents as specified
@@ -124,16 +95,16 @@ public class TypedObjectExtractor {
 				try {
 					((ArrayNode)extract).add(data.get(Integer.parseInt(path[pathPos])));
 				} catch (NumberFormatException e) {
-					throw new TypedObjectExtractionException("Malformed selection string, given '"+path[pathPos]+"', but object at this location is an array");
+					throw new TypedObjectExtractionException("Malformed selection string, given '"+path[pathPos]+"', but object at this location is an array, at: "+getLocation(path,pathPos));
 				}
 			} else if(data.isObject()) {
 				JsonNode value = data.get(path[pathPos]);
 				if(value==null) {
-					throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"'");
+					throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"', at: "+getLocation(path,pathPos));
 				}
 				((ObjectNode)extract).set(path[pathPos], value);
 			} else {
-				throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"' from a scalar element");
+				throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"' from a scalar element, at: "+getLocation(path,pathPos));
 			}
 			return;
 		}
@@ -158,7 +129,7 @@ public class TypedObjectExtractor {
 				try {
 					JsonNode subelement = data.get(Integer.parseInt(path[pathPos]));
 					if(subelement==null) {
-						throw new TypedObjectExtractionException("No element at position '"+path[pathPos]+"'");
+						throw new TypedObjectExtractionException("No element at position '"+path[pathPos]+"', at: "+getLocation(path,pathPos));
 					}
 					JsonNode elementextract = extract.get(Integer.parseInt(path[pathPos]));
 					if(elementextract == null) {
@@ -170,7 +141,7 @@ public class TypedObjectExtractor {
 					}
 					addFromPath(path,pathPos+1,subelement,elementextract);
 				} catch (NumberFormatException e) {
-					throw new TypedObjectExtractionException("Malformed index into array '"+path[pathPos]+"'");
+					throw new TypedObjectExtractionException("Malformed index into array '"+path[pathPos]+"', at: "+getLocation(path,pathPos));
 				}
 			}
 		} else if(data.isObject()) {
@@ -191,7 +162,7 @@ public class TypedObjectExtractor {
 			} else {
 				JsonNode subdata = data.get(path[pathPos]);
 				if(subdata==null) {
-					throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"'");
+					throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"', at: "+getLocation(path,pathPos));
 				}
 				if(!extract.has(path[pathPos])) {
 					if(subdata.isArray()) {
@@ -203,9 +174,17 @@ public class TypedObjectExtractor {
 				addFromPath(path,pathPos+1,subdata,extract.get(path[pathPos]));
 			}
 		} else {
-			throw new TypedObjectExtractionException("Malformed selection string, cannot get '"+path[pathPos]+"' from a scalar element");
+			throw new TypedObjectExtractionException(
+					"Malformed selection string, cannot get '"+path[pathPos]+"' from a scalar element, at: "+getLocation(path,pathPos));
 		}
 	}
 	
-	
+	static protected String getLocation(String []path,int pathPos) {
+		StringBuilder mssg = new StringBuilder();
+		for(int k=0; k<=pathPos; k++) {
+			mssg.append("/");
+			mssg.append(path[k]);
+		}
+		return mssg.toString();
+	}
 }

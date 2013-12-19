@@ -1,0 +1,17 @@
+{
+	"paths":["stuff/thing/mac/junk"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":{
+			"thing":{"mac":{"junk":2,"junkidontwant":3},"pc":{}}
+		},
+		"otherstuff":[22],
+		"things":{}
+	},
+	"extract": {
+		"stuff":{
+				"thing":{"mac":{"junk":2}}
+			}
+	}
+}

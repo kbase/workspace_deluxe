@@ -1,0 +1,13 @@
+{
+	"paths":["/notafield"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":{
+			"thing":{"mac":{"junk":2,"junkidontwant":3},"pc":{}}
+		},
+		"otherstuff":[22],
+		"things":{}
+	},
+	"extract": "Malformed selection string, cannot get 'notafield', at: /notafield"
+}
