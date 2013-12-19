@@ -17,17 +17,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Information about a type
  *         type_string type_def - resolved type definition id.
- *         string description - the description of the type from spec-file.
- *         string spec_def - reconstruction of type definition from spec-file.
+ *         string description - the description of the type from spec file.
+ *         string spec_def - reconstruction of type definition from spec file.
  *         list<spec_version> module_vers - versions of spec-files containing
  *                 given type version.
  *         list<type_string> type_vers - all versions of type with given type name.
  *         list<func_string> using_func_defs - list of functions (with versions)
- *                 refering to this type version.
+ *                 referring to this type version.
  *         list<type_string> using_type_defs - list of types (with versions)
- *                 refereing to this type version.
+ *                 referring to this type version.
  *         list<type_string> used_type_defs - list of types (with versions) 
- *                 refered from this type version.
+ *                 referred from this type version.
  * </pre>
  * 
  */

@@ -18,7 +18,7 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ObjectData</p>
  * <pre>
  * The data and supplemental info for an object.
- *         UnspecifiedObject data - the object's data.
+ *         UnspecifiedObject data - the object's data or subset data.
  *         object_info info - information about the object.
  *         list<ProvenanceAction> provenance - the object's provenance.
  *         username creator - the user that first saved the object to the

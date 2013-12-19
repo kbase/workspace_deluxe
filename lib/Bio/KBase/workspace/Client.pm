@@ -19,20 +19,25 @@ Bio::KBase::workspace::Client
 =head1 DESCRIPTION
 
 
-The workspace service at its core is a storage and retrieval system for 
-typed objects. Objects are organized by the user into one or more workspaces.
+The Workspace Service (WSS) is primarily a language independent remote storage
+and retrieval system for KBase typed objects (TO) defined with the KBase
+Interface Description Language (KIDL). It has the following primary features:
+- Immutable storage of TOs with
+        - user defined metadata 
+        - data provenance
+- Versioning of TOs
+- Referencing from TO to TO
+- Typechecking of all saved objects against a KIDL specification
+- Collecting typed objects into a workspace
+- Sharing workspaces with specific KBase users or the world
+- Freezing and publishing workspaces
 
-Features:
+Size limits:
+TOs are limited to 1GB
+TO subdata is limited to 15MB
+TO provenance is limited to 1MB
 
-Versioning of objects
-Data provenenance
-Object to object references
-Workspace sharing
-**Add stuff here***
-
-Notes about deletion and GC
-
-BINARY DATA:
+NOTE ON BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
 Attempting to send binary data via a workspace client will cause errors.
 
@@ -271,7 +276,7 @@ lock_status is a string
 
 =item Description
 
-Creates a new workspace.
+Clones a workspace.
 
 =back
 
@@ -1770,6 +1775,190 @@ sub get_objects
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_objects",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_objects',
+				       );
+    }
+}
+
+
+
+=head2 get_object_subset
+
+  $data = $obj->get_object_subset($sub_object_ids)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$sub_object_ids is a reference to a list where each element is a Workspace.SubObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectData
+SubObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+	included has a value which is a reference to a list where each element is a Workspace.object_path
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_path is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$sub_object_ids is a reference to a list where each element is a Workspace.SubObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectData
+SubObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+	included has a value which is a reference to a list where each element is a Workspace.object_path
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+object_path is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+
+=end text
+
+=item Description
+
+Get portions of objects from the workspace.
+
+=back
+
+=cut
+
+sub get_object_subset
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object_subset (received $n, expecting 1)");
+    }
+    {
+	my($sub_object_ids) = @args;
+
+	my @_bad_arguments;
+        (ref($sub_object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"sub_object_ids\" (value was \"$sub_object_ids\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object_subset:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object_subset');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_object_subset",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{code},
+					       method_name => 'get_object_subset',
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_subset",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object_subset',
 				       );
     }
 }
@@ -5503,7 +5692,7 @@ Meta data associated with a workspace. Provided for backwards
 compatibility. To be replaced by workspace_info.
         
 ws_name id - name of the workspace 
-username owner - name of the user who owns (who created) this object
+username owner - name of the user who owns (who created) this workspace
 timestamp moddate - date when the workspace was last modified
 int objects - the approximate number of objects currently stored in
         the workspace.
@@ -5805,6 +5994,114 @@ name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
+
+
+=end text
+
+=back
+
+
+
+=head2 object_path
+
+=over 4
+
+
+
+=item Description
+
+A path into an object. 
+Identify a sub portion of an object by providing the path, delimited by
+a slash (/), to that portion of the object. Thus the path may not have
+slashes in the structure or mapping keys. Examples:
+/foo/bar/3 - specifies the bar key of the foo mapping and the 3rd
+        entry of the array if bar maps to an array or the value mapped to
+        the string "3" if bar maps to a map.
+/foo/bar/[*]/baz - specifies the baz field of all the objects in the
+        list mapped by the bar key in the map foo.
+/foo/asterisk/baz - specifies the baz field of all the objects in the
+        values of the foo mapping. Swap 'asterisk' for * in the path.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 SubObjectIdentity
+
+=over 4
+
+
+
+=item Description
+
+An object subset identifier.
+
+Select a subset of an object by:
+EITHER
+        One, and only one, of the numerical id or name of the workspace,
+        where the name can also be a KBase ID including the numerical id,
+        e.g. kb|ws.35.
+                ws_id wsid - the numerical ID of the workspace.
+                ws_name workspace - name of the workspace or the workspace ID
+                        in KBase format, e.g. kb|ws.78.
+        AND 
+        One, and only one, of the numerical id or name of the object.
+                obj_id objid- the numerical ID of the object.
+                obj_name name - name of the object.
+        OPTIONALLY
+                obj_ver ver - the version of the object.
+OR an object reference string:
+        obj_ref ref - an object reference string.
+AND a subset specification:
+        list<object_path> included - the portions of the object to include
+                in the object subset.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+wsid has a value which is a Workspace.ws_id
+name has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+ver has a value which is a Workspace.obj_ver
+ref has a value which is a Workspace.obj_ref
+included has a value which is a reference to a list where each element is a Workspace.object_path
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace has a value which is a Workspace.ws_name
+wsid has a value which is a Workspace.ws_id
+name has a value which is a Workspace.obj_name
+objid has a value which is a Workspace.obj_id
+ver has a value which is a Workspace.obj_ver
+ref has a value which is a Workspace.obj_ref
+included has a value which is a reference to a list where each element is a Workspace.object_path
 
 
 =end text
@@ -6183,7 +6480,7 @@ ws_id id - the numerical ID of the workspace.
         
 Optional arguments:
 string auth - the authentication token of the KBase account accessing
-        the list of workspaces. Overrides the client provided authorization
+        the workspace. Overrides the client provided authorization
         credentials if they exist.
 
 @deprecated Workspace.WorkspaceIdentity
@@ -6383,12 +6680,12 @@ ws_name workspace - name of the workspace where the object is to be
         saved
 obj_name id - name behind which the object will be saved in the
         workspace
-UnspecifiedObject data - datastructure to be saved in the workspace
+UnspecifiedObject data - data to be saved in the workspace
 
 Optional arguments:
 usermeta metadata - a hash of metadata to be associated with the object
 string auth - the authentication token of the KBase account accessing
-        the list of workspaces. Overrides the client provided authorization
+        the workspace. Overrides the client provided authorization
         credentials if they exist.
 
 @deprecated
@@ -6560,7 +6857,7 @@ Optional arguments:
 int instance - Version of the object to be retrieved, enabling
         retrieval of any previous version of an object
 string auth - the authentication token of the KBase account accessing
-        the list of workspaces. Overrides the client provided authorization
+        the object. Overrides the client provided authorization
         credentials if they exist.
 
 @deprecated Workspace.ObjectIdentity
@@ -6649,7 +6946,7 @@ metadata has a value which is a Workspace.object_metadata
 
 The data and supplemental info for an object.
 
-        UnspecifiedObject data - the object's data.
+        UnspecifiedObject data - the object's data or subset data.
         object_info info - information about the object.
         list<ProvenanceAction> provenance - the object's provenance.
         username creator - the user that first saved the object to the
@@ -6855,7 +7152,7 @@ Parameters for the 'list_objects' function.
                 recommended that the list is restricted to the workspaces of interest,
                 or the results may be very large:
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
-                list<ws_name> workspaces - name of the workspaces of interest or the
+                list<ws_name> workspaces - names of the workspaces of interest or the
                         workspace IDs in KBase format, e.g. kb|ws.78.
                 type_string type - type of the objects to be listed.  Here, omitting
                         version information will find any objects that match the provided
@@ -7310,8 +7607,8 @@ Parameters for the register_typespec function.
 
         Required arguments:
         One of:
-         typespec spec - the new typespec to register.
-         modulename mod - the module to recompile with updated options (see below).
+        typespec spec - the new typespec to register.
+        modulename mod - the module to recompile with updated options (see below).
         
         Optional arguments:
         boolean dryrun - Return, but do not save, the results of compiling the 
@@ -7659,17 +7956,17 @@ is_released has a value which is a Workspace.boolean
 Information about a type
 
         type_string type_def - resolved type definition id.
-        string description - the description of the type from spec-file.
-        string spec_def - reconstruction of type definition from spec-file.
+        string description - the description of the type from spec file.
+        string spec_def - reconstruction of type definition from spec file.
         list<spec_version> module_vers - versions of spec-files containing
                 given type version.
         list<type_string> type_vers - all versions of type with given type name.
         list<func_string> using_func_defs - list of functions (with versions)
-                refering to this type version.
+                referring to this type version.
         list<type_string> using_type_defs - list of types (with versions)
-                refereing to this type version.
+                referring to this type version.
         list<type_string> used_type_defs - list of types (with versions) 
-                refered from this type version.
+                referred from this type version.
 
 
 =item Definition
@@ -7718,16 +8015,17 @@ used_type_defs has a value which is a reference to a list where each element is 
 
 =item Description
 
-Information about function
+Information about a function
 
         func_string func_def - resolved func definition id.
-        string description - the description of the function from spec-file.
-        string spec_def - reconstruction of function definition from spec-file.
-        list<spec_version> module_vers - versions of spec-files containing
+        string description - the description of the function from spec file.
+        string spec_def - reconstruction of function definition from spec file.
+        list<spec_version> module_vers - versions of spec files containing
                 given func version.
-        list<func_string> func_vers - all versions of function with given type name.
+        list<func_string> func_vers - all versions of function with given type
+                name.
         list<type_string> used_type_defs - list of types (with versions) 
-                refered from this function version.
+                referred to from this function version.
 
 
 =item Definition

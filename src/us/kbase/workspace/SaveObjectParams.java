@@ -24,11 +24,11 @@ import us.kbase.common.service.UObject;
  *         saved
  * obj_name id - name behind which the object will be saved in the
  *         workspace
- * UnspecifiedObject data - datastructure to be saved in the workspace
+ * UnspecifiedObject data - data to be saved in the workspace
  * Optional arguments:
  * usermeta metadata - a hash of metadata to be associated with the object
  * string auth - the authentication token of the KBase account accessing
- *         the list of workspaces. Overrides the client provided authorization
+ *         the workspace. Overrides the client provided authorization
  *         credentials if they exist.
  * @deprecated
  * </pre>

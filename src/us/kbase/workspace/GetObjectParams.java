@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * int instance - Version of the object to be retrieved, enabling
  *         retrieval of any previous version of an object
  * string auth - the authentication token of the KBase account accessing
- *         the list of workspaces. Overrides the client provided authorization
+ *         the object. Overrides the client provided authorization
  *         credentials if they exist.
  * @deprecated Workspace.ObjectIdentity
  * </pre>

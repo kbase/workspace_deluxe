@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         
  * Optional arguments:
  * string auth - the authentication token of the KBase account accessing
- *         the list of workspaces. Overrides the client provided authorization
+ *         the workspace. Overrides the client provided authorization
  *         credentials if they exist.
  * @deprecated Workspace.WorkspaceIdentity
  * </pre>

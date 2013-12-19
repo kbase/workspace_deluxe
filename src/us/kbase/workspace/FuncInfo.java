@@ -15,15 +15,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * <p>Original spec-file type: FuncInfo</p>
  * <pre>
- * Information about function
+ * Information about a function
  *         func_string func_def - resolved func definition id.
- *         string description - the description of the function from spec-file.
- *         string spec_def - reconstruction of function definition from spec-file.
- *         list<spec_version> module_vers - versions of spec-files containing
+ *         string description - the description of the function from spec file.
+ *         string spec_def - reconstruction of function definition from spec file.
+ *         list<spec_version> module_vers - versions of spec files containing
  *                 given func version.
- *         list<func_string> func_vers - all versions of function with given type name.
+ *         list<func_string> func_vers - all versions of function with given type
+ *                 name.
  *         list<type_string> used_type_defs - list of types (with versions) 
- *                 refered from this function version.
+ *                 referred to from this function version.
  * </pre>
  * 
  */

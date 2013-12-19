@@ -18,8 +18,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Parameters for the register_typespec function.
  *         Required arguments:
  *         One of:
- *          typespec spec - the new typespec to register.
- *          modulename mod - the module to recompile with updated options (see below).
+ *         typespec spec - the new typespec to register.
+ *         modulename mod - the module to recompile with updated options (see below).
  *         
  *         Optional arguments:
  *         boolean dryrun - Return, but do not save, the results of compiling the 

@@ -200,6 +200,52 @@ module Workspace {
 		obj_ref ref;
 	} ObjectIdentity;
 	
+	/* A path into an object. 
+		Identify a sub portion of an object by providing the path, delimited by
+		a slash (/), to that portion of the object. Thus the path may not have
+		slashes in the structure or mapping keys. Examples:
+		/foo/bar/3 - specifies the bar key of the foo mapping and the 3rd
+			entry of the array if bar maps to an array or the value mapped to
+			the string "3" if bar maps to a map.
+		/foo/bar/[*]/baz - specifies the baz field of all the objects in the
+			list mapped by the bar key in the map foo.
+		/foo/asterisk/baz - specifies the baz field of all the objects in the
+			values of the foo mapping. Swap 'asterisk' for * in the path.
+	*/
+	typedef string object_path;
+	
+	/* An object subset identifier.
+		
+		Select a subset of an object by:
+		EITHER
+			One, and only one, of the numerical id or name of the workspace,
+			where the name can also be a KBase ID including the numerical id,
+			e.g. kb|ws.35.
+				ws_id wsid - the numerical ID of the workspace.
+				ws_name workspace - name of the workspace or the workspace ID
+					in KBase format, e.g. kb|ws.78.
+			AND 
+			One, and only one, of the numerical id or name of the object.
+				obj_id objid- the numerical ID of the object.
+				obj_name name - name of the object.
+			OPTIONALLY
+				obj_ver ver - the version of the object.
+		OR an object reference string:
+			obj_ref ref - an object reference string.
+		AND a subset specification:
+			list<object_path> included - the portions of the object to include
+				in the object subset.
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id wsid;
+		obj_name name;
+		obj_id objid;
+		obj_ver ver;
+		obj_ref ref;
+		list<object_path> included;
+	} SubObjectIdentity;
+	
 	/* Meta data associated with an object stored in a workspace. Provided for
 		backwards compatibility.
 	
@@ -643,7 +689,7 @@ module Workspace {
 	
 	/* The data and supplemental info for an object.
 	
-		UnspecifiedObject data - the object's data.
+		UnspecifiedObject data - the object's data or subset data.
 		object_info info - information about the object.
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
@@ -666,6 +712,12 @@ module Workspace {
 		Get objects from the workspace.
 	*/
 	funcdef get_objects(list<ObjectIdentity> object_ids)
+		returns (list<ObjectData> data);
+		
+	/* 
+		Get portions of objects from the workspace.
+	*/
+	funcdef get_object_subset(list<SubObjectIdentity> sub_object_ids)
 		returns (list<ObjectData> data);
 		
 	/* 
