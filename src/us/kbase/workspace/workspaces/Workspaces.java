@@ -13,6 +13,7 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -33,6 +34,7 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.WsIdReference;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -40,6 +42,7 @@ import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ReferenceParser;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -655,6 +658,35 @@ public class Workspaces {
 		
 		for (final ObjectIdentifier o: loi) {
 			ret.add(data.get(ws.get(o)));
+		}
+		return ret;
+	}
+	
+	//TODO test
+	public List<WorkspaceObjectData> getObjectsSubSet(final WorkspaceUser user,
+			final List<SubObjectIdentifier> loi) throws
+			CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException, TypedObjectExtractionException {
+		final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
+		for (final SubObjectIdentifier soi: loi) {
+			objs.add(soi.getObjectIdentifer());
+		}
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, objs, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, ObjectPaths> objpaths =
+				new HashMap<ObjectIDResolvedWS, ObjectPaths>();
+		for (final SubObjectIdentifier soi: loi) {
+			objpaths.put(ws.get(soi.getObjectIdentifer()), soi.getPaths());
+		}
+		
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
+				db.getObjects(objpaths);
+		
+		final List<WorkspaceObjectData> ret =
+				new ArrayList<WorkspaceObjectData>();
+		for (final SubObjectIdentifier soi: loi) {
+			ret.add(data.get(ws.get(soi.getObjectIdentifer())));
 		}
 		return ret;
 	}

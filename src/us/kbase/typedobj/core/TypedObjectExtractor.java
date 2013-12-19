@@ -31,7 +31,7 @@ public class TypedObjectExtractor {
 	 * selector is of the form (field.*.[*].field, ... )
 	 * 
 	 */
-	static public JsonNode extract(final List<String> paths, final JsonNode data) throws TypedObjectExtractionException {
+	static public JsonNode extract(final ObjectPaths paths, final JsonNode data) throws TypedObjectExtractionException {
 		
 		List <JsonNode>extract = new ArrayList<JsonNode> (paths.size());
 		
@@ -61,6 +61,9 @@ public class TypedObjectExtractor {
 	 * or array/tuple position, get the json node at that position
 	 */
 	static protected JsonNode getAtPath(String path, JsonNode data) throws TypedObjectExtractionException {
+		if (path.startsWith("/")) { //Mike, added this, otherwise all paths starting with / were being parsed to ["", "foo"] and choking on "" 
+			path = path.substring(1);
+		}
 		String [] pathTokens = path.split("/");
 		JsonNode currentPos = data;
 		for(int k=0;k<pathTokens.length;k++) {

@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -91,6 +93,11 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
+			final Map<ObjectIDResolvedWS, ObjectPaths> objects)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, TypedObjectExtractionException;
+	
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
 			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata)
 			throws NoSuchObjectException, WorkspaceCommunicationException;

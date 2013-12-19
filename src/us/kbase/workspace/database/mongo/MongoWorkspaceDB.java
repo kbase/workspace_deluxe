@@ -36,13 +36,16 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -1949,12 +1952,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
 			Fields.VER_PROVREF, Fields.VER_REF);
 	
+	@Override
 	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
 			final Set<ObjectIDResolvedWS> objectIDs) throws
 			NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
+		final Map<ObjectIDResolvedWS, ObjectPaths> paths =
+				new HashMap<ObjectIDResolvedWS, ObjectPaths>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			paths.put(o, null);
+		}
+		try {
+			return getObjects(paths);
+		} catch (TypedObjectExtractionException toee) {
+			throw new RuntimeException(
+					"No extraction done, so something's very wrong here", toee);
+		}
+	}
+	
+	@Override
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
+			final Map<ObjectIDResolvedWS, ObjectPaths> objects) throws
+			NoSuchObjectException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, TypedObjectExtractionException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objectIDs);
+				resolveObjectIDs(objects.keySet());
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
@@ -1963,7 +1985,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, JsonNode> chksumToData = new HashMap<String, JsonNode>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
-		for (ObjectIDResolvedWS o: objectIDs) {
+		for (ObjectIDResolvedWS o: objects.keySet()) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (!vers.containsKey(roi)) {
 				throw new NoSuchObjectException(String.format(
@@ -1980,8 +2002,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final MongoObjectInfo meta = generateObjectInfo(
 					roi, vers.get(roi));
 			if (chksumToData.containsKey(meta.getCheckSum())) {
-				ret.put(o, new WorkspaceObjectData(
-						chksumToData.get(meta.getCheckSum()), meta, prov, refs));
+				/* might be subsetting the same object the same way multiple
+				 * times, but probably unlikely. If it becomes a problem
+				 * memoize the subset
+				 */
+				ret.put(o, new WorkspaceObjectData(getDataSubSet(
+						chksumToData.get(meta.getCheckSum()), objects.get(o)),
+						meta, prov, refs));
 			} else {
 				final JsonNode data;
 				try {
@@ -2000,12 +2027,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							meta.getVersion()), e);
 				}
 				chksumToData.put(meta.getCheckSum(), data);
-				ret.put(o, new WorkspaceObjectData(data, meta, prov, refs));
+				ret.put(o, new WorkspaceObjectData(getDataSubSet(
+						data, objects.get(o)), meta, prov, refs));
 			}
 		}
 		return ret;
 	}
 	
+	private JsonNode getDataSubSet(final JsonNode data,
+			final ObjectPaths paths)
+			throws TypedObjectExtractionException {
+		if (paths == null || paths.isEmpty()) {
+			return data;
+		}
+		return TypedObjectExtractor.extract(paths, data);
+	}
+
 	private Map<ObjectId, MongoProvenance> getProvenance(
 			final Map<ResolvedMongoObjectID, Map<String, Object>> vers)
 			throws WorkspaceCommunicationException {

@@ -17,6 +17,7 @@ import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
@@ -43,6 +44,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
@@ -579,6 +581,11 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjectSubset(List<SubObjectIdentity> subObjectIds, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_object_subset
+		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
+				subObjectIds);
+		returnVal = au.translateObjectData(
+				ws.getObjectsSubSet(getUser(authPart), loi));
+		//TODO test
         //END get_object_subset
         return returnVal;
     }

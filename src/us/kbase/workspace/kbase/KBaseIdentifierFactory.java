@@ -4,15 +4,19 @@ import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class KBaseIdentifierFactory {
@@ -131,5 +135,26 @@ public class KBaseIdentifierFactory {
 					Integer.parseInt(m.group(3)));
 		}
 		return ObjectIdentifier.parseObjectReference(ref);
+	}
+
+	public static List<SubObjectIdentifier> processSubObjectIdentifiers(
+			List<SubObjectIdentity> subObjectIds) {
+		final List<SubObjectIdentifier> objs =
+				new LinkedList<SubObjectIdentifier>();
+		for (final SubObjectIdentity soi: subObjectIds) {
+			checkAddlArgs(soi.getAdditionalProperties(), soi.getClass());
+			final ObjectIdentifier oi = processObjectIdentifier(
+					new ObjectIdentity()
+					.withWorkspace(soi.getWorkspace())
+					.withWsid(soi.getWsid())
+					.withName(soi.getName())
+					.withObjid(soi.getObjid())
+					.withVer(soi.getVer())
+					.withRef(soi.getRef()));
+					
+			objs.add(new SubObjectIdentifier(oi,
+					new ObjectPaths(soi.getIncluded())));
+		}
+		return objs;
 	}
 }
