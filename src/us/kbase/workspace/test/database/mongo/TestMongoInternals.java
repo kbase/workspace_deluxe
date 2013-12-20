@@ -247,4 +247,79 @@ public class TestMongoInternals {
 		d.put("looloo", new HashSet<String>((List<String>) d.get("looloo")));
 		assertThat("subdata is not correct", expected, is(d));
 	}
+	
+	@Test
+	public void escapeSubdataKeys() throws Exception {
+		final String specSubdata =
+				"module TestSubdataEscape {\n" +
+					"/* @searchable ws_subset stuff\n" +
+					" */" +
+					"typedef structure {" +
+						"mapping<string, list<mapping<string, string>>> stuff;" +
+					"} SubSetEscapeType;" +
+				"};";
+		String mod = "TestSubdataEscape";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetEscapeType"), null, null, false, null);
+		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetEscapeType"), 0, 1);
+		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("escapesubset");
+		ws.createWorkspace(userfoo, subdataws.getName(), false, null);
+		
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> expected = new HashMap<String, Object>();
+		
+		Map<String, String> dataSimpleCheck = new HashMap<String, String>();
+		dataSimpleCheck.put("foo.bar", "foo");
+		dataSimpleCheck.put("foo$Bar", "foo");
+		dataSimpleCheck.put("foo%bar", "foo");
+		dataSimpleCheck.put("foo@bar", "foo");
+		
+		Map<String, String> expectedSimpleCheck = new HashMap<String, String>();
+		expectedSimpleCheck.put("foo%2ebar", "foo");
+		expectedSimpleCheck.put("foo%24Bar", "foo");
+		expectedSimpleCheck.put("foo%25bar", "foo");
+		expectedSimpleCheck.put("foo@bar", "foo");
+		
+		Map<String, String> dataOverwrite = new HashMap<String, String>();
+		for (int i = 0; i < 50; i++) {
+			dataOverwrite.put("foo%2ebar", "foo");
+		}
+		dataOverwrite.put("foo.bar", "foo");
+		for (int i = 0; i < 50; i++) {
+			dataOverwrite.put("foo%2ebar", "foo");
+		}
+		Map<String, String> expectedOverwrite = new HashMap<String, String>();
+		for (int i = 0; i < 50; i++) {
+			expectedOverwrite.put("foo%252ebar", "foo");
+		}
+		expectedOverwrite.put("foo%2ebar", "foo");
+		for (int i = 0; i < 50; i++) {
+			expectedOverwrite.put("foo%252ebar", "foo");
+		}
+		Map<String, List<Map<String, String>>> datastuff =
+				new HashMap<String, List<Map<String, String>>>();
+		Map<String, List<Map<String, String>>> expectedstuff =
+				new HashMap<String, List<Map<String, String>>>();
+		datastuff.put("thing", Arrays.asList(dataSimpleCheck, dataOverwrite));
+		expectedstuff.put("thing", Arrays.asList(expectedSimpleCheck, expectedOverwrite));
+		datastuff.put("foo%$.bar", Arrays.asList(dataSimpleCheck));
+		expectedstuff.put("foo%25%24%2ebar", Arrays.asList(expectedSimpleCheck));
+		datastuff.put("foobar", Arrays.asList(dataSimpleCheck));
+		expectedstuff.put("foobar", Arrays.asList(expectedSimpleCheck));
+		data.put("stuff", datastuff);
+		expected.put("stuff", expectedstuff);
+		
+		ws.saveObjects(userfoo, subdataws, Arrays.asList(
+				new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)));
+		
+		ResolvedWorkspaceID rwi = mwdb.resolveWorkspace(subdataws);
+		ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwi, 1L);
+		Map<String, Object> d = mwdb.getObjectSubData(new HashSet<ObjectIDResolvedWS>(Arrays.asList(
+				new ObjectIDResolvedWS(rwi, 1L)))).get(oid);
+		
+		assertThat("subdata is not correct", expected, is(d));
+	}
+	
 }

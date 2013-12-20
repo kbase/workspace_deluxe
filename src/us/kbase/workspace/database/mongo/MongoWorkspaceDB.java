@@ -1443,9 +1443,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					m.remove(key);
 					newm.put(newkey, value);
 				}
-				if (m.containsKey("fig|83333.1.trm.2")) {
-					System.out.println("woo");
-				}
 			}
 			m.putAll(newm);
 			return o;
