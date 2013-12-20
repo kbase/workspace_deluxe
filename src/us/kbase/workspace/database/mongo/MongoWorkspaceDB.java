@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1358,63 +1359,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void escapeSubdata(final Map<String, Object> subdata) {
 		escapeSubdataInternal(subdata);
 	}
-	
-	//rewrite w/o recursion?
-	private void escapeSubdataInternal(final Object o) {
-		if (o instanceof String || o instanceof Number ||
-				o instanceof Boolean || o == null) {
-			return;
-		} else if (o instanceof List) {
-			@SuppressWarnings("unchecked")
-			final List<Object> l = (List<Object>)o;
-			for (Object lo: l) {
-				escapeSubdataInternal(lo);
-			}
-			return;
-		} else if (o instanceof Map) {
-			@SuppressWarnings("unchecked")
-			final Map<String, Object> m = (Map<String, Object>)o;
-			//save updated keys in separate map so we don't overwrite
-			//keys before they're escaped
-			final Map<String, Object> newm = new HashMap<String, Object>();
-			for (final String k: m.keySet()) {
-				escapeSubdataInternal(m.get(k));
-				newm.put(mongoHTMLEscape(k), m.get(k));
-			}
-			m.clear();
-			m.putAll(newm);
-			return;
-		} else {
-			throw new RuntimeException("Unsupported class: " + o.getClass());
-		}
-	}
-	
-	private static final int CODEPOINT_PERC = new String("%").codePointAt(0);
-	private static final int CODEPOINT_DLR = new String("$").codePointAt(0);
-	private static final int CODEPOINT_PNT = new String(".").codePointAt(0);
-	
-	//might be faster just using std string replace() method
-	private String mongoHTMLEscape(final String s) {
-		final StringBuilder ret = new StringBuilder();
-		for (int offset = 0; offset < s.length(); ) {
-			final int codepoint = s.codePointAt(offset);
-			if (codepoint == CODEPOINT_PERC) {
-				ret.append("%25");
-			} else if (codepoint == CODEPOINT_DLR) {
-				ret.append("%24");
-			} else if (codepoint == CODEPOINT_PNT) {
-				ret.append("%2e");
-			} else {
-				ret.appendCodePoint(codepoint);
-			}
-			offset += Character.charCount(codepoint);
-		}
-		return ret.toString();
-	}
-	
-	/* The implementation below is slightly faster than the above, although
-	 * the overall performance improvement is negligible. Once there are 
-	 * tests covering the subdata thoroughly swap it out.
+
 	//rewrite w/o recursion?
 	private Object escapeSubdataInternal(final Object o) {
 		if (o instanceof String || o instanceof Number ||
@@ -1433,14 +1378,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//save updated keys in separate map so we don't overwrite
 			//keys before they're escaped
 			final Map<String, Object> newm = new HashMap<String, Object>();
-			for (final Entry<String, Object> e: m.entrySet()) {
+			final Iterator<Entry<String, Object>> iter = m.entrySet().iterator();
+			while (iter.hasNext()) {
+				final Entry<String, Object> e = iter.next();
 				final String key = e.getKey();
 				//need side effect
 				final Object value = escapeSubdataInternal(e.getValue());
 				final String newkey = mongoHTMLEscape(key);
 				//works since mongoHTMLEscape returns same string object if no change
 				if (key != newkey) {
-					m.remove(key);
+					iter.remove();
 					newm.put(newkey, value);
 				}
 			}
@@ -1481,7 +1428,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			return s;
 		}
 	}
-	 */
 	
 	private static final String M_SAVE_QRY = String.format("{%s: #}",
 					Fields.WS_ID);

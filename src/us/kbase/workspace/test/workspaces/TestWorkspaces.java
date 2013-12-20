@@ -1560,7 +1560,7 @@ public class TestWorkspaces {
 		//TODO put this test in the JSONRPCLayer tests
 	}
 	
-	@Test(timeout=30000)
+	@Test(timeout=40000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
