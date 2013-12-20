@@ -1078,7 +1078,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				q = q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
 						saved);
 			} else {
-				q = q.with(M_SAVEINS_WTH, versions.size(), saved,
+				q = q.with(M_SAVEINS_WTH, versions.size(), saved, //TODO internal test such that dates are correct
 						hidden);
 			}
 			ver = (Integer) q
