@@ -134,9 +134,14 @@ public class TestMongoInternals {
 		}
 		checkRefCounts(wsid, expected, 2);
 		
-		ws.cloneWorkspace(userfoo, wspace2, "refcount3", false, null);
+		WorkspaceIdentifier wspace3 = new WorkspaceIdentifier("refcount3");
+		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null);
 		checkRefCounts(wsid, expected, 3);
 		
+		for (int i = 1; i <= 16; i++) {
+			ws.revertObject(userfoo, new ObjectIdentifier(wspace3, "obj" + i));
+		}
+		checkRefCounts(wsid, expected, 4);
 		
 	}
 
