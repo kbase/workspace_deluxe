@@ -124,17 +124,7 @@ public class TestMongoInternals {
 						refcounttype, null, emptyprov, false)));
 			}
 		}
-		
-		for (int i = 1; i < 5; i++) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> obj = jdb.getCollection("workspaceObjects")
-					.findOne("{ws: #, id: #}", wsid, i).as(Map.class);
-			@SuppressWarnings("unchecked")
-			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
-			for (int j = 0; j < 4; j++) {
-				assertThat("correct ref count", refcnts.get(j), is(expected[i][j + 1]));
-			}
-		}
+		checkRefCounts(wsid, expected, 1);
 		WorkspaceIdentifier wspace2 = new WorkspaceIdentifier("refcount2");
 		ws.createWorkspace(userfoo, wspace2.getName(), false, null).getId();
 		
@@ -142,6 +132,15 @@ public class TestMongoInternals {
 			ws.copyObject(userfoo, new ObjectIdentifier(wspace, "auto" + (i + 4)),
 					new ObjectIdentifier(wspace2, "obj" + i));
 		}
+		checkRefCounts(wsid, expected, 2);
+		
+		ws.cloneWorkspace(userfoo, wspace2, "refcount3", false, null);
+		checkRefCounts(wsid, expected, 3);
+		
+		
+	}
+
+	private void checkRefCounts(long wsid, int[][] expected, int factor) {
 		for (int i = 1; i < 5; i++) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> obj = jdb.getCollection("workspaceObjects")
@@ -149,10 +148,9 @@ public class TestMongoInternals {
 			@SuppressWarnings("unchecked")
 			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
 			for (int j = 0; j < 4; j++) {
-				assertThat("correct ref count", refcnts.get(j), is(expected[i][j + 1] * 2));
+				assertThat("correct ref count", refcnts.get(j), is(expected[i][j + 1] * factor));
 			}
 		}
-		
 	}
 	
 	private Map<String, Object> withRef(Map<String, Object> map, long wsid,
