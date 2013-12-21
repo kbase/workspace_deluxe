@@ -135,7 +135,7 @@
       <exclude name="us/kbase/workspace/exceptions/**"/>
       <exclude name="us/kbase/workspace/kbase/**"/>
       <exclude name="us/kbase/workspace/test/**"/>
-      <exclude name="us/kbase/workspace/workspaces/**"/>
+      <exclude name="us/kbase/workspace/lib/**"/>
     </javac>
     <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
   	<delete dir="${client_classes}"/>
