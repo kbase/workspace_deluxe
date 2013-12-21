@@ -31,15 +31,15 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.Workspaces;
+import us.kbase.workspace.lib.WorkspaceSaveObject;
+import us.kbase.workspace.lib.Workspace;
 
 public class WorkspaceServerMethods {
 	
-	final Workspaces ws;
+	final Workspace ws;
 	final ArgUtils au = new ArgUtils();
 	
-	public WorkspaceServerMethods(final Workspaces ws) {
+	public WorkspaceServerMethods(final Workspace ws) {
 		this.ws = ws;
 	}
 	

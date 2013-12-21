@@ -1,4 +1,4 @@
-package us.kbase.workspace.test.workspaces;
+package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNull;
@@ -71,14 +71,14 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.lib.ModuleInfo;
+import us.kbase.workspace.lib.WorkspaceSaveObject;
+import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.Workspaces;
-import us.kbase.workspace.workspaces.ModuleInfo;
 
 //TODO make sure ordered lists stay ordered
 @RunWith(Parameterized.class)
-public class TestWorkspaces {
+public class TestWorkspace {
 	
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
@@ -144,11 +144,11 @@ public class TestWorkspaces {
 		}
 	}
 	
-	public static final Map<String, Workspaces> configs =
-			new HashMap<String, Workspaces>();
-	public final Workspaces ws;
+	public static final Map<String, Workspace> configs =
+			new HashMap<String, Workspace>();
+	public final Workspace ws;
 	
-	public TestWorkspaces(String config) throws Exception {
+	public TestWorkspace(String config) throws Exception {
 		if (!configs.containsKey(config)) {
 			if ("shock".equals(config)) {
 				configs.put(config, setUpShock());
@@ -161,17 +161,17 @@ public class TestWorkspaces {
 		ws = configs.get(config);
 	}
 	
-	private Workspaces setUpMongo() throws Exception {
+	private Workspace setUpMongo() throws Exception {
 		return setUpWorkspaces("gridFS", "foo", "foo");
 	}
 	
-	private Workspaces setUpShock() throws Exception {
+	private Workspace setUpShock() throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
 		return setUpWorkspaces("shock", shockuser, shockpwd);
 	}
 	
-	private Workspaces setUpWorkspaces(String type, String shockuser,
+	private Workspace setUpWorkspaces(String type, String shockuser,
 			String shockpwd) throws Exception {
 		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser);
 		String host = WorkspaceTestCommon.getHost();
@@ -188,7 +188,7 @@ public class TestWorkspaces {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null);
 		}
-		Workspaces work = new Workspaces(wsdb, new DefaultReferenceParser());
+		Workspace work = new Workspace(wsdb, new DefaultReferenceParser());
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		if ("shock".equals(type)) {
@@ -198,7 +198,7 @@ public class TestWorkspaces {
 		return work;
 	}
 		
-	private void installSpecs(Workspaces work) throws Exception {
+	private void installSpecs(Workspace work) throws Exception {
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		//simple spec

@@ -78,9 +78,9 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.lib.ResolvedSaveObject;
+import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.ResolvedSaveObject;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

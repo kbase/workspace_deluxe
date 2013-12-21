@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.lib;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
-public class Workspaces {
+public class Workspace {
 	
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
@@ -91,7 +91,7 @@ public class Workspaces {
 	private final TypeDefinitionDB typedb;
 	private final ReferenceParser refparse;
 	
-	public Workspaces(final WorkspaceDatabase db,
+	public Workspace(final WorkspaceDatabase db,
 			final ReferenceParser refparse) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");

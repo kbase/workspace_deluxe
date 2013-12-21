@@ -1,4 +1,4 @@
-package us.kbase.workspace.workspaces;
+package us.kbase.workspace.lib;
 
 import java.util.List;
 import java.util.Map;

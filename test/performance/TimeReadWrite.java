@@ -44,9 +44,9 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.lib.WorkspaceSaveObject;
+import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.workspaces.WorkspaceSaveObject;
-import us.kbase.workspace.workspaces.Workspaces;
 import us.kbase.workspaceservice.DeleteWorkspaceParams;
 import us.kbase.workspaceservice.GetObjectParams;
 import us.kbase.workspaceservice.SaveObjectParams;
@@ -151,7 +151,7 @@ public class TimeReadWrite {
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
-		Workspaces ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
+		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
 				new DefaultReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
@@ -431,7 +431,7 @@ public class TimeReadWrite {
 		private static final WorkspaceUser foo = new WorkspaceUser("foo");
 		protected TypeDefId type;
 		
-		private Workspaces ws;
+		private Workspace ws;
 		private int writes;
 		@SuppressWarnings("unused")
 		private int id;
@@ -441,7 +441,7 @@ public class TimeReadWrite {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspaces(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
+			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
 					new DefaultReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X

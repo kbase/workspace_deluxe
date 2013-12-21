@@ -24,18 +24,18 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.workspaces.Workspaces;
+import us.kbase.workspace.lib.Workspace;
 
 public class WorkspaceAdministration {
 	
-	private final Workspaces ws;
+	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private static final String ROOT = "workspaceadmin";
 	
 	//TODO tests for all this
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
-	public WorkspaceAdministration(final Workspaces ws, 
+	public WorkspaceAdministration(final Workspace ws, 
 			final WorkspaceServerMethods wsmeth, final String admin) {
 		this.ws = ws;
 		this.wsmeth = wsmeth;

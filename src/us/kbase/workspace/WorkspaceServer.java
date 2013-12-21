@@ -59,8 +59,7 @@ import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
-import us.kbase.workspace.workspaces.Workspaces;
-//END_HEADER
+import us.kbase.workspace.lib.Workspace;
 
 /**
  * <p>Original spec-file module name: Workspace</p>
@@ -108,7 +107,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static int instanceCount = 0;
 	
-	private final Workspaces ws;
+	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
@@ -215,7 +214,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						db.getBackendType()));
 				logInfo(String.format("Initialized %s backend",
 						db.getBackendType()));
-				ws = new Workspaces(db, new KBaseReferenceParser());
+				ws = new Workspace(db, new KBaseReferenceParser());
 				wsmeth = new WorkspaceServerMethods(ws);
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));
@@ -1200,7 +1199,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			module = new ModuleDefId(params.getMod());
 		}
 		WorkspaceUser user = getUser(authPart);
-		final us.kbase.workspace.workspaces.ModuleInfo mi =
+		final us.kbase.workspace.lib.ModuleInfo mi =
 				ws.getModuleInfo(user, module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {

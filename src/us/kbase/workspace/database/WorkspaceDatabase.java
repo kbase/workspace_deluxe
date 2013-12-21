@@ -13,7 +13,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.workspaces.ResolvedSaveObject;
+import us.kbase.workspace.lib.ResolvedSaveObject;
 
 public interface WorkspaceDatabase {
 	
