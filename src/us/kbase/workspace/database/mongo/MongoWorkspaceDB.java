@@ -481,7 +481,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				v.put(Fields.VER_COPIED, new MongoReference(
 						fromWS.getID(), oldid, ver).toString());
 			}
-			//TODO test copy ref counts works in internals
 			updateReferenceCountsForVersions(versions);
 			final long newid = incrementWorkspaceCounter(toWS, 1);
 			final long objid = saveWorkspaceObject(toWS, newid, name).id;
@@ -569,7 +568,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			v.put(Fields.VER_SAVEDBY, user.getUser());
 			if (revert) {
 				v.put(Fields.VER_RVRT, ver);
-				v.put(Fields.VER_COPIED, null);
 			} else {
 				v.put(Fields.VER_RVRT, null);
 				//TODO test copy saved in internals
@@ -578,7 +576,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						ver).toString());
 			}
 		}
-		//TODO test copy ref counts works in internals
 		updateReferenceCountsForVersions(versions);
 		final ResolvedMongoWSID toWS = query.convertResolvedWSID(
 				to.getWorkspaceIdentifier());
