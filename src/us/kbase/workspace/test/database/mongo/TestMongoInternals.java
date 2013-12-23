@@ -368,6 +368,9 @@ public class TestMongoInternals {
 				new ObjectIdentifier(copyrev, "auto4"));
 		ws.revertObject(userfoo, new ObjectIdentifier(copyrev, "auto4", 2));
 		
+		checkRefCntInit(wsid, 3, 1);
+		checkRefCntInit(wsid, 4, 4);
+		
 		@SuppressWarnings("rawtypes")
 		List<Map> objverlist = iterToList(jdb.getCollection("workspaceObjVersions")
 				.find("{ws: #, id: #}", wsid, 3).as(Map.class));
@@ -401,6 +404,9 @@ public class TestMongoInternals {
 		
 		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, "copyrevert2", false, null).getId();
 		
+		checkRefCntInit(wsid2, 3, 1);
+		checkRefCntInit(wsid2, 4, 4);
+		
 		@SuppressWarnings("rawtypes")
 		List<Map> objverlist3 = iterToList(jdb.getCollection("workspaceObjVersions")
 				.find("{ws: #, id: #}", wsid2, 3).as(Map.class));
@@ -431,6 +437,20 @@ public class TestMongoInternals {
 			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec2.get(ver)));
 			
 		}
+	}
+
+	private void checkRefCntInit(long wsid, int objid, int vers) {
+		@SuppressWarnings("rawtypes")
+		List<Map> objlist = iterToList(jdb.getCollection("workspaceObjects")
+				.find("{ws: #, id: #}", wsid, objid).as(Map.class));
+		assertThat("Only one object per id", objlist.size(), is(1));
+		@SuppressWarnings("unchecked")
+		List<Integer> refcnts = (List<Integer>) objlist.get(0).get("refcnt");
+		List<Integer> expected = new LinkedList<Integer>();
+		for (int i = 0; i < vers; i++) {
+			expected.add(0);
+		}
+		assertThat("refcnt array init correctly", refcnts, is(expected));
 	}
 	
 	private <T> List<T> iterToList(Iterable<T> iter) {
