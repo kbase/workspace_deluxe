@@ -1040,11 +1040,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.OBJ_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: 0}}",
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: {$each: #}}}", //TODO bug & test: need to push multiple
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
 	private static final String M_SAVEINS_NO_HIDE_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: 0}}",
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: {$each: #}}}", //TODO test
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_REFCOUNTS);
 	
@@ -1066,6 +1066,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * 
 		*/
 		int ver;
+		final List<Integer> zeros = new LinkedList<Integer>();
+		for (int i = 0; i < versions.size(); i++) {
+			zeros.add(0);
+		}
 		final Date saved = new Date();
 		try {
 			FindAndModify q = wsjongo.getCollection(COL_WORKSPACE_OBJS)
@@ -1073,10 +1077,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.returnNew();
 			if (hidden == null) {
 				q = q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
-						saved);
+						saved, zeros);
 			} else {
 				q = q.with(M_SAVEINS_WTH, versions.size(), saved, //TODO internal test such that dates are correct
-						hidden);
+						hidden, zeros);
 			}
 			ver = (Integer) q
 					.projection(M_SAVEINS_PROJ).as(DBObject.class)

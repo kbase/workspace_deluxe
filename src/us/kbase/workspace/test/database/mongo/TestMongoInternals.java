@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -344,4 +345,99 @@ public class TestMongoInternals {
 		assertThat("subdata is not correct", expected, is(d));
 	}
 	
+	@Test
+	public void testCopyAndRevertTags() throws Exception {
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		WorkspaceIdentifier copyrev = new WorkspaceIdentifier("copyrevert");
+		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null).getId();
+		
+		Map<String, Object> data = new HashMap<String, Object>();
+		ws.saveObjects(userfoo, copyrev, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+		ws.saveObjects(userfoo, copyrev, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+		ws.saveObjects(userfoo, copyrev, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
+						null, new Provenance(userfoo), false)));
+		ws.saveObjects(userfoo, copyrev, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
+						null, new Provenance(userfoo), false)));
+		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2, 2),
+				new ObjectIdentifier(copyrev, "auto3"));
+		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2),
+				new ObjectIdentifier(copyrev, "auto4"));
+		ws.revertObject(userfoo, new ObjectIdentifier(copyrev, "auto4", 2));
+		
+		@SuppressWarnings("rawtypes")
+		List<Map> objverlist = iterToList(jdb.getCollection("workspaceObjVersions")
+				.find("{ws: #, id: #}", wsid, 3).as(Map.class));
+		assertThat("Only copied version once", objverlist.size(), is(1));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> objver = (Map<String, Object>) objverlist.get(0);
+		assertThat("correct copy location", (String) objver.get("copied"), is(wsid + "/2/2"));
+		
+		@SuppressWarnings("rawtypes")
+		List<Map> objverlist2 = iterToList(jdb.getCollection("workspaceObjVersions")
+				.find("{ws: #, id: #}", wsid, 4).as(Map.class));
+		assertThat("Correct version count", 4, is(objverlist2.size()));
+		Map<Integer, String> cpexpec = new HashMap<Integer, String>();
+		Map<Integer, Integer> revexpec = new HashMap<Integer, Integer>();
+		cpexpec.put(1, wsid + "/2/1");
+		cpexpec.put(2, wsid + "/2/2");
+		cpexpec.put(3, wsid + "/2/3");
+		cpexpec.put(4, wsid + "/2/2");
+		revexpec.put(1, null);
+		revexpec.put(2, null);
+		revexpec.put(3, null);
+		revexpec.put(4, 2);
+		for (@SuppressWarnings("rawtypes") Map m: objverlist2) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> m2 = (Map<String, Object>) m;
+			int ver = (Integer) m2.get("ver");
+			assertThat("copy pointer ok", (String) m2.get("copied"), is(cpexpec.get(ver)));
+			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec.get(ver)));
+			
+		}
+		
+		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, "copyrevert2", false, null).getId();
+		
+		@SuppressWarnings("rawtypes")
+		List<Map> objverlist3 = iterToList(jdb.getCollection("workspaceObjVersions")
+				.find("{ws: #, id: #}", wsid2, 3).as(Map.class));
+		assertThat("Only copied version once", objverlist.size(), is(1));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> objver3 = (Map<String, Object>) objverlist3.get(0);
+		assertThat("correct copy location", (String) objver3.get("copied"), is(wsid + "/3/1"));
+		
+		@SuppressWarnings("rawtypes")
+		List<Map> objverlist4 = iterToList(jdb.getCollection("workspaceObjVersions")
+				.find("{ws: #, id: #}", wsid2, 4).as(Map.class));
+		assertThat("Correct version count", 4, is(objverlist4.size()));
+		Map<Integer, String> cpexpec2 = new HashMap<Integer, String>();
+		Map<Integer, Integer> revexpec2 = new HashMap<Integer, Integer>();
+		cpexpec2.put(1, wsid + "/4/1");
+		cpexpec2.put(2, wsid + "/4/2");
+		cpexpec2.put(3, wsid + "/4/3");
+		cpexpec2.put(4, wsid + "/4/4");
+		revexpec2.put(1, null);
+		revexpec2.put(2, null);
+		revexpec2.put(3, null);
+		revexpec2.put(4, null);
+		for (@SuppressWarnings("rawtypes") Map m: objverlist4) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> m2 = (Map<String, Object>) m;
+			int ver = (Integer) m2.get("ver");
+			assertThat("copy pointer ok", (String) m2.get("copied"), is(cpexpec2.get(ver)));
+			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec2.get(ver)));
+			
+		}
+	}
+	
+	private <T> List<T> iterToList(Iterable<T> iter) {
+		List<T> list = new LinkedList<T>();
+		for (T item: iter) {
+			list.add(item);
+		}
+		return list;
+	}
 }
