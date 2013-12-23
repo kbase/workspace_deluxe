@@ -477,7 +477,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				v.remove(Fields.MONGO_ID);
 				v.put(Fields.VER_SAVEDBY, user.getUser());
 				v.put(Fields.VER_RVRT, null);
-				//TODO test copy saved in internals
 				v.put(Fields.VER_COPIED, new MongoReference(
 						fromWS.getID(), oldid, ver).toString());
 			}
@@ -570,7 +569,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				v.put(Fields.VER_RVRT, ver);
 			} else {
 				v.put(Fields.VER_RVRT, null);
-				//TODO test copy saved in internals
 				v.put(Fields.VER_COPIED, new MongoReference(
 						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
 						ver).toString());
@@ -1040,11 +1038,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
 			Fields.OBJ_VCNT, Fields.MONGO_ID);
 	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: {$each: #}}}", //TODO bug & test: need to push multiple
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: {$each: #}}}",
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
 	private static final String M_SAVEINS_NO_HIDE_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: {$each: #}}}", //TODO test
+			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: {$each: #}}}",
 			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
 			Fields.OBJ_LATEST, Fields.OBJ_REFCOUNTS);
 	

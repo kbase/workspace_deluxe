@@ -28,8 +28,8 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.Util;
-import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
+import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.mongodb.DB;
@@ -347,21 +347,28 @@ public class TestMongoInternals {
 	
 	@Test
 	public void testCopyAndRevertTags() throws Exception {
+		testCopyRevert(false, "copyrevert");
+		testCopyRevert(true, "copyreverthide");
+	}
+
+	private void testCopyRevert(Boolean hide,
+			String wsprefix) throws Exception {
+		
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		WorkspaceIdentifier copyrev = new WorkspaceIdentifier("copyrevert");
+		WorkspaceIdentifier copyrev = new WorkspaceIdentifier(wsprefix);
 		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null).getId();
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), hide)));
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
-		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
-						null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), hide)));
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
-						null, new Provenance(userfoo), false)));
+						null, new Provenance(userfoo), hide)));
+		ws.saveObjects(userfoo, copyrev, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
+						null, new Provenance(userfoo), hide)));
 		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2, 2),
 				new ObjectIdentifier(copyrev, "auto3"));
 		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2),
@@ -402,7 +409,7 @@ public class TestMongoInternals {
 			
 		}
 		
-		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, "copyrevert2", false, null).getId();
+		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2", false, null).getId();
 		
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);
@@ -435,7 +442,6 @@ public class TestMongoInternals {
 			int ver = (Integer) m2.get("ver");
 			assertThat("copy pointer ok", (String) m2.get("copied"), is(cpexpec2.get(ver)));
 			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec2.get(ver)));
-			
 		}
 	}
 
