@@ -479,42 +479,25 @@ public class TestMongoInternals {
 		ws.saveObjects(userfoo, dates, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), data,
 						SAFE_TYPE, null, new Provenance(userfoo), false)));
+		Date orig = getDate(wsid, 1);
 		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
 				new ObjectIdentifier(dates, "copy"));
+		Date copy = getDate(wsid, 2);
 		ws.revertObject(userfoo, new ObjectIdentifier(dates, "copy"));
-		@SuppressWarnings("rawtypes")
-		List<Map> objlist = iterToList(jdb.getCollection("workspaceObjVersions")
-				.find("{ws: #}", wsid).as(Map.class));
-		Date orig = null;
-		Date copy = null;
-		Date revert = null;
-		for (@SuppressWarnings("rawtypes") Map m: objlist) {
-			long id = (Long) m.get("id");
-			int ver = (Integer) m.get("ver");
-			if (id == 1) {
-				if (ver == 1) {
-					orig = (Date) m.get("savedate");
-				} else {
-					throw new TestException("unexpected ver of obj w/ id 1");
-				}
-			} else if (id == 2) {
-				if (ver == 1) {
-					copy = (Date) m.get("savedate");
-				} else if (ver == 2) {
-					revert = (Date) m.get("savedate");
-				} else {
-					throw new TestException("unexpected ver of obj w/ id 2");
-				}
-				
-			} else  {
-				throw new TestException("unexpected id");
-			}
-		}
+		Date revert = getDate(wsid, 2);
+
 		assertTrue("copy date after orig", orig.before(copy));
 		assertTrue("rev date after copy", copy.before(revert));
 		assertDateisRecent(orig);
 		assertDateisRecent(copy);
 		assertDateisRecent(revert);
+	}
+
+	private Date getDate(long wsid, int id) {
+		@SuppressWarnings("rawtypes")
+		Map obj = jdb.getCollection("workspaceObjects")
+				.findOne("{ws: #, id: #}", wsid, id).as(Map.class);
+		return (Date) obj.get("moddate");
 	}
 
 	private void assertDateisRecent(Date orig) {
