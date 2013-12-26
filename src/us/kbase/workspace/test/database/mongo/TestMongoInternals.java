@@ -17,7 +17,6 @@ import org.jongo.Jongo;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -483,14 +482,19 @@ public class TestMongoInternals {
 		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
 				new ObjectIdentifier(dates, "copy"));
 		Date copy = getDate(wsid, 2);
-		ws.revertObject(userfoo, new ObjectIdentifier(dates, "copy"));
+		ObjectIdentifier copyobj = new ObjectIdentifier(dates, "copy");
+		ws.revertObject(userfoo, copyobj);
 		Date revert = getDate(wsid, 2);
-
+		ws.renameObject(userfoo, copyobj, "foobar");
+		Date rename = getDate(wsid, 2);
+		
 		assertTrue("copy date after orig", orig.before(copy));
 		assertTrue("rev date after copy", copy.before(revert));
+		assertTrue("ren date after rev", revert.before(rename));
 		assertDateisRecent(orig);
 		assertDateisRecent(copy);
 		assertDateisRecent(revert);
+		assertDateisRecent(rename);
 	}
 
 	private Date getDate(long wsid, int id) {
