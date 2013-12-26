@@ -290,6 +290,7 @@ public class TestWorkspace {
 		checkWSMeta(meta, owner, name, objs, perm, globalread, lockstate);
 		assertThat("ws id correct", meta.getId(), is(id));
 		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
+		assertDateisRecent(meta.getModDate());
 	}
 	
 	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
@@ -586,7 +587,7 @@ public class TestWorkspace {
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String wsname, String chksum, long size,
 			Map<String, String> usermeta) {
-		assertThat("Date is a date class", meta.getSavedDate(), is(Date.class));
+		assertDateisRecent(meta.getSavedDate());
 		assertThat("Object id correct", meta.getObjectId(), is(id));
 		assertThat("Object name is correct", meta.getObjectName(), is(name));
 		assertThat("Object type is correct", meta.getTypeString(), is(type));
@@ -597,6 +598,12 @@ public class TestWorkspace {
 		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
 		assertThat("Object size is correct", meta.getSize(), is(size));
 		assertThat("Object user meta is correct", meta.getUserMetaData(), is(usermeta));
+	}
+	
+	private void assertDateisRecent(Date orig) {
+		Date now = new Date();
+		int onemin = 1000 * 60;
+		assertTrue("date is recent", now.getTime() - orig.getTime() < onemin);
 	}
 	
 	@Test
@@ -1318,18 +1325,12 @@ public class TestWorkspace {
 		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
 	}
 	
-	private Date getOlderDate(long ms) {
-		long now = new Date().getTime();
-		return new Date(now - ms);
-	}
-	
 	private void checkProvenanceCorrect(Provenance expected, Provenance got,
 			Map<String, String> refmap) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
-		assertTrue("date within the last 10 mins",
-				got.getDate().after(getOlderDate(10 * 60 * 1000)));
+		assertDateisRecent(got.getDate());
 		
 		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
 		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
