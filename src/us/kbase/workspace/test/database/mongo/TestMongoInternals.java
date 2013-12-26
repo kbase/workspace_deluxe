@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -16,6 +17,7 @@ import org.jongo.Jongo;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -465,5 +467,59 @@ public class TestMongoInternals {
 			list.add(item);
 		}
 		return list;
+	}
+	
+	@Test
+	public void dates() throws Exception {
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		WorkspaceIdentifier dates = new WorkspaceIdentifier("dates");
+		long wsid = ws.createWorkspace(userfoo, dates.getName(), false, null).getId();
+		
+		Map<String, Object> data = new HashMap<String, Object>();
+		ws.saveObjects(userfoo, dates, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), data,
+						SAFE_TYPE, null, new Provenance(userfoo), false)));
+		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
+				new ObjectIdentifier(dates, "copy"));
+		ws.revertObject(userfoo, new ObjectIdentifier(dates, "copy"));
+		@SuppressWarnings("rawtypes")
+		List<Map> objlist = iterToList(jdb.getCollection("workspaceObjVersions")
+				.find("{ws: #}", wsid).as(Map.class));
+		Date orig = null;
+		Date copy = null;
+		Date revert = null;
+		for (@SuppressWarnings("rawtypes") Map m: objlist) {
+			long id = (Long) m.get("id");
+			int ver = (Integer) m.get("ver");
+			if (id == 1) {
+				if (ver == 1) {
+					orig = (Date) m.get("savedate");
+				} else {
+					throw new TestException("unexpected ver of obj w/ id 1");
+				}
+			} else if (id == 2) {
+				if (ver == 1) {
+					copy = (Date) m.get("savedate");
+				} else if (ver == 2) {
+					revert = (Date) m.get("savedate");
+				} else {
+					throw new TestException("unexpected ver of obj w/ id 2");
+				}
+				
+			} else  {
+				throw new TestException("unexpected id");
+			}
+		}
+		assertTrue("copy date after orig", orig.before(copy));
+		assertTrue("rev date after copy", copy.before(revert));
+		assertDateisRecent(orig);
+		assertDateisRecent(copy);
+		assertDateisRecent(revert);
+	}
+
+	private void assertDateisRecent(Date orig) {
+		Date now = new Date();
+		int onemin = 1000 * 60;
+		assertTrue("date is recent", now.getTime() - orig.getTime() < onemin);
 	}
 }
