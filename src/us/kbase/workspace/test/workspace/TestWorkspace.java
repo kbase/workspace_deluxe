@@ -2278,5 +2278,67 @@ public class TestWorkspace {
 		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
 	}
 	
+	@Test
+	public void copyRevert() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("foo");
+		WorkspaceUser user2 = new WorkspaceUser("bar");
+		WorkspaceIdentifier cp1 = new WorkspaceIdentifier("copyrevert1");
+		WorkspaceIdentifier cp2 = new WorkspaceIdentifier("copyrevert2");
+		long wsid1 = ws.createWorkspace(user1, cp1.getIdentifierString(), false, null).getId();
+		long wsid2 = ws.createWorkspace(user2, cp2.getIdentifierString(), false, null).getId();
+		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
+		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
+		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
+		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1);
+		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "auto1");
+		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "auto1");
+		ObjectInformation copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/auto1"),
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copied", 3);
+		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
+		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copied", 1);
+		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copied", 2);
+		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copied", 3);
+	}
+
+	private Map<String, String> makeSimpleMeta(String key, String value) {
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(key, value);
+		return map;
+	}
+
+	private void compareObjectInfo(ObjectInformation original,
+			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 
+			long objectid, String objname, int version) {
+		assertThat("checksum same", copied.getCheckSum(), is(original.getCheckSum()));
+		assertThat("correct object id", copied.getObjectId(), is(objectid));
+		assertThat("correct object name", copied.getObjectName(), is(objname));
+		assertThat("correct user", copied.getSavedBy(), is(user));
+		assertTrue("copy date after orig", copied.getSavedDate().after(original.getSavedDate()));
+		assertDateisRecent(original.getSavedDate());
+		assertDateisRecent(copied.getSavedDate());
+		assertThat("size correct", copied.getSize(), is(original.getSize()));
+		assertThat("type correct", copied.getTypeString(), is(original.getTypeString()));
+		assertThat("meta correct", copied.getUserMetaData(), is(original.getUserMetaData()));
+		assertThat("version correct", copied.getVersion(), is(version));
+		assertThat("wsid correct", copied.getWorkspaceId(), is(wsid));
+		assertThat("ws name correct", copied.getWorkspaceName(), is(wsname));
+	}
+
+	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Map<String, String> meta, String name)
+			throws Exception {
+		return ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), new HashMap<String, String>(),
+						SAFE_TYPE, meta, new Provenance(user), false))).get(0);
+	}
 	
+	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Map<String, String> meta)
+			throws Exception {
+		return ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new HashMap<String, String>(),
+						SAFE_TYPE, meta, new Provenance(user), false))).get(0);
+	}
 }
