@@ -61,12 +61,10 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
-import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
@@ -2129,8 +2127,7 @@ public class TestWorkspace {
 	}
 
 	private void checkNonDeletedObjs(WorkspaceUser foo,
-			Map<ObjectIdentifier, Object> idToData) throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException, InaccessibleObjectException {
+			Map<ObjectIdentifier, Object> idToData) throws Exception {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
 		for (int i = 0; i < d.size(); i++) {
@@ -2140,8 +2137,7 @@ public class TestWorkspace {
 	}
 
 	private void failToGetDeletedObjects(WorkspaceUser user,
-			List<ObjectIdentifier> objs, String exception) throws Exception,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+			List<ObjectIdentifier> objs, String exception) throws Exception {
 		try {
 			ws.getObjects(user, objs);
 			fail("got deleted objects");
@@ -2289,31 +2285,66 @@ public class TestWorkspace {
 		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
 		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
 		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
-		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1, "orig");
-		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "orig");
-		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "orig");
-		ObjectInformation copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
-				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copied", 3);
-		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
-		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copied", 1);
-		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copied", 2);
-		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copied", 3);
+		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1, "hide", true);
+		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "hide", true);
+		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "hide", true);
 		
-		//hidden objects
-		//TODO check list
-		save11 = saveBasicObject(user1, cp1, meta1, "hide", true);
-		save12 = saveBasicObject(user1, cp1, meta2, "hide", true);
-		save13 = saveBasicObject(user1, cp1, meta3, "hide", true);
-		copied = ws.copyObject(user1,
+		//copy entire stack of hidden objects
+		ObjectInformation copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copyhide", 3);
-		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copyhide"));
-		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copyhide", 1);
-		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copyhide", 2);
-		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copyhide", 3);
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copyhide", 3);
+		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
+		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copyhide", 1);
+		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copyhide", 2);
+		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copyhide", 3);
+		checkUnhiddenObjectCount(user1, cp1, 3, 6);
+		
+		//copy stack of unhidden objects
+		save11 = saveBasicObject(user1, cp1, meta1, "orig");
+		save12 = saveBasicObject(user1, cp1, meta2, "orig");
+		save13 = saveBasicObject(user1, cp1, meta3, "orig");
+		copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 3);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
+		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
+		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
+		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
+		checkUnhiddenObjectCount(user1, cp1, 9, 12);
+		
+		//copy visible object to pre-existing hidden object
+		saveBasicObject(user1, cp1, meta1, "hidetarget", true);
+		copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
+				new ObjectIdentifier(cp1, "hidetarget"));
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
+		compareObjectInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		checkUnhiddenObjectCount(user1, cp1, 9, 14);
+		
+		//copy hidden object to pre-existing visible object
+		copied = ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"),
+				new ObjectIdentifier(cp1, 4));
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 4);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 4));
+		compareObjectInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
+		checkUnhiddenObjectCount(user1, cp1, 10, 15);
+		
+		//TODO deleted objects, can't read, can't write
+		//TODO revert
+	}
+
+	private void checkUnhiddenObjectCount(WorkspaceUser user,
+			WorkspaceIdentifier wsi, int unhidden, int all)
+			throws Exception {
+		List<ObjectInformation> objs =
+				ws.listObjects(user, Arrays.asList(wsi), null, false, false, true, false);
+		assertThat("orig objects hidden", objs.size(), is(unhidden));
+		objs =
+				ws.listObjects(user, Arrays.asList(wsi), null, true, false, true, false);
+		assertThat("orig objects hidden", objs.size(), is(all));
 	}
 	
 	private Map<String, String> makeSimpleMeta(String key, String value) {
