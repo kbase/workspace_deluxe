@@ -2289,19 +2289,33 @@ public class TestWorkspace {
 		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
 		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
 		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
-		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1);
-		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "auto1");
-		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "auto1");
+		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1, "orig");
+		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "orig");
+		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "orig");
 		ObjectInformation copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/auto1"),
+				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
 		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copied", 3);
 		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
 		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copied", 1);
 		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copied", 2);
 		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copied", 3);
+		
+		//hidden objects
+		//TODO check list
+		save11 = saveBasicObject(user1, cp1, meta1, "hide", true);
+		save12 = saveBasicObject(user1, cp1, meta2, "hide", true);
+		save13 = saveBasicObject(user1, cp1, meta3, "hide", true);
+		copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
+				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
+		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copyhide", 3);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copyhide"));
+		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copyhide", 1);
+		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copyhide", 2);
+		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copyhide", 3);
 	}
-
+	
 	private Map<String, String> makeSimpleMeta(String key, String value) {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put(key, value);
@@ -2329,16 +2343,14 @@ public class TestWorkspace {
 	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
 			Map<String, String> meta, String name)
 			throws Exception {
-		return ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), new HashMap<String, String>(),
-						SAFE_TYPE, meta, new Provenance(user), false))).get(0);
+		return saveBasicObject(user, wsi, meta, name, false);
 	}
 	
 	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta)
+			Map<String, String> meta, String name, boolean hide)
 			throws Exception {
 		return ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(new HashMap<String, String>(),
-						SAFE_TYPE, meta, new Provenance(user), false))).get(0);
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), new HashMap<String, String>(),
+						SAFE_TYPE, meta, new Provenance(user), hide))).get(0);
 	}
 }
