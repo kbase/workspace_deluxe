@@ -2434,8 +2434,31 @@ public class TestWorkspace {
 		compareObjectAndInfo(save12, copystack.get(0), user1, wsid1, cp1.getName(), 6, "newobj", 1);
 		checkUnhiddenObjectCount(user1, cp1, 12, 18);
 		
-		//TODO deleted objects, can't read, can't write
-		//TODO revert
+		//revert normal object
+		copied = ws.revertObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied/2"));
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 4, "copied", 6);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
+		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 4, "copied", 5);
+		compareObjectAndInfo(save12, copystack.get(5), user1, wsid1, cp1.getName(), 4, "copied", 6);
+		checkUnhiddenObjectCount(user1, cp1, 13, 19);
+		
+		//revert hidden object
+		copied = ws.revertObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget/2"));
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
+		//0 is original object
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
+		checkUnhiddenObjectCount(user1, cp1, 13, 20);
+		
+		//TODO deleted objects/ws, can't read, can't write
 		//TODO read thru method
 	}
 
