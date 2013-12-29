@@ -53,20 +53,36 @@ public class Provenance {
 
 	public static class ProvenanceAction {
 		
-		private Date time;
-		private String service;
-		private String serviceVersion;
-		private String method;
-		private List<Object> methodParameters;
-		private String script;
-		private String scriptVersion;
-		private String commandLine;
-		private List<String> wsobjs = new LinkedList<String>();
-		private List<String> incomingArgs;
-		private List<String> outgoingArgs;
-		private String description;
+		protected Date time;
+		protected String service;
+		protected String serviceVersion;
+		protected String method;
+		protected List<Object> methodParameters;
+		protected String script;
+		protected String scriptVersion;
+		protected String commandLine;
+		protected List<String> wsobjs = new LinkedList<String>();
+		protected List<String> incomingArgs;
+		protected List<String> outgoingArgs;
+		protected String description;
 		
 		public ProvenanceAction() {}
+		
+		//copy constructor
+		public ProvenanceAction(final ProvenanceAction action) {
+			time = action.time;
+			service = action.service;
+			serviceVersion = action.serviceVersion;
+			method = action.method;
+			methodParameters = action.methodParameters;
+			script = action.script;
+			scriptVersion = action.scriptVersion;
+			commandLine = action.commandLine;
+			wsobjs = action.wsobjs;
+			incomingArgs = action.incomingArgs;
+			outgoingArgs = action.outgoingArgs;
+			description = action.description;
+		}
 		
 		public Date getTime() {
 			return time;

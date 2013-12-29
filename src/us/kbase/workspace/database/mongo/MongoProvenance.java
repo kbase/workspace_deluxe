@@ -77,5 +77,17 @@ public class MongoProvenance extends Provenance {
 		public List<String> getResolvedObjects() {
 			return resolvedObjs;
 		}
+
+		@Override
+		public String toString() {
+			return "MongoProvenanceAction [resolvedObjs=" + resolvedObjs
+					+ ", time=" + time + ", service=" + service
+					+ ", serviceVersion=" + serviceVersion + ", method="
+					+ method + ", methodParameters=" + methodParameters
+					+ ", script=" + script + ", scriptVersion=" + scriptVersion
+					+ ", commandLine=" + commandLine + ", wsobjs=" + wsobjs
+					+ ", incomingArgs=" + incomingArgs + ", outgoingArgs="
+					+ outgoingArgs + ", description=" + description + "]";
+		}
 	}
 }

@@ -1323,12 +1323,18 @@ public class TestWorkspace {
 		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
 	}
 	
+	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
+	// with an implemented getResolvedObjects method.
 	private void checkProvenanceCorrect(Provenance expected, Provenance got,
 			Map<String, String> refmap) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
-		assertDateisRecent(got.getDate());
+		if (refmap == null) {
+			assertThat("dates are the same", got.getDate(), is(expected.getDate()));
+		} else {
+			assertDateisRecent(got.getDate());
+		}
 		
 		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
 		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
@@ -1349,11 +1355,16 @@ public class TestWorkspace {
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
 			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
 					is(gotpa.getWorkspaceObjects().size()));
-			Iterator<String> gotrefs = gotpa.getWorkspaceObjects().iterator();
-			Iterator<String> gotresolvedrefs = gotpa.getResolvedObjects().iterator();
-			while (gotrefs.hasNext()) {
-				assertThat("ref resolved correctly", gotresolvedrefs.next(),
-						is(refmap.get(gotrefs.next())));
+			if (refmap != null) {
+				Iterator<String> gotrefs = gotpa.getWorkspaceObjects().iterator();
+				Iterator<String> gotresolvedrefs = gotpa.getResolvedObjects().iterator();
+				while (gotrefs.hasNext()) {
+					assertThat("ref resolved correctly", gotresolvedrefs.next(),
+							is(refmap.get(gotrefs.next())));
+				}
+			} else {
+				assertThat("resolved refs equal", gotpa.getResolvedObjects(),
+						is(exppa.getResolvedObjects()));
 			}
 		}
 	}
@@ -2276,62 +2287,121 @@ public class TestWorkspace {
 	
 	@Test
 	public void copyRevert() throws Exception {
+		final String specRefType =
+				"module CopyRev {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"typedef structure {" +
+						"reference ref;" +
+					"} RefType;" +
+				"};";
+		
+		String mod = "CopyRev";
 		WorkspaceUser user1 = new WorkspaceUser("foo");
-		WorkspaceUser user2 = new WorkspaceUser("bar");
-		WorkspaceIdentifier cp1 = new WorkspaceIdentifier("copyrevert1");
-		WorkspaceIdentifier cp2 = new WorkspaceIdentifier("copyrevert2");
-		long wsid1 = ws.createWorkspace(user1, cp1.getIdentifierString(), false, null).getId();
-		long wsid2 = ws.createWorkspace(user2, cp2.getIdentifierString(), false, null).getId();
+		ws.requestModuleRegistration(user1, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(user1, specRefType, Arrays.asList("RefType"), null, null, false, null);
+		ws.releaseTypes(user1, mod);
+		TypeDefId reftype = new TypeDefId(new TypeDefName(mod, "RefType"), 1, 0);
+		WorkspaceIdentifier refs = new WorkspaceIdentifier("copyrevertrefs");
+		ws.createWorkspace(user1, refs.getName(), false, null).getId();
+		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
+		for (int i = 0; i < 4; i++) {
+			refobjs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+					SAFE_TYPE, null, new Provenance(user1), false));
+		}
+		ws.saveObjects(user1, refs, refobjs);
+		List<WorkspaceSaveObject> wso = Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto2"), new HashMap<String, String>(),
+				SAFE_TYPE, null, new Provenance(user1), false));
+		ws.saveObjects(user1, refs, wso);
+		ws.saveObjects(user1, refs, wso);
+		
+		
 		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
 		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
 		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
-		ObjectInformation save11 = saveBasicObject(user1, cp1, meta1, "hide", true);
-		ObjectInformation save12 = saveBasicObject(user1, cp1, meta2, "hide", true);
-		ObjectInformation save13 = saveBasicObject(user1, cp1, meta3, "hide", true);
+		Map<String, String> data1 = makeRefData("copyrevertrefs/auto2/2");
+		Map<String, String> data2 = makeRefData("copyrevertrefs/auto4");
+		Map<String, String> data3 = makeRefData("copyrevertrefs/auto1");
+		
+		Provenance prov1 = new Provenance(user1);
+		prov1.addAction(new ProvenanceAction()
+				.withCommandLine("A command line")
+				.withDescription("descrip")
+				.withIncomingArgs(Arrays.asList("a", "b", "c"))
+				.withMethod("method")
+				.withMethodParameters(Arrays.asList((Object) meta1))
+				.withOutgoingArgs(Arrays.asList("d", "e", "f"))
+				.withScript("script")
+				.withScriptVersion("2.1")
+				.withServiceName("service")
+				.withServiceVersion("3")
+				.withTime(new Date(45))
+				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto3", "copyrevertrefs/auto2/2")));
+		prov1.addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto2/1", "copyrevertrefs/auto1")));
+		Provenance prov2 = new Provenance(user1);
+		Provenance prov3 = new Provenance(user1);
+		prov2.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("4")
+				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto2")));
+		prov3.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("5")
+				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto3/1")));
+		
+		WorkspaceUser user2 = new WorkspaceUser("bar");
+		WorkspaceIdentifier cp1 = new WorkspaceIdentifier("copyrevert1");
+		WorkspaceIdentifier cp2 = new WorkspaceIdentifier("copyrevert2");
+		long wsid1 = ws.createWorkspace(user1, cp1.getName(), false, null).getId();
+		long wsid2 = ws.createWorkspace(user2, cp2.getName(), false, null).getId();
+		ObjectInformation save11 = saveObject(user1, cp1, meta1, data1, reftype, "hide", prov1, true);
+		ObjectInformation save12 = saveObject(user1, cp1, meta2, data2, reftype, "hide", prov2, true);
+		ObjectInformation save13 = saveObject(user1, cp1, meta3, data3, reftype, "hide", prov2, true);
 		
 		//copy entire stack of hidden objects
 		ObjectInformation copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copyhide", 3);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copyhide", 3);
 		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
-		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copyhide", 1);
-		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copyhide", 2);
-		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copyhide", 3);
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copyhide", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copyhide", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copyhide", 3);
 		checkUnhiddenObjectCount(user1, cp1, 3, 6);
 		
 		//copy stack of unhidden objects
-		save11 = saveBasicObject(user1, cp1, meta1, "orig");
-		save12 = saveBasicObject(user1, cp1, meta2, "orig");
-		save13 = saveBasicObject(user1, cp1, meta3, "orig");
+		save11 = saveObject(user1, cp1, meta1, data1, reftype, "orig", prov1);
+		save12 = saveObject(user1, cp1, meta2, data2, reftype, "orig", prov2);
+		save13 = saveObject(user1, cp1, meta3, data3, reftype, "orig", prov3);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 3);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 3);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
-		compareObjectInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
-		compareObjectInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
-		compareObjectInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
 		checkUnhiddenObjectCount(user1, cp1, 9, 12);
 		
 		//copy visible object to pre-existing hidden object
-		saveBasicObject(user1, cp1, meta1, "hidetarget", true);
+		saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				new ObjectIdentifier(cp1, "hidetarget"));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
-		compareObjectInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
 		checkUnhiddenObjectCount(user1, cp1, 9, 14);
 		
 		//copy hidden object to pre-existing visible object
 		copied = ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, 4));
-		compareObjectInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 4);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 4);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 4));
-		compareObjectInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
 		checkUnhiddenObjectCount(user1, cp1, 10, 15);
 		
+		//TODO copy specific version
+		//TODO check in last 2 cases didn't copy stack
 		//TODO deleted objects, can't read, can't write
 		//TODO revert
 	}
@@ -2352,10 +2422,35 @@ public class TestWorkspace {
 		map.put(key, value);
 		return map;
 	}
+	
+	private Map<String, String> makeRefData(String ref) {
+		Map<String, String> data = new HashMap<String, String>();
+		data.put("ref", ref);
+		return data;
+	}
+
+	private void compareObjectAndInfo(ObjectInformation original,
+			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 
+			long objectid, String objname, int version) throws Exception {
+		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
+				objname, version);
+		WorkspaceObjectData orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
+				new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
+						original.getObjectId(), original.getVersion()))).get(0);
+		WorkspaceObjectData copy = ws.getObjects(copied.getSavedBy(), Arrays.asList(
+				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
+						copied.getObjectId(), copied.getVersion()))).get(0);
+		compareObjectInfo(orig.getMeta(), copy.getMeta(), user, wsid, wsname, objectid,
+				objname, version);
+		assertThat("returned data same", copy.getData(), is(orig.getData()));
+		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
+		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
+		
+	}
 
 	private void compareObjectInfo(ObjectInformation original,
-			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 
-			long objectid, String objname, int version) {
+			ObjectInformation copied, WorkspaceUser user, long wsid,
+			String wsname, long objectid, String objname, int version) {
 		assertThat("checksum same", copied.getCheckSum(), is(original.getCheckSum()));
 		assertThat("correct object id", copied.getObjectId(), is(objectid));
 		assertThat("correct object name", copied.getObjectName(), is(objname));
@@ -2371,17 +2466,19 @@ public class TestWorkspace {
 		assertThat("ws name correct", copied.getWorkspaceName(), is(wsname));
 	}
 
-	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, String name)
+	private ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Map<String, String> meta, Map<String, String> data, TypeDefId type,
+			String name, Provenance prov)
 			throws Exception {
-		return saveBasicObject(user, wsi, meta, name, false);
+		return saveObject(user, wsi, meta, data, type, name, prov, false);
 	}
 	
-	private ObjectInformation saveBasicObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, String name, boolean hide)
+	private ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Map<String, String> meta, Map<String, String> data, TypeDefId type, String name,
+			Provenance prov, boolean hide)
 			throws Exception {
 		return ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), new HashMap<String, String>(),
-						SAFE_TYPE, meta, new Provenance(user), hide))).get(0);
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
+						type, meta, prov, hide))).get(0);
 	}
 }
