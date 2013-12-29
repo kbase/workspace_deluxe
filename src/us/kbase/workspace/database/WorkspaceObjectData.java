@@ -11,20 +11,20 @@ public class WorkspaceObjectData {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final JsonNode data;
-	private final ObjectInformation meta;
+	private final ObjectInformation info;
 	private final Provenance prov;
 	private final List<String> references;
 
 	public WorkspaceObjectData(final JsonNode data,
-			final ObjectInformation meta, final Provenance prov,
+			final ObjectInformation info, final Provenance prov,
 			final List<String> references) {
-		if (data == null || meta == null || prov == null ||
+		if (data == null || info == null || prov == null ||
 				references == null) {
 			throw new IllegalArgumentException(
 					"references, data, prov and meta cannot be null");
 		}
 		this.data = data;
-		this.meta = meta;
+		this.info = info;
 		this.prov = prov;
 		this.references = references;
 	}
@@ -42,8 +42,8 @@ public class WorkspaceObjectData {
 		}
 	}
 
-	public ObjectInformation getMeta() {
-		return meta;
+	public ObjectInformation getObjectInfo() {
+		return info;
 	}
 
 	public Provenance getProvenance() {
@@ -56,7 +56,7 @@ public class WorkspaceObjectData {
 
 	@Override
 	public String toString() {
-		return "WorkspaceObjectData [data=" + data + ", meta=" + meta
+		return "WorkspaceObjectData [data=" + data + ", info=" + info
 				+ ", prov=" + prov + ", references=" + references + "]";
 	}
 }

@@ -259,7 +259,7 @@ public class ArgUtils {
 		for (final WorkspaceObjectData o: objects) {
 			ret.add(new ObjectData()
 					.withData(new UObject(o.getDataAsJsonNode()))
-					.withInfo(objInfoToTuple(o.getMeta()))
+					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())

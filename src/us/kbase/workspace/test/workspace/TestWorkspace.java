@@ -282,36 +282,36 @@ public class TestWorkspace {
 		}
 	}
 	
-	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
+	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
 			String lockstate) {
-		checkWSMeta(meta, owner, name, objs, perm, globalread, lockstate);
-		assertThat("ws id correct", meta.getId(), is(id));
-		assertThat("ws mod date correct", meta.getModDate(), is(moddate));
-		assertDateisRecent(meta.getModDate());
+		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate);
+		assertThat("ws id correct", info.getId(), is(id));
+		assertThat("ws mod date correct", info.getModDate(), is(moddate));
+		assertDateisRecent(info.getModDate());
 	}
 	
-	private void checkWSMeta(WorkspaceInformation meta, WorkspaceUser owner, String name,
+	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, String lockstate) {
-		assertThat("ws owner correct", meta.getOwner(), is(owner));
-		assertThat("ws name correct", meta.getName(), is(name));
-		assertThat("ws max obj correct", meta.getApproximateObjects(), is(objs));
-		assertThat("ws permissions correct", meta.getUserPermission(), is(perm));
-		assertThat("ws global read correct", meta.isGloballyReadable(), is(globalread));
-		assertThat("ws lockstate correct", meta.getLockState(), is(lockstate));
+		assertThat("ws owner correct", info.getOwner(), is(owner));
+		assertThat("ws name correct", info.getName(), is(name));
+		assertThat("ws max obj correct", info.getApproximateObjects(), is(objs));
+		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
+		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
+		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
 	}
 	
 	@Test
 	public void testCreateWorkspaceAndGetMeta() throws Exception {
-		WorkspaceInformation meta = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
-		long id = meta.getId();
+		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
+		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
-		Date moddate = meta.getModDate();
-		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
-		meta = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkWSMeta(meta, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
+		Date moddate = info.getModDate();
+		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
+		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
 		
 		try {
 			ws.getWorkspaceInformation(BUSER, wsi);
@@ -329,14 +329,14 @@ public class TestWorkspace {
 		}
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
-		meta = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked");
-		id = meta.getId();
-		moddate = meta.getModDate();
-		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
-		meta = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
-		checkWSMeta(meta, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
+		info = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked");
+		id = info.getId();
+		moddate = info.getModDate();
+		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
+		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
 	}
 	
 	@Test
@@ -529,8 +529,8 @@ public class TestWorkspace {
 		//test read permissions
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
-		WorkspaceInformation meta= ws.getWorkspaceInformation(null, wsiGL);
-		checkWSMeta(meta, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked");
+		WorkspaceInformation info= ws.getWorkspaceInformation(null, wsiGL);
+		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked");
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -581,21 +581,21 @@ public class TestWorkspace {
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
 	}
 	
-	private void checkObjMeta(ObjectInformation meta, long id,
+	private void checkObjInfo(ObjectInformation info, long id,
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String wsname, String chksum, long size,
 			Map<String, String> usermeta) {
-		assertDateisRecent(meta.getSavedDate());
-		assertThat("Object id correct", meta.getObjectId(), is(id));
-		assertThat("Object name is correct", meta.getObjectName(), is(name));
-		assertThat("Object type is correct", meta.getTypeString(), is(type));
-		assertThat("Object version is correct", meta.getVersion(), is(version));
-		assertThat("Object user is correct", meta.getSavedBy(), is(user));
-		assertThat("Object workspace id is correct", meta.getWorkspaceId(), is(wsid));
-		assertThat("Object workspace name is correct", meta.getWorkspaceName(), is(wsname));
-		assertThat("Object chksum is correct", meta.getCheckSum(), is(chksum));
-		assertThat("Object size is correct", meta.getSize(), is(size));
-		assertThat("Object user meta is correct", meta.getUserMetaData(), is(usermeta));
+		assertDateisRecent(info.getSavedDate());
+		assertThat("Object id correct", info.getObjectId(), is(id));
+		assertThat("Object name is correct", info.getObjectName(), is(name));
+		assertThat("Object type is correct", info.getTypeString(), is(type));
+		assertThat("Object version is correct", info.getVersion(), is(version));
+		assertThat("Object user is correct", info.getSavedBy(), is(user));
+		assertThat("Object workspace id is correct", info.getWorkspaceId(), is(wsid));
+		assertThat("Object workspace name is correct", info.getWorkspaceName(), is(wsname));
+		assertThat("Object chksum is correct", info.getCheckSum(), is(chksum));
+		assertThat("Object size is correct", info.getSize(), is(size));
+		assertThat("Object user meta is correct", info.getUserMetaData(), is(usermeta));
 	}
 	
 	private void assertDateisRecent(Date orig) {
@@ -656,14 +656,14 @@ public class TestWorkspace {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE, meta, p, false));
 		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, p, false));
-		List<ObjectInformation> objmeta = ws.saveObjects(foo, read, objects);
+		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjMeta(objmeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(objmeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(objmeta.get(2), 2, "auto3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(objmeta.get(3), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(objmeta.get(4), 4, "auto4", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
@@ -679,44 +679,44 @@ public class TestWorkspace {
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
 		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
-		List<ObjectInformation> usermeta = ws.getObjectInformation(foo, loi, true);
-		List<ObjectInformation> usermetaNoMeta = ws.getObjectInformation(foo, loi, false);
-		checkObjMeta(usermeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(usermeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(usermeta.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(usermeta.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(usermeta.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermeta.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(usermetaNoMeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjMeta(usermetaNoMeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjMeta(usermetaNoMeta.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjMeta(usermetaNoMeta.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjMeta(usermetaNoMeta.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(usermetaNoMeta.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjMeta(retdata.get(0).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(1).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(retdata.get(2).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(3).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(retdata.get(4).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(5).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(retdata.get(6).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(7).getMeta(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjMeta(retdata.get(8).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(9).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(10).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjMeta(retdata.get(11).getMeta(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true);
+		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false);
+		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(retdata.get(0).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(1).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(retdata.get(2).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(3).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(retdata.get(4).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(5).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(retdata.get(6).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(7).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(retdata.get(8).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(9).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(10).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(retdata.get(11).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
 		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
 		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
@@ -734,11 +734,11 @@ public class TestWorkspace {
 		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE, meta2, p, false));
-		objmeta = ws.saveObjects(foo, read, objects);
+		objinfo = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
-		usermeta = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true);
-		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
 		
 		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true); //should work
 		try {
@@ -761,10 +761,10 @@ public class TestWorkspace {
 					is(new ObjectIdentifier(priv, 2)));
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
-		usermeta = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
-		checkObjMeta(usermeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
+		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
 		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjMeta(retdata.get(0).getMeta(), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
+		checkObjInfo(retdata.get(0).getObjectInfo(), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
 		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
 		try {
 			ws.saveObjects(bar, priv, objects);
@@ -774,8 +774,8 @@ public class TestWorkspace {
 					is("User bar may not write to workspace saveobj"));
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
-		objmeta = ws.saveObjects(bar, priv, objects);
-		checkObjMeta(objmeta.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
+		objinfo = ws.saveObjects(bar, priv, objects);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
 	}
 	
 	@Test
@@ -2055,7 +2055,7 @@ public class TestWorkspace {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
+		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
@@ -2131,7 +2131,7 @@ public class TestWorkspace {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSMeta(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
+		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		
@@ -2440,7 +2440,7 @@ public class TestWorkspace {
 		WorkspaceObjectData copy = ws.getObjects(copied.getSavedBy(), Arrays.asList(
 				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
 						copied.getObjectId(), copied.getVersion()))).get(0);
-		compareObjectInfo(orig.getMeta(), copy.getMeta(), user, wsid, wsname, objectid,
+		compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
 				objname, version);
 		assertThat("returned data same", copy.getData(), is(orig.getData()));
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));

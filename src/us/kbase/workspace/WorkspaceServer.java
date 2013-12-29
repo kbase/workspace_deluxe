@@ -544,7 +544,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
 		returnVal = new GetObjectOutput()
 			.withData(new UObject(ret.getDataAsJsonNode()))
-			.withMetadata(au.objInfoToMetaTuple(ret.getMeta()));
+			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
         //END get_object
         return returnVal;
     }
