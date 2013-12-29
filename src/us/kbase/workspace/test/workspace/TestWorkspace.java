@@ -2383,12 +2383,13 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, cp1, 9, 12);
 		
 		//copy visible object to pre-existing hidden object
-		saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
+		ObjectInformation hiddenObj = saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				new ObjectIdentifier(cp1, "hidetarget"));
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
+		//0 is original object
 		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
 		checkUnhiddenObjectCount(user1, cp1, 9, 14);
 		
@@ -2400,10 +2401,42 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
 		checkUnhiddenObjectCount(user1, cp1, 10, 15);
 		
-		//TODO copy specific version
-		//TODO check in last 2 cases didn't copy stack
+		//copy specific version to existing object
+		copied = ws.copyObject(user1,
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 4, "copied", 5);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
+		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 4, "copied", 5);
+		checkUnhiddenObjectCount(user1, cp1, 11, 16);
+		
+		//copy specific version to  hidden existing object
+		copied = ws.copyObject(user1,
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget"));
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
+		//0 is original object
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
+		checkUnhiddenObjectCount(user1, cp1, 11, 17);
+		
+		//copy specific version to new object
+		copied = ws.copyObject(user1,
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				ObjectIdentifier.parseObjectReference("copyrevert1/newobj"));
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 6, "newobj", 1);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "newobj"));
+		compareObjectAndInfo(save12, copystack.get(0), user1, wsid1, cp1.getName(), 6, "newobj", 1);
+		checkUnhiddenObjectCount(user1, cp1, 12, 18);
+		
 		//TODO deleted objects, can't read, can't write
 		//TODO revert
+		//TODO read thru method
 	}
 
 	private void checkUnhiddenObjectCount(WorkspaceUser user,
