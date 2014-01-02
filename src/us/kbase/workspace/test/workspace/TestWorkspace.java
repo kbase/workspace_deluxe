@@ -2466,6 +2466,9 @@ public class TestWorkspace {
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
 						"No object with id 5 (name hidetarget) and version 5 exists in workspace " + wsid1));
+		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
+						"No object with id 3 (name orig) and version 4 exists in workspace " + wsid1));
+		
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "copied")), true);
 		failCopy(user1, new ObjectIdentifier(cp1, "copied"),
 				new ObjectIdentifier(cp1, "hidetarget"), new NoSuchObjectException(
@@ -2475,8 +2478,30 @@ public class TestWorkspace {
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
 						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
-		//TODO deleted objects/ws, can't read, can't write
-		//TODO read thru method
+		
+		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
+		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
+		ws.setWorkspaceDeleted(user2, cp2, true);
+		failCopy(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo1"),
+				new InaccessibleObjectException("Object foo1 cannot be accessed: Workspace copyrevert2 is deleted"));
+		failCopy(user1, new ObjectIdentifier(cp2, "foo"), new ObjectIdentifier(cp2, "foo1"),
+				new InaccessibleObjectException("Object foo cannot be accessed: Workspace copyrevert2 is deleted"));
+		failRevert(user1, new ObjectIdentifier(cp2, "foo"),
+				new InaccessibleObjectException("Object foo cannot be accessed: Workspace copyrevert2 is deleted"));
+		
+		ws.setWorkspaceDeleted(user2, cp2, false);
+		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.READ);
+		ws.copyObject(user1,  new ObjectIdentifier(cp2, "foo"), new ObjectIdentifier(cp1, "foo")); //should work
+		failCopy(user1,  new ObjectIdentifier(cp1, "foo"), new ObjectIdentifier(cp2, "foo"),
+				new InaccessibleObjectException("Object foo cannot be accessed: User foo may not write to workspace copyrevert2"));
+		failRevert(user1,  new ObjectIdentifier(cp2, "foo", 1),
+				new InaccessibleObjectException("Object foo cannot be accessed: User foo may not write to workspace copyrevert2"));
+		
+		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.NONE);
+		failCopy(user1,  new ObjectIdentifier(cp2, "foo"), new ObjectIdentifier(cp1, "foo"),
+				new InaccessibleObjectException("Object foo cannot be accessed: User foo may not read workspace copyrevert2"));
+		
+		//TODO read thru methods
 	}
 
 	private void failCopy(WorkspaceUser user, ObjectIdentifier from, ObjectIdentifier to, Exception e) {
