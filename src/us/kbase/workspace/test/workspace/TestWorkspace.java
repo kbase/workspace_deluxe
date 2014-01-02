@@ -2458,6 +2458,12 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
 		checkUnhiddenObjectCount(user1, cp1, 13, 20);
 		
+		failCopy(null, new ObjectIdentifier(cp1, "whooga"),
+				new ObjectIdentifier(cp1, "hidetarget"), new InaccessibleObjectException(
+						"Object whooga cannot be accessed: Anonymous users may not read workspace copyrevert1"));
+		failRevert(null, new ObjectIdentifier(cp1, "whooga"), new InaccessibleObjectException(
+						"Object whooga cannot be accessed: Anonymous users may not write to workspace copyrevert1"));
+		
 		failCopy(user1, new ObjectIdentifier(cp1, "foo"),
 				new ObjectIdentifier(cp1, "bar"), new NoSuchObjectException(
 						"No object with name foo exists in workspace " + wsid1));
@@ -2468,6 +2474,9 @@ public class TestWorkspace {
 						"No object with id 5 (name hidetarget) and version 5 exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
 						"No object with id 3 (name orig) and version 4 exists in workspace " + wsid1));
+		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+				new ObjectIdentifier(cp1, 7), new NoSuchObjectException(
+						"Copy destination is specified as object id 7 in workspace " + wsid1 + " which does not exist."));
 		
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "copied")), true);
 		failCopy(user1, new ObjectIdentifier(cp1, "copied"),
@@ -2501,7 +2510,13 @@ public class TestWorkspace {
 		failCopy(user1,  new ObjectIdentifier(cp2, "foo"), new ObjectIdentifier(cp1, "foo"),
 				new InaccessibleObjectException("Object foo cannot be accessed: User foo may not read workspace copyrevert2"));
 		
-		//TODO read thru methods
+		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
+		ws.lockWorkspace(user2, cp2);
+		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+				new ObjectIdentifier(cp2, "foo2"), new InaccessibleObjectException(
+						"Object foo2 cannot be accessed: The workspace with id " + wsid2 + ", name copyrevert2, is locked and may not be modified"));
+		failRevert(user1, new ObjectIdentifier(cp2, "foo1", 1), new InaccessibleObjectException(
+						"Object foo1 cannot be accessed: The workspace with id " + wsid2 + ", name copyrevert2, is locked and may not be modified"));
 	}
 
 	private void failCopy(WorkspaceUser user, ObjectIdentifier from, ObjectIdentifier to, Exception e) {
