@@ -837,7 +837,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> copyObject(CopyObjectParams params, AuthToken authPart) throws Exception {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
         //BEGIN copy_object
-    	//TODO tests
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier from = processObjectIdentifier(params.getFrom());
 		final ObjectIdentifier to = processObjectIdentifier(params.getTo());
@@ -862,7 +861,6 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN revert_object
 		final ObjectIdentifier oi = processObjectIdentifier(object);
 		returnVal = au.objInfoToTuple(ws.revertObject(getUser(authPart), oi));
-		//TODO test
         //END revert_object
         return returnVal;
     }

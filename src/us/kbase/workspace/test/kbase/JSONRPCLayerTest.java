@@ -1357,8 +1357,16 @@ public class JSONRPCLayerTest {
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "myname2", 2L, 2);
 		compareObjectInfoAndData(objs.get(0), copystack.get(2), "myname2", 2L, 3);
 		
-		
-		//TODO bad cases, read methods
+		CopyObjectParams cpo = new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
+				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2"));
+		cpo.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.copyObject(cpo);
+			fail("copied with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Unexpected arguments in CopyObjectParams: foo"));
+		}
 	}
 	
 	private void compareObjectInfoAndData(
