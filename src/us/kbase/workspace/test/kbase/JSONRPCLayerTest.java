@@ -1008,6 +1008,7 @@ public class JSONRPCLayerTest {
 		assertThat("ws name is correct", infousermeta.getE8(), is(wsname));
 		assertThat("chksum is correct", infousermeta.getE9(), is(chksum));
 		assertThat("size is correct", infousermeta.getE10(), is(size));
+		assertThat("meta is correct", infousermeta.getE11(), is(meta));
 	}
 	
 	@Test
