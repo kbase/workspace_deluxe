@@ -638,7 +638,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_RENAME_OBJ_QRY,
 							roi.getWorkspaceIdentifier().getID(), roi.getId())
-					.with(M_RENAME_OBJ_WTH, newname, new Date()); //TODO internal test such that dates are correct
+					.with(M_RENAME_OBJ_WTH, newname, new Date());
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -1077,7 +1077,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				q = q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
 						saved, zeros);
 			} else {
-				q = q.with(M_SAVEINS_WTH, versions.size(), saved, //TODO internal test such that dates are correct
+				q = q.with(M_SAVEINS_WTH, versions.size(), saved,
 						hidden, zeros);
 			}
 			ver = (Integer) q

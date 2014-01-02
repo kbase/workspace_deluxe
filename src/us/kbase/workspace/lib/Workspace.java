@@ -742,7 +742,6 @@ public class Workspace {
 		return db.renameObject(ws.get(oi), newname);
 	}
 	
-	//TODO test
 	public ObjectInformation copyObject(final WorkspaceUser user,
 			final ObjectIdentifier from, final ObjectIdentifier to)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -754,7 +753,6 @@ public class Workspace {
 		return db.copyObject(user, f, t);
 	}
 	
-	//TODO test
 	public ObjectInformation revertObject(WorkspaceUser user,
 			ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
