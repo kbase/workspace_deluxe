@@ -206,6 +206,22 @@ public class TestWorkspace {
 				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 				Arrays.asList("AType"), null, null, false, null);
 		work.releaseTypes(foo, "SomeModule");
+		
+		//spec that simply references another object
+		final String specRefType =
+				"module CopyRev {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"typedef structure {" +
+						"reference ref;" +
+					"} RefType;" +
+				"};";
+		
+		String mod = "CopyRev";
+		work.requestModuleRegistration(foo, mod);
+		work.resolveModuleRegistration(mod, true);
+		work.compileNewTypeSpec(foo, specRefType, Arrays.asList("RefType"), null, null, false, null);
+		work.releaseTypes(foo, mod);
 
 		// more complicated spec with two released versions and 1 unreleased version for type
 		// registration tests
@@ -2285,25 +2301,11 @@ public class TestWorkspace {
 		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
 	}
 	
-	@Test
-	public void copyRevert() throws Exception {
-		final String specRefType =
-				"module CopyRev {" +
-					"/* @id ws */" +
-					"typedef string reference;" +
-					"typedef structure {" +
-						"reference ref;" +
-					"} RefType;" +
-				"};";
+	private void setUpCopyWorkspaces(WorkspaceUser user1, WorkspaceUser user2,
+			String refws, String ws1, String ws2) throws Exception {
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
-		String mod = "CopyRev";
-		WorkspaceUser user1 = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user1, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user1, specRefType, Arrays.asList("RefType"), null, null, false, null);
-		ws.releaseTypes(user1, mod);
-		TypeDefId reftype = new TypeDefId(new TypeDefName(mod, "RefType"), 1, 0);
-		WorkspaceIdentifier refs = new WorkspaceIdentifier("copyrevertrefs");
+		WorkspaceIdentifier refs = new WorkspaceIdentifier(refws);
 		ws.createWorkspace(user1, refs.getName(), false, null).getId();
 		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 4; i++) {
@@ -2321,9 +2323,9 @@ public class TestWorkspace {
 		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
 		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
 		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
-		Map<String, String> data1 = makeRefData("copyrevertrefs/auto2/2");
-		Map<String, String> data2 = makeRefData("copyrevertrefs/auto4");
-		Map<String, String> data3 = makeRefData("copyrevertrefs/auto1");
+		Map<String, String> data1 = makeRefData(refws + "/auto2/2");
+		Map<String, String> data2 = makeRefData(refws + "/auto4");
+		Map<String, String> data3 = makeRefData(refws + "/auto1");
 		
 		Provenance prov1 = new Provenance(user1);
 		prov1.addAction(new ProvenanceAction()
@@ -2338,96 +2340,121 @@ public class TestWorkspace {
 				.withServiceName("service")
 				.withServiceVersion("3")
 				.withTime(new Date(45))
-				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto3", "copyrevertrefs/auto2/2")));
+				.withWorkspaceObjects(Arrays.asList(refws + "/auto3", refws + "/auto2/2")));
 		prov1.addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto2/1", "copyrevertrefs/auto1")));
+				.withWorkspaceObjects(Arrays.asList(refws + "/auto2/1", refws + "/auto1")));
 		Provenance prov2 = new Provenance(user1);
 		Provenance prov3 = new Provenance(user1);
 		prov2.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("4")
-				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto2")));
+				.withWorkspaceObjects(Arrays.asList(refws + "/auto2")));
 		prov3.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("5")
-				.withWorkspaceObjects(Arrays.asList("copyrevertrefs/auto3/1")));
+				.withWorkspaceObjects(Arrays.asList(refws + "/auto3/1")));
 		
+		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
+		WorkspaceIdentifier cp2 = new WorkspaceIdentifier(ws2);
+		ws.createWorkspace(user1, cp1.getName(), false, null).getId();
+		ws.createWorkspace(user2, cp2.getName(), false, null).getId();
+		saveObject(user1, cp1, meta1, data1, reftype, "hide", prov1, true);
+		saveObject(user1, cp1, meta2, data2, reftype, "hide", prov2, true);
+		saveObject(user1, cp1, meta3, data3, reftype, "hide", prov2, true);
+		saveObject(user1, cp1, meta1, data1, reftype, "orig", prov1);
+		saveObject(user1, cp1, meta2, data2, reftype, "orig", prov2);
+		saveObject(user1, cp1, meta3, data3, reftype, "orig", prov3);
+		saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
+	}
+	
+	@Test
+	public void copyRevert() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("foo");
 		WorkspaceUser user2 = new WorkspaceUser("bar");
-		WorkspaceIdentifier cp1 = new WorkspaceIdentifier("copyrevert1");
-		WorkspaceIdentifier cp2 = new WorkspaceIdentifier("copyrevert2");
-		long wsid1 = ws.createWorkspace(user1, cp1.getName(), false, null).getId();
-		long wsid2 = ws.createWorkspace(user2, cp2.getName(), false, null).getId();
-		ObjectInformation save11 = saveObject(user1, cp1, meta1, data1, reftype, "hide", prov1, true);
-		ObjectInformation save12 = saveObject(user1, cp1, meta2, data2, reftype, "hide", prov2, true);
-		ObjectInformation save13 = saveObject(user1, cp1, meta3, data3, reftype, "hide", prov2, true);
+		
+		String wsrefs = "copyrevertrefs";
+		String ws1 = "copyrevert1";
+		String ws2 = "copyrevert2";
+		setUpCopyWorkspaces(user1, user2, wsrefs, ws1, ws2);
+		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
+		WorkspaceIdentifier cp2 = new WorkspaceIdentifier(ws2);
+		long wsid1 = ws.getWorkspaceInformation(user1, cp1).getId();
+		long wsid2 = ws.getWorkspaceInformation(user2, cp2).getId();
+		
+		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
+		ObjectInformation save11 = objs.get(0);
+		ObjectInformation save12 = objs.get(1);
+		ObjectInformation save13 = objs.get(2);
 		
 		//copy entire stack of hidden objects
 		ObjectInformation copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
-		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 2, "copyhide", 3);
-		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 2));
-		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 2, "copyhide", 1);
-		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 2, "copyhide", 2);
-		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 2, "copyhide", 3);
-		checkUnhiddenObjectCount(user1, cp1, 3, 6);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copyhide", 3);
+		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 4));
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copyhide", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copyhide", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copyhide", 3);
+		checkUnhiddenObjectCount(user1, cp1, 6, 10);
+		
+		
+		objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "orig"));
+		save11 = objs.get(0);
+		save12 = objs.get(1);
+		save13 = objs.get(2);
 		
 		//copy stack of unhidden objects
-		save11 = saveObject(user1, cp1, meta1, data1, reftype, "orig", prov1);
-		save12 = saveObject(user1, cp1, meta2, data2, reftype, "orig", prov2);
-		save13 = saveObject(user1, cp1, meta3, data3, reftype, "orig", prov3);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
-		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 3);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 3);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
-		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
-		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
-		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
-		checkUnhiddenObjectCount(user1, cp1, 9, 12);
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 5, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 5, "copied", 3);
+		checkUnhiddenObjectCount(user1, cp1, 9, 13);
 		
 		//copy visible object to pre-existing hidden object
-		saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				new ObjectIdentifier(cp1, "hidetarget"));
-		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
-		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 3));
 		//0 is original object
-		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
 		checkUnhiddenObjectCount(user1, cp1, 9, 14);
 		
 		//copy hidden object to pre-existing visible object
 		copied = ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"),
-				new ObjectIdentifier(cp1, 4));
-		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copied", 4);
-		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 4));
-		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
+				new ObjectIdentifier(cp1, 5));
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 4);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "copied", 4);
 		checkUnhiddenObjectCount(user1, cp1, 10, 15);
 		
 		//copy specific version to existing object
 		copied = ws.copyObject(user1,
-				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 2, 2),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
-		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 4, "copied", 5);
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "copied", 5);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
-		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
-		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
-		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
-		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
-		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 4, "copied", 5);
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 5, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 5, "copied", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "copied", 4);
+		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 5, "copied", 5);
 		checkUnhiddenObjectCount(user1, cp1, 11, 16);
 		
 		//copy specific version to  hidden existing object
 		copied = ws.copyObject(user1,
-				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 2, 2),
 				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget"));
-		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 3);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
 		//0 is original object
-		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
-		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
+		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 3, "hidetarget", 3);
 		checkUnhiddenObjectCount(user1, cp1, 11, 17);
 		
 		//copy specific version to new object
 		copied = ws.copyObject(user1,
-				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 3, 2),
+				new ObjectIdentifier(new WorkspaceIdentifier(wsid1), 2, 2),
 				ObjectIdentifier.parseObjectReference("copyrevert1/newobj"));
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 6, "newobj", 1);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "newobj"));
@@ -2437,25 +2464,25 @@ public class TestWorkspace {
 		//revert normal object
 		copied = ws.revertObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied/2"));
-		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 4, "copied", 6);
+		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "copied", 6);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
-		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copied", 1);
-		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 4, "copied", 2);
-		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copied", 3);
-		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 4, "copied", 4);
-		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 4, "copied", 5);
-		compareObjectAndInfo(save12, copystack.get(5), user1, wsid1, cp1.getName(), 4, "copied", 6);
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 5, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 5, "copied", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "copied", 4);
+		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 5, "copied", 5);
+		compareObjectAndInfo(save12, copystack.get(5), user1, wsid1, cp1.getName(), 5, "copied", 6);
 		checkUnhiddenObjectCount(user1, cp1, 13, 19);
 		
 		//revert hidden object
 		copied = ws.revertObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget/2"));
-		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 4);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
 		//0 is original object
-		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 5, "hidetarget", 2);
-		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 5, "hidetarget", 3);
-		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
+		compareObjectAndInfo(save13, copystack.get(1), user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
+		compareObjectAndInfo(save12, copystack.get(2), user1, wsid1, cp1.getName(), 3, "hidetarget", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 3, "hidetarget", 4);
 		checkUnhiddenObjectCount(user1, cp1, 13, 20);
 		
 		//copy to new ws
@@ -2484,9 +2511,9 @@ public class TestWorkspace {
 						"No object with name foo exists in workspace " + wsid1));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
-						"No object with id 5 (name hidetarget) and version 5 exists in workspace " + wsid1));
+						"No object with id 3 (name hidetarget) and version 5 exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
-						"No object with id 3 (name orig) and version 4 exists in workspace " + wsid1));
+						"No object with id 2 (name orig) and version 4 exists in workspace " + wsid1));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, 7), new NoSuchObjectException(
 						"Copy destination is specified as object id 7 in workspace " + wsid1 + " which does not exist."));
@@ -2494,12 +2521,12 @@ public class TestWorkspace {
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "copied")), true);
 		failCopy(user1, new ObjectIdentifier(cp1, "copied"),
 				new ObjectIdentifier(cp1, "hidetarget"), new NoSuchObjectException(
-						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
+						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		failRevert(user1, new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
-						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
+						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
-						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
+						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		
 		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
 		ws.setWorkspaceDeleted(user2, cp2, true);
@@ -2627,5 +2654,10 @@ public class TestWorkspace {
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
 						type, meta, prov, hide))).get(0);
+	}
+	
+	@Test
+	public void cloneWorkspace() throws Exception {
+		
 	}
 }
