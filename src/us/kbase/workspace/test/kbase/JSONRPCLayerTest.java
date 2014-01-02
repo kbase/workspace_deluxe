@@ -1326,7 +1326,6 @@ public class JSONRPCLayerTest {
 	@Test
 	public void copyRevert() throws Exception {
 		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("copyrev")).getE1();
-		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("copyrev");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1344,12 +1343,22 @@ public class JSONRPCLayerTest {
 				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
 				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2")));
 		compareObjectInfoAndData(objs.get(1), copied, "myname2", 2L, 2);
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> copystack =
+				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname2"));
+		compareObjectInfoAndData(objs.get(0), copystack.get(0), "myname2", 2L, 1);
+		compareObjectInfoAndData(objs.get(1), copystack.get(1), "myname2", 2L, 2);
 		
-		
-		CLIENT1.revertObject(new ObjectIdentity().withWorkspace("copyrev").withObjid(2L)
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> rev =
+				CLIENT1.revertObject(new ObjectIdentity().withWorkspace("copyrev").withObjid(2L)
 				.withVer(1L));
+		compareObjectInfoAndData(objs.get(0), rev, "myname2", 2L, 3);
+		copystack = CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname2"));
+		compareObjectInfoAndData(objs.get(0), copystack.get(0), "myname2", 2L, 1);
+		compareObjectInfoAndData(objs.get(1), copystack.get(1), "myname2", 2L, 2);
+		compareObjectInfoAndData(objs.get(0), copystack.get(2), "myname2", 2L, 3);
 		
 		
+		//TODO bad cases, read methods
 	}
 	
 	private void compareObjectInfoAndData(
@@ -1358,6 +1367,17 @@ public class JSONRPCLayerTest {
 			String name, long id, int ver) 
 			throws Exception {
 		compareObjectInfo(orig, copied, name, id, ver);
+		List<ObjectData> objs = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
+				.withObjid(orig.getE1()).withVer(orig.getE5()), 
+				new ObjectIdentity().withWsid(copied.getE7())
+				.withObjid(copied.getE1()).withVer(copied.getE5())));
+		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), name, id, ver);
+		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
+		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
+		assertThat("data same", objs.get(1).getData().asClassInstance(Map.class),
+				is(objs.get(0).getData().asClassInstance(Map.class)));
+		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
+		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
 	}
 
 	private void compareObjectInfo(
