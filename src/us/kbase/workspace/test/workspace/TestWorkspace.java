@@ -2383,7 +2383,7 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, cp1, 9, 12);
 		
 		//copy visible object to pre-existing hidden object
-		ObjectInformation hiddenObj = saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
+		saveObject(user1, cp1, meta1, data1, reftype, "hidetarget", prov1, true);
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				new ObjectIdentifier(cp1, "hidetarget"));
@@ -2458,8 +2458,47 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
 		checkUnhiddenObjectCount(user1, cp1, 13, 20);
 		
+		failCopy(user1, new ObjectIdentifier(cp1, "foo"),
+				new ObjectIdentifier(cp1, "bar"), new NoSuchObjectException(
+						"No object with name foo exists in workspace " + wsid1));
+		failRevert(user1, new ObjectIdentifier(cp1, "foo"),  new NoSuchObjectException(
+						"No object with name foo exists in workspace " + wsid1));
+		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
+						"No object with id 5 (name hidetarget) and version 5 exists in workspace " + wsid1));
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "copied")), true);
+		failCopy(user1, new ObjectIdentifier(cp1, "copied"),
+				new ObjectIdentifier(cp1, "hidetarget"), new NoSuchObjectException(
+						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
+		failRevert(user1, new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
+						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
+		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
+						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
 		//TODO deleted objects/ws, can't read, can't write
 		//TODO read thru method
+	}
+
+	private void failCopy(WorkspaceUser user, ObjectIdentifier from, ObjectIdentifier to, Exception e) {
+		try {
+			ws.copyObject(user, from, to);
+			fail("copied object sucessfully but expected fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+	
+	private void failRevert(WorkspaceUser user, ObjectIdentifier from, Exception e) {
+		try {
+			ws.revertObject(user, from);
+			fail("reverted object sucessfully but expected fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
 	}
 
 	private void checkUnhiddenObjectCount(WorkspaceUser user,
