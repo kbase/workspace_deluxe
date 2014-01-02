@@ -46,6 +46,7 @@ import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -1321,6 +1322,62 @@ public class JSONRPCLayerTest {
 				.asClassInstance(Object.class), is((Object) data));
 	}
 	
+	@Test
+	public void copyRevert() throws Exception {
+		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("copyrev")).getE1();
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("copyrev");
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("copyrev")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(moredata))
+				.withType(SAFE_TYPE).withName("myname"));
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
+				CLIENT1.saveObjects(soc);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
+				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
+				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2")));
+		compareObjectInfoAndData(objs.get(1), copied, "myname2", 2L, 2);
+		
+		
+		CLIENT1.revertObject(new ObjectIdentity().withWorkspace("copyrev").withObjid(2L)
+				.withVer(1L));
+		
+		
+	}
+	
+	private void compareObjectInfoAndData(
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
+			String name, long id, int ver) 
+			throws Exception {
+		compareObjectInfo(orig, copied, name, id, ver);
+	}
+
+	private void compareObjectInfo(
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
+			String name, long id, int ver) 
+			throws Exception {
+		assertThat("id is correct", copied.getE1(), is(id));
+		assertThat("name is correct", copied.getE2(), is(name));
+		assertThat("type is correct", copied.getE3(), is(orig.getE3()));
+		DATE_FORMAT.parse(copied.getE4()); //should throw error if bad format
+		assertThat("version is correct", (int) copied.getE5().longValue(), is(ver));
+		assertThat("user is correct", copied.getE6(), is(orig.getE6()));
+		assertThat("wsid is correct", copied.getE7(), is(orig.getE7()));
+		assertThat("ws name is correct", copied.getE8(), is(orig.getE8()));
+		assertThat("chksum is correct", copied.getE9(), is(orig.getE9()));
+		assertThat("size is correct", copied.getE10(), is(orig.getE10()));
+		assertThat("meta is correct", copied.getE11(), is(orig.getE11()));
+		
+	}
+
 	@Test
 	public void testTypeMD5() throws Exception {
 		String typeDefName = "SomeModule.AType";

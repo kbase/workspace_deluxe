@@ -2458,6 +2458,19 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "hidetarget", 4);
 		checkUnhiddenObjectCount(user1, cp1, 13, 20);
 		
+		//copy to new ws
+		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
+		copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
+				ObjectIdentifier.parseObjectReference("copyrevert2/copied"));
+		compareObjectAndInfo(save13, copied, user1, wsid2, cp2.getName(), 1, "copied", 3);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp2, "copied"));
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid2, cp2.getName(), 1, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid2, cp2.getName(), 1, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid2, cp2.getName(), 1, "copied", 3);
+		checkUnhiddenObjectCount(user1, cp2, 3, 3);
+		checkUnhiddenObjectCount(user1, cp1, 13, 20);
+
 		failCopy(null, new ObjectIdentifier(cp1, "whooga"),
 				new ObjectIdentifier(cp1, "hidetarget"), new InaccessibleObjectException(
 						"Object whooga cannot be accessed: Anonymous users may not read workspace copyrevert1"));
@@ -2488,7 +2501,6 @@ public class TestWorkspace {
 				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
 						"Object 4 (name copied) in workspace " + wsid1 + " has been deleted"));
 		
-		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
 		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
 		ws.setWorkspaceDeleted(user2, cp2, true);
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo1"),

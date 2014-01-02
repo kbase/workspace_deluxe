@@ -1029,7 +1029,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(Date) version.get(Fields.VER_SAVEDATE),
 				(Integer) version.get(Fields.VER_VER),
 				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
-				pkg.wo.getUserMeta());
+				pkg.wo.getUserMeta() == null ? new HashMap<String, String>() :
+						pkg.wo.getUserMeta());
 	}
 	
 
