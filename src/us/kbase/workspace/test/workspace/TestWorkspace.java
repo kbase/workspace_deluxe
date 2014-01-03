@@ -298,6 +298,13 @@ public class TestWorkspace {
 		}
 	}
 	
+	private void checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
+			long objs, Permission perm, boolean globalread, long id, Date moddate,
+			String lockstate) throws Exception {
+		checkWSInfo(ws.getWorkspaceInformation(owner, wsi), owner, name, objs,
+				perm, globalread, id, moddate, lockstate);
+	}
+	
 	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
 			String lockstate) {
@@ -2658,6 +2665,58 @@ public class TestWorkspace {
 	
 	@Test
 	public void cloneWorkspace() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("foo");
+		WorkspaceUser user2 = new WorkspaceUser("bar");
 		
+		String wsrefs = "clonerefs";
+		String ws1 = "clone1";
+		setUpCopyWorkspaces(user1, user2, wsrefs, ws1, "cloneunused");
+		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
+		WorkspaceIdentifier clone1 = new WorkspaceIdentifier("newclone");
+		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null);
+		
+		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
+				info1.getModDate(), "unlocked");
+		assertNull("desc ok", ws.getWorkspaceDescription(user1, clone1));
+		
+		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
+		ObjectInformation save11 = objs.get(0);
+		ObjectInformation save12 = objs.get(1);
+		ObjectInformation save13 = objs.get(2);
+		
+		objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "orig"));
+		ObjectInformation save21 = objs.get(0);
+		ObjectInformation save22 = objs.get(1);
+		ObjectInformation save23 = objs.get(2);
+		
+		objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
+		ObjectInformation save31 = objs.get(0);
+		
+		List<ObjectInformation> hideobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone1, "hide"));
+		long id = hideobjs.get(0).getObjectId();
+		compareObjectAndInfo(save11, hideobjs.get(0), user1, info1.getId(), clone1.getName(), id, "hide", 1);
+		compareObjectAndInfo(save12, hideobjs.get(1), user1, info1.getId(), clone1.getName(), id, "hide", 2);
+		compareObjectAndInfo(save13, hideobjs.get(2), user1, info1.getId(), clone1.getName(), id, "hide", 3);
+		
+		List<ObjectInformation> origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone1, "orig"));
+		id = origobjs.get(0).getObjectId();
+		compareObjectAndInfo(save21, origobjs.get(0), user1, info1.getId(), clone1.getName(), id, "orig", 1);
+		compareObjectAndInfo(save22, origobjs.get(1), user1, info1.getId(), clone1.getName(), id, "orig", 2);
+		compareObjectAndInfo(save23, origobjs.get(2), user1, info1.getId(), clone1.getName(), id, "orig", 3);
+		
+		List<ObjectInformation> hidetarget = ws.getObjectHistory(user1, new ObjectIdentifier(clone1, "hidetarget"));
+		id = hidetarget.get(0).getObjectId();
+		compareObjectAndInfo(save31, hidetarget.get(0), user1, info1.getId(), clone1.getName(), id, "hidetarget", 1);
+		checkUnhiddenObjectCount(user1, clone1, 3, 7);
+		
+		WorkspaceIdentifier clone2 = new WorkspaceIdentifier("newclone2");
+		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc");
+		
+		checkWSInfo(clone2, user1, "newclone2", 3, Permission.OWNER, true, info2.getId(),
+				info2.getModDate(), "unlocked");
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
+		
+		
+		//TODO clone locked, clone w/ deleted objs, clone deleted, clone unreadable
 	}
 }
