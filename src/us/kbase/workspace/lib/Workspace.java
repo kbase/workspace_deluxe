@@ -235,7 +235,6 @@ public class Workspace {
 				pruneWorkspaceDescription(description));
 	}
 	
-	//TODO test
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname,
 			final boolean globalread, final String description)

@@ -46,6 +46,7 @@ import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -294,19 +295,24 @@ public class JSONRPCLayerTest {
 		Tuple8<Long, String, String, String, Long, String, String, String> metaget =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
-		assertThat("ids are equal", meta.getE1(), is(metaget.getE1()));
-		assertThat("moddates equal", meta.getE4(), is(metaget.getE4()));
-		for (Tuple8<Long, String, String, String, Long, String, String, String> m:
-				Arrays.asList(meta, metaget)) {
-			assertThat("ws name correct", m.getE2(), is("foo"));
-			assertThat("user name correct", m.getE3(), is(USER1));
-			assertThat("obj counts are 0", m.getE5(), is(0L));
-			assertThat("permission correct", m.getE6(), is("a"));
-			assertThat("global read correct", m.getE7(), is("r"));
-			assertThat("lockstate correct", m.getE8(), is("unlocked"));
-		}
+		checkWS(meta, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga");
+		checkWS(metaget, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga");
+	}
+		
+	private void checkWS(Tuple8<Long, String, String, String, Long, String, String, String> info,
+			long id, String moddate, String name, String user, long objects, String perm,
+			String globalperm, String lockstat, String desc) 
+			throws Exception {
+		assertThat("ids correct", info.getE1(), is(id));
+		assertThat("moddates correct", info.getE4(), is(moddate));
+		assertThat("ws name correct", info.getE2(), is(name));
+		assertThat("user name correct", info.getE3(), is(user));
+		assertThat("obj counts are 0", info.getE5(), is(objects));
+		assertThat("permission correct", info.getE6(), is(perm));
+		assertThat("global read correct", info.getE7(), is(globalperm));
+		assertThat("lockstate correct", info.getE8(), is(lockstat));
 		assertThat("description correct", CLIENT1.getWorkspaceDescription(
-				new WorkspaceIdentity().withWorkspace("foo")), is("boogabooga"));
+				new WorkspaceIdentity().withWorkspace(name)), is(desc));
 	}
 	
 	@Test
@@ -1404,6 +1410,33 @@ public class JSONRPCLayerTest {
 		assertThat("chksum is correct", copied.getE9(), is(orig.getE9()));
 		assertThat("size is correct", copied.getE10(), is(orig.getE10()));
 		assertThat("meta is correct", copied.getE11(), is(orig.getE11()));
+		
+	}
+	
+	@Test
+	public void cloneWorkspace() throws Exception {
+		String source = "clonesource";
+		WorkspaceIdentity wssrc = new WorkspaceIdentity().withWorkspace(source);
+		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(source)).getE1();
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace(source)
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(moredata))
+				.withType(SAFE_TYPE).withName("myname"));
+		
+		CLIENT1.saveObjects(soc);
+		
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withDescription("a desc")
+				.withGlobalread("r").withWorkspace("newclone").withWsi(wssrc));
+		
+		
 		
 	}
 
