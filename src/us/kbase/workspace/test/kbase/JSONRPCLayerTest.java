@@ -60,7 +60,9 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -1469,6 +1471,44 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
 		}
+	}
+	
+	@Test
+	public void lockWorkspace() throws Exception {
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("lock");
+		Tuple8<Long, String, String, String, Long, String, String, String> info =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("lock"));
+		long wsid = info.getE1();
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("lock")
+				.withObjects(objects);
+		objects.add(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("myname"));
+		objects.add(new ObjectSaveData().withData(new UObject(moredata))
+				.withType(SAFE_TYPE).withName("myname"));
+		
+		CLIENT1.saveObjects(soc);
+		
+		Tuple8<Long, String, String, String, Long, String, String, String> lockinfo =
+				CLIENT1.lockWorkspace(wsi);
+		checkWS(lockinfo, wsid, info.getE4(), "lock", USER1, 1, "a", "n", "locked", null);
+		try {
+			CLIENT1.setWorkspaceDescription(new SetWorkspaceDescriptionParams().withDescription("foo")
+					.withWorkspace("lock"));
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace("lock")
+				.withNewPermission("r"));
+		checkWS(CLIENT1.getWorkspaceInfo(wsi), wsid, info.getE4(), "lock",
+				USER1, 1, "a", "r", "published", null);
 	}
 
 	@Test
