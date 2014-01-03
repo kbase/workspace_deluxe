@@ -2313,7 +2313,7 @@ public class TestWorkspace {
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
 		WorkspaceIdentifier refs = new WorkspaceIdentifier(refws);
-		ws.createWorkspace(user1, refs.getName(), false, null).getId();
+		ws.createWorkspace(user1, refs.getName(), false, null);
 		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 4; i++) {
 			refobjs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
@@ -2781,6 +2781,171 @@ public class TestWorkspace {
 			assertThat("correct exception", exp.getLocalizedMessage(),
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+	
+	@Test
+	public void lockWorkspace() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("lockuser");
+		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lock");
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), false)));
+		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
+		//these should work
+		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
+		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked");
+		ws.getObjects(user, Arrays.asList(oi));
+		ws.cloneWorkspace(user, wsi, "lockclone", false, null);
+		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
+		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
+		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);
+		ws.getPermissions(user, wsi);
+		ws.getWorkspaceDescription(user, wsi);
+		ws.getWorkspaceInformation(user, wsi);
+		ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, false);
+		
+		//these should not work
+		try {
+			ws.lockWorkspace(user, new WorkspaceIdentifier("nolock"));
+			fail("locked non existant ws");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("No workspace with name nolock exists"));
+		}
+		ws.createWorkspace(user, "lock2", false, "foo");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("lock2");
+		try {
+			ws.lockWorkspace(null, wsi2);
+			fail("locked w/o creds");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Anonymous users may not lock workspace lock2"));
+		}
+		try {
+			ws.lockWorkspace(user2, wsi2);
+			fail("locked w/o creds");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("User lockuser2 may not lock workspace lock2"));
+		}
+		ws.setWorkspaceDeleted(user, wsi2, true);
+		try {
+			ws.lockWorkspace(user, wsi2);
+			fail("locked deleted ws");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Workspace lock2 is deleted"));
+		}
+		try {
+			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+					new HashMap<String, String>(), SAFE_TYPE, null,
+					new Provenance(user), false)));
+			fail("saved to locked workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.copyObject(user, oi, new ObjectIdentifier(wsi, "foo"));
+			fail("copied to locked workspace");
+		} catch (InaccessibleObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Object foo cannot be accessed: The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.revertObject(user, oi);
+			fail("revert to locked workspace");
+		} catch (InaccessibleObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Object auto1 cannot be accessed: The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.lockWorkspace(user, wsi);
+			fail("locked locked workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.renameObject(user, oi, "boo");
+			fail("renamed locked workspace obj");
+		} catch (InaccessibleObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Object auto1 cannot be accessed: The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.renameWorkspace(user, wsi, "foo");
+			fail("renamed locked workspace obj");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.setObjectsDeleted(user, Arrays.asList(oi), true);
+			fail("deleted locked workspace obj");
+		} catch (InaccessibleObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Object auto1 cannot be accessed: The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.setObjectsHidden(user, Arrays.asList(oi), true);
+			fail("hid locked workspace obj");
+		} catch (InaccessibleObjectException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("Object auto1 cannot be accessed: The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.setWorkspaceDeleted(user, wsi, true);
+			fail("deleted locked workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		try {
+			ws.setWorkspaceDescription(user, wsi, "wugga");
+			fail("set desc on locked ws");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
+		}
+		
+		try {
+			ws.getWorkspaceDescription(user2, wsi);
+			fail("bad access to locked workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("User lockuser2 may not read workspace lock"));
+		}
+		
+		//should work
+		ws.setGlobalPermission(user, wsi, Permission.READ);
+		checkWSInfo(ws.getWorkspaceInformation(user, wsi),
+				user, "lock", 1, Permission.OWNER, true, "published");
+		checkWSInfo(ws.getWorkspaceInformation(user2, wsi),
+				user, "lock", 1, Permission.NONE, true, "published");
+		ws.getWorkspaceDescription(user2, wsi);
+		
+		//shouldn't
+		try {
+			ws.setGlobalPermission(user, wsi, Permission.NONE);
+			fail("bad access to locked workspace");
+		} catch (WorkspaceAuthorizationException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is("The workspace with id " + wsid +
+							", name lock, is locked and may not be modified"));
 		}
 	}
 }

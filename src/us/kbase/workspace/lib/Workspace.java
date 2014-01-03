@@ -248,7 +248,6 @@ public class Workspace {
 				pruneWorkspaceDescription(description));
 	}
 	
-	//TODO test
 	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
