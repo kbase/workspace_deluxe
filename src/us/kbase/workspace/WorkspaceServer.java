@@ -266,7 +266,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription());
 		returnVal = au.wsInfoToTuple(meta);
-		//TODO test
         //END clone_workspace
         return returnVal;
     }

@@ -1348,20 +1348,20 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
 				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
 				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2")));
-		compareObjectInfoAndData(objs.get(1), copied, "myname2", 2L, 2);
+		compareObjectInfoAndData(objs.get(1), copied, "copyrev", wsid, "myname2", 2L, 2);
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> copystack =
 				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname2"));
-		compareObjectInfoAndData(objs.get(0), copystack.get(0), "myname2", 2L, 1);
-		compareObjectInfoAndData(objs.get(1), copystack.get(1), "myname2", 2L, 2);
+		compareObjectInfoAndData(objs.get(0), copystack.get(0), "copyrev", wsid, "myname2", 2L, 1);
+		compareObjectInfoAndData(objs.get(1), copystack.get(1), "copyrev", wsid, "myname2", 2L, 2);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> rev =
 				CLIENT1.revertObject(new ObjectIdentity().withWorkspace("copyrev").withObjid(2L)
 				.withVer(1L));
-		compareObjectInfoAndData(objs.get(0), rev, "myname2", 2L, 3);
+		compareObjectInfoAndData(objs.get(0), rev, "copyrev", wsid, "myname2", 2L, 3);
 		copystack = CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname2"));
-		compareObjectInfoAndData(objs.get(0), copystack.get(0), "myname2", 2L, 1);
-		compareObjectInfoAndData(objs.get(1), copystack.get(1), "myname2", 2L, 2);
-		compareObjectInfoAndData(objs.get(0), copystack.get(2), "myname2", 2L, 3);
+		compareObjectInfoAndData(objs.get(0), copystack.get(0), "copyrev", wsid, "myname2", 2L, 1);
+		compareObjectInfoAndData(objs.get(1), copystack.get(1), "copyrev", wsid, "myname2", 2L, 2);
+		compareObjectInfoAndData(objs.get(0), copystack.get(2), "copyrev", wsid, "myname2", 2L, 3);
 		
 		CopyObjectParams cpo = new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
 				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2"));
@@ -1378,14 +1378,14 @@ public class JSONRPCLayerTest {
 	private void compareObjectInfoAndData(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
-			String name, long id, int ver) 
+			String wsname, long wsid, String name, long id, int ver) 
 			throws Exception {
-		compareObjectInfo(orig, copied, name, id, ver);
+		compareObjectInfo(orig, copied, wsname, wsid, name, id, ver);
 		List<ObjectData> objs = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
 				.withObjid(orig.getE1()).withVer(orig.getE5()), 
 				new ObjectIdentity().withWsid(copied.getE7())
 				.withObjid(copied.getE1()).withVer(copied.getE5())));
-		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), name, id, ver);
+		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
 		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
 		assertThat("data same", objs.get(1).getData().asClassInstance(Map.class),
@@ -1397,7 +1397,7 @@ public class JSONRPCLayerTest {
 	private void compareObjectInfo(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
-			String name, long id, int ver) 
+			String wsname, long wsid, String name, long id, int ver) 
 			throws Exception {
 		assertThat("id is correct", copied.getE1(), is(id));
 		assertThat("name is correct", copied.getE2(), is(name));
@@ -1405,8 +1405,8 @@ public class JSONRPCLayerTest {
 		DATE_FORMAT.parse(copied.getE4()); //should throw error if bad format
 		assertThat("version is correct", (int) copied.getE5().longValue(), is(ver));
 		assertThat("user is correct", copied.getE6(), is(orig.getE6()));
-		assertThat("wsid is correct", copied.getE7(), is(orig.getE7()));
-		assertThat("ws name is correct", copied.getE8(), is(orig.getE8()));
+		assertThat("wsid is correct", copied.getE7(), is(wsid));
+		assertThat("ws name is correct", copied.getE8(), is(wsname));
 		assertThat("chksum is correct", copied.getE9(), is(orig.getE9()));
 		assertThat("size is correct", copied.getE10(), is(orig.getE10()));
 		assertThat("meta is correct", copied.getE11(), is(orig.getE11()));
@@ -1435,9 +1435,40 @@ public class JSONRPCLayerTest {
 		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
 				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withDescription("a desc")
 				.withGlobalread("r").withWorkspace("newclone").withWsi(wssrc));
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "newclone", USER1, 1, "a", "r", "unlocked", "a desc");
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
+				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname"));
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> copystack =
+				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsinfo.getE1()).withName("myname"));
+		compareObjectInfoAndData(objs.get(0), copystack.get(0), "newclone", wsinfo.getE1(), "myname", 1L, 1);
+		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
+		
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
+		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null);
 		
 		
+		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
+				.withWorkspace("fake");
+		cpo.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.cloneWorkspace(cpo);
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Unexpected arguments in CloneWorkspaceParams: foo"));
+		}
 		
+		cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
+				.withWorkspace("fake");
+		try {
+			CLIENT1.cloneWorkspace(cpo.withGlobalread("w"));
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("globalread must be n or r"));
+		}
 	}
 
 	@Test
