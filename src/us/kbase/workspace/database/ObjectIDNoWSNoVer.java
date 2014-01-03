@@ -53,6 +53,7 @@ public class ObjectIDNoWSNoVer {
 		return new ObjectIDNoWSNoVer(id);
 	}
 	
+	//TODO unit tests
 	public static void checkObjectName(String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
 		final Matcher m = INVALID_OBJ_NAMES.matcher(name);

@@ -729,7 +729,6 @@ public class Workspace {
 		return db.renameWorkspace(user, wsid, newname);
 	}
 	
-	//TODO test
 	public ObjectInformation renameObject(final WorkspaceUser user,
 			final ObjectIdentifier oi, final String newname)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,

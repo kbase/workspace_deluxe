@@ -2948,4 +2948,68 @@ public class TestWorkspace {
 							", name lock, is locked and may not be modified"));
 		}
 	}
+	
+	@Test
+	public void renameObject() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("renameObjUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameObj");
+		WorkspaceUser user2 = new WorkspaceUser("renameObjUser2");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameObj2");
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid2 = ws.createWorkspace(user2, wsi2.getName(), false, null).getId();
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), false)));
+		ws.saveObjects(user2, wsi2, Arrays.asList(new WorkspaceSaveObject(
+				new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), false)));
+		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"), "mynewname");
+		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE.getTypeString(), 1, user,
+				wsid1, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
+		String newname = ws.listObjects(user, Arrays.asList(wsi), null, false,
+				false, false, false).get(0).getObjectName();
+		assertThat("object renamed", newname, is("mynewname"));
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("myoldname"), new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), false)));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "bad%name", new IllegalArgumentException(
+				"Illegal character in object name bad%name: %"));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "myoldname", new IllegalArgumentException(
+				"There is already an object in the workspace named myoldname"));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "mynewname", new IllegalArgumentException(
+				"Object is already named mynewname"));
+		failObjRename(user, new ObjectIdentifier(wsi, "bar"), "foo", new NoSuchObjectException(
+				"No object with name bar exists in workspace " + wsid1));
+		failObjRename(user, new ObjectIdentifier(wsi2, "auto1"), "foo",
+				new InaccessibleObjectException(
+						"Object auto1 cannot be accessed: User renameObjUser may not rename objects in workspace renameObj2"));
+		failObjRename(null, new ObjectIdentifier(wsi2, "auto1"), "foo",
+				new InaccessibleObjectException(
+						"Object auto1 cannot be accessed: Anonymous users may not rename objects in workspace renameObj2"));
+		
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, "mynewname")), true);
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo", new InaccessibleObjectException(
+				"Object 1 (name mynewname) in workspace " + wsid1 + " has been deleted"));
+		ws.setWorkspaceDeleted(user, wsi, true);
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo", new InaccessibleObjectException(
+				"Object mynewname cannot be accessed: Workspace renameObj is deleted"));
+		ws.setWorkspaceDeleted(user, wsi, false);
+		failObjRename(user, new ObjectIdentifier(new WorkspaceIdentifier("renameObjfake"), "mynewname"), "foo", new InaccessibleObjectException(
+				"Object mynewname cannot be accessed: No workspace with name renameObjfake exists"));
+		ws.lockWorkspace(user, wsi);
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo", new InaccessibleObjectException(
+				"Object mynewname cannot be accessed: The workspace with id " + wsid1 + ", name renameObj, is locked and may not be modified"));
+	}
+
+	private void failObjRename(WorkspaceUser user, ObjectIdentifier oi,
+			String newname, Exception e) {
+		try {
+			ws.renameObject(user, oi, newname);
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
 }

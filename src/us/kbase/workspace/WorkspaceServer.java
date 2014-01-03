@@ -291,7 +291,6 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN lock_workspace
 		final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
 		returnVal = au.wsInfoToTuple(ws.lockWorkspace(getUser(authPart), wsid));
-		//TODO test
         //END lock_workspace
         return returnVal;
     }
