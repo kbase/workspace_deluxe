@@ -2956,7 +2956,7 @@ public class TestWorkspace {
 		WorkspaceUser user2 = new WorkspaceUser("renameObjUser2");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameObj2");
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
-		long wsid2 = ws.createWorkspace(user2, wsi2.getName(), false, null).getId();
+		ws.createWorkspace(user2, wsi2.getName(), false, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE, null,
 				new Provenance(user), false)));

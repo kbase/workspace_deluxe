@@ -59,6 +59,7 @@ import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
+import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -1509,6 +1510,44 @@ public class JSONRPCLayerTest {
 				.withNewPermission("r"));
 		checkWS(CLIENT1.getWorkspaceInfo(wsi), wsid, info.getE4(), "lock",
 				USER1, 1, "a", "r", "published", null);
+	}
+	
+	@Test
+	public void renameObject() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameObj"));
+		long wsid = wsinfo.getE1();
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("renameObj")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("myname")));
+		CLIENT1.saveObjects(soc);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info =
+				CLIENT1.renameObject(new RenameObjectParams().withNewName("mynewname")
+				.withObj(new ObjectIdentity().withRef("renameObj/1")));
+		System.out.println(info);
+		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
+		info = CLIENT1.getObjectInfo(Arrays.asList(new ObjectIdentity().withWorkspace("renameObj")
+				.withObjid(1L)), 0L).get(0);
+		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
+		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
+				.withObj(new ObjectIdentity().withRef("renameObj/1"));
+		rop.setAdditionalProperties("foo", "bar");
+		failObjRename(USER1, rop, "Unexpected arguments in RenameObjectParams: foo");
+		failObjRename(USER1, new RenameObjectParams().withNewName("foo")
+				.withObj(new ObjectIdentity().withName("foo")),
+				"Must provide one and only one of workspace name (was: null) or id (was: null)");
+	}
+
+	private void failObjRename(String uSER12, RenameObjectParams rop,
+			String excep) throws Exception {
+		try {
+			CLIENT1.renameObject(rop);
+			fail("renamed with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
+		
 	}
 
 	@Test

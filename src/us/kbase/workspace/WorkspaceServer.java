@@ -818,7 +818,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
 		returnVal = au.objInfoToTuple(ws.renameObject(getUser(authPart),
 				oi, params.getNewName()));
-		//TODO test
         //END rename_object
         return returnVal;
     }
