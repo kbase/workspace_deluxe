@@ -2,36 +2,29 @@ package Bio::KBase::workspace::ScriptHelpers;
 use strict;
 use warnings;
 use Bio::KBase::workspace::Client;
+use Bio::KBase::Auth;
 use Exporter;
 use Config::Simple;
 use Data::Dumper;
 use parent qw(Exporter);
 our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta);
-#our $defaultURL = "http://kbase.us/services/workspace/";
+
 our $defaultURL = "https://kbase.us/services/workspace";
+our $localhostURL = "http://127.0.0.1:7058";
+our $devURL = "http://140.221.84.209:7058";
+
 
 sub get_ws_client {
 	my $url = shift;
 	if (!defined($url)) {
 		$url = workspaceURL();
 	}
-	# we no longer have a perl impl, so this doesn't work
-	#if ($url eq "impl") {
-	#	require "Bio/KBase/workspaceService/Impl.pm";
-	#	return Bio::KBase::workspaceService::Impl->new();
-	#}
-	if ($url eq "localhost") {
-		$url = "http://127.0.0.1:7058"
-	}
-	if ($url eq "dev") {
-		$url = "http://140.221.84.170:7058"
-	}
 	return Bio::KBase::workspace::Client->new($url);
 }
 
 sub getToken {
 	my $token='';
-	my $kbConfPath = glob "~/.kbase_config";
+	my $kbConfPath = $Bio::KBase::Auth::ConfPath;
 	if (defined($ENV{KB_RUNNING_IN_IRIS})) {
 		$token = $ENV{KB_AUTH_TOKEN};
 	} elsif ( -e $kbConfPath ) {
@@ -43,7 +36,7 @@ sub getToken {
 }
 sub getUser {
 	my $user_id='';
-	my $kbConfPath = glob "~/.kbase_config";
+	my $kbConfPath = $Bio::KBase::Auth::ConfPath;
 	if (defined($ENV{KB_RUNNING_IN_IRIS})) {
 		
 	} elsif ( -e $kbConfPath ) {
@@ -55,62 +48,8 @@ sub getUser {
 }
 
 
-#sub workspace {
-#	my $set = shift;
-#	if (defined($set)) {
-#		$CurrentWorkspace = $set;
-#		my $auth = auth();
-#		if (!defined($auth)) {
-#			if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
-#				my $filename = "$ENV{HOME}/.kbase_workspace";
-#				open(my $fh, ">", $filename) || return;
-#				print $fh $CurrentWorkspace;
-#				close($fh);
-#			} else {
-#				$ENV{KB_WORKSPACE} = $CurrentWorkspace;
-#			}
-#		} else {
-#			my $client = get_ws_client();
-#			$client->set_user_settings({
-#				setting => "workspace",
-#				value => $set,
-#				auth => $auth
-#			});
-#		}
-#	} elsif (!defined($CurrentWorkspace)) {
-#		my $auth = auth();
-#		if (!defined($auth)) {
-#			if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
-#				my $filename = "$ENV{HOME}/.kbase_workspace";
-#				if( -e $filename ) {
-#					open(my $fh, "<", $filename) || return;
-#					$CurrentWorkspace = <$fh>;
-#					chomp $CurrentWorkspace;
-#					close($fh);
-#				} else {
-#					$CurrentWorkspace = "default";
-#				}
-#			} elsif (defined($ENV{KB_WORKSPACE})) {
-#				$CurrentWorkspace = $ENV{KB_WORKSPACE};
-#			} else {
-#				$CurrentWorkspace = "default";
-#			} 
-#		} else {
-#			my $client = get_ws_client();
-#			my $settings = $client->get_user_settings({
-#				auth => $auth
-#			});
-#			$CurrentWorkspace = $settings->{workspace};
-#		}
-#	}
-#	return $CurrentWorkspace;
-#}
-
 sub getKBaseCfg {
-	# should always be exactly one path globbed up... can't use glob in scalar or else it undefs every
-	# other call to this method, so that you can only call this method once!  ARG!! stupid perl.
-	my @kbConfPath = glob("~/.kbase_config");
-	my $kbConfPath = $kbConfPath[0];
+	my $kbConfPath = $Bio::KBase::Auth::ConfPath;
 	if (!-e $kbConfPath) {
 		my $newcfg = new Config::Simple(syntax=>'ini') or die Config::Simple->error();
 		$newcfg->param("workspace_deluxe.url",$defaultURL);
@@ -156,9 +95,15 @@ sub workspaceURL {
 	my $newUrl = shift;
 	my $currentURL;
 	if (defined($newUrl)) {
+		
 		if ($newUrl eq "default") {
 			$newUrl = $defaultURL;
+		} elsif ($newUrl eq "localhost") {
+			$newUrl = $localhostURL;
+		} elsif ($newUrl eq "dev") {
+			$newUrl = $devURL;
 		}
+		
 		$currentURL = $newUrl;
 		if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
 			my $cfg = getKBaseCfg();
@@ -261,36 +206,38 @@ sub printWorkspaceMeta {
 	print "Global permission:".$obj->{global_permission}."\n";
 }
 
-sub printJobData {
-	my $job = shift;
-	print "Job ID: ".$job->{id}."\n";
-	print "Job Type: ".$job->{type}."\n";
-	print "Job Owner: ".$job->{owner}."\n";
-	print "Command: ".$job->{queuecommand}."\n";
-	print "Queue time: ".$job->{queuetime}."\n";
-	if (defined($job->{starttime})) {
-		print "Start time: ".$job->{starttime}."\n";
-	}
-	if (defined($job->{completetime})) {
-		print "Complete time: ".$job->{completetime}."\n";
-	}
-	print "Job Status: ".$job->{status}."\n";
-	if (defined($job->{jobdata}->{postprocess_args}->[0]->{model_workspace})) {
-		print "Model: ".$job->{jobdata}->{postprocess_args}->[0]->{model_workspace}."/".$job->{jobdata}->{postprocess_args}->[0]->{model}."\n";
-	}
-	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media})) {
-		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media}."\n";
-	}
-	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media})) {
-		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media}."\n";
-	}
-	if (defined($job->{jobdata}->{qsubid})) {
-		print "Qsub ID: ".$job->{jobdata}->{qsubid}."\n";
-	}
-	if (defined($job->{jobdata}->{error})) {
-		print "Error: ".$job->{jobdata}->{error}."\n";
-	}
-}
+#
+# Job monitering does not happen in WS anymore, so this is not needed....
+#sub printJobData {
+#	my $job = shift;
+#	print "Job ID: ".$job->{id}."\n";
+#	print "Job Type: ".$job->{type}."\n";
+#	print "Job Owner: ".$job->{owner}."\n";
+#	print "Command: ".$job->{queuecommand}."\n";
+#	print "Queue time: ".$job->{queuetime}."\n";
+#	if (defined($job->{starttime})) {
+#		print "Start time: ".$job->{starttime}."\n";
+#	}
+#	if (defined($job->{completetime})) {
+#		print "Complete time: ".$job->{completetime}."\n";
+#	}
+#	print "Job Status: ".$job->{status}."\n";
+#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{model_workspace})) {
+#		print "Model: ".$job->{jobdata}->{postprocess_args}->[0]->{model_workspace}."/".$job->{jobdata}->{postprocess_args}->[0]->{model}."\n";
+#	}
+#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media})) {
+#		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media}."\n";
+#	}
+#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media})) {
+#		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media}."\n";
+#	}
+#	if (defined($job->{jobdata}->{qsubid})) {
+#		print "Qsub ID: ".$job->{jobdata}->{qsubid}."\n";
+#	}
+#	if (defined($job->{jobdata}->{error})) {
+#		print "Error: ".$job->{jobdata}->{error}."\n";
+#	}
+#}
 
 sub loadTableFile {
 	my ($filename) = @_;
