@@ -2709,14 +2709,78 @@ public class TestWorkspace {
 		compareObjectAndInfo(save31, hidetarget.get(0), user1, info1.getId(), clone1.getName(), id, "hidetarget", 1);
 		checkUnhiddenObjectCount(user1, clone1, 3, 7);
 		
+		
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
+		
 		WorkspaceIdentifier clone2 = new WorkspaceIdentifier("newclone2");
 		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc");
 		
-		checkWSInfo(clone2, user1, "newclone2", 3, Permission.OWNER, true, info2.getId(),
+		checkWSInfo(clone2, user1, "newclone2", 2, Permission.OWNER, true, info2.getId(),
 				info2.getModDate(), "unlocked");
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
 		
+		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone2, "orig"));
+		id = origobjs.get(0).getObjectId();
+		compareObjectAndInfo(save21, origobjs.get(0), user1, info2.getId(), clone2.getName(), id, "orig", 1);
+		compareObjectAndInfo(save22, origobjs.get(1), user1, info2.getId(), clone2.getName(), id, "orig", 2);
+		compareObjectAndInfo(save23, origobjs.get(2), user1, info2.getId(), clone2.getName(), id, "orig", 3);
 		
-		//TODO clone locked, clone w/ deleted objs, clone deleted, clone unreadable
+		hidetarget = ws.getObjectHistory(user1, new ObjectIdentifier(clone2, "hidetarget"));
+		id = hidetarget.get(0).getObjectId();
+		compareObjectAndInfo(save31, hidetarget.get(0), user1, info2.getId(), clone2.getName(), id, "hidetarget", 1);
+		checkUnhiddenObjectCount(user1, clone2, 3, 4);
+		
+		ws.setWorkspaceDeleted(user1, cp1, true);
+		failClone(user1, cp1, "fakename", new NoSuchWorkspaceException("Workspace clone1 is deleted", cp1));
+		ws.setWorkspaceDeleted(user1, cp1, false);
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
+		
+		failClone(null, cp1, "fakename", new WorkspaceAuthorizationException("Anonymous users may not read workspace clone1"));
+		//workspaceIdentifier used in the workspace method to check ws names tested extensively elsewhere, so just
+		// a couple tests here
+		failClone(user1, cp1, "bar:fakename", new IllegalArgumentException(
+				"Workspace name bar:fakename must only contain the user name foo prior to the : delimiter"));
+		failClone(user1, cp1, "foo:fake(name", new IllegalArgumentException(
+				"Illegal character in workspace name foo:fake(name: ("));
+		failClone(user2, cp1, "fakename", new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
+		failClone(user1, cp1, "newclone2", new PreExistingWorkspaceException("Workspace newclone2 already exists"));
+		failClone(user1, new WorkspaceIdentifier("noclone"), "fakename",
+				new NoSuchWorkspaceException("No workspace with name noclone exists", cp1));
+		
+		ws.lockWorkspace(user1, cp1);
+		
+		WorkspaceIdentifier clone3 = new WorkspaceIdentifier("newclone3");
+		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2");
+		
+		checkWSInfo(clone3, user1, "newclone3", 2, Permission.OWNER, false, info3.getId(),
+				info3.getModDate(), "unlocked");
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3), is("my desc2"));
+		
+		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone3, "orig"));
+		id = origobjs.get(0).getObjectId();
+		compareObjectAndInfo(save21, origobjs.get(0), user1, info3.getId(), clone3.getName(), id, "orig", 1);
+		compareObjectAndInfo(save22, origobjs.get(1), user1, info3.getId(), clone3.getName(), id, "orig", 2);
+		compareObjectAndInfo(save23, origobjs.get(2), user1, info3.getId(), clone3.getName(), id, "orig", 3);
+		
+		hidetarget = ws.getObjectHistory(user1, new ObjectIdentifier(clone3, "hidetarget"));
+		id = hidetarget.get(0).getObjectId();
+		compareObjectAndInfo(save31, hidetarget.get(0), user1, info3.getId(), clone3.getName(), id, "hidetarget", 1);
+		checkUnhiddenObjectCount(user1, clone3, 3, 4);
+		
+		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
+		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT);
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
+	}
+
+	private void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
+			String name, Exception e) {
+		try {
+			ws.cloneWorkspace(user, wsi, name, false, null);
+			fail("expected clone to fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
 	}
 }
