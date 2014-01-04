@@ -718,7 +718,6 @@ public class Workspace {
 		return ret;
 	}
 	
-	//TODO test
 	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,

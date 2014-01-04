@@ -3012,4 +3012,58 @@ public class TestWorkspace {
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
 	}
+	
+	@Test
+	public void renameWorkspace() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("renameWSUser");
+		WorkspaceUser user2 = new WorkspaceUser("renameWSUser2");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameWS");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameWS2");
+		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null);
+		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
+		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
+		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
+		assertTrue("date updated on ws rename", info2.getModDate().after(info1.getModDate()));
+		checkWSInfo(ws.getWorkspaceInformation(user, newwsi),
+				user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
+		
+		failWSRename(user, newwsi, "foo|bar",
+				new IllegalArgumentException("Illegal character in workspace name foo|bar: |"));
+		failWSRename(user, newwsi, "foo:foobar",
+				new IllegalArgumentException(
+						"Workspace name foo:foobar must only contain the user name renameWSUser prior to the : delimiter"));
+		
+		ws.createWorkspace(user2, wsi2.getName(), false, null);
+		ws.setPermissions(user2, wsi2, Arrays.asList(user), Permission.WRITE);
+		failWSRename(user, newwsi, "renameWS2",
+				new IllegalArgumentException("There is already a workspace named renameWS2"));
+		failWSRename(user, newwsi, newwsi.getName(),
+				new IllegalArgumentException("Workspace is already named renameWSUser:newRenameWS"));
+		failWSRename(user, new WorkspaceIdentifier(newwsi.getName() + "a"), newwsi.getName(),
+				new NoSuchWorkspaceException("No workspace with name renameWSUser:newRenameWSa exists", wsi));
+		failWSRename(user, wsi2, newwsi.getName(),
+				new WorkspaceAuthorizationException("User renameWSUser may not rename workspace renameWS2"));
+		failWSRename(null, newwsi, "renamefoo",
+				new WorkspaceAuthorizationException("Anonymous users may not rename workspace renameWSUser:newRenameWS"));
+		ws.setWorkspaceDeleted(user, newwsi, true);
+		failWSRename(user, newwsi, "renamefoo",
+				new NoSuchWorkspaceException("Workspace " + newwsi.getName() + " is deleted", newwsi));
+		ws.setWorkspaceDeleted(user, newwsi, false);
+		ws.lockWorkspace(user, newwsi);
+		failWSRename(user, newwsi, "renamefoo",
+				new WorkspaceAuthorizationException("The workspace with id " + info1.getId() +
+						", name " + newwsi.getName() + ", is locked and may not be modified"));
+		
+	}
+
+	private void failWSRename(WorkspaceUser user, WorkspaceIdentifier wsi, String newname,
+			Exception e) {
+		try {
+			ws.renameWorkspace(user, wsi, newname);
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
 }
