@@ -797,7 +797,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				processWorkspaceIdentifier(params.getWsi());
 		returnVal = au.wsInfoToTuple(ws.renameWorkspace(getUser(authPart),
 				wsi, params.getNewName()));
-		//TODO test
         //END rename_workspace
         return returnVal;
     }

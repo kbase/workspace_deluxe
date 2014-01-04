@@ -60,6 +60,7 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RenameObjectParams;
+import us.kbase.workspace.RenameWorkspaceParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -1524,7 +1525,6 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info =
 				CLIENT1.renameObject(new RenameObjectParams().withNewName("mynewname")
 				.withObj(new ObjectIdentity().withRef("renameObj/1")));
-		System.out.println(info);
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		info = CLIENT1.getObjectInfo(Arrays.asList(new ObjectIdentity().withWorkspace("renameObj")
 				.withObjid(1L)), 0L).get(0);
@@ -1532,16 +1532,48 @@ public class JSONRPCLayerTest {
 		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
 				.withObj(new ObjectIdentity().withRef("renameObj/1"));
 		rop.setAdditionalProperties("foo", "bar");
-		failObjRename(USER1, rop, "Unexpected arguments in RenameObjectParams: foo");
-		failObjRename(USER1, new RenameObjectParams().withNewName("foo")
+		failObjRename(rop, "Unexpected arguments in RenameObjectParams: foo");
+		failObjRename(new RenameObjectParams().withNewName("foo")
 				.withObj(new ObjectIdentity().withName("foo")),
 				"Must provide one and only one of workspace name (was: null) or id (was: null)");
 	}
 
-	private void failObjRename(String uSER12, RenameObjectParams rop,
+	private void failObjRename(RenameObjectParams rop,
 			String excep) throws Exception {
 		try {
 			CLIENT1.renameObject(rop);
+			fail("renamed with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
+	}
+	
+	@Test
+	public void renameWorkspace() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameWS"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+				CLIENT1.renameWorkspace(new RenameWorkspaceParams().withWsi(
+				new WorkspaceIdentity().withWorkspace("renameWS")).withNewName("newrenameWS"));
+		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
+				0, "a", "n", "unlocked", null);
+		wsinfo2 = CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("newrenameWS"));
+		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
+				0, "a", "n", "unlocked", null);
+		RenameWorkspaceParams rwp = new RenameWorkspaceParams()
+				.withWsi(new WorkspaceIdentity().withWorkspace("newrenameWS"))
+				.withNewName("foo");
+		rwp.setAdditionalProperties("foo", "bar");
+		failWSRename(rwp, "Unexpected arguments in RenameWorkspaceParams: foo");
+		failWSRename(new RenameWorkspaceParams().withWsi(new WorkspaceIdentity()
+				.withWorkspace("newrenameWS")), "Workspace name cannot be null or the empty string");
+	}
+
+	private void failWSRename(RenameWorkspaceParams rwp,
+			String excep) throws Exception {
+		try {
+			CLIENT1.renameWorkspace(rwp);
 			fail("renamed with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
