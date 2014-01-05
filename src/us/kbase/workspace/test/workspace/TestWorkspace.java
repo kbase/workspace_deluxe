@@ -3066,4 +3066,61 @@ public class TestWorkspace {
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
 	}
+	
+	@Test
+	public void setGlobalRead() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("setGlobalUser");
+		WorkspaceUser user2 = new WorkspaceUser("setGlobalUser2");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("global");
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		
+		failGetWorkspaceDesc(user2, wsi, new WorkspaceAuthorizationException(
+				"User setGlobalUser2 may not read workspace global"));
+		ws.setGlobalPermission(user, wsi, Permission.READ);
+		assertThat("read set correctly", ws.getPermissions(user, wsi).get(new AllUsers('*')),
+				is(Permission.READ));
+		ws.getWorkspaceDescription(user2, wsi);
+		failSetGlobalPerm(user, wsi, Permission.WRITE, new IllegalArgumentException(
+				"Global permissions cannot be greater than read"));
+		failSetGlobalPerm(user2, wsi, Permission.NONE, new WorkspaceAuthorizationException(
+				"User setGlobalUser2 may not set global permission on workspace global"));
+		failSetGlobalPerm(null, wsi, Permission.NONE, new WorkspaceAuthorizationException(
+				"Anonymous users may not set global permission on workspace global"));
+		ws.setWorkspaceDeleted(user, wsi, true);
+		failSetGlobalPerm(user, wsi, Permission.NONE, new NoSuchWorkspaceException(
+				"Workspace global is deleted", wsi));
+		ws.setWorkspaceDeleted(user, wsi, false);
+		
+		ws.setGlobalPermission(user, wsi, Permission.NONE);
+		ws.lockWorkspace(user, wsi);
+		failSetGlobalPerm(user, wsi, Permission.NONE, new WorkspaceAuthorizationException(
+				"The workspace with id " + wsid + ", name global, is locked and may not be modified"));
+		ws.setGlobalPermission(user, wsi, Permission.READ);
+		assertThat("read set correctly on locked ws", ws.getPermissions(user, wsi).get(new AllUsers('*')),
+			is(Permission.READ));
+	}
+	
+	private void failGetWorkspaceDesc(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Exception e) throws Exception {
+		try {
+			ws.getWorkspaceDescription(user, wsi);
+			fail("got ws desc when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+	
+	private void failSetGlobalPerm(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Permission perm, Exception e) throws Exception {
+		try {
+			ws.setGlobalPermission(user, wsi, perm);
+			fail("set global perms when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
 }
