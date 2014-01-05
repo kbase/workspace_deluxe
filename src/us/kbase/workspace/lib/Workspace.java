@@ -308,7 +308,6 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"set global permission on", false, ignoreLock);
 		db.setGlobalPermission(wsid, permission);
-		//TODO test
 	}
 
 	//TODO refactor to use permission sets

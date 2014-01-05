@@ -1579,7 +1579,54 @@ public class JSONRPCLayerTest {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(excep));
 		}
+	}
+	
+	@Test
+	public void setGlobalPermission() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("setglobal"));
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("setglobal");
+		assertThat("globalread is none", wsinfo.getE7(), is("n"));
+		try {
+			CLIENT2.getWorkspaceDescription(wsi);
+			fail("got workspace desc w/o access");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("User " + USER2 + " may not read workspace setglobal"));
+		}
 		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace("setglobal")
+				.withNewPermission("r"));
+		CLIENT2.getWorkspaceDescription(wsi);
+		assertThat("globalread is r", CLIENT1.getWorkspaceInfo(wsi).getE7(), is("r"));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace("setglobal")
+				.withNewPermission("n"));
+		assertThat("globalread is r", CLIENT1.getWorkspaceInfo(wsi).getE7(), is("n"));
+		SetGlobalPermissionsParams sgpp = new SetGlobalPermissionsParams()
+				.withWorkspace("setglobal").withNewPermission("r");
+		sgpp.setAdditionalProperties("bar", "foo");
+		failSetGlobalPerm(sgpp, "Unexpected arguments in SetGlobalPermissionsParams: bar");
+		SetGlobalPermissionsParams sgppgen = new SetGlobalPermissionsParams()
+				.withWorkspace("setglobal");
+		failSetGlobalPerm(sgppgen.withNewPermission("w"),
+				"Global permissions cannot be greater than read");
+		failSetGlobalPerm(sgppgen.withNewPermission("z"),
+				"No such permission: z");
+		failSetGlobalPerm(sgppgen.withNewPermission("r").withId(wsinfo.getE1()),
+				"Must provide one and only one of workspace name (was: setglobal) or id (was: " +
+				wsinfo.getE1() + ")");
+	
+	}
+
+	private void failSetGlobalPerm(SetGlobalPermissionsParams sgpp,
+			String exp) throws Exception {
+		try {
+			CLIENT1.setGlobalPermission(sgpp);
+			fail("set global perms with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
 	}
 
 	@Test

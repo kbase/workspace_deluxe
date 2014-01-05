@@ -406,7 +406,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), params.getId());
 		final Permission p = translatePermission(params.getNewPermission());
 		ws.setGlobalPermission(getUser(authPart), wsi, p);
-		//TODO test
         //END set_global_permission
     }
 
