@@ -1,0 +1,15 @@
+#group-name	workspace	Workspace Scripts
+ws-clone	workspace
+ws-copy	workspace
+ws-createws	workspace
+ws-delete	workspace
+ws-get	workspace
+ws-getsubset	workspace
+ws-list	workspace
+ws-listobj	workspace
+ws-load	workspace
+ws-rename	workspace
+ws-typespec-list	workspace
+ws-typespec-register	workspace
+ws-url	workspace
+ws-workspace	workspace
