@@ -110,7 +110,7 @@ test-service:
 	test/run_tests.sh
 
 test-scripts:
-	@echo "no scripts to test"
+	prove test/scripts/
 	
 deploy: deploy-client deploy-service
 
