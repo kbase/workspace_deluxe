@@ -3178,4 +3178,89 @@ public class TestWorkspace {
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
 	}
+	
+	@Test
+	public void hiddenObjects() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("hideObjUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("hideObj");
+		WorkspaceUser user2 = new WorkspaceUser("hideObjUser2");
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		ObjectInformation auto1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), false))).get(0);
+		System.out.println(auto1);
+		ObjectInformation auto2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), true))).get(0);
+		ObjectInformation obj1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("obj1"), new HashMap<String, String>(), SAFE_TYPE, null,
+				new Provenance(user), true))).get(0);
+		
+		Map<Long, ObjectInformation> expected = new HashMap<Long, ObjectInformation>();
+		expected.put(1L, auto1);
+		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		
+		expected.put(2L, auto2);
+		expected.put(3L, obj1);
+		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, true, false, false, true), expected);
+		
+		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 3), new ObjectIdentifier(wsi, "auto2")), false);
+		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		
+		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "obj1")), true);
+		expected.remove(1L);
+		expected.remove(3L);
+		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		
+		failSetHide(user, new ObjectIdentifier(wsi, "fake"), true, new NoSuchObjectException(
+				"No object with name fake exists in workspace " + wsid1));
+		failSetHide(user, new ObjectIdentifier(new WorkspaceIdentifier("fake"), "fake"), true, new InaccessibleObjectException(
+				"Object fake cannot be accessed: No workspace with name fake exists"));
+		
+		failSetHide(user2, new ObjectIdentifier(wsi, "auto1"), true, new InaccessibleObjectException(
+				"Object auto1 cannot be accessed: User hideObjUser2 may not hide objects from workspace hideObj"));
+		failSetHide(null, new ObjectIdentifier(wsi, "auto1"), true, new InaccessibleObjectException(
+				"Object auto1 cannot be accessed: Anonymous users may not hide objects from workspace hideObj"));
+		
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, 3)), true);
+		failSetHide(user, new ObjectIdentifier(wsi, 3), true, new NoSuchObjectException(
+				"Object 3 (name obj1) in workspace " + wsid1 + " has been deleted"));
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, 3)), false);
+		
+		ws.setWorkspaceDeleted(user, wsi, true);
+		failSetHide(user, new ObjectIdentifier(new WorkspaceIdentifier("fake"), "fake"), true, new InaccessibleObjectException(
+				"Object fake cannot be accessed: No workspace with name fake exists"));
+		ws.setWorkspaceDeleted(user, wsi, false);
+		
+		ws.lockWorkspace(user, wsi);
+		failSetHide(user, new ObjectIdentifier(wsi, 3), true, new InaccessibleObjectException(
+				"Object 3 cannot be accessed: The workspace with id " + wsid1 +
+				", name hideObj, is locked and may not be modified"));
+	}
+
+	private void failSetHide(WorkspaceUser user, ObjectIdentifier oi, boolean hide,
+			Exception e) throws Exception {
+		try {
+			ws.setObjectsHidden(user, Arrays.asList(oi), hide);
+			fail("un/hid obj when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
+	private void checkObjectSet(List<ObjectInformation> listObjects,
+			Map<Long, ObjectInformation> expected) {
+		Set<Long> seen = new HashSet<Long>();
+		for (ObjectInformation oi: listObjects) {
+			long oid = oi.getObjectId();
+			if (seen.contains(oid)) {
+				fail("Saw same objectid twice");
+			}
+			seen.add(oid);
+			assertThat("object info for id " + oid + " correct", oi, is(expected.get(oid)));
+		}
+		assertThat("checked all objects", seen, is(expected.keySet()));
+	}
 }

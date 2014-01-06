@@ -104,4 +104,79 @@ public class MongoObjectInfo implements ObjectInformation {
 				+ ", size=" + size + ", meta=" + meta + "]";
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((chksum == null) ? 0 : chksum.hashCode());
+		result = prime * result + (int) (id ^ (id >>> 32));
+		result = prime * result + ((meta == null) ? 0 : meta.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((savedBy == null) ? 0 : savedBy.hashCode());
+		result = prime * result
+				+ ((savedDate == null) ? 0 : savedDate.hashCode());
+		result = prime * result + (int) (size ^ (size >>> 32));
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + version;
+		result = prime * result + (int) (workspaceId ^ (workspaceId >>> 32));
+		result = prime * result
+				+ ((workspaceName == null) ? 0 : workspaceName.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		MongoObjectInfo other = (MongoObjectInfo) obj;
+		if (chksum == null) {
+			if (other.chksum != null)
+				return false;
+		} else if (!chksum.equals(other.chksum))
+			return false;
+		if (id != other.id)
+			return false;
+		if (meta == null) {
+			if (other.meta != null)
+				return false;
+		} else if (!meta.equals(other.meta))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (savedBy == null) {
+			if (other.savedBy != null)
+				return false;
+		} else if (!savedBy.equals(other.savedBy))
+			return false;
+		if (savedDate == null) {
+			if (other.savedDate != null)
+				return false;
+		} else if (!savedDate.equals(other.savedDate))
+			return false;
+		if (size != other.size)
+			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
+			return false;
+		if (version != other.version)
+			return false;
+		if (workspaceId != other.workspaceId)
+			return false;
+		if (workspaceName == null) {
+			if (other.workspaceName != null)
+				return false;
+		} else if (!workspaceName.equals(other.workspaceName))
+			return false;
+		return true;
+	}
+
 }

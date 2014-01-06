@@ -756,7 +756,6 @@ public class Workspace {
 		return db.revertObject(user, target);
 	}
 	
-	//TODO test
 	public void setObjectsHidden(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean hide)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
