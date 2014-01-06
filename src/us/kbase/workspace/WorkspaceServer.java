@@ -871,7 +871,6 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.hide_objects")
     public void hideObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN hide_objects
-    	//TODO tests
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		ws.setObjectsHidden(getUser(authPart), loi, true);
         //END hide_objects
@@ -888,7 +887,6 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.unhide_objects")
     public void unhideObjects(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
         //BEGIN unhide_objects
-    	//TODO tests
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		ws.setObjectsHidden(getUser(authPart), loi, false);
         //END unhide_objects

@@ -29,6 +29,9 @@ public class TypeData {
 	@JsonIgnore
 	private JsonNode data = null;
 	
+	@JsonIgnore
+	private TypeDefId majtype = null;
+	
 	//these attributes are actually saved in mongo
 	private String type = null;
 	private String chksum;
@@ -48,8 +51,9 @@ public class TypeData {
 			throw new RuntimeException("MD5 types are not accepted");
 		}
 		this.data = data;
-		this.type = type.getType().getTypeString() +
-				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
+		this.majtype = new TypeDefId(type.getType(), type.getMajorVersion());
+		this.type = type.getTypeString(); //type.getType().getTypeString() +
+//				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
 		try {
@@ -69,7 +73,9 @@ public class TypeData {
 	}
 	
 	public String getTypeCollection() {
-		return TYPE_COL_PREFIX + DigestUtils.md5Hex(this.type);
+		
+		return TYPE_COL_PREFIX + DigestUtils.md5Hex(
+				this.majtype.getTypeString());
 	}
 	
 	public static String getTypeCollection(final TypeDefId type) {
@@ -92,8 +98,8 @@ public class TypeData {
 		return data;
 	}
 	
-	public TypeDefId getType() {
-		return TypeDefId.fromTypeString(type);
+	public TypeDefId getMajorType() {
+		return majtype;
 	}
 	
 	public String getChksum() {

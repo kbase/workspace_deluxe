@@ -48,6 +48,7 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
+import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -1658,6 +1659,53 @@ public class JSONRPCLayerTest {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exp));
 		}
+	}
+	
+	@Test
+	public void hiddenObjects() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("hideObj"));
+		long wsid = wsinfo.getE1();
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("hideObj")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("unhidden")));
+		ObjectIdentity o1 = new ObjectIdentity().withRef("hideObj/1");
+		CLIENT1.saveObjects(soc);
+		soc = new SaveObjectsParams().withWorkspace("hideObj")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("hidden").withHidden(1L)));
+		ObjectIdentity o2 = new ObjectIdentity().withWorkspace("hideObj").withName("hidden");
+		CLIENT1.saveObjects(soc);
+
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(1L);
+		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid))), expected);
+		expected.add(2L);
+		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid)).withShowHidden(1L)), expected);
+		CLIENT1.unhideObjects(Arrays.asList(o2));
+		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid))), expected);
+		CLIENT1.hideObjects(Arrays.asList(o1));
+		expected.remove(1L);
+		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid))), expected);
+		expected.add(1L);
+		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid)).withShowHidden(1L)), expected);
+		
+		
+		
+//		failHideUnHide()
+	}
+
+	private void checkExpectedObjNums(
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs,
+			Set<Long> expected) {
+		Set<Long> got = new HashSet<Long>();
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o: objs) {
+			if (got.contains(o.getE1())) {
+				fail("Say same object twice");
+			}
+			got.add(o.getE1());
+		}
+		assertThat("correct object ids in list", got, is(expected));
 	}
 
 	@Test
