@@ -8,53 +8,63 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
+use JSON -support_by_pp;
 use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = ["Original Object ID or Name","New Name"];
-my $servercommand = "rename_object";
-my $translation = {};
+my $primaryArgs = ["Object ID or Name","Version to revert to"];
+my $servercommand = "revert_object";
+my $translation = {
+	"Object ID or Name" => "id",
+	workspace => "workspace",
+	"Version to revert to" => "version"
+};
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'ws-rename <'.join("> <",@{$primaryArgs}).'> %o',
-    [ 'workspace|s:s', 'ID or Name of workspace containing object to rename', {"default" => workspace()} ],
+    'ws-revert <'.join("> <",@{$primaryArgs}).'> %o',
+    [ 'workspace|w:s', 'Workspace name or ID', {"default" => workspace()} ],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
 if (defined($opt->{help})) {
 	print $usage;
-	exit 1;
+	exit;
 }
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
 		print $usage;
-		exit 1;
+		exit;
 	}
 }
 #Instantiating parameters
+my $versionRaw = $opt->{"Version to revert to"};
+my $versionString='';
+if (defined($opt->{"Version to revert to"})) {
+	$versionString="/".$opt->{"Version to revert to"};
+}
+
 my $params = {
-	obj => { ref => $opt->{workspace}."/".$opt->{"Original Object ID or Name"} },
-	new_name   => $opt->{"New Name"}
-};
+	      ref => $opt->{workspace} ."/".$opt->{"Object ID or Name"} .$versionString,
+	      };
 
 #Calling the server
 my $output;
-if ($opt->{showerror} == 0){
+if ($opt->{showerror} == 0) {
 	eval { $output = $serv->$servercommand($params); };
 	if($@) {
-		print "Object could not be renamed!\n";
+		print "Cannot revert object!\n";
 		print STDERR $@->{message}."\n";
 		if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
 		print STDERR "\n";
 		exit 1;
 	}
 } else {
-	$output = $serv->$servercommand($params);
+    $output = $serv->$servercommand($params);
 }
 
-print "Object renamed successfully.\n";
-
+#Checking output and report results
+print "Object successfully reverted to version " . $opt->{"Version to revert to"} . ".\n";
 exit 0;

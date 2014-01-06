@@ -20,7 +20,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-copy <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-copy <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|s:s', 'ID or Name of workspace to copy from', {"default" => workspace()} ],
     [ 'newworkspace|n:s', 'ID or Name of workspace to copy to', {"default" => workspace()} ],
     [ 'version|v=i', 'Version of the object to copy' ],

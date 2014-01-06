@@ -20,7 +20,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-history <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-history <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w=s', 'ID or Name of the workspace to use', {"default" => workspace()} ],
     [ 'showerror|e', 'show any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
