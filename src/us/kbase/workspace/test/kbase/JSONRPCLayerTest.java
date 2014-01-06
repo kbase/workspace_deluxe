@@ -1690,9 +1690,33 @@ public class JSONRPCLayerTest {
 		expected.add(1L);
 		checkExpectedObjNums(CLIENT1.listObjects(new ListObjectsParams().withIds(Arrays.asList(wsid)).withShowHidden(1L)), expected);
 		
+		ObjectIdentity badoi = new ObjectIdentity().withWorkspace("hideObj").withName("hidden");
+		badoi.setAdditionalProperties("urg", "bleah");
 		
+		failHideUnHide(badoi, "Error on ObjectIdentity #1: Unexpected arguments in ObjectIdentity: urg");
+		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj"),
+				"Error on ObjectIdentity #1: Must provide one and only one of object name (was: null) or id (was: null)");
+		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj").withName("wootwoot"),
+				"No object with name wootwoot exists in workspace " + wsid);
 		
-//		failHideUnHide()
+	}
+
+	private void failHideUnHide(ObjectIdentity badoi, String exp)
+			throws Exception {
+		try {
+			CLIENT1.hideObjects(Arrays.asList(badoi));
+			fail("hide obj with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+		try {
+			CLIENT1.unhideObjects(Arrays.asList(badoi));
+			fail("unhide obj with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
 	}
 
 	private void checkExpectedObjNums(
