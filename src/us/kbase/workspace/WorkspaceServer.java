@@ -424,7 +424,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), params.getId());
 		ws.setWorkspaceDescription(getUser(authPart), wsi,
 				params.getDescription());
-		//TODO test
         //END set_workspace_description
     }
 

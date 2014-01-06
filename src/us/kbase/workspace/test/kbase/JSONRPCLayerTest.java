@@ -320,6 +320,37 @@ public class JSONRPCLayerTest {
 	}
 	
 	@Test
+	public void setWorkspaceDescription() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> meta =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams()
+					.withWorkspace("wsdesc"));
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("wsdesc");
+		CLIENT1.setWorkspaceDescription(new SetWorkspaceDescriptionParams()
+				.withDescription("foobar").withWorkspace("wsdesc"));
+		assertThat("correct ws desc", CLIENT1.getWorkspaceDescription(wsi),
+				is("foobar"));
+		SetWorkspaceDescriptionParams swdp = new SetWorkspaceDescriptionParams()
+				.withDescription("foo").withId(meta.getE1());
+		swdp.setAdditionalProperties("baz", "foo");
+		failSetWSDesc(swdp, "Unexpected arguments in SetWorkspaceDescriptionParams: baz");
+		failSetWSDesc(new SetWorkspaceDescriptionParams(),
+				"Must provide one and only one of workspace name (was: null) or id (was: null)");
+		failSetWSDesc(new SetWorkspaceDescriptionParams().withWorkspace("foo").withId(1L),
+				"Must provide one and only one of workspace name (was: foo) or id (was: 1)");
+	}
+	
+	private void failSetWSDesc(SetWorkspaceDescriptionParams swdp, String excep)
+			throws Exception {
+		try {
+			CLIENT1.setWorkspaceDescription(swdp);
+			fail("set ws desc with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
+	}
+
+	@Test
 	public void createWSBadGlobal() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 			.withWorkspace("gl1")); //should work fine w/o globalread
