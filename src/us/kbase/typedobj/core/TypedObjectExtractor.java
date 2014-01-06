@@ -1,19 +1,12 @@
 package us.kbase.typedobj.core;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Iterator;
 
-import us.kbase.kidl.KbStruct;
-import us.kbase.kidl.KbType;
-import us.kbase.kidl.KidlParseException;
-import us.kbase.typedobj.exceptions.TypedObjectException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
