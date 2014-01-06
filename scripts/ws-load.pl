@@ -24,7 +24,7 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'kbws-load <'.join("> <",@{$primaryArgs}).'> %o',
-    [ 'workspace|w=s', 'ID for workspace', {"default" => workspace()} ],
+    [ 'workspace|w=s', 'Name of workspace', {"default" => workspace()} ],
     [ 'metadata|m:s', 'Filename with metadata to associate with object' ],
     [ 'compressed|c', 'Uploaded data will be compressed' , {"default" => 0} ],
     [ 'showerror|e', 'Set as 1 to show any errors in execution',{"default"=>0}],
