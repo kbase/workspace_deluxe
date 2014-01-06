@@ -13,7 +13,7 @@ use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL);
 my $primaryArgs = ["New server URL"];
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-url <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-url <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'help|h|?', 'Print this usage information' ],
 );
 if (defined($opt->{help})) {

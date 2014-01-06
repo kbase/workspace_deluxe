@@ -18,7 +18,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-list %o',
+    'ws-list %o',
     [ 'deleted|d', 'List deleted workspaces',{"default"=>0}],
     [ 'global|g', 'List globally readable workspaces',{"default"=>0}],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],

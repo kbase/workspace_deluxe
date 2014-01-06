@@ -22,7 +22,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-listobj %o',
+    'ws-listobj %o',
     [ 'workspace|w=s', 'Name of the workspace to search', {"default" => workspace()} ],
     [ 'type|t:s','Specify that only objects of the given type should be listed'],
     [ 'showversions|v', 'show all versions of the objects',{"default"=>0}],

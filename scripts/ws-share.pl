@@ -22,7 +22,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-share %o',
+    'ws-share %o',
     [ 'workspace|w', 'Name of workspace',{"default" => workspace()}],
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>''}],
     [ 'users|u=s', "Set permissions for these users (';' delimited)",{"default"=>''}],

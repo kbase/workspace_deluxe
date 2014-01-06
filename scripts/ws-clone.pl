@@ -20,7 +20,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-clone <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-clone <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w:s', 'Name of the workspace to clone', {"default" => workspace()} ],
     [ 'description|d=s', 'New workspace description (1000 characters max)',{"default"=>''}],
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>'n'}],

@@ -13,7 +13,7 @@ use Bio::KBase::workspace::ScriptHelpers qw(workspace get_ws_client);
 my $primaryArgs = ["Workspace Name"];
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-workspace <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-workspace <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'help|h|?', 'Print this usage information' ],
 );
 if (defined($opt->{help})) {

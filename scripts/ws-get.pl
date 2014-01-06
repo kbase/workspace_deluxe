@@ -22,7 +22,7 @@ my $translation = {
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'kbws-get <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-get <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w:s', 'Workspace name or ID', {"default" => workspace()} ],
     [ 'version|v:i', 'Get object with this version number' ],
     [ 'pretty|p', 'Pretty print the JSON object' ],
