@@ -1760,10 +1760,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<TypeDefId, List<ObjectSavePackage>> pkgByType =
 				new HashMap<TypeDefId, List<ObjectSavePackage>>();
 		for (final ObjectSavePackage p: data) {
-			if (pkgByType.get(p.td.getType()) == null) {
-				pkgByType.put(p.td.getType(), new ArrayList<ObjectSavePackage>());
+			if (pkgByType.get(p.td.getMajorType()) == null) {
+				pkgByType.put(p.td.getMajorType(), new ArrayList<ObjectSavePackage>());
 			}
-			pkgByType.get(p.td.getType()).add(p);
+			pkgByType.get(p.td.getMajorType()).add(p);
 		}
 		for (final TypeDefId type: pkgByType.keySet()) {
 			ensureTypeIndex(type);
