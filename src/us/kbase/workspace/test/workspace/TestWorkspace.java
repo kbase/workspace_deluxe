@@ -271,9 +271,9 @@ public class TestWorkspace {
 	
 	@Test
 	public void testWorkspaceDescription() throws Exception {
-		ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT);
-		ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART);
-		ws.createWorkspace(SOMEUSER, "ltn", false, null);
+		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT);
+		WorkspaceInformation ltpinfo = ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART);
+		WorkspaceInformation ltninfo = ws.createWorkspace(SOMEUSER, "ltn", false, null);
 		String desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
 		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"));
@@ -281,7 +281,44 @@ public class TestWorkspace {
 		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"));
 		assertNull("Workspace description incorrect", desc);
 		
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), LONG_TEXT_PART);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), null);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), LONG_TEXT);
+		
+		WorkspaceInformation ltinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("lt"));
+		WorkspaceInformation ltpinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltp"));
+		WorkspaceInformation ltninfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltn"));
+		
+		assertTrue("date updated on set ws desc", ltinfo2.getModDate().after(ltinfo.getModDate()));
+		assertTrue("date updated on set ws desc", ltpinfo2.getModDate().after(ltpinfo.getModDate()));
+		assertTrue("date updated on set ws desc", ltninfo2.getModDate().after(ltninfo.getModDate()));
+		
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
+		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"));
+		assertNull("Workspace description incorrect", desc);
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"));
+		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
+		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lt");
+		failSetWSDesc(AUSER, wsi, "foo", new WorkspaceAuthorizationException(
+				"User a may not set description on workspace lt"));
+		failSetWSDesc(null, wsi, "foo", new WorkspaceAuthorizationException(
+				"Anonymous users may not set description on workspace lt"));
+		ws.setPermissions(SOMEUSER, wsi, Arrays.asList(AUSER), Permission.WRITE);
+		failSetWSDesc(AUSER, wsi, "foo", new WorkspaceAuthorizationException(
+				"User a may not set description on workspace lt"));
+		ws.setPermissions(SOMEUSER, wsi, Arrays.asList(AUSER), Permission.ADMIN);
+		ws.setWorkspaceDescription(AUSER, wsi, "wooga");
+		assertThat("ws desc ok", ws.getWorkspaceDescription(SOMEUSER, wsi), is("wooga"));
+		
+		ws.setWorkspaceDeleted(SOMEUSER, wsi, true);
+		failSetWSDesc(SOMEUSER, wsi, "foo", new NoSuchWorkspaceException(
+				"Workspace lt is deleted", wsi));
+		ws.setWorkspaceDeleted(SOMEUSER, wsi, false);
+		failSetWSDesc(SOMEUSER, new WorkspaceIdentifier("ltfake"), "foo", new NoSuchWorkspaceException(
+				"No workspace with name ltfake exists", wsi));
+		
 		try {
 			ws.getWorkspaceDescription(BUSER, wsi);
 			fail("Got ws desc w/o read perms");
@@ -296,8 +333,26 @@ public class TestWorkspace {
 			ws.setPermissions(SOMEUSER, wsi, Arrays.asList(BUSER), p);
 			ws.getWorkspaceDescription(BUSER, wsi); //will fail if perms are wrong
 		}
+		
+		ws.lockWorkspace(SOMEUSER, wsi);
+		failSetWSDesc(SOMEUSER, wsi, "foo", new WorkspaceAuthorizationException(
+				"The workspace with id " + ltinfo.getId() + ", name lt, is locked and may not be modified"));
+	
 	}
 	
+	private void failSetWSDesc(WorkspaceUser user,
+			WorkspaceIdentifier wsi, String description,
+			Exception e) throws Exception {
+		try {
+			ws.setWorkspaceDescription(user, wsi, description);
+			fail("set ws desc when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
 	private void checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
 			String lockstate) throws Exception {

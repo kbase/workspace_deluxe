@@ -264,7 +264,6 @@ public class Workspace {
 		return description;
 	}
 
-	//TODO test
 	public void setWorkspaceDescription(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String description)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
