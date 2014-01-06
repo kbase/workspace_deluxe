@@ -9,6 +9,7 @@ ws-list	workspace
 ws-listobj	workspace
 ws-load	workspace
 ws-rename	workspace
+ws-share	workspace
 ws-typespec-list	workspace
 ws-typespec-register	workspace
 ws-url	workspace
