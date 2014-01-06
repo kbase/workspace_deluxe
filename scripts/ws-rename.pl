@@ -24,7 +24,7 @@ my ($opt, $usage) = describe_options(
 );
 if (defined($opt->{help})) {
 	print $usage;
-	exit 1;
+	exit 0;
 }
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {
