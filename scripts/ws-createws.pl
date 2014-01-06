@@ -12,10 +12,10 @@ use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client parseWorkspaceInfo);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = ["Workspace ID"];
+my $primaryArgs = ["Workspace Name"];
 my $servercommand = "create_workspace";
 my $translation = {
-	"Workspace ID" => "workspace",
+	"Workspace Name" => "workspace",
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(

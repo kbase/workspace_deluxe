@@ -10,7 +10,7 @@ use Getopt::Long::Descriptive;
 use Text::Table;
 use Bio::KBase::workspace::ScriptHelpers qw(workspace get_ws_client);
 #Defining globals describing behavior
-my $primaryArgs = ["New workspace"];
+my $primaryArgs = ["Workspace Name"];
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'kbws-workspace <'.join("> <",@{$primaryArgs}).'> %o',

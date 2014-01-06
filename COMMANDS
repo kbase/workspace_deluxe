@@ -5,6 +5,7 @@ ws-createws	workspace
 ws-delete	workspace
 ws-get	workspace
 ws-getsubset	workspace
+ws-history	workspace
 ws-list	workspace
 ws-listobj	workspace
 ws-load	workspace

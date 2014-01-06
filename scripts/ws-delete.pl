@@ -20,7 +20,7 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'kbws-delete <'.join("> <",@{$primaryArgs}).'> %o',
-    [ 'workspace|w:s', 'ID for workspace', {"default" => workspace()} ],
+    [ 'workspace|w:s', 'ID or Name of workspace', {"default" => workspace()} ],
     [ 'restore:s', 'Restore the specified deleted object', {"default" => workspace()} ],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]  
