@@ -3338,10 +3338,8 @@ public class TestWorkspace {
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("list1_2")), false);
 		checkWSInfoList(ws.listWorkspaces(newb, false, false), expected);
-		
-		//TODO read method
-		//TODO bad cases
-		
+		expected.clear();
+		checkWSInfoList(ws.listWorkspaces(newb, true, false), expected);
 	}
 
 	private void checkWSInfoList(List<WorkspaceInformation> ws,
