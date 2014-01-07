@@ -2158,7 +2158,6 @@ public class TestWorkspace {
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
 		WorkspaceInformation read2 = ws.listWorkspaces(foo, true, true).get(0);
-		System.out.println(ws.listWorkspaces(foo, true, true));
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -3313,10 +3312,14 @@ public class TestWorkspace {
 		checkWSInfoList(ws.listWorkspaces(user, true, false), expected);
 		
 		expected.put(wsinf2_3, false);
+		WorkspaceInformation locked = null;
 		try {
-			expected.put(ws.getWorkspaceInformation(user, lockWS), false);
+			locked = ws.getWorkspaceInformation(user, lockWS);
 		} catch (NoSuchWorkspaceException nswe) {
 			//ignore - means that the locking ws test has not been run yet
+		}
+		if (locked != null) {
+			expected.put(locked, false);
 		}
 		checkWSInfoList(ws.listWorkspaces(user, false, false), expected);
 		
@@ -3324,13 +3327,17 @@ public class TestWorkspace {
 		checkWSInfoList(ws.listWorkspaces(user, false, true), expected);
 		
 		expected.remove(wsinf2_3);
-		try {
-			expected.remove(ws.getWorkspaceInformation(user, lockWS));
-		} catch (NoSuchWorkspaceException nswe) {
-			//ignore - means that the locking ws test has not been run yet
-		}
+		expected.remove(locked);
 		checkWSInfoList(ws.listWorkspaces(user, true, true), expected);
 		
+		expected.clear();
+		expected.put(wsinf2_3, false);
+		if (locked != null) {
+			expected.put(locked, false);
+		}
+		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
+		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("list1_2")), false);
+		checkWSInfoList(ws.listWorkspaces(newb, false, false), expected);
 		
 		//TODO read method
 		//TODO bad cases
@@ -3345,10 +3352,16 @@ public class TestWorkspace {
 		}
 		Set<Long> got = new HashSet<Long>();
 		for (WorkspaceInformation wi: ws) {
-			if (got.contains(wi)) {
+			if (got.contains(wi.getId())) {
 				fail("Same workspace listed twice");
 			}
 			got.add(wi.getId());
+			if (!idToInf.containsKey(wi.getId())) {
+				System.out.println(expected);
+				System.out.println(ws);
+				System.out.println(got);
+				fail("got id " + wi.getId() + ", but not in expected");
+			}
 			if (!expected.get(idToInf.get(wi.getId()))) {
 				assertThat("workspace correct", wi, is(idToInf.get(wi.getId())));
 			} else {
