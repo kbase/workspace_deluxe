@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -19,11 +20,13 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-list %o',
-    [ 'deleted|d', 'List deleted workspaces',{"default"=>0}],
-    [ 'global|g', 'List globally readable workspaces',{"default"=>0}],
-    [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
+    [ 'deleted|d', 'Include deleted workspaces',{"default"=>0}],
+    [ 'global|g', 'Include globally readable workspaces',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+$usage = "\nNAME\n  ws-list -- list the workspaces to which you have access\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;

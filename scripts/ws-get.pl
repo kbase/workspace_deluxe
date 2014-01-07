@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -28,9 +29,11 @@ my ($opt, $usage) = describe_options(
     [ 'pretty|p', 'Pretty print the JSON object' ],
     [ 'prov', 'Only output provenance data instead (also given as a JSON object)' ],
     [ 'meta|m', 'Get object meta data instead of actual data' ],
-    [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+$usage = "\nNAME\n  ws-get -- get an object or its provenance/meta info\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
 	exit;

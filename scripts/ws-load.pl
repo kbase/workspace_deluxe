@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -17,10 +18,10 @@ foreach my $arg (@ARGV) {
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = ["Object type","Object ID","Filename or data"];
+my $primaryArgs = ["Object type","Object Name","Filename or data"];
 my $servercommand = "save_objects";
 my $translation = {
-	"Object ID" => "id",
+	"Object Name" => "id",
 	"Object type" => "type",
 	workspace => "workspace",
 	command => "command"
@@ -29,10 +30,18 @@ my $translation = {
 my ($opt, $usage) = describe_options(
     'ws-load <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w=s', 'Name of workspace', {"default" => workspace()} ],
-    [ 'metadata|m:s', 'Filename with metadata to associate with object' ],
-    [ 'showerror|e', 'Set as 1 to show any errors in execution',{"default"=>0}],
+    [ 'metadata|m:s', 'Filename with meta data to associate with the object' ],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+$usage = "\nNAME\n  ws-load -- load an object in JSON to a workspace\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    Load data in JSON format to a workspace.  If data is in a file, the filename\n";
+$usage .= "    should be provided.  Otherwise, data in JSON format can be entered directly into\n";
+$usage .= "    the command line.  If you want to set user meta data, the meta data should also\n";
+$usage .= "    be provided in JSON format as an object with string keys and string values. The\n";
+$usage .= "    meta data can be in a file or specified directly via the command line.\n";
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;
