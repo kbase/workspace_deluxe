@@ -3092,6 +3092,7 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameWS2");
 		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null);
 		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
+		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
 		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
 		assertTrue("date updated on ws rename", info2.getModDate().after(info1.getModDate()));
