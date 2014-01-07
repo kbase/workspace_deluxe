@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -22,9 +23,11 @@ my ($opt, $usage) = describe_options(
     'ws-delete <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w:s', 'ID or Name of workspace', {"default" => workspace()} ],
     [ 'restore', 'Restore the specified deleted object', {"default" => 0} ],
-    [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]  
 );
+$usage = "\nNAME\n  ws-delete -- delete/undelete an object\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
 	exit;

@@ -50,7 +50,7 @@ sub new
     
     if (!defined($url))
     {
-	$url = 'http://kbase.us/services/workspace/';
+	$url = 'http://kbase.us/services/ws/';
     }
 
     my $self = {

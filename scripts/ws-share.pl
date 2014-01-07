@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -27,9 +28,15 @@ my ($opt, $usage) = describe_options(
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>''}],
     [ 'users|u=s', "Set permissions for these users (';' delimited)",{"default"=>''}],
     [ 'perm|p=s', "The permission to set for the given users, default if not set is read only (a=admin,w=write/read,r=read,n=none)",{"default"=>'r'}],
-    [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+$usage = "\nNAME\n  ws-share -- view/manage permissions to a workspace\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    Run without options, this command displays permissions for a workspace.\n";
+$usage .= "    With options, you can share a workspace or change permissions if you have\n";
+$usage .= "    administrator rights to that workspace.\n";
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;

@@ -60,6 +60,7 @@ import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.lib.Workspace;
+//END_HEADER
 
 /**
  * <p>Original spec-file module name: Workspace</p>

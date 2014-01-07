@@ -15,4 +15,6 @@ public interface WorkspaceInformation {
 	public boolean isGloballyReadable();
 	public boolean isLocked();
 	public String getLockState();
+	public boolean equals(Object obj);
+	public int hashCode();
 }

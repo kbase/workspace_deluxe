@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -16,6 +17,12 @@ my ($opt, $usage) = describe_options(
     'ws-workspace <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'help|h|?', 'Print this usage information' ],
 );
+$usage = "\nNAME\n  ws-workspace -- view/set the default workspace used by WS commands\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    Workspace commands will attempt to perform operations in the Workspace with the name\n";
+$usage .= "    set by this command.  Most Workspace commands allow you to override this default by\n";
+$usage .= "    setting a \"--workspace\" flag.\n";
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;

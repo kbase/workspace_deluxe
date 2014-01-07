@@ -487,14 +487,23 @@ public class TestMongoInternals {
 		Date revert = getDate(wsid, 2);
 		ws.renameObject(userfoo, copyobj, "foobar");
 		Date rename = getDate(wsid, 2);
+		ObjectIdentifier foobar = new ObjectIdentifier(dates, "foobar");
+		ws.setObjectsDeleted(userfoo, Arrays.asList(foobar), true);
+		Date delete = getDate(wsid, 2);
+		ws.setObjectsDeleted(userfoo, Arrays.asList(foobar), false);
+		Date undelete = getDate(wsid, 2);
 		
 		assertTrue("copy date after orig", orig.before(copy));
 		assertTrue("rev date after copy", copy.before(revert));
 		assertTrue("ren date after rev", revert.before(rename));
+		assertTrue("del date after ren", rename.before(delete));
+		assertTrue("undel date after del", delete.before(undelete));
 		assertDateisRecent(orig);
 		assertDateisRecent(copy);
 		assertDateisRecent(revert);
 		assertDateisRecent(rename);
+		assertDateisRecent(delete);
+		assertDateisRecent(undelete);
 	}
 
 	private Date getDate(long wsid, int id) {
