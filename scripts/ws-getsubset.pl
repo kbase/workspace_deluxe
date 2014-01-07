@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -26,24 +27,30 @@ my ($opt, $usage) = describe_options(
     [ 'workspace|w:s', 'Workspace name or ID', {"default" => workspace()} ],
     [ 'version|v:i', 'Get object with this version number' ],
     [ 'pretty|p', 'Pretty print the JSON object' ],
-    [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+
+$usage = "\nNAME\n  ws-getsubset -- get a subset of a data object\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "  Get an object with only a subset of the object populated.  The subset is\n";
+$usage .= "  specified by providing the path in the object to the sub data requested.\n";
+$usage .= "\n  Syntax of subset path:\n";
+$usage .= "    Identify a sub portion of an object by providing the path, delimited by\n";
+$usage .= "    a slash (/), to that portion of the object. Thus the path may not have\n";
+$usage .= "    slashes in the structure or mapping keys. For this command only, multple\n";
+$usage .= "    paths may be given if delimited by a semicolon (;). Examples:\n";
+$usage .= "       /foo/bar/3 - specifies the bar key of the foo mapping and the 3rd\n";
+$usage .= "                    entry of the array if bar maps to an array or the value mapped to\n";
+$usage .= "                    the string \"3\" if bar maps to a map.\n";
+$usage .= "      /foo/bar/[*]/baz - specifies the baz field of all the objects in the\n";
+$usage .= "                         list mapped by the bar key in the map foo.\n";
+$usage .= "      /foo/*/baz - specifies the baz field of all the objects in the\n";
+$usage .= "                   values of the foo mapping.\n\n";
+
 if (defined($opt->{help})) {
-	print $usage."\n";
-	print "  Syntax of subset path:\n";
-	print "    Identify a sub portion of an object by providing the path, delimited by\n";
-	print "    a slash (/), to that portion of the object. Thus the path may not have\n";
-	print "    slashes in the structure or mapping keys. For this command only, multple\n";
-	print "    paths may be given if delimited by a semicolon (;). Examples:\n";
-	print "       /foo/bar/3 - specifies the bar key of the foo mapping and the 3rd\n";
-	print "                    entry of the array if bar maps to an array or the value mapped to\n";
-	print "                    the string \"3\" if bar maps to a map.\n";
-	print "      /foo/bar/[*]/baz - specifies the baz field of all the objects in the\n";
-	print "                         list mapped by the bar key in the map foo.\n";
-	print "      /foo/*/baz - specifies the baz field of all the objects in the\n";
-	print "                   values of the foo mapping.\n\n";
-	exit;
+	print $usage;
+	exit 0;
 }
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {

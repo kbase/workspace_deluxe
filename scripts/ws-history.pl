@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -22,9 +23,11 @@ my $translation = {
 my ($opt, $usage) = describe_options(
     'ws-history <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w=s', 'ID or Name of the workspace to use', {"default" => workspace()} ],
-    [ 'showerror|e', 'show any errors in execution',{"default"=>0}],
+    [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
+$usage = "\nNAME\n  ws-history -- list the version history of an object\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;

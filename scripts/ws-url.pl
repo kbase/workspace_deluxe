@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 ########################################################################
-# Authors: Christopher Henry, Scott Devoid, Paul Frybarger
+# adpated for WS 0.1.0+ by Michael Sneddon, LBL
+# Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
 # Contact email: chenry@mcs.anl.gov
 # Development location: Mathematics and Computer Science Division, Argonne National Lab
 ########################################################################
@@ -16,6 +17,12 @@ my ($opt, $usage) = describe_options(
     'ws-url <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'help|h|?', 'Print this usage information' ],
 );
+$usage = "\nNAME\n  ws-url -- view/set the URL of the workspace service used by WS commands\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    The Workspace commands connect to a remote Workspace service.  This command sets the\n";
+$usage .= "    URL endpoint used by the other Workspace commands.  To reset to the default production\n";
+$usage .= "    url, run the command: \"ws-url default\"\n";
+$usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
     exit;
