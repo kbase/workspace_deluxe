@@ -63,7 +63,6 @@ import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.RenameWorkspaceParams;
-import us.kbase.workspace.SaveObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -998,19 +997,19 @@ public class JSONRPCLayerTest {
 		meta2.put("meta2", "my hovercraft is full of eels");
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj1 =
-				CLIENT1.saveObject(new SaveObjectParams().withId("obj1")
+				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj1")
 				.withMetadata(meta).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)));
 		System.out.println(obj1);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj2 =
-				CLIENT1.saveObject(new SaveObjectParams().withId("obj2")
+				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj2")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data2)));
 		System.out.println(obj2);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
-				CLIENT1.saveObject(new SaveObjectParams().withId("obj3")
+				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
 		System.out.println(obj3);
@@ -1029,18 +1028,18 @@ public class JSONRPCLayerTest {
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
 				23, meta2, data);
 		
-		failDepSaveObject(new SaveObjectParams().withId("obj3")
+		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString() + "a"),
 				"Token is invalid");
-		failDepSaveObject(new SaveObjectParams().withId("obj3")
+		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth("borkborkbork"),
 				"Auth token is in the incorrect format, near 'borkborkbork'");
 	}
 	
 	@SuppressWarnings("deprecation")
-	private void failDepSaveObject(SaveObjectParams sop, String exp)
+	private void failDepSaveObject(us.kbase.workspace.SaveObjectParams sop, String exp)
 			throws Exception {
 		try {
 			CLIENT1.saveObject(sop);
