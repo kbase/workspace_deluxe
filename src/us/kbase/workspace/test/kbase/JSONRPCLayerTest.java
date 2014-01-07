@@ -227,6 +227,12 @@ public class JSONRPCLayerTest {
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Collections.<String>emptyList()));
 		clientForSrv2.releaseModule("DepModule");
+		clientForSrv2.requestModuleOwnership("UnreleasedModule");
+		administerCommand(clientForSrv2, "approveModRequest", "module", "UnreleasedModule");
+		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc() returns ();};")
+			.withNewTypes(Arrays.asList("AType")));
 		CLIENT_FOR_SRV2 = clientForSrv2;
 		System.out.println("Starting tests");
 	}
@@ -1838,6 +1844,25 @@ public class JSONRPCLayerTest {
 		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
 		Assert.assertEquals(1, md52semantic.size());
 		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
+	}
+	
+	@Test
+	public void testGetInfo() throws Exception {
+		WorkspaceClient cl = new WorkspaceClient(new URL("http://localhost:" + 
+				SERVER2.getServerPort()));
+		String module = "UnreleasedModule";
+		try {
+			cl.getModuleInfo(new GetModuleInfoParams().withMod(module));
+			Assert.fail();
+		} catch (Exception ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: UnreleasedModule"));
+		}
+		cl = new WorkspaceClient(new URL("http://localhost:" + 
+				SERVER2.getServerPort()), AUTH_USER2.getToken());
+		cl.setAuthAllowedForHttp(true);
+		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
+		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
+		System.out.println(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)));
 	}
 	
 	@Test
