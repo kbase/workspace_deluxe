@@ -368,11 +368,11 @@ public class TestWorkspace {
 		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate);
 		assertThat("ws id correct", info.getId(), is(id));
 		assertThat("ws mod date correct", info.getModDate(), is(moddate));
-		assertDateisRecent(info.getModDate());
 	}
 	
 	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, String lockstate) {
+		assertDateisRecent(info.getModDate());
 		assertThat("ws owner correct", info.getOwner(), is(owner));
 		assertThat("ws name correct", info.getName(), is(name));
 		assertThat("ws max obj correct", info.getApproximateObjects(), is(objs));
@@ -2062,7 +2062,7 @@ public class TestWorkspace {
 	
 	@Test
 	public void deleteUndelete() throws Exception {
-		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceUser foo = new WorkspaceUser("deleteundelete");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
 		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
 		Map<String, String> data1 = new HashMap<String, String>();
@@ -2155,7 +2155,10 @@ public class TestWorkspace {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("User bar may not delete workspace deleteundelete"));
 		}
+		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
+		WorkspaceInformation read2 = ws.listWorkspaces(foo, true, true).get(0);
+		System.out.println(ws.listWorkspaces(foo, true, true));
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -2214,6 +2217,7 @@ public class TestWorkspace {
 					is(o1));
 		}
 		ws.setWorkspaceDeleted(foo, read, false);
+		WorkspaceInformation read3 = ws.getWorkspaceInformation(foo, read);
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
@@ -2221,8 +2225,8 @@ public class TestWorkspace {
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		
-		
-		//TODO check dates
+		assertTrue("date changed on delete", read1.getModDate().before(read2.getModDate()));
+		assertTrue("date changed on undelete", read2.getModDate().before(read3.getModDate()));
 	}
 
 	private void checkNonDeletedObjs(WorkspaceUser foo,
@@ -3203,7 +3207,6 @@ public class TestWorkspace {
 		ObjectInformation auto1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE, null,
 				new Provenance(user), false))).get(0);
-		System.out.println(auto1);
 		ObjectInformation auto2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE, null,
 				new Provenance(user), true))).get(0);
@@ -3281,8 +3284,6 @@ public class TestWorkspace {
 	
 	@Test
 	public void listWorkspaces() throws Exception {
-		//TODO list deleted (owner only), exclude global
-		
 		WorkspaceUser user = new WorkspaceUser("listUser");
 		WorkspaceUser user2 = new WorkspaceUser("listUser2");
 		WorkspaceInformation wsinf1_1 = ws.createWorkspace(user, "list1_1", false, null);
