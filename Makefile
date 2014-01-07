@@ -3,6 +3,7 @@ SERVICE = workspace
 SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
+URL = http://kbase.us/services/ws/
 
 THREADPOOL_SIZE = 20
 MEMORY = 10000
@@ -76,7 +77,7 @@ compile-java-client:
 	$(ANT) compile_client
 
 compile-typespec-java:
-	gen_java_types -S -o . -u http://kbase.us/services/$(SERVICE)/ $(SERVICE).spec
+	gen_java_types -S -o . -u $(URL) $(SERVICE).spec
 	-rm lib/*.jar
 
 compile-typespec:
@@ -88,7 +89,7 @@ compile-typespec:
 		--client Bio::KBase::$(SERVICE)::Client \
 		--py biokbase.$(SERVICE).client \
 		--js javascript/$(SERVICE)/Client \
-		--url http://kbase.us/services/$(SERVICE)/ \
+		--url $(URL) \
 		$(SERVICE).spec lib
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
