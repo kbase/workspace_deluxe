@@ -112,7 +112,7 @@ $params->{provenance} = [ $PA ];
 #Calling the server
 my $output;
 if ($opt->{showerror} == 0){
-	use Data::Dumper; print Dumper($params)."\n";
+	#use Data::Dumper; print Dumper($params)."\n";
 	eval { $output = $serv->$servercommand($params); };
 	if($@) {
 		print "Object could not be saved!\n";
