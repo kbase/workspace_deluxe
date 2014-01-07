@@ -29,9 +29,6 @@ public class TypeData {
 	@JsonIgnore
 	private JsonNode data = null;
 	
-	@JsonIgnore
-	private TypeDefId majtype = null;
-	
 	//these attributes are actually saved in mongo
 	private String type = null;
 	private String chksum;
@@ -51,9 +48,13 @@ public class TypeData {
 			throw new RuntimeException("MD5 types are not accepted");
 		}
 		this.data = data;
-		this.majtype = new TypeDefId(type.getType(), type.getMajorVersion());
-		this.type = type.getTypeString(); //type.getType().getTypeString() +
-//				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
+		/* Only the major type is stored here since different minor versions
+		 * of the same type can have the same checksum, and there's no reason
+		 * to store identical subdata twice. Knowing the exact type is not
+		 * necessary for the subdata.
+		 */
+		this.type = type.getType().getTypeString() +
+				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
 		try {
@@ -73,8 +74,7 @@ public class TypeData {
 	}
 	
 	public String getTypeCollection() {
-		return TYPE_COL_PREFIX + DigestUtils.md5Hex(
-				this.majtype.getTypeString());
+		return TYPE_COL_PREFIX + DigestUtils.md5Hex(this.type);
 	}
 	
 	public static String getTypeCollection(final TypeDefId type) {
@@ -97,8 +97,8 @@ public class TypeData {
 		return data;
 	}
 	
-	public TypeDefId getMajorType() {
-		return majtype;
+	public TypeDefId getType() {
+		return TypeDefId.fromTypeString(type);
 	}
 	
 	public String getChksum() {
