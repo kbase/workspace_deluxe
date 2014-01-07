@@ -470,6 +470,8 @@ public class TestMongoInternals {
 	
 	@Test
 	public void dates() throws Exception {
+		//TODO delete and undelete workspace
+		//TODO delete and undelete object
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		WorkspaceIdentifier dates = new WorkspaceIdentifier("dates");
 		long wsid = ws.createWorkspace(userfoo, dates.getName(), false, null).getId();

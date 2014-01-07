@@ -112,6 +112,8 @@ public class TestWorkspace {
 	public static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	public static final AllUsers STARUSER = new AllUsers('*');
 	
+	public static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
+	
 	public static final TypeDefId SAFE_TYPE =
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 
@@ -415,6 +417,8 @@ public class TestWorkspace {
 		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
 		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
+		
+		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
 	}
 	
 	@Test
@@ -657,6 +661,8 @@ public class TestWorkspace {
 		expect.remove(CUSER);
 		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		
+		ws.setGlobalPermission(AUSER, new WorkspaceIdentifier("perms_global"), Permission.NONE);
 	}
 	
 	private void checkObjInfo(ObjectInformation info, long id,
@@ -854,6 +860,8 @@ public class TestWorkspace {
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
+		
+		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 	
 	@Test
@@ -2213,6 +2221,8 @@ public class TestWorkspace {
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		
+		
+		//TODO check dates
 	}
 
 	private void checkNonDeletedObjs(WorkspaceUser foo,
@@ -2825,6 +2835,9 @@ public class TestWorkspace {
 		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
 		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
+		
+		ws.setGlobalPermission(user1, clone2, Permission.NONE);
+		ws.setGlobalPermission(user1, clone4, Permission.NONE);
 	}
 
 	private void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
@@ -2843,7 +2856,7 @@ public class TestWorkspace {
 	public void lockWorkspace() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("lockuser");
 		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
-		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lock");
+		WorkspaceIdentifier wsi = lockWS;
 		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE, null,
@@ -3150,9 +3163,11 @@ public class TestWorkspace {
 		ws.lockWorkspace(user, wsi);
 		failSetGlobalPerm(user, wsi, Permission.NONE, new WorkspaceAuthorizationException(
 				"The workspace with id " + wsid + ", name global, is locked and may not be modified"));
-		ws.setGlobalPermission(user, wsi, Permission.READ);
-		assertThat("read set correctly on locked ws", ws.getPermissions(user, wsi).get(new AllUsers('*')),
-			is(Permission.READ));
+		
+		//this is tested in lockWorkspace
+//		ws.setGlobalPermission(user, wsi, Permission.READ);
+//		assertThat("read set correctly on locked ws", ws.getPermissions(user, wsi).get(new AllUsers('*')),
+//			is(Permission.READ));
 	}
 	
 	private void failGetWorkspaceDesc(WorkspaceUser user, WorkspaceIdentifier wsi,
@@ -3262,5 +3277,96 @@ public class TestWorkspace {
 			assertThat("object info for id " + oid + " correct", oi, is(expected.get(oid)));
 		}
 		assertThat("checked all objects", seen, is(expected.keySet()));
+	}
+	
+	@Test
+	public void listWorkspaces() throws Exception {
+		//TODO list deleted (owner only), exclude global
+		
+		WorkspaceUser user = new WorkspaceUser("listUser");
+		WorkspaceUser user2 = new WorkspaceUser("listUser2");
+		WorkspaceInformation wsinf1_1 = ws.createWorkspace(user, "list1_1", false, null);
+		WorkspaceInformation wsinf1_2 = ws.createWorkspace(user, "list1_2", true, null);
+		WorkspaceInformation wsinf1_3 = ws.createWorkspace(user, "list1_3", false, null);
+		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("list1_3"), true);
+		
+		ws.createWorkspace(user2, "list2_1", false, null);
+		ws.setPermissions(user2, new WorkspaceIdentifier("list2_1"), Arrays.asList(user), Permission.READ);
+		WorkspaceInformation wsinf2_1 = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("list2_1"));
+		@SuppressWarnings("unused")
+		WorkspaceInformation wsinf2_2 = ws.createWorkspace(user2, "list2_2", false, null);
+		ws.setPermissions(user2, new WorkspaceIdentifier("list2_2"), Arrays.asList(user), Permission.READ);
+		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("list2_2"), true);
+		ws.createWorkspace(user2, "list2_3", true, null);
+		WorkspaceInformation wsinf2_3 = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("list2_3"));
+		@SuppressWarnings("unused")
+		WorkspaceInformation wsinf2_4 = ws.createWorkspace(user2, "list2_4", true, null);
+		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("list2_4"), true);
+		@SuppressWarnings("unused")
+		WorkspaceInformation wsinf2_5 = ws.createWorkspace(user2, "list2_5", false, null);
+		
+		Map<WorkspaceInformation, Boolean> expected = new HashMap<WorkspaceInformation, Boolean>();
+		expected.put(wsinf1_1, false);
+		expected.put(wsinf1_2, false);
+		expected.put(wsinf2_1, false);
+		checkWSInfoList(ws.listWorkspaces(user, true, false), expected);
+		
+		expected.put(wsinf2_3, false);
+		try {
+			expected.put(ws.getWorkspaceInformation(user, lockWS), false);
+		} catch (NoSuchWorkspaceException nswe) {
+			//ignore - means that the locking ws test has not been run yet
+		}
+		checkWSInfoList(ws.listWorkspaces(user, false, false), expected);
+		
+		expected.put(wsinf1_3, true);
+		checkWSInfoList(ws.listWorkspaces(user, false, true), expected);
+		
+		expected.remove(wsinf2_3);
+		try {
+			expected.remove(ws.getWorkspaceInformation(user, lockWS));
+		} catch (NoSuchWorkspaceException nswe) {
+			//ignore - means that the locking ws test has not been run yet
+		}
+		checkWSInfoList(ws.listWorkspaces(user, true, true), expected);
+		
+		
+		//TODO read method
+		//TODO bad cases
+		
+	}
+
+	private void checkWSInfoList(List<WorkspaceInformation> ws,
+			Map<WorkspaceInformation, Boolean> expected) {
+		Map<Long, WorkspaceInformation> idToInf = new HashMap<Long, WorkspaceInformation>();
+		for (WorkspaceInformation wi: expected.keySet()) {
+			idToInf.put(wi.getId(), wi);
+		}
+		Set<Long> got = new HashSet<Long>();
+		for (WorkspaceInformation wi: ws) {
+			if (got.contains(wi)) {
+				fail("Same workspace listed twice");
+			}
+			got.add(wi.getId());
+			if (!expected.get(idToInf.get(wi.getId()))) {
+				assertThat("workspace correct", wi, is(idToInf.get(wi.getId())));
+			} else {
+				compareWorkspaceInfoLessTimeStamp(wi, idToInf.get(wi.getId()));
+			}
+		}
+		assertThat("listed correct workspaces", got, is(idToInf.keySet()));
+	}
+
+	private void compareWorkspaceInfoLessTimeStamp(WorkspaceInformation got,
+			WorkspaceInformation expected) {
+		assertThat("ws id correct", got.getId(), is(expected.getId()));
+		assertDateisRecent(got.getModDate());
+		assertThat("ws owner correct", got.getOwner(), is(expected.getOwner()));
+		assertThat("ws name correct", got.getName(), is(expected.getName()));
+		assertThat("ws max obj correct", got.getApproximateObjects(), is(expected.getApproximateObjects()));
+		assertThat("ws permissions correct", got.getUserPermission(), is(expected.getUserPermission()));
+		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
+		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));
+		
 	}
 }
