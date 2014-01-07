@@ -73,7 +73,6 @@ public class TypeData {
 	}
 	
 	public String getTypeCollection() {
-		
 		return TYPE_COL_PREFIX + DigestUtils.md5Hex(
 				this.majtype.getTypeString());
 	}

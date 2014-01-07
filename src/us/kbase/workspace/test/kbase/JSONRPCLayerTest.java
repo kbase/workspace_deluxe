@@ -37,11 +37,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthService;
-import us.kbase.auth.AuthToken;
+import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
+import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
@@ -62,6 +63,7 @@ import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.RenameWorkspaceParams;
+import us.kbase.workspace.SaveObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -85,13 +87,15 @@ public class JSONRPCLayerTest {
 	
 	private static WorkspaceServer SERVER1 = null;
 	private static WorkspaceClient CLIENT1 = null;
-	private static String USER3 = null;
-	private static String USER1 = null;
 	private static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
+	private static String USER1 = null;
 	private static String USER2 = null;
-	private static WorkspaceClient CLIENT_NO_AUTH = null;
+	private static String USER3 = null;
+	private static AuthUser AUTH_USER1 = null;
+	private static AuthUser AUTH_USER2 = null;
 	private static WorkspaceServer SERVER2 = null;
 	private static WorkspaceClient CLIENT_FOR_SRV2 = null;  // This client connects to SERVER2
+	private static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	private static SimpleDateFormat DATE_FORMAT =
 			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
@@ -175,8 +179,9 @@ public class JSONRPCLayerTest {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AuthToken t = AuthService.login(USER1, p1).getToken();
-		if (!AuthService.isValidUserName(Arrays.asList(USER3), t)
+		AUTH_USER1 = AuthService.login(USER1, p1);
+		AUTH_USER2 = AuthService.login(USER2, p2);
+		if (!AuthService.isValidUserName(Arrays.asList(USER3), AUTH_USER1.getToken())
 				.containsKey(USER3)) {
 			throw new TestException(USER3 + " is not a valid kbase user");
 		}
@@ -969,10 +974,83 @@ public class JSONRPCLayerTest {
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object version must be > 0");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
-		
-		
 	}
 	
+	@SuppressWarnings("deprecation")
+	@Test
+	public void deprecated_saveObject() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
+		long wsid = CLIENT1.getWorkspaceInfo(
+				new WorkspaceIdentity().withWorkspace("depsave")).getE1();
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("depsave")
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		
+		//save some objects to get
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> data2 = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		data2.put("fubar2", moredata);
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		
+		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj1 =
+				CLIENT1.saveObject(new SaveObjectParams().withId("obj1")
+				.withMetadata(meta).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withData(new UObject(data)));
+		System.out.println(obj1);
+		
+		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj2 =
+				CLIENT1.saveObject(new SaveObjectParams().withId("obj2")
+				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withData(new UObject(data2)));
+		System.out.println(obj2);
+		
+		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
+				CLIENT1.saveObject(new SaveObjectParams().withId("obj3")
+				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
+		System.out.println(obj3);
+		
+		checkDeprecatedSaveInfo(obj1, 1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta);
+		checkDeprecatedSaveInfo(obj2, 2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
+		checkDeprecatedSaveInfo(obj3, 3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta2);
+		
+		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(1L)),
+				1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
+				23, meta, data);
+		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(2L)),
+				2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
+				24, meta2, data2);
+		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(3L)),
+				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
+				23, meta2, data);
+		
+		failDepSaveObject(new SaveObjectParams().withId("obj3")
+				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString() + "a"),
+				"Token is invalid");
+		failDepSaveObject(new SaveObjectParams().withId("obj3")
+				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withData(new UObject(data)).withAuth("borkborkbork"),
+				"Auth token is in the incorrect format, near 'borkborkbork'");
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void failDepSaveObject(SaveObjectParams sop, String exp)
+			throws Exception {
+		try {
+			CLIENT1.saveObject(sop);
+			fail("hide obj with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
 	private void getObjectWBadParams(List<ObjectIdentity> loi, String exception)
 			throws Exception {
 		try {
@@ -1051,6 +1129,26 @@ public class JSONRPCLayerTest {
 		assertThat("chksum is correct", infousermeta.getE9(), is(chksum));
 		assertThat("size is correct", infousermeta.getE10(), is(size));
 		assertThat("meta is correct", infousermeta.getE11(), is(meta));
+	}
+	
+	private void checkDeprecatedSaveInfo(
+			Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> info,
+			long id, String name, String type, int ver, String user,
+			long wsid, String wsname, String chksum,
+			Map<String, String> meta) throws Exception {
+		assertThat("name is correct", info.getE1(), is(name));
+		assertThat("type is correct", info.getE2(), is(type));
+		DATE_FORMAT.parse(info.getE3()); //should throw error if bad format
+		assertThat("version is correct", (int) info.getE4().longValue(), is(ver));
+		assertThat("command is correct", info.getE5(), is(""));
+		assertThat("last modifier is correct", info.getE6(), is(user));
+		assertThat("owner is correct", info.getE7(), is(user));
+		assertThat("ws name is correct", info.getE8(), is(wsname));
+		assertThat("ref is correct", info.getE9(), is(""));
+		assertThat("chksum is correct", info.getE10(), is(chksum));
+		assertThat("meta is correct", info.getE11(), is(meta));
+		assertThat("id is correct", info.getE12(), is(id));
+		
 	}
 	
 	@Test
