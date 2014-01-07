@@ -26,7 +26,7 @@ my ($opt, $usage) = describe_options(
     [ 'workspace|w:s', 'Workspace name or ID', {"default" => workspace()} ],
     [ 'version|v:i', 'Get object with this version number' ],
     [ 'pretty|p', 'Pretty print the JSON object' ],
-    [ 'prov', 'Get provenance data in addition (output as second json object)' ],
+    [ 'prov', 'Only output provenance data instead (also given as a JSON object)' ],
     [ 'meta|m', 'Get object meta data instead of actual data' ],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
@@ -97,23 +97,15 @@ if (defined($opt->{meta})) {
 	#Checking output and report results
 	if (scalar(@$output)>0) {
 		foreach my $object (@$output) {
-			if (defined($object->{data})) {
-				if (ref($object->{data})) {
+			if (defined($opt->{"prov"})) {
+				print to_json( {"provenance"=>$object->{provenance}}, { utf8 => 1, pretty => $opt->{pretty} } )."\n";
+			} else {
+				if (defined($object->{data})) {
 					print to_json( $object->{data}, { utf8 => 1, pretty => $opt->{pretty} } )."\n";
 				} else {
-					print $object->{data}."\n";
-				}
-			} else {
-				print "No data retrieved!\n";
-			}
-			if (defined($opt->{prov})) {
-				if (ref($object->{data})) {
-					print to_json( $object->{provenance}, { utf8 => 1, pretty => $opt->{pretty} } )."\n";
-				} else {
-					print $object->{provenance}."\n";
+					print "No data retrieved!\n";
 				}
 			}
-			
 		}
 	} else {
 		print "No data retrieved!\n";
