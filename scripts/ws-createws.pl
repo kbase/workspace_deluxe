@@ -23,7 +23,6 @@ my ($opt, $usage) = describe_options(
     [ 'description|d=s', 'Workspace description (1000 characters max)',{"default"=>''}],
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>'n'}],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
-    [ 'verbose|v', 'Print verbose messages' ],
     [ 'help|h|?', 'Print this usage information' ],
 );
 if (defined($opt->{help})) {

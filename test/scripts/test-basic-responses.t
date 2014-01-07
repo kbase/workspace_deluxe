@@ -21,6 +21,7 @@ my $commandNames = [
     "ws-copy",
     "ws-createws",
     "ws-delete",
+    "ws-deletews",
     "ws-get",
     "ws-getsubset",
     "ws-history",

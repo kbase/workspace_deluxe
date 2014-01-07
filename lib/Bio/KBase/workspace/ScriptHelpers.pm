@@ -7,7 +7,7 @@ use Exporter;
 use Config::Simple;
 use Data::Dumper;
 use parent qw(Exporter);
-our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta);
+our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta parseObjectInfo printObjectInfo);
 
 our $defaultURL = "https://kbase.us/services/workspace";
 our $localhostURL = "http://127.0.0.1:7058";
@@ -167,6 +167,51 @@ sub printObjectMeta {
 		}
 	}
 }
+
+
+sub parseObjectInfo {
+	my $object = shift;
+	my $hash = {
+		id => $object->[0],
+		name => $object->[1],
+		type => $object->[2],
+		save_date => $object->[3],
+		version => $object->[4],
+		saved_by => $object->[5],
+		wsid => $object->[6],
+		workspace => $object->[7],
+		chsum => $object->[8],
+		size => $object->[9],
+		metadata => $object->[10]
+	};
+	return $hash;
+}
+
+sub printObjectInfo {
+	my $meta = shift;
+	my $obj = parseObjectInfo($meta);
+	print "Object Name: ".$obj->{name}."\n";
+	print "Object ID: ".$obj->{id}."\n";
+	print "Type: ".$obj->{type}."\n";
+	print "Version: ".$obj->{version}."\n";
+	print "Workspace: ".$obj->{workspace}."\n";
+	print "Save Date: ".$obj->{save_date}."\n";
+	print "Saved by: ".$obj->{saved_by}."\n";
+	print "Checksum: ".$obj->{chsum}."\n";
+	print "Size(bytes): ".$obj->{size}."\n";
+	print "User Meta Data: ";
+	if (defined($obj->{metadata})) {
+		if (scalar(keys(%{$obj->{metadata}}))>0) { print "\n"; }
+		else { print " none.\n"; }
+		foreach my $key (keys(%{$obj->{metadata}})) {
+			print "  ".$key.": ".$obj->{metadata}->{$key}."\n";
+		}
+	} else {
+		print "none.\n";
+	}
+}
+
+
 
 sub parseWorkspaceInfo {
 	my $object = shift;

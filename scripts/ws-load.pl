@@ -10,6 +10,11 @@ use Getopt::Long::Descriptive;
 use Text::Table;
 use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta printObjectMeta parseWorkspaceMeta);
 
+my $fullCommand = "ws-load ";
+foreach my $arg (@ARGV) {
+	$fullCommand .= " ".$arg;
+}
+
 my $serv = get_ws_client();
 #Defining globals describing behavior
 my $primaryArgs = ["Object type","Object ID","Filename or data"];
@@ -17,7 +22,6 @@ my $servercommand = "save_object";
 my $translation = {
 	"Object ID" => "id",
 	"Object type" => "type",
-    compressed => "compressed",
     workspace => "workspace",
     command => "command"
 };
@@ -26,7 +30,6 @@ my ($opt, $usage) = describe_options(
     'ws-load <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'workspace|w=s', 'Name of workspace', {"default" => workspace()} ],
     [ 'metadata|m:s', 'Filename with metadata to associate with object' ],
-    [ 'compressed|c', 'Uploaded data will be compressed' , {"default" => 0} ],
     [ 'showerror|e', 'Set as 1 to show any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
@@ -34,7 +37,7 @@ if (defined($opt->{help})) {
 	print $usage;
     exit;
 }
-$opt->{command} = "kb_load";
+
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
@@ -64,9 +67,6 @@ if (-e $opt->{"Filename or data"}) {
     close($fh);
 } else {
 	$params->{data} = $opt->{"Filename or data"};
-	#if ($opt->{"Filename, data, or URL"} =~ /^http\:/) {
-	#	$params->{retrieveFromURL} = 1;
-	#}
 }
 
 # parse object as json
@@ -91,10 +91,28 @@ if (defined($opt->{metadata})) {
 	} else {
 		$params->{metadata} = $opt->{metadata};
 	}
+	eval {
+		$params->{metadata} = $json_parser->decode($params->{metadata});
+	};
+	if($@) {
+		print "Object could not be saved!  Meta data was not a valid JSON document!\n";
+		print STDERR $@."\n";
+		exit 1;
+	}
 }
+
+# set provenance info
+my $PA = {
+		"script"=>"ws-load",
+		"script_ver"=>"v0.1.0",
+		"script_command_line"=>$fullCommand
+	  };
+$params->{provenance} = [ $PA ];
+
 #Calling the server
 my $output;
 if ($opt->{showerror} == 0){
+	use Data::Dumper; print Dumper($params)."\n";
 	eval { $output = $serv->$servercommand($params); };
 	if($@) {
 		print "Object could not be saved!\n";

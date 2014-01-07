@@ -8,51 +8,50 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client parseWorkspaceInfo);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = ["Object ID or Name"];
+my $primaryArgs = ["Workspace Name"];
 my $translation = {
-	"Object ID or Name" => "id",
-	workspace => "workspace"
+	"Workspace Name" => "workspace",
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'ws-delete <'.join("> <",@{$primaryArgs}).'> %o',
-    [ 'workspace|w:s', 'ID or Name of workspace', {"default" => workspace()} ],
-    [ 'restore', 'Restore the specified deleted object', {"default" => 0} ],
+    'ws-deletews <'.join("> <",@{$primaryArgs}).'> %o',
+    [ 'restore', 'Restore the specified workspace', {"default" => 0} ],
     [ 'showerror|e', 'Show any errors in execution',{"default"=>0}],
-    [ 'help|h|?', 'Print this usage information' ]  
+    [ 'help|h|?', 'Print this usage information' ],
 );
 if (defined($opt->{help})) {
 	print $usage;
-	exit;
+	exit 0;
 }
 #Processing primary arguments
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
 		print $usage;
-		exit 1;
+		exit 0;
 	}
 }
 #Instantiating parameters
-my $versionString='';
-if (defined($opt->{version})) {
-	$versionString="/".$opt->{version};
+my $params = { };
+foreach my $key (keys(%{$translation})) {
+	if (defined($opt->{$key})) {
+		$params->{$translation->{$key}} = $opt->{$key};
+	}
 }
-my $params = [{
-	      ref => $opt->{workspace} ."/".$opt->{"Object ID or Name"} .$versionString,
-	      }];
 
+
+#Instantiating parameter
 #Calling the server
 my $output;
 if ($opt->{restore}) {
 	if ($opt->{showerror} == 0){
-		eval { $serv->undelete_objects($params); };
+		eval { $serv->undelete_workspace($params); };
 		if($@) {
-			print "Cannot restore object!\n";
+			print "Cannot restore workspace!\n";
 			print STDERR $@->{message}."\n";
 			if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
 			print STDERR "\n";
@@ -61,21 +60,21 @@ if ($opt->{restore}) {
 	} else {
 		$serv->delete_objects($params);
 	}
-	print "Object successfully restored.\n";
+	print "Workspace and all objects successfully restored.\n";
 } else {
 	
 	if ($opt->{showerror} == 0){
-		eval { $serv->delete_objects($params); };
+		eval { $serv->delete_workspace($params); };
 		if($@) {
-			print "Cannot delete object!\n";
+			print "Cannot delete workspace!\n";
 			print STDERR $@->{message}."\n";
 			if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
 			print STDERR "\n";
 			exit 1;
 		}
 	} else {
-		$serv->undelete_objects($params);
+		$serv->delete_workspace($params);
 	}
-	print "Object successfully deleted.\n";
+	print "Workspace and all contained objects successfully deleted.\n";
 }
 exit 0;
