@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta printObjectMeta parseWorkspaceMeta);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace printObjectInfo);
 
 my $fullCommand = "ws-load ";
 foreach my $arg (@ARGV) {
@@ -18,12 +18,12 @@ foreach my $arg (@ARGV) {
 my $serv = get_ws_client();
 #Defining globals describing behavior
 my $primaryArgs = ["Object type","Object ID","Filename or data"];
-my $servercommand = "save_object";
+my $servercommand = "save_objects";
 my $translation = {
 	"Object ID" => "id",
 	"Object type" => "type",
-    workspace => "workspace",
-    command => "command"
+	workspace => "workspace",
+	command => "command"
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
@@ -103,17 +103,33 @@ if (defined($opt->{metadata})) {
 
 # set provenance info
 my $PA = {
+		"service"=>"Workspace",
+		"service_ver"=>"0.1.0",
 		"script"=>"ws-load",
-		"script_ver"=>"v0.1.0",
+		"script_ver"=>"0.1.0",
 		"script_command_line"=>$fullCommand
 	  };
 $params->{provenance} = [ $PA ];
 
+
+# setup the new save_objects parameters
+my $saveObjectsParams = {
+		"workspace" => $params->{workspace},
+		"objects" => [
+			   {
+				"data"  => $params->{data},
+				"name"  => $params->{id},
+				"type"  => $params->{type},
+				"meta"  => $params->{metadata},
+				"provenance" => $params->{provenance}
+			   }
+			]
+	};
+
 #Calling the server
 my $output;
 if ($opt->{showerror} == 0){
-	#use Data::Dumper; print Dumper($params)."\n";
-	eval { $output = $serv->$servercommand($params); };
+	eval { $output = $serv->$servercommand($saveObjectsParams); };
 	if($@) {
 		print "Object could not be saved!\n";
 		print STDERR $@->{message}."\n";
@@ -121,16 +137,19 @@ if ($opt->{showerror} == 0){
 		print STDERR "\n";
 		exit 1;
 	}
-}else{
-    $output = $serv->$servercommand($params);
+} else{
+	$output = $serv->$servercommand($saveObjectsParams);
 }
-#Checking output and report results
-if (!defined($output)) {
-	print "Object could not be saved!\n";
+
+#Report the results
+print "Object saved.  Details:\n";
+if (scalar(@$output)>0) {
+	foreach my $object_info (@$output) {
+		printObjectInfo($object_info);
+	}
 } else {
-	print "Object saved.  Details:\n";
-	printObjectMeta($output);
-	print "\n";
+	print "No details returned!\n";
 }
+print "\n";
 
 exit 0;
