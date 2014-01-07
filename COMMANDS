@@ -3,6 +3,7 @@ ws-clone	workspace
 ws-copy	workspace
 ws-createws	workspace
 ws-delete	workspace
+ws-deletews	workspace
 ws-get	workspace
 ws-getsubset	workspace
 ws-history	workspace
