@@ -9,7 +9,7 @@ use Data::Dumper;
 use parent qw(Exporter);
 our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta parseObjectInfo printObjectInfo);
 
-our $defaultURL = "https://kbase.us/services/workspace";
+our $defaultURL = "https://kbase.us/services/ws";
 our $localhostURL = "http://127.0.0.1:7058";
 our $devURL = "http://140.221.84.209:7058";
 
