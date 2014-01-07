@@ -1828,6 +1828,10 @@ public class JSONRPCLayerTest {
 		}
 		assertThat("correct object ids in list", got, is(expected));
 	}
+	
+	private void listWorkspaceInfo() {
+		
+	}
 
 	@Test
 	public void testTypeMD5() throws Exception {
