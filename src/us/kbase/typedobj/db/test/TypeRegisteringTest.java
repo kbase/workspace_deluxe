@@ -69,15 +69,15 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-//					"testSimple",
-//					"testDescr",
-//					"testBackward",
-//					"testRollback",
-//					"testRestrict",
-//					"testMD5",
-//					"testRegistration",
-//					"testError",
-//					"testStop",
+					"testSimple",
+					"testDescr",
+					"testBackward",
+					"testRollback",
+					"testRestrict",
+					"testMD5",
+					"testRegistration",
+					"testError",
+					"testStop",
 					"testDeps"
 			};
 			for (String method : methods) {
