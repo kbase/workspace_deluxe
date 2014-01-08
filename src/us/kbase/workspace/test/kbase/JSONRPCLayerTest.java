@@ -67,7 +67,6 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
-import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -1858,15 +1857,28 @@ public class JSONRPCLayerTest {
 		} catch (Exception ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: UnreleasedModule"));
 		}
-		cl = new WorkspaceClient(new URL("http://localhost:" + 
-				SERVER2.getServerPort()), AUTH_USER2.getToken());
-		cl.setAuthAllowedForHttp(true);
+		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withType("UnreleasedModule.AType-0.1")).getVers().size());
+		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType-0.1").length() > 0);
+		cl = CLIENT_FOR_SRV2;
 		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
 		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
 		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)).getVers().size());
-		cl.releaseModule("UnreleasedModule");
-		TypeInfo ti = cl.getTypeInfo("UnreleasedModule.AType");  //-0.1");
-		System.out.println(ti.getUsingFuncDefs());
+		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size());
+		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size());
+		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType").length() > 0);
+		Assert.assertEquals(1, cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size());
+		try {
+			cl.getTypeInfo("UnreleasedModule.AType-0.2");
+			Assert.fail();
+		} catch (Exception ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+		}
+		try {
+			cl.getJsonschema("UnreleasedModule.AType-0.2");
+			Assert.fail();
+		} catch (Exception ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+		}
 	}
 	
 	@Test

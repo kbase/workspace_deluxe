@@ -1234,7 +1234,7 @@ module Workspace {
 		returns(ModuleInfo info) authentication optional;
 		
 	/* Get JSON schema for a type. */
-	funcdef get_jsonschema(type_string type) returns (jsonschema schema);
+	funcdef get_jsonschema(type_string type) returns (jsonschema schema) authentication optional;
 
 	/* Translation from types qualified with MD5 to their semantic versions */
 	funcdef translate_from_MD5_types(list<type_string> md5_types) 
@@ -1242,7 +1242,7 @@ module Workspace {
 
 	/* Translation from types qualified with semantic versions to their MD5'ed versions */
 	funcdef translate_to_MD5_types(list<type_string> sem_types) 
-		returns(mapping<type_string, type_string> md5_types);
+		returns(mapping<type_string, type_string> md5_types) authentication optional;
 
 	/* Information about a type
 	

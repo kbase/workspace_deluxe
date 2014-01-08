@@ -787,6 +787,10 @@ public class Workspace {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
+	private String getUser(WorkspaceUser user) {
+		return user == null ? null : user.getUser();
+	}
+	
 	public void requestModuleRegistration(final WorkspaceUser user,
 			final String module) throws TypeStorageException {
 		if (typedb.isValidModule(module)) {
@@ -850,9 +854,9 @@ public class Workspace {
 		return typedb.releaseModule(module, user.getUser());
 	}
 	
-	public String getJsonSchema(final TypeDefId type) throws
+	public String getJsonSchema(final TypeDefId type, WorkspaceUser user) throws
 			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return typedb.getJsonSchemaDocument(type);
+		return typedb.getJsonSchemaDocument(type, getUser(user));
 	}
 	
 	public List<String> listModules(WorkspaceUser user)
@@ -865,7 +869,7 @@ public class Workspace {
 	
 	public ModuleInfo getModuleInfo(final WorkspaceUser user, final ModuleDefId module)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		String userId = user == null ? null : user.getUser();
+		String userId = getUser(user);
 		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
 				typedb.getModuleInfo(module, userId);
 		List<String> functions = new ArrayList<String>();
@@ -887,11 +891,10 @@ public class Workspace {
 		return typedb.getAllModuleVersions(module);
 	}
 	
-	public List<Long> getModuleVersions(final TypeDefId type) 
-			throws NoSuchModuleException, TypeStorageException,
-			NoSuchTypeException {
+	public List<Long> getModuleVersions(final TypeDefId type, WorkspaceUser user) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		final List<ModuleDefId> mods =
-				typedb.findModuleVersionsByTypeVersion(type);
+				typedb.findModuleVersionsByTypeVersion(type, getUser(user));
 		final List<Long> vers = new ArrayList<Long>();
 		for (final ModuleDefId m: mods) {
 			vers.add(m.getVersion());
@@ -913,12 +916,13 @@ public class Workspace {
 		return ret;
 	}
 
-	public Map<String,String> translateToMd5Types(List<String> semanticTypeList) 
+	public Map<String,String> translateToMd5Types(List<String> semanticTypeList,
+			WorkspaceUser user) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		HashMap<String, String> ret = new LinkedHashMap<String, String>();
 		for (String semantString : semanticTypeList) {
 			TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
-			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef).getTypeString());
+			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef, getUser(user)).getTypeString());
 		}
 		return ret;
 	}
@@ -962,14 +966,14 @@ public class Workspace {
 	
 	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks, WorkspaceUser user) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		String userId = user == null ? null : user.getUser();
+		String userId = getUser(user);
 		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks, userId);
 	}
 	
 	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks, WorkspaceUser user) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
-		String userId = user == null ? null : user.getUser();
+		String userId = getUser(user);
 		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
 				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks, userId);
 	}

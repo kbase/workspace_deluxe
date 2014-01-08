@@ -1154,12 +1154,11 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<Long> vers;
 		final String module;
 		if (params.getMod() != null) {
-			vers = ws.getModuleVersions(params.getMod(), 
-					authPart == null ? null : new WorkspaceUser(authPart.getClientId()));
+			vers = ws.getModuleVersions(params.getMod(), getUser(authPart));
 			module = params.getMod();
 		} else {
 			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
-			vers = ws.getModuleVersions(type);
+			vers = ws.getModuleVersions(type, getUser(authPart));
 			module = type.getType().getModule();
 		}
 		returnVal = new ModuleVersions().withMod(module).withVers(vers);
@@ -1218,11 +1217,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
      * @return   parameter "schema" of original type "jsonschema" (The JSON Schema (v4) representation of a type definition.)
      */
-    @JsonServerMethod(rpc = "Workspace.get_jsonschema")
-    public String getJsonschema(String type) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_jsonschema", authOptional=true)
+    public String getJsonschema(String type, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_jsonschema
-		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type));
+		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type), getUser(authPart));
         //END get_jsonschema
         return returnVal;
     }
@@ -1252,11 +1251,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   semTypes   instance of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
      * @return   parameter "md5_types" of mapping from original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1) to original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
      */
-    @JsonServerMethod(rpc = "Workspace.translate_to_MD5_types")
-    public Map<String,String> translateToMD5Types(List<String> semTypes) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.translate_to_MD5_types", authOptional=true)
+    public Map<String,String> translateToMD5Types(List<String> semTypes, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN translate_to_MD5_types
-        returnVal = ws.translateToMd5Types(semTypes);
+        returnVal = ws.translateToMd5Types(semTypes, getUser(authPart));
         //END translate_to_MD5_types
         return returnVal;
     }

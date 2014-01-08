@@ -2259,7 +2259,7 @@ public class TestWorkspace {
 	public void testTypeMd5s() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		String typeDefName = "SomeModule.AType";
-		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName));
+		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName), null);
 		Assert.assertEquals(1, type2md5.size());
 		String md5TypeDef = type2md5.get(typeDefName);
 		Assert.assertNotNull(md5TypeDef);
@@ -2331,21 +2331,21 @@ public class TestWorkspace {
 	public void testGetJsonSchema() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		try {
-			ws.getJsonSchema(new TypeDefId("TestModule.NonExistantType"));
+			ws.getJsonSchema(new TypeDefId("TestModule.NonExistantType"), null);
 			fail("getJsonSchema of non existant type should throw a NoSuchTypeException");
 		} catch (NoSuchTypeException e) {}
 		
 		// get several different schemas, make sure that no exceptions are thrown and it is valid json!
-		String schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0));
+		String schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0), null);
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 		
-		schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2));
+		schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2), null);
 		schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 		
-		schema = ws.getJsonSchema(new TypeDefId("TestModule.Genome"));
+		schema = ws.getJsonSchema(new TypeDefId("TestModule.Genome"), null);
 		schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 	}

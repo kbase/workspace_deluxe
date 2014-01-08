@@ -341,15 +341,40 @@ public class TypeDefinitionDB {
 		String moduleName = typeDefId.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			return getJsonSchemaDocumentNL(typeDefId);
+			return getJsonSchemaDocumentNL(typeDefId, null);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
-	
-	private String getJsonSchemaDocumentNL(final TypeDefId typeDefId)
+
+	/**
+	 * Retrieve a Json Schema Document for the typed object specified.  If no version numbers
+	 * are indicated, the latest version is returned (including unreleased versions in case userId
+	 * points to owner of module of requested type).  If the major version only is specified,
+	 * then the latest version that is backwards compatible with the major version is returned.
+	 * If exact major/minor version numbers are given, that is the exact version that is returned.
+	 * @param typeDefId
+	 * @param userId
+	 * @return
+	 * @throws NoSuchTypeException
+	 * @throws NoSuchModuleException
+	 * @throws TypeStorageException
+	 */
+	public String getJsonSchemaDocument(final TypeDefId typeDefId, String userId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		AbsoluteTypeDefId absTypeDefId = resolveTypeDefIdNL(typeDefId);
+		String moduleName = typeDefId.getType().getModule();
+		requestReadLock(moduleName);
+		try {
+			return getJsonSchemaDocumentNL(typeDefId, userId);
+		} finally {
+			releaseReadLock(moduleName);
+		}
+	}
+
+	private String getJsonSchemaDocumentNL(final TypeDefId typeDefId, String userId)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		AbsoluteTypeDefId absTypeDefId = resolveTypeDefIdNL(typeDefId, 
+				isOwnerOfModule(typeDefId.getType().getModule(), userId));
 		String ret;
 		try {
 			ret = typeJsonSchemaCache.get(absTypeDefId);
@@ -392,9 +417,8 @@ public class TypeDefinitionDB {
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		if (moduleDef.getVersion() == null) {
 			checkModuleSupported(moduleDef.getModuleName());
-			if (userId != null && isOwnerOfModule(moduleDef.getModuleName(), userId)) {
+			if (isOwnerOfModule(moduleDef.getModuleName(), userId))
 				return getLatestModuleVersionWithUnreleased(moduleDef.getModuleName(), userId);
-			}
 			return getLastReleasedModuleVersion(moduleDef.getModuleName());
 		}
 		long version = moduleDef.getVersion();
@@ -449,13 +473,13 @@ public class TypeDefinitionDB {
 		String moduleName = typeDefId.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			return resolveTypeDefIdNL(typeDefId);
+			return resolveTypeDefIdNL(typeDefId, false);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
 
-	private AbsoluteTypeDefId resolveTypeDefIdNL(final TypeDefId typeDefId) 
+	private AbsoluteTypeDefId resolveTypeDefIdNL(final TypeDefId typeDefId, boolean withUnreleased) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		if (typeDefId.isAbsolute() && typeDefId.getMd5() == null) {
 			AbsoluteTypeDefId ret = new AbsoluteTypeDefId(typeDefId.getType(),
@@ -465,15 +489,18 @@ public class TypeDefinitionDB {
 		}
 		String moduleName = typeDefId.getType().getModule();
 		checkModuleRegistered(moduleName);
-		SemanticVersion schemaDocumentVer = findTypeVersion(typeDefId);
-		if (schemaDocumentVer == null)
+		SemanticVersion schemaDocumentVer = findTypeVersion(typeDefId, withUnreleased);
+		if (schemaDocumentVer == null) {
+			if ((!typeDefId.isAbsolute()) && (!withUnreleased) && findTypeVersion(typeDefId, true) != null)
+				throw new NoSuchTypeException("This type wasn't released yet and you should be an owner to access unreleased version information");
 			throwNoSuchTypeException(typeDefId);
+		}
 		String typeName = typeDefId.getType().getName();
 		AbsoluteTypeDefId ret = new AbsoluteTypeDefId(new TypeDefName(moduleName, typeName),
 				schemaDocumentVer.getMajor(), schemaDocumentVer.getMinor());
 		if (typeJsonSchemaCache.getIfPresent(ret) == null) {
 			if (!storage.checkTypeSchemaRecordExists(moduleName,typeName,schemaDocumentVer.toString()))
-				throw new NoSuchTypeException("Unable to read type schema record: '"+moduleName+"."+typeName+"'");
+				throwNoSuchTypeException(typeDefId);
 		}
 		return new AbsoluteTypeDefId(new TypeDefName(moduleName,typeName),schemaDocumentVer.getMajor(),schemaDocumentVer.getMinor());
 	}
@@ -510,7 +537,7 @@ public class TypeDefinitionDB {
 		String moduleName = typeDefId.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			String jsonSchemaDocument = getJsonSchemaDocumentNL(typeDefId);
+			String jsonSchemaDocument = getJsonSchemaDocumentNL(typeDefId, null);
 			try {
 				JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
 				return jsonSchemaFactory.getJsonSchema(schemaRootNode);
@@ -630,7 +657,7 @@ public class TypeDefinitionDB {
 			if (!storage.checkModuleInfoRecordExist(moduleName, 
 					getLastReleasedModuleVersion(moduleName)))
 				return false;
-			SemanticVersion ver = findTypeVersion(typeDefId);
+			SemanticVersion ver = findTypeVersion(typeDefId, false);
 			if (ver == null)
 				return false;
 			return storage.checkTypeSchemaRecordExists(moduleName, typeName, ver.toString());
@@ -649,7 +676,7 @@ public class TypeDefinitionDB {
 		return mi.getTypes().get(typeName) != null;
 	}
 
-	private SemanticVersion findTypeVersion(TypeDefId typeDef) throws TypeStorageException {
+	private SemanticVersion findTypeVersion(TypeDefId typeDef, boolean withUnreleased) throws TypeStorageException {
 		if (typeDef.isAbsolute()) {
 			if (typeDef.getMd5() != null) {
 				SemanticVersion ret = null;
@@ -663,36 +690,51 @@ public class TypeDefinitionDB {
 			}
 			return new SemanticVersion(typeDef.getMajorVersion(), typeDef.getMinorVersion());
 		}
-		if (!isModuleSupported(typeDef.getType().getModule()))
+		if (!isModuleSupported(typeDef.getType().getModule())) {
 			return null;
+		}
 		if (typeDef.getMajorVersion() != null) {
 			Map<String, Boolean> versions = storage.getAllTypeVersions(typeDef.getType().getModule(), 
 					typeDef.getType().getName());
 			SemanticVersion ret = null;
 			for (String verText : versions.keySet()) {
-				if (!versions.get(verText))
-					continue;
-				SemanticVersion ver = new SemanticVersion(verText);
-				if (ver.getMajor() == typeDef.getMajorVersion() && 
-						(ret == null || ret.compareTo(ver) < 0))
-					ret = ver;
+				if (versions.get(verText) || withUnreleased) {
+					SemanticVersion ver = new SemanticVersion(verText);
+					if (ver.getMajor() == typeDef.getMajorVersion() && 
+							(ret == null || ret.compareTo(ver) < 0))
+						ret = ver;
+				}
 			}
 			return ret;
 		}
-		return findLastTypeVersion(typeDef.getType().getModule(), typeDef.getType().getName(), false);
+		ModuleInfo mi;
+		try {
+			String moduleName = typeDef.getType().getModule();
+			if (withUnreleased) {
+				mi = getModuleInfoNL(moduleName, storage.getLastModuleVersionWithUnreleased(moduleName));
+			} else {
+				mi = getModuleInfoNL(typeDef.getType().getModule());
+			}
+		} catch (NoSuchModuleException e) {
+			return null;
+		}
+		TypeInfo ti = mi.getTypes().get(typeDef.getType().getName());
+		if (ti == null || (!ti.isSupported()) || ti.getTypeVersion() == null)
+			return null;
+		return new SemanticVersion(ti.getTypeVersion());
 	}
 
 	public AbsoluteTypeDefId getTypeMd5Version(TypeDefName typeDef) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		return getTypeMd5Version(new TypeDefId(typeDef));
+		return getTypeMd5Version(new TypeDefId(typeDef), null);
 	}
 	
-	public AbsoluteTypeDefId getTypeMd5Version(TypeDefId typeDef) 
+	public AbsoluteTypeDefId getTypeMd5Version(TypeDefId typeDef, String userId) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			SemanticVersion version = findTypeVersion(typeDef);
+			SemanticVersion version = findTypeVersion(typeDef, isOwnerOfModule(moduleName, userId));
 			if (version == null)
 				throwNoSuchTypeException(typeDef);
 			return new AbsoluteTypeDefId(typeDef.getType(),
@@ -963,7 +1005,7 @@ public class TypeDefinitionDB {
 						Set<RefInfo> usingTypes = storage.getTypeRefsByRef(moduleName, typeName, oldTypeVer);
 						Set<RefInfo> usingFuncs = storage.getFuncRefsByRef(moduleName, typeName, oldTypeVer);
 						try {
-							KbTypedef specParsing = getTypeParsingDocumentNL(new TypeDefId(moduleName + "." + typeName, oldTypeVer));
+							KbTypedef specParsing = getTypeParsingDocumentNL(new TypeDefId(moduleName + "." + typeName, oldTypeVer), false);
 							saveType(info, info.getTypes().get(typeName), jsonSchemaDocument, specParsing, deps, transactionStartTime);
 							newTypeRefs.addAll(deps);
 						} catch (NoSuchTypeException ex) {
@@ -1032,18 +1074,18 @@ public class TypeDefinitionDB {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			return getTypeParsingDocumentNL(typeDef);
+			return getTypeParsingDocumentNL(typeDef, false);
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
 		
-	private KbTypedef getTypeParsingDocumentNL(TypeDefId typeDef) 
+	private KbTypedef getTypeParsingDocumentNL(TypeDefId typeDef, boolean withUnreleased) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		String moduleName = typeDef.getType().getModule();
 		String typeName = typeDef.getType().getName();
 		checkModuleRegistered(moduleName);
-		SemanticVersion documentVer = findTypeVersion(typeDef);
+		SemanticVersion documentVer = findTypeVersion(typeDef, withUnreleased);
 		if (documentVer == null)
 			throwNoSuchTypeException(typeDef);
 		String ret = storage.getTypeParseRecord(moduleName, typeName, documentVer.toString());
@@ -1307,8 +1349,14 @@ public class TypeDefinitionDB {
 	}
 
 	private SemanticVersion findLastFuncVersion(String moduleName, String funcName) throws TypeStorageException {
+		return findLastFuncVersion(moduleName, funcName, false);
+	}
+	
+	private SemanticVersion findLastFuncVersion(String moduleName, String funcName, boolean withUnreleased) throws TypeStorageException {
 		try {
-			return findLastFuncVersion(getModuleInfoNL(moduleName), funcName, false);
+			ModuleInfo mi = withUnreleased ? getModuleInfoNL(moduleName, 
+					storage.getLastModuleVersionWithUnreleased(moduleName)) : getModuleInfoNL(moduleName);
+			return findLastFuncVersion(mi, funcName, false);
 		} catch (NoSuchModuleException e) {
 			return null;
 		}
@@ -1489,7 +1537,7 @@ public class TypeDefinitionDB {
 	private String getTypeVersion(TypeDefId typeDef) 
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		checkModuleRegistered(typeDef.getType().getModule());
-		SemanticVersion ret = findTypeVersion(typeDef);
+		SemanticVersion ret = findTypeVersion(typeDef, false);
 		if (ret == null)
 			throwNoSuchTypeException(typeDef);
 		return ret.toString();
@@ -2155,7 +2203,7 @@ public class TypeDefinitionDB {
 			return Change.notCompatible;
 		TypeInfo ti = info.getTypes().get(newType.getName());
 		KbTypedef oldType = getTypeParsingDocumentNL(new TypeDefId(info.getModuleName() + "." + ti.getTypeName(), 
-				ti.getTypeVersion()));
+				ti.getTypeVersion()), false);
 		return findChange(oldType, newType);
 	}
 	
@@ -2438,31 +2486,37 @@ public class TypeDefinitionDB {
 			releaseReadLock(moduleName);
 		}
 	}
-	
-	public List<ModuleDefId> findModuleVersionsByTypeVersion(TypeDefId typeDef) 
+
+	public List<ModuleDefId> findModuleVersionsByTypeVersion(TypeDefId typeDef, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			boolean withUnreleased = typeDef.isAbsolute();
-			typeDef = resolveTypeDefIdNL(typeDef);
-			List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
-			Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
-					typeDef.getType().getName(), typeDef.getVerString());
-			if (withUnreleased) {
-				for (boolean isReleased : moduleVersions.values()) 
-					if (isReleased) {
-						withUnreleased = false;
-						break;
-					}
-			}
-			for (long moduleVersion : moduleVersions.keySet()) 
-				if (withUnreleased || moduleVersions.get(moduleVersion))
-					ret.add(new ModuleDefId(moduleName, moduleVersion));
-			return ret;
+			return findModuleVersionsByTypeVersionNL(typeDef, isOwnerOfModule(moduleName, userId));
 		} finally {
 			releaseReadLock(moduleName);
 		}
+	}
+	
+	public List<ModuleDefId> findModuleVersionsByTypeVersionNL(TypeDefId typeDef, boolean isOwner) 
+			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
+		String moduleName = typeDef.getType().getModule();
+		boolean withUnreleased = typeDef.isAbsolute() || isOwner;
+		typeDef = resolveTypeDefIdNL(typeDef, isOwner);
+		List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+		Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
+				typeDef.getType().getName(), typeDef.getVerString());
+		if (withUnreleased && !isOwner) {
+			for (boolean isReleased : moduleVersions.values()) 
+				if (isReleased) {
+					withUnreleased = false;
+					break;
+				}
+		}
+		for (long moduleVersion : moduleVersions.keySet()) 
+			if (withUnreleased || moduleVersions.get(moduleVersion))
+				ret.add(new ModuleDefId(moduleName, moduleVersion));
+		return ret;
 	}
 
 	private List<ModuleDefId> findModuleVersionsByFuncVersionNL(String moduleName, 
@@ -2550,11 +2604,12 @@ public class TypeDefinitionDB {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			typeDef = resolveTypeDefIdNL(typeDef);
-			KbTypedef parsing = getTypeParsingDocumentNL(typeDef);
+			boolean isOwner = isOwnerOfModule(moduleName, userId);
+			typeDef = resolveTypeDefIdNL(typeDef, isOwner);
+			KbTypedef parsing = getTypeParsingDocumentNL(typeDef, isOwner);
 			String description = parsing.getComment();
 			String typeName = typeDef.getType().getName();
-			List<ModuleDefId> moduleDefIds = findModuleVersionsByTypeVersion(typeDef);
+			List<ModuleDefId> moduleDefIds = findModuleVersionsByTypeVersionNL(typeDef, isOwner);
 			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(moduleDefIds.get(0).getModuleName(),
 					moduleDefIds.get(0).getVersion());
 			Map<String, String> localUnregTypeToSpec = new LinkedHashMap<String, String>();
@@ -2568,7 +2623,7 @@ public class TypeDefinitionDB {
 					storage.getAllTypeVersions(moduleName, typeName);
 			List<String> typeVersions = new ArrayList<String>();
 			for (String semantic : semanticToReleased.keySet())
-				if (semanticToReleased.get(semantic))
+				if (semanticToReleased.get(semantic) || isOwner)
 					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
 			String typeVer = typeDef.getVerString();
 			Set<RefInfo> funcRefs = getFuncRefsByRefNL(moduleName, typeName, typeVer, userId);
@@ -2579,7 +2634,6 @@ public class TypeDefinitionDB {
 			List<String> usingTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usingRefs)
 				usingTypeDefIds.add(ref.getDepModule() + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			boolean isOwner = isOwnerOfModule(moduleName, userId);
 			Set<RefInfo> usedRefs = getTypeRefsByDepNL(moduleName, typeName, typeVer, isOwner);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
@@ -2596,13 +2650,17 @@ public class TypeDefinitionDB {
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		requestReadLock(moduleName);
 		try {
-			List<ModuleDefId> moduleDefIds = findModuleVersionsByFuncVersionNL(moduleName, funcName, version);
+			boolean isOwner = isOwnerOfModule(moduleName, userId);
 			if (version == null) {
-				SemanticVersion sv = findLastFuncVersion(moduleName, funcName);
-				if (sv == null)
+				SemanticVersion sv = findLastFuncVersion(moduleName, funcName, isOwner);
+				if (sv == null) {
+					if ((!isOwner) && findLastFuncVersion(moduleName, funcName, true) != null)
+						throw new NoSuchFuncException("This function wasn't released yet and you should be an owner to access unreleased version information");
 					throwNoSuchFuncException(moduleName, funcName, null);
+				}
 				version = sv.toString();
 			}
+			List<ModuleDefId> moduleDefIds = findModuleVersionsByFuncVersionNL(moduleName, funcName, version);
 			KbFuncdef parsing = getFuncParsingDocumentNL(moduleName, funcName, version);
 			String description = parsing.getComment();
 			parsing.getParameters();
@@ -2622,9 +2680,8 @@ public class TypeDefinitionDB {
 					storage.getAllFuncVersions(moduleName, funcName);
 			List<String> funcVersions = new ArrayList<String>();
 			for (String semantic : semanticToReleased.keySet())
-				if (semanticToReleased.get(semantic))
+				if (semanticToReleased.get(semantic) || isOwner)
 					funcVersions.add(moduleName + "." + funcName + "-" + semantic);
-			boolean isOwner = isOwnerOfModule(moduleName, userId);
 			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, isOwner);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)

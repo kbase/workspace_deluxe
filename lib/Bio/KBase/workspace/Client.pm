@@ -4831,7 +4831,7 @@ sub get_jsonschema
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -4997,7 +4997,7 @@ sub translate_to_MD5_types
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
