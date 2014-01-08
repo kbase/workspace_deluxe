@@ -50,6 +50,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -1000,19 +1001,16 @@ public class JSONRPCLayerTest {
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj1")
 				.withMetadata(meta).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)));
-		System.out.println(obj1);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj2 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj2")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data2)));
-		System.out.println(obj2);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
-		System.out.println(obj3);
 		
 		checkDeprecatedSaveInfo(obj1, 1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta);
 		checkDeprecatedSaveInfo(obj2, 2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
@@ -1829,8 +1827,99 @@ public class JSONRPCLayerTest {
 		assertThat("correct object ids in list", got, is(expected));
 	}
 	
-	private void listWorkspaceInfo() {
+	@Test
+	public void listWorkspaceInfo() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("list2")
+				.withGlobalread("r"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo3 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list3"));
+		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("list3"));
 		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
+				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowDeleted(0L)),
+				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L)),
+				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L).withShowDeleted(0L)),
+				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L).withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3), Arrays.asList(wsinfo2));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3, wsinfo2),
+				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3, wsinfo2), 
+				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+		
+		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
+				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"))),
+				Arrays.asList(wsinfo1, wsinfo3));
+		
+		ListWorkspaceInfoParams lwip = new ListWorkspaceInfoParams();
+		lwip.setAdditionalProperties("booga", "booga1");
+		try {
+			CLIENT1.listWorkspaceInfo(lwip);
+			fail("list ws with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Unexpected arguments in ListWorkspaceInfoParams: booga"));
+		}
+	}
+
+	private void checkWSInfoList(
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> got,
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> expected,
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> notexpected) {
+		Map<Long, Tuple8<Long, String, String, String, Long, String, String, String>> expecmap = 
+				new HashMap<Long, Tuple8<Long,String,String,String,Long,String,String,String>>();
+		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: expected) {
+			expecmap.put(inf.getE1(), inf);
+		}
+		Set<Long> seen = new HashSet<Long>();
+		Set<Long> seenexp = new HashSet<Long>();
+		Set<Long> notexp = new HashSet<Long>();
+		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: notexpected) {
+			notexp.add(inf.getE1());
+		}
+		for (Tuple8<Long, String, String, String, Long, String, String, String> info: got) {
+			if (seen.contains(info.getE1())) {
+				fail("Saw same workspace twice");
+			}
+			if (notexp.contains(info.getE1())) {
+				fail("Got unexpected workspace id " + info.getE1());
+			}
+			if (!expecmap.containsKey(info.getE1())) {
+				continue; // only two users so really impossible to list a controlled set of ws
+				// if this is important add a 3rd user and client
+			}
+			seenexp.add(info.getE1());
+			Tuple8<Long, String, String, String, Long, String, String, String> exp =
+					expecmap.get(info.getE1());
+			assertThat("ids correct", info.getE1(), is(exp.getE1()));
+//			assertThat("moddates correct", info.getE4(), is(moddate)); don't test dates
+			assertThat("ws name correct", info.getE2(), is(exp.getE2()));
+			assertThat("user name correct", info.getE3(), is(exp.getE3()));
+			assertThat("obj counts are 0", info.getE5(), is(exp.getE5()));
+			assertThat("permission correct", info.getE6(), is(exp.getE6()));
+			assertThat("global read correct", info.getE7(), is(exp.getE7()));
+			assertThat("lockstate correct", info.getE8(), is(exp.getE8()));
+			
+		}
+		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
 	}
 
 	@Test
