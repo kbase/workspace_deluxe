@@ -652,7 +652,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple8<Long, String, String, String, Long, String, String, String>> listWorkspaceInfo(ListWorkspaceInfoParams params, AuthToken authPart) throws Exception {
         List<Tuple8<Long, String, String, String, Long, String, String, String>> returnVal = null;
         //BEGIN list_workspace_info
-		//TODO tests
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				au.longToBoolean(params.getExcludeGlobal()),

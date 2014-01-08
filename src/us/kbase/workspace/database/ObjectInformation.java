@@ -17,5 +17,6 @@ public interface ObjectInformation {
 	public String getWorkspaceName();
 	public String getCheckSum();
 	public Map<String, String> getUserMetaData();
-	public boolean equals(Object other);
+	public boolean equals(Object obj);
+	public int hashCode();
 }
