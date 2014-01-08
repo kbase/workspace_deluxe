@@ -260,7 +260,7 @@ public class TestWorkspace {
 		work.requestModuleRegistration(foo, "UnreleasedModule");
 		work.resolveModuleRegistration("UnreleasedModule", true);
 		work.compileNewTypeSpec(foo, 
-				"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType;};",
+				"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType; funcdef aFunc(AType param) returns ();};",
 				Arrays.asList("AType"), null, null, false, null);
 	}
 	
@@ -2353,28 +2353,29 @@ public class TestWorkspace {
 	@Test
 	public void testGetTypeInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		TypeDetailedInfo info = ws.getTypeInfo("TestModule.Genome", false);
+		TypeDetailedInfo info = ws.getTypeInfo("TestModule.Genome", false, null);
 		Assert.assertEquals("TestModule.Genome-2.0",info.getTypeDefId());
-		info = ws.getTypeInfo("TestModule.Feature", false);
+		info = ws.getTypeInfo("TestModule.Feature", false, null);
 		Assert.assertEquals("TestModule.Feature-1.0",info.getTypeDefId());
+		Assert.assertEquals(1, ws.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo")).getUsingFuncDefIds().size());
 	}
 	
 	@Test
 	public void testGetFuncInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		try {
-			ws.getFuncInfo("NoModuleThatExists.getFeature", false);
+			ws.getFuncInfo("NoModuleThatExists.getFeature", false, null);
 			fail("getFuncInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
 		try {
-			ws.getFuncInfo("TestModule.noFunctionThatIKnowOf", false);
+			ws.getFuncInfo("TestModule.noFunctionThatIKnowOf", false, null);
 			fail("getFuncInfo of non existant module should throw a NoSuchFuncException");
 		} catch (NoSuchFuncException e) {}
-		
-		FuncDetailedInfo info = ws.getFuncInfo("TestModule.getFeature", false);
+		FuncDetailedInfo info = ws.getFuncInfo("TestModule.getFeature", false, null);
 		Assert.assertEquals("TestModule.getFeature-2.0",info.getFuncDefId());
-		info = ws.getFuncInfo("TestModule.getGenome-1.0", false);
+		info = ws.getFuncInfo("TestModule.getGenome-1.0", false, null);
 		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
+		Assert.assertEquals(1, ws.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo")).getUsedTypeDefIds().size());
 	}
 	
 	private void setUpCopyWorkspaces(WorkspaceUser user1, WorkspaceUser user2,

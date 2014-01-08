@@ -910,6 +910,8 @@ public class TypeDefinitionDB {
 	}
 
 	public boolean isOwnerOfModule(String moduleName, String userId) throws NoSuchModuleException, TypeStorageException {
+		if (userId == null)
+			return false;
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
@@ -1528,24 +1530,22 @@ public class TypeDefinitionDB {
 		try {
 			String refType = refTypeDef.getType().getName();
 			String version = getTypeVersion(refTypeDef);
-			return getTypeRefsByRefNL(refModule, refType, version, false);
+			return getTypeRefsByRefNL(refModule, refType, version, null);
 		} finally {
 			releaseReadLock(refModule);
 		}
 	}
 
 	private Set<RefInfo> getTypeRefsByRefNL(String refModule, String refType, 
-			String version, boolean withUnreleased) 
+			String version, String userId) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		Set<RefInfo> set = storage.getTypeRefsByRef(refModule, refType, version);
-		Set<RefInfo> ret;
-		if (withUnreleased) {
-			ret = set;
-		} else {
-			ret = new LinkedHashSet<RefInfo>();
-			for (RefInfo ref : set)
-				if (checkTypeReleased(ref.getDepModule(), ref.getDepName(), ref.getDepVersion()))
-					ret.add(ref);
+		Set<RefInfo> ret = new LinkedHashSet<RefInfo>();
+		for (RefInfo ref : set) {
+			boolean isOwner = isOwnerOfModule(ref.getDepModule(), userId);
+			if (isOwner || checkTypeReleased(ref.getDepModule(), ref.getDepName(), 
+					ref.getDepVersion()))
+				ret.add(ref);
 		}
 		return ret;
 	}
@@ -1593,6 +1593,19 @@ public class TypeDefinitionDB {
 		}
 		return ret;
 	}
+
+	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef, String userId) 
+			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
+		String refModule = refTypeDef.getType().getModule();
+		requestReadLock(refModule);
+		try {
+			String refType = refTypeDef.getType().getName();
+			String version = getTypeVersion(refTypeDef);
+			return getFuncRefsByRefNL(refModule, refType, version, userId);
+		} finally {
+			releaseReadLock(refModule);
+		}
+	}
 	
 	public Set<RefInfo> getFuncRefsByRef(TypeDefId refTypeDef) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
@@ -1601,24 +1614,22 @@ public class TypeDefinitionDB {
 		try {
 			String refType = refTypeDef.getType().getName();
 			String version = getTypeVersion(refTypeDef);
-			return getFuncRefsByRefNL(refModule, refType, version, false);
+			return getFuncRefsByRefNL(refModule, refType, version, null);
 		} finally {
 			releaseReadLock(refModule);
 		}
 	}
 	
 	private Set<RefInfo> getFuncRefsByRefNL(String refModule, String refType, 
-			String version, boolean withUnreleased) 
+			String version, String userId) 
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
 		Set<RefInfo> set = storage.getFuncRefsByRef(refModule, refType, version);
-		Set<RefInfo> ret;
-		if (withUnreleased) {
-			ret = set;
-		} else {
-			ret = new LinkedHashSet<RefInfo>();
-			for (RefInfo ref : set)
-				if (checkFuncReleased(ref.getDepModule(), ref.getDepName(), ref.getDepVersion()))
-					ret.add(ref);
+		Set<RefInfo> ret = new LinkedHashSet<RefInfo>();
+		for (RefInfo ref : set) {
+			boolean isOwner = isOwnerOfModule(ref.getDepModule(), userId);
+			if (isOwner || checkFuncReleased(ref.getDepModule(), ref.getDepName(), 
+					ref.getDepVersion()))
+				ret.add(ref);
 		}
 		return ret;
 	}
@@ -2534,7 +2545,7 @@ public class TypeDefinitionDB {
 		moduleInfoCache.invalidate(moduleName);		
 	}
 	
-	public TypeDetailedInfo getTypeDetailedInfo(TypeDefId typeDef, boolean markLinksInSpec) 
+	public TypeDetailedInfo getTypeDetailedInfo(TypeDefId typeDef, boolean markLinksInSpec, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
@@ -2559,15 +2570,17 @@ public class TypeDefinitionDB {
 			for (String semantic : semanticToReleased.keySet())
 				if (semanticToReleased.get(semantic))
 					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
-			Set<RefInfo> funcRefs = getFuncRefsByRefNL(moduleName, typeName, typeDef.getVerString(), false);
+			String typeVer = typeDef.getVerString();
+			Set<RefInfo> funcRefs = getFuncRefsByRefNL(moduleName, typeName, typeVer, userId);
 			List<String> usingFuncDefIds = new ArrayList<String>();
 			for (RefInfo ref : funcRefs)
 				usingFuncDefIds.add(ref.getDepModule() + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usingRefs = getTypeRefsByRefNL(moduleName, typeName, typeDef.getVerString(), false);
+			Set<RefInfo> usingRefs = getTypeRefsByRefNL(moduleName, typeName, typeVer, userId);
 			List<String> usingTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usingRefs)
 				usingTypeDefIds.add(ref.getDepModule() + "." + ref.getDepName() + "-" + ref.getDepVersion());
-			Set<RefInfo> usedRefs = getTypeRefsByDepNL(moduleName, typeName, typeDef.getVerString(), false);
+			boolean isOwner = isOwnerOfModule(moduleName, userId);
+			Set<RefInfo> usedRefs = getTypeRefsByDepNL(moduleName, typeName, typeVer, isOwner);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
@@ -2579,7 +2592,7 @@ public class TypeDefinitionDB {
 	}
 
 	public FuncDetailedInfo getFuncDetailedInfo(String moduleName, String funcName, 
-			String version, boolean markLinksInSpec) 
+			String version, boolean markLinksInSpec, String userId) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		requestReadLock(moduleName);
 		try {
@@ -2611,7 +2624,8 @@ public class TypeDefinitionDB {
 			for (String semantic : semanticToReleased.keySet())
 				if (semanticToReleased.get(semantic))
 					funcVersions.add(moduleName + "." + funcName + "-" + semantic);
-			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, false);
+			boolean isOwner = isOwnerOfModule(moduleName, userId);
+			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, isOwner);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());

@@ -69,16 +69,17 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-//					"testSimple",
-//					"testDescr",
-//					"testBackward",
-//					"testRollback",
-//					"testRestrict",
-//					"testMD5",
-//					"testRegistration",
-//					"testError",
-//					"testStop",
-					"testDeps"
+					"testSimple",
+					"testDescr",
+					"testBackward",
+					"testRollback",
+					"testRestrict",
+					"testMD5",
+					"testRegistration",
+					"testError",
+					"testStop",
+					"testDeps",
+					"testOwnership",
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -88,8 +89,16 @@ public class TypeRegisteringTest {
 				try {
 					TypeRegisteringTest.class.getMethod(method).invoke(test);
 				} catch (InvocationTargetException ex) {
-					if (ex.getCause() != null && ex.getCause() instanceof Exception)
-						throw (Exception)ex.getCause();
+					if (ex.getCause() != null) {
+						if (ex.getCause() instanceof Exception) {
+							throw (Exception)ex.getCause();
+						} else if (ex.getCause() instanceof RuntimeException) {
+							throw (RuntimeException)ex.getCause();							
+						} else if (ex.getCause() instanceof Error) {
+							throw (Error)ex.getCause();							
+						}
+					}
+					throw ex;
 				} finally {
 					//test.cleanupAfter();
 				}
@@ -205,9 +214,9 @@ public class TypeRegisteringTest {
 		Assert.assertFalse(json1.equals(json2));
 		Set<RefInfo> depFuncs = db.getFuncRefsByRef(new TypeDefId("Regulation.new_regulator"));
 		Assert.assertEquals(1, depFuncs.size());
-		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0), true);
+		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0), true, user);
 		Assert.assertTrue(tdi.getSpecDef().contains("{"));
-		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null, true);
+		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null, true, user);
 		Assert.assertTrue(fdi.getSpecDef().contains("("));
 	}
 			
@@ -670,9 +679,45 @@ public class TypeRegisteringTest {
 		releaseModule("SomeModule", adminUser);
 		initModule("DepModule", adminUser);
 		db.registerModule(loadSpec("deps", "DepModule"), Arrays.asList("BType"), adminUser);
+		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new TypeDefId("DepModule.BType", "0.1"), false, adminUser);
+		Assert.assertEquals(1, tdi.getUsedTypeDefIds().size());
+		Assert.assertEquals(1, tdi.getUsingFuncDefIds().size());
+		Assert.assertEquals(1, db.getFuncDetailedInfo("DepModule", "new_call", "0.1", false, adminUser).getUsedTypeDefIds().size());
+		Assert.assertEquals(1, db.getTypeDetailedInfo(new TypeDefId("SomeModule.AType", "1.0"), false, adminUser).getUsingTypeDefIds().size());
 		releaseModule("DepModule", adminUser);
 		Set<RefInfo> funcs = db.getFuncRefsByRef(new TypeDefId("DepModule.BType", "1.0"));
 		Assert.assertEquals(1, funcs.size());
+		
+	}
+	
+	@Test
+	public void testOwnership() throws Exception {
+		String module = "SomeModule";
+		initModule(module, "author");
+		db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), adminUser);
+		try {
+			System.out.println(db.getModuleSpecDocument(new ModuleDefId(module), "stranger"));		// bad
+			Assert.fail();
+		} catch (NoSuchModuleException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: SomeModule"));
+		}
+		try {
+			db.addOwnerToModule("stranger", module, "stranger2", false);	// bad
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger is not in list of owners of module SomeModule"));
+		}
+		db.addOwnerToModule("author", module, "stranger", false);
+		db.getModuleInfo(new ModuleDefId(module), "stranger");
+		try {
+			db.addOwnerToModule("stranger", module, "stranger2", false);	// bad
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change priviledges for module SomeModule"));
+		}
+		db.addOwnerToModule("author", module, "stranger", true);
+		db.getModuleInfo(new ModuleDefId(module), "stranger");
+		db.addOwnerToModule("stranger", module, "stranger2", false);
 	}
 	
 	private Map<String, Long> restrict(Object... params) {

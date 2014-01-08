@@ -5102,7 +5102,7 @@ sub get_type_info
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -5203,7 +5203,7 @@ sub get_func_info
 {
     my($self, @args) = @_;
 
-# Authentication: none
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -5240,6 +5240,177 @@ sub get_func_info
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_func_info",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_func_info',
+				       );
+    }
+}
+
+
+
+=head2 grant_module_ownership
+
+  $obj->grant_module_ownership($module_name, $new_owner, $with_grant_option)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$module_name is a string
+$new_owner is a string
+$with_grant_option is a Workspace.boolean
+boolean is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$module_name is a string
+$new_owner is a string
+$with_grant_option is a Workspace.boolean
+boolean is an int
+
+
+=end text
+
+=item Description
+
+Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
+You should have grant ability do this operation (or to be an admin).
+
+=back
+
+=cut
+
+sub grant_module_ownership
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 3)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function grant_module_ownership (received $n, expecting 3)");
+    }
+    {
+	my($module_name, $new_owner, $with_grant_option) = @args;
+
+	my @_bad_arguments;
+        (!ref($module_name)) or push(@_bad_arguments, "Invalid type for argument 1 \"module_name\" (value was \"$module_name\")");
+        (!ref($new_owner)) or push(@_bad_arguments, "Invalid type for argument 2 \"new_owner\" (value was \"$new_owner\")");
+        (!ref($with_grant_option)) or push(@_bad_arguments, "Invalid type for argument 3 \"with_grant_option\" (value was \"$with_grant_option\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to grant_module_ownership:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'grant_module_ownership');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.grant_module_ownership",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'grant_module_ownership',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method grant_module_ownership",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'grant_module_ownership',
+				       );
+    }
+}
+
+
+
+=head2 remove_module_ownership
+
+  $obj->remove_module_ownership($module_name, $old_owner)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$module_name is a string
+$old_owner is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$module_name is a string
+$old_owner is a string
+
+
+=end text
+
+=item Description
+
+Remove ownership from current owner. You should have grant ability do this operation 
+(or to be an admin).
+
+=back
+
+=cut
+
+sub remove_module_ownership
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 2)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function remove_module_ownership (received $n, expecting 2)");
+    }
+    {
+	my($module_name, $old_owner) = @args;
+
+	my @_bad_arguments;
+        (!ref($module_name)) or push(@_bad_arguments, "Invalid type for argument 1 \"module_name\" (value was \"$module_name\")");
+        (!ref($old_owner)) or push(@_bad_arguments, "Invalid type for argument 2 \"old_owner\" (value was \"$old_owner\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to remove_module_ownership:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'remove_module_ownership');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.remove_module_ownership",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'remove_module_ownership',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method remove_module_ownership",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'remove_module_ownership',
 				       );
     }
 }

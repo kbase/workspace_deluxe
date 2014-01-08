@@ -1270,7 +1270,7 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} TypeInfo;
 	
-	funcdef get_type_info(type_string type) returns (TypeInfo info);
+	funcdef get_type_info(type_string type) returns (TypeInfo info) authentication optional;
 	
 	/* Information about a function
 	
@@ -1293,8 +1293,20 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} FuncInfo;
 	
-	funcdef get_func_info(func_string func) returns (FuncInfo info);
-		
+	funcdef get_func_info(func_string func) returns (FuncInfo info) authentication optional;
+	
+	/* Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
+		You should have grant ability do this operation (or to be an admin).
+	*/
+	funcdef grant_module_ownership(string module_name, string new_owner, boolean with_grant_option) 
+		returns () authentication required;
+
+	/* Remove ownership from current owner. You should have grant ability do this operation 
+		(or to be an admin).
+	*/
+	funcdef remove_module_ownership(string module_name, string old_owner) 
+		returns () authentication required;
+	
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
 		returns(UnspecifiedObject response) authentication required;

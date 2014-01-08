@@ -1268,11 +1268,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   type   instance of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)
      * @return   parameter "info" of type {@link us.kbase.workspace.TypeInfo TypeInfo}
      */
-    @JsonServerMethod(rpc = "Workspace.get_type_info")
-    public TypeInfo getTypeInfo(String type) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_type_info", authOptional=true)
+    public TypeInfo getTypeInfo(String type, AuthToken authPart) throws Exception {
         TypeInfo returnVal = null;
         //BEGIN get_type_info
-        TypeDetailedInfo tdi = ws.getTypeInfo(type, true);
+        TypeDetailedInfo tdi = ws.getTypeInfo(type, true, getUser(authPart));
         returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
@@ -1292,11 +1292,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   func   instance of original type "func_string" (A function string for referencing a funcdef. Specifies the function and its version in a single string in the format [modulename].[funcname]-[major].[minor]: modulename - a string. The name of the module containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
      * @return   parameter "info" of type {@link us.kbase.workspace.FuncInfo FuncInfo}
      */
-    @JsonServerMethod(rpc = "Workspace.get_func_info")
-    public FuncInfo getFuncInfo(String func) throws Exception {
+    @JsonServerMethod(rpc = "Workspace.get_func_info", authOptional=true)
+    public FuncInfo getFuncInfo(String func, AuthToken authPart) throws Exception {
         FuncInfo returnVal = null;
         //BEGIN get_func_info
-        FuncDetailedInfo fdi = ws.getFuncInfo(func, true);
+        FuncDetailedInfo fdi = ws.getFuncInfo(func, true, getUser(authPart));
         returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
@@ -1305,6 +1305,39 @@ public class WorkspaceServer extends JsonServerServlet {
         		.withUsedTypeDefs(fdi.getUsedTypeDefIds());
         //END get_func_info
         return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: grant_module_ownership</p>
+     * <pre>
+     * Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
+     * You should have grant ability do this operation (or to be an admin).
+     * </pre>
+     * @param   moduleName   instance of String
+     * @param   newOwner   instance of String
+     * @param   withGrantOption   instance of original type "boolean" (A boolean. 0 = false, other = true.)
+     */
+    @JsonServerMethod(rpc = "Workspace.grant_module_ownership")
+    public void grantModuleOwnership(String moduleName, String newOwner, Long withGrantOption, AuthToken authPart) throws Exception {
+        //BEGIN grant_module_ownership
+    	ws.grantModuleOwnership(moduleName, newOwner, withGrantOption != null && withGrantOption == 1L, getUser(authPart));
+        //END grant_module_ownership
+    }
+
+    /**
+     * <p>Original spec-file function name: remove_module_ownership</p>
+     * <pre>
+     * Remove ownership from current owner. You should have grant ability do this operation 
+     * (or to be an admin).
+     * </pre>
+     * @param   moduleName   instance of String
+     * @param   oldOwner   instance of String
+     */
+    @JsonServerMethod(rpc = "Workspace.remove_module_ownership")
+    public void removeModuleOwnership(String moduleName, String oldOwner, AuthToken authPart) throws Exception {
+        //BEGIN remove_module_ownership
+    	ws.removeModuleOwnership(moduleName, oldOwner, getUser(authPart));
+        //END remove_module_ownership
     }
 
     /**

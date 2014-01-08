@@ -960,18 +960,30 @@ public class Workspace {
 		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
 	}
 	
-	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks) 
+	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks, WorkspaceUser user) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks);
+		String userId = user == null ? null : user.getUser();
+		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks, userId);
 	}
 	
-	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks) 
+	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks, WorkspaceUser user) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
+		String userId = user == null ? null : user.getUser();
 		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
-				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks);
+				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks, userId);
 	}
 
+	public void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption,
+			WorkspaceUser user) throws TypeStorageException, NoSuchPrivilegeException {
+		typedb.addOwnerToModule(user.getUser(), moduleName, newOwner, withGrantOption);
+	}
+	
+	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user) 
+			throws NoSuchPrivilegeException, TypeStorageException {
+		typedb.removeOwnerFromModule(user.getUser(), moduleName, oldOwner);
+	}
+	
 	/* these admin functions are provided as a convenience and have nothing
 	 * to do with the rest of the DB, really. 
 	 */

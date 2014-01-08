@@ -67,6 +67,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -231,7 +232,7 @@ public class JSONRPCLayerTest {
 		administerCommand(clientForSrv2, "approveModRequest", "module", "UnreleasedModule");
 		clientForSrv2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
-			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc() returns ();};")
+			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc(AType param) returns ();};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT_FOR_SRV2 = clientForSrv2;
 		System.out.println("Starting tests");
@@ -1862,7 +1863,10 @@ public class JSONRPCLayerTest {
 		cl.setAuthAllowedForHttp(true);
 		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
 		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
-		System.out.println(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)));
+		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)).getVers().size());
+		cl.releaseModule("UnreleasedModule");
+		TypeInfo ti = cl.getTypeInfo("UnreleasedModule.AType");  //-0.1");
+		System.out.println(ti.getUsingFuncDefs());
 	}
 	
 	@Test
