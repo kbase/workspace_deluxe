@@ -126,6 +126,8 @@ public class TestWorkspace {
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 2, 0);
 	private static final TypeDefId SAFE_TYPE2_20 =
 			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
+	private static final TypeDefId SAFE_TYPE2_21 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
@@ -234,6 +236,19 @@ public class TestWorkspace {
 					"} AType;" +
 					"typedef structure {" +
 						"string thing;" +
+					"} AType2;" +
+				"};",
+				null, null, null, false, null);
+		work.releaseTypes(foo, "SomeModule");
+		work.compileNewTypeSpec(foo, 
+				"module SomeModule {" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType;" +
+					"/* @optional thing2 */" +
+					"typedef structure {" +
+						"string thing;" +
+						"string thing2;" +
 					"} AType2;" +
 				"};",
 				null, null, null, false, null);
@@ -2319,8 +2334,8 @@ public class TestWorkspace {
 	@Test
 	public void testListModuleVersions() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		Assert.assertEquals(2, ws.getModuleVersions("SomeModule", null).size());
-		Assert.assertEquals(3, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
+		Assert.assertEquals(3, ws.getModuleVersions("SomeModule", null).size());
+		Assert.assertEquals(4, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
 		Assert.assertEquals(2, ws.getModuleVersions("TestModule", null).size());
 		Assert.assertEquals(5, ws.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
 	}
@@ -3436,42 +3451,56 @@ public class TestWorkspace {
 				new Provenance(user), false))).get(0);
 		ObjectInformation stdnometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "std")), false).get(0);
+		
 		ObjectInformation objstack1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("objstack"), new HashMap<String, String>(), SAFE_TYPE1_10, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation objstack1nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 1)), false).get(0);
+		
 		ObjectInformation objstack2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("objstack"), passTCdata, SAFE_TYPE1_20, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation objstack2nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 2)), false).get(0);
+		
 		ObjectInformation type2_1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_1nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "type2", 1)), false).get(0);
+		
 		ObjectInformation type2_2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2_10, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_2nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "type2", 2)), false).get(0);
+		
 		ObjectInformation type2_3 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_20, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_3nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "type2", 3)), false).get(0);
+		
+		ObjectInformation type2_4 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_21, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation type2_4nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 4)), false).get(0);
+		
 		ObjectInformation stdws2 = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("stdws2"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation stdws2nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi2, "stdws2")), false).get(0);
+		
 		ObjectInformation hidden = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("hidden"), new HashMap<String, String>(), SAFE_TYPE1, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation hiddennometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi2, "hidden")), false).get(0);
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi2, "hidden")), true);
+		
 		ObjectInformation deleted = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("deleted"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
@@ -3495,7 +3524,7 @@ public class TestWorkspace {
 		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
 		
 		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, true),
-				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3,
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted));
 		checkObjInfoList(ws.listObjects(user, emptyWS, allType1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
@@ -3505,7 +3534,27 @@ public class TestWorkspace {
 		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi2), allType1, true, true, true, true),
 				Arrays.asList(stdws2, hidden, deleted));
 		checkObjInfoList(ws.listObjects(user, emptyWS, allType2, true, true, true, true),
-				Arrays.asList(type2_1, type2_2, type2_3));
+				Arrays.asList(type2_1, type2_2, type2_3, type2_4));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi2), allType2, true, true, true, true),
+				new ArrayList<ObjectInformation>());
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, true),
+				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted), lock));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, true, true, true, true),
+				Arrays.asList(objstack1));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, true, true, true, true),
+				Arrays.asList(objstack2));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2, true, true, true, true),
+				Arrays.asList(type2_1));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2_10, true, true, true, true),
+				Arrays.asList(type2_2));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2_20, true, true, true, true),
+				Arrays.asList(type2_3));
+		checkObjInfoList(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_20.getType(),
+				SAFE_TYPE2_20.getMajorVersion()), true, true, true, true),
+				Arrays.asList(type2_3, type2_4));
+		checkObjInfoList(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_10.getType(),
+				SAFE_TYPE2_10.getMajorVersion()), true, true, true, true),
+				Arrays.asList(type2_2));
 		
 		checkObjInfoList(ws.listObjects(user2, emptyWS, allType1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted), lock));
