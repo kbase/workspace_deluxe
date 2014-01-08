@@ -12,9 +12,10 @@ public class UserInfoProviderForTests implements UserInfoProvider {
 	
 	@Override
 	public boolean isAdmin(String userId) {
-		if (adminUser == null)
+		/*if (adminUser == null)
 			return true;
-		return adminUser.equals(userId);
+		return adminUser.equals(userId);*/
+		return false;
 	}
 	
 	@Override
