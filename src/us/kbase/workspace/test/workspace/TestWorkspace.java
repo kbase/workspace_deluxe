@@ -3506,7 +3506,7 @@ public class TestWorkspace {
 				new Provenance(user), false))).get(0);
 		ObjectInformation deletednometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi2, "deleted")), false).get(0);
-		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi2, "hidden")), true);
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi2, "deleted")), true);
 		
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;
@@ -3526,6 +3526,23 @@ public class TestWorkspace {
 		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, true),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, true, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, deleted));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, false, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, hidden));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, false, true),
+				Arrays.asList(std, objstack2, type2_4, stdws2, hidden, deleted));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, false, false),
+				Arrays.asList(stdnometa, objstack2nometa, type2_4nometa, stdws2nometa));
+		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, false),
+				Arrays.asList(stdnometa, objstack1nometa, objstack2nometa, type2_1nometa,
+						type2_2nometa, type2_3nometa, type2_4nometa,
+						stdws2nometa, hiddennometa, deletednometa));
 		checkObjInfoList(ws.listObjects(user, emptyWS, allType1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
 						stdws2, hidden, deleted), lock));
@@ -3539,6 +3556,9 @@ public class TestWorkspace {
 				new ArrayList<ObjectInformation>());
 		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted), lock));
+		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, false),
+				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa), locknometa));
 		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, true, true, true, true),
 				Arrays.asList(objstack1));
 		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, true, true, true, true),
@@ -3563,10 +3583,20 @@ public class TestWorkspace {
 		checkObjInfoList(ws.listObjects(user2, emptyWS, allType2, true, true, true, true),
 				new ArrayList<ObjectInformation>());
 //		
-		failListWorkspaces(user, new ArrayList<WorkspaceIdentifier>(), null, true, true, true, true,
+		failListObjects(user, new ArrayList<WorkspaceIdentifier>(), null, true, true, true, true,
 				new IllegalArgumentException("At least one filter must be specified."));
-		failListWorkspaces(user2, Arrays.asList(wsi, wsi2), null, true, true, true, true,
+		failListObjects(user2, Arrays.asList(wsi, wsi2), null, true, true, true, true,
 				new WorkspaceAuthorizationException("User listObjUser2 may not read workspace listObj1"));
+		failListObjects(null, Arrays.asList(wsi, wsi2), null, true, true, true, true,
+				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
+		failListObjects(user, Arrays.asList(wsi2, new WorkspaceIdentifier("listfake")), null, true, true, true, true,
+				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
+		
+		ws.createWorkspace(user, "listdel", false, null);
+		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("listdel"), true);
+		failListObjects(user, Arrays.asList(wsi2, new WorkspaceIdentifier("listdel")), null, true, true, true, true,
+				new NoSuchWorkspaceException("Workspace listdel is deleted", wsi));
+		
 	}
 	
 	private List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
@@ -3586,7 +3616,7 @@ public class TestWorkspace {
 		
 	}
 
-	private void failListWorkspaces(WorkspaceUser user,
+	private void failListObjects(WorkspaceUser user,
 			List<WorkspaceIdentifier> wsis, TypeDefId type, boolean showHidden,
 			boolean showDeleted, boolean showAllVers, boolean includeMetaData,
 			Exception e) {

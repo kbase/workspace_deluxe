@@ -202,6 +202,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase())),
 								new UserInfoProviderForTests(null)));
+								//TODO this is bad, need perm soln see WOR-82
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
@@ -225,6 +226,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
 								new UserInfoProviderForTests(null)));
+								//TODO this is bad, need perm soln see WOR-82
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
