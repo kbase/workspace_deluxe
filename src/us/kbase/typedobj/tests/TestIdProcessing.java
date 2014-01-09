@@ -41,7 +41,6 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -159,7 +158,7 @@ public class TestIdProcessing {
 		File tempdir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir,
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		
@@ -173,16 +172,16 @@ public class TestIdProcessing {
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
 		db.requestModuleRegistration("KB", username);
-		db.approveModuleRegistrationRequest(username, "KB");
+		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
-		db.releaseModule("KB", username);
+		db.releaseModule("KB", username, false);
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
 		db.requestModuleRegistration("FBA", username);
-		db.approveModuleRegistrationRequest(username, "FBA");
+		db.approveModuleRegistrationRequest(username, "FBA", true);
 		db.registerModule(fbaSpec ,fba_types, username);
-		db.releaseModule("FBA", username);
+		db.releaseModule("FBA", username, false);
 		
 		System.out.println("finding test instances");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);

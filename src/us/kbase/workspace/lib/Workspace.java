@@ -803,7 +803,7 @@ public class Workspace {
 	public List<OwnerInfo> listModuleRegistrationRequests() throws
 			TypeStorageException {
 		try {
-			return typedb.getNewModuleRegistrationRequests(null);
+			return typedb.getNewModuleRegistrationRequests(null, true);
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
 					"Something is broken in the administration system", nspe);
@@ -815,9 +815,9 @@ public class Workspace {
 			throws TypeStorageException {
 		try {
 			if (approve) {
-				typedb.approveModuleRegistrationRequest(null, module);
+				typedb.approveModuleRegistrationRequest(null, module, true);
 			} else {
-				typedb.refuseModuleRegistrationRequest(null, module);
+				typedb.refuseModuleRegistrationRequest(null, module, true);
 			}
 		} catch (NoSuchPrivilegeException nspe) {
 			throw new RuntimeException(
@@ -834,7 +834,7 @@ public class Workspace {
 			throws SpecParseException, TypeStorageException,
 			NoSuchPrivilegeException, NoSuchModuleException {
 		return typedb.registerModule(typespec, newtypes, removeTypes,
-				user.getUser(), dryRun, moduleVers, previousVer);
+				getUser(user), dryRun, moduleVers, previousVer);
 	}
 	
 	public Map<TypeDefName, TypeChange> compileTypeSpec(
@@ -851,7 +851,7 @@ public class Workspace {
 			final String module)
 			throws NoSuchModuleException, TypeStorageException,
 			NoSuchPrivilegeException {
-		return typedb.releaseModule(module, user.getUser());
+		return typedb.releaseModule(module, user.getUser(), false);
 	}
 	
 	public String getJsonSchema(final TypeDefId type, WorkspaceUser user) throws
@@ -871,15 +871,15 @@ public class Workspace {
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String userId = getUser(user);
 		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
-				typedb.getModuleInfo(module, userId);
+				typedb.getModuleInfo(module, userId, false);
 		List<String> functions = new ArrayList<String>();
 		for (FuncInfo fi : moduleInfo.getFuncs().values())
 			functions.add(module.getModuleName() + "." + fi.getFuncName() + "-" + 
 					fi.getFuncVersion());
-		return new ModuleInfo(typedb.getModuleSpecDocument(module, userId),
+		return new ModuleInfo(typedb.getModuleSpecDocument(module, userId, false),
 				typedb.getModuleOwners(module.getModuleName()),
 				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
-				typedb.getJsonSchemasForAllTypes(module, userId), 
+				typedb.getJsonSchemasForAllTypes(module, userId, false), 
 				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
 				new ArrayList<String>(functions), moduleInfo.isReleased());
 	}
@@ -887,7 +887,7 @@ public class Workspace {
 	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		if (user != null && typedb.isOwnerOfModule(module, user.getUser()))
-			return typedb.getAllModuleVersionsWithUnreleased(module, user.getUser());
+			return typedb.getAllModuleVersionsWithUnreleased(module, user.getUser(), false);
 		return typedb.getAllModuleVersions(module);
 	}
 	
@@ -930,7 +930,7 @@ public class Workspace {
 	public long compileTypeSpecCopy(String moduleName, String specDocument, Set<String> extTypeSet,
 			String userId, Map<String, String> includesToMd5, Map<String, Long> extIncludedSpecVersions) 
 					throws NoSuchModuleException, TypeStorageException, SpecParseException, NoSuchPrivilegeException {
-		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
+		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
 		Map<String, Long> moduleVersionRestrictions = new HashMap<String, Long>();
 		for (Map.Entry<String, String> entry : includesToMd5.entrySet()) {
 			String includedModule = entry.getKey();
@@ -961,7 +961,7 @@ public class Workspace {
 		}
 		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
 				userId, false, moduleVersionRestrictions);
-		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId);
+		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
 	}
 	
 	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks, WorkspaceUser user) 
@@ -979,13 +979,13 @@ public class Workspace {
 	}
 
 	public void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption,
-			WorkspaceUser user) throws TypeStorageException, NoSuchPrivilegeException {
-		typedb.addOwnerToModule(user.getUser(), moduleName, newOwner, withGrantOption);
+			WorkspaceUser user, boolean isAdmin) throws TypeStorageException, NoSuchPrivilegeException {
+		typedb.addOwnerToModule(getUser(user), moduleName, newOwner, withGrantOption, isAdmin);
 	}
 	
-	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user) 
-			throws NoSuchPrivilegeException, TypeStorageException {
-		typedb.removeOwnerFromModule(user.getUser(), moduleName, oldOwner);
+	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user, 
+			boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
+		typedb.removeOwnerFromModule(getUser(user), moduleName, oldOwner, isAdmin);
 	}
 	
 	/* these admin functions are provided as a convenience and have nothing

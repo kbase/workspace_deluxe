@@ -39,7 +39,6 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -139,7 +138,7 @@ public class TestWsSubsetExtraction {
 		File tempdir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, 
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		
@@ -151,9 +150,9 @@ public class TestWsSubsetExtraction {
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData");
 		db.requestModuleRegistration("KB", username);
-		db.approveModuleRegistrationRequest(username, "KB");
+		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
-		db.releaseModule("KB", username);
+		db.releaseModule("KB", username, false);
 		
 		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);

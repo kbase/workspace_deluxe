@@ -92,7 +92,6 @@ public class TypeDefinitionDB {
 		
 	private final TypeStorage storage;
 	private final File parentTempDir;
-	private final UserInfoProvider uip;
 	private final Object tempDirLock = new Object(); 
 	private final Object moduleStateLock = new Object(); 
 	private final Map<String, ModuleState> moduleStates = new HashMap<String, ModuleState>();
@@ -113,14 +112,13 @@ public class TypeDefinitionDB {
 	 * @param uip
 	 * @throws TypeStorageException 
 	 */
-	public TypeDefinitionDB(TypeStorage storage, UserInfoProvider uip)
+	public TypeDefinitionDB(TypeStorage storage)
 			throws TypeStorageException {
-		this(storage, null, uip);
+		this(storage, null);
 	}
 
-	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			UserInfoProvider uip) throws TypeStorageException {
-		this(storage, tempDir, uip, null, null);
+	public TypeDefinitionDB(TypeStorage storage, File tempDir) throws TypeStorageException {
+		this(storage, tempDir, null, null);
 	}
 	
 	/**
@@ -134,11 +132,11 @@ public class TypeDefinitionDB {
 	 * @throws TypeStorageException 
 	 */
 	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			UserInfoProvider uip, String kbTopPath, String kidlSource) throws TypeStorageException {
-		this(storage, tempDir, uip, kbTopPath, kidlSource, 100);
+			String kbTopPath, String kidlSource) throws TypeStorageException {
+		this(storage, tempDir, kbTopPath, kidlSource, 100);
 	}
 
-	public TypeDefinitionDB(TypeStorage storage, File tempDir, UserInfoProvider uip, 
+	public TypeDefinitionDB(TypeStorage storage, File tempDir, 
 			String kbTopPath, String kidlSource, int cacheSize) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
@@ -167,7 +165,6 @@ public class TypeDefinitionDB {
 				}
 			}
 		}
-		this.uip = uip;
 		this.kbTopPath = kbTopPath;
 		this.kidlSource = kidlSource == null || kidlSource.isEmpty() ? KidlSource.internal : 
 			KidlSource.valueOf(kidlSource);
@@ -407,18 +404,18 @@ public class TypeDefinitionDB {
 
 	private long findModuleVersion(ModuleDefId moduleDef) throws NoSuchModuleException, TypeStorageException {
 		try {
-			return findModuleVersion(moduleDef, null);
+			return findModuleVersion(moduleDef, null, false);
 		} catch (NoSuchPrivilegeException e) {
 			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
 		}
 	}
 	
-	private long findModuleVersion(ModuleDefId moduleDef, String userId) 
+	private long findModuleVersion(ModuleDefId moduleDef, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		if (moduleDef.getVersion() == null) {
 			checkModuleSupported(moduleDef.getModuleName());
 			if (isOwnerOfModule(moduleDef.getModuleName(), userId))
-				return getLatestModuleVersionWithUnreleased(moduleDef.getModuleName(), userId);
+				return getLatestModuleVersionWithUnreleased(moduleDef.getModuleName(), userId, isAdmin);
 			return getLastReleasedModuleVersion(moduleDef.getModuleName());
 		}
 		long version = moduleDef.getVersion();
@@ -431,18 +428,18 @@ public class TypeDefinitionDB {
 	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
 		try {
-			return getJsonSchemasForAllTypes(moduleDef, null);
+			return getJsonSchemasForAllTypes(moduleDef, null, false);
 		} catch (NoSuchPrivilegeException e) {
 			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
 		}
 	}
 	
-	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef, String userId) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
+	public Map<AbsoluteTypeDefId, String> getJsonSchemasForAllTypes(ModuleDefId moduleDef, String userId,
+			boolean isAdmin) throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
-			long moduleVersion = findModuleVersion(moduleDef, userId);
+			long moduleVersion = findModuleVersion(moduleDef, userId, isAdmin);
 			ModuleInfo info = storage.getModuleInfoRecord(moduleName, moduleVersion);
 			Map<AbsoluteTypeDefId, String> ret = new HashMap<AbsoluteTypeDefId, String>();
 			for (TypeInfo ti : info.getTypes().values()) {
@@ -930,9 +927,9 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private boolean checkUserIsOwnerOrAdmin(String moduleName, String userId) 
+	private boolean checkUserIsOwnerOrAdmin(String moduleName, String userId, boolean isAdmin) 
 			throws NoSuchPrivilegeException, TypeStorageException {
-		if (uip.isAdmin(userId))
+		if (isAdmin)
 			return true;
 		Map<String, OwnerInfo> owners = storage.getOwnersForModule(moduleName);
 		if (!owners.containsKey(userId))
@@ -969,9 +966,9 @@ public class TypeDefinitionDB {
 	 * @param userId
 	 * @return new versions of types
 	 */
-	public List<AbsoluteTypeDefId> releaseModule(String moduleName, String userId)
+	public List<AbsoluteTypeDefId> releaseModule(String moduleName, String userId, boolean isAdmin)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		checkUserIsOwnerOrAdmin(moduleName, userId);
+		checkUserIsOwnerOrAdmin(moduleName, userId, isAdmin);
 		checkModuleRegistered(moduleName);
 		checkModuleSupported(moduleName);
 		long version = storage.getLastModuleVersionWithUnreleased(moduleName);
@@ -1142,19 +1139,19 @@ public class TypeDefinitionDB {
 	public String getModuleSpecDocument(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
 		try {
-			return getModuleSpecDocument(moduleDef, null);
+			return getModuleSpecDocument(moduleDef, null, false);
 		} catch (NoSuchPrivilegeException e) {
 			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
 		}
 	}
 	
-	public String getModuleSpecDocument(ModuleDefId moduleDef, String userId) 
+	public String getModuleSpecDocument(ModuleDefId moduleDef, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
-			long version = findModuleVersion(moduleDef, userId);
+			long version = findModuleVersion(moduleDef, userId, isAdmin);
 			checkModule(moduleName, version);
 			return storage.getModuleSpecRecord(moduleName, version);
 		} finally {
@@ -1259,18 +1256,18 @@ public class TypeDefinitionDB {
 	public ModuleInfo getModuleInfo(ModuleDefId moduleDef) 
 			throws NoSuchModuleException, TypeStorageException {
 		try {
-			return getModuleInfo(moduleDef, null);
+			return getModuleInfo(moduleDef, null, false);
 		} catch (NoSuchPrivilegeException e) {
 			throw new IllegalStateException(e);  // It will not happen cause we use null userId.
 		}
 	}
 	
-	public ModuleInfo getModuleInfo(ModuleDefId moduleDef, String userId) 
+	public ModuleInfo getModuleInfo(ModuleDefId moduleDef, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		String moduleName = moduleDef.getModuleName();
 		requestReadLock(moduleName);
 		try {
-			return getModuleInfoNL(moduleName, findModuleVersion(moduleDef, userId));
+			return getModuleInfoNL(moduleName, findModuleVersion(moduleDef, userId, isAdmin));
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -1288,12 +1285,12 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public long getLatestModuleVersionWithUnreleased(String moduleName, String userId) 
+	public long getLatestModuleVersionWithUnreleased(String moduleName, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
-			checkUserIsOwnerOrAdmin(moduleName, userId);
+			checkUserIsOwnerOrAdmin(moduleName, userId, isAdmin);
 			return storage.getLastModuleVersionWithUnreleased(moduleName);
 		} finally {
 			releaseReadLock(moduleName);
@@ -1312,13 +1309,13 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	public List<Long> getAllModuleVersionsWithUnreleased(String moduleName, String ownerUserId) 
+	public List<Long> getAllModuleVersionsWithUnreleased(String moduleName, String ownerUserId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		requestReadLock(moduleName);
 		try {
 			checkModuleRegistered(moduleName);
 			checkModuleSupported(moduleName);
-			checkUserIsOwnerOrAdmin(moduleName, ownerUserId);
+			checkUserIsOwnerOrAdmin(moduleName, ownerUserId, isAdmin);
 			return getAllModuleVersionsNL(moduleName, true);
 		} finally {
 			releaseReadLock(moduleName);
@@ -1496,14 +1493,14 @@ public class TypeDefinitionDB {
 		ti.setSupported(false);
 	}
 	
-	public void stopTypeSupport(TypeDefName type, String userId, String uploadComment)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException, 
-			NoSuchPrivilegeException, SpecParseException {
+	public void stopTypeSupport(TypeDefName type, String userId, String uploadComment,
+			boolean isAdmin) throws NoSuchTypeException, NoSuchModuleException, 
+			TypeStorageException, NoSuchPrivilegeException, SpecParseException {
 		String moduleName = type.getModule();
 		String typeName = type.getName();
 		saveModule(getModuleSpecDocument(moduleName), Collections.<String>emptySet(), 
 				new HashSet<String>(Arrays.asList(typeName)), userId, false, 
-				Collections.<String,Long>emptyMap(), null, "stopTypeSupport", uploadComment);
+				Collections.<String,Long>emptyMap(), null, "stopTypeSupport", uploadComment, isAdmin);
 	}
 	
 	private void stopFuncSupport(ModuleInfo info, String funcName, long newModuleVersion) 
@@ -1514,11 +1511,11 @@ public class TypeDefinitionDB {
 		fi.setSupported(false);
 	}
 	
-	public void removeModule(String moduleName, String userId) 
+	public void removeModule(String moduleName, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		requestWriteLock(moduleName);
 		try {
-			checkAdmin(userId);
+			checkAdmin(userId, isAdmin);
 			checkModuleRegistered(moduleName);
 			storage.removeModule(moduleName);
 			removeModuleInfoFromCache(moduleName);
@@ -1727,21 +1724,21 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public List<OwnerInfo> getNewModuleRegistrationRequests(String adminUserId) 
+	public List<OwnerInfo> getNewModuleRegistrationRequests(String adminUserId, boolean isAdmin) 
 			throws NoSuchPrivilegeException, TypeStorageException {
-		checkAdmin(adminUserId);
+		checkAdmin(adminUserId, isAdmin);
 		return storage.getNewModuleRegistrationRequests();
 	}
 
-	private void checkAdmin(String adminUserId)
+	private void checkAdmin(String adminUserId, boolean isAdmin)
 			throws NoSuchPrivilegeException {
-		if (!uip.isAdmin(adminUserId))
+		if (!isAdmin)
 			throw new NoSuchPrivilegeException("User " + adminUserId + " should be administrator");
 	}
 	
-	public void approveModuleRegistrationRequest(String adminUserId, String newModuleName) 
+	public void approveModuleRegistrationRequest(String adminUserId, String newModuleName, boolean isAdmin) 
 			throws TypeStorageException, NoSuchPrivilegeException {
-		checkAdmin(adminUserId);
+		checkAdmin(adminUserId, isAdmin);
 		requestWriteLock(newModuleName);
 		try {
 			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
@@ -1753,9 +1750,9 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	public void refuseModuleRegistrationRequest(String adminUserId, String newModuleName) 
+	public void refuseModuleRegistrationRequest(String adminUserId, String newModuleName, boolean isAdmin) 
 			throws TypeStorageException, NoSuchPrivilegeException {
-		checkAdmin(adminUserId);
+		checkAdmin(adminUserId, isAdmin);
 		requestWriteLock(newModuleName);
 		try {
 			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
@@ -1815,17 +1812,18 @@ public class TypeDefinitionDB {
 
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
-			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion) 
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, 
+			Long prevModuleVersion) 
 					throws SpecParseException, TypeStorageException, NoSuchPrivilegeException, 
 					NoSuchModuleException {
 		return registerModule(specDocument, typesToSave, typesToUnregister, userId, dryMode, 
-				moduleVersionRestrictions, prevModuleVersion, "");
+				moduleVersionRestrictions, prevModuleVersion, "", false);
 	}
 	
 	public Map<TypeDefName, TypeChange> registerModule(String specDocument, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
-			String uploadComment) throws SpecParseException, TypeStorageException, 
+			String uploadComment, boolean isAdmin) throws SpecParseException, TypeStorageException, 
 			NoSuchPrivilegeException, NoSuchModuleException {
 		final Set<String> unreg;
 		if (typesToUnregister == null) {
@@ -1841,7 +1839,7 @@ public class TypeDefinitionDB {
 		}
 		return saveModule(specDocument, save, unreg, userId, dryMode,
 				moduleVersionRestrictions, prevModuleVersion, "registerModule",
-				uploadComment);
+				uploadComment, isAdmin);
 	}
 
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
@@ -1876,18 +1874,20 @@ public class TypeDefinitionDB {
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
 					NoSuchPrivilegeException {
-		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, dryMode, moduleVersionRestrictions, "");
+		return refreshModule(moduleName, typesToSave, typesToUnregister, userId, dryMode, 
+				moduleVersionRestrictions, "", false);
 	}
 	
 	public Map<TypeDefName, TypeChange> refreshModule(String moduleName, 
 			List<String> typesToSave, List<String> typesToUnregister, String userId, 
-			boolean dryMode, Map<String, Long> moduleVersionRestrictions, String uploadComment) 
-					throws SpecParseException, TypeStorageException, NoSuchModuleException, 
-					NoSuchPrivilegeException {
-		String specDocument = getModuleSpecDocument(moduleName, storage.getLastModuleVersionWithUnreleased(moduleName));
+			boolean dryMode, Map<String, Long> moduleVersionRestrictions, String uploadComment,
+			boolean isAdmin) throws SpecParseException, TypeStorageException, NoSuchModuleException, 
+			NoSuchPrivilegeException {
+		String specDocument = getModuleSpecDocument(moduleName, 
+				storage.getLastModuleVersionWithUnreleased(moduleName));
 		return saveModule(specDocument, new HashSet<String>(typesToSave), 
 				new HashSet<String>(typesToUnregister), userId, dryMode, moduleVersionRestrictions, 
-				null, "refreshModule", uploadComment);
+				null, "refreshModule", uploadComment, isAdmin);
 	}
 
 	private String correctSpecIncludes(String specDocument, List<String> includedModules) 
@@ -2012,7 +2012,7 @@ public class TypeDefinitionDB {
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
-			String uploadMethod, String uploadComment) throws SpecParseException, TypeStorageException, 
+			String uploadMethod, String uploadComment, boolean isAdmin) throws SpecParseException, TypeStorageException, 
 			NoSuchPrivilegeException, NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
@@ -2025,7 +2025,7 @@ public class TypeDefinitionDB {
 		moduleName = module.getModuleName();
 		checkModuleRegistered(moduleName);
 		checkModuleSupported(moduleName);
-		checkUserIsOwnerOrAdmin(moduleName, userId);
+		checkUserIsOwnerOrAdmin(moduleName, userId, isAdmin);
 		long realPrevVersion = storage.getLastModuleVersionWithUnreleased(moduleName);
 		if (prevModuleVersion != null) {
 			if (realPrevVersion != prevModuleVersion)
@@ -2412,20 +2412,20 @@ public class TypeDefinitionDB {
 	}
 		
 	public void addOwnerToModule(String knownOwnerUserId, String moduleName, String newOwnerUserId, 
-			boolean withChangeOwnersPrivilege) throws TypeStorageException, NoSuchPrivilegeException {
-		checkUserCanChangePrivileges(knownOwnerUserId, moduleName);
+			boolean withChangeOwnersPrivilege, boolean isAdmin) throws TypeStorageException, NoSuchPrivilegeException {
+		checkUserCanChangePrivileges(knownOwnerUserId, moduleName, isAdmin);
 		storage.addOwnerToModule(moduleName, newOwnerUserId, withChangeOwnersPrivilege);
 	}
 
-	public void removeOwnerFromModule(String knownOwnerUserId, String moduleName, String removedOwnerUserId) 
-			throws NoSuchPrivilegeException, TypeStorageException {
-		checkUserCanChangePrivileges(knownOwnerUserId, moduleName);
+	public void removeOwnerFromModule(String knownOwnerUserId, String moduleName, String removedOwnerUserId,
+			boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
+		checkUserCanChangePrivileges(knownOwnerUserId, moduleName, isAdmin);
 		storage.removeOwnerFromModule(moduleName, removedOwnerUserId);
 	}
 	
 	private void checkUserCanChangePrivileges(String knownOwnerUserId,
-			String moduleName) throws NoSuchPrivilegeException, TypeStorageException {
-		boolean canChangeOwnersPrivilege = checkUserIsOwnerOrAdmin(moduleName, knownOwnerUserId);
+			String moduleName, boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
+		boolean canChangeOwnersPrivilege = checkUserIsOwnerOrAdmin(moduleName, knownOwnerUserId, isAdmin);
 		if (!canChangeOwnersPrivilege)
 			throw new NoSuchPrivilegeException("User " + knownOwnerUserId + " can not change " +
 					"priviledges for module " + moduleName);
@@ -2570,10 +2570,10 @@ public class TypeDefinitionDB {
 		return storage.getModuleSupportedState(moduleName);
 	}
 	
-	public void stopModuleSupport(String moduleName, String userId) 
+	public void stopModuleSupport(String moduleName, String userId, boolean isAdmin) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkModuleRegistered(moduleName);
-		checkAdmin(userId);
+		checkAdmin(userId, isAdmin);
 		requestWriteLock(moduleName);
 		try {
 			storage.changeModuleSupportedState(moduleName, false);
@@ -2583,10 +2583,10 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	public void resumeModuleSupport(String moduleName, String userId)
+	public void resumeModuleSupport(String moduleName, String userId, boolean isAdmin)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkModuleRegistered(moduleName);
-		checkAdmin(userId);
+		checkAdmin(userId, isAdmin);
 		requestWriteLock(moduleName);
 		try {
 			storage.changeModuleSupportedState(moduleName, true);

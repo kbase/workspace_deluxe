@@ -240,7 +240,7 @@ public class JSONRPCLayerTest {
 	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
 			JsonClientException {
 		Map<String, String> releasemod = new HashMap<String, String>();
-		releasemod.put("command", "approveModRequest");
+		releasemod.put("command", command);
 		for (int i = 0; i < params.length / 2; i++)
 			releasemod.put(params[i * 2], params[i * 2 + 1]);
 		client.administer(new UObject(releasemod));
@@ -1954,4 +1954,26 @@ public class JSONRPCLayerTest {
 		Assert.assertEquals("TestModule.getFeature-1.0",CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef());
 	}
 	
+	@Test
+	public void testSpecRegError() throws Exception {
+		WorkspaceClient cl = CLIENT2;
+		cl.setAuthAllowedForHttp(true);
+		cl.requestModuleOwnership("TestModule2");
+		administerCommand(CLIENT2, "approveModRequest", "module", "TestModule2");
+		cl.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module TestModule2{ typedef string StringType;};"));
+		try {
+			CLIENT1.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withSpec("module TestModule2{ typedef int IntegerType;};"));
+			Assert.fail();
+		} catch (Exception ex) {
+			Assert.assertEquals("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2", ex.getMessage());
+		}
+		administerCommand(CLIENT2, "grantModuleOwnership", "moduleName", "TestModule2", "newOwner", AUTH_USER1.getUserId(), "withGrantOption", "1");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module TestModule2{ typedef int IntegerType;};"));
+	}
 }

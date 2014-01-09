@@ -1319,7 +1319,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.grant_module_ownership")
     public void grantModuleOwnership(String moduleName, String newOwner, Long withGrantOption, AuthToken authPart) throws Exception {
         //BEGIN grant_module_ownership
-    	ws.grantModuleOwnership(moduleName, newOwner, withGrantOption != null && withGrantOption == 1L, getUser(authPart));
+    	ws.grantModuleOwnership(moduleName, newOwner, withGrantOption != null && withGrantOption == 1L, getUser(authPart), false);
         //END grant_module_ownership
     }
 
@@ -1335,7 +1335,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.remove_module_ownership")
     public void removeModuleOwnership(String moduleName, String oldOwner, AuthToken authPart) throws Exception {
         //BEGIN remove_module_ownership
-    	ws.removeModuleOwnership(moduleName, oldOwner, getUser(authPart));
+    	ws.removeModuleOwnership(moduleName, oldOwner, getUser(authPart), false);
         //END remove_module_ownership
     }
 

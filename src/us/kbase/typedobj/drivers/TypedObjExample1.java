@@ -24,7 +24,6 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
@@ -47,7 +46,7 @@ public class TypedObjExample1 {
 			if (!tempdir.exists())
 				tempdir.mkdir();
 			TypeDefinitionDB db = new TypeDefinitionDB(new FileTypeStorage(dblocation), tempdir, 
-					new UserInfoProviderForTests(), new Util().getKIDLpath(),  WorkspaceTestCommon.getKidlSource());
+					new Util().getKIDLpath(),  WorkspaceTestCommon.getKidlSource());
 			System.out.println("connecting to: "+dblocation);
 			
 			// list all the modules that have been loaded
@@ -61,15 +60,15 @@ public class TypedObjExample1 {
 			String username = "wstester1";
 			if(allModules.isEmpty()) {
 				db.requestModuleRegistration("KB", username);
-				db.approveModuleRegistrationRequest(username, "KB");
+				db.approveModuleRegistrationRequest(username, "KB", true);
 				db.requestModuleRegistration("FBA", username);
-				db.approveModuleRegistrationRequest(username, "FBA");
+				db.approveModuleRegistrationRequest(username, "FBA", true);
 				String kbSpec = loadResourceFile("../tests/files/t4/KB.spec");
 				db.registerModule(kbSpec, Arrays.asList("Feature","Genome","genome_id"), username);
-				db.releaseModule("KB", username);
+				db.releaseModule("KB", username, false);
 				String fbaSpec = loadResourceFile("../tests/files/t4/FBA.spec");
 				db.registerModule(fbaSpec, Arrays.asList("FBAModel","FBAResult","fba_model_id"), username);
-				db.releaseModule("FBA", username);
+				db.releaseModule("FBA", username, false);
 			}
 				
 			 

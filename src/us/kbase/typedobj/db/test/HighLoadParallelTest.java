@@ -22,7 +22,6 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.RefInfo;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 
@@ -48,12 +47,12 @@ public class HighLoadParallelTest {
 		if (useTestStorage)
 			storage = TestTypeStorageFactory.createTypeStorageWrapper(storage);
 		storage.removeAllData();
-		db = new TypeDefinitionDB(storage, dir, new UserInfoProviderForTests(adminUser));
+		db = new TypeDefinitionDB(storage, dir);
 		for (int i = 0; i < threadCount * modulePerThreadCount; i++) {
 			String moduleName = "TestModule" + (i + 1);
 			String specDocument = "module " + moduleName + "{\n};\n";
 			db.requestModuleRegistration(moduleName, adminUser);
-			db.approveModuleRegistrationRequest(adminUser, moduleName);
+			db.approveModuleRegistrationRequest(adminUser, moduleName, true);
 			db.registerModule(specDocument, adminUser);
 		}
 		for (int i = 0; i < threadCount; i++) {
@@ -222,7 +221,7 @@ public class HighLoadParallelTest {
 					}
 					specSb.append("};\n");
 					db.registerModule(specSb.toString(), newTypes, adminUser);
-					db.releaseModule(moduleName, adminUser);
+					db.releaseModule(moduleName, adminUser, true);
 					System.out.println("After change in module " + moduleName + ": " + getStorageObjects());
 					if ((iter + 1) % 100 == 0) {
 						long timeDiff = System.currentTimeMillis() - time;

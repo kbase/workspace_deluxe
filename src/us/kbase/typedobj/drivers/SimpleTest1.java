@@ -19,7 +19,7 @@ public class SimpleTest1 {
 		
 		// Create a simple db
 		TypeDefinitionDB db= new TypeDefinitionDB(
-				new FileTypeStorage("kb-typed-obj-lib/test_schemas/test_db_1"), new UserInfoProviderForTests());
+				new FileTypeStorage("kb-typed-obj-lib/test_schemas/test_db_1"));
 		
 		// Create a simple validator that finds objects using the db
 		TypedObjectValidator validator = new TypedObjectValidator(db);

@@ -44,7 +44,6 @@ import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
@@ -200,8 +199,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		this.typeValidator = new TypedObjectValidator(
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
-								GetMongoDB.getDB(host, settings.getTypeDatabase())),
-								new UserInfoProviderForTests(null)));
+								GetMongoDB.getDB(host, settings.getTypeDatabase()))));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
@@ -223,8 +221,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new TypeDefinitionDB(
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
-										user, password)),
-								new UserInfoProviderForTests(null)));
+										user, password))));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}
@@ -249,8 +246,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new MongoTypeStorage(
 								GetMongoDB.getDB(host, settings.getTypeDatabase(),
 										user, password)),
-								typeDBdir == null ? null : new File(typeDBdir),
-								new UserInfoProviderForTests(null), kidlpath, "both"));
+								typeDBdir == null ? null : new File(typeDBdir), kidlpath, "both"));
 		ensureIndexes();
 		ensureTypeIndexes();
 	}

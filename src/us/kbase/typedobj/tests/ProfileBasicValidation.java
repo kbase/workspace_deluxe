@@ -32,7 +32,6 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
-import us.kbase.typedobj.db.UserInfoProviderForTests;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -60,7 +59,7 @@ public class ProfileBasicValidation {
 			tempdir.mkdir();
 		TypeStorage storage = new MongoTypeStorage(TypeRegisteringTest.createMongoDbConnection());
 		storage.removeAllData();
-		db = new TypeDefinitionDB(storage, tempdir, new UserInfoProviderForTests(),
+		db = new TypeDefinitionDB(storage, tempdir, 
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		
@@ -73,16 +72,16 @@ public class ProfileBasicValidation {
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
 		db.requestModuleRegistration("KB", username);
-		db.approveModuleRegistrationRequest(username, "KB");
+		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
-		db.releaseModule("KB", username);
+		db.releaseModule("KB", username, false);
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
 		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
 		db.requestModuleRegistration("FBA", username);
-		db.approveModuleRegistrationRequest(username, "FBA");
+		db.approveModuleRegistrationRequest(username, "FBA", true);
 		db.registerModule(fbaSpec ,fba_types, username);
-		db.releaseModule("FBA", username);
+		db.releaseModule("FBA", username, false);
 		
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		List<TestInstanceInfo> instanceList = new ArrayList<TestInstanceInfo>();

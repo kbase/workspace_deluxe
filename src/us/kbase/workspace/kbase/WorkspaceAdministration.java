@@ -13,6 +13,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
+import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -51,7 +52,7 @@ public class WorkspaceAdministration {
 			CorruptWorkspaceDBException, NoSuchObjectException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			TypedObjectValidationException, BadJsonSchemaDocumentException,
-			InstanceValidationException, ParseException {
+			InstanceValidationException, ParseException, NoSuchPrivilegeException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
@@ -105,6 +106,29 @@ public class WorkspaceAdministration {
 				final WorkspaceUser user = new WorkspaceUser((String) c.get("user"));
 				return wsmeth.saveObjects(params, user);
 			}
+			if ("grantModuleOwnership".equals(fn)) {
+				String moduleName = (String)c.get("moduleName");
+				String newOwner = (String)c.get("newOwner");
+				boolean withGrantOption = false;
+				Object par3 = c.get("withGrantOption");
+				if (par3 != null) {
+					if (par3 instanceof Boolean) {
+						withGrantOption = (Boolean)par3;
+					} else if (par3 instanceof String) {
+						withGrantOption = "true".equals(par3) || "1".equals(par3);
+					} else if (par3 instanceof Number) {
+						withGrantOption = ((Number)par3).intValue() == 1;
+					}
+				}
+				grantModuleOwnership(moduleName, newOwner, withGrantOption);
+				return null;
+			}
+			if ("removeModuleOwnership".equals(fn)) {
+				String moduleName = (String)c.get("moduleName");
+				String newOwner = (String)c.get("newOwner");
+				removeModuleOwnership(moduleName, newOwner);
+				return null;
+			}
 		}
 		throw new IllegalArgumentException(
 				"I don't know how to process the command:\n" + cmd);
@@ -131,6 +155,16 @@ public class WorkspaceAdministration {
 
 	private Object listModRequests() throws TypeStorageException {
 		return ws.listModuleRegistrationRequests();
+	}
+
+	private void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption) 
+			throws TypeStorageException, NoSuchPrivilegeException {
+		ws.grantModuleOwnership(moduleName, newOwner, withGrantOption, null, true);
+	}
+	
+	private void removeModuleOwnership(String moduleName, String oldOwner) 
+			throws NoSuchPrivilegeException, TypeStorageException {
+		ws.removeModuleOwnership(moduleName, oldOwner, null, true);
 	}
 
 	//All the email methods are dead code for now, don't use them
