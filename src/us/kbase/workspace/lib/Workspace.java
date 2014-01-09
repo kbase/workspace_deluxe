@@ -687,7 +687,6 @@ public class Workspace {
 		return ret;
 	}
 	
-	//TODO test
 	public List<ObjectInformation> getObjectHistory(WorkspaceUser user,
 			ObjectIdentifier oi) throws WorkspaceCommunicationException,
 			InaccessibleObjectException, CorruptWorkspaceDBException {

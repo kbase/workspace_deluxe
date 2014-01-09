@@ -3429,13 +3429,13 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void listObjects() throws Exception {
+	public void listObjectsAndHistory() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("listObjUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObj1");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("listObj2");
 		WorkspaceUser user2 = new WorkspaceUser("listObjUser2");
-		ws.createWorkspace(user, wsi.getName(), false, null).getId();
-		ws.createWorkspace(user2, wsi2.getName(), false, null).getId();
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid2 = ws.createWorkspace(user2, wsi2.getName(), false, null).getId();
 		ws.setPermissions(user2, wsi2, Arrays.asList(user), Permission.WRITE);
 		
 		Map<String, String> meta = new HashMap<String, String>();
@@ -3597,8 +3597,55 @@ public class TestWorkspace {
 		failListObjects(user, Arrays.asList(wsi2, new WorkspaceIdentifier("listdel")), null, true, true, true, true,
 				new NoSuchWorkspaceException("Workspace listdel is deleted", wsi));
 		
+		assertThat("correct object history for std", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "std")),
+				is(Arrays.asList(std)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "type2")),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, 3)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "type2", 3)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, 3, 4)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for objstack", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "objstack")),
+				is(Arrays.asList(objstack1, objstack2)));
+		assertThat("correct object history for stdws2", 
+				ws.getObjectHistory(user2, new ObjectIdentifier(wsi2, "stdws2")),
+				is(Arrays.asList(stdws2)));
+		
+		failGetObjectHistory(user, new ObjectIdentifier(wsi, "booger"),
+				new NoSuchObjectException("No object with name booger exists in workspace " + wsid1));
+		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listObjectsfake"), "booger"),
+				new InaccessibleObjectException("Object booger cannot be accessed: No workspace with name listObjectsfake exists"));
+		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listdel"), "booger"),
+				new InaccessibleObjectException("Object booger cannot be accessed: Workspace listdel is deleted"));
+		failGetObjectHistory(user2, new ObjectIdentifier(wsi, 3),
+				new InaccessibleObjectException("Object 3 cannot be accessed: User listObjUser2 may not read workspace listObj1"));
+		failGetObjectHistory(null, new ObjectIdentifier(wsi, 3),
+				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace listObj1"));
+		failGetObjectHistory(user2, new ObjectIdentifier(wsi2, "deleted"),
+				new InaccessibleObjectException("Object 3 (name deleted) in workspace " + wsid2 + " has been deleted"));
+		
 	}
 	
+	private void failGetObjectHistory(WorkspaceUser user,
+			ObjectIdentifier oi, Exception e) {
+		try {
+			ws.getObjectHistory(user, oi);
+			fail("listed obj hist when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
 	private List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
 			ObjectInformation possNull) {
 		return setUpListObjectsExpected(expec, Arrays.asList(possNull));
@@ -3628,7 +3675,6 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
-		
 	}
 
 	private void checkObjInfoList(List<ObjectInformation> got,
@@ -3641,6 +3687,5 @@ public class TestWorkspace {
 			g.add(oi);
 		}
 		assertThat("listed correct workspaces", g, is(new HashSet<ObjectInformation>(expected)));
-		
 	}
 }
