@@ -123,7 +123,6 @@ public class JSONRPCLayerTest {
 	
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
-	public static final String ANOTHER_TYPE = "AnotherModule.AType-0.1";
 	
 	private static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -199,20 +198,6 @@ public class JSONRPCLayerTest {
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT1.releaseModule("SomeModule");
-		
-		CLIENT1.requestModuleOwnership("AnotherModule");
-		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
-		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
-			.withNewTypes(Arrays.asList("AType"))
-			.withSpec(
-					"module AnotherModule {" +
-						"/* @optional thing */" +
-						"typedef structure {" +
-						"string thing;" +
-						"} AType;" +
-					"};")
-			);
-		CLIENT1.releaseModule("AnotherModule");
 		
 		SERVER2 = startupWorkspaceServer(2);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
@@ -1946,6 +1931,36 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void listObjects() throws Exception {
+		CLIENT1.requestModuleOwnership("AnotherModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module AnotherModule {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+						"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		CLIENT1.releaseModule("AnotherModule");
+		CLIENT1.requestModuleOwnership("AnotherModule2");
+		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule2");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module AnotherModule2 {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+						"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		CLIENT1.releaseModule("AnotherModule2");
+		
+		String anotherType = "AnotherModule.AType-0.1";
+		String anotherType2 = "AnotherModule2.AType-0.1";
+		
 		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs1"));
 		Tuple8<Long, String, String, String, Long, String, String, String> info2 =
@@ -1957,50 +1972,108 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std1 =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(SAFE_TYPE).withName("std1").withHidden(1L)))).get(0);
+				.withMeta(meta).withType(anotherType).withName("std")))).get(0);
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std2 =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(ANOTHER_TYPE).withName("std2").withHidden(1L)))).get(0);
+				.withMeta(meta).withType(anotherType2).withName("std")))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> hidden =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(SAFE_TYPE).withName("hidden").withHidden(1L)))).get(0);
+				.withMeta(meta).withType(anotherType).withName("hidden").withHidden(1L)))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> deleted =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(SAFE_TYPE).withName("deleted").withHidden(1L)))).get(0);
+				.withMeta(meta).withType(anotherType).withName("deleted")))).get(0);
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs1").withName("deleted")));
 		
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 0L,
+				Arrays.asList(std1, std2, hidden, deleted), true);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, hidden, deleted), false);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, 1L, 1L, 1L, 1L,
+				Arrays.asList(std2), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, deleted), false);
+		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, 0L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, null, 1L, 1L,
+				Arrays.asList(std1, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 0L, 1L, 1L,
+				Arrays.asList(std1, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, null, 1L,
+				Arrays.asList(deleted, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 1L,
+				Arrays.asList(deleted, std2, hidden), false);
 		
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), "Foo", 1L, 1L, 1L, 1L,
+				"Type Foo could not be split into a module and name");
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(-1L), null, 1L, 1L, 1L, 1L,
+				"Workspace id must be > 0");
+		failListObjects(Arrays.asList("foo:bar:listObjs1"), Arrays.asList(1L), null, 1L, 1L, 1L, 1L,
+				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
+		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, 1L, 1L, 1L, 1L,
+				"No workspace with name listObjs1fake exists");
+		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				"At least one filter must be specified.");
+	}
+
+	private void failListObjects(List<String> wsnames, List<Long> wsids,
+			String type, Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
+			String exp)
+			throws Exception {
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+					.withIds(wsids).withType(type).withShowHidden(showHidden)
+					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
+					.withIncludeMetadata(includeMeta));
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
 	}
 
 	private void checkListObjects(List<String> wsnames, List<Long> wsids, String type,
-			long showHidden, long showDeleted, long allVers, long includeMeta,
+			Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
 			boolean nullMeta) throws Exception {
-		Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expec =
-				new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>();
+		Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>> expec =
+				new HashMap<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
+		
+		Map<Long, Set<Long>> seenSet = new HashMap<Long, Set<Long>>();
+		Map<Long, Set<Long>> expectedSet = new HashMap<Long, Set<Long>>();
+		
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> e: expected) {
-			expec.put(e.getE1(), e);
+			if (!expec.containsKey(e.getE1())) {
+				expec.put(e.getE1(), new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>());
+				expectedSet.put(e.getE1(), new HashSet<Long>());
+			}
+			expec.get(e.getE1()).put(e.getE5(), e);
+			expectedSet.get(e.getE1()).add(e.getE5());
 		}
-		Set<Long> seen = new HashSet<Long>();
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> g:
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta))) {
-			if (seen.contains(g.getE1())) {
+			if (seenSet.containsKey(g.getE1()) && seenSet.get(g.getE1()).contains(g.getE5())) {
 				fail("Saw same object twice: " + g);
 			}
-			seen.add(g.getE1());
-			compareObjectInfo(g, expec.get(g.getE1()), nullMeta);
+			if (!seenSet.containsKey(g.getE1())) {
+				seenSet.put(g.getE1(), new HashSet<Long>());
+			}
+			seenSet.get(g.getE1()).add(g.getE5());
+			if (!expec.containsKey(g.getE1()) || !expec.get(g.getE1()).containsKey(g.getE5())) {
+				fail("listed unexpected object: " + g);
+			}
+			compareObjectInfo(g, expec.get(g.getE1()).get(g.getE5()), nullMeta);
 		}
-		assertThat("listed correct objects", seen, is (expec.keySet()));
+		assertThat("listed correct objects", seenSet, is (expectedSet));
 	}
 	
 	private void compareObjectInfo(
