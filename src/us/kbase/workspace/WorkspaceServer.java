@@ -701,7 +701,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN list_objects
-		//TODO tests
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
 		if (params.getWorkspaces() != null) {

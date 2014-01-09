@@ -123,6 +123,7 @@ public class JSONRPCLayerTest {
 	
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
+	public static final String ANOTHER_TYPE = "AnotherModule.AType-0.1";
 	
 	private static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -189,6 +190,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
 		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
+		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
@@ -197,6 +199,21 @@ public class JSONRPCLayerTest {
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT1.releaseModule("SomeModule");
+		
+		CLIENT1.requestModuleOwnership("AnotherModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module AnotherModule {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+						"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		CLIENT1.releaseModule("AnotherModule");
+		
 		SERVER2 = startupWorkspaceServer(2);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
@@ -1547,7 +1564,6 @@ public class JSONRPCLayerTest {
 		assertThat("chksum is correct", copied.getE9(), is(orig.getE9()));
 		assertThat("size is correct", copied.getE10(), is(orig.getE10()));
 		assertThat("meta is correct", copied.getE11(), is(orig.getE11()));
-		
 	}
 	
 	@Test
@@ -1926,6 +1942,83 @@ public class JSONRPCLayerTest {
 			
 		}
 		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
+	}
+	
+	@Test
+	public void listObjects() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs1"));
+		Tuple8<Long, String, String, String, Long, String, String, String> info2 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs2"));
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("metastuff", "meta");
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std1 =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(SAFE_TYPE).withName("std1").withHidden(1L)))).get(0);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std2 =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(ANOTHER_TYPE).withName("std2").withHidden(1L)))).get(0);
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> hidden =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(SAFE_TYPE).withName("hidden").withHidden(1L)))).get(0);
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> deleted =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(SAFE_TYPE).withName("deleted").withHidden(1L)))).get(0);
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs1").withName("deleted")));
+		
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, hidden, deleted), false);
+		
+	}
+
+	private void checkListObjects(List<String> wsnames, List<Long> wsids, String type,
+			long showHidden, long showDeleted, long allVers, long includeMeta,
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
+			boolean nullMeta) throws Exception {
+		Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expec =
+				new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>();
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> e: expected) {
+			expec.put(e.getE1(), e);
+		}
+		Set<Long> seen = new HashSet<Long>();
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> g:
+			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+					.withIds(wsids).withType(type).withShowHidden(showHidden)
+					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
+					.withIncludeMetadata(includeMeta))) {
+			if (seen.contains(g.getE1())) {
+				fail("Saw same object twice: " + g);
+			}
+			seen.add(g.getE1());
+			compareObjectInfo(g, expec.get(g.getE1()), nullMeta);
+		}
+		assertThat("listed correct objects", seen, is (expec.keySet()));
+	}
+	
+	private void compareObjectInfo(
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> got,
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> expec,
+			boolean nullMeta) 
+			throws Exception {
+		assertThat("id is correct", got.getE1(), is(expec.getE1()));
+		assertThat("name is correct", got.getE2(), is(expec.getE2()));
+		assertThat("type is correct", got.getE3(), is(expec.getE3()));
+		assertThat("date is correct", got.getE4(), is(expec.getE4()));
+		assertThat("version is correct", got.getE5(), is(expec.getE5()));
+		assertThat("user is correct", got.getE6(), is(expec.getE6()));
+		assertThat("wsid is correct", got.getE7(), is(expec.getE7()));
+		assertThat("ws name is correct", got.getE8(), is(expec.getE8()));
+		assertThat("chksum is correct", got.getE9(), is(expec.getE9()));
+		assertThat("size is correct", got.getE10(), is(expec.getE10()));
+		assertThat("meta is correct", got.getE11(), is(nullMeta ? null : expec.getE11()));
 	}
 
 	@Test
