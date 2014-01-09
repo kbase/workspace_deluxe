@@ -1930,7 +1930,7 @@ public class JSONRPCLayerTest {
 	}
 	
 	@Test
-	public void listObjects() throws Exception {
+	public void listObjectsAndHistory() throws Exception {
 		CLIENT1.requestModuleOwnership("AnotherModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
 		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
@@ -1979,18 +1979,26 @@ public class JSONRPCLayerTest {
 				.withMeta(meta).withType(anotherType2).withName("std")))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> hidden =
-				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
 				.withMeta(meta).withType(anotherType).withName("hidden").withHidden(1L)))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> deleted =
-				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
 				.withMeta(meta).withType(anotherType).withName("deleted")))).get(0);
-		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs1").withName("deleted")));
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs2").withName("deleted")));
 		
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2), false);
+		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(hidden, deleted), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), true);
 		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, 1L, 1L, 1L, 1L,
@@ -2020,6 +2028,34 @@ public class JSONRPCLayerTest {
 				"No workspace with name listObjs1fake exists");
 		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
 				"At least one filter must be specified.");
+		
+		compareObjectInfo(CLIENT1.getObjectHistory(
+				new ObjectIdentity().withRef("listObjs1/std")), 
+						Arrays.asList(std1, std2));
+		compareObjectInfo(CLIENT1.getObjectHistory(
+				new ObjectIdentity().withRef("listObjs2/hidden/1")), 
+						Arrays.asList(hidden));
+		
+		try {
+			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
+		}
+	}
+
+	private void compareObjectInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> got,
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected)
+			throws Exception {
+		assertThat("same number of objects", got.size(), is(expected.size()));
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> gotiter =
+				got.iterator();
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expiter =
+				expected.iterator();
+		while (gotiter.hasNext()) {
+			compareObjectInfo(gotiter.next(), expiter.next(), false);
+		}
 	}
 
 	private void failListObjects(List<String> wsnames, List<Long> wsids,
@@ -2042,36 +2078,45 @@ public class JSONRPCLayerTest {
 			Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
 			boolean nullMeta) throws Exception {
-		Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>> expec =
-				new HashMap<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
+		Map<Long, Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>> expec =
+				new HashMap<Long, Map<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>>();
 		
-		Map<Long, Set<Long>> seenSet = new HashMap<Long, Set<Long>>();
-		Map<Long, Set<Long>> expectedSet = new HashMap<Long, Set<Long>>();
+		Map<Long, Map<Long, Set<Long>>> seenSet = new HashMap<Long, Map<Long, Set<Long>>>();
+		Map<Long, Map<Long, Set<Long>>> expectedSet = new HashMap<Long, Map<Long, Set<Long>>>();
 		
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> e: expected) {
-			if (!expec.containsKey(e.getE1())) {
-				expec.put(e.getE1(), new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>());
-				expectedSet.put(e.getE1(), new HashSet<Long>());
+			if (!expec.containsKey(e.getE7())) {
+				expec.put(e.getE7(), new HashMap<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>());
+				expectedSet.put(e.getE7(), new HashMap<Long, Set<Long>>());
 			}
-			expec.get(e.getE1()).put(e.getE5(), e);
-			expectedSet.get(e.getE1()).add(e.getE5());
+			if (!expec.get(e.getE7()).containsKey(e.getE1())) {
+				expec.get(e.getE7()).put(e.getE1(), new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>());
+				expectedSet.get(e.getE7()).put(e.getE1(), new HashSet<Long>());
+			}
+			expec.get(e.getE7()).get(e.getE1()).put(e.getE5(), e);
+			expectedSet.get(e.getE7()).get(e.getE1()).add(e.getE5());
 		}
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> g:
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta))) {
-			if (seenSet.containsKey(g.getE1()) && seenSet.get(g.getE1()).contains(g.getE5())) {
+			if (seenSet.containsKey(g.getE7()) && seenSet.get(g.getE7()).containsKey(g.getE1()) &&
+					seenSet.get(g.getE7()).get(g.getE1()).contains(g.getE5())) {
 				fail("Saw same object twice: " + g);
 			}
-			if (!seenSet.containsKey(g.getE1())) {
-				seenSet.put(g.getE1(), new HashSet<Long>());
+			if (!seenSet.containsKey(g.getE7())) {
+				seenSet.put(g.getE7(), new HashMap<Long, Set<Long>>());
 			}
-			seenSet.get(g.getE1()).add(g.getE5());
-			if (!expec.containsKey(g.getE1()) || !expec.get(g.getE1()).containsKey(g.getE5())) {
+			if (!seenSet.get(g.getE7()).containsKey(g.getE1())) {
+				seenSet.get(g.getE7()).put(g.getE1(), new HashSet<Long>());
+			}
+			seenSet.get(g.getE7()).get(g.getE1()).add(g.getE5());
+			if (!expec.containsKey(g.getE7()) || !expec.get(g.getE7()).containsKey(g.getE1()) ||
+					!expec.get(g.getE7()).get(g.getE1()).containsKey(g.getE5())) {
 				fail("listed unexpected object: " + g);
 			}
-			compareObjectInfo(g, expec.get(g.getE1()).get(g.getE5()), nullMeta);
+			compareObjectInfo(g, expec.get(g.getE7()).get(g.getE1()).get(g.getE5()), nullMeta);
 		}
 		assertThat("listed correct objects", seenSet, is (expectedSet));
 	}
