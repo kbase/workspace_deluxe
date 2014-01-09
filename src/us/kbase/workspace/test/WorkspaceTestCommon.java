@@ -35,8 +35,8 @@ public class WorkspaceTestCommon {
 	}
 	
 	private static String getProp(String prop) {
-		if (System.getProperty(prop) == null) {
-			throw new TestException("Property " + prop + " cannot be null.");
+		if (System.getProperty(prop) == null || prop.isEmpty()) {
+			throw new TestException("Property " + prop + " cannot be null or the empty string.");
 		}
 		return System.getProperty(prop);
 	}

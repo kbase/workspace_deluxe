@@ -3688,4 +3688,9 @@ public class TestWorkspace {
 		}
 		assertThat("listed correct workspaces", g, is(new HashSet<ObjectInformation>(expected)));
 	}
+	
+	@Test
+	public void getObjectSubdata() throws Exception {
+		
+	}
 }

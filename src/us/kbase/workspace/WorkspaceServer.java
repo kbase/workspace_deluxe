@@ -610,9 +610,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectHistory(ObjectIdentity object, AuthToken authPart) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
-        final ObjectIdentifier oi = processObjectIdentifier(object);
+		final ObjectIdentifier oi = processObjectIdentifier(object);
 		returnVal = au.objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi));
-		//TODO test
         //END get_object_history
         return returnVal;
     }
