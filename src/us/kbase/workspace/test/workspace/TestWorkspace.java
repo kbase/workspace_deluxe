@@ -3782,7 +3782,6 @@ public class TestWorkspace {
 				"			}" +
 				"}"
 				);
-		
 		Map<String, Object> expdata2 = createData(
 				"{\"array\": [{\"id\": 1," +
 				"			   \"thing\": \"foo\"}," +
@@ -3791,9 +3790,22 @@ public class TestWorkspace {
 				"			  ]" +
 				"}"
 				);
-		
 		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		
+		got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/3", "/array/0")))));
+		expdata2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  null" + 
+				"			  ]" +
+				"}"
+				);
+		compareObjectAndInfo(got.get(0), o2, p2, expdata2, refs2, refmap2);
+		
+		//TODO everywhere getObject is called in a test, do the same thing with subset
 	}
 
 	@SuppressWarnings("unchecked")
