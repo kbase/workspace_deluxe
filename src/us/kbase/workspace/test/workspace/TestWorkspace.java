@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -31,6 +32,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
@@ -3691,6 +3694,43 @@ public class TestWorkspace {
 	
 	@Test
 	public void getObjectSubdata() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("subUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("subData");
+		WorkspaceUser user2 = new WorkspaceUser("subUser2");
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		
+		Map<String, Object> data1 = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"},"
+				);
+		
+		Map<String, Object> data2 = createData("{\"foo\": \"bar2\"}");
+		System.out.println(data1);
+		System.out.println(data2);
+		
+		
+		//TODO provenance
+		
+		ObjectInformation o1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o1"), data1, SAFE_TYPE1, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation o2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o2"), data2, SAFE_TYPE1, meta2,
+				new Provenance(user), false))).get(0);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> createData(String json)
+			throws JsonParseException, JsonMappingException, IOException {
+		return new ObjectMapper().readValue(json, Map.class);
 	}
 }

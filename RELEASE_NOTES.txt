@@ -18,7 +18,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.1.0 (Released TBD)
+VERSION: 0.1.0 (Released 1/9/2014)
 --------------------------------------
 PREAMBLE:
 0.1.0 is a complete rewrite of the workspace service and thus has many changes

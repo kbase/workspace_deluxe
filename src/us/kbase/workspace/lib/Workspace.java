@@ -658,6 +658,7 @@ public class Workspace {
 		return ret;
 	}
 	
+	//TODO test
 	public List<WorkspaceObjectData> getObjectsSubSet(final WorkspaceUser user,
 			final List<SubObjectIdentifier> loi) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,
