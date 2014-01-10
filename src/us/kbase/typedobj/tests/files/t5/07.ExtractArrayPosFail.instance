@@ -1,0 +1,13 @@
+{
+	"paths":["/otherstuff/32"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":{
+			"thing":{"mac":{"junk":2,"junkidontwant":3},"pc":{}}
+		},
+		"otherstuff":[22,22,22,22],
+		"things":{}
+	},
+	"extract": "No element at position '32', at: /otherstuff/32"
+}

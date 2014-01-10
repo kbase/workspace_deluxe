@@ -57,7 +57,7 @@ public class TypedObjectExtractor {
 
 	// remove trailing '*' and '[*]', because these select everything
 	static protected String [] parsePath(String path) {
-		if (path.startsWith("/")) { //Mike, added this, otherwise all paths starting with / were being parsed to ["", "foo"] and choking on "" 
+		if (path.startsWith("/")) {
 			path = path.substring(1);
 		}
 		String [] pathToken = path.split("/");
@@ -86,7 +86,11 @@ public class TypedObjectExtractor {
 			if(data.isArray()) {
 				// if it is an array, then we try to get the element at the given position
 				try {
-					((ArrayNode)extract).add(data.get(Integer.parseInt(path[pathPos])));
+					JsonNode elem = data.get(Integer.parseInt(path[pathPos]));
+					if(elem==null) {
+						throw new TypedObjectExtractionException("No element at position '"+path[pathPos]+"', at: "+getLocation(path,pathPos));
+					}
+					((ArrayNode)extract).add(elem);
 				} catch (NumberFormatException e) {
 					throw new TypedObjectExtractionException("Malformed selection string, given '"+path[pathPos]+"', but object at this location is an array, at: "+getLocation(path,pathPos));
 				}
