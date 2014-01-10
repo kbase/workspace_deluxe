@@ -50,6 +50,7 @@ public class ShockBackend implements BlobStore {
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
 			BlobStoreException {
+		//TODO on startup create & delete node to check shock auth once Shane provides config that screws up auth for testing purposes
 		if (collectionPrefix == null || mongoDB == null) {
 			throw new IllegalArgumentException(
 					"mongoDB and collectionPrefix cannot be null");

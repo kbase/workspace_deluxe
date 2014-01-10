@@ -40,6 +40,7 @@ import com.mongodb.DB;
 
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -53,6 +54,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -2742,7 +2744,18 @@ public class TestWorkspace {
 		assertThat("returned data same", copy.getData(), is(orig.getData()));
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
-		
+	}
+	
+	private void compareObjectAndInfo(WorkspaceObjectData got,
+			ObjectInformation info, Provenance prov, Map<String, Object> data,
+			List<String> refs, Map<String, String> refmap)
+			throws Exception {
+		assertThat("object info same", got.getObjectInfo(), is(info));
+		assertThat("returned data same", got.getData(), is((Object) data));
+		assertThat("returned data jsonnode same", got.getDataAsJsonNode(),
+				is(new ObjectMapper().valueToTree(data)));
+		assertThat("returned refs same", got.getReferences(), is(refs));
+		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
 	}
 
 	private void compareObjectInfo(ObjectInformation original,
@@ -3699,33 +3712,88 @@ public class TestWorkspace {
 		WorkspaceUser user2 = new WorkspaceUser("subUser2");
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("metastuff", "meta");
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
 		
+		Provenance p1 = new Provenance(user);
+		p1.addAction(new ProvenanceAction().withDescription("provenance 1")
+				.withWorkspaceObjects(Arrays.asList("subData/auto1")));
+		Provenance p2 = new Provenance(user);
+		p2.addAction(new ProvenanceAction().withDescription("provenance 2")
+				.withWorkspaceObjects(Arrays.asList("subData/auto2")));
+
 		Map<String, Object> data1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
-				"					  \"thing\": \"foo\"}}," +
+				"					  \"thing\": \"foo\"}," +
 				"			\"id2\": {\"id\": 2," +
-				"					  \"thing\": \"foo2\"}}," +
+				"					  \"thing\": \"foo2\"}," +
 				"			\"id3\": {\"id\": 3," +
-				"					  \"thing\": \"foo3\"},"
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"ref\": \"subData/auto1\"" +
+				"}"
 				);
 		
-		Map<String, Object> data2 = createData("{\"foo\": \"bar2\"}");
-		System.out.println(data1);
-		System.out.println(data2);
+		Map<String, Object> data2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 2," +
+				"			   \"thing\": \"foo2\"}," +
+				"			  {\"id\": 3," +
+				"			   \"thing\": \"foo3\"}" +
+				"			  ]," +
+				" \"ref\": \"subData/auto2\"" +
+				"}"
+				);
 		
-		
-		//TODO provenance
-		
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false),
+				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false)));
 		ObjectInformation o1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("o1"), data1, SAFE_TYPE1, meta,
-				new Provenance(user), false))).get(0);
+				new ObjectIDNoWSNoVer("o1"), data1, reftype, meta,
+				p1, false))).get(0);
 		ObjectInformation o2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("o2"), data2, SAFE_TYPE1, meta2,
-				new Provenance(user), false))).get(0);
+				new ObjectIDNoWSNoVer("o2"), data2, reftype, meta2,
+				p2, false))).get(0);
+		ObjectIdentifier oident1 = new ObjectIdentifier(wsi, "o1");
+		ObjectIdentifier oident2 = new ObjectIdentifier(wsi, 4);
+		
+		List<String> refs1 = Arrays.asList(wsid1 + "/1/1");
+		Map<String, String> refmap1 = new HashMap<String, String>();
+		refmap1.put("subData/auto1", wsid1 + "/1/1");
+		List<String> refs2 = Arrays.asList(wsid1 + "/2/1");
+		Map<String, String> refmap2 = new HashMap<String, String>();
+		refmap2.put("subData/auto2", wsid1 + "/2/1");
+		
+		List<WorkspaceObjectData> got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/id3", "/map/id1"))),
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/2", "/array/0")))));
+		Map<String, Object> expdata1 = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		
+		Map<String, Object> expdata2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 3," +
+				"			   \"thing\": \"foo3\"}" +
+				"			  ]" +
+				"}"
+				);
+		
+		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
 	}
 
 	@SuppressWarnings("unchecked")
