@@ -3337,21 +3337,21 @@ public class TestWorkspace {
 				new ObjectIDNoWSNoVer("obj1"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), true))).get(0);
 		
-		Map<Long, ObjectInformation> expected = new HashMap<Long, ObjectInformation>();
-		expected.put(1L, auto1);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		List<ObjectInformation> expected = new ArrayList<ObjectInformation>();
+		expected.add(auto1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
-		expected.put(2L, auto2);
-		expected.put(3L, obj1);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, true, false, false, true), expected);
+		expected.add(auto2);
+		expected.add(obj1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, true, false, false, true), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 3), new ObjectIdentifier(wsi, "auto2")), false);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "obj1")), true);
-		expected.remove(1L);
-		expected.remove(3L);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		expected.remove(auto1);
+		expected.remove(obj1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
 		failSetHide(user, new ObjectIdentifier(wsi, "fake"), true, new NoSuchObjectException(
 				"No object with name fake exists in workspace " + wsid1));
@@ -3391,20 +3391,6 @@ public class TestWorkspace {
 		}
 	}
 
-	private void checkObjectSet(List<ObjectInformation> listObjects,
-			Map<Long, ObjectInformation> expected) {
-		Set<Long> seen = new HashSet<Long>();
-		for (ObjectInformation oi: listObjects) {
-			long oid = oi.getObjectId();
-			if (seen.contains(oid)) {
-				fail("Saw same objectid twice");
-			}
-			seen.add(oid);
-			assertThat("object info for id " + oid + " correct", oi, is(expected.get(oid)));
-		}
-		assertThat("checked all objects", seen, is(expected.keySet()));
-	}
-	
 	@Test
 	public void listWorkspaces() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("listUser");
@@ -3601,64 +3587,64 @@ public class TestWorkspace {
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
 		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
 		
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, true),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, true, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, true, true, true),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, deleted));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, false, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, false, true, true),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, true, true),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, false, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, false, true),
 				Arrays.asList(std, objstack2, type2_4, stdws2, hidden, deleted));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, false, false),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, false, false),
 				Arrays.asList(stdnometa, objstack2nometa, type2_4nometa, stdws2nometa));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, false),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, false),
 				Arrays.asList(stdnometa, objstack1nometa, objstack2nometa, type2_1nometa,
 						type2_2nometa, type2_3nometa, type2_4nometa,
 						stdws2nometa, hiddennometa, deletednometa));
-		checkObjInfoList(ws.listObjects(user, emptyWS, allType1, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
 						stdws2, hidden, deleted), lock));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi), allType1, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), allType1, true, true, true, true),
 				Arrays.asList(std, objstack1, objstack2));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi2), allType1, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi2), allType1, true, true, true, true),
 				Arrays.asList(stdws2, hidden, deleted));
-		checkObjInfoList(ws.listObjects(user, emptyWS, allType2, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType2, true, true, true, true),
 				Arrays.asList(type2_1, type2_2, type2_3, type2_4));
-		checkObjInfoList(ws.listObjects(user, Arrays.asList(wsi2), allType2, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi2), allType2, true, true, true, true),
 				new ArrayList<ObjectInformation>());
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted), lock));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, false),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, false),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
 						deletednometa), locknometa));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, true, true, true, true),
 				Arrays.asList(objstack1));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, true, true, true, true),
 				Arrays.asList(objstack2));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2, true, true, true, true),
 				Arrays.asList(type2_1));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2_10, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_10, true, true, true, true),
 				Arrays.asList(type2_2));
-		checkObjInfoList(ws.listObjects(user, emptyWS, SAFE_TYPE2_20, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_20, true, true, true, true),
 				Arrays.asList(type2_3));
-		checkObjInfoList(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_20.getType(),
+		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_20.getType(),
 				SAFE_TYPE2_20.getMajorVersion()), true, true, true, true),
 				Arrays.asList(type2_3, type2_4));
-		checkObjInfoList(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_10.getType(),
+		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_10.getType(),
 				SAFE_TYPE2_10.getMajorVersion()), true, true, true, true),
 				Arrays.asList(type2_2));
 		
-		checkObjInfoList(ws.listObjects(user2, emptyWS, allType1, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user2, emptyWS, allType1, true, true, true, true),
 				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted), lock));
-		checkObjInfoList(ws.listObjects(user2, Arrays.asList(wsi2), null, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user2, Arrays.asList(wsi2), null, true, true, true, true),
 				Arrays.asList(stdws2, hidden, deleted));
-		checkObjInfoList(ws.listObjects(user2, emptyWS, allType2, true, true, true, true),
+		compareObjectInfo(ws.listObjects(user2, emptyWS, allType2, true, true, true, true),
 				new ArrayList<ObjectInformation>());
 //		
 		failListObjects(user, new ArrayList<WorkspaceIdentifier>(), null, true, true, true, true,
@@ -3755,7 +3741,7 @@ public class TestWorkspace {
 		}
 	}
 
-	private void checkObjInfoList(List<ObjectInformation> got,
+	private void compareObjectInfo(List<ObjectInformation> got,
 			List<ObjectInformation> expected) {
 		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
 		for (ObjectInformation oi: got) {
