@@ -611,7 +611,7 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void workspacePermissions() throws Exception {
+	public void permissions() throws Exception {
 		//setup
 		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
 		ws.createWorkspace(AUSER, "perms_noglobal", false, null);
@@ -808,7 +808,7 @@ public class TestWorkspace {
 		loi.add(new ObjectIdentifier(read, 3));
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
-		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
+
 		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true);
 		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false);
 		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
@@ -835,30 +835,24 @@ public class TestWorkspace {
 		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
 		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
 		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(retdata.get(0).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(1).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(2).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(3).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(4).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(5).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(6).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(7).getObjectInfo(), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(8).getObjectInfo(), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(9).getObjectInfo(), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(10).getObjectInfo(), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(11).getObjectInfo(), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(3).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(4).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(5).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(6).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(7).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(8).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
+		
+		List<FakeObjectInfo> retinfo = new ArrayList<FakeObjectInfo>();
+		FakeResolvedWSID fakews = new FakeResolvedWSID(read.getName(), readid);
+		retinfo.add(new FakeObjectInfo(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24L, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		List<Map<String, Object>> retdata = Arrays.asList(
+				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
+		checkObjectAndInfo(foo, loi, retinfo, retdata);
 		
 		ws.saveObjects(foo, priv, objects);
 		
@@ -890,12 +884,24 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(priv, 2)));
 		}
+		try {
+			ws.getObjectsSubSet(bar, Arrays.asList(new SubObjectIdentifier(
+					new ObjectIdentifier(priv, 2), null)));
+			fail("Able to get obj data from private workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 2 cannot be accessed: User bar may not read workspace saveobj"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(priv, 2)));
+		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
-		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjInfo(retdata.get(0).getObjectInfo(), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
-		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
+		
+		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
+				Arrays.asList(new FakeObjectInfo(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
+						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
+						chksum1, 23L, meta2)), Arrays.asList(data));
 		try {
 			ws.saveObjects(bar, priv, objects);
 			fail("saved objects to unwritable workspace");
@@ -908,6 +914,36 @@ public class TestWorkspace {
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
 		
 		ws.setGlobalPermission(foo, read, Permission.NONE);
+	}
+
+	private void checkObjectAndInfo(WorkspaceUser bar,
+			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
+			List<Map<String, Object>> data) throws Exception {
+		List<WorkspaceObjectData> retdata = ws.getObjects(bar, ids);
+		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(bar, objIDToSubObjID(ids));
+		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
+		Iterator<WorkspaceObjectData> ret2 = retdata2.iterator();
+		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
+		Iterator<Map<String, Object>> dataiter = data.iterator();
+		while (ret1.hasNext()) {
+			FakeObjectInfo i = info.next();
+			Map<String, Object> d = dataiter.next();
+			checkObjectAndInfo(ret1.next(), i , d);
+			checkObjectAndInfo(ret2.next(), i , d);
+		}
+		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext()) {
+			fail("mismatched iter counts");
+		}
+	}
+
+	private void checkObjectAndInfo(WorkspaceObjectData wod,
+			FakeObjectInfo info, Map<String, Object> data) {
+		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
+				info.getTypeString(), info.getVersion(), info.getSavedBy(),
+				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
+				info.getSize(), info.getUserMetaData());
+		assertThat("correct data", wod.getData(), is((Object) data));
+		
 	}
 
 	private void successGetObjects(WorkspaceUser user,
@@ -1756,7 +1792,6 @@ public class TestWorkspace {
 		}
 		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
 				is(expectedRefs));
-		//TODO put this test in the JSONRPCLayer tests
 	}
 	
 	@Test(timeout=60000)
@@ -3906,8 +3941,6 @@ public class TestWorkspace {
 				);
 		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
-		
-		//TODO everywhere getObject is called in a test, do the same thing with subset
 	}
 
 	@SuppressWarnings("unchecked")
