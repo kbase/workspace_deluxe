@@ -913,11 +913,7 @@ public class TestWorkspace {
 	private void successGetObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs) throws Exception {
 		ws.getObjects(user, objs);
-		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
-		for (ObjectIdentifier oi: objs) {
-			soi.add(new SubObjectIdentifier(oi, null));
-		}
-		ws.getObjectsSubSet(user, soi);
+		ws.getObjectsSubSet(user, objIDToSubObjID(objs));
 	}
 	
 	private void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
@@ -931,18 +927,23 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
-		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
-		for (ObjectIdentifier oi: objs) {
-			soi.add(new SubObjectIdentifier(oi, null));
-		}
 		try {
-			ws.getObjectsSubSet(user, soi);
+			ws.getObjectsSubSet(user, objIDToSubObjID(objs));
 			fail("called get subobjects with bad args");
 		} catch (Exception exp) {
 			assertThat("correct exception", exp.getLocalizedMessage(),
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
+	}
+
+	private List<SubObjectIdentifier> objIDToSubObjID(
+			List<ObjectIdentifier> objs) {
+		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
+		for (ObjectIdentifier oi: objs) {
+			soi.add(new SubObjectIdentifier(oi, null));
+		}
+		return soi;
 	}
 
 	@Test
@@ -1344,10 +1345,19 @@ public class TestWorkspace {
 		for (int i = 3; i < 11; i++) {
 			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
 					new ObjectIdentifier(reftypecheck, i))).get(0);
+			WorkspaceObjectData wodsub = ws.getObjectsSubSet(userfoo, Arrays.asList(
+					new SubObjectIdentifier(new ObjectIdentifier(reftypecheck, i), null))).get(0);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> obj = (Map<String, Object>) wod.getData();
-			assertThat("reference rewritten correctly", (String) obj.get("ref"), is(reftypewsid + "/2/1"));
+			@SuppressWarnings("unchecked")
+			Map<String, Object> subobj = (Map<String, Object>) wodsub.getData();
+			assertThat("reference rewritten correctly", (String) obj.get("ref"),
+					is(reftypewsid + "/2/1"));
 			assertThat("reference included correctly", wod.getReferences(),
+					is(Arrays.asList(reftypewsid + "/2/1")));
+			assertThat("sub obj reference rewritten correctly", (String) subobj.get("ref"),
+					is(reftypewsid + "/2/1"));
+			assertThat("sub obj reference included correctly", wodsub.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
 		
@@ -1431,8 +1441,7 @@ public class TestWorkspace {
 		refmap.put("provenance/auto2/1", wsid + "/2/1");
 		refmap.put("provenance/auto1", wsid + "/1/3");
 		
-		Provenance got = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance();
-		checkProvenanceCorrect(p, got, refmap);
+		checkProvenanceCorrect(foo, p, new ObjectIdentifier(prov, 4), refmap);
 		
 		try {
 			new WorkspaceSaveObject(data, SAFE_TYPE1, null, null, false);
@@ -1466,18 +1475,21 @@ public class TestWorkspace {
 		Provenance p2 = new Provenance(foo);
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p2, false)));
+		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(prov, 5),
+				new HashMap<String, String>());
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
-		Date date2 = got2.getDate();
-		checkProvenanceCorrect(p2, got2, new HashMap<String, String>());
-		got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
-		assertThat("Prov date constant", got2.getDate(), is(date2));
+		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
+		Provenance gotsub2 = ws.getObjectsSubSet(foo, Arrays.asList(new SubObjectIdentifier(
+				new ObjectIdentifier(prov, 5), null))).get(0).getProvenance();
+		assertThat("Prov date constant", gotsub2.getDate(), is(dates.get(1)));
+		assertThat("Prov dates same", got2.getDate(), is(gotsub2.getDate()));
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p3, false)));
-		Provenance got3 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 6))).get(0).getProvenance();
-		checkProvenanceCorrect(p3, got3, new HashMap<String, String>());
+		checkProvenanceCorrect(foo, p3, new ObjectIdentifier(prov, 6),
+				new HashMap<String, String>());
 		
 		Provenance p4 = new Provenance(foo);
 		ProvenanceAction pa = new ProvenanceAction();
@@ -1486,8 +1498,18 @@ public class TestWorkspace {
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p4, false)));
-		Provenance got4 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 7))).get(0).getProvenance();
-		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
+		checkProvenanceCorrect(foo, p4, new ObjectIdentifier(prov, 7),
+				new HashMap<String, String>());
+	}
+
+	private List<Date> checkProvenanceCorrect(WorkspaceUser foo, Provenance prov,
+			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
+		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot, refmap);
+		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
+				.get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot2,refmap);
+		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
@@ -2308,6 +2330,11 @@ public class TestWorkspace {
 			Map<ObjectIdentifier, Object> idToData) throws Exception {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
+		for (int i = 0; i < d.size(); i++) {
+			assertThat("can get correct data from undeleted objects",
+					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+		}
+		d = ws.getObjectsSubSet(foo, objIDToSubObjID(objs));
 		for (int i = 0; i < d.size(); i++) {
 			assertThat("can get correct data from undeleted objects",
 					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
