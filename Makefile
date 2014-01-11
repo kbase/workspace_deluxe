@@ -62,7 +62,7 @@ init:
 build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
 	$(ANT) compile
-	
+
 build-docs: build-libs
 	-rm -r docs 
 	$(ANT) javadoc
@@ -102,7 +102,7 @@ scriptbin:
 endif
 
 test: test-client test-service test-scripts
-	
+
 test-client: test-service
 	$(ANT) test_client_import
 
@@ -112,7 +112,7 @@ test-service:
 
 test-scripts:
 	prove test/scripts/
-	
+
 deploy: deploy-client deploy-service
 
 deploy-client: deploy-client-libs deploy-docs deploy-scripts
@@ -148,6 +148,12 @@ deploy-perl-scripts:
 	done
 endif
 
+# use this target to deploy scripts and dependent libs; this target allows you
+# to deploy scripts and only the needed perl client and perl script helper lib
+deploy-scripts-and-libs: deploy-scripts
+	mkdir -p $(TARGET)/lib/Bio/KBase
+	cp -rv lib/Bio/KBase/* $(TARGET)/lib/Bio/KBase/
+
 deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
 
 deploy-service-libs:
@@ -156,7 +162,7 @@ deploy-service-libs:
 	cp dist/$(WAR) $(SERVICE_DIR)
 	echo $(GITCOMMIT) > $(SERVICE_DIR)/$(SERVICE).serverdist
 	echo $(TAGS) >> $(SERVICE_DIR)/$(SERVICE).serverdist
-	
+
 deploy-service-scripts:
 	cp server_scripts/* $(SERVICE_DIR)
 	echo "if [ -z \"\$$KB_DEPLOYMENT_CONFIG\" ]" > $(SERVICE_DIR)/start_service
