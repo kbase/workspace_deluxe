@@ -771,12 +771,8 @@ public class TestWorkspace {
 			assertThat("correct except", e.getLocalizedMessage(), is("No data provided"));
 		}
 		
-		try {
-			ws.getObjects(foo, new ArrayList<ObjectIdentifier>());
-			fail("called method with no identifiers");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
-		}
+		failGetObjects(foo, new ArrayList<ObjectIdentifier>(), new IllegalArgumentException(
+				"No object identifiers provided"));
 		
 		try {
 			ws.getObjectInformation(foo, new ArrayList<ObjectIdentifier>(), true);
@@ -884,7 +880,7 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(priv, 2)));
 		}
-		ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
+		successGetObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2)));
 		try {
 			ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 			fail("Able to get obj data from private workspace");
@@ -913,7 +909,42 @@ public class TestWorkspace {
 		
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
+
+	private void successGetObjects(WorkspaceUser user,
+			List<ObjectIdentifier> objs) throws Exception {
+		ws.getObjects(user, objs);
+		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
+		for (ObjectIdentifier oi: objs) {
+			soi.add(new SubObjectIdentifier(oi, null));
+		}
+		ws.getObjectsSubSet(user, soi);
+	}
 	
+	private void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
+			Exception e) 
+			throws Exception {
+		try {
+			successGetObjects(user, objs);
+			fail("called get objects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
+		for (ObjectIdentifier oi: objs) {
+			soi.add(new SubObjectIdentifier(oi, null));
+		}
+		try {
+			ws.getObjectsSubSet(user, soi);
+			fail("called get subobjects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		final String specTypeCheck1 =
@@ -2236,13 +2267,8 @@ public class TestWorkspace {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("Workspace deleteundelete is deleted"));
 		}
-		try {
-			ws.getObjects(bar, objs);
-			fail("got objs from deleted workspace");
-		} catch (InaccessibleObjectException ioe) {
-			assertThat("correct exception msg", ioe.getLocalizedMessage(),
-					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
-		}
+		failGetObjects(bar, objs, new InaccessibleObjectException(
+				"Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		try {
 			ws.getObjectInformation(bar, objs, false);
 			fail("got obj meta from deleted workspace");
@@ -2290,12 +2316,7 @@ public class TestWorkspace {
 
 	private void failToGetDeletedObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs, String exception) throws Exception {
-		try {
-			ws.getObjects(user, objs);
-			fail("got deleted objects");
-		} catch (NoSuchObjectException e) {
-			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
-		}
+		failGetObjects(user, objs, new NoSuchObjectException(exception));
 		try {
 			ws.getObjectInformation(user, objs, true);
 			fail("got deleted object's metadata");
@@ -2744,6 +2765,20 @@ public class TestWorkspace {
 		assertThat("returned data same", copy.getData(), is(orig.getData()));
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
+		
+		WorkspaceObjectData origsub = ws.getObjectsSubSet(original.getSavedBy(), Arrays.asList(
+				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
+						original.getWorkspaceId()),
+						original.getObjectId(), original.getVersion()), null))).get(0);
+		WorkspaceObjectData copysub = ws.getObjectsSubSet(copied.getSavedBy(), Arrays.asList(
+				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
+						copied.getWorkspaceId()),
+						copied.getObjectId(), copied.getVersion()), null))).get(0);
+		compareObjectInfo(origsub.getObjectInfo(), copysub.getObjectInfo(), user, wsid, wsname, objectid,
+				objname, version);
+		assertThat("returned data same", copysub.getData(), is(origsub.getData()));
+		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
+		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(), null);
 	}
 	
 	private void compareObjectAndInfo(WorkspaceObjectData got,
@@ -2929,7 +2964,7 @@ public class TestWorkspace {
 		//these should work
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
 		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked");
-		ws.getObjects(user, Arrays.asList(oi));
+		successGetObjects(user, Arrays.asList(oi));
 		ws.cloneWorkspace(user, wsi, "lockclone", false, null);
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
@@ -3804,6 +3839,29 @@ public class TestWorkspace {
 				"}"
 				);
 		compareObjectAndInfo(got.get(0), o2, p2, expdata2, refs2, refmap2);
+		
+		got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/*/thing"))),
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/[*]/thing")))));
+		expdata1 = createData(
+				"{\"map\": {\"id1\": {\"thing\": \"foo\"}," +
+				"			\"id2\": {\"thing\": \"foo2\"}," +
+				"			\"id3\": {\"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		
+		expdata2 = createData(
+				"{\"array\": [{\"thing\": \"foo\"}," +
+				"			  {\"thing\": \"foo2\"}," +
+				"			  {\"thing\": \"foo3\"}" +
+				"			  ]" +
+				"}"
+				);
+		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
 		
 		//TODO everywhere getObject is called in a test, do the same thing with subset
 	}
