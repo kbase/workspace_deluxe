@@ -3798,6 +3798,19 @@ public class TestWorkspace {
 				"}"
 				);
 		
+		Map<String, Object> data3 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 2," +
+				"			   \"thing\": \"foo2\"}," +
+				"			   null," +
+				"			  {\"id\": 4," +
+				"			   \"thing\": \"foo4\"}" +
+				"			  ]," +
+				" \"ref\": \"subData/auto2\"" +
+				"}"
+				);
+		
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false),
 				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false)));
@@ -3807,8 +3820,12 @@ public class TestWorkspace {
 		ObjectInformation o2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("o2"), data2, reftype, meta2,
 				p2, false))).get(0);
+		ObjectInformation o3 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o3"), data3, reftype, meta,
+				p2, false))).get(0);
 		ObjectIdentifier oident1 = new ObjectIdentifier(wsi, "o1");
 		ObjectIdentifier oident2 = new ObjectIdentifier(wsi, 4);
+		ObjectIdentifier oident3 = ObjectIdentifier.parseObjectReference("subData/o3");
 		
 		List<String> refs1 = Arrays.asList(wsid1 + "/1/1");
 		Map<String, String> refmap1 = new HashMap<String, String>();
@@ -3821,7 +3838,9 @@ public class TestWorkspace {
 				new SubObjectIdentifier(oident1, new ObjectPaths(
 						Arrays.asList("/map/id3", "/map/id1"))),
 				new SubObjectIdentifier(oident2, new ObjectPaths(
-						Arrays.asList("/array/2", "/array/0")))));
+						Arrays.asList("/array/2", "/array/0"))),
+				new SubObjectIdentifier(oident3, new ObjectPaths(
+						Arrays.asList("/array/2", "/array/0", "/array/3")))));
 		Map<String, Object> expdata1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -3838,8 +3857,18 @@ public class TestWorkspace {
 				"			  ]" +
 				"}"
 				);
+		Map<String, Object> expdata3 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			   null," +
+				"			  {\"id\": 4," +
+				"			   \"thing\": \"foo4\"}" +
+				"			  ]" +
+				"}"
+				);
 		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		compareObjectAndInfo(got.get(2), o3, p2, expdata3, refs2, refmap2);
 		
 		got = ws.getObjectsSubSet(user, Arrays.asList(
 				new SubObjectIdentifier(oident2, new ObjectPaths(
@@ -3851,6 +3880,8 @@ public class TestWorkspace {
 				"			  ]" +
 				"}"
 				);
+		//when the extractor is fixed to fail on an array OOB, this test should fail
+		//all other tests should work
 		compareObjectAndInfo(got.get(0), o2, p2, expdata2, refs2, refmap2);
 		
 		got = ws.getObjectsSubSet(user, Arrays.asList(
