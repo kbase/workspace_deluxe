@@ -49,6 +49,7 @@ import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -3941,6 +3942,30 @@ public class TestWorkspace {
 				);
 		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		
+		failGetSubset(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/mappy/*/thing")))),
+				new TypedObjectExtractionException(
+						"Malformed selection string, cannot get 'mappy', at: /mappy"));
+		failGetSubset(user2, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/*/thing")))),
+				new InaccessibleObjectException(
+						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
+	}
+
+	private void failGetSubset(WorkspaceUser user, List<SubObjectIdentifier> objs,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getObjectsSubSet(user, objs);
+			fail("got subobjs obj when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
 	}
 
 	@SuppressWarnings("unchecked")
