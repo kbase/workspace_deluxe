@@ -34,6 +34,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -2175,6 +2177,62 @@ public class JSONRPCLayerTest {
 		assertThat("chksum is correct", got.getE9(), is(expec.getE9()));
 		assertThat("size is correct", got.getE10(), is(expec.getE10()));
 		assertThat("meta is correct", got.getE11(), is(nullMeta ? null : expec.getE11()));
+	}
+	
+	@Test
+	public void getObjectSubset() throws Exception {
+		/* note most tests are performed at the same time as getObjects, so
+		 * only issues specific to subsets are tested here
+		 */
+		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("subdata"));
+		
+		Map<String, Object> data = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"foobar\": \"somestuff\"" +
+				"}"
+				);
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("subdata")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("std")))).get(0);
+		
+		ObjectData od = CLIENT1.getObjectSubset(Arrays.asList(
+				new SubObjectIdentity().withRef("subdata/1")
+				.withIncluded(Arrays.asList("/map/id1", "/map/id3")))).get(0);
+		Map<String, Object> expdata = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		checkData(od, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
+				"eb28c185d1745c5c379eaf95fef83412", 119, new HashMap<String, String>(),
+				expdata);
+		
+		try {
+			CLIENT1.getObjectSubset(Arrays.asList(
+					new SubObjectIdentity().withRef("subdata/1")
+					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))).get(0);
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Malformed selection string, cannot get 'id4', at: /map/id4"));
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> createData(String json)
+			throws JsonParseException, JsonMappingException, IOException {
+		return new ObjectMapper().readValue(json, Map.class);
 	}
 
 	@Test

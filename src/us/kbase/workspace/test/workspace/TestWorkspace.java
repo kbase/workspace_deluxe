@@ -3791,6 +3791,9 @@ public class TestWorkspace {
 	
 	@Test
 	public void getObjectSubdata() throws Exception {
+		/* note most tests are performed at the same time as getObjects, so
+		 * only issues specific to subsets are tested here
+		 */
 		WorkspaceUser user = new WorkspaceUser("subUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("subData");
 		WorkspaceUser user2 = new WorkspaceUser("subUser2");
