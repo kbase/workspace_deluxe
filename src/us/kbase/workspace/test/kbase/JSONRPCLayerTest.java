@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -68,6 +69,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -720,18 +722,12 @@ public class JSONRPCLayerTest {
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
-		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
-				new ObjectIdentity().withWorkspace("provenance").withObjid(2L)));
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
-		assertThat("user correct", ret.get(0).getCreator(), is(USER1));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
-		
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		ObjectIdentity id = new ObjectIdentity().withWorkspace("provenance").withObjid(2L);
+		checkProvenance(USER1, id, prov, refmap, timemap);
 		
 		ProvenanceAction pa = new ProvenanceAction();
 		pa.setAdditionalProperties("foo", "bar");
@@ -755,12 +751,27 @@ public class JSONRPCLayerTest {
 		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
 						.withType(SAFE_TYPE).withName("whoops"))));
-		ObjectData d = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
-			.withName("whoops").withWorkspace("provenance"))).get(0);
-		assertThat("user correct", d.getCreator(), is(USER2));
+		checkProvenance(USER2, new ObjectIdentity().withName("whoops")
+				.withWorkspace("provenance"), new ArrayList<ProvenanceAction>(),
+				new HashMap<String, String>(), new HashMap<String, String>());
+	}
+
+	private void checkProvenance(String user, ObjectIdentity id,
+			List<ProvenanceAction> prov, Map<String, String> refmap,
+			Map<String, String> timemap) throws Exception {
+		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(id));
+		assertThat("user correct", ret.get(0).getCreator(), is(user));
 		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(d.getCreated())
+				DATE_FORMAT.parse(ret.get(0).getCreated())
 				.after(getOlderDate(10 * 60 * 1000)));
+		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		
+		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)));
+		assertThat("user correct", ret.get(0).getCreator(), is(user));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(ret.get(0).getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
+		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
 	}
 	
 	private Date getOlderDate(long ms) {
@@ -923,13 +934,7 @@ public class JSONRPCLayerTest {
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
-		try {
-			CLIENT1.getObjects(new ArrayList<ObjectIdentity>());
-			fail("called get obj with no ids");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is("No object identifiers provided"));
-		}
+		getObjectWBadParams(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 		
 		try {
 			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>(), 0L);
@@ -1066,6 +1071,13 @@ public class JSONRPCLayerTest {
 					is(exception));
 		}
 		try {
+			CLIENT1.getObjectSubset(objIDToSubObjID(loi));
+			fail("got object with bad id: " + loi);
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception.replace("ObjectIdentity", "SubObjectIdentity")));
+		}
+		try {
 			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got meta with bad id");
 		} catch (ServerException se) {
@@ -1078,6 +1090,12 @@ public class JSONRPCLayerTest {
 			String type, int ver, String user, long wsid, String wsname, String chksum, long size,
 			Map<String, String> meta, Map<String, Object> data) throws Exception {
 		List<ObjectData> retdata = CLIENT1.getObjects(loi);
+		assertThat("num data correct", retdata.size(), is(loi.size()));
+		for (ObjectData o: retdata) {
+			checkData(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta, data);
+		}
+		retdata = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		assertThat("num data correct", retdata.size(), is(loi.size()));
 		for (ObjectData o: retdata) {
 			checkData(o, id, name, type, ver, user, wsid, wsname,
@@ -1103,6 +1121,21 @@ public class JSONRPCLayerTest {
 			checkInfo(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, null);
 		}
+	}
+
+	private List<SubObjectIdentity> objIDToSubObjID(List<ObjectIdentity> loi) {
+		LinkedList<SubObjectIdentity> ret = new LinkedList<SubObjectIdentity>();
+		for (ObjectIdentity oi: loi) {
+			SubObjectIdentity soi = new SubObjectIdentity().withName(oi.getName())
+					.withObjid(oi.getObjid()).withRef(oi.getRef())
+					.withVer(oi.getVer()).withWorkspace(oi.getWorkspace())
+					.withWsid(oi.getWsid());
+			for (Entry<String, Object> e: oi.getAdditionalProperties().entrySet()) {
+				soi.setAdditionalProperties(e.getKey(), e.getValue());
+			}
+			ret.add(soi);
+		}
+		return ret;
 	}
 
 	private void checkData(ObjectData retdata, long id, String name,
@@ -1422,27 +1455,17 @@ public class JSONRPCLayerTest {
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
 				.withRef("delundel/myname"));
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+
 		CLIENT1.undeleteObjects(loi);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		CLIENT1.deleteWorkspace(wsi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object myname cannot be accessed: Workspace delundel is deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
+
 		try {
 			CLIENT1.getWorkspaceDescription(wsi);
 			fail("got desc from deleted WS");
@@ -1451,23 +1474,26 @@ public class JSONRPCLayerTest {
 					is("Workspace delundel is deleted"));
 		}
 		CLIENT1.undeleteWorkspace(wsi);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+
 		CLIENT1.saveObjects(soc);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 	}
 	
+	private void checkData(List<ObjectIdentity> loi, Map<String, Object> data)
+			throws Exception {
+		assertThat("expected loi size is 1", loi.size(), is(1));
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+		assertThat("can get data", CLIENT1.getObjectSubset(objIDToSubObjID(loi))
+				.get(0).getData().asClassInstance(Object.class), is((Object) data));
+	}
+
 	@Test
 	public void copyRevert() throws Exception {
 		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("copyrev")).getE1();
@@ -1520,10 +1546,22 @@ public class JSONRPCLayerTest {
 			String wsname, long wsid, String name, long id, int ver) 
 			throws Exception {
 		compareObjectInfo(orig, copied, wsname, wsid, name, id, ver);
-		List<ObjectData> objs = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
+		
+		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
 				.withObjid(orig.getE1()).withVer(orig.getE5()), 
 				new ObjectIdentity().withWsid(copied.getE7())
-				.withObjid(copied.getE1()).withVer(copied.getE5())));
+				.withObjid(copied.getE1()).withVer(copied.getE5()));
+		
+		List<ObjectData> objs = CLIENT1.getObjects(loi);
+		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
+		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
+		assertThat("data same", objs.get(1).getData().asClassInstance(Map.class),
+				is(objs.get(0).getData().asClassInstance(Map.class)));
+		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
+		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
+		
+		objs = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
 		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));

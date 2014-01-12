@@ -592,7 +592,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				subObjectIds);
 		returnVal = au.translateObjectData(
 				ws.getObjectsSubSet(getUser(authPart), loi));
-		//TODO test
         //END get_object_subset
         return returnVal;
     }

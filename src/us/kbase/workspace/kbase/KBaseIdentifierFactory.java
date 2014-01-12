@@ -141,9 +141,12 @@ public class KBaseIdentifierFactory {
 			List<SubObjectIdentity> subObjectIds) {
 		final List<SubObjectIdentifier> objs =
 				new LinkedList<SubObjectIdentifier>();
+		int objcount = 1;
 		for (final SubObjectIdentity soi: subObjectIds) {
-			checkAddlArgs(soi.getAdditionalProperties(), soi.getClass());
-			final ObjectIdentifier oi = processObjectIdentifier(
+			final ObjectIdentifier oi;
+			try {
+				checkAddlArgs(soi.getAdditionalProperties(), soi.getClass());
+				oi = processObjectIdentifier(
 					new ObjectIdentity()
 					.withWorkspace(soi.getWorkspace())
 					.withWsid(soi.getWsid())
@@ -151,9 +154,14 @@ public class KBaseIdentifierFactory {
 					.withObjid(soi.getObjid())
 					.withVer(soi.getVer())
 					.withRef(soi.getRef()));
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Error on SubObjectIdentity #"
+						+ objcount + ": " + e.getLocalizedMessage(), e);
+			}
 					
 			objs.add(new SubObjectIdentifier(oi,
 					new ObjectPaths(soi.getIncluded())));
+			objcount++;
 		}
 		return objs;
 	}
