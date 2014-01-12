@@ -75,7 +75,6 @@ public class MongoPermissionSet implements PermissionSet {
 		}
 	}
 	
-	//TODO test
 	@Override
 	public boolean hasPermission(final ResolvedWorkspaceID rwsi,
 			final Permission perm) {
@@ -91,7 +90,6 @@ public class MongoPermissionSet implements PermissionSet {
 		return userPerms.get(rwsi);
 	}
 	
-	//TODO test
 	@Override
 	public boolean hasUserPermission(final ResolvedWorkspaceID rwsi,
 			final Permission perm) {

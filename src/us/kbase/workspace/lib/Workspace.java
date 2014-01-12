@@ -65,6 +65,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspace {
 	
+	//TODO general unit tests
 	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
 	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get objects by ref chain
@@ -80,8 +81,6 @@ public class Workspace {
 	//TODO BIG SEARCH index typespecs
 	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run? Test subdata creation
 	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
-	
-	//TODO 1 lots of tests
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
