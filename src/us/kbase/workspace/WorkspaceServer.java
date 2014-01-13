@@ -678,7 +678,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, false, showDeleted, false,
 						true));
-		//TODO tests
         //END list_workspace_objects
         return returnVal;
     }

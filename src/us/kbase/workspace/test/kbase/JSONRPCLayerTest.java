@@ -1023,6 +1023,19 @@ public class JSONRPCLayerTest {
 	@SuppressWarnings("deprecation")
 	@Test
 	public void deprecatedMethods() throws Exception {
+		CLIENT1.requestModuleOwnership("DepAnotherModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "DepAnotherModule");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module DepAnotherModule {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+							"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		String anotherType = "DepAnotherModule.AType-0.1";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave2")
 				.withGlobalread("r"));
@@ -1075,7 +1088,7 @@ public class JSONRPCLayerTest {
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj2 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj2")
-				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withMetadata(meta2).withType(anotherType).withWorkspace("depsave")
 				.withData(new UObject(data2)));
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
@@ -1084,7 +1097,7 @@ public class JSONRPCLayerTest {
 				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
 		
 		checkDeprecatedSaveInfo(obj1, 1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta);
-		checkDeprecatedSaveInfo(obj2, 2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
+		checkDeprecatedSaveInfo(obj2, 2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
 		checkDeprecatedSaveInfo(obj3, 3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta2);
 		
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj1"),
@@ -1093,12 +1106,19 @@ public class JSONRPCLayerTest {
 				23, meta, data, AUTH_USER2);
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj2"),
 				new ObjectIdentity().withWsid(wsid).withObjid(2L),
-				2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
+				2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
 				24, meta2, data2, AUTH_USER2);
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj3"),
 				new ObjectIdentity().withWsid(wsid).withObjid(3L),
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
 				23, meta2, data, AUTH_USER2);
+		
+		checkListObjectsDep("depsave", null, null, null, Arrays.asList(obj1, obj2, obj3));
+		checkListObjectsDep("depsave", anotherType, null, null, Arrays.asList(obj2));
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withName("obj2").withWorkspace("depsave")));
+		checkListObjectsDep("depsave", null, 0L, null, Arrays.asList(obj1, obj3));
+		checkListObjectsDep("depsave", null, 1L, null, Arrays.asList(obj1, obj2, obj3));
+		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
 		String invalidTokenExp = "Token is invalid";
@@ -1139,8 +1159,87 @@ public class JSONRPCLayerTest {
 		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
 				badFormatTokenExp);
+		
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withType("thisisabadtype"),
+				"Type thisisabadtype could not be split into a module and name");
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withAuth(badFormatToken),
+				badFormatTokenExp);
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void failDepListObjects(us.kbase.workspace.ListWorkspaceObjectsParams lwop,
+			String exp)
+			throws Exception {
+		try {
+			CLIENT1.listWorkspaceObjects(lwop);
+			fail("list objs dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	private void checkListObjectsDep(String ws, String type, Long showDeleted, String auth,
+			List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>> expected)
+			throws Exception {
+		Map<Long, Map<Long, Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>>> expec =
+				new HashMap<Long, Map<Long, Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>>>();
+		
+		Map<Long, Set<Long>> seenSet = new HashMap<Long, Set<Long>>();
+		Map<Long, Set<Long>> expectedSet = new HashMap<Long, Set<Long>>();
+		
+		for (Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> e: expected) {
+			if (!expec.containsKey(e.getE12())) {
+				expec.put(e.getE12(), new HashMap<Long, Tuple12<String,String,String,Long,String,String,String,String,String,String,Map<String,String>,Long>>());
+				expectedSet.put(e.getE12(), new HashSet<Long>());
+			}
+			expec.get(e.getE12()).put(e.getE4(), e);
+			expectedSet.get(e.getE12()).add(e.getE4());
+		}
+		for (Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> g:
+			CLIENT1.listWorkspaceObjects(new us.kbase.workspace.ListWorkspaceObjectsParams().withWorkspace(ws)
+					 .withType(type).withShowDeletedObject(showDeleted).withAuth(auth))) {
+			if (seenSet.containsKey(g.getE12()) &&
+					seenSet.get(g.getE12()).contains(g.getE4())) {
+				fail("Saw same object twice: " + g);
+			}
+			if (!seenSet.containsKey(g.getE12())) {
+				seenSet.put(g.getE12(), new HashSet<Long>());
+			}
+			seenSet.get(g.getE12()).add(g.getE4());
+			if (!expec.containsKey(g.getE12()) ||
+					!expec.get(g.getE12()).containsKey(g.getE4())) {
+				fail("listed unexpected object: " + g);
+			}
+			compareObjectInfoDep(g, expec.get(g.getE12()).get(g.getE4()));
+		}
+		assertThat("listed correct objects", seenSet, is (expectedSet));
+	}
+
+	private void compareObjectInfoDep(
+			Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> got,
+			Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> expec) {
+		
+		assertThat("name is correct", got.getE1(), is(expec.getE1()));
+		assertThat("type is correct", got.getE2(), is(expec.getE2()));
+		assertThat("date is correct", got.getE3(), is(expec.getE3()));
+		assertThat("version is correct", got.getE4(), is(expec.getE4()));
+		assertThat("command is correct", got.getE5(), is(expec.getE5()));
+		assertThat("last modifier is correct", got.getE6(), is(expec.getE6()));
+		assertThat("owner is correct", got.getE7(), is(expec.getE7()));
+		assertThat("ws name is correct", got.getE8(), is(expec.getE8()));
+		assertThat("ref is correct", got.getE9(), is(expec.getE9()));
+		assertThat("chksum is correct", got.getE10(), is(expec.getE10()));
+		assertThat("meta is correct", got.getE11(), is(expec.getE11()));
+		assertThat("id is correct", got.getE12(), is(expec.getE12()));
+	}
+
 	@SuppressWarnings("deprecation")
 	private void failDepListWs(us.kbase.workspace.ListWorkspacesParams lwp, String exp)
 			throws Exception {
