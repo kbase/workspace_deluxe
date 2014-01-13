@@ -46,6 +46,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
+import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
@@ -995,10 +996,21 @@ public class JSONRPCLayerTest {
 	@Test
 	public void deprecatedMethods() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
-		long wsid = CLIENT1.getWorkspaceInfo(
-				new WorkspaceIdentity().withWorkspace("depsave")).getE1();
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo = CLIENT1.getWorkspaceInfo(
+				new WorkspaceIdentity().withWorkspace("depsave"));
+		long wsid = wsinfo.getE1();
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("depsave")
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave"),
+				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withId(wsid),
+				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(AUTH_USER2.getTokenString()),
+		"depsave", USER1, wsinfo.getE4(), 0, "w", "n", wsid);
 		
 		//save some objects to get
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -1049,6 +1061,13 @@ public class JSONRPCLayerTest {
 		String badFormatToken = "borkborkbork";
 		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
 		
+		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(badFormatToken),
+				badFormatTokenExp);
+		
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(invalidToken),
@@ -1074,11 +1093,41 @@ public class JSONRPCLayerTest {
 	}
 	
 	@SuppressWarnings("deprecation")
+	private void checkDepWSMeta(
+			us.kbase.workspace.GetWorkspacemetaParams gomp,
+			String name, String user, String moddate, long objects, String perm,
+			String globalRead, long wsid)
+			throws Exception {
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta =
+				CLIENT1.getWorkspacemeta(gomp);
+		assertThat("ws name correct", wsmeta.getE1(), is(name));
+		assertThat("user name correct", wsmeta.getE2(), is(user));
+		assertThat("moddates correct", wsmeta.getE3(), is(moddate));
+		assertThat("obj counts are 0", wsmeta.getE4(), is(objects));
+		assertThat("permission correct", wsmeta.getE5(), is(perm));
+		assertThat("global read correct", wsmeta.getE6(), is(globalRead));
+		assertThat("wsid correct", wsmeta.getE7(), is(wsid));
+		
+	}
+
+	@SuppressWarnings("deprecation")
 	private void failDepGetObjectmeta(us.kbase.workspace.GetObjectmetaParams gop, String exp)
 			throws Exception {
 		try {
 			CLIENT1.getObjectmeta(gop);
 			fail("get objmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void failDepGetWSmeta(us.kbase.workspace.GetWorkspacemetaParams gwp, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getWorkspacemeta(gwp);
+			fail("get wsmeta dep with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exp));

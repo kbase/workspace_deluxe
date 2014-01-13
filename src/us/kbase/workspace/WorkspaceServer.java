@@ -316,7 +316,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceInformation meta = ws.getWorkspaceInformation(
 				getUser(params.getAuth(), authPart), wksp);
 		returnVal = au.wsInfoToMetaTuple(meta);
-		//TODO test
         //END get_workspacemeta
         return returnVal;
     }
@@ -467,7 +466,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params, AuthToken authPart) throws Exception {
         Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> returnVal = null;
         //BEGIN save_object
-        //TODO tests
 		final SaveObjectsParams sop = new SaveObjectsParams()
 			.withWorkspace(params.getWorkspace()).withObjects(Arrays.asList(
 					new ObjectSaveData().withData(params.getData())
@@ -533,7 +531,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjectOutput getObject(GetObjectParams params, AuthToken authPart) throws Exception {
         GetObjectOutput returnVal = null;
         //BEGIN get_object
-        //TODO tests
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
@@ -741,7 +738,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params, AuthToken authPart) throws Exception {
         Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> returnVal = null;
         //BEGIN get_objectmeta
-        //TODO tests
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
