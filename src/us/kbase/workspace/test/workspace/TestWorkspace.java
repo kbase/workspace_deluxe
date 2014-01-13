@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -3975,5 +3976,42 @@ public class TestWorkspace {
 	private Map<String, Object> createData(String json)
 			throws JsonParseException, JsonMappingException, IOException {
 		return new ObjectMapper().readValue(json, Map.class);
+	}
+	
+	@Test
+	public void admin() throws Exception {
+		assertThat("no admins before adding any", ws.getAdmins(),
+				is((Set<WorkspaceUser>) new HashSet<WorkspaceUser>()));
+		ws.addAdmin(new WorkspaceUser("adminguy"));
+		Set<WorkspaceUser> expected = new HashSet<WorkspaceUser>();
+		expected.add(new WorkspaceUser("adminguy"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		
+		ws.addAdmin(new WorkspaceUser("adminguy2"));
+		expected.add(new WorkspaceUser("adminguy2"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy3")));
+		
+		ws.removeAdmin(new WorkspaceUser("adminguy"));
+		expected.remove(new WorkspaceUser("adminguy"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy3")));
 	}
 }
