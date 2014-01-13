@@ -52,9 +52,6 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
-import us.kbase.workspace.GetObjectOutput;
-import us.kbase.workspace.GetObjectParams;
-import us.kbase.workspace.GetObjectmetaParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
@@ -1047,16 +1044,40 @@ public class JSONRPCLayerTest {
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
 				23, meta2, data, AUTH_USER2);
 		
+		String invalidToken = AUTH_USER2.getTokenString() + "a";
+		String invalidTokenExp = "Token is invalid";
+		String badFormatToken = "borkborkbork";
+		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
+		
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
-				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString() + "a"),
-				"Token is invalid");
+				.withData(new UObject(data)).withAuth(invalidToken),
+				invalidTokenExp);
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
-				.withData(new UObject(data)).withAuth("borkborkbork"),
-				"Auth token is in the incorrect format, near 'borkborkbork'");
+				.withData(new UObject(data)).withAuth(badFormatToken),
+				badFormatTokenExp);
+		
+		failDepGetObject(new us.kbase.workspace.GetObjectParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetObject(new us.kbase.workspace.GetObjectParams()
+			.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
+			badFormatTokenExp);
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void failDepGetObject(us.kbase.workspace.GetObjectParams gop, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getObject(gop);
+			fail("get obj dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
 	@SuppressWarnings("deprecation")
 	private void checkSavedObjectDep(ObjectIdentity objnames, ObjectIdentity objids,
 			long id,
@@ -1064,14 +1085,14 @@ public class JSONRPCLayerTest {
 			String wsname, String chksum, int size, Map<String, String> meta,
 			Map<String, Object> data, AuthUser auth)
 			throws Exception {
-		GetObjectOutput goo = CLIENT1.getObject(new GetObjectParams()
+		us.kbase.workspace.GetObjectOutput goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
 				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
 				.withInstance(objnames.getVer()));
 		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
 				wsid, wsname, chksum, meta);
 		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
 				is((Object) data));
-		goo = CLIENT1.getObject(new GetObjectParams()
+		goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
 				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
 				.withInstance(objnames.getVer())
 				.withAuth(auth.getTokenString()));
@@ -1081,13 +1102,13 @@ public class JSONRPCLayerTest {
 				is((Object) data));
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> objmeta =
-				CLIENT1.getObjectmeta(new GetObjectmetaParams()
+				CLIENT1.getObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace(objnames.getWorkspace())
 				.withId(objnames.getName()).withInstance(objnames.getVer()));
 		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
 				wsid, wsname, chksum, meta);
 		objmeta =
-				CLIENT1.getObjectmeta(new GetObjectmetaParams()
+				CLIENT1.getObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace(objnames.getWorkspace())
 				.withId(objnames.getName()).withInstance(objnames.getVer())
 				.withAuth(AUTH_USER2.getTokenString()));
@@ -1104,7 +1125,7 @@ public class JSONRPCLayerTest {
 			throws Exception {
 		try {
 			CLIENT1.saveObject(sop);
-			fail("hide obj with bad params");
+			fail("dep save obj with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exp));
