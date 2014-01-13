@@ -32,7 +32,7 @@ public class WorkspaceAdministration {
 	private final WorkspaceServerMethods wsmeth;
 	private static final String ROOT = "workspaceadmin";
 	
-	//TODO tests for all this
+	//TODO tests for all this & workspace.class methods
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
 	public WorkspaceAdministration(final Workspace ws, 

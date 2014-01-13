@@ -52,6 +52,9 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
+import us.kbase.workspace.GetObjectOutput;
+import us.kbase.workspace.GetObjectParams;
+import us.kbase.workspace.GetObjectmetaParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
@@ -993,7 +996,7 @@ public class JSONRPCLayerTest {
 	
 	@SuppressWarnings("deprecation")
 	@Test
-	public void deprecated_saveObject() throws Exception {
+	public void deprecatedMethods() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
 		long wsid = CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("depsave")).getE1();
@@ -1031,15 +1034,18 @@ public class JSONRPCLayerTest {
 		checkDeprecatedSaveInfo(obj2, 2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
 		checkDeprecatedSaveInfo(obj3, 3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta2);
 		
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(1L)),
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj1"),
+				new ObjectIdentity().withWsid(wsid).withObjid(1L),
 				1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta, data);
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(2L)),
+				23, meta, data, AUTH_USER2);
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj2"),
+				new ObjectIdentity().withWsid(wsid).withObjid(2L),
 				2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
-				24, meta2, data2);
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(3L)),
+				24, meta2, data2, AUTH_USER2);
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj3"),
+				new ObjectIdentity().withWsid(wsid).withObjid(3L),
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta2, data);
+				23, meta2, data, AUTH_USER2);
 		
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
@@ -1051,6 +1057,48 @@ public class JSONRPCLayerTest {
 				"Auth token is in the incorrect format, near 'borkborkbork'");
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void checkSavedObjectDep(ObjectIdentity objnames, ObjectIdentity objids,
+			long id,
+			String name, String type, int ver, String user, long wsid,
+			String wsname, String chksum, int size, Map<String, String> meta,
+			Map<String, Object> data, AuthUser auth)
+			throws Exception {
+		GetObjectOutput goo = CLIENT1.getObject(new GetObjectParams()
+				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
+				.withInstance(objnames.getVer()));
+		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
+				is((Object) data));
+		goo = CLIENT1.getObject(new GetObjectParams()
+				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
+				.withInstance(objnames.getVer())
+				.withAuth(auth.getTokenString()));
+		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
+				is((Object) data));
+		
+		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> objmeta =
+				CLIENT1.getObjectmeta(new GetObjectmetaParams()
+				.withWorkspace(objnames.getWorkspace())
+				.withId(objnames.getName()).withInstance(objnames.getVer()));
+		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		objmeta =
+				CLIENT1.getObjectmeta(new GetObjectmetaParams()
+				.withWorkspace(objnames.getWorkspace())
+				.withId(objnames.getName()).withInstance(objnames.getVer())
+				.withAuth(AUTH_USER2.getTokenString()));
+		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		
+		checkSavedObjects(Arrays.asList(objnames), id, name, type, ver, user, wsid, wsname, chksum, size, meta, data);
+		checkSavedObjects(Arrays.asList(objids), id, name, type, ver, user, wsid, wsname, chksum, size, meta, data);
+		
+	}
+
 	@SuppressWarnings("deprecation")
 	private void failDepSaveObject(us.kbase.workspace.SaveObjectParams sop, String exp)
 			throws Exception {
