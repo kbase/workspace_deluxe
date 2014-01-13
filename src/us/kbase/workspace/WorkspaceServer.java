@@ -627,7 +627,6 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple7<String, String, String, Long, String, String, Long>> listWorkspaces(ListWorkspacesParams params, AuthToken authPart) throws Exception {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
-		//TODO tests
 		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
 				getUser(params.getAuth(), authPart),
 				au.longToBoolean(params.getExcludeGlobal()), false));

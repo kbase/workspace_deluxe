@@ -356,6 +356,9 @@ public class JSONRPCLayerTest {
 				"Must provide one and only one of workspace name (was: null) or id (was: null)");
 		failSetWSDesc(new SetWorkspaceDescriptionParams().withWorkspace("foo").withId(1L),
 				"Must provide one and only one of workspace name (was: foo) or id (was: 1)");
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("wsdesc").withNewPermission("n"));
 	}
 	
 	private void failSetWSDesc(SetWorkspaceDescriptionParams swdp, String excep)
@@ -403,6 +406,11 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("globalread must be n or r"));
 		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("gl1").withNewPermission("n"));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("gl2").withNewPermission("n"));
 	}
 	
 	@Test
@@ -459,6 +467,9 @@ public class JSONRPCLayerTest {
 		expected.put(USER1, "a");
 		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+		.withWorkspace("badperms").withNewPermission("n"));
 	}
 	
 	@Test
@@ -539,6 +550,11 @@ public class JSONRPCLayerTest {
 		perms = CLIENT2.getPermissions(new WorkspaceIdentity()
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("permspriv").withNewPermission("n"));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("permsglob").withNewPermission("n"));
 	}
 	
 	@Test
@@ -615,6 +631,9 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Workspace name exceeds the maximum length of 100"));
 		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace(ws).withNewPermission("n"));
 	}
 	
 	private void saveBadObject(List<ObjectSaveData> objects, String exception) 
@@ -689,6 +708,9 @@ public class JSONRPCLayerTest {
 		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3"));
 		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("savebadpkg").withNewPermission("n"));
 	}
 	
 	@Test
@@ -757,6 +779,9 @@ public class JSONRPCLayerTest {
 		checkProvenance(USER2, new ObjectIdentity().withName("whoops")
 				.withWorkspace("provenance"), new ArrayList<ProvenanceAction>(),
 				new HashMap<String, String>(), new HashMap<String, String>());
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("provenance").withNewPermission("n"));
 	}
 
 	private void checkProvenance(String user, ObjectIdentity id,
@@ -990,12 +1015,17 @@ public class JSONRPCLayerTest {
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object version must be > 0");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("saveget").withNewPermission("n"));
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Test
 	public void deprecatedMethods() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave2")
+				.withGlobalread("r"));
 		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo = CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("depsave"));
 		long wsid = wsinfo.getE1();
@@ -1010,7 +1040,21 @@ public class JSONRPCLayerTest {
 				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
 		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(AUTH_USER2.getTokenString()),
-		"depsave", USER1, wsinfo.getE4(), 0, "w", "n", wsid);
+				"depsave", USER1, wsinfo.getE4(), 0, "w", "n", wsid);
+
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta =
+				CLIENT1.getWorkspacemeta(new us.kbase.workspace.GetWorkspacemetaParams().withWorkspace("depsave"));
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta2 =
+				CLIENT1.getWorkspacemeta(new us.kbase.workspace.GetWorkspacemetaParams().withWorkspace("depsave2"));
+		
+		List<Tuple7<String, String, String, Long, String, String, Long>> emptyWS = 
+				new ArrayList<Tuple7<String,String,String,Long,String,String,Long>>();
+		
+		checkWSInfoListDep(CLIENT1.listWorkspaces(new us.kbase.workspace.ListWorkspacesParams()
+				.withExcludeGlobal(1L)),
+				Arrays.asList(wsmeta), Arrays.asList(wsmeta2));
+		checkWSInfoListDep(CLIENT1.listWorkspaces(new us.kbase.workspace.ListWorkspacesParams()),
+				Arrays.asList(wsmeta, wsmeta2), emptyWS);
 		
 		//save some objects to get
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -1068,6 +1112,11 @@ public class JSONRPCLayerTest {
 				.withWorkspace("depsave").withAuth(badFormatToken),
 				badFormatTokenExp);
 		
+		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
+				.withAuth(invalidToken), invalidTokenExp);
+		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
+				.withAuth(badFormatToken), badFormatTokenExp);
+		
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(invalidToken),
@@ -1081,8 +1130,8 @@ public class JSONRPCLayerTest {
 				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
 				invalidTokenExp);
 		failDepGetObject(new us.kbase.workspace.GetObjectParams()
-			.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
-			badFormatTokenExp);
+				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
+				badFormatTokenExp);
 		
 		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
@@ -1092,6 +1141,61 @@ public class JSONRPCLayerTest {
 				badFormatTokenExp);
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void failDepListWs(us.kbase.workspace.ListWorkspacesParams lwp, String exp)
+			throws Exception {
+		try {
+			CLIENT1.listWorkspaces(lwp);
+			fail("get objmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	private void checkWSInfoListDep(
+			List<Tuple7<String, String, String, Long, String, String, Long>> got,
+			List<Tuple7<String, String, String, Long, String, String, Long>> expected,
+			List<Tuple7<String, String, String, Long, String, String, Long>> notexpected) {
+
+		Map<Long, Tuple7<String, String, String, Long, String, String, Long>> expecmap = 
+				new HashMap<Long, Tuple7<String, String, String, Long, String, String, Long>>();
+		for (Tuple7<String, String, String, Long, String, String, Long> inf: expected) {
+			expecmap.put(inf.getE7(), inf);
+		}
+		Set<Long> seen = new HashSet<Long>();
+		Set<Long> seenexp = new HashSet<Long>();
+		Set<Long> notexp = new HashSet<Long>();
+		for (Tuple7<String, String, String, Long, String, String, Long> inf: notexpected) {
+			notexp.add(inf.getE7());
+		}
+		for (Tuple7<String, String, String, Long, String, String, Long> info: got) {
+			if (seen.contains(info.getE7())) {
+				fail("Saw same workspace twice");
+			}
+			if (notexp.contains(info.getE7())) {
+				fail("Got unexpected workspace id " + info.getE1());
+			}
+			if (!expecmap.containsKey(info.getE7())) {
+				continue; // only two users so really impossible to list a controlled set of ws
+				// if this is important add a 3rd user and client
+			}
+			seenexp.add(info.getE7());
+			Tuple7<String, String, String, Long, String, String, Long> exp =
+					expecmap.get(info.getE7());
+			assertThat("ws name correct", info.getE1(), is(exp.getE1()));
+			assertThat("user name correct", info.getE2(), is(exp.getE2()));
+			assertThat("moddates correct", info.getE3(), is(exp.getE3()));
+			assertThat("obj counts are 0", info.getE4(), is(exp.getE4()));
+			assertThat("permission correct", info.getE5(), is(exp.getE5()));
+			assertThat("global read correct", info.getE6(), is(exp.getE6()));
+			assertThat("wsid correct", info.getE7(), is(exp.getE7()));
+			
+		}
+		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
+		
+	}
+
 	@SuppressWarnings("deprecation")
 	private void checkDepWSMeta(
 			us.kbase.workspace.GetWorkspacemetaParams gomp,
@@ -2364,6 +2468,9 @@ public class JSONRPCLayerTest {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is("Malformed selection string, cannot get 'id4', at: /map/id4"));
 		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("subdata").withNewPermission("n"));
 	}
 	
 	@SuppressWarnings("unchecked")
