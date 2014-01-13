@@ -1064,8 +1064,27 @@ public class JSONRPCLayerTest {
 		failDepGetObject(new us.kbase.workspace.GetObjectParams()
 			.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
 			badFormatTokenExp);
+		
+		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
+				badFormatTokenExp);
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void failDepGetObjectmeta(us.kbase.workspace.GetObjectmetaParams gop, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getObjectmeta(gop);
+			fail("get objmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
 	@SuppressWarnings("deprecation")
 	private void failDepGetObject(us.kbase.workspace.GetObjectParams gop, String exp)
 			throws Exception {
