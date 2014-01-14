@@ -2583,6 +2583,9 @@ public class JSONRPCLayerTest {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
 		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
 		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command:\n{command=listAdmin}");
+		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
+						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
+				"thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid KBase user");
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"addAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
@@ -2621,10 +2624,10 @@ public class JSONRPCLayerTest {
 		assertThat("only the one built in admin", expected.size() + 1, is(got.size()));
 		
 	}
-
+	
 	private void failAdmin(WorkspaceClient cli, String cmd,
 			String exp)
-			throws Exception {
+					throws Exception {
 		try {
 			cli.administer(new UObject(createData(cmd)));
 			fail("ran admin command with bad params");
@@ -2634,6 +2637,59 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
+	@Test
+	public void adminModRequest() throws Exception {
+		Map<String, String> mod2owner = new HashMap<String, String>();
+		checkModRequests(mod2owner);
+		CLIENT1.requestModuleOwnership("SomeMod");
+		CLIENT1.requestModuleOwnership("SomeMod2");
+		mod2owner.put("SomeMod", USER1);
+		mod2owner.put("SomeMod2", USER1);
+		checkModRequests(mod2owner);
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"approveModRequest\"," +
+				" \"module\": \"SomeMod\"}")));
+		mod2owner.remove("SomeMod");
+		checkModRequests(mod2owner);
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"denyModRequest\"," +
+				" \"module\": \"SomeMod2\"}")));
+		mod2owner.remove("SomeMod2");
+		checkModRequests(mod2owner);
+		
+		failAdmin(CLIENT2, "{\"command\": \"approveModRequest\"," +
+						   " \"module\": \"SomeMod\"}", "There is no request for module SomeMod");
+		failAdmin(CLIENT2, "{\"command\": \"approveModRequest\"," +
+				   " \"module\": \"SomeMod3\"}", "There is no request for module SomeMod3");
+		failAdmin(CLIENT2, "{\"command\": \"denyModRequest\"," +
+				   " \"module\": \"SomeMod\"}", "There is no request for module SomeMod");
+		failAdmin(CLIENT2, "{\"command\": \"denyModRequest\"," +
+				   " \"module\": \"SomeMod3\"}", "There is no request for module SomeMod3");
+		
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+				.withSpec("module SomeMod {typedef string foo;};")); //should work
+		
+		try {
+			CLIENT1.registerTypespec(new RegisterTypespecParams()
+					.withSpec("module SomeMod2 {typedef string foo;};"));
+			fail("compiled spec without valid module");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Module wasn't registered: SomeMod2"));
+		}
+	}
+
+	private void checkModRequests(Map<String, String> mod2owner)
+			throws Exception {
+		List<Map<String,Object>> reqs = CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"listModRequests\"}"))).asInstance();
+		Map<String, String> gotMods = new HashMap<String, String>();
+		for (Map<String, Object> r: reqs) {
+			gotMods.put((String) r.get("moduleName"), (String) r.get("ownerUserId"));
+		}
+		assertThat("module req list ok", gotMods, is(mod2owner));
+		
+	}
 
 	@Test
 	public void testTypeMD5() throws Exception {
@@ -2662,7 +2718,7 @@ public class JSONRPCLayerTest {
 		cl.setAuthAllowedForHttp(true);
 		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
 		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
-		System.out.println(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)));
+//		System.out.println(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)));
 	}
 	
 	@Test
