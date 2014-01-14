@@ -2643,6 +2643,8 @@ public class JSONRPCLayerTest {
 		checkModRequests(mod2owner);
 		CLIENT1.requestModuleOwnership("SomeMod");
 		CLIENT1.requestModuleOwnership("SomeMod2");
+		failAdmin(CLIENT1, "{\"command\": \"approveModRequest\"," +
+				   " \"module\": \"SomeMod\"}", "User " + USER1 + " is not an admin");
 		mod2owner.put("SomeMod", USER1);
 		mod2owner.put("SomeMod2", USER1);
 		checkModRequests(mod2owner);
@@ -2689,6 +2691,57 @@ public class JSONRPCLayerTest {
 		}
 		assertThat("module req list ok", gotMods, is(mod2owner));
 		
+	}
+	
+	@Test
+	public void adminUserFacade() throws Exception {
+		@SuppressWarnings("unchecked")
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				list2WSTuple8((List<Object>) CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}"))).asInstance());
+		
+		System.out.println(wsinfo);
+		
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
+				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+		try {
+			CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withId(wsinfo.getE1()));
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("User " + USER2 + " cannot read workspace " + wsinfo.getE1()));
+		}
+		
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": null," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}", "Username cannot be null or the empty string");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": null}", null); //should probably be a better exception
+		
+	}
+	
+	
+
+	private Tuple8<Long, String, String, String, Long, String, String, String> list2WSTuple8(
+			List<Object> got) {
+		Tuple8<Long, String, String, String, Long, String, String, String> ret =
+				new Tuple8<Long, String, String, String, Long, String, String, String>()
+				.withE1(new Long((Integer) got.get(0)))
+				.withE2((String) got.get(1))
+				.withE3((String) got.get(2))
+				.withE4((String) got.get(3))
+				.withE5(new Long((Integer) got.get(4)))
+				.withE6((String) got.get(5))
+				.withE7((String) got.get(6))
+				.withE8((String) got.get(7));
+		return ret;
 	}
 
 	@Test
