@@ -1692,10 +1692,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def grant_module_ownership(self, module_name, new_owner, with_grant_option):
+    def grant_module_ownership(self, params):
 
         arg_hash = {'method': 'Workspace.grant_module_ownership',
-                    'params': [module_name, new_owner, with_grant_option],
+                    'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }
@@ -1727,10 +1727,10 @@ class Workspace(object):
         else:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
 
-    def remove_module_ownership(self, module_name, old_owner):
+    def remove_module_ownership(self, params):
 
         arg_hash = {'method': 'Workspace.remove_module_ownership',
-                    'params': [module_name, old_owner],
+                    'params': [params],
                     'version': '1.1',
                     'id': str(random.random())[2:]
                     }

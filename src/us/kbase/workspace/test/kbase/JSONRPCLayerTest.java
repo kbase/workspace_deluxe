@@ -2930,7 +2930,14 @@ public class JSONRPCLayerTest {
 		} catch (Exception ex) {
 			Assert.assertEquals("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2", ex.getMessage());
 		}
-		administerCommand(CLIENT2, "grantModuleOwnership", "moduleName", "TestModule2", "newOwner", AUTH_USER1.getUserId(), "withGrantOption", "1");
+//		administerCommand(CLIENT2, "grantModuleOwnership", "moduleName",
+//				"TestModule2", "newOwner", AUTH_USER1.getUserId(), "withGrantOption", "1");
+		
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"grantModuleOwnership\"," +
+				" \"params\": {\"new_owner\": \"" + USER1 + "\", \"mod\": \"TestModule2\"," +
+				"			   \"with_grant_option\": 1}}")));
+		
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module TestModule2{ typedef int IntegerType;};"));

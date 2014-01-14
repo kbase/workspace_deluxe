@@ -5248,7 +5248,7 @@ sub get_func_info
 
 =head2 grant_module_ownership
 
-  $obj->grant_module_ownership($module_name, $new_owner, $with_grant_option)
+  $obj->grant_module_ownership($params)
 
 =over 4
 
@@ -5257,9 +5257,13 @@ sub get_func_info
 =begin html
 
 <pre>
-$module_name is a string
-$new_owner is a string
-$with_grant_option is a Workspace.boolean
+$params is a Workspace.GrantModuleOwnershipParams
+GrantModuleOwnershipParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	new_owner has a value which is a Workspace.username
+	with_grant_option has a value which is a Workspace.boolean
+modulename is a string
+username is a string
 boolean is an int
 
 </pre>
@@ -5268,9 +5272,13 @@ boolean is an int
 
 =begin text
 
-$module_name is a string
-$new_owner is a string
-$with_grant_option is a Workspace.boolean
+$params is a Workspace.GrantModuleOwnershipParams
+GrantModuleOwnershipParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	new_owner has a value which is a Workspace.username
+	with_grant_option has a value which is a Workspace.boolean
+modulename is a string
+username is a string
 boolean is an int
 
 
@@ -5278,8 +5286,8 @@ boolean is an int
 
 =item Description
 
-Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
-You should have grant ability do this operation (or to be an admin).
+Grant ownership of a module. You must have grant ability on the
+module.
 
 =back
 
@@ -5291,18 +5299,16 @@ sub grant_module_ownership
 
 # Authentication: required
 
-    if ((my $n = @args) != 3)
+    if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function grant_module_ownership (received $n, expecting 3)");
+							       "Invalid argument count for function grant_module_ownership (received $n, expecting 1)");
     }
     {
-	my($module_name, $new_owner, $with_grant_option) = @args;
+	my($params) = @args;
 
 	my @_bad_arguments;
-        (!ref($module_name)) or push(@_bad_arguments, "Invalid type for argument 1 \"module_name\" (value was \"$module_name\")");
-        (!ref($new_owner)) or push(@_bad_arguments, "Invalid type for argument 2 \"new_owner\" (value was \"$new_owner\")");
-        (!ref($with_grant_option)) or push(@_bad_arguments, "Invalid type for argument 3 \"with_grant_option\" (value was \"$with_grant_option\")");
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to grant_module_ownership:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -5336,7 +5342,7 @@ sub grant_module_ownership
 
 =head2 remove_module_ownership
 
-  $obj->remove_module_ownership($module_name, $old_owner)
+  $obj->remove_module_ownership($params)
 
 =over 4
 
@@ -5345,8 +5351,12 @@ sub grant_module_ownership
 =begin html
 
 <pre>
-$module_name is a string
-$old_owner is a string
+$params is a Workspace.RemoveModuleOwnershipParams
+RemoveModuleOwnershipParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	old_owner has a value which is a Workspace.username
+modulename is a string
+username is a string
 
 </pre>
 
@@ -5354,16 +5364,20 @@ $old_owner is a string
 
 =begin text
 
-$module_name is a string
-$old_owner is a string
+$params is a Workspace.RemoveModuleOwnershipParams
+RemoveModuleOwnershipParams is a reference to a hash where the following keys are defined:
+	mod has a value which is a Workspace.modulename
+	old_owner has a value which is a Workspace.username
+modulename is a string
+username is a string
 
 
 =end text
 
 =item Description
 
-Remove ownership from current owner. You should have grant ability do this operation 
-(or to be an admin).
+Remove ownership from a current owner. You must have the grant ability
+on the module.
 
 =back
 
@@ -5375,17 +5389,16 @@ sub remove_module_ownership
 
 # Authentication: required
 
-    if ((my $n = @args) != 2)
+    if ((my $n = @args) != 1)
     {
 	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
-							       "Invalid argument count for function remove_module_ownership (received $n, expecting 2)");
+							       "Invalid argument count for function remove_module_ownership (received $n, expecting 1)");
     }
     {
-	my($module_name, $old_owner) = @args;
+	my($params) = @args;
 
 	my @_bad_arguments;
-        (!ref($module_name)) or push(@_bad_arguments, "Invalid type for argument 1 \"module_name\" (value was \"$module_name\")");
-        (!ref($old_owner)) or push(@_bad_arguments, "Invalid type for argument 2 \"old_owner\" (value was \"$old_owner\")");
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
         if (@_bad_arguments) {
 	    my $msg = "Invalid arguments passed to remove_module_ownership:\n" . join("", map { "\t$_\n" } @_bad_arguments);
 	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
@@ -8282,6 +8295,96 @@ spec_def has a value which is a string
 module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 func_vers has a value which is a reference to a list where each element is a Workspace.func_string
 used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
+
+
+=end text
+
+=back
+
+
+
+=head2 GrantModuleOwnershipParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the grant_module_ownership function.
+
+Required arguments:
+modulename mod - the module to modify.
+username new_owner - the user to add to the module's list of
+        owners.
+
+Optional arguments:
+boolean with_grant_option - true to allow the user to add owners
+        to the module.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+new_owner has a value which is a Workspace.username
+with_grant_option has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+new_owner has a value which is a Workspace.username
+with_grant_option has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 RemoveModuleOwnershipParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for the remove_module_ownership function.
+
+Required arguments:
+modulename mod - the module to modify.
+username old_owner - the user to remove from the module's list of
+        owners.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+old_owner has a value which is a Workspace.username
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+mod has a value which is a Workspace.modulename
+old_owner has a value which is a Workspace.username
 
 
 =end text

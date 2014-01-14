@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -17,6 +19,8 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -94,43 +98,42 @@ public class WorkspaceAdministration {
 				return null;
 			}
 			if ("createWorkspace".equals(fn)) {
-				final CreateWorkspaceParams params = UObject.transformObjectToObject(
-						c.get("params"), CreateWorkspaceParams.class);
-				final WorkspaceUser user = new WorkspaceUser((String) c.get("user")); //TODO check user
-				return wsmeth.createWorkspace(params, user);
+				final CreateWorkspaceParams params = getParams(c, CreateWorkspaceParams.class);
+				return wsmeth.createWorkspace(params, getUser(c));
 			}
 			if ("saveObjects".equals(fn)) {
-				final SaveObjectsParams params = UObject.transformObjectToObject(
-						c.get("params"), SaveObjectsParams.class);
-				final WorkspaceUser user = new WorkspaceUser((String) c.get("user")); //TODO check user
-				return wsmeth.saveObjects(params, user);
+				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
+				return wsmeth.saveObjects(params, getUser(c));
 			}
 			if ("grantModuleOwnership".equals(fn)) {
-				String moduleName = (String)c.get("moduleName");
-				String newOwner = (String)c.get("newOwner");
-				boolean withGrantOption = false;
-				Object par3 = c.get("withGrantOption");
-				if (par3 != null) {
-					if (par3 instanceof Boolean) {
-						withGrantOption = (Boolean)par3;
-					} else if (par3 instanceof String) {
-						withGrantOption = "true".equals(par3) || "1".equals(par3);
-					} else if (par3 instanceof Number) {
-						withGrantOption = ((Number)par3).intValue() == 1;
-					}
-				}
-				grantModuleOwnership(moduleName, newOwner, withGrantOption);
+				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);
+				wsmeth.grantModuleOwnership(params, null, true);
 				return null;
 			}
 			if ("removeModuleOwnership".equals(fn)) {
-				String moduleName = (String)c.get("moduleName");
-				String newOwner = (String)c.get("newOwner");
-				removeModuleOwnership(moduleName, newOwner);
+				final RemoveModuleOwnershipParams params = getParams(c, RemoveModuleOwnershipParams.class);
+				wsmeth.removeModuleOwnership(params, null, true);
 				return null;
 			}
 		}
 		throw new IllegalArgumentException(
 				"I don't know how to process the command:\n" + cmd);
+	}
+
+	private WorkspaceUser getUser(final Map<String, Object> input) {
+		final WorkspaceUser user = new WorkspaceUser((String) input.get("user")); //TODO check user
+		return user;
+	}
+
+	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
+		return UObject.transformObjectToObject(input.get("params"), clazz);
+	}
+	
+	//why doesn't this work?
+	@SuppressWarnings("unused")
+	private <T> T getParams(final Map<String, Object> input) {
+		return UObject.transformObjectToObject(input.get("params"),
+				new TypeReference<T>() {});
 	}
 	
 	private void setAdmin(final String user, final AuthToken token,
@@ -154,16 +157,6 @@ public class WorkspaceAdministration {
 
 	private Object listModRequests() throws TypeStorageException {
 		return ws.listModuleRegistrationRequests();
-	}
-
-	private void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption) 
-			throws TypeStorageException, NoSuchPrivilegeException {
-		ws.grantModuleOwnership(moduleName, newOwner, withGrantOption, null, true);
-	}
-	
-	private void removeModuleOwnership(String moduleName, String oldOwner) 
-			throws NoSuchPrivilegeException, TypeStorageException {
-		ws.removeModuleOwnership(moduleName, oldOwner, null, true);
 	}
 
 	//All the email methods are dead code for now, don't use them

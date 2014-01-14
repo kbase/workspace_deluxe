@@ -929,20 +929,16 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: grant_module_ownership</p>
      * <pre>
-     * Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
-     * You should have grant ability do this operation (or to be an admin).
+     * Grant ownership of a module. You must have grant ability on the
+     * module.
      * </pre>
-     * @param   moduleName   instance of String
-     * @param   newOwner   instance of String
-     * @param   withGrantOption   instance of original type "boolean" (A boolean. 0 = false, other = true.)
+     * @param   params   instance of type {@link us.kbase.workspace.GrantModuleOwnershipParams GrantModuleOwnershipParams}
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void grantModuleOwnership(String moduleName, String newOwner, Long withGrantOption) throws IOException, JsonClientException {
+    public void grantModuleOwnership(GrantModuleOwnershipParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(moduleName);
-        args.add(newOwner);
-        args.add(withGrantOption);
+        args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.grant_module_ownership", args, retType, false, true);
     }
@@ -950,18 +946,16 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: remove_module_ownership</p>
      * <pre>
-     * Remove ownership from current owner. You should have grant ability do this operation 
-     * (or to be an admin).
+     * Remove ownership from a current owner. You must have the grant ability
+     * on the module.
      * </pre>
-     * @param   moduleName   instance of String
-     * @param   oldOwner   instance of String
+     * @param   params   instance of type {@link us.kbase.workspace.RemoveModuleOwnershipParams RemoveModuleOwnershipParams}
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void removeModuleOwnership(String moduleName, String oldOwner) throws IOException, JsonClientException {
+    public void removeModuleOwnership(RemoveModuleOwnershipParams params) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
-        args.add(moduleName);
-        args.add(oldOwner);
+        args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true);
     }
