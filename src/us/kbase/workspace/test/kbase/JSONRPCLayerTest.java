@@ -2725,9 +2725,59 @@ public class JSONRPCLayerTest {
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": null}", null); //should probably be a better exception
 		
+		@SuppressWarnings("unchecked")
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> objinfo =
+				list2ObjTuple11(((List<List<Object>>) CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"saveObjects\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
+						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}")))
+						.asInstance()).get(0));
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("foo", 1);
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("b", "2");
+		checkInfo(objinfo, 1, "auto1", SAFE_TYPE, 1, USER1, wsinfo.getE1(),
+				 USER1 + ":admintest", "51014459947d55c836fe74faf224e54a", 9,
+				 meta);
+		checkSavedObjects(Arrays.asList(new ObjectIdentity().withRef( USER1 + ":admintest/auto1")),
+				1, "auto1", SAFE_TYPE, 1, USER1, wsinfo.getE1(),
+				 USER1 + ":admintest", "51014459947d55c836fe74faf224e54a", 9,
+				 meta, data);
+		
+		failAdmin(CLIENT2, 
+				"{\"command\": \"saveObjects\"," +
+				" \"user\": null," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
+						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
+				"Username cannot be null or the empty string");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"saveObjects\"," +
+						" \"user\": \"" + USER1 + "\"," +
+				" \"params\": null}",
+				null);
 	}
 	
 	
+
+	private Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> list2ObjTuple11(
+			List<Object> got) {
+		@SuppressWarnings("unchecked")
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> ret =
+				new Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>()
+				.withE1(new Long((Integer) got.get(0)))
+				.withE2((String) got.get(1))
+				.withE3((String) got.get(2))
+				.withE4((String) got.get(3))
+				.withE5(new Long((Integer) got.get(4)))
+				.withE6((String) got.get(5))
+				.withE7(new Long((Integer) got.get(6)))
+				.withE8((String) got.get(7))
+				.withE9((String) got.get(8))
+				.withE10(new Long((Integer) got.get(9)))
+				.withE11((Map<String, String>) got.get(10));
+		return ret;
+	}
 
 	private Tuple8<Long, String, String, String, Long, String, String, String> list2WSTuple8(
 			List<Object> got) {
