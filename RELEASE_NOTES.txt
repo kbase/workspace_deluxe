@@ -18,6 +18,32 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.1.1 (Released TBD)
+--------------------------------------
+
+NEW FEATURES:
+- Add owners to modules so that multiple users can upload typespecs.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Module owners can now see unreleased modules and types.
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- Unified WS / Shock ACLs
+- Pointers to shock data too large to fit in the workspace
+- Get objects by reference chain
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing queue (share specific versions of objects)
+- Add mutable metadata to a workspace
+- Filter list_workspace_info by metadata, owner, permissions
+- Filter list_objects by metadata, owner, permissions
+- Import TOs from shock
+- Update copied objects from source
+- Improvements to returning the subset of an object
+- Find TOs that reference another TO
+
 VERSION: 0.1.0 (Released 1/9/2014)
 --------------------------------------
 PREAMBLE:
