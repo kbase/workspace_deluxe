@@ -748,7 +748,7 @@ public class TypeRegisteringTest {
 			db.addOwnerToModule("stranger", module, "stranger2", false, false);	// bad
 			Assert.fail();
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change priviledges for module SomeModule"));
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change privileges for module SomeModule"));
 		}
 		db.addOwnerToModule("author", module, "stranger", true, false);
 		db.getModuleSpecDocument(new ModuleDefId(module), "stranger", false);
