@@ -2050,8 +2050,9 @@ public class TypeDefinitionDB {
 				info.setUploadComment(uploadComment == null ? "" : uploadComment);
 				info.setReleased(false);
 				Map<String, String> typeToSchema = moduleToTypeToSchema.get(moduleName);
-				if (typeToSchema == null)
-					throw new SpecParseException("Json schema generation was missed for module: " + moduleName);
+				if (typeToSchema == null) {
+					typeToSchema = Collections.<String, String>emptyMap();
+				}
 				Set<String> oldRegisteredTypes = new HashSet<String>();
 				Set<String> oldRegisteredFuncs = new HashSet<String>();
 				if (!isNew) {
