@@ -1060,7 +1060,7 @@ public class TestWorkspace {
 		
 		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		failSave(userfoo, wspace, data1, relmintype1, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
@@ -2393,7 +2393,7 @@ public class TestWorkspace {
 	public void testTypeMd5s() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		String typeDefName = "SomeModule.AType";
-		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName), null);
+		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName + "-1.0"),null);
 		Assert.assertEquals(1, type2md5.size());
 		String md5TypeDef = type2md5.get(typeDefName + "-1.0");
 		Assert.assertNotNull(md5TypeDef);
@@ -3911,19 +3911,12 @@ public class TestWorkspace {
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
 		compareObjectAndInfo(got.get(2), o3, p2, expdata3, refs2, refmap2);
 		
-		got = ws.getObjectsSubSet(user, Arrays.asList(
+		// new test for extractor that fails on an array OOB
+		failGetSubset(user, Arrays.asList(
 				new SubObjectIdentifier(oident2, new ObjectPaths(
-						Arrays.asList("/array/3", "/array/0")))));
-		expdata2 = createData(
-				"{\"array\": [{\"id\": 1," +
-				"			   \"thing\": \"foo\"}," +
-				"			  null" + 
-				"			  ]" +
-				"}"
-				);
-		//when the extractor is fixed to fail on an array OOB, this test should fail
-		//all other tests should work
-		compareObjectAndInfo(got.get(0), o2, p2, expdata2, refs2, refmap2);
+						Arrays.asList("/array/3", "/array/0")))),
+				new TypedObjectExtractionException(
+						"No element at position '3', at: /array/3"));
 		
 		got = ws.getObjectsSubSet(user, Arrays.asList(
 				new SubObjectIdentifier(oident1, new ObjectPaths(
