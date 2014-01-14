@@ -1066,7 +1066,7 @@ public class TestWorkspace {
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
 		failSave(userfoo, wspace, data1, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to read type schema record: 'TestTypeChecking.CheckType'"));
+						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1.0"));
 		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
