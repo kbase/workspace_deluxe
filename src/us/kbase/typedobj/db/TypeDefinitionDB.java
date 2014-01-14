@@ -2429,7 +2429,7 @@ public class TypeDefinitionDB {
 		boolean canChangeOwnersPrivilege = checkUserIsOwnerOrAdmin(moduleName, knownOwnerUserId, isAdmin);
 		if (!canChangeOwnersPrivilege)
 			throw new NoSuchPrivilegeException("User " + knownOwnerUserId + " can not change " +
-					"priviledges for module " + moduleName);
+					"privileges for module " + moduleName);
 	}
 	
 	public String getModuleDescription(String moduleName) 
