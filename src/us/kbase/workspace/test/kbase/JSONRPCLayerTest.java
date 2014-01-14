@@ -2577,6 +2577,63 @@ public class JSONRPCLayerTest {
 			throws JsonParseException, JsonMappingException, IOException {
 		return new ObjectMapper().readValue(json, Map.class);
 	}
+	
+	@Test
+	public void adminAddRemoveList() throws Exception {
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
+		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command:\n{command=listAdmin}");
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		
+		checkAdmins(CLIENT2, Arrays.asList(USER1, USER2));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+		
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER2 + "\"}")));
+		failAdmin(CLIENT2, "{\"command\": \"listAdmins\"}", "User " + USER2 + " is not an admin");
+		checkAdmins(CLIENT1, Arrays.asList(USER1));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER2 + "\"}")));
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+	}
+	
+	private void checkAdmins(WorkspaceClient cli, List<String> expadmins)
+			throws Exception {
+		List<String> admins = cli.administer(new UObject(createData(
+				"{\"command\": \"listAdmins\"}"))).asInstance();
+		Set<String> got = new HashSet<String>(admins);
+		Set<String> expected = new HashSet<String>(expadmins);
+		assertTrue("correct admins", got.containsAll(expected));
+		assertThat("only the one built in admin", expected.size() + 1, is(got.size()));
+		
+	}
+
+	private void failAdmin(WorkspaceClient cli, String cmd,
+			String exp)
+			throws Exception {
+		try {
+			cli.administer(new UObject(createData(cmd)));
+			fail("ran admin command with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+	
 
 	@Test
 	public void testTypeMD5() throws Exception {
