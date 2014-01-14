@@ -125,6 +125,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Map<String, Map<List<String>, List<String>>> INDEXES;
 	private static final String IDX_UNIQ = "unique";
+	private static final String IDX_SPARSE = "sparse";
 	static {
 		//hardcoded indexes
 		INDEXES = new HashMap<String, Map<List<String>, List<String>>>();
@@ -167,9 +168,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find versions by data object
 		wsVer.put(Arrays.asList(Fields.VER_TYPE, Fields.VER_CHKSUM), Arrays.asList(""));
 		//determine whether a particular object is referenced by this object
-		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList("")); //TODO sparse?
+		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList(IDX_SPARSE));
 		//determine whether a particular object is included in this object's provenance
-		wsVer.put(Arrays.asList(Fields.VER_PROVREF), Arrays.asList("")); //TODO sparse
+		wsVer.put(Arrays.asList(Fields.VER_PROVREF), Arrays.asList(IDX_SPARSE));
 		//find objects that have the same provenance
 		wsVer.put(Arrays.asList(Fields.VER_PROV), Arrays.asList(""));
 		//find objects by saved date
