@@ -1299,33 +1299,30 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: grant_module_ownership</p>
      * <pre>
-     * Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
-     * You should have grant ability do this operation (or to be an admin).
+     * Grant ownership of a module. You must have grant ability on the
+     * module.
      * </pre>
-     * @param   moduleName   instance of String
-     * @param   newOwner   instance of String
-     * @param   withGrantOption   instance of original type "boolean" (A boolean. 0 = false, other = true.)
+     * @param   params   instance of type {@link us.kbase.workspace.GrantModuleOwnershipParams GrantModuleOwnershipParams}
      */
     @JsonServerMethod(rpc = "Workspace.grant_module_ownership")
-    public void grantModuleOwnership(String moduleName, String newOwner, Long withGrantOption, AuthToken authPart) throws Exception {
+    public void grantModuleOwnership(GrantModuleOwnershipParams params, AuthToken authPart) throws Exception {
         //BEGIN grant_module_ownership
-    	ws.grantModuleOwnership(moduleName, newOwner, withGrantOption != null && withGrantOption == 1L, getUser(authPart), false);
+		wsmeth.grantModuleOwnership(params, getUser(authPart), false);
         //END grant_module_ownership
     }
 
     /**
      * <p>Original spec-file function name: remove_module_ownership</p>
      * <pre>
-     * Remove ownership from current owner. You should have grant ability do this operation 
-     * (or to be an admin).
+     * Remove ownership from a current owner. You must have the grant ability
+     * on the module.
      * </pre>
-     * @param   moduleName   instance of String
-     * @param   oldOwner   instance of String
+     * @param   params   instance of type {@link us.kbase.workspace.RemoveModuleOwnershipParams RemoveModuleOwnershipParams}
      */
     @JsonServerMethod(rpc = "Workspace.remove_module_ownership")
-    public void removeModuleOwnership(String moduleName, String oldOwner, AuthToken authPart) throws Exception {
+    public void removeModuleOwnership(RemoveModuleOwnershipParams params, AuthToken authPart) throws Exception {
         //BEGIN remove_module_ownership
-    	ws.removeModuleOwnership(moduleName, oldOwner, getUser(authPart), false);
+		wsmeth.removeModuleOwnership(params, getUser(authPart), false);
         //END remove_module_ownership
     }
 

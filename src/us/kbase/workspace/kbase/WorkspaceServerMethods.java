@@ -13,10 +13,13 @@ import us.kbase.common.service.Tuple8;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
+import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
@@ -118,6 +121,24 @@ public class WorkspaceServerMethods {
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc); 
 		return au.objInfoToTuple(meta);
+	}
+	
+	public void grantModuleOwnership(final GrantModuleOwnershipParams params,
+			final WorkspaceUser user, boolean asAdmin)
+			throws TypeStorageException, NoSuchPrivilegeException {
+		checkAddlArgs(params.getAdditionalProperties(),
+				GrantModuleOwnershipParams.class);
+		ws.grantModuleOwnership(params.getMod(), params.getNewOwner(),
+				au.longToBoolean(params.getWithGrantOption()), user, asAdmin);
+	}
+
+	public void removeModuleOwnership(final RemoveModuleOwnershipParams params,
+			final WorkspaceUser user, final boolean asAdmin)
+			throws NoSuchPrivilegeException, TypeStorageException {
+		checkAddlArgs(params.getAdditionalProperties(),
+				RemoveModuleOwnershipParams.class);
+		ws.removeModuleOwnership(params.getMod(), params.getOldOwner(),
+				user, asAdmin);
 	}
 
 }

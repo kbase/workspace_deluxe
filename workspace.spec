@@ -1295,18 +1295,47 @@ module Workspace {
 	
 	funcdef get_func_info(func_string func) returns (FuncInfo info) authentication optional;
 	
-	/* Grant ownership for new person. To give this person the grant ability use with_grant_option=1. 
-		You should have grant ability do this operation (or to be an admin).
+	/* Parameters for the grant_module_ownership function.
+		
+		Required arguments:
+		modulename mod - the module to modify.
+		username new_owner - the user to add to the module's list of
+			owners.
+		
+		Optional arguments:
+		boolean with_grant_option - true to allow the user to add owners
+			to the module.
 	*/
-	funcdef grant_module_ownership(string module_name, string new_owner, boolean with_grant_option) 
-		returns () authentication required;
-
-	/* Remove ownership from current owner. You should have grant ability do this operation 
-		(or to be an admin).
+	typedef structure {
+		modulename mod;
+		username new_owner;
+		boolean with_grant_option;
+	} GrantModuleOwnershipParams;
+	
+	/* Grant ownership of a module. You must have grant ability on the
+		module.
 	*/
-	funcdef remove_module_ownership(string module_name, string old_owner) 
+	funcdef grant_module_ownership(GrantModuleOwnershipParams params) 
 		returns () authentication required;
 	
+	/* Parameters for the remove_module_ownership function.
+		
+		Required arguments:
+		modulename mod - the module to modify.
+		username old_owner - the user to remove from the module's list of
+			owners.
+	*/
+	typedef structure {
+		modulename mod;
+		username old_owner;
+	} RemoveModuleOwnershipParams;
+	
+	/* Remove ownership from a current owner. You must have the grant ability
+		on the module.
+	*/
+	funcdef remove_module_ownership(RemoveModuleOwnershipParams params) 
+		returns () authentication required;
+		
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
 		returns(UnspecifiedObject response) authentication required;
