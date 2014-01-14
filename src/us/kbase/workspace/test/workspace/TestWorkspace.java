@@ -1069,7 +1069,7 @@ public class TestWorkspace {
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1.0"));
 		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType"));
+						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		
 		ws.releaseTypes(userfoo, mod);
 		
@@ -1081,7 +1081,7 @@ public class TestWorkspace {
 				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)));
 		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-0"));
+						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)));
 		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
@@ -1103,7 +1103,7 @@ public class TestWorkspace {
 						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
 		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		
 		
 		Map<String, Object> newdata = new HashMap<String, Object>(data1);
@@ -1124,7 +1124,7 @@ public class TestWorkspace {
 						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		failSave(userfoo, wspace, newdata, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		
 		ws.releaseTypes(userfoo, mod);
 		
