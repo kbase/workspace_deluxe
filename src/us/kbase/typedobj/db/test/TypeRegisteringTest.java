@@ -79,6 +79,7 @@ public class TypeRegisteringTest {
 					"testStop",
 					"testDeps",
 					"testOwnership",
+					"testEmpty",
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -759,6 +760,15 @@ public class TypeRegisteringTest {
 		} catch (NoSuchModuleException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: SomeModule"));
 		}
+	}
+	
+	@Test
+	public void testEmpty() throws Exception {
+		String module = "EmptyModule";
+		initModule(module, "author");
+		db.registerModule("module EmptyModule {};", Collections.<String>emptyList(), "author");
+		db.registerModule("module EmptyModule {funcdef foo() returns ();};", Collections.<String>emptyList(), "author");
+		Assert.assertEquals("funcdef foo() returns () authentication none;", db.getFuncDetailedInfo("EmptyModule", "foo", null, false, "author").getSpecDef());
 	}
 	
 	private Map<String, Long> restrict(Object... params) {
