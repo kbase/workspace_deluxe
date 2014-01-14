@@ -113,7 +113,7 @@ if($n_args==0) {
      }
 } elsif($n_args==1) {
      my $name = $ARGV[0];
-     my @tokens=split(/\./,$name);
+     my @tokens=split(/\./,$name,2);
      if (scalar(@tokens)==1) {
           # it is a module name ...
           my $options = {"mod"=>$name};

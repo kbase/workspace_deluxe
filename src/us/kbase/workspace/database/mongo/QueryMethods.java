@@ -494,7 +494,7 @@ public class QueryMethods {
 				if (!noWS.containsKey(id)) {
 					noWS.put(id, new LinkedList<DBObject>());
 				}
-				noWS.get(id).add(m); //TODO test
+				noWS.get(id).add(m);
 			} else {
 				final ResolvedMongoWSID wsid = idToWS.get(id);
 				addPerm(wsidToPerms, m, wsid);

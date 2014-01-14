@@ -1,5 +1,6 @@
 package us.kbase.typedobj.core;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +13,8 @@ public class ObjectPaths implements Iterable<String> {
 		if (paths == null) {
 			this.paths = new LinkedList<String>();
 		} else {
-			this.paths = new LinkedList<String>(paths);
+			this.paths = Collections.unmodifiableList(
+					new LinkedList<String>(paths));
 		}
 	}
 

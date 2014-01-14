@@ -33,7 +33,7 @@ public class WorkspaceAdministration {
 	private final WorkspaceServerMethods wsmeth;
 	private static final String ROOT = "workspaceadmin";
 	
-	//TODO tests for all this
+	//TODO tests for all this & workspace.class methods
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
 	public WorkspaceAdministration(final Workspace ws, 
@@ -97,13 +97,13 @@ public class WorkspaceAdministration {
 			if ("createWorkspace".equals(fn)) {
 				final CreateWorkspaceParams params = UObject.transformObjectToObject(
 						c.get("params"), CreateWorkspaceParams.class);
-				final WorkspaceUser user = new WorkspaceUser((String) c.get("user"));
+				final WorkspaceUser user = new WorkspaceUser((String) c.get("user")); //TODO check user
 				return wsmeth.createWorkspace(params, user);
 			}
 			if ("saveObjects".equals(fn)) {
 				final SaveObjectsParams params = UObject.transformObjectToObject(
 						c.get("params"), SaveObjectsParams.class);
-				final WorkspaceUser user = new WorkspaceUser((String) c.get("user"));
+				final WorkspaceUser user = new WorkspaceUser((String) c.get("user")); //TODO check user
 				return wsmeth.saveObjects(params, user);
 			}
 			if ("grantModuleOwnership".equals(fn)) {

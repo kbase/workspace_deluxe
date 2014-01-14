@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -33,6 +34,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -43,6 +46,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
+import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple8;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
@@ -50,6 +54,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -67,6 +72,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -188,6 +194,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.setAuthAllowedForHttp(true);
 		CLIENT2.setAuthAllowedForHttp(true);
 		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
+		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
@@ -196,6 +203,7 @@ public class JSONRPCLayerTest {
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT1.releaseModule("SomeModule");
+		
 		SERVER2 = startupWorkspaceServer(2);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
@@ -348,6 +356,9 @@ public class JSONRPCLayerTest {
 				"Must provide one and only one of workspace name (was: null) or id (was: null)");
 		failSetWSDesc(new SetWorkspaceDescriptionParams().withWorkspace("foo").withId(1L),
 				"Must provide one and only one of workspace name (was: foo) or id (was: 1)");
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("wsdesc").withNewPermission("n"));
 	}
 	
 	private void failSetWSDesc(SetWorkspaceDescriptionParams swdp, String excep)
@@ -395,6 +406,11 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("globalread must be n or r"));
 		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("gl1").withNewPermission("n"));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("gl2").withNewPermission("n"));
 	}
 	
 	@Test
@@ -451,6 +467,9 @@ public class JSONRPCLayerTest {
 		expected.put(USER1, "a");
 		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+		.withWorkspace("badperms").withNewPermission("n"));
 	}
 	
 	@Test
@@ -531,6 +550,11 @@ public class JSONRPCLayerTest {
 		perms = CLIENT2.getPermissions(new WorkspaceIdentity()
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("permspriv").withNewPermission("n"));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("permsglob").withNewPermission("n"));
 	}
 	
 	@Test
@@ -607,6 +631,9 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Workspace name exceeds the maximum length of 100"));
 		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace(ws).withNewPermission("n"));
 	}
 	
 	private void saveBadObject(List<ObjectSaveData> objects, String exception) 
@@ -681,6 +708,9 @@ public class JSONRPCLayerTest {
 		
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3"));
 		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("savebadpkg").withNewPermission("n"));
 	}
 	
 	@Test
@@ -717,18 +747,12 @@ public class JSONRPCLayerTest {
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
-		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
-				new ObjectIdentity().withWorkspace("provenance").withObjid(2L)));
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
-		assertThat("user correct", ret.get(0).getCreator(), is(USER1));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
-		
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		ObjectIdentity id = new ObjectIdentity().withWorkspace("provenance").withObjid(2L);
+		checkProvenance(USER1, id, prov, refmap, timemap);
 		
 		ProvenanceAction pa = new ProvenanceAction();
 		pa.setAdditionalProperties("foo", "bar");
@@ -752,12 +776,30 @@ public class JSONRPCLayerTest {
 		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
 						.withType(SAFE_TYPE).withName("whoops"))));
-		ObjectData d = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
-			.withName("whoops").withWorkspace("provenance"))).get(0);
-		assertThat("user correct", d.getCreator(), is(USER2));
+		checkProvenance(USER2, new ObjectIdentity().withName("whoops")
+				.withWorkspace("provenance"), new ArrayList<ProvenanceAction>(),
+				new HashMap<String, String>(), new HashMap<String, String>());
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("provenance").withNewPermission("n"));
+	}
+
+	private void checkProvenance(String user, ObjectIdentity id,
+			List<ProvenanceAction> prov, Map<String, String> refmap,
+			Map<String, String> timemap) throws Exception {
+		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(id));
+		assertThat("user correct", ret.get(0).getCreator(), is(user));
 		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(d.getCreated())
+				DATE_FORMAT.parse(ret.get(0).getCreated())
 				.after(getOlderDate(10 * 60 * 1000)));
+		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		
+		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)));
+		assertThat("user correct", ret.get(0).getCreator(), is(user));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(ret.get(0).getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
+		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
 	}
 	
 	private Date getOlderDate(long ms) {
@@ -920,13 +962,7 @@ public class JSONRPCLayerTest {
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
-		try {
-			CLIENT1.getObjects(new ArrayList<ObjectIdentity>());
-			fail("called get obj with no ids");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is("No object identifiers provided"));
-		}
+		getObjectWBadParams(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 		
 		try {
 			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>(), 0L);
@@ -979,16 +1015,59 @@ public class JSONRPCLayerTest {
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object version must be > 0");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("saveget").withNewPermission("n"));
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Test
-	public void deprecated_saveObject() throws Exception {
+	public void deprecatedMethods() throws Exception {
+		CLIENT1.requestModuleOwnership("DepAnotherModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "DepAnotherModule");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module DepAnotherModule {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+							"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		String anotherType = "DepAnotherModule.AType-0.1";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
-		long wsid = CLIENT1.getWorkspaceInfo(
-				new WorkspaceIdentity().withWorkspace("depsave")).getE1();
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave2")
+				.withGlobalread("r"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo = CLIENT1.getWorkspaceInfo(
+				new WorkspaceIdentity().withWorkspace("depsave"));
+		long wsid = wsinfo.getE1();
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("depsave")
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave"),
+				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withId(wsid),
+				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
+		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(AUTH_USER2.getTokenString()),
+				"depsave", USER1, wsinfo.getE4(), 0, "w", "n", wsid);
+
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta =
+				CLIENT1.getWorkspacemeta(new us.kbase.workspace.GetWorkspacemetaParams().withWorkspace("depsave"));
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta2 =
+				CLIENT1.getWorkspacemeta(new us.kbase.workspace.GetWorkspacemetaParams().withWorkspace("depsave2"));
+		
+		List<Tuple7<String, String, String, Long, String, String, Long>> emptyWS = 
+				new ArrayList<Tuple7<String,String,String,Long,String,String,Long>>();
+		
+		checkWSInfoListDep(CLIENT1.listWorkspaces(new us.kbase.workspace.ListWorkspacesParams()
+				.withExcludeGlobal(1L)),
+				Arrays.asList(wsmeta), Arrays.asList(wsmeta2));
+		checkWSInfoListDep(CLIENT1.listWorkspaces(new us.kbase.workspace.ListWorkspacesParams()),
+				Arrays.asList(wsmeta, wsmeta2), emptyWS);
 		
 		//save some objects to get
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -1006,50 +1085,318 @@ public class JSONRPCLayerTest {
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj1")
 				.withMetadata(meta).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)));
-		System.out.println(obj1);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj2 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj2")
-				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
+				.withMetadata(meta2).withType(anotherType).withWorkspace("depsave")
 				.withData(new UObject(data2)));
-		System.out.println(obj2);
 		
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
-		System.out.println(obj3);
 		
 		checkDeprecatedSaveInfo(obj1, 1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta);
-		checkDeprecatedSaveInfo(obj2, 2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
+		checkDeprecatedSaveInfo(obj2, 2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
 		checkDeprecatedSaveInfo(obj3, 3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta2);
 		
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(1L)),
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj1"),
+				new ObjectIdentity().withWsid(wsid).withObjid(1L),
 				1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta, data);
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(2L)),
-				2, "obj2", SAFE_TYPE, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
-				24, meta2, data2);
-		checkSavedObjects(Arrays.asList(new ObjectIdentity().withWsid(wsid).withObjid(3L)),
+				23, meta, data, AUTH_USER2);
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj2"),
+				new ObjectIdentity().withWsid(wsid).withObjid(2L),
+				2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
+				24, meta2, data2, AUTH_USER2);
+		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj3"),
+				new ObjectIdentity().withWsid(wsid).withObjid(3L),
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta2, data);
+				23, meta2, data, AUTH_USER2);
+		
+		checkListObjectsDep("depsave", null, null, null, Arrays.asList(obj1, obj2, obj3));
+		checkListObjectsDep("depsave", anotherType, null, null, Arrays.asList(obj2));
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withName("obj2").withWorkspace("depsave")));
+		checkListObjectsDep("depsave", null, 0L, null, Arrays.asList(obj1, obj3));
+		checkListObjectsDep("depsave", null, 1L, null, Arrays.asList(obj1, obj2, obj3));
+		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
+		
+		String invalidToken = AUTH_USER2.getTokenString() + "a";
+		String invalidTokenExp = "Token is invalid";
+		String badFormatToken = "borkborkbork";
+		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
+		
+		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
+				.withWorkspace("depsave").withAuth(badFormatToken),
+				badFormatTokenExp);
+		
+		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
+				.withAuth(invalidToken), invalidTokenExp);
+		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
+				.withAuth(badFormatToken), badFormatTokenExp);
 		
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
-				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString() + "a"),
-				"Token is invalid");
+				.withData(new UObject(data)).withAuth(invalidToken),
+				invalidTokenExp);
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
-				.withData(new UObject(data)).withAuth("borkborkbork"),
-				"Auth token is in the incorrect format, near 'borkborkbork'");
+				.withData(new UObject(data)).withAuth(badFormatToken),
+				badFormatTokenExp);
+		
+		failDepGetObject(new us.kbase.workspace.GetObjectParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetObject(new us.kbase.workspace.GetObjectParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
+				badFormatTokenExp);
+		
+		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
+				badFormatTokenExp);
+		
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withType("thisisabadtype"),
+				"Type thisisabadtype could not be split into a module and name");
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withAuth(invalidToken),
+				invalidTokenExp);
+		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
+				.withWorkspace("depsave").withAuth(badFormatToken),
+				badFormatTokenExp);
 	}
 	
+	@SuppressWarnings("deprecation")
+	private void failDepListObjects(us.kbase.workspace.ListWorkspaceObjectsParams lwop,
+			String exp)
+			throws Exception {
+		try {
+			CLIENT1.listWorkspaceObjects(lwop);
+			fail("list objs dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	private void checkListObjectsDep(String ws, String type, Long showDeleted, String auth,
+			List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>> expected)
+			throws Exception {
+		Map<Long, Map<Long, Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>>> expec =
+				new HashMap<Long, Map<Long, Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long>>>();
+		
+		Map<Long, Set<Long>> seenSet = new HashMap<Long, Set<Long>>();
+		Map<Long, Set<Long>> expectedSet = new HashMap<Long, Set<Long>>();
+		
+		for (Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> e: expected) {
+			if (!expec.containsKey(e.getE12())) {
+				expec.put(e.getE12(), new HashMap<Long, Tuple12<String,String,String,Long,String,String,String,String,String,String,Map<String,String>,Long>>());
+				expectedSet.put(e.getE12(), new HashSet<Long>());
+			}
+			expec.get(e.getE12()).put(e.getE4(), e);
+			expectedSet.get(e.getE12()).add(e.getE4());
+		}
+		for (Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> g:
+			CLIENT1.listWorkspaceObjects(new us.kbase.workspace.ListWorkspaceObjectsParams().withWorkspace(ws)
+					 .withType(type).withShowDeletedObject(showDeleted).withAuth(auth))) {
+			if (seenSet.containsKey(g.getE12()) &&
+					seenSet.get(g.getE12()).contains(g.getE4())) {
+				fail("Saw same object twice: " + g);
+			}
+			if (!seenSet.containsKey(g.getE12())) {
+				seenSet.put(g.getE12(), new HashSet<Long>());
+			}
+			seenSet.get(g.getE12()).add(g.getE4());
+			if (!expec.containsKey(g.getE12()) ||
+					!expec.get(g.getE12()).containsKey(g.getE4())) {
+				fail("listed unexpected object: " + g);
+			}
+			compareObjectInfoDep(g, expec.get(g.getE12()).get(g.getE4()));
+		}
+		assertThat("listed correct objects", seenSet, is (expectedSet));
+	}
+
+	private void compareObjectInfoDep(
+			Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> got,
+			Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> expec) {
+		
+		assertThat("name is correct", got.getE1(), is(expec.getE1()));
+		assertThat("type is correct", got.getE2(), is(expec.getE2()));
+		assertThat("date is correct", got.getE3(), is(expec.getE3()));
+		assertThat("version is correct", got.getE4(), is(expec.getE4()));
+		assertThat("command is correct", got.getE5(), is(expec.getE5()));
+		assertThat("last modifier is correct", got.getE6(), is(expec.getE6()));
+		assertThat("owner is correct", got.getE7(), is(expec.getE7()));
+		assertThat("ws name is correct", got.getE8(), is(expec.getE8()));
+		assertThat("ref is correct", got.getE9(), is(expec.getE9()));
+		assertThat("chksum is correct", got.getE10(), is(expec.getE10()));
+		assertThat("meta is correct", got.getE11(), is(expec.getE11()));
+		assertThat("id is correct", got.getE12(), is(expec.getE12()));
+	}
+
+	@SuppressWarnings("deprecation")
+	private void failDepListWs(us.kbase.workspace.ListWorkspacesParams lwp, String exp)
+			throws Exception {
+		try {
+			CLIENT1.listWorkspaces(lwp);
+			fail("get objmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	private void checkWSInfoListDep(
+			List<Tuple7<String, String, String, Long, String, String, Long>> got,
+			List<Tuple7<String, String, String, Long, String, String, Long>> expected,
+			List<Tuple7<String, String, String, Long, String, String, Long>> notexpected) {
+
+		Map<Long, Tuple7<String, String, String, Long, String, String, Long>> expecmap = 
+				new HashMap<Long, Tuple7<String, String, String, Long, String, String, Long>>();
+		for (Tuple7<String, String, String, Long, String, String, Long> inf: expected) {
+			expecmap.put(inf.getE7(), inf);
+		}
+		Set<Long> seen = new HashSet<Long>();
+		Set<Long> seenexp = new HashSet<Long>();
+		Set<Long> notexp = new HashSet<Long>();
+		for (Tuple7<String, String, String, Long, String, String, Long> inf: notexpected) {
+			notexp.add(inf.getE7());
+		}
+		for (Tuple7<String, String, String, Long, String, String, Long> info: got) {
+			if (seen.contains(info.getE7())) {
+				fail("Saw same workspace twice");
+			}
+			if (notexp.contains(info.getE7())) {
+				fail("Got unexpected workspace id " + info.getE1());
+			}
+			if (!expecmap.containsKey(info.getE7())) {
+				continue; // only two users so really impossible to list a controlled set of ws
+				// if this is important add a 3rd user and client
+			}
+			seenexp.add(info.getE7());
+			Tuple7<String, String, String, Long, String, String, Long> exp =
+					expecmap.get(info.getE7());
+			assertThat("ws name correct", info.getE1(), is(exp.getE1()));
+			assertThat("user name correct", info.getE2(), is(exp.getE2()));
+			assertThat("moddates correct", info.getE3(), is(exp.getE3()));
+			assertThat("obj counts are 0", info.getE4(), is(exp.getE4()));
+			assertThat("permission correct", info.getE5(), is(exp.getE5()));
+			assertThat("global read correct", info.getE6(), is(exp.getE6()));
+			assertThat("wsid correct", info.getE7(), is(exp.getE7()));
+			
+		}
+		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
+		
+	}
+
+	@SuppressWarnings("deprecation")
+	private void checkDepWSMeta(
+			us.kbase.workspace.GetWorkspacemetaParams gomp,
+			String name, String user, String moddate, long objects, String perm,
+			String globalRead, long wsid)
+			throws Exception {
+		Tuple7<String, String, String, Long, String, String, Long> wsmeta =
+				CLIENT1.getWorkspacemeta(gomp);
+		assertThat("ws name correct", wsmeta.getE1(), is(name));
+		assertThat("user name correct", wsmeta.getE2(), is(user));
+		assertThat("moddates correct", wsmeta.getE3(), is(moddate));
+		assertThat("obj counts are 0", wsmeta.getE4(), is(objects));
+		assertThat("permission correct", wsmeta.getE5(), is(perm));
+		assertThat("global read correct", wsmeta.getE6(), is(globalRead));
+		assertThat("wsid correct", wsmeta.getE7(), is(wsid));
+		
+	}
+
+	@SuppressWarnings("deprecation")
+	private void failDepGetObjectmeta(us.kbase.workspace.GetObjectmetaParams gop, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getObjectmeta(gop);
+			fail("get objmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void failDepGetWSmeta(us.kbase.workspace.GetWorkspacemetaParams gwp, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getWorkspacemeta(gwp);
+			fail("get wsmeta dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	private void failDepGetObject(us.kbase.workspace.GetObjectParams gop, String exp)
+			throws Exception {
+		try {
+			CLIENT1.getObject(gop);
+			fail("get obj dep with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	private void checkSavedObjectDep(ObjectIdentity objnames, ObjectIdentity objids,
+			long id,
+			String name, String type, int ver, String user, long wsid,
+			String wsname, String chksum, int size, Map<String, String> meta,
+			Map<String, Object> data, AuthUser auth)
+			throws Exception {
+		us.kbase.workspace.GetObjectOutput goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
+				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
+				.withInstance(objnames.getVer()));
+		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
+				is((Object) data));
+		goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
+				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
+				.withInstance(objnames.getVer())
+				.withAuth(auth.getTokenString()));
+		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
+				is((Object) data));
+		
+		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> objmeta =
+				CLIENT1.getObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace(objnames.getWorkspace())
+				.withId(objnames.getName()).withInstance(objnames.getVer()));
+		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		objmeta =
+				CLIENT1.getObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
+				.withWorkspace(objnames.getWorkspace())
+				.withId(objnames.getName()).withInstance(objnames.getVer())
+				.withAuth(AUTH_USER2.getTokenString()));
+		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
+				wsid, wsname, chksum, meta);
+		
+		checkSavedObjects(Arrays.asList(objnames), id, name, type, ver, user, wsid, wsname, chksum, size, meta, data);
+		checkSavedObjects(Arrays.asList(objids), id, name, type, ver, user, wsid, wsname, chksum, size, meta, data);
+		
+	}
+
 	@SuppressWarnings("deprecation")
 	private void failDepSaveObject(us.kbase.workspace.SaveObjectParams sop, String exp)
 			throws Exception {
 		try {
 			CLIENT1.saveObject(sop);
-			fail("hide obj with bad params");
+			fail("dep save obj with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exp));
@@ -1066,6 +1413,13 @@ public class JSONRPCLayerTest {
 					is(exception));
 		}
 		try {
+			CLIENT1.getObjectSubset(objIDToSubObjID(loi));
+			fail("got object with bad id: " + loi);
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception.replace("ObjectIdentity", "SubObjectIdentity")));
+		}
+		try {
 			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got meta with bad id");
 		} catch (ServerException se) {
@@ -1078,6 +1432,12 @@ public class JSONRPCLayerTest {
 			String type, int ver, String user, long wsid, String wsname, String chksum, long size,
 			Map<String, String> meta, Map<String, Object> data) throws Exception {
 		List<ObjectData> retdata = CLIENT1.getObjects(loi);
+		assertThat("num data correct", retdata.size(), is(loi.size()));
+		for (ObjectData o: retdata) {
+			checkData(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta, data);
+		}
+		retdata = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		assertThat("num data correct", retdata.size(), is(loi.size()));
 		for (ObjectData o: retdata) {
 			checkData(o, id, name, type, ver, user, wsid, wsname,
@@ -1103,6 +1463,21 @@ public class JSONRPCLayerTest {
 			checkInfo(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, null);
 		}
+	}
+
+	private List<SubObjectIdentity> objIDToSubObjID(List<ObjectIdentity> loi) {
+		LinkedList<SubObjectIdentity> ret = new LinkedList<SubObjectIdentity>();
+		for (ObjectIdentity oi: loi) {
+			SubObjectIdentity soi = new SubObjectIdentity().withName(oi.getName())
+					.withObjid(oi.getObjid()).withRef(oi.getRef())
+					.withVer(oi.getVer()).withWorkspace(oi.getWorkspace())
+					.withWsid(oi.getWsid());
+			for (Entry<String, Object> e: oi.getAdditionalProperties().entrySet()) {
+				soi.setAdditionalProperties(e.getKey(), e.getValue());
+			}
+			ret.add(soi);
+		}
+		return ret;
 	}
 
 	private void checkData(ObjectData retdata, long id, String name,
@@ -1422,27 +1797,17 @@ public class JSONRPCLayerTest {
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
 				.withRef("delundel/myname"));
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+
 		CLIENT1.undeleteObjects(loi);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		CLIENT1.deleteWorkspace(wsi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object myname cannot be accessed: Workspace delundel is deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
+
 		try {
 			CLIENT1.getWorkspaceDescription(wsi);
 			fail("got desc from deleted WS");
@@ -1451,23 +1816,26 @@ public class JSONRPCLayerTest {
 					is("Workspace delundel is deleted"));
 		}
 		CLIENT1.undeleteWorkspace(wsi);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
-		try {
-			CLIENT1.getObjects(loi);
-			fail("got deleted object");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Object 1 (name myname) in workspace " + wsid + " has been deleted"));
-		}
+		
+		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+
 		CLIENT1.saveObjects(soc);
-		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
-				.asClassInstance(Object.class), is((Object) data));
+		checkData(loi, data);
 	}
 	
+	private void checkData(List<ObjectIdentity> loi, Map<String, Object> data)
+			throws Exception {
+		assertThat("expected loi size is 1", loi.size(), is(1));
+		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
+		assertThat("can get data", CLIENT1.getObjectSubset(objIDToSubObjID(loi))
+				.get(0).getData().asClassInstance(Object.class), is((Object) data));
+	}
+
 	@Test
 	public void copyRevert() throws Exception {
 		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("copyrev")).getE1();
@@ -1520,10 +1888,22 @@ public class JSONRPCLayerTest {
 			String wsname, long wsid, String name, long id, int ver) 
 			throws Exception {
 		compareObjectInfo(orig, copied, wsname, wsid, name, id, ver);
-		List<ObjectData> objs = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
+		
+		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity().withWsid(orig.getE7())
 				.withObjid(orig.getE1()).withVer(orig.getE5()), 
 				new ObjectIdentity().withWsid(copied.getE7())
-				.withObjid(copied.getE1()).withVer(copied.getE5())));
+				.withObjid(copied.getE1()).withVer(copied.getE5()));
+		
+		List<ObjectData> objs = CLIENT1.getObjects(loi);
+		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
+		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
+		assertThat("data same", objs.get(1).getData().asClassInstance(Map.class),
+				is(objs.get(0).getData().asClassInstance(Map.class)));
+		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
+		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
+		
+		objs = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
 		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
@@ -1549,7 +1929,6 @@ public class JSONRPCLayerTest {
 		assertThat("chksum is correct", copied.getE9(), is(orig.getE9()));
 		assertThat("size is correct", copied.getE10(), is(orig.getE10()));
 		assertThat("meta is correct", copied.getE11(), is(orig.getE11()));
-		
 	}
 	
 	@Test
@@ -1833,6 +2212,536 @@ public class JSONRPCLayerTest {
 			got.add(o.getE1());
 		}
 		assertThat("correct object ids in list", got, is(expected));
+	}
+	
+	@Test
+	public void listWorkspaceInfo() throws Exception {
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("list2")
+				.withGlobalread("r"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"));
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo3 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list3"));
+		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("list3"));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
+				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowDeleted(0L)),
+				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L)),
+				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L).withShowDeleted(0L)),
+				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L).withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3), Arrays.asList(wsinfo2));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3, wsinfo2),
+				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowDeleted(1L)),
+				Arrays.asList(wsinfo1, wsinfo3, wsinfo2), 
+				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+		
+		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
+				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"))),
+				Arrays.asList(wsinfo1, wsinfo3));
+		
+		ListWorkspaceInfoParams lwip = new ListWorkspaceInfoParams();
+		lwip.setAdditionalProperties("booga", "booga1");
+		try {
+			CLIENT1.listWorkspaceInfo(lwip);
+			fail("list ws with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Unexpected arguments in ListWorkspaceInfoParams: booga"));
+		}
+	}
+
+	private void checkWSInfoList(
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> got,
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> expected,
+			List<Tuple8<Long, String, String, String, Long, String, String, String>> notexpected) {
+		Map<Long, Tuple8<Long, String, String, String, Long, String, String, String>> expecmap = 
+				new HashMap<Long, Tuple8<Long,String,String,String,Long,String,String,String>>();
+		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: expected) {
+			expecmap.put(inf.getE1(), inf);
+		}
+		Set<Long> seen = new HashSet<Long>();
+		Set<Long> seenexp = new HashSet<Long>();
+		Set<Long> notexp = new HashSet<Long>();
+		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: notexpected) {
+			notexp.add(inf.getE1());
+		}
+		for (Tuple8<Long, String, String, String, Long, String, String, String> info: got) {
+			if (seen.contains(info.getE1())) {
+				fail("Saw same workspace twice");
+			}
+			if (notexp.contains(info.getE1())) {
+				fail("Got unexpected workspace id " + info.getE1());
+			}
+			if (!expecmap.containsKey(info.getE1())) {
+				continue; // only two users so really impossible to list a controlled set of ws
+				// if this is important add a 3rd user and client
+			}
+			seenexp.add(info.getE1());
+			Tuple8<Long, String, String, String, Long, String, String, String> exp =
+					expecmap.get(info.getE1());
+			assertThat("ids correct", info.getE1(), is(exp.getE1()));
+//			assertThat("moddates correct", info.getE4(), is(moddate)); don't test dates
+			assertThat("ws name correct", info.getE2(), is(exp.getE2()));
+			assertThat("user name correct", info.getE3(), is(exp.getE3()));
+			assertThat("obj counts are 0", info.getE5(), is(exp.getE5()));
+			assertThat("permission correct", info.getE6(), is(exp.getE6()));
+			assertThat("global read correct", info.getE7(), is(exp.getE7()));
+			assertThat("lockstate correct", info.getE8(), is(exp.getE8()));
+			
+		}
+		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
+	}
+	
+	@Test
+	public void listObjectsAndHistory() throws Exception {
+		CLIENT1.requestModuleOwnership("AnotherModule");
+		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module AnotherModule {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+						"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		CLIENT1.releaseModule("AnotherModule");
+		CLIENT1.requestModuleOwnership("AnotherModule2");
+		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule2");
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L)
+			.withNewTypes(Arrays.asList("AType"))
+			.withSpec(
+					"module AnotherModule2 {" +
+						"/* @optional thing */" +
+						"typedef structure {" +
+						"string thing;" +
+						"} AType;" +
+					"};")
+			);
+		CLIENT1.releaseModule("AnotherModule2");
+		
+		String anotherType = "AnotherModule.AType-0.1";
+		String anotherType2 = "AnotherModule2.AType-0.1";
+		
+		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs1"));
+		Tuple8<Long, String, String, String, Long, String, String, String> info2 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs2"));
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("metastuff", "meta");
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std1 =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(anotherType).withName("std")))).get(0);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std2 =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(anotherType2).withName("std")))).get(0);
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> hidden =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(anotherType).withName("hidden").withHidden(1L)))).get(0);
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> deleted =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withMeta(meta).withType(anotherType).withName("deleted")))).get(0);
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs2").withName("deleted")));
+		
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, hidden, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2), false);
+		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(hidden, deleted), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+				Arrays.asList(hidden, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 0L,
+				Arrays.asList(std1, std2, hidden, deleted), true);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, 1L, 1L, 1L, 1L,
+				Arrays.asList(std1, hidden, deleted), false);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, 1L, 1L, 1L, 1L,
+				Arrays.asList(std2), false);
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, deleted), false);
+		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, 0L, 1L, 1L, 1L,
+				Arrays.asList(std1, std2, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, null, 1L, 1L,
+				Arrays.asList(std1, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 0L, 1L, 1L,
+				Arrays.asList(std1, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, null, 1L,
+				Arrays.asList(deleted, std2, hidden), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 1L,
+				Arrays.asList(deleted, std2, hidden), false);
+		
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), "Foo", 1L, 1L, 1L, 1L,
+				"Type Foo could not be split into a module and name");
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(-1L), null, 1L, 1L, 1L, 1L,
+				"Workspace id must be > 0");
+		failListObjects(Arrays.asList("foo:bar:listObjs1"), Arrays.asList(1L), null, 1L, 1L, 1L, 1L,
+				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
+		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, 1L, 1L, 1L, 1L,
+				"No workspace with name listObjs1fake exists");
+		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+				"At least one filter must be specified.");
+		
+		compareObjectInfo(CLIENT1.getObjectHistory(
+				new ObjectIdentity().withRef("listObjs1/std")), 
+						Arrays.asList(std1, std2));
+		compareObjectInfo(CLIENT1.getObjectHistory(
+				new ObjectIdentity().withRef("listObjs2/hidden/1")), 
+						Arrays.asList(hidden));
+		
+		try {
+			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
+		}
+	}
+
+	private void compareObjectInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> got,
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected)
+			throws Exception {
+		assertThat("same number of objects", got.size(), is(expected.size()));
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> gotiter =
+				got.iterator();
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expiter =
+				expected.iterator();
+		while (gotiter.hasNext()) {
+			compareObjectInfo(gotiter.next(), expiter.next(), false);
+		}
+	}
+
+	private void failListObjects(List<String> wsnames, List<Long> wsids,
+			String type, Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
+			String exp)
+			throws Exception {
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+					.withIds(wsids).withType(type).withShowHidden(showHidden)
+					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
+					.withIncludeMetadata(includeMeta));
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+
+	private void checkListObjects(List<String> wsnames, List<Long> wsids, String type,
+			Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
+			boolean nullMeta) throws Exception {
+		Map<Long, Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>> expec =
+				new HashMap<Long, Map<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>>();
+		
+		Map<Long, Map<Long, Set<Long>>> seenSet = new HashMap<Long, Map<Long, Set<Long>>>();
+		Map<Long, Map<Long, Set<Long>>> expectedSet = new HashMap<Long, Map<Long, Set<Long>>>();
+		
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> e: expected) {
+			if (!expec.containsKey(e.getE7())) {
+				expec.put(e.getE7(), new HashMap<Long, Map<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>());
+				expectedSet.put(e.getE7(), new HashMap<Long, Set<Long>>());
+			}
+			if (!expec.get(e.getE7()).containsKey(e.getE1())) {
+				expec.get(e.getE7()).put(e.getE1(), new HashMap<Long, Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>());
+				expectedSet.get(e.getE7()).put(e.getE1(), new HashSet<Long>());
+			}
+			expec.get(e.getE7()).get(e.getE1()).put(e.getE5(), e);
+			expectedSet.get(e.getE7()).get(e.getE1()).add(e.getE5());
+		}
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> g:
+			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+					.withIds(wsids).withType(type).withShowHidden(showHidden)
+					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
+					.withIncludeMetadata(includeMeta))) {
+			if (seenSet.containsKey(g.getE7()) && seenSet.get(g.getE7()).containsKey(g.getE1()) &&
+					seenSet.get(g.getE7()).get(g.getE1()).contains(g.getE5())) {
+				fail("Saw same object twice: " + g);
+			}
+			if (!seenSet.containsKey(g.getE7())) {
+				seenSet.put(g.getE7(), new HashMap<Long, Set<Long>>());
+			}
+			if (!seenSet.get(g.getE7()).containsKey(g.getE1())) {
+				seenSet.get(g.getE7()).put(g.getE1(), new HashSet<Long>());
+			}
+			seenSet.get(g.getE7()).get(g.getE1()).add(g.getE5());
+			if (!expec.containsKey(g.getE7()) || !expec.get(g.getE7()).containsKey(g.getE1()) ||
+					!expec.get(g.getE7()).get(g.getE1()).containsKey(g.getE5())) {
+				fail("listed unexpected object: " + g);
+			}
+			compareObjectInfo(g, expec.get(g.getE7()).get(g.getE1()).get(g.getE5()), nullMeta);
+		}
+		assertThat("listed correct objects", seenSet, is (expectedSet));
+	}
+	
+	private void compareObjectInfo(
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> got,
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> expec,
+			boolean nullMeta) 
+			throws Exception {
+		assertThat("id is correct", got.getE1(), is(expec.getE1()));
+		assertThat("name is correct", got.getE2(), is(expec.getE2()));
+		assertThat("type is correct", got.getE3(), is(expec.getE3()));
+		assertThat("date is correct", got.getE4(), is(expec.getE4()));
+		assertThat("version is correct", got.getE5(), is(expec.getE5()));
+		assertThat("user is correct", got.getE6(), is(expec.getE6()));
+		assertThat("wsid is correct", got.getE7(), is(expec.getE7()));
+		assertThat("ws name is correct", got.getE8(), is(expec.getE8()));
+		assertThat("chksum is correct", got.getE9(), is(expec.getE9()));
+		assertThat("size is correct", got.getE10(), is(expec.getE10()));
+		assertThat("meta is correct", got.getE11(), is(nullMeta ? null : expec.getE11()));
+	}
+	
+	@Test
+	public void getObjectSubset() throws Exception {
+		/* note most tests are performed at the same time as getObjects, so
+		 * only issues specific to subsets are tested here
+		 */
+		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("subdata"));
+		
+		Map<String, Object> data = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"foobar\": \"somestuff\"" +
+				"}"
+				);
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("subdata")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
+				.withType(SAFE_TYPE).withName("std")))).get(0);
+		
+		ObjectData od = CLIENT1.getObjectSubset(Arrays.asList(
+				new SubObjectIdentity().withRef("subdata/1")
+				.withIncluded(Arrays.asList("/map/id1", "/map/id3")))).get(0);
+		Map<String, Object> expdata = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		checkData(od, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
+				"eb28c185d1745c5c379eaf95fef83412", 119, new HashMap<String, String>(),
+				expdata);
+		
+		try {
+			CLIENT1.getObjectSubset(Arrays.asList(
+					new SubObjectIdentity().withRef("subdata/1")
+					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))).get(0);
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Malformed selection string, cannot get 'id4', at: /map/id4"));
+		}
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("subdata").withNewPermission("n"));
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> createData(String json)
+			throws JsonParseException, JsonMappingException, IOException {
+		return new ObjectMapper().readValue(json, Map.class);
+	}
+	
+	@Test
+	public void adminAddRemoveList() throws Exception {
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
+		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command:\n{command=listAdmin}");
+		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
+						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
+				"thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid KBase user");
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		
+		checkAdmins(CLIENT2, Arrays.asList(USER1, USER2));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+		
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER2 + "\"}")));
+		failAdmin(CLIENT2, "{\"command\": \"listAdmins\"}", "User " + USER2 + " is not an admin");
+		checkAdmins(CLIENT1, Arrays.asList(USER1));
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"addAdmin\"," +
+				" \"user\": \"" + USER2 + "\"}")));
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER1 + "\"}")));
+		checkAdmins(CLIENT2, Arrays.asList(USER2));
+	}
+	
+	private void checkAdmins(WorkspaceClient cli, List<String> expadmins)
+			throws Exception {
+		List<String> admins = cli.administer(new UObject(createData(
+				"{\"command\": \"listAdmins\"}"))).asInstance();
+		Set<String> got = new HashSet<String>(admins);
+		Set<String> expected = new HashSet<String>(expadmins);
+		assertTrue("correct admins", got.containsAll(expected));
+		assertThat("only the one built in admin", expected.size() + 1, is(got.size()));
+		
+	}
+	
+	private void failAdmin(WorkspaceClient cli, String cmd,
+			String exp)
+					throws Exception {
+		try {
+			cli.administer(new UObject(createData(cmd)));
+			fail("ran admin command with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exp));
+		}
+	}
+	
+	@Test
+	public void adminModRequest() throws Exception {
+		Map<String, String> mod2owner = new HashMap<String, String>();
+		checkModRequests(mod2owner);
+		CLIENT1.requestModuleOwnership("SomeMod");
+		CLIENT1.requestModuleOwnership("SomeMod2");
+		failAdmin(CLIENT1, "{\"command\": \"approveModRequest\"," +
+				   " \"module\": \"SomeMod\"}", "User " + USER1 + " is not an admin");
+		mod2owner.put("SomeMod", USER1);
+		mod2owner.put("SomeMod2", USER1);
+		checkModRequests(mod2owner);
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"approveModRequest\"," +
+				" \"module\": \"SomeMod\"}")));
+		mod2owner.remove("SomeMod");
+		checkModRequests(mod2owner);
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"denyModRequest\"," +
+				" \"module\": \"SomeMod2\"}")));
+		mod2owner.remove("SomeMod2");
+		checkModRequests(mod2owner);
+		
+		failAdmin(CLIENT2, "{\"command\": \"approveModRequest\"," +
+						   " \"module\": \"SomeMod\"}", "There is no request for module SomeMod");
+		failAdmin(CLIENT2, "{\"command\": \"approveModRequest\"," +
+				   " \"module\": \"SomeMod3\"}", "There is no request for module SomeMod3");
+		failAdmin(CLIENT2, "{\"command\": \"denyModRequest\"," +
+				   " \"module\": \"SomeMod\"}", "There is no request for module SomeMod");
+		failAdmin(CLIENT2, "{\"command\": \"denyModRequest\"," +
+				   " \"module\": \"SomeMod3\"}", "There is no request for module SomeMod3");
+		
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+				.withSpec("module SomeMod {typedef string foo;};")); //should work
+		
+		try {
+			CLIENT1.registerTypespec(new RegisterTypespecParams()
+					.withSpec("module SomeMod2 {typedef string foo;};"));
+			fail("compiled spec without valid module");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Module wasn't registered: SomeMod2"));
+		}
+	}
+
+	private void checkModRequests(Map<String, String> mod2owner)
+			throws Exception {
+		List<Map<String,Object>> reqs = CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"listModRequests\"}"))).asInstance();
+		Map<String, String> gotMods = new HashMap<String, String>();
+		for (Map<String, Object> r: reqs) {
+			gotMods.put((String) r.get("moduleName"), (String) r.get("ownerUserId"));
+		}
+		assertThat("module req list ok", gotMods, is(mod2owner));
+		
+	}
+	
+	@Test
+	public void adminUserFacade() throws Exception {
+		@SuppressWarnings("unchecked")
+		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+				list2WSTuple8((List<Object>) CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}"))).asInstance());
+		
+		System.out.println(wsinfo);
+		
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
+				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+		try {
+			CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withId(wsinfo.getE1()));
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("User " + USER2 + " cannot read workspace " + wsinfo.getE1()));
+		}
+		
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": null," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}", "Username cannot be null or the empty string");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": null}", null); //should probably be a better exception
+		
+	}
+	
+	
+
+	private Tuple8<Long, String, String, String, Long, String, String, String> list2WSTuple8(
+			List<Object> got) {
+		Tuple8<Long, String, String, String, Long, String, String, String> ret =
+				new Tuple8<Long, String, String, String, Long, String, String, String>()
+				.withE1(new Long((Integer) got.get(0)))
+				.withE2((String) got.get(1))
+				.withE3((String) got.get(2))
+				.withE4((String) got.get(3))
+				.withE5(new Long((Integer) got.get(4)))
+				.withE6((String) got.get(5))
+				.withE7((String) got.get(6))
+				.withE8((String) got.get(7));
+		return ret;
 	}
 
 	@Test

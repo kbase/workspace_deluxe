@@ -4,8 +4,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -31,12 +33,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -45,11 +50,13 @@ import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -83,39 +90,51 @@ public class TestWorkspace {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
-	public static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
-	public static String LONG_TEXT = "";
+	private static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
+	private static String LONG_TEXT = "";
 	static {
 		for (int i = 0; i < 17; i++) {
 			LONG_TEXT += LONG_TEXT_PART;
 		}
 	}
-	public static String TEXT100 = "";
+	private static String TEXT100 = "";
 	static {
 		for (int i = 0; i < 10; i++) {
 			TEXT100 += "aaaaabbbbb";
 		}
 	}
-	public static String TEXT101 = TEXT100 + "f";
-	public static String TEXT1000 = "";
+	private static String TEXT101 = TEXT100 + "f";
+	private static String TEXT1000 = "";
 	static {
 		for (int i = 0; i < 10; i++) {
 			TEXT1000 += TEXT100;
 		}
 	}
 	
-	public static ShockBackend sbe = null;
+	private static ShockBackend sbe = null;
 	
-	public static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
-	public static final WorkspaceUser AUSER = new WorkspaceUser("a");
-	public static final WorkspaceUser BUSER = new WorkspaceUser("b");
-	public static final WorkspaceUser CUSER = new WorkspaceUser("c");
-	public static final AllUsers STARUSER = new AllUsers('*');
+	private static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
+	private static final WorkspaceUser AUSER = new WorkspaceUser("a");
+	private static final WorkspaceUser BUSER = new WorkspaceUser("b");
+	private static final WorkspaceUser CUSER = new WorkspaceUser("c");
+	private static final AllUsers STARUSER = new AllUsers('*');
 	
-	public static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
+	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
 	
-	public static final TypeDefId SAFE_TYPE =
+	private static final TypeDefId SAFE_TYPE1 =
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+	private static final TypeDefId SAFE_TYPE2 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 0, 1);
+	private static final TypeDefId SAFE_TYPE1_10 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType"), 1, 0);
+	private static final TypeDefId SAFE_TYPE2_10 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 1, 0);
+	private static final TypeDefId SAFE_TYPE1_20 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType"), 2, 0);
+	private static final TypeDefId SAFE_TYPE2_20 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
+	private static final TypeDefId SAFE_TYPE2_21 =
+			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
 
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
@@ -144,9 +163,9 @@ public class TestWorkspace {
 		}
 	}
 	
-	public static final Map<String, Workspace> configs =
+	private static final Map<String, Workspace> configs =
 			new HashMap<String, Workspace>();
-	public final Workspace ws;
+	private final Workspace ws;
 	
 	public TestWorkspace(String config) throws Exception {
 		if (!configs.containsKey(config)) {
@@ -205,8 +224,41 @@ public class TestWorkspace {
 		work.requestModuleRegistration(foo, "SomeModule");
 		work.resolveModuleRegistration("SomeModule", true);
 		work.compileNewTypeSpec(foo, 
-				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
-				Arrays.asList("AType"), null, null, false, null);
+				"module SomeModule {" +
+					"/* @optional thing */" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType;" +
+					"/* @optional thing */" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType2;" +
+				"};",
+				Arrays.asList("AType", "AType2"), null, null, false, null);
+		work.releaseTypes(foo, "SomeModule");
+		work.compileNewTypeSpec(foo, 
+				"module SomeModule {" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType;" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType2;" +
+				"};",
+				null, null, null, false, null);
+		work.releaseTypes(foo, "SomeModule");
+		work.compileNewTypeSpec(foo, 
+				"module SomeModule {" +
+					"typedef structure {" +
+						"string thing;" +
+					"} AType;" +
+					"/* @optional thing2 */" +
+					"typedef structure {" +
+						"string thing;" +
+						"string thing2;" +
+					"} AType2;" +
+				"};",
+				null, null, null, false, null);
 		work.releaseTypes(foo, "SomeModule");
 		
 		//spec that simply references another object
@@ -561,7 +613,7 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void workspacePermissions() throws Exception {
+	public void permissions() throws Exception {
 		//setup
 		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
 		ws.createWorkspace(AUSER, "perms_noglobal", false, null);
@@ -689,7 +741,7 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void simpleSaveObjectsAndGetMeta() throws Exception {
+	public void saveObjectsAndGetMetaSimple() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
@@ -721,12 +773,8 @@ public class TestWorkspace {
 			assertThat("correct except", e.getLocalizedMessage(), is("No data provided"));
 		}
 		
-		try {
-			ws.getObjects(foo, new ArrayList<ObjectIdentifier>());
-			fail("called method with no identifiers");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
-		}
+		failGetObjects(foo, new ArrayList<ObjectIdentifier>(), new IllegalArgumentException(
+				"No object identifiers provided"));
 		
 		try {
 			ws.getObjectInformation(foo, new ArrayList<ObjectIdentifier>(), true);
@@ -735,19 +783,19 @@ public class TestWorkspace {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE, meta, p, false));
-		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE1, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
 		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects);
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
@@ -762,67 +810,61 @@ public class TestWorkspace {
 		loi.add(new ObjectIdentifier(read, 3));
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
-		List<WorkspaceObjectData> retdata = ws.getObjects(foo, loi);
+
 		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true);
 		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false);
-		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(3), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(4), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(5), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(6), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(7), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(8), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(retdata.get(0).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(1).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(2).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(3).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(4).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(5).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(6).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(7).getObjectInfo(), 1, "auto3", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(retdata.get(8).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(9).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(10).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(retdata.get(11).getObjectInfo(), 3, "auto3-2", SAFE_TYPE.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		assertThat("correct data", retdata.get(0).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(1).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(2).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(3).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(4).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(5).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(6).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(7).getData(), is((Object) data));
-		assertThat("correct data", retdata.get(8).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(9).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(10).getData(), is((Object) data2));
-		assertThat("correct data", retdata.get(11).getData(), is((Object) data2));
+		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		checkObjInfo(objinfo2NoMeta.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		
+		List<FakeObjectInfo> retinfo = new ArrayList<FakeObjectInfo>();
+		FakeResolvedWSID fakews = new FakeResolvedWSID(read.getName(), readid);
+		retinfo.add(new FakeObjectInfo(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24L, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		List<Map<String, Object>> retdata = Arrays.asList(
+				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
+		checkObjectAndInfo(foo, loi, retinfo, retdata);
 		
 		ws.saveObjects(foo, priv, objects);
 		
 		objects.clear();
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE1, meta2, p, false));
 		objinfo = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
 		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
 		
 		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true); //should work
 		try {
@@ -834,7 +876,7 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(priv, 2)));
 		}
-		ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2))); //should work
+		successGetObjects(bar, Arrays.asList(new ObjectIdentifier(read, 2)));
 		try {
 			ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
 			fail("Able to get obj data from private workspace");
@@ -844,12 +886,24 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(priv, 2)));
 		}
+		try {
+			ws.getObjectsSubSet(bar, Arrays.asList(new SubObjectIdentifier(
+					new ObjectIdentifier(priv, 2), null)));
+			fail("Able to get obj data from private workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 2 cannot be accessed: User bar may not read workspace saveobj"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(priv, 2)));
+		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
-		retdata = ws.getObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 2)));
-		checkObjInfo(retdata.get(0).getObjectInfo(), 2, "auto3-1", SAFE_TYPE.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
-		assertThat("correct data", retdata.get(0).getData(), is((Object) data));
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
+		
+		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
+				Arrays.asList(new FakeObjectInfo(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
+						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
+						chksum1, 23L, meta2)), Arrays.asList(data));
 		try {
 			ws.saveObjects(bar, priv, objects);
 			fail("saved objects to unwritable workspace");
@@ -859,11 +913,77 @@ public class TestWorkspace {
 		}
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
 		
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
+
+	private void checkObjectAndInfo(WorkspaceUser bar,
+			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
+			List<Map<String, Object>> data) throws Exception {
+		List<WorkspaceObjectData> retdata = ws.getObjects(bar, ids);
+		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(bar, objIDToSubObjID(ids));
+		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
+		Iterator<WorkspaceObjectData> ret2 = retdata2.iterator();
+		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
+		Iterator<Map<String, Object>> dataiter = data.iterator();
+		while (ret1.hasNext()) {
+			FakeObjectInfo i = info.next();
+			Map<String, Object> d = dataiter.next();
+			checkObjectAndInfo(ret1.next(), i , d);
+			checkObjectAndInfo(ret2.next(), i , d);
+		}
+		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext()) {
+			fail("mismatched iter counts");
+		}
+	}
+
+	private void checkObjectAndInfo(WorkspaceObjectData wod,
+			FakeObjectInfo info, Map<String, Object> data) {
+		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
+				info.getTypeString(), info.getVersion(), info.getSavedBy(),
+				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
+				info.getSize(), info.getUserMetaData());
+		assertThat("correct data", wod.getData(), is((Object) data));
+		
+	}
+
+	private void successGetObjects(WorkspaceUser user,
+			List<ObjectIdentifier> objs) throws Exception {
+		ws.getObjects(user, objs);
+		ws.getObjectsSubSet(user, objIDToSubObjID(objs));
+	}
 	
+	private void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
+			Exception e) 
+			throws Exception {
+		try {
+			successGetObjects(user, objs);
+			fail("called get objects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		try {
+			ws.getObjectsSubSet(user, objIDToSubObjID(objs));
+			fail("called get subobjects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
+	private List<SubObjectIdentifier> objIDToSubObjID(
+			List<ObjectIdentifier> objs) {
+		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
+		for (ObjectIdentifier oi: objs) {
+			soi.add(new SubObjectIdentifier(oi, null));
+		}
+		return soi;
+	}
+
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		final String specTypeCheck1 =
@@ -1183,7 +1303,7 @@ public class TestWorkspace {
 		WorkspaceIdentifier reftypecheck = new WorkspaceIdentifier("referencetypecheck");
 		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
 		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(newdata, SAFE_TYPE , null, emptyprov, false)));
+				new WorkspaceSaveObject(newdata, SAFE_TYPE1 , null, emptyprov, false)));
 		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
 				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
 		
@@ -1263,10 +1383,19 @@ public class TestWorkspace {
 		for (int i = 3; i < 11; i++) {
 			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
 					new ObjectIdentifier(reftypecheck, i))).get(0);
+			WorkspaceObjectData wodsub = ws.getObjectsSubSet(userfoo, Arrays.asList(
+					new SubObjectIdentifier(new ObjectIdentifier(reftypecheck, i), null))).get(0);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> obj = (Map<String, Object>) wod.getData();
-			assertThat("reference rewritten correctly", (String) obj.get("ref"), is(reftypewsid + "/2/1"));
+			@SuppressWarnings("unchecked")
+			Map<String, Object> subobj = (Map<String, Object>) wodsub.getData();
+			assertThat("reference rewritten correctly", (String) obj.get("ref"),
+					is(reftypewsid + "/2/1"));
 			assertThat("reference included correctly", wod.getReferences(),
+					is(Arrays.asList(reftypewsid + "/2/1")));
+			assertThat("sub obj reference rewritten correctly", (String) subobj.get("ref"),
+					is(reftypewsid + "/2/1"));
+			assertThat("sub obj reference included correctly", wodsub.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
 		
@@ -1313,16 +1442,16 @@ public class TestWorkspace {
 		//already tested bad references in saveObjectWithTypeChecking, won't test again here
 		
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)));
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)));
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, emptyprov, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)));
 		
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE, null, emptyprov, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE1, null, emptyprov, false)));
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE, null, emptyprov, false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE1, null, emptyprov, false)));
 		
 		
 		Provenance p = new Provenance(foo);
@@ -1343,25 +1472,24 @@ public class TestWorkspace {
 				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
 		
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)));
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("provenance/auto3", wsid + "/3/1");
 		refmap.put("provenance/auto1/2", wsid + "/1/2");
 		refmap.put("provenance/auto2/1", wsid + "/2/1");
 		refmap.put("provenance/auto1", wsid + "/1/3");
 		
-		Provenance got = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 4))).get(0).getProvenance();
-		checkProvenanceCorrect(p, got, refmap);
+		checkProvenanceCorrect(foo, p, new ObjectIdentifier(prov, 4), refmap);
 		
 		try {
-			new WorkspaceSaveObject(data, SAFE_TYPE, null, null, false);
+			new WorkspaceSaveObject(data, SAFE_TYPE1, null, null, false);
 			fail("saved without provenance");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Neither data, provenance, nor type may be null"));
 		}
 		try {
-			new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo"), SAFE_TYPE, null, null, false);
+			new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo"), SAFE_TYPE1, null, null, false);
 			fail("saved without provenance");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -1384,19 +1512,22 @@ public class TestWorkspace {
 		//Test minimal provenance
 		Provenance p2 = new Provenance(foo);
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, p2, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p2, false)));
+		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(prov, 5),
+				new HashMap<String, String>());
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
-		Date date2 = got2.getDate();
-		checkProvenanceCorrect(p2, got2, new HashMap<String, String>());
-		got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
-		assertThat("Prov date constant", got2.getDate(), is(date2));
+		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
+		Provenance gotsub2 = ws.getObjectsSubSet(foo, Arrays.asList(new SubObjectIdentifier(
+				new ObjectIdentifier(prov, 5), null))).get(0).getProvenance();
+		assertThat("Prov date constant", gotsub2.getDate(), is(dates.get(1)));
+		assertThat("Prov dates same", got2.getDate(), is(gotsub2.getDate()));
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, p3, false)));
-		Provenance got3 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 6))).get(0).getProvenance();
-		checkProvenanceCorrect(p3, got3, new HashMap<String, String>());
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p3, false)));
+		checkProvenanceCorrect(foo, p3, new ObjectIdentifier(prov, 6),
+				new HashMap<String, String>());
 		
 		Provenance p4 = new Provenance(foo);
 		ProvenanceAction pa = new ProvenanceAction();
@@ -1404,9 +1535,19 @@ public class TestWorkspace {
 		p4.addAction(pa);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, p4, false)));
-		Provenance got4 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 7))).get(0).getProvenance();
-		checkProvenanceCorrect(p4, got4, new HashMap<String, String>());
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p4, false)));
+		checkProvenanceCorrect(foo, p4, new ObjectIdentifier(prov, 7),
+				new HashMap<String, String>());
+	}
+
+	private List<Date> checkProvenanceCorrect(WorkspaceUser foo, Provenance prov,
+			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
+		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot, refmap);
+		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
+				.get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot2,refmap);
+		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
@@ -1469,7 +1610,7 @@ public class TestWorkspace {
 		Provenance p = new Provenance(foo);
 		p.addAction(new ProvenanceAction().withMethodParameters(methparams));
 		ws.saveObjects(foo, prov, Arrays.asList( //should work
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)));
 		
 		
 		methparams.add(TEXT1000);
@@ -1477,7 +1618,7 @@ public class TestWorkspace {
 		p2.addAction(new ProvenanceAction().withMethodParameters(methparams));
 		try {
 			ws.saveObjects(foo, prov, Arrays.asList(
-					new WorkspaceSaveObject(data, SAFE_TYPE, null, p, false)));
+					new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)));
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -1540,12 +1681,12 @@ public class TestWorkspace {
 		}
 //		printMem("*** created object ***");
 		ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
 //		printMem("*** saved object ***");
 		subdata.add("" + TEXT1000);
 		try {
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList(
-					new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
 			fail("saved too big data");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
@@ -1653,10 +1794,9 @@ public class TestWorkspace {
 		}
 		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
 				is(expectedRefs));
-		//TODO put this test in the JSONRPCLayer tests
 	}
 	
-	@Test(timeout=40000)
+	@Test(timeout=60000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
@@ -1680,7 +1820,7 @@ public class TestWorkspace {
 			subdata.add(test);
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
@@ -1696,7 +1836,7 @@ public class TestWorkspace {
 		data.clear();
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
@@ -1721,7 +1861,7 @@ public class TestWorkspace {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE, meta,
+					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE1, meta,
 					new Provenance(foo), false)));
 			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
@@ -1730,7 +1870,7 @@ public class TestWorkspace {
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, meta,
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE1, meta,
 					new Provenance(foo), false)));
 			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
@@ -1748,7 +1888,7 @@ public class TestWorkspace {
 		JsonNode savedata = mapper.valueToTree(data);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE, null,
+					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE1, null,
 					new Provenance(foo), false)));
 			fail("saved object with non-existant id");
 		} catch (NoSuchObjectException nsoe) {
@@ -1768,7 +1908,7 @@ public class TestWorkspace {
 		meta.put("foo", "bar");
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE, meta,
+					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE1, meta,
 					new Provenance(foo), false)));
 			fail("saved unserializable object");
 		} catch (IllegalArgumentException iae) {
@@ -1788,7 +1928,7 @@ public class TestWorkspace {
 		JsonNode savedata = mapper.valueToTree(data);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"),
-				savedata, SAFE_TYPE, null, new Provenance(foo), false));
+				savedata, SAFE_TYPE1, null, new Provenance(foo), false));
 		ws.saveObjects(foo, read, objects);
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
 				"No object with id 2 exists in workspace " + readid);
@@ -2070,9 +2210,9 @@ public class TestWorkspace {
 		data1.put("data", "1");
 		data2.put("data", "2");
 		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE, null, new Provenance(foo), false);
+				new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE1, null, new Provenance(foo), false);
 		ws.saveObjects(foo, read, Arrays.asList(sobj1,
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE,
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE1,
 				null, new Provenance(foo), false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
@@ -2133,7 +2273,7 @@ public class TestWorkspace {
 		//save should undelete
 		ws.saveObjects(foo, read, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1,
-						SAFE_TYPE, null, new Provenance(foo), false)));
+						SAFE_TYPE1, null, new Provenance(foo), false)));
 		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
 		idToData.put(o3, data1);
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
@@ -2158,7 +2298,6 @@ public class TestWorkspace {
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
 		WorkspaceInformation read2 = ws.listWorkspaces(foo, true, true).get(0);
-		System.out.println(ws.listWorkspaces(foo, true, true));
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -2187,13 +2326,8 @@ public class TestWorkspace {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("Workspace deleteundelete is deleted"));
 		}
-		try {
-			ws.getObjects(bar, objs);
-			fail("got objs from deleted workspace");
-		} catch (InaccessibleObjectException ioe) {
-			assertThat("correct exception msg", ioe.getLocalizedMessage(),
-					is("Object obj cannot be accessed: Workspace deleteundelete is deleted"));
-		}
+		failGetObjects(bar, objs, new InaccessibleObjectException(
+				"Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		try {
 			ws.getObjectInformation(bar, objs, false);
 			fail("got obj meta from deleted workspace");
@@ -2237,16 +2371,16 @@ public class TestWorkspace {
 			assertThat("can get correct data from undeleted objects",
 					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
 		}
+		d = ws.getObjectsSubSet(foo, objIDToSubObjID(objs));
+		for (int i = 0; i < d.size(); i++) {
+			assertThat("can get correct data from undeleted objects",
+					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+		}
 	}
 
 	private void failToGetDeletedObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs, String exception) throws Exception {
-		try {
-			ws.getObjects(user, objs);
-			fail("got deleted objects");
-		} catch (NoSuchObjectException e) {
-			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
-		}
+		failGetObjects(user, objs, new NoSuchObjectException(exception));
 		try {
 			ws.getObjectInformation(user, objs, true);
 			fail("got deleted object's metadata");
@@ -2261,7 +2395,7 @@ public class TestWorkspace {
 		String typeDefName = "SomeModule.AType";
 		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName), null);
 		Assert.assertEquals(1, type2md5.size());
-		String md5TypeDef = type2md5.get(typeDefName);
+		String md5TypeDef = type2md5.get(typeDefName + "-1.0");
 		Assert.assertNotNull(md5TypeDef);
 		Map<String, List<String>> md52semantic = ws.translateFromMd5Types(Arrays.asList(md5TypeDef));
 		Assert.assertEquals(1, md52semantic.size());
@@ -2290,8 +2424,8 @@ public class TestWorkspace {
 	@Test
 	public void testListModuleVersions() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		Assert.assertEquals(1, ws.getModuleVersions("SomeModule", null).size());
-		Assert.assertEquals(2, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
+		Assert.assertEquals(3, ws.getModuleVersions("SomeModule", null).size());
+		Assert.assertEquals(4, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
 		Assert.assertEquals(2, ws.getModuleVersions("TestModule", null).size());
 		Assert.assertEquals(5, ws.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
 	}
@@ -2387,12 +2521,12 @@ public class TestWorkspace {
 		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 4; i++) {
 			refobjs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
-					SAFE_TYPE, null, new Provenance(user1), false));
+					SAFE_TYPE1, null, new Provenance(user1), false));
 		}
 		ws.saveObjects(user1, refs, refobjs);
 		List<WorkspaceSaveObject> wso = Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("auto2"), new HashMap<String, String>(),
-				SAFE_TYPE, null, new Provenance(user1), false));
+				SAFE_TYPE1, null, new Provenance(user1), false));
 		ws.saveObjects(user1, refs, wso);
 		ws.saveObjects(user1, refs, wso);
 		
@@ -2697,6 +2831,31 @@ public class TestWorkspace {
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
 		
+		WorkspaceObjectData origsub = ws.getObjectsSubSet(original.getSavedBy(), Arrays.asList(
+				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
+						original.getWorkspaceId()),
+						original.getObjectId(), original.getVersion()), null))).get(0);
+		WorkspaceObjectData copysub = ws.getObjectsSubSet(copied.getSavedBy(), Arrays.asList(
+				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
+						copied.getWorkspaceId()),
+						copied.getObjectId(), copied.getVersion()), null))).get(0);
+		compareObjectInfo(origsub.getObjectInfo(), copysub.getObjectInfo(), user, wsid, wsname, objectid,
+				objname, version);
+		assertThat("returned data same", copysub.getData(), is(origsub.getData()));
+		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
+		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(), null);
+	}
+	
+	private void compareObjectAndInfo(WorkspaceObjectData got,
+			ObjectInformation info, Provenance prov, Map<String, Object> data,
+			List<String> refs, Map<String, String> refmap)
+			throws Exception {
+		assertThat("object info same", got.getObjectInfo(), is(info));
+		assertThat("returned data same", got.getData(), is((Object) data));
+		assertThat("returned data jsonnode same", got.getDataAsJsonNode(),
+				is(new ObjectMapper().valueToTree(data)));
+		assertThat("returned refs same", got.getReferences(), is(refs));
+		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
 	}
 
 	private void compareObjectInfo(ObjectInformation original,
@@ -2864,13 +3023,13 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsi = lockWS;
 		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE, null,
+				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
 		//these should work
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
 		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked");
-		ws.getObjects(user, Arrays.asList(oi));
+		successGetObjects(user, Arrays.asList(oi));
 		ws.cloneWorkspace(user, wsi, "lockclone", false, null);
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
@@ -2914,7 +3073,7 @@ public class TestWorkspace {
 		}
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-					new HashMap<String, String>(), SAFE_TYPE, null,
+					new HashMap<String, String>(), SAFE_TYPE1, null,
 					new Provenance(user), false)));
 			fail("saved to locked workspace");
 		} catch (WorkspaceAuthorizationException e) {
@@ -3031,20 +3190,20 @@ public class TestWorkspace {
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		ws.createWorkspace(user2, wsi2.getName(), false, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE, null,
+				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
 		ws.saveObjects(user2, wsi2, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE, null,
+				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
 		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"), "mynewname");
-		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE.getTypeString(), 1, user,
+		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE1.getTypeString(), 1, user,
 				wsid1, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		String newname = ws.listObjects(user, Arrays.asList(wsi), null, false,
 				false, false, false).get(0).getObjectName();
 		assertThat("object renamed", newname, is("mynewname"));
 		
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("myoldname"), new HashMap<String, String>(), SAFE_TYPE, null,
+				new ObjectIDNoWSNoVer("myoldname"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "bad%name", new IllegalArgumentException(
 				"Illegal character in object name bad%name: %"));
@@ -3094,6 +3253,7 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameWS2");
 		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null);
 		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
+		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
 		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
 		assertTrue("date updated on ws rename", info2.getModDate().after(info1.getModDate()));
@@ -3206,30 +3366,30 @@ public class TestWorkspace {
 		WorkspaceUser user2 = new WorkspaceUser("hideObjUser2");
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		ObjectInformation auto1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE, null,
+				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false))).get(0);
 		ObjectInformation auto2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE, null,
+				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), true))).get(0);
 		ObjectInformation obj1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("obj1"), new HashMap<String, String>(), SAFE_TYPE, null,
+				new ObjectIDNoWSNoVer("obj1"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), true))).get(0);
 		
-		Map<Long, ObjectInformation> expected = new HashMap<Long, ObjectInformation>();
-		expected.put(1L, auto1);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		List<ObjectInformation> expected = new ArrayList<ObjectInformation>();
+		expected.add(auto1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
-		expected.put(2L, auto2);
-		expected.put(3L, obj1);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, true, false, false, true), expected);
+		expected.add(auto2);
+		expected.add(obj1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, true, false, false, true), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 3), new ObjectIdentifier(wsi, "auto2")), false);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "obj1")), true);
-		expected.remove(1L);
-		expected.remove(3L);
-		checkObjectSet(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
+		expected.remove(auto1);
+		expected.remove(obj1);
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, false, false, false, true), expected);
 		
 		failSetHide(user, new ObjectIdentifier(wsi, "fake"), true, new NoSuchObjectException(
 				"No object with name fake exists in workspace " + wsid1));
@@ -3269,20 +3429,6 @@ public class TestWorkspace {
 		}
 	}
 
-	private void checkObjectSet(List<ObjectInformation> listObjects,
-			Map<Long, ObjectInformation> expected) {
-		Set<Long> seen = new HashSet<Long>();
-		for (ObjectInformation oi: listObjects) {
-			long oid = oi.getObjectId();
-			if (seen.contains(oid)) {
-				fail("Saw same objectid twice");
-			}
-			seen.add(oid);
-			assertThat("object info for id " + oid + " correct", oi, is(expected.get(oid)));
-		}
-		assertThat("checked all objects", seen, is(expected.keySet()));
-	}
-	
 	@Test
 	public void listWorkspaces() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("listUser");
@@ -3314,10 +3460,14 @@ public class TestWorkspace {
 		checkWSInfoList(ws.listWorkspaces(user, true, false), expected);
 		
 		expected.put(wsinf2_3, false);
+		WorkspaceInformation locked = null;
 		try {
-			expected.put(ws.getWorkspaceInformation(user, lockWS), false);
+			locked = ws.getWorkspaceInformation(user, lockWS);
 		} catch (NoSuchWorkspaceException nswe) {
 			//ignore - means that the locking ws test has not been run yet
+		}
+		if (locked != null) {
+			expected.put(locked, false);
 		}
 		checkWSInfoList(ws.listWorkspaces(user, false, false), expected);
 		
@@ -3325,17 +3475,19 @@ public class TestWorkspace {
 		checkWSInfoList(ws.listWorkspaces(user, false, true), expected);
 		
 		expected.remove(wsinf2_3);
-		try {
-			expected.remove(ws.getWorkspaceInformation(user, lockWS));
-		} catch (NoSuchWorkspaceException nswe) {
-			//ignore - means that the locking ws test has not been run yet
-		}
+		expected.remove(locked);
 		checkWSInfoList(ws.listWorkspaces(user, true, true), expected);
 		
-		
-		//TODO read method
-		//TODO bad cases
-		
+		expected.clear();
+		expected.put(wsinf2_3, false);
+		if (locked != null) {
+			expected.put(locked, false);
+		}
+		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
+		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("list1_2")), false);
+		checkWSInfoList(ws.listWorkspaces(newb, false, false), expected);
+		expected.clear();
+		checkWSInfoList(ws.listWorkspaces(newb, true, false), expected);
 	}
 
 	private void checkWSInfoList(List<WorkspaceInformation> ws,
@@ -3346,10 +3498,16 @@ public class TestWorkspace {
 		}
 		Set<Long> got = new HashSet<Long>();
 		for (WorkspaceInformation wi: ws) {
-			if (got.contains(wi)) {
+			if (got.contains(wi.getId())) {
 				fail("Same workspace listed twice");
 			}
 			got.add(wi.getId());
+			if (!idToInf.containsKey(wi.getId())) {
+				System.out.println(expected);
+				System.out.println(ws);
+				System.out.println(got);
+				fail("got id " + wi.getId() + ", but not in expected");
+			}
 			if (!expected.get(idToInf.get(wi.getId()))) {
 				assertThat("workspace correct", wi, is(idToInf.get(wi.getId())));
 			} else {
@@ -3370,5 +3528,491 @@ public class TestWorkspace {
 		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
 		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));
 		
+	}
+	
+	@Test
+	public void listObjectsAndHistory() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("listObjUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObj1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("listObj2");
+		WorkspaceUser user2 = new WorkspaceUser("listObjUser2");
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid2 = ws.createWorkspace(user2, wsi2.getName(), false, null).getId();
+		ws.setPermissions(user2, wsi2, Arrays.asList(user), Permission.WRITE);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		
+		Map<String, Object> passTCdata = new HashMap<String, Object>();
+		passTCdata.put("thing", "athing");
+		
+		ObjectInformation std = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("std"), new HashMap<String, String>(), SAFE_TYPE1, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation stdnometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "std")), false).get(0);
+		
+		ObjectInformation objstack1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("objstack"), new HashMap<String, String>(), SAFE_TYPE1_10, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation objstack1nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 1)), false).get(0);
+		
+		ObjectInformation objstack2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("objstack"), passTCdata, SAFE_TYPE1_20, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation objstack2nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 2)), false).get(0);
+		
+		ObjectInformation type2_1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation type2_1nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 1)), false).get(0);
+		
+		ObjectInformation type2_2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2_10, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation type2_2nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 2)), false).get(0);
+		
+		ObjectInformation type2_3 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_20, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation type2_3nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 3)), false).get(0);
+		
+		ObjectInformation type2_4 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_21, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation type2_4nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 4)), false).get(0);
+		
+		ObjectInformation stdws2 = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("stdws2"), new HashMap<String, String>(), SAFE_TYPE1, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation stdws2nometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi2, "stdws2")), false).get(0);
+		
+		ObjectInformation hidden = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("hidden"), new HashMap<String, String>(), SAFE_TYPE1, meta2,
+				new Provenance(user), false))).get(0);
+		ObjectInformation hiddennometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi2, "hidden")), false).get(0);
+		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi2, "hidden")), true);
+		
+		ObjectInformation deleted = ws.saveObjects(user, wsi2, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("deleted"), new HashMap<String, String>(), SAFE_TYPE1, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation deletednometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(wsi2, "deleted")), false).get(0);
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi2, "deleted")), true);
+		
+		ObjectInformation lock = null;
+		ObjectInformation locknometa = null;
+		List<ObjectInformation> foo = ws.listObjects(user, Arrays.asList(lockWS), null, false, false, false, true);
+		if (foo.size() > 1) {
+			fail("found more than one object in the locked workspace, this is unexpected");
+		}
+		if (foo.size() == 1) {
+			lock = foo.get(0);
+			locknometa = ws.listObjects(user, Arrays.asList(lockWS), null, false, false, false, false).get(0);
+		}
+		
+		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
+		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
+		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
+		
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, hidden, deleted));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, true, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, deleted));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, false, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, hidden));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, false, true),
+				Arrays.asList(std, objstack2, type2_4, stdws2, hidden, deleted));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, false, false, false, false),
+				Arrays.asList(stdnometa, objstack2nometa, type2_4nometa, stdws2nometa));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, wsi2), null, true, true, true, false),
+				Arrays.asList(stdnometa, objstack1nometa, objstack2nometa, type2_1nometa,
+						type2_2nometa, type2_3nometa, type2_4nometa,
+						stdws2nometa, hiddennometa, deletednometa));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, true, true, true, true),
+				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
+						stdws2, hidden, deleted), lock));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), allType1, true, true, true, true),
+				Arrays.asList(std, objstack1, objstack2));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi2), allType1, true, true, true, true),
+				Arrays.asList(stdws2, hidden, deleted));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType2, true, true, true, true),
+				Arrays.asList(type2_1, type2_2, type2_3, type2_4));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi2), allType2, true, true, true, true),
+				new ArrayList<ObjectInformation>());
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, true),
+				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted), lock));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, true, true, true, false),
+				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa), locknometa));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, true, true, true, true),
+				Arrays.asList(objstack1));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, true, true, true, true),
+				Arrays.asList(objstack2));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2, true, true, true, true),
+				Arrays.asList(type2_1));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_10, true, true, true, true),
+				Arrays.asList(type2_2));
+		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_20, true, true, true, true),
+				Arrays.asList(type2_3));
+		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_20.getType(),
+				SAFE_TYPE2_20.getMajorVersion()), true, true, true, true),
+				Arrays.asList(type2_3, type2_4));
+		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_10.getType(),
+				SAFE_TYPE2_10.getMajorVersion()), true, true, true, true),
+				Arrays.asList(type2_2));
+		
+		compareObjectInfo(ws.listObjects(user2, emptyWS, allType1, true, true, true, true),
+				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted), lock));
+		compareObjectInfo(ws.listObjects(user2, Arrays.asList(wsi2), null, true, true, true, true),
+				Arrays.asList(stdws2, hidden, deleted));
+		compareObjectInfo(ws.listObjects(user2, emptyWS, allType2, true, true, true, true),
+				new ArrayList<ObjectInformation>());
+//		
+		failListObjects(user, new ArrayList<WorkspaceIdentifier>(), null, true, true, true, true,
+				new IllegalArgumentException("At least one filter must be specified."));
+		failListObjects(user2, Arrays.asList(wsi, wsi2), null, true, true, true, true,
+				new WorkspaceAuthorizationException("User listObjUser2 may not read workspace listObj1"));
+		failListObjects(null, Arrays.asList(wsi, wsi2), null, true, true, true, true,
+				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
+		failListObjects(user, Arrays.asList(wsi2, new WorkspaceIdentifier("listfake")), null, true, true, true, true,
+				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
+		
+		ws.createWorkspace(user, "listdel", false, null);
+		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("listdel"), true);
+		failListObjects(user, Arrays.asList(wsi2, new WorkspaceIdentifier("listdel")), null, true, true, true, true,
+				new NoSuchWorkspaceException("Workspace listdel is deleted", wsi));
+		
+		assertThat("correct object history for std", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "std")),
+				is(Arrays.asList(std)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "type2")),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, 3)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "type2", 3)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for type2", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, 3, 4)),
+				is(Arrays.asList(type2_1, type2_2, type2_3, type2_4)));
+		assertThat("correct object history for objstack", 
+				ws.getObjectHistory(user, new ObjectIdentifier(wsi, "objstack")),
+				is(Arrays.asList(objstack1, objstack2)));
+		assertThat("correct object history for stdws2", 
+				ws.getObjectHistory(user2, new ObjectIdentifier(wsi2, "stdws2")),
+				is(Arrays.asList(stdws2)));
+		
+		failGetObjectHistory(user, new ObjectIdentifier(wsi, "booger"),
+				new NoSuchObjectException("No object with name booger exists in workspace " + wsid1));
+		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listObjectsfake"), "booger"),
+				new InaccessibleObjectException("Object booger cannot be accessed: No workspace with name listObjectsfake exists"));
+		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listdel"), "booger"),
+				new InaccessibleObjectException("Object booger cannot be accessed: Workspace listdel is deleted"));
+		failGetObjectHistory(user2, new ObjectIdentifier(wsi, 3),
+				new InaccessibleObjectException("Object 3 cannot be accessed: User listObjUser2 may not read workspace listObj1"));
+		failGetObjectHistory(null, new ObjectIdentifier(wsi, 3),
+				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace listObj1"));
+		failGetObjectHistory(user2, new ObjectIdentifier(wsi2, "deleted"),
+				new InaccessibleObjectException("Object 3 (name deleted) in workspace " + wsid2 + " has been deleted"));
+		
+	}
+	
+	private void failGetObjectHistory(WorkspaceUser user,
+			ObjectIdentifier oi, Exception e) {
+		try {
+			ws.getObjectHistory(user, oi);
+			fail("listed obj hist when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
+	private List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
+			ObjectInformation possNull) {
+		return setUpListObjectsExpected(expec, Arrays.asList(possNull));
+	}
+	
+	private List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
+			List<ObjectInformation> possNull) {
+		List<ObjectInformation> ret = new LinkedList<ObjectInformation>(expec);
+		for (ObjectInformation oi: possNull) {
+			if (oi != null) {
+				ret.add(oi);
+			}
+		}
+		return ret;
+		
+	}
+
+	private void failListObjects(WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis, TypeDefId type, boolean showHidden,
+			boolean showDeleted, boolean showAllVers, boolean includeMetaData,
+			Exception e) {
+		try {
+			ws.listObjects(user, wsis, type, showHidden, showDeleted, showAllVers, includeMetaData);
+			fail("listed obj when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
+	private void compareObjectInfo(List<ObjectInformation> got,
+			List<ObjectInformation> expected) {
+		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
+		for (ObjectInformation oi: got) {
+			if (g.contains(oi)) {
+				fail("Got same object info twice: " + oi);
+			}
+			g.add(oi);
+		}
+		assertThat("listed correct workspaces", g, is(new HashSet<ObjectInformation>(expected)));
+	}
+	
+	@Test
+	public void getObjectSubdata() throws Exception {
+		/* note most tests are performed at the same time as getObjects, so
+		 * only issues specific to subsets are tested here
+		 */
+		WorkspaceUser user = new WorkspaceUser("subUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("subData");
+		WorkspaceUser user2 = new WorkspaceUser("subUser2");
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		
+		Provenance p1 = new Provenance(user);
+		p1.addAction(new ProvenanceAction().withDescription("provenance 1")
+				.withWorkspaceObjects(Arrays.asList("subData/auto1")));
+		Provenance p2 = new Provenance(user);
+		p2.addAction(new ProvenanceAction().withDescription("provenance 2")
+				.withWorkspaceObjects(Arrays.asList("subData/auto2")));
+
+		Map<String, Object> data1 = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"ref\": \"subData/auto1\"" +
+				"}"
+				);
+		
+		Map<String, Object> data2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 2," +
+				"			   \"thing\": \"foo2\"}," +
+				"			  {\"id\": 3," +
+				"			   \"thing\": \"foo3\"}" +
+				"			  ]," +
+				" \"ref\": \"subData/auto2\"" +
+				"}"
+				);
+		
+		Map<String, Object> data3 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 2," +
+				"			   \"thing\": \"foo2\"}," +
+				"			   null," +
+				"			  {\"id\": 4," +
+				"			   \"thing\": \"foo4\"}" +
+				"			  ]," +
+				" \"ref\": \"subData/auto2\"" +
+				"}"
+				);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false),
+				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false)));
+		ObjectInformation o1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o1"), data1, reftype, meta,
+				p1, false))).get(0);
+		ObjectInformation o2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o2"), data2, reftype, meta2,
+				p2, false))).get(0);
+		ObjectInformation o3 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("o3"), data3, reftype, meta,
+				p2, false))).get(0);
+		ObjectIdentifier oident1 = new ObjectIdentifier(wsi, "o1");
+		ObjectIdentifier oident2 = new ObjectIdentifier(wsi, 4);
+		ObjectIdentifier oident3 = ObjectIdentifier.parseObjectReference("subData/o3");
+		
+		List<String> refs1 = Arrays.asList(wsid1 + "/1/1");
+		Map<String, String> refmap1 = new HashMap<String, String>();
+		refmap1.put("subData/auto1", wsid1 + "/1/1");
+		List<String> refs2 = Arrays.asList(wsid1 + "/2/1");
+		Map<String, String> refmap2 = new HashMap<String, String>();
+		refmap2.put("subData/auto2", wsid1 + "/2/1");
+		
+		List<WorkspaceObjectData> got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/id3", "/map/id1"))),
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/2", "/array/0"))),
+				new SubObjectIdentifier(oident3, new ObjectPaths(
+						Arrays.asList("/array/2", "/array/0", "/array/3")))));
+		Map<String, Object> expdata1 = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> expdata2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  {\"id\": 3," +
+				"			   \"thing\": \"foo3\"}" +
+				"			  ]" +
+				"}"
+				);
+		Map<String, Object> expdata3 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			   null," +
+				"			  {\"id\": 4," +
+				"			   \"thing\": \"foo4\"}" +
+				"			  ]" +
+				"}"
+				);
+		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		compareObjectAndInfo(got.get(2), o3, p2, expdata3, refs2, refmap2);
+		
+		got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/3", "/array/0")))));
+		expdata2 = createData(
+				"{\"array\": [{\"id\": 1," +
+				"			   \"thing\": \"foo\"}," +
+				"			  null" + 
+				"			  ]" +
+				"}"
+				);
+		//when the extractor is fixed to fail on an array OOB, this test should fail
+		//all other tests should work
+		compareObjectAndInfo(got.get(0), o2, p2, expdata2, refs2, refmap2);
+		
+		got = ws.getObjectsSubSet(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/*/thing"))),
+				new SubObjectIdentifier(oident2, new ObjectPaths(
+						Arrays.asList("/array/[*]/thing")))));
+		expdata1 = createData(
+				"{\"map\": {\"id1\": {\"thing\": \"foo\"}," +
+				"			\"id2\": {\"thing\": \"foo2\"}," +
+				"			\"id3\": {\"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		
+		expdata2 = createData(
+				"{\"array\": [{\"thing\": \"foo\"}," +
+				"			  {\"thing\": \"foo2\"}," +
+				"			  {\"thing\": \"foo3\"}" +
+				"			  ]" +
+				"}"
+				);
+		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		
+		failGetSubset(user, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/mappy/*/thing")))),
+				new TypedObjectExtractionException(
+						"Malformed selection string, cannot get 'mappy', at: /mappy"));
+		failGetSubset(user2, Arrays.asList(
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/*/thing")))),
+				new InaccessibleObjectException(
+						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
+	}
+
+	private void failGetSubset(WorkspaceUser user, List<SubObjectIdentifier> objs,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getObjectsSubSet(user, objs);
+			fail("got subobjs obj when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> createData(String json)
+			throws JsonParseException, JsonMappingException, IOException {
+		return new ObjectMapper().readValue(json, Map.class);
+	}
+	
+	@Test
+	public void admin() throws Exception {
+		assertThat("no admins before adding any", ws.getAdmins(),
+				is((Set<WorkspaceUser>) new HashSet<WorkspaceUser>()));
+		ws.addAdmin(new WorkspaceUser("adminguy"));
+		Set<WorkspaceUser> expected = new HashSet<WorkspaceUser>();
+		expected.add(new WorkspaceUser("adminguy"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		
+		ws.addAdmin(new WorkspaceUser("adminguy2"));
+		expected.add(new WorkspaceUser("adminguy2"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy3")));
+		
+		ws.removeAdmin(new WorkspaceUser("adminguy"));
+		expected.remove(new WorkspaceUser("adminguy"));
+		assertThat("correct admins", ws.getAdmins(),
+				is(expected));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy")));
+		assertTrue("correctly detected as admin",
+				ws.isAdmin(new WorkspaceUser("adminguy2")));
+		assertFalse("correctly detected as not an admin",
+				ws.isAdmin(new WorkspaceUser("adminguy3")));
 	}
 }
