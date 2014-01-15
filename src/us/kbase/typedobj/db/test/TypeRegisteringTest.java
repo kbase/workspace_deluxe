@@ -692,6 +692,12 @@ public class TypeRegisteringTest {
 	@Test
 	public void testOwnership() throws Exception {
 		String module = "SomeModule";
+		try {
+			db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
+			Assert.fail();
+		} catch (NoSuchModuleException ex) {
+			Assert.assertEquals("Module SomeModule was not initialized. For that you must request ownership of the module, and your request must be approved.", ex.getMessage());
+		}
 		initModule(module, "author");
 		db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
 		try {
@@ -748,7 +754,7 @@ public class TypeRegisteringTest {
 			db.addOwnerToModule("stranger", module, "stranger2", false, false);	// bad
 			Assert.fail();
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change priviledges for module SomeModule"));
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change privileges for module SomeModule"));
 		}
 		db.addOwnerToModule("author", module, "stranger", true, false);
 		db.getModuleSpecDocument(new ModuleDefId(module), "stranger", false);

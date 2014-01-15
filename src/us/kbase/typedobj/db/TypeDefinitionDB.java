@@ -173,10 +173,10 @@ public class TypeDefinitionDB {
 					@Override
 					public ModuleInfo load(String moduleName) throws TypeStorageException, NoSuchModuleException {
 						if (!TypeDefinitionDB.this.storage.checkModuleExist(moduleName))
-							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+							throwNoSuchModuleException(moduleName);	
 						long lastVer = TypeDefinitionDB.this.storage.getLastReleasedModuleVersion(moduleName);
 						if (!TypeDefinitionDB.this.storage.checkModuleInfoRecordExist(moduleName, lastVer))
-							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+							throw new NoSuchModuleException("Module wasn't uploaded: " + moduleName);	
 						if (!TypeDefinitionDB.this.storage.getModuleSupportedState(moduleName))
 							throw new NoSuchModuleException("Module " + moduleName + " is no longer supported");
 						return TypeDefinitionDB.this.storage.getModuleInfoRecord(moduleName, lastVer);
@@ -188,7 +188,7 @@ public class TypeDefinitionDB {
 					public String load(AbsoluteTypeDefId typeDefId) throws TypeStorageException, NoSuchModuleException, NoSuchTypeException {
 						String moduleName = typeDefId.getType().getModule();
 						if (!TypeDefinitionDB.this.storage.checkModuleExist(moduleName))
-							throw new NoSuchModuleException("Module wasn't registered: " + moduleName);	
+							throwNoSuchModuleException(moduleName);	
 						String typeName = typeDefId.getType().getName();
 						SemanticVersion schemaDocumentVer = new SemanticVersion(typeDefId.getMajorVersion(), 
 								typeDefId.getMinorVersion());
@@ -618,9 +618,10 @@ public class TypeDefinitionDB {
 	private void checkModuleRegistered(String moduleName) throws NoSuchModuleException, TypeStorageException {
 		if (moduleInfoCache.getIfPresent(moduleName) != null)
 			return;
-		if ((!storage.checkModuleExist(moduleName)) || (!storage.checkModuleInfoRecordExist(moduleName,
-				getLastReleasedModuleVersion(moduleName))))
-			throw new NoSuchModuleException("Module wasn't registered: " + moduleName);
+		if (!storage.checkModuleExist(moduleName)) 
+			throwNoSuchModuleException(moduleName);
+		if(!storage.checkModuleInfoRecordExist(moduleName, getLastReleasedModuleVersion(moduleName)))
+			throw new NoSuchModuleException("Module wasn't uploaded: " + moduleName);
 	}
 	
 	/**
@@ -781,6 +782,10 @@ public class TypeDefinitionDB {
 		if (ti == null || !(ti.isSupported() || withNoLongerSupported) || ti.getTypeVersion() == null)
 			return null;
 		return new SemanticVersion(ti.getTypeVersion());
+	}
+	
+	protected void throwNoSuchModuleException(String module) throws NoSuchModuleException {
+		throw new NoSuchModuleException("Module " + module + " was not initialized. For that you must request ownership of the module, and your request must be approved.");
 	}
 	
 	protected void throwNoSuchTypeException(String moduleName, String typeName,
@@ -2429,7 +2434,7 @@ public class TypeDefinitionDB {
 		boolean canChangeOwnersPrivilege = checkUserIsOwnerOrAdmin(moduleName, knownOwnerUserId, isAdmin);
 		if (!canChangeOwnersPrivilege)
 			throw new NoSuchPrivilegeException("User " + knownOwnerUserId + " can not change " +
-					"priviledges for module " + moduleName);
+					"privileges for module " + moduleName);
 	}
 	
 	public String getModuleDescription(String moduleName) 

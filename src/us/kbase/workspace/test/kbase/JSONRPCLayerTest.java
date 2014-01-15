@@ -33,6 +33,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.matchers.JUnitMatchers;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -2677,7 +2678,7 @@ public class JSONRPCLayerTest {
 			fail("compiled spec without valid module");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Module wasn't registered: SomeMod2"));
+					JUnitMatchers.containsString("Module SomeMod2 was not initialized"));
 		}
 	}
 

@@ -13,6 +13,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
@@ -3970,6 +3972,46 @@ public class TestWorkspace {
 	private Map<String, Object> createData(String json)
 			throws JsonParseException, JsonMappingException, IOException {
 		return new ObjectMapper().readValue(json, Map.class);
+	}
+	
+	@Test
+	public void grantRemoveOwnership() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("foo");
+		String moduleName = "SharedModule";
+		ws.requestModuleRegistration(user, moduleName);
+		ws.resolveModuleRegistration(moduleName, true);
+		ws.compileNewTypeSpec(user, "module " + moduleName + " {typedef int MainType;};", 
+				Arrays.asList("MainType"), null, null, false, null);
+		ws.releaseTypes(user, moduleName);
+		WorkspaceUser user2 = new WorkspaceUser("bar");
+		try {
+			ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
+					Collections.<String>emptyList(), null, null, false, null);
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("not in list of owners"));
+		}
+		ws.grantModuleOwnership(moduleName, user2.getUser(), false, user, false);
+		ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
+				Collections.<String>emptyList(), null, null, false, null);
+		WorkspaceUser user3 = new WorkspaceUser("baz");
+		try {
+			ws.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("can not change privileges"));
+		}
+		ws.grantModuleOwnership(moduleName, user2.getUser(), true, user, false);
+		ws.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
+		ws.removeModuleOwnership(moduleName, user3.getUser(), user2, false);
+		ws.removeModuleOwnership(moduleName, user2.getUser(), user, false);
+		try {
+			ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef float MainType;};", 
+					Collections.<String>emptyList(), null, null, false, null);
+			Assert.fail();
+		} catch (NoSuchPrivilegeException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("not in list of owners"));
+		}
 	}
 	
 	@Test
