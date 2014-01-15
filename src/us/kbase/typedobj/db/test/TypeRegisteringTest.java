@@ -692,6 +692,12 @@ public class TypeRegisteringTest {
 	@Test
 	public void testOwnership() throws Exception {
 		String module = "SomeModule";
+		try {
+			db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
+			Assert.fail();
+		} catch (NoSuchModuleException ex) {
+			Assert.assertEquals("Module SomeModule was not initialized. For that you must request ownership of the module, and your request must be approved.", ex.getMessage());
+		}
 		initModule(module, "author");
 		db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
 		try {
