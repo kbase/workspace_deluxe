@@ -2,12 +2,18 @@ package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthToken;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple8;
 import us.kbase.typedobj.core.TypeDefId;
@@ -21,10 +27,14 @@ import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
+import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -58,6 +68,57 @@ public class WorkspaceServerMethods {
 		return au.wsInfoToTuple(meta);
 	}
 	
+	public void setPermissions(final SetPermissionsParams params,
+			final WorkspaceUser user, final AuthToken token)
+			throws IOException, AuthException, CorruptWorkspaceDBException,
+			NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			WorkspaceCommunicationException {
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		final Permission p = translatePermission(params.getNewPermission());
+		if (params.getUsers().size() == 0) {
+			throw new IllegalArgumentException("Must provide at least one user");
+		}
+		final List<WorkspaceUser> users = new ArrayList<WorkspaceUser>();
+		for (String u: params.getUsers()) {
+			users.add(new WorkspaceUser(u));
+		}
+		final Map<String, Boolean> userok = AuthService.isValidUserName(
+				params.getUsers(), token);
+		for (String u: userok.keySet()) {
+			if (!userok.get(u)) {
+				throw new IllegalArgumentException(String.format(
+						"User %s is not a valid user", u));
+			}
+		}
+		ws.setPermissions(user, wsi, users, p);
+	}
+	
+	public void setGlobalPermission(final SetGlobalPermissionsParams params,
+			WorkspaceUser user)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceAuthorizationException, WorkspaceCommunicationException {
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+				params.getWorkspace(), params.getId());
+		final Permission p = translatePermission(params.getNewPermission());
+		ws.setGlobalPermission(user, wsi, p);
+	}
+	
+	public Map<String, String> getPermissions(WorkspaceIdentity wsi,
+			WorkspaceUser user)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		Map<String, String> ret = new HashMap<String, String>(); 
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		final Map<User, Permission> acls = ws.getPermissions(
+				user, wksp);
+		for (User acl: acls.keySet()) {
+			ret.put(acl.getUser(), translatePermission(acls.get(acl)));
+		}
+		return ret;
+	}
 
 	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> saveObjects(
 			final SaveObjectsParams params, final WorkspaceUser user)

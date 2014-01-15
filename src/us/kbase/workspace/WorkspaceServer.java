@@ -14,7 +14,6 @@ import us.kbase.common.service.UObject;
 //BEGIN_HEADER
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
-import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
@@ -48,7 +47,6 @@ import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -369,26 +367,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				params.getWorkspace(), params.getId());
-		final Permission p = translatePermission(params.getNewPermission());
-		if (params.getUsers().size() == 0) {
-			throw new IllegalArgumentException("Must provide at least one user");
-		}
-		final List<WorkspaceUser> users = new ArrayList<WorkspaceUser>();
-		for (String u: params.getUsers()) {
-			users.add(new WorkspaceUser(u));
-		}
-		final Map<String, Boolean> userok = AuthService.isValidUserName(
-				params.getUsers(), authPart);
-		for (String user: userok.keySet()) {
-			if (!userok.get(user)) {
-				throw new IllegalArgumentException(String.format(
-						"User %s is not a valid user", user));
-			}
-		}
-		ws.setPermissions(getUser(authPart), wsi, users, p);
+		wsmeth.setPermissions(params, getUser(authPart), authPart);
         //END set_permissions
     }
 
@@ -402,11 +381,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_global_permission")
     public void setGlobalPermission(SetGlobalPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_global_permission
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				params.getWorkspace(), params.getId());
-		final Permission p = translatePermission(params.getNewPermission());
-		ws.setGlobalPermission(getUser(authPart), wsi, p);
+		wsmeth.setGlobalPermission(params, getUser(authPart));
         //END set_global_permission
     }
 
@@ -440,13 +415,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-		returnVal = new HashMap<String, String>(); 
-		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final Map<User, Permission> acls = ws.getPermissions(
-				getUser(authPart), wksp);
-		for (User acl: acls.keySet()) {
-			returnVal.put(acl.getUser(), translatePermission(acls.get(acl)));
-		}
+		returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
         //END get_permissions
         return returnVal;
     }
