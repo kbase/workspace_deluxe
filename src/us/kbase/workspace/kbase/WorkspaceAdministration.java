@@ -67,14 +67,14 @@ public class WorkspaceAdministration {
 			final Map<String, Object> c = (Map<String, Object>) cmd;
 			final String fn = (String) c.get("command");
 			if ("listModRequests".equals(fn)) {
-				return listModRequests();
+				return ws.listModuleRegistrationRequests();
 			}
 			if ("approveModRequest".equals(fn)) {
-				approveModRequest((String) c.get("module"), true);
+				ws.resolveModuleRegistration((String) c.get("module"), true);
 				return null;
 			}
 			if ("denyModRequest".equals(fn)) {
-				approveModRequest((String) c.get("module"), false);
+				ws.resolveModuleRegistration((String) c.get("module"), false);
 				return null;
 			}
 			if ("listAdmins".equals(fn)) {
@@ -86,24 +86,25 @@ public class WorkspaceAdministration {
 				return strAdm;
 			}
 			if ("addAdmin".equals(fn)) {
-				setAdmin((String) c.get("user"), token, false);
+				ws.addAdmin(getUser(c, token));
 				return null;
 			}
 			if ("removeAdmin".equals(fn)) {
-				final String admin = (String) c.get("user");
+				final WorkspaceUser wsadmin = getUser(c, token);
+				final String admin = wsadmin.getUser();
 				if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
 					internaladmins.remove(admin);
 				}
-				setAdmin((String) c.get("user"), token, true);
+				ws.removeAdmin(wsadmin);
 				return null;
 			}
 			if ("createWorkspace".equals(fn)) {
 				final CreateWorkspaceParams params = getParams(c, CreateWorkspaceParams.class);
-				return wsmeth.createWorkspace(params, getUser(c));
+				return wsmeth.createWorkspace(params, getUser(c, token));
 			}
 			if ("saveObjects".equals(fn)) {
 				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
-				return wsmeth.saveObjects(params, getUser(c));
+				return wsmeth.saveObjects(params, getUser(c, token));
 			}
 			if ("grantModuleOwnership".equals(fn)) {
 				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);
@@ -120,9 +121,16 @@ public class WorkspaceAdministration {
 				"I don't know how to process the command:\n" + cmd);
 	}
 
-	private WorkspaceUser getUser(final Map<String, Object> input) {
-		final WorkspaceUser user = new WorkspaceUser((String) input.get("user")); //TODO check user
-		return user;
+	private WorkspaceUser getUser(final Map<String, Object> input,
+			final AuthToken token)
+			throws IOException, AuthException {
+		final String user = (String) input.get("user");
+		if (user == null || !AuthService.isValidUserName(Arrays.asList(user),
+				token).get(user)) {
+			throw new IllegalArgumentException(user +
+					" is not a valid KBase user");
+		}
+		return new WorkspaceUser(user);
 	}
 
 	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
@@ -136,29 +144,6 @@ public class WorkspaceAdministration {
 				new TypeReference<T>() {});
 	}
 	
-	private void setAdmin(final String user, final AuthToken token,
-			final boolean remove)
-			throws IOException, AuthException, WorkspaceCommunicationException {
-		if (!AuthService.isValidUserName(Arrays.asList(user), token).get(user)) {
-			throw new IllegalArgumentException(user +
-					" is not a valid KBase user");
-		}
-		if (remove) {
-			ws.removeAdmin(new WorkspaceUser(user));
-		} else {
-			ws.addAdmin(new WorkspaceUser(user));
-		}
-	}
-
-	private void approveModRequest(final String module, final boolean approve)
-			throws TypeStorageException {
-		ws.resolveModuleRegistration(module, approve);
-	}
-
-	private Object listModRequests() throws TypeStorageException {
-		return ws.listModuleRegistrationRequests();
-	}
-
 	//All the email methods are dead code for now, don't use them
 //	@SuppressWarnings("unused")
 //	private void notifyOnModuleRegRequest(final AuthToken authPart,

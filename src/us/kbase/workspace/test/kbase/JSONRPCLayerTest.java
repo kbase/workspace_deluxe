@@ -2720,7 +2720,13 @@ public class JSONRPCLayerTest {
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
-				"			   \"description\": \"mydesc\"}}", "Username cannot be null or the empty string");
+				"			   \"description\": \"mydesc\"}}", "null is not a valid KBase user");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"thisisnotarealuserihopeorthistestwillfail\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}",
+				"thisisnotarealuserihopeorthistestwillfail is not a valid KBase user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
@@ -2751,7 +2757,13 @@ public class JSONRPCLayerTest {
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
 						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
-				"Username cannot be null or the empty string");
+				"null is not a valid KBase user");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"saveObjects\"," +
+				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
+						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
+				"thisisalsonotavalidkbaseuserihope is not a valid KBase user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 						" \"user\": \"" + USER1 + "\"," +
