@@ -418,7 +418,7 @@ public class TypedObjectValidationReport {
 			List<String> errs = getErrorMessagesAsList();
 			mssg.append("fail ("+errs.size()+" error(s))\n");
 			for(int k=0; k<errs.size(); k++) {
-				mssg.append(" -["+(k+1)+"]:"+errs.get(k));
+				mssg.append(" -["+(k+1)+"]:"+errs.get(k)+"\n");
 			}
 		}
 		return mssg.toString();
