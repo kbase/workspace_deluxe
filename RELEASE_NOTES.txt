@@ -26,6 +26,8 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
+- Turned off parallel garbage collection - was locking the server when
+  processing large objects.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
