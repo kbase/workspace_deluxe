@@ -169,7 +169,7 @@ deploy-service-scripts:
 	echo "then" >> $(SERVICE_DIR)/start_service
 	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
 	echo "fi" >> $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -w $(SERVICE_DIR)/$(WAR) -p $(SERVICE_PORT) -t $(THREADPOOL_SIZE) -s $(MEMORY) -x $(MAX_MEMORY) -r KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG" >> $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -w $(SERVICE_DIR)/$(WAR) -p $(SERVICE_PORT) -t $(THREADPOOL_SIZE) -s $(MEMORY) -x $(MAX_MEMORY) -g -r KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG" >> $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
 	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -p $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service
