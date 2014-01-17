@@ -28,6 +28,11 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
 - Turned off parallel garbage collection - was locking the server when
   processing large objects.
+- Fixed bug in WS ID relabeling in values of mappings when keys contain forward
+  slash character
+- Retrieving subset of an object that includes an array element out of the
+  array index range now generates an error instead of returning a subset with
+  null values in the array
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
