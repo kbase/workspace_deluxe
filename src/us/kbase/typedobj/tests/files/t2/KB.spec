@@ -57,6 +57,16 @@ module KB {
 	} FeatureGroup;
 
 
+	typedef structure {
+		mapping <feature_id,feature_id> fids;
+	} FeatureMap;
+
+	typedef structure {
+	
+		mapping<feature_id,mapping<feature_id,tuple<feature_id,list<feature_id>,feature_id>>> crazy;
+	
+	} DeepFeatureMap;
+
 };
 
 

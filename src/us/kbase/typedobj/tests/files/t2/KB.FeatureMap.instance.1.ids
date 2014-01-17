@@ -1,0 +1,8 @@
+{
+	"ids-expected":["f1//1~01","f2/2"],
+	"ids-relabel":{
+					"f1//1~01":"absolute_id.1",
+					"f2/2":"absolute_id.2"
+					},
+	"renamed-expected": { "fids":{"absolute_id.1":"absolute_id.2"} }
+}

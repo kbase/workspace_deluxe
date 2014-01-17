@@ -34,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -162,7 +163,6 @@ public class TestIdProcessing {
 		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, new UserInfoProviderForTests(),
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
-		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
 	
@@ -171,7 +171,7 @@ public class TestIdProcessing {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id");
+		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","FeatureMap","DeepFeatureMap");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB");
 		db.registerModule(kbSpec ,kb_types, username);
@@ -230,8 +230,8 @@ public class TestIdProcessing {
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
 			validator.validate(
-				instanceJson,
-				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+					instanceRootNode,
+					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 				);
 		List <String> mssgs = report.getErrorMessagesAsList();
 		for(int i=0; i<mssgs.size(); i++) {
@@ -240,15 +240,14 @@ public class TestIdProcessing {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		
 		// check that all expected Ids are in fact found
-		List<String> foundIdRefs = report.getAllIds();
 		List<IdReference> fullIdList = report.getAllIdReferences();
-		for(String ref: foundIdRefs) {
-			assertTrue("  -("+instance.resourceName+") extracted id "+ref+" that should not have been extracted",
-					expectedIdList.containsKey(ref));
-			int n_refs = expectedIdList.get(ref).intValue();
-			assertFalse("  -("+instance.resourceName+") extracted id "+ref+" too many times",
+		for(IdReference ref: fullIdList) {
+			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
+					expectedIdList.containsKey(ref.getId()));
+			int n_refs = expectedIdList.get(ref.getId()).intValue();
+			assertFalse("  -("+instance.resourceName+") extracted id "+ref.getId()+" too many times",
 					n_refs==0);
-			expectedIdList.put(ref, new Integer(n_refs-1));
+			expectedIdList.put(ref.getId(), new Integer(n_refs-1));
 		}
 		Iterator<Map.Entry<String,Integer>> mapIter = expectedIdList.entrySet().iterator();
 		while(mapIter.hasNext()) {
@@ -261,7 +260,7 @@ public class TestIdProcessing {
 		
 		// now we relabel the ids
 		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
-		JsonNode newIds = idsRootNode.get("ids-expected");
+		JsonNode newIds = idsRootNode.get("ids-relabel");
 		Iterator<String> fieldNames = newIds.fieldNames();
 		while(fieldNames.hasNext()) {
 			String originalId = fieldNames.next();
@@ -270,26 +269,25 @@ public class TestIdProcessing {
 		}
 		report.relabelWsIdReferences(absoluteIdMapping);
 		
+		JsonNode relabeledInstance = report.getJsonInstance();
+		
 		// now we revalidate the instance, and ensure that the labels have been renamed
-		TypedObjectValidationReport report2 = validator.validate(instanceRootNode, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
+		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
 		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
 		List<String> relabeledIds = report2.getAllIds();
 		
 		//there should be the same number as before, of course!
-		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), foundIdRefs.size());
+		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), fullIdList.size());
 		
-		
-		// make sure every id that was found originally 
-		for(IdReference ref : fullIdList) {
-			checkInstanceId(ref,instanceRootNode);
-		}
-		
-		
-	}
+		// make sure that the relabeled object matches what we expect
+		JsonNode expectedRelabeled = idsRootNode.get("renamed-expected");
+		JsonNode diff = JsonDiff.asJson(relabeledInstance,expectedRelabeled);
+		//if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
+		assertTrue("  -("+instance.resourceName+") extracted object does not match expected extract; diff="+diff,
+						diff.size()==0);
 
-	private void checkInstanceId(IdReference oldRef,JsonNode relabeledRoot) {
-		
+		System.out.println("      PASS.");
 	}
 	
 	

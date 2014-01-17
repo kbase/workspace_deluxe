@@ -50,11 +50,6 @@ public class DummyTypedObjectValidationReport extends
 		throw new RuntimeException("cannot get the processing report from a dummy typed object validation report.");
 	}
 	
-	/** @deprecated **/
-	@Override
-	public List <String> getListOfIdReferences() {
-		return new ArrayList<String>();
-	}
 	
 	@Override
 	public List<WsIdReference> getWsIdReferences() {
@@ -72,10 +67,6 @@ public class DummyTypedObjectValidationReport extends
 	@Override
 	public List<IdReference> getAllIdReferencesOfType(String type) {
 		return new ArrayList<IdReference>();
-	}
-	/** @deprecated **/
-	@Override
-	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) {
 	}
 	
 	@Override
