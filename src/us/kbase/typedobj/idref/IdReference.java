@@ -36,12 +36,25 @@ public class IdReference {
 		this.type = type;
 		this.id = id;
 		this.location = location;
+		handleSlashes(this.location);
 		this.isFieldName = isFieldName;
 		this.depth = location.size()-1;
 		this.replacementId="";
 		this.isReplacementIdSet=false;
 		this.info = info;
 	}
+	
+	// getting the location of a ref replaces slashes in field names with a ~1 and replaces ~ with a 0
+	// we replace these here so that we can properly navigate to the proper item during relabeling...
+	private final void handleSlashes(ArrayNode location) {
+		for(int k=0; k<location.size(); k++) {
+			String field = location.get(k).textValue();
+			if(field==null) { continue; } // probably this shouldn't happen, but we don't do checking here...
+			String realFieldName = field.replaceAll("~1","/").replaceAll("~0","~");
+			location.set(k, TextNode.valueOf(realFieldName));
+		}
+	}
+	
 	
 	/**
 	 * return the type of IdReference (e.g. "ws", "shock", "external", "kb")

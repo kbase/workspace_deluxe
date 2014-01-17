@@ -1,0 +1,28 @@
+{
+	"ids-expected":[
+		"ws/myGene",
+		"ws/myGene2",
+		"ws/myGene",
+		"ws/2",
+		"ws/myGene",
+		"ws/3",
+		"ws/2"
+		],
+	"ids-relabel":{
+		"ws/myGene":"1/2/3",
+		"ws/myGene2":"2/3/4",
+		"ws/2":"4/5/6",
+		"ws/3":"5/6/7"
+		},
+	"renamed-expected": {
+		"crazy" : {
+			"1/2/3": { 
+				"2/3/4": [
+					"1/2/3",
+					["4/5/6","1/2/3","5/6/7"],
+					"4/5/6"
+				]
+			}
+		}
+	}
+}

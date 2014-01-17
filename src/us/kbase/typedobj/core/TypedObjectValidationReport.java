@@ -146,15 +146,6 @@ public class TypedObjectValidationReport {
 		return processingReport;
 	}
 	
-	/**
-	 * use getWsIdReferences() or getAllIdReferences() instead 
-	 * @deprecated
-	**/
-	public List <String> getListOfIdReferences() {
-		return idRefManager.getAllIds();
-		
-	}
-	
 	public List<WsIdReference> getWsIdReferences() {
 		return idRefManager.getAllWsIdReferences();
 	}
@@ -172,15 +163,6 @@ public class TypedObjectValidationReport {
 	}
 	
 	
-	
-	/**
-	 * Use relabelWsIdReferences for relabeling ws id references from now on. You no
-	 * longer need to call this method (although it still works)
-	 * @deprecated
-	 */
-	public void setAbsoluteIdReferences(Map<String,String> absoluteIdRefMapping) {
-		idRefManager.setWsReplacementNames(absoluteIdRefMapping);
-	}
 	
 	/**
 	 * Relabel the WS IDs in the original Json document based on the specified set of
