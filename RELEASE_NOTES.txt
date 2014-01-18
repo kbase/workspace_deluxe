@@ -33,6 +33,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Retrieving subset of an object that includes an array element out of the
   array index range now generates an error instead of returning a subset with
   null values in the array
+- First error encountered during type checking halts type checking, meaning
+  that only the first error is shown to you even if multiple errors exist
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
