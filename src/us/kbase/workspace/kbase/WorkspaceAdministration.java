@@ -22,6 +22,9 @@ import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
+import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -101,6 +104,20 @@ public class WorkspaceAdministration {
 			if ("createWorkspace".equals(fn)) {
 				final CreateWorkspaceParams params = getParams(c, CreateWorkspaceParams.class);
 				return wsmeth.createWorkspace(params, getUser(c, token));
+			}
+			if ("setPermissions".equals(fn)) {
+				final SetPermissionsParams params = getParams(c, SetPermissionsParams.class);
+				wsmeth.setPermissions(params, getUser(c, token), token);
+				return null;
+			}
+			if ("getPermissions".equals(fn)) {
+				final WorkspaceIdentity params = getParams(c, WorkspaceIdentity.class);
+				return wsmeth.getPermissions(params, getUser(c, token));
+			}
+			if ("setGlobalPermission".equals(fn)) {
+				final SetGlobalPermissionsParams params = getParams(c, SetGlobalPermissionsParams.class);
+				wsmeth.setGlobalPermission(params, getUser(c, token));
+				return null;
 			}
 			if ("saveObjects".equals(fn)) {
 				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
