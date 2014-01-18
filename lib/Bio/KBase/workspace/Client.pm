@@ -2267,6 +2267,7 @@ $wsinfo is a reference to a list where each element is a Workspace.workspace_inf
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
+	showOnlyDeleted has a value which is a Workspace.boolean
 boolean is an int
 workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
@@ -2295,6 +2296,7 @@ $wsinfo is a reference to a list where each element is a Workspace.workspace_inf
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
+	showOnlyDeleted has a value which is a Workspace.boolean
 boolean is an int
 workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
@@ -7295,6 +7297,8 @@ boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
 boolean showDeleted - show deleted workspaces that are owned by the
         user.
+boolean showOnlyDeleted - only show deleted workspaces that are owned by
+        the user.
 
 
 =item Definition
@@ -7305,6 +7309,7 @@ boolean showDeleted - show deleted workspaces that are owned by the
 a reference to a hash where the following keys are defined:
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
+showOnlyDeleted has a value which is a Workspace.boolean
 
 </pre>
 
@@ -7315,6 +7320,7 @@ showDeleted has a value which is a Workspace.boolean
 a reference to a hash where the following keys are defined:
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
+showOnlyDeleted has a value which is a Workspace.boolean
 
 
 =end text

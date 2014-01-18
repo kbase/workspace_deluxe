@@ -2230,7 +2230,7 @@ public class JSONRPCLayerTest {
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
 				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
-				.withExcludeGlobal(0L).withShowDeleted(0L)),
+				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)),
 				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
@@ -2256,6 +2256,16 @@ public class JSONRPCLayerTest {
 		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
 				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"))),
 				Arrays.asList(wsinfo1, wsinfo3));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowOnlyDeleted(1L)),
+				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(1L).withShowOnlyDeleted(1L)),
+				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withShowDeleted(1L).withShowOnlyDeleted(1L)),
+				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
 		
 		ListWorkspaceInfoParams lwip = new ListWorkspaceInfoParams();
 		lwip.setAdditionalProperties("booga", "booga1");

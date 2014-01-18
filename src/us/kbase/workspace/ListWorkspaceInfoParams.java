@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         readable workspaces. Defaults to false.
  * boolean showDeleted - show deleted workspaces that are owned by the
  *         user.
+ * boolean showOnlyDeleted - only show deleted workspaces that are owned by
+ *         the user.
  * </pre>
  * 
  */
@@ -27,7 +29,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "excludeGlobal",
-    "showDeleted"
+    "showDeleted",
+    "showOnlyDeleted"
 })
 public class ListWorkspaceInfoParams {
 
@@ -35,6 +38,8 @@ public class ListWorkspaceInfoParams {
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
     private Long showDeleted;
+    @JsonProperty("showOnlyDeleted")
+    private Long showOnlyDeleted;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("excludeGlobal")
@@ -67,6 +72,21 @@ public class ListWorkspaceInfoParams {
         return this;
     }
 
+    @JsonProperty("showOnlyDeleted")
+    public Long getShowOnlyDeleted() {
+        return showOnlyDeleted;
+    }
+
+    @JsonProperty("showOnlyDeleted")
+    public void setShowOnlyDeleted(Long showOnlyDeleted) {
+        this.showOnlyDeleted = showOnlyDeleted;
+    }
+
+    public ListWorkspaceInfoParams withShowOnlyDeleted(Long showOnlyDeleted) {
+        this.showOnlyDeleted = showOnlyDeleted;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -79,7 +99,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public String toString() {
-        return ((((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -619,7 +619,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				au.longToBoolean(params.getExcludeGlobal()),
-				au.longToBoolean(params.getShowDeleted()), false));
+				au.longToBoolean(params.getShowDeleted()),
+				au.longToBoolean(params.getShowOnlyDeleted())));
         //END list_workspace_info
         return returnVal;
     }

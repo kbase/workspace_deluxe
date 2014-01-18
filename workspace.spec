@@ -775,11 +775,14 @@ module Workspace {
 			readable workspaces. Defaults to false.
 		boolean showDeleted - show deleted workspaces that are owned by the
 			user.
+		boolean showOnlyDeleted - only show deleted workspaces that are owned by
+			the user.
 		
 	*/
 	typedef structure { 
 		boolean excludeGlobal;
 		boolean showDeleted;
+		boolean showOnlyDeleted;
 	} ListWorkspaceInfoParams;
 	
 	/*

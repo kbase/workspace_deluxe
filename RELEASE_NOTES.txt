@@ -23,7 +23,7 @@ VERSION: 0.1.1 (Released TBD)
 
 NEW FEATURES:
 - Add owners to modules so that multiple users can upload typespecs.
-- Option to list only deleted objects.
+- Option to list only deleted objects or workspaces.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
