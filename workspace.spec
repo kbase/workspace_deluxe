@@ -839,6 +839,8 @@ module Workspace {
 		Optional arguments:
 		boolean showDeleted - show deleted objects in workspaces to which the
 			user has write access.
+		boolean showOnlyDeleted - only show deleted objects in workspaces to
+			which the user has write access.
 		boolean showHidden - show hidden objects.
 		boolean showAllVersions - show all versions of each object that match
 			the filters rather than only the most recent version.
@@ -852,6 +854,7 @@ module Workspace {
 		list<ws_id> ids;
 		type_string type;
 		boolean showDeleted;
+		boolean showOnlyDeleted;
 		boolean showHidden;
 		boolean showAllVersions;
 		boolean includeMetadata;

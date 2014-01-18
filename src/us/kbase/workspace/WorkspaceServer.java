@@ -680,13 +680,16 @@ public class WorkspaceServer extends JsonServerServlet {
 				TypeDefId.fromTypeString(params.getType());
 		final boolean showHidden = au.longToBoolean(params.getShowHidden());
 		final boolean showDeleted = au.longToBoolean(params.getShowDeleted());
+		final boolean showOnlyDeleted = au.longToBoolean(
+				params.getShowOnlyDeleted());
 		final boolean showAllVers = au.longToBoolean(
 				params.getShowAllVersions());
 		final boolean includeMetadata = au.longToBoolean(
 				params.getIncludeMetadata());
 		returnVal = au.objInfoToTuple(
 				ws.listObjects(getUser(authPart), wsis, type, showHidden,
-						showDeleted, false, showAllVers, includeMetadata));
+						showDeleted, showOnlyDeleted, showAllVers,
+						includeMetadata));
         //END list_objects
         return returnVal;
     }

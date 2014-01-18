@@ -30,6 +30,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Optional arguments:
  *                 boolean showDeleted - show deleted objects in workspaces to which the
  *                         user has write access.
+ *                 boolean showOnlyDeleted - only show deleted objects in workspaces to
+ *                         which the user has write access.
  *                 boolean showHidden - show hidden objects.
  *                 boolean showAllVersions - show all versions of each object that match
  *                         the filters rather than only the most recent version.
@@ -46,6 +48,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "ids",
     "type",
     "showDeleted",
+    "showOnlyDeleted",
     "showHidden",
     "showAllVersions",
     "includeMetadata"
@@ -60,6 +63,8 @@ public class ListObjectsParams {
     private java.lang.String type;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
+    @JsonProperty("showOnlyDeleted")
+    private java.lang.Long showOnlyDeleted;
     @JsonProperty("showHidden")
     private java.lang.Long showHidden;
     @JsonProperty("showAllVersions")
@@ -128,6 +133,21 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("showOnlyDeleted")
+    public java.lang.Long getShowOnlyDeleted() {
+        return showOnlyDeleted;
+    }
+
+    @JsonProperty("showOnlyDeleted")
+    public void setShowOnlyDeleted(java.lang.Long showOnlyDeleted) {
+        this.showOnlyDeleted = showOnlyDeleted;
+    }
+
+    public ListObjectsParams withShowOnlyDeleted(java.lang.Long showOnlyDeleted) {
+        this.showOnlyDeleted = showOnlyDeleted;
+        return this;
+    }
+
     @JsonProperty("showHidden")
     public java.lang.Long getShowHidden() {
         return showHidden;
@@ -185,7 +205,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", showDeleted=")+ showDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

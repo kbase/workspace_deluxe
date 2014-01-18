@@ -2524,6 +2524,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
 	showDeleted has a value which is a Workspace.boolean
+	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
@@ -2562,6 +2563,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
 	showDeleted has a value which is a Workspace.boolean
+	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
@@ -7403,6 +7405,8 @@ Parameters for the 'list_objects' function.
                 Optional arguments:
                 boolean showDeleted - show deleted objects in workspaces to which the
                         user has write access.
+                boolean showOnlyDeleted - only show deleted objects in workspaces to
+                        which the user has write access.
                 boolean showHidden - show hidden objects.
                 boolean showAllVersions - show all versions of each object that match
                         the filters rather than only the most recent version.
@@ -7421,6 +7425,7 @@ workspaces has a value which is a reference to a list where each element is a Wo
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
 showDeleted has a value which is a Workspace.boolean
+showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
@@ -7436,6 +7441,7 @@ workspaces has a value which is a reference to a list where each element is a Wo
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
 showDeleted has a value which is a Workspace.boolean
+showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean

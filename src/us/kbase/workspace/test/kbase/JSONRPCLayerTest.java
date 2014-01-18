@@ -2370,33 +2370,37 @@ public class JSONRPCLayerTest {
 				.withMeta(meta).withType(anotherType).withName("deleted")))).get(0);
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs2").withName("deleted")));
 		
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, null, 1L, 1L,
+				Arrays.asList(std1, std2, hidden, deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L, 1L,
+				Arrays.asList(deleted), false);
+		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, 1L, 1L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2), false);
-		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(hidden, deleted), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, 1L, 1L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 1L, 0L,
+		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, 1L, 1L, 0L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), true);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, 1L, 1L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, 1L, 1L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std2), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, 1L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, deleted), false);
-		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, 0L, 1L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, 0L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, null, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, null, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 0L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, null, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, null, 1L,
 				Arrays.asList(deleted, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, 1L, 1L, 0L, 0L, 1L,
 				Arrays.asList(deleted, std2, hidden), false);
 		
 		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), "Foo", 1L, 1L, 1L, 1L,
@@ -2456,7 +2460,7 @@ public class JSONRPCLayerTest {
 	}
 
 	private void checkListObjects(List<String> wsnames, List<Long> wsids, String type,
-			Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
+			Long showHidden, Long showDeleted, Long showOnlyDeleted, Long allVers, Long includeMeta,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
 			boolean nullMeta) throws Exception {
 		Map<Long, Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>> expec =
@@ -2480,8 +2484,8 @@ public class JSONRPCLayerTest {
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> g:
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
-					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
-					.withIncludeMetadata(includeMeta))) {
+					.withShowDeleted(showDeleted).withShowOnlyDeleted(showOnlyDeleted)
+					.withShowAllVersions(allVers).withIncludeMetadata(includeMeta))) {
 			if (seenSet.containsKey(g.getE7()) && seenSet.get(g.getE7()).containsKey(g.getE1()) &&
 					seenSet.get(g.getE7()).get(g.getE1()).contains(g.getE5())) {
 				fail("Saw same object twice: " + g);
