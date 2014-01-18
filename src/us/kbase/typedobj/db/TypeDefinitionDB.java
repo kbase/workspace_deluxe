@@ -29,6 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.cfg.ValidationConfiguration;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.report.ListReportProvider;
+import com.github.fge.jsonschema.report.LogLevel;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -140,8 +142,14 @@ public class TypeDefinitionDB {
 			String kbTopPath, String kidlSource, int cacheSize) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		// Create the custom json schema factory for KBase typed objects and use this
+		// Note: we use a report provider that throws an exception when it hits an error.  This allows us
+		// to exit on the first error instead of attempting to add every error (which occurs during validation
+		// of arrays).  Code in TypedObjectValidator catches this exception and rewraps as a
+		// processing report, so this is transparent outside of the typed object validator code except that
+		// there is now a maximum of one error returned.
 		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
 		this.jsonSchemaFactory = JsonSchemaFactory.newBuilder()
+									.setReportProvider(new ListReportProvider(LogLevel.INFO, LogLevel.ERROR))
 									.setValidationConfiguration(kbcfg)
 									.freeze();
 		this.storage = storage;
