@@ -608,12 +608,13 @@ public class Workspace {
 	
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, final boolean excludeGlobal,
-			final boolean showDeleted)
+			final boolean showDeleted, final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		final PermissionSet perms =
 				db.getWorkspacesWithPermission(user, Permission.READ);
-		return db.getWorkspaceInformation(perms, excludeGlobal, showDeleted);
+		return db.getWorkspaceInformation(perms, excludeGlobal,
+				showDeleted, showOnlyDeleted);
 	}
 	
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,

@@ -2299,7 +2299,7 @@ public class TestWorkspace {
 		}
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
-		WorkspaceInformation read2 = ws.listWorkspaces(foo, true, true).get(0);
+		WorkspaceInformation read2 = ws.listWorkspaces(foo, true, true, false).get(0);
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -3459,7 +3459,7 @@ public class TestWorkspace {
 		expected.put(wsinf1_1, false);
 		expected.put(wsinf1_2, false);
 		expected.put(wsinf2_1, false);
-		checkWSInfoList(ws.listWorkspaces(user, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, true, false, false), expected);
 		
 		expected.put(wsinf2_3, false);
 		WorkspaceInformation locked = null;
@@ -3471,14 +3471,14 @@ public class TestWorkspace {
 		if (locked != null) {
 			expected.put(locked, false);
 		}
-		checkWSInfoList(ws.listWorkspaces(user, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, false, false, false), expected);
 		
 		expected.put(wsinf1_3, true);
-		checkWSInfoList(ws.listWorkspaces(user, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, false, true, false), expected);
 		
 		expected.remove(wsinf2_3);
 		expected.remove(locked);
-		checkWSInfoList(ws.listWorkspaces(user, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, true, true, false), expected);
 		
 		expected.clear();
 		expected.put(wsinf2_3, false);
@@ -3487,9 +3487,16 @@ public class TestWorkspace {
 		}
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("list1_2")), false);
-		checkWSInfoList(ws.listWorkspaces(newb, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, false, false, false), expected);
 		expected.clear();
-		checkWSInfoList(ws.listWorkspaces(newb, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, true, false, false), expected);
+		
+		expected.put(wsinf1_3, true);
+		checkWSInfoList(ws.listWorkspaces(user, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, false, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, true, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, false, false, true), expected);
 	}
 
 	private void checkWSInfoList(List<WorkspaceInformation> ws,

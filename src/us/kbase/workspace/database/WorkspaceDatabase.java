@@ -138,7 +138,8 @@ public interface WorkspaceDatabase {
 			CorruptWorkspaceDBException;
 
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			PermissionSet pset, boolean excludeGlobal, boolean showDeleted)
+			PermissionSet pset, boolean excludeGlobal, boolean showDeleted,
+			boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(

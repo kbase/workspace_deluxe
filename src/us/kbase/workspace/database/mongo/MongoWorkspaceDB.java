@@ -908,7 +908,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			final PermissionSet pset, final boolean excludeGlobal,
-			final boolean showDeleted)
+			final boolean showDeleted, final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (!(pset instanceof MongoPermissionSet)) {
@@ -929,8 +929,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
 		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
-			if (!(Boolean) ws.get(rwsi).get(Fields.WS_DEL) ||
-					(showDeleted &&
+			boolean isDeleted = (Boolean) ws.get(rwsi).get(Fields.WS_DEL);
+			if (showOnlyDeleted) {
+				if (isDeleted &&
+						pset.hasUserPermission(rwsi, Permission.OWNER)) {
+					ret.add(generateWSInfo(rwsi, pset, ws.get(rwsi)));
+				}
+			} else if (!isDeleted || (showDeleted &&
 					pset.hasUserPermission(rwsi, Permission.OWNER))) {
 				ret.add(generateWSInfo(rwsi, pset, ws.get(rwsi)));
 			}
