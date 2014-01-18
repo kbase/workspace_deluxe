@@ -95,7 +95,7 @@ public class TypedObjectValidationReport {
 		int n_errors=0;
 		while(mssgs.hasNext()) {
 			ProcessingMessage pm = mssgs.next();
-			if(pm.getLogLevel().equals(LogLevel.ERROR)) {
+			if(pm.getLogLevel().compareTo(LogLevel.ERROR)>=0) {
 				n_errors++;
 			}
 		}
@@ -114,7 +114,7 @@ public class TypedObjectValidationReport {
 		JsonNode instance; JsonNode instancePointer;
 		while(mssgs.hasNext()) {
 			ProcessingMessage pm = mssgs.next();
-			if(pm.getLogLevel().equals(LogLevel.ERROR)) {
+			if(pm.getLogLevel().compareTo(LogLevel.ERROR)>=0) {
 				String foundPositionString = "";
 				instance = pm.asJson().get("instance");
 				if(instance!=null) {
