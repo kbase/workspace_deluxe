@@ -56,6 +56,7 @@ public class JsonServerServlet extends HttpServlet {
 	private Server jettyServer = null;
 	private Integer jettyPort = null;
 	private boolean startupFailed = false;
+	private Long maxObjectSize = null;
 		
 	/**
 	 * Starts a test jetty server on an OS-determined port. Blocks until the
@@ -234,7 +235,7 @@ public class JsonServerServlet extends HttpServlet {
 			InputStream input = request.getInputStream();
 			JsonNode node;
 			try {
-				node = mapper.readTree(new KBaseJsonParser(mapper.getFactory(), new UnclosableInputStream(input)));
+				node = mapper.readTree(new KBaseJsonParser(mapper.getFactory(), new UnclosableInputStream(input, maxObjectSize)));
 			} catch (Exception ex) {
 				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", output);
 				return;
@@ -322,10 +323,18 @@ public class JsonServerServlet extends HttpServlet {
 			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", output);	
 		}
 	}
-		
+	
+	protected Long getMaxObjectSize() {
+		return this.maxObjectSize;
+	}
+	
+	protected void setMaxObjectSize(Long maxObjectSize) {
+		this.maxObjectSize = maxObjectSize;
+	}
+	
 	private static AuthToken validateToken(String token) throws Exception {
 		if (token == null)
-			throw new IllegalStateException("Token is not defined in http request header");
+			throw new IllegalStateException("Authorization is required for this method but no credentials were provided");
 		AuthToken ret = new AuthToken(token);
 		if (!AuthService.validateToken(ret)) {
 			throw new IllegalStateException("Token was not validated");
@@ -393,16 +402,23 @@ public class JsonServerServlet extends HttpServlet {
 	private static class UnclosableInputStream extends InputStream {
 		private InputStream inner;
 		private boolean isClosed = false;
+		private long commonLenght = 0;
+		private final Long maxObjectSize;
 		
-		public UnclosableInputStream(InputStream inner) {
+		public UnclosableInputStream(InputStream inner, Long maxObjectSize) {
 			this.inner = inner;
+			this.maxObjectSize = maxObjectSize;
 		}
 		
 		@Override
 		public int read() throws IOException {
 			if (isClosed)
 				return -1;
-			return inner.read();
+			int ret = inner.read();
+			if (ret >= 0)
+				commonLenght++;
+			checkForLength();
+			return ret;
 		}
 		
 		@Override
@@ -431,14 +447,27 @@ public class JsonServerServlet extends HttpServlet {
 		public int read(byte[] b) throws IOException {
 			if (isClosed)
 				return 0;
-			return inner.read(b);
+			int ret = inner.read(b);
+			if (ret > 0)
+				commonLenght += ret;
+			checkForLength();
+			return ret;
 		}
 		
 		@Override
 		public int read(byte[] b, int off, int len) throws IOException {
 			if (isClosed)
 				return 0;
-			return inner.read(b, off, len);
+			int ret = inner.read(b, off, len);
+			if (ret > 0)
+				commonLenght += ret;
+			checkForLength();
+			return ret;
+		}
+		
+		private void checkForLength() {
+			if (maxObjectSize != null && commonLenght > maxObjectSize)
+				throw new IllegalStateException("Object is too big, length=" + commonLenght + " >= " + maxObjectSize);
 		}
 		
 		@Override
