@@ -143,7 +143,8 @@ public interface WorkspaceDatabase {
 
 	public List<ObjectInformation> getObjectInformation(
 			PermissionSet pset, TypeDefId type, boolean showHidden,
-			boolean showDeleted, boolean showAllVers, boolean includeMetaData)
+			boolean showDeleted, boolean showOnlyDeleted, boolean showAllVers,
+			boolean includeMetaData)
 			throws WorkspaceCommunicationException;
 
 	public List<ObjectInformation> getObjectHistory(

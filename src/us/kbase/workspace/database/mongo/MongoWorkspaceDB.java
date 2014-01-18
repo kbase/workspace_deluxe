@@ -2087,7 +2087,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public List<ObjectInformation> getObjectInformation(
 			final PermissionSet pset, final TypeDefId type,
 			final boolean showHidden, final boolean showDeleted,
-			final boolean showAllVers, final boolean includeMetadata)
+			final boolean showOnlyDeleted, final boolean showAllVers,
+			final boolean includeMetadata)
 			throws WorkspaceCommunicationException {
 		//TODO yet another long method that needs pruning
 		/* Could make this method more efficient by doing different queries
@@ -2144,7 +2145,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			orquery.add(query);
 		}
 		final DBObject objq = new BasicDBObject("$or", orquery);
-		//could exclude hidden and deleted objects here?
+		//could include / exclude hidden and deleted objects here?
 		final Map<Long, Map<Long, Map<String, Object>>> objdata =
 				organizeObjData(query.queryCollection(
 						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
@@ -2156,6 +2157,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<String, Object> obj = objdata.get(wsid).get(id);
 			final int lastver = (Integer) obj.get(LATEST_VERSION);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
+			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
 			if (!showAllVers && lastver != ver) {
 				/* this is tricky. As is, if there's a failure between incrementing
 				 * an object ver count and saving the object version no latest
@@ -2171,7 +2173,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if ((Boolean) obj.get(Fields.OBJ_HIDE) && !showHidden) {
 				continue;
 			}
-			if ((Boolean) obj.get(Fields.OBJ_DEL) && (!showDeleted ||
+			if (showOnlyDeleted) {
+				if (isDeleted && pset.hasPermission(rwsi, Permission.WRITE)) {
+					ret.add(generateObjectInfo(rwsi, id,
+							(String) obj.get(Fields.OBJ_NAME), vo));
+				}
+				continue;
+			}
+			if (isDeleted && (!showDeleted ||
 					!pset.hasPermission(rwsi, Permission.WRITE))) {
 				continue;
 			}

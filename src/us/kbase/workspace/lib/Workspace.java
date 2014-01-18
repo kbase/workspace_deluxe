@@ -619,7 +619,8 @@ public class Workspace {
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			final boolean showHidden, final boolean showDeleted,
-			final boolean showAllVers, final boolean includeMetaData)
+			final boolean showOnlyDeleted, final boolean showAllVers,
+			final boolean includeMetaData)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		if (wsis.isEmpty() && type == null) {
@@ -637,7 +638,7 @@ public class Workspace {
 			}
 		}
 		return db.getObjectInformation(pset, type, showHidden, showDeleted,
-				showAllVers, includeMetaData);
+				showOnlyDeleted, showAllVers, includeMetaData);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
