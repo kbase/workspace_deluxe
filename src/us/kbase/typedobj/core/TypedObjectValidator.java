@@ -1,16 +1,14 @@
 package us.kbase.typedobj.core;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.report.ListReportProvider;
+import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
@@ -132,8 +130,7 @@ public final class TypedObjectValidator {
 		try {
 			report = schema.validate(instanceRootNode);
 		} catch (ProcessingException e) {
-			throw new InstanceValidationException(
-					"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
+			report = repackageProcessingExceptionIntoReport(e,typeDefId);
 		}
 		
 		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
@@ -164,12 +161,40 @@ public final class TypedObjectValidator {
 			try {
 				report = schema.validate(node);
 			} catch (ProcessingException e) {
-				throw new InstanceValidationException(
-				"instance is not a valid '" + typeDefId.getTypeString() + "'",e);
+				report = repackageProcessingExceptionIntoReport(e,typeDefId);
 			}
 			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB,node));
 		}
 		return reportList;
 	}
+	
+	
+	/**
+	 * If an exception is thrown during validation, we can catch that exception and instead of
+	 * throwing it back up, we package it into a new report, add the message
+	 * @param e
+	 * @param typeDefId
+	 * @return
+	 * @throws InstanceValidationException
+	 */
+	protected ProcessingReport repackageProcessingExceptionIntoReport(ProcessingException e, TypeDefId typeDefId) 
+			throws InstanceValidationException {
+		ProcessingMessage m = e.getProcessingMessage();
+		//System.out.println(m);
+		ProcessingReport report = new ListReportProvider(LogLevel.DEBUG,LogLevel.NONE).newReport();
+		try {
+			if(m.getLogLevel().equals(LogLevel.FATAL)) {
+				report.fatal(m);
+			} else { //(m.getLogLevel().equals(LogLevel.ERROR))
+				m.setLogLevel(LogLevel.ERROR); // we always set this as an error, because we threw an exception
+				report.error(m);
+			}
+		} catch (ProcessingException e2) {
+			throw new InstanceValidationException(
+				"instance is not a valid '" + typeDefId.getTypeString() + "'",e2);
+		}
+		return report;
+	}
+	
 	
 }

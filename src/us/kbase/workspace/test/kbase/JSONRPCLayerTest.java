@@ -2626,11 +2626,16 @@ public class JSONRPCLayerTest {
 		
 	}
 	
-	private void failAdmin(WorkspaceClient cli, String cmd,
+	private void failAdmin(WorkspaceClient cli, String cmd, String exp)
+			throws Exception {
+		failAdmin(cli, createData(cmd), exp);
+	}
+		
+	private void failAdmin(WorkspaceClient cli, Map<String, Object> cmd,
 			String exp)
-					throws Exception {
+			throws Exception {
 		try {
-			cli.administer(new UObject(createData(cmd)));
+			cli.administer(new UObject(cmd));
 			fail("ran admin command with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -2704,8 +2709,6 @@ public class JSONRPCLayerTest {
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
 				"			   \"description\": \"mydesc\"}}"))).asInstance());
 		
-		System.out.println(wsinfo);
-		
 		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
 		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
 				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
@@ -2769,6 +2772,61 @@ public class JSONRPCLayerTest {
 						" \"user\": \"" + USER1 + "\"," +
 				" \"params\": null}",
 				null);
+		
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		Map<String, Object> adminParams = new HashMap<String, Object>();
+		adminParams.put("command", "getPermissions");
+		adminParams.put("user", USER1);
+		adminParams.put("params", ws);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
+		assertThat("admin gets correct params", res, is(CLIENT1.getPermissions(ws)));
+		
+		adminParams.put("user", USER2);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
+		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
+		
+		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
+		failAdmin(CLIENT2, adminParams, "thisisacrazykbaseuserthatdoesntexistforsure is not a valid KBase user");
+		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
+		
+		String wsstr = USER1 + ":admintest";
+		
+		adminParams.put("command", "setGlobalPermission");
+		adminParams.put("user", USER1);
+		adminParams.put("params", new SetGlobalPermissionsParams()
+				.withWorkspace(wsstr).withNewPermission("n"));
+		CLIENT2.administer(new UObject(adminParams));
+		
+		Map<String, String> expected = new HashMap<String, String>();
+		expected.put(USER1, "a");
+		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+				is(expected));
+		
+		adminParams.put("params", new SetGlobalPermissionsParams()
+				.withWorkspace(wsstr).withNewPermission("r"));
+		CLIENT2.administer(new UObject(adminParams));
+		expected.put("*", "r");
+		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+				is(expected));
+		
+		adminParams.put("user", USER2);
+		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set global permission on workspace " + wsstr);
+		
+		adminParams.put("command", "setPermissions");
+		adminParams.put("user", USER1);
+		adminParams.put("params", new SetPermissionsParams().withWorkspace(wsstr)
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		CLIENT2.administer(new UObject(adminParams));
+		expected.put(USER2, "w");
+		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
+				is(expected));
+		
+		adminParams.put("user", USER2);
+		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set permissions on workspace " + wsstr);
+		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 	}
 	
 	

@@ -133,7 +133,7 @@ public class TestWsSubsetExtraction {
 			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
-		if(VERBOSE) System.out.println("setting up the typed obj database at '"+dir.getAbsolutePath()+"'");
+		if(VERBOSE) System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
 		File tempdir = new File("temp_files");
 		if (!dir.exists())

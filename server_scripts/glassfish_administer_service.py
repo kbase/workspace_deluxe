@@ -13,6 +13,9 @@ import urllib2
 from subprocess import CalledProcessError
 import sys
 
+_PARALLEL_GC = "-XX:-UseParallelGC"
+_PARALLEL_GC_ESC = "-XX\:-UseParallelGC"
+
 
 def _parseArgs():
     parser = ArgumentParser(description='script to administer a Glassfish ' +
@@ -38,6 +41,9 @@ def _parseArgs():
                          'This will cause a domain restart if changed.')
     parser.add_argument('-r', '--properties', nargs='*',
                          help='JVM system properties to add to the server.')
+    parser.add_argument('-g', '--noparallelgc', action='store_true',
+                         help='permanently turn off the parallel garbage ' +
+                         ' collector and use the standard gc.')
     return parser.parse_args()
 
 
@@ -194,9 +200,21 @@ class CommandGlassfishDomain(object):
         if changed or changed2:
             self.restart_domain()
 
+    def stop_parallel_gc(self):
+        for o in self._run_remote_command('list-jvm-options').split('\n'):
+            if o == _PARALLEL_GC:
+                return
+        self.create_jvm_option(_PARALLEL_GC_ESC)
+        self.restart_domain()
+
     def create_property(self, prop):
         print('Creating property ' + prop)
         print(self._run_remote_command('create-system-properties', prop)
+              .rstrip())
+
+    def create_jvm_option(self, prop):
+        print('Creating jvm property ' + prop)
+        print(self._run_remote_command('create-jvm-options', prop)
               .rstrip())
 
     def _set_memory(self, memstr, memlist):
@@ -241,6 +259,8 @@ if __name__ == '__main__':
     if (args.war == None):
         gf.stop_service(args.port)
     else:
+        if (args.noparallelgc):
+            gf.stop_parallel_gc()
         gf.set_min_max_memory(args.Xms, args.Xmx)
         for p in args.properties:
             gf.create_property(p)
