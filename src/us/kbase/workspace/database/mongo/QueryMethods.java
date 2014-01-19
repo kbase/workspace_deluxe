@@ -565,4 +565,12 @@ public class QueryMethods {
 		}
 		return (ResolvedMongoWSID) rwsi;
 	}
+	
+	Set<ResolvedMongoWSID> convertResolvedWSID(Set<ResolvedWorkspaceID> rwsis) {
+		final Set<ResolvedMongoWSID> ret = new HashSet<ResolvedMongoWSID>();
+		for (final ResolvedWorkspaceID rwsi: rwsis) {
+			ret.add(convertResolvedWSID(rwsi));
+		}
+		return ret;
+	}
 }

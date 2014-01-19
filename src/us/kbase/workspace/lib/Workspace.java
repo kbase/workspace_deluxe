@@ -607,23 +607,29 @@ public class Workspace {
 	}
 	
 	public List<WorkspaceInformation> listWorkspaces(
-			final WorkspaceUser user, final boolean excludeGlobal,
-			final boolean showDeleted, final boolean showOnlyDeleted)
+			final WorkspaceUser user, Permission minPerm,
+			final boolean excludeGlobal, final boolean showDeleted,
+			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
+		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
+			minPerm = Permission.READ;
+		}
 		final PermissionSet perms =
-				db.getWorkspacesWithPermission(user, Permission.READ);
-		return db.getWorkspaceInformation(perms, excludeGlobal,
-				showDeleted, showOnlyDeleted);
+				db.getPermissions(user, minPerm, excludeGlobal);
+		return db.getWorkspaceInformation(perms, showDeleted, showOnlyDeleted);
 	}
 	
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
-			final boolean showHidden, final boolean showDeleted,
-			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetaData)
+			Permission minPerm, final boolean showHidden,
+			final boolean showDeleted, final boolean showOnlyDeleted,
+			final boolean showAllVers, final boolean includeMetaData)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
+			minPerm = Permission.READ;
+		}
 		if (wsis.isEmpty() && type == null) {
 			throw new IllegalArgumentException("At least one filter must be specified.");
 		}
@@ -631,11 +637,16 @@ public class Workspace {
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
 		final HashSet<ResolvedWorkspaceID> rw =
 				new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(user, rw);
+		final PermissionSet pset = db.getPermissions(user, rw, minPerm, false);
 		if (!wsis.isEmpty()) {
 			for (final WorkspaceIdentifier wsi: wsis) {
-				comparePermission(user, Permission.READ,
-						pset.getPermission(rwsis.get(wsi)), wsi, "read");
+				if (!pset.hasWorkspace(rwsis.get(wsi))) {
+					comparePermission(user, Permission.READ,
+							Permission.NONE, wsi, "read"); //triggers error
+				} else {
+					comparePermission(user, Permission.READ,
+							pset.getPermission(rwsis.get(wsi)), wsi, "read");
+				}
 			}
 		}
 		return db.getObjectInformation(pset, type, showHidden, showDeleted,

@@ -69,7 +69,12 @@ public interface WorkspaceDatabase {
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
-
+	
+	public PermissionSet getPermissions(WorkspaceUser user,
+			Set<ResolvedWorkspaceID> rwsis, Permission perm,
+			boolean excludeGlobalRead)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public Map<User, Permission> getAllPermissions(
 			ResolvedWorkspaceID rwsi) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
@@ -133,13 +138,12 @@ public interface WorkspaceDatabase {
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
 
-	public PermissionSet getWorkspacesWithPermission(WorkspaceUser user,
-			Permission perm) throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
+	public PermissionSet getPermissions(WorkspaceUser user,
+			Permission perm, boolean excludeGlobal)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			PermissionSet pset, boolean excludeGlobal, boolean showDeleted,
-			boolean showOnlyDeleted)
+			PermissionSet pset, boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(

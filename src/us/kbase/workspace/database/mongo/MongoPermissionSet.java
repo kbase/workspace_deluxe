@@ -111,6 +111,11 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 	
 	@Override
+	public boolean hasWorkspace(final ResolvedWorkspaceID ws) {
+		return userPerms.containsKey(ws) || worldRead.containsKey(ws);
+	}
+	
+	@Override
 	public boolean isEmpty() {
 		return userPerms.isEmpty() && worldRead.isEmpty();
 	}
