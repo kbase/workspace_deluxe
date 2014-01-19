@@ -771,22 +771,25 @@ module Workspace {
 		Input parameters for the "list_workspace_info" function.
 		
 		Optional parameters:
+		permission perm - filter workspaces by permission level. 'None' and
+			'readable' are ignored.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
 		boolean showDeleted - show deleted workspaces that are owned by the
 			user.
-		boolean showOnlyDeleted - only show deleted workspaces that are owned by
-			the user.
+		boolean showOnlyDeleted - only show deleted workspaces that are owned
+			by the user.
 		
 	*/
 	typedef structure { 
+		permission perm;
 		boolean excludeGlobal;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
 	} ListWorkspaceInfoParams;
 	
 	/*
-		Early version of list_workspaces.
+		List workspaces viewable by the user.
 	 */
 	funcdef list_workspace_info(ListWorkspaceInfoParams params)
 		returns(list<workspace_info> wsinfo);
@@ -838,6 +841,8 @@ module Workspace {
 			version information will find any objects that match the provided
 			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
 			existing version.
+		permission perm - filter objects by permission level. 'None' and
+			'readable' are ignored.
 		
 		Optional arguments:
 		boolean showDeleted - show deleted objects in workspaces to which the
@@ -856,6 +861,7 @@ module Workspace {
 		list<ws_name> workspaces;
 		list<ws_id> ids;
 		type_string type;
+		permission perm;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
 		boolean showHidden;
@@ -864,7 +870,7 @@ module Workspace {
 	} ListObjectsParams;
 	
 	/*
-		Early version of list_objects.
+		List objects in one or more workspaces.
 	*/
 	funcdef list_objects(ListObjectsParams params)
 		returns(list<object_info> objinfo);

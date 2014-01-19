@@ -16,24 +16,29 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the "list_workspace_info" function.
  * Optional parameters:
+ * permission perm - filter workspaces by permission level. 'None' and
+ *         'readable' are ignored.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
  * boolean showDeleted - show deleted workspaces that are owned by the
  *         user.
- * boolean showOnlyDeleted - only show deleted workspaces that are owned by
- *         the user.
+ * boolean showOnlyDeleted - only show deleted workspaces that are owned
+ *         by the user.
  * </pre>
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
+    "perm",
     "excludeGlobal",
     "showDeleted",
     "showOnlyDeleted"
 })
 public class ListWorkspaceInfoParams {
 
+    @JsonProperty("perm")
+    private String perm;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
@@ -41,6 +46,21 @@ public class ListWorkspaceInfoParams {
     @JsonProperty("showOnlyDeleted")
     private Long showOnlyDeleted;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+    @JsonProperty("perm")
+    public String getPerm() {
+        return perm;
+    }
+
+    @JsonProperty("perm")
+    public void setPerm(String perm) {
+        this.perm = perm;
+    }
+
+    public ListWorkspaceInfoParams withPerm(String perm) {
+        this.perm = perm;
+        return this;
+    }
 
     @JsonProperty("excludeGlobal")
     public Long getExcludeGlobal() {
@@ -99,7 +119,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public String toString() {
-        return ((((((((("ListWorkspaceInfoParams"+" [excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

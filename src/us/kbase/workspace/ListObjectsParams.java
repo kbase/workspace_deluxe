@@ -26,6 +26,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         version information will find any objects that match the provided
  *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
  *                         existing version.
+ *                 permission perm - filter objects by permission level. 'None' and
+ *                         'readable' are ignored.
  *                 
  *                 Optional arguments:
  *                 boolean showDeleted - show deleted objects in workspaces to which the
@@ -47,6 +49,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "workspaces",
     "ids",
     "type",
+    "perm",
     "showDeleted",
     "showOnlyDeleted",
     "showHidden",
@@ -61,6 +64,8 @@ public class ListObjectsParams {
     private List<Long> ids;
     @JsonProperty("type")
     private java.lang.String type;
+    @JsonProperty("perm")
+    private java.lang.String perm;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
     @JsonProperty("showOnlyDeleted")
@@ -115,6 +120,21 @@ public class ListObjectsParams {
 
     public ListObjectsParams withType(java.lang.String type) {
         this.type = type;
+        return this;
+    }
+
+    @JsonProperty("perm")
+    public java.lang.String getPerm() {
+        return perm;
+    }
+
+    @JsonProperty("perm")
+    public void setPerm(java.lang.String perm) {
+        this.perm = perm;
+    }
+
+    public ListObjectsParams withPerm(java.lang.String perm) {
+        this.perm = perm;
         return this;
     }
 
@@ -205,7 +225,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

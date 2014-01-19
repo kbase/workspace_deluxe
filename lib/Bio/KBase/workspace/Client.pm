@@ -2265,9 +2265,11 @@ sub list_workspaces
 $params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
+	perm has a value which is a Workspace.permission
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
+permission is a string
 boolean is an int
 workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
@@ -2282,7 +2284,6 @@ ws_id is an int
 ws_name is a string
 username is a string
 timestamp is a string
-permission is a string
 lock_status is a string
 
 </pre>
@@ -2294,9 +2295,11 @@ lock_status is a string
 $params is a Workspace.ListWorkspaceInfoParams
 $wsinfo is a reference to a list where each element is a Workspace.workspace_info
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
+	perm has a value which is a Workspace.permission
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
+permission is a string
 boolean is an int
 workspace_info is a reference to a list containing 8 items:
 	0: (id) a Workspace.ws_id
@@ -2311,7 +2314,6 @@ ws_id is an int
 ws_name is a string
 username is a string
 timestamp is a string
-permission is a string
 lock_status is a string
 
 
@@ -2319,7 +2321,7 @@ lock_status is a string
 
 =item Description
 
-Early version of list_workspaces.
+List workspaces viewable by the user.
 
 =back
 
@@ -2525,6 +2527,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
+	perm has a value which is a Workspace.permission
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -2533,6 +2536,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 ws_name is a string
 ws_id is an int
 type_string is a string
+permission is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2564,6 +2568,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
+	perm has a value which is a Workspace.permission
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -2572,6 +2577,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 ws_name is a string
 ws_id is an int
 type_string is a string
+permission is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2596,7 +2602,7 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-Early version of list_objects.
+List objects in one or more workspaces.
 
 =back
 
@@ -7293,12 +7299,14 @@ excludeGlobal has a value which is a Workspace.boolean
 Input parameters for the "list_workspace_info" function.
 
 Optional parameters:
+permission perm - filter workspaces by permission level. 'None' and
+        'readable' are ignored.
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
 boolean showDeleted - show deleted workspaces that are owned by the
         user.
-boolean showOnlyDeleted - only show deleted workspaces that are owned by
-        the user.
+boolean showOnlyDeleted - only show deleted workspaces that are owned
+        by the user.
 
 
 =item Definition
@@ -7307,6 +7315,7 @@ boolean showOnlyDeleted - only show deleted workspaces that are owned by
 
 <pre>
 a reference to a hash where the following keys are defined:
+perm has a value which is a Workspace.permission
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -7318,6 +7327,7 @@ showOnlyDeleted has a value which is a Workspace.boolean
 =begin text
 
 a reference to a hash where the following keys are defined:
+perm has a value which is a Workspace.permission
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -7407,6 +7417,8 @@ Parameters for the 'list_objects' function.
                         version information will find any objects that match the provided
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
                         existing version.
+                permission perm - filter objects by permission level. 'None' and
+                        'readable' are ignored.
                 
                 Optional arguments:
                 boolean showDeleted - show deleted objects in workspaces to which the
@@ -7430,6 +7442,7 @@ a reference to a hash where the following keys are defined:
 workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
+perm has a value which is a Workspace.permission
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
@@ -7446,6 +7459,7 @@ a reference to a hash where the following keys are defined:
 workspaces has a value which is a reference to a list where each element is a Workspace.ws_name
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
+perm has a value which is a Workspace.permission
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean

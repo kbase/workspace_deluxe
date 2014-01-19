@@ -2217,55 +2217,80 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void listWorkspaceInfo() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo1 =
-				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list1"));
-		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("list2")
+		Tuple8<Long, String, String, String, Long, String, String, String> std =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("liststd"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listglobalread")
 				.withGlobalread("r"));
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
-				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"));
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo3 =
-				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("list3"));
-		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("list3"));
+		Tuple8<Long, String, String, String, Long, String, String, String> globalread =
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listglobalread"));
+		Tuple8<Long, String, String, String, Long, String, String, String> deleted =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listdeleted"));
+		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("listdeleted"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listwrite"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listwrite")
+				.withNewPermission("w").withUsers(Arrays.asList(USER1)));
+		Tuple8<Long, String, String, String, Long, String, String, String> write =
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listwrite"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listadmin"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listadmin")
+				.withNewPermission("a").withUsers(Arrays.asList(USER1)));
+		Tuple8<Long, String, String, String, Long, String, String, String> admin =
+				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
-				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)),
-				Arrays.asList(wsinfo1, wsinfo2), Arrays.asList(wsinfo3));
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+					.withPerm("n")),
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withPerm("r")),
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withPerm("w")),
+				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withPerm("a")),
+				Arrays.asList(std, admin), Arrays.asList(deleted, globalread, write));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L)),
-				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowDeleted(0L)),
-				Arrays.asList(wsinfo1), Arrays.asList(wsinfo3, wsinfo2));
+				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowDeleted(1L)),
-				Arrays.asList(wsinfo1, wsinfo3), Arrays.asList(wsinfo2));
+				Arrays.asList(std, deleted, write, admin), Arrays.asList(globalread));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withShowDeleted(1L)),
-				Arrays.asList(wsinfo1, wsinfo3, wsinfo2),
+				Arrays.asList(std, deleted, globalread, write, admin),
 				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(1L)),
-				Arrays.asList(wsinfo1, wsinfo3, wsinfo2), 
+				Arrays.asList(std, deleted, globalread, write, admin), 
 				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
 		
 		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
-				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("list2"))),
-				Arrays.asList(wsinfo1, wsinfo3));
+				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listglobalread")),
+						CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listwrite")),
+						CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"))),
+				Arrays.asList(std, deleted));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowOnlyDeleted(1L)),
-				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
+				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowOnlyDeleted(1L)),
-				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
+				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withShowDeleted(1L).withShowOnlyDeleted(1L)),
-				Arrays.asList(wsinfo3), Arrays.asList(wsinfo1, wsinfo2));
+				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
 		
 		ListWorkspaceInfoParams lwip = new ListWorkspaceInfoParams();
 		lwip.setAdditionalProperties("booga", "booga1");
