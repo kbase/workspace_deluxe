@@ -6,6 +6,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.auth.TokenExpiredException;
 
 import java.net.*;
+import java.nio.charset.Charset;
 import java.io.*;
 import java.util.*;
 
@@ -13,6 +14,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -108,7 +110,7 @@ public class JsonClientCaller {
 		HttpURLConnection conn = setupCall(authRequired);
 		String id = ("" + Math.random()).replace(".", "");
 		// Calculate content-length before
-		final int[] sizeWrapper = new int[] {0};
+		final long[] sizeWrapper = new long[] {0};
 		OutputStream os = new OutputStream() {
 			@Override
 			public void write(int b) {sizeWrapper[0]++;}
@@ -132,8 +134,17 @@ public class JsonClientCaller {
 			istream = conn.getInputStream();
 		}
 		// Parse response into json
-		JsonParser jp = mapper.getFactory().createParser(new UnclosableInputStream(istream));
-		checkToken(JsonToken.START_OBJECT, jp.nextToken());
+		UnclosableInputStream wrapStream = new UnclosableInputStream(istream);
+		JsonParser jp = mapper.getFactory().createParser(wrapStream);
+		try {
+			checkToken(JsonToken.START_OBJECT, jp.nextToken());
+		} catch (JsonParseException ex) {
+			String receivedHeadingMessage = wrapStream.getHeadingBuffer();
+			if (receivedHeadingMessage.startsWith("{"))
+				throw ex;
+			throw new JsonClientException("Server response is not in JSON format:\n" + 
+				receivedHeadingMessage);
+		}
 		Map<String, String> retError = null;
 		RET res = null;
 		while (jp.nextToken() != JsonToken.END_OBJECT) {
@@ -182,16 +193,33 @@ public class JsonClientCaller {
 	private static class UnclosableInputStream extends InputStream {
 		private InputStream inner;
 		private boolean isClosed = false;
+		private ByteArrayOutputStream headingBuffer = new ByteArrayOutputStream();
 		
 		public UnclosableInputStream(InputStream inner) {
 			this.inner = inner;
+		}
+		
+		private boolean isHeadingBufferFull() {
+			return headingBuffer.size() > 10000;
+		}
+		
+		public String getHeadingBuffer() throws IOException {
+			while ((!isClosed) && (!isHeadingBufferFull()))
+				read();
+			return new String(headingBuffer.toByteArray(), Charset.forName("UTF-8"));
 		}
 		
 		@Override
 		public int read() throws IOException {
 			if (isClosed)
 				return -1;
-			return inner.read();
+			int ret = inner.read();
+			if (ret < 0) {
+				isClosed = true;
+			} else if (!isHeadingBufferFull()) {
+				headingBuffer.write(ret);
+			}
+			return ret;
 		}
 		
 		@Override
@@ -218,16 +246,20 @@ public class JsonClientCaller {
 		
 		@Override
 		public int read(byte[] b) throws IOException {
-			if (isClosed)
-				return 0;
-			return inner.read(b);
+			return read(b, 0, b.length);
 		}
 		
 		@Override
 		public int read(byte[] b, int off, int len) throws IOException {
 			if (isClosed)
-				return 0;
-			return inner.read(b, off, len);
+				return -1;
+			int realLen = inner.read(b, off, len);
+			if (realLen < 0) {
+				isClosed = true;
+			} else if (realLen > 0 && !isHeadingBufferFull()) {
+				headingBuffer.write(b, off, realLen);
+			}
+			return realLen;
 		}
 		
 		@Override
