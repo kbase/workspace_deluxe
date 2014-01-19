@@ -683,8 +683,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-//		final Permission p = params.getPerm() == null ? null :
-//			translatePermission(params.getPerm());
+		final Permission p = params.getPerm() == null ? null :
+			translatePermission(params.getPerm());
 		final boolean showHidden = au.longToBoolean(params.getShowHidden());
 		final boolean showDeleted = au.longToBoolean(params.getShowDeleted());
 		final boolean showOnlyDeleted = au.longToBoolean(
@@ -694,7 +694,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final boolean includeMetadata = au.longToBoolean(
 				params.getIncludeMetadata());
 		returnVal = au.objInfoToTuple(
-				ws.listObjects(getUser(authPart), wsis, type, null, showHidden,
+				ws.listObjects(getUser(authPart), wsis, type, p, showHidden,
 						showDeleted, showOnlyDeleted, showAllVers,
 						includeMetadata));
         //END list_objects
