@@ -143,7 +143,8 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			PermissionSet pset, boolean showDeleted, boolean showOnlyDeleted)
+			PermissionSet pset, List<WorkspaceUser> owners, boolean showDeleted,
+			boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(

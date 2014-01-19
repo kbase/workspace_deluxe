@@ -601,7 +601,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_workspaces
 		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
 				getUser(params.getAuth(), authPart),
-				null, au.longToBoolean(params.getExcludeGlobal()), false, false));
+				null, null, au.longToBoolean(params.getExcludeGlobal()), false, false));
         //END list_workspaces
         return returnVal;
     }
@@ -622,7 +622,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
-				p, au.longToBoolean(params.getExcludeGlobal()),
+				p, null, au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted()),
 				au.longToBoolean(params.getShowOnlyDeleted())));
         //END list_workspace_info

@@ -920,8 +920,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			final PermissionSet pset, final boolean showDeleted,
-			final boolean showOnlyDeleted)
+			final PermissionSet pset, final List<WorkspaceUser> owners,
+			final boolean showDeleted, final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (!(pset instanceof MongoPermissionSet)) {
@@ -933,25 +933,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException(
 					"Cannot provide information for unreadable workspaces");
 		}
-		final Set<ResolvedMongoWSID> rwsis = new HashSet<ResolvedMongoWSID>();
+		final Map<Long, ResolvedMongoWSID> rwsis =
+				new HashMap<Long, ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			rwsis.add(query.convertResolvedWSID(rwsi));
+			rwsis.put(rwsi.getID(), query.convertResolvedWSID(rwsi));
 		}
-		final Map<ResolvedMongoWSID, Map<String, Object>> ws =
-				query.queryWorkspacesByResolvedID(rwsis,
-						FLDS_WS_NO_DESC);
+		final DBObject q = new BasicDBObject(Fields.WS_ID,
+				new BasicDBObject("$in", rwsis.keySet()));
+		if (owners != null && !owners.isEmpty()) {
+			final List<String> own = new ArrayList<String>();
+			for (final WorkspaceUser wu: owners) {
+				own.add(wu.getUser());
+			}
+			q.put(Fields.WS_OWNER, new BasicDBObject("$in", own));
+		}
+		final List<Map<String, Object>> ws = query.queryCollection(
+				COL_WORKSPACES, q, FLDS_WS_NO_DESC);
+		
 		final List<WorkspaceInformation> ret =
 				new LinkedList<WorkspaceInformation>();
-		for (final ResolvedWorkspaceID rwsi: ws.keySet()) {
-			boolean isDeleted = (Boolean) ws.get(rwsi).get(Fields.WS_DEL);
+		for (final Map<String, Object> w: ws) {
+			final ResolvedWorkspaceID rwsi =
+					rwsis.get((Long) w.get(Fields.WS_ID));
+			final boolean isDeleted = (Boolean) w.get(Fields.WS_DEL);
 			if (showOnlyDeleted) {
 				if (isDeleted &&
 						pset.hasUserPermission(rwsi, Permission.OWNER)) {
-					ret.add(generateWSInfo(rwsi, pset, ws.get(rwsi)));
+					ret.add(generateWSInfo(rwsi, pset, w));
 				}
 			} else if (!isDeleted || (showDeleted &&
 					pset.hasUserPermission(rwsi, Permission.OWNER))) {
-				ret.add(generateWSInfo(rwsi, pset, ws.get(rwsi)));
+				ret.add(generateWSInfo(rwsi, pset, w));
 			}
 		}
 		return ret;

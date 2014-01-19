@@ -608,8 +608,8 @@ public class Workspace {
 	
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
-			final boolean excludeGlobal, final boolean showDeleted,
-			final boolean showOnlyDeleted)
+			final List<WorkspaceUser> users, final boolean excludeGlobal,
+			final boolean showDeleted, final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
@@ -617,7 +617,8 @@ public class Workspace {
 		}
 		final PermissionSet perms =
 				db.getPermissions(user, minPerm, excludeGlobal);
-		return db.getWorkspaceInformation(perms, showDeleted, showOnlyDeleted);
+		return db.getWorkspaceInformation(perms, users, showDeleted,
+				showOnlyDeleted);
 	}
 	
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,

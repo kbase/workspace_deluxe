@@ -2299,7 +2299,7 @@ public class TestWorkspace {
 		}
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
-		WorkspaceInformation read2 = ws.listWorkspaces(foo, null, true, true, false).get(0);
+		WorkspaceInformation read2 = ws.listWorkspaces(foo, null, null, true, true, false).get(0);
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -3435,6 +3435,7 @@ public class TestWorkspace {
 	public void listWorkspaces() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("listUser");
 		WorkspaceUser user2 = new WorkspaceUser("listUser2");
+		WorkspaceUser user3 = new WorkspaceUser("listUser3");
 		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null);
 		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null);
 		WorkspaceInformation deletedws = ws.createWorkspace(user, "deletedws", false, null);
@@ -3463,15 +3464,24 @@ public class TestWorkspace {
 		@SuppressWarnings("unused")
 		WorkspaceInformation unreadable = ws.createWorkspace(user2, "unreadable", false, null);
 		
+		ws.createWorkspace(user3, "listuser3ws", false, null);
+		ws.setPermissions(user3, new WorkspaceIdentifier("listuser3ws"), Arrays.asList(user), Permission.READ);
+		WorkspaceInformation listuser3 = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3ws"));
+		ws.createWorkspace(user3, "listuser3glws", true, null);
+		WorkspaceInformation listuser3gl = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3glws"));
+		
+		
 		Map<WorkspaceInformation, Boolean> expected = new HashMap<WorkspaceInformation, Boolean>();
 		expected.put(stdws, false);
 		expected.put(globalws, false);
 		expected.put(readable, false);
 		expected.put(writeable, false);
 		expected.put(adminable, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, true, false, false), expected);
+		expected.put(listuser3, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, true, false, false), expected);
 		
 		expected.put(globalreadable, false);
+		expected.put(listuser3gl, false);
 		WorkspaceInformation locked = null;
 		try {
 			locked = ws.getWorkspaceInformation(user, lockWS);
@@ -3481,39 +3491,71 @@ public class TestWorkspace {
 		if (locked != null) {
 			expected.put(locked, false);
 		}
-		checkWSInfoList(ws.listWorkspaces(user, null, false, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, false), expected);
 		
 		expected.put(deletedws, true);
-		checkWSInfoList(ws.listWorkspaces(user, null, false, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, false, true, false), expected);
 		
 		expected.remove(globalreadable);
 		expected.remove(locked);
-		checkWSInfoList(ws.listWorkspaces(user, null, true, true, false), expected);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, true, true, false), expected);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.READ, true, true, false), expected);
+		expected.remove(listuser3gl);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.READ, null, true, true, false), expected);
 
 		expected.remove(readable);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.WRITE, true, true, false), expected);
+		expected.remove(listuser3);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.WRITE, null, true, true, false), expected);
 		expected.remove(writeable);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.ADMIN, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.ADMIN, null, true, true, false), expected);
 		
 		expected.clear();
 		expected.put(globalreadable, false);
+		expected.put(listuser3gl, false);
 		if (locked != null) {
 			expected.put(locked, false);
 		}
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("globalws")), false);
-		checkWSInfoList(ws.listWorkspaces(newb, null, false, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, false, false, false), expected);
 		expected.clear();
-		checkWSInfoList(ws.listWorkspaces(newb, null, false, false, true), expected);
-		checkWSInfoList(ws.listWorkspaces(newb, null, true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, true, false, false), expected);
 		
 		expected.put(deletedws, true);
-		checkWSInfoList(ws.listWorkspaces(user, null, false, false, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, false, true, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, true, true, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, false, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, true, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, true), expected);
+		
+		expected.clear();
+		expected.put(stdws, false);
+		expected.put(globalws, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user), false,
+				false, false), expected);
+		expected.put(readable, false);
+		expected.put(writeable, false);
+		expected.put(adminable, false);
+		expected.put(globalreadable, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2), false,
+				false, false), expected);
+		expected.put(listuser3, false);
+		expected.put(listuser3gl, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), false,
+				false, false), expected);
+		expected.remove(globalreadable);
+		expected.remove(listuser3gl);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), true,
+				false, false), expected);
+		expected.remove(stdws);
+		expected.remove(globalws);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user2, user3), true,
+				false, false), expected);
+		expected.remove(readable);
+		expected.remove(writeable);
+		expected.remove(adminable);
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user3), true,
+				false, false), expected);
 	}
 
 	private void checkWSInfoList(List<WorkspaceInformation> ws,
