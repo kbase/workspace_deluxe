@@ -624,6 +624,7 @@ public class Workspace {
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
+			Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetaData)
@@ -634,6 +635,9 @@ public class Workspace {
 		}
 		if (wsis.isEmpty() && type == null) {
 			throw new IllegalArgumentException("At least one filter must be specified.");
+		}
+		if (meta != null && meta.size() > 1) {
+			throw new IllegalArgumentException("Only one metadata spec allowed");
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
@@ -646,8 +650,8 @@ public class Workspace {
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, savers, showHidden, showDeleted,
-				showOnlyDeleted, showAllVers, includeMetaData);
+		return db.getObjectInformation(pset, type, savers, meta, showHidden,
+				showDeleted, showOnlyDeleted, showAllVers, includeMetaData);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

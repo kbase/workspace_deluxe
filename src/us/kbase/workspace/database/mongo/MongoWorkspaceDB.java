@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -174,6 +175,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsVer.put(Arrays.asList(Fields.VER_PROV), Arrays.asList(""));
 		//find objects by saved date
 		wsVer.put(Arrays.asList(Fields.VER_SAVEDATE), Arrays.asList(""));
+		//find objects by metadata
+		wsVer.put(Arrays.asList(Fields.VER_META), Arrays.asList(IDX_SPARSE));
 		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
 		
 		//no indexes needed for provenance since all lookups are by _id
@@ -1041,7 +1044,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new ArrayList<Map<String, String>>();
 		if (pkg.wo.getUserMeta() != null) {
 			for (String key: pkg.wo.getUserMeta().keySet()) {
-				Map<String, String> m = new HashMap<String, String>();
+				Map<String, String> m = new LinkedHashMap<String, String>(2);
 				m.put(Fields.VER_META_KEY, key);
 				m.put(Fields.VER_META_VALUE, pkg.wo.getUserMeta().get(key));
 				meta.add(m);
@@ -2124,7 +2127,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<ObjectInformation> getObjectInformation(
 			final PermissionSet pset, final TypeDefId type,
-			final List<WorkspaceUser> savedby,
+			final List<WorkspaceUser> savedby, final Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetadata)
@@ -2160,6 +2163,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (savedby != null && !savedby.isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY,
 					new BasicDBObject("$in", convertWorkspaceUsers(savedby)));
+		}
+		if (meta != null && !meta.isEmpty()) {
+			final List<DBObject> andmetaq = new LinkedList<DBObject>();
+			for (final Entry<String, String> e: meta.entrySet()) {
+				final DBObject mentry = new BasicDBObject();
+				mentry.put(Fields.VER_META_KEY, e.getKey());
+				mentry.put(Fields.VER_META_VALUE, e.getValue());
+				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
+			}
+			verq.put("$and", andmetaq); //note more than one entry is untested
 		}
 		final Set<String> fields;
 		if (includeMetadata) {
