@@ -943,11 +943,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject q = new BasicDBObject(Fields.WS_ID,
 				new BasicDBObject("$in", rwsis.keySet()));
 		if (owners != null && !owners.isEmpty()) {
-			final List<String> own = new ArrayList<String>();
-			for (final WorkspaceUser wu: owners) {
-				own.add(wu.getUser());
-			}
-			q.put(Fields.WS_OWNER, new BasicDBObject("$in", own));
+			q.put(Fields.WS_OWNER, new BasicDBObject("$in",
+					convertWorkspaceUsers(owners)));
 		}
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);
@@ -969,6 +966,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		return ret;
+	}
+
+	private List<String> convertWorkspaceUsers(final List<WorkspaceUser> owners) {
+		final List<String> own = new ArrayList<String>();
+		for (final WorkspaceUser wu: owners) {
+			own.add(wu.getUser());
+		}
+		return own;
 	}
 	
 	@Override
@@ -2152,6 +2157,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			verq.put(Fields.VER_TYPE,
 					new BasicDBObject("$regex", "^" + type.getTypePrefix()));
 		}
+		if (savedby != null && !savedby.isEmpty()) {
+			verq.put(Fields.VER_SAVEDBY,
+					new BasicDBObject("$in", convertWorkspaceUsers(savedby)));
+		}
 		final Set<String> fields;
 		if (includeMetadata) {
 			fields = new HashSet<String>(FLDS_LIST_OBJ_VER);
@@ -2175,7 +2184,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			orquery.add(query);
 		}
 		final DBObject objq = new BasicDBObject("$or", orquery);
-		//could include / exclude hidden and deleted objects here?
+		//could include / exclude hidden and deleted objects here? Prob
+		// not worth the effort
 		final Map<Long, Map<Long, Map<String, Object>>> objdata =
 				organizeObjData(query.queryCollection(
 						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));

@@ -3611,6 +3611,7 @@ public class TestWorkspace {
 		WorkspaceIdentifier readable = new WorkspaceIdentifier("listObjread");
 		WorkspaceIdentifier writeable = new WorkspaceIdentifier("listObjwrite");
 		WorkspaceIdentifier adminable = new WorkspaceIdentifier("listObjadmin");
+		WorkspaceIdentifier thirdparty = new WorkspaceIdentifier("thirdparty");
 		WorkspaceUser user2 = new WorkspaceUser("listObjUser2");
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
 		ws.createWorkspace(user2, readable.getName(), false, null).getId();
@@ -3619,6 +3620,8 @@ public class TestWorkspace {
 		ws.setPermissions(user2, writeable, Arrays.asList(user), Permission.WRITE);
 		ws.createWorkspace(user2, adminable.getName(), false, null).getId();
 		ws.setPermissions(user2, adminable, Arrays.asList(user), Permission.ADMIN);
+		WorkspaceUser user3 = new WorkspaceUser("listObjUser3");
+		ws.createWorkspace(user3, thirdparty.getName(), true, null).getId();
 		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("metastuff", "meta");
@@ -3670,7 +3673,7 @@ public class TestWorkspace {
 		ObjectInformation type2_4nometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(wsi, "type2", 4)), false).get(0);
 		
-		ObjectInformation stdws2 = ws.saveObjects(user, writeable, Arrays.asList(new WorkspaceSaveObject(
+		ObjectInformation stdws2 = ws.saveObjects(user2, writeable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("stdws2"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation stdws2nometa = ws.getObjectInformation(user,
@@ -3683,7 +3686,7 @@ public class TestWorkspace {
 				Arrays.asList(new ObjectIdentifier(writeable, "hidden")), false).get(0);
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(writeable, "hidden")), true);
 		
-		ObjectInformation deleted = ws.saveObjects(user, writeable, Arrays.asList(new WorkspaceSaveObject(
+		ObjectInformation deleted = ws.saveObjects(user2, writeable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("deleted"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation deletednometa = ws.getObjectInformation(user,
@@ -3696,11 +3699,17 @@ public class TestWorkspace {
 		ObjectInformation readobjnometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(readable, "readobj")), false).get(0);
 		
-		ObjectInformation adminobj = ws.saveObjects(user, adminable, Arrays.asList(new WorkspaceSaveObject(
+		ObjectInformation adminobj = ws.saveObjects(user2, adminable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("adminobj"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation adminobjnometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(adminable, "adminobj")), false).get(0);
+		
+		ObjectInformation thirdobj = ws.saveObjects(user3, thirdparty, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("thirdobj"), new HashMap<String, String>(), SAFE_TYPE1, meta,
+				new Provenance(user), false))).get(0);
+		ObjectInformation thirdobjnometa = ws.getObjectInformation(user,
+				Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobj")), false).get(0);
 		
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;
@@ -3755,7 +3764,32 @@ public class TestWorkspace {
 		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null, null, 
 				true, true, false, true, true),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
-						stdws2, hidden, deleted, readobj, adminobj), lock));
+						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null, new ArrayList<WorkspaceUser>(), 
+				true, true, false, true, true),
+				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
+						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+		
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
+				Arrays.asList(user, user2, user3), 
+				true, true, false, true, true),
+				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
+						deleted, readobj, adminobj, thirdobj));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
+				Arrays.asList(user2, user3), 
+				true, true, false, true, true),
+				Arrays.asList(stdws2, deleted, readobj, adminobj, thirdobj));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
+				Arrays.asList(user, user3), 
+				true, true, false, true, true),
+				Arrays.asList(std, hidden, objstack1, objstack2, thirdobj));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
+				Arrays.asList(user3), true, true, false, true, true),
+				Arrays.asList(thirdobj));
+		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
+				Arrays.asList(user), true, true, false, true, true),
+				Arrays.asList(std, hidden, objstack1, objstack2));
+		
 		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), allType1, null, null, 
 				true, true, false, true, true),
 				Arrays.asList(std, objstack1, objstack2));
@@ -3770,19 +3804,20 @@ public class TestWorkspace {
 				new ArrayList<ObjectInformation>());
 		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, null, null, 
 				true, true, false, true, true),
-				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted, readobj, adminobj), lock));
+				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted,
+						readobj, adminobj, thirdobj), lock));
 		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, null, null, 
 				true, true, false, true, false),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa), locknometa));
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
 		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.NONE, null, 
 				true, true, false, true, false),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa), locknometa));
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
 		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.READ, null, 
 				true, true, false, true, false),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa), locknometa));
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
 		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.WRITE, null, 
 				true, true, false, true, false),
 				Arrays.asList(stdnometa, stdws2nometa, hiddennometa, deletednometa, adminobjnometa));
@@ -3813,7 +3848,8 @@ public class TestWorkspace {
 		
 		compareObjectInfo(ws.listObjects(user2, emptyWS, allType1, null, null, 
 				true, true, false, true, true),
-				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted, readobj, adminobj), lock));
+				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted, readobj,
+						adminobj, thirdobj), lock));
 		compareObjectInfo(ws.listObjects(user2, Arrays.asList(writeable), null, 
 				null, null, true, true, false, true, true),
 				Arrays.asList(stdws2, hidden, deleted));
