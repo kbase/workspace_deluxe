@@ -39,8 +39,6 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
-	//TODO unit tests
-	
 	//simple date formats aren't synchronized
 	private final UTCDateFormat dateFormat = new UTCDateFormat();
 	
@@ -253,6 +251,32 @@ public class ArgUtils {
 			return null;
 		}
 		return new WorkspaceUser(token.getUserName());
+	}
+	
+	public static List<WorkspaceUser> validateUsers(
+			final List<String> users, final AuthToken token)
+			throws IOException, AuthException {
+		final List<WorkspaceUser> wsusers = ArgUtils.convertUsers(users);
+		final Map<String, Boolean> userok = AuthService.isValidUserName(
+				users, token);
+		for (String u: userok.keySet()) {
+			if (!userok.get(u)) {
+				throw new IllegalArgumentException(String.format(
+						"User %s is not a valid user", u));
+			}
+		}
+		return wsusers;
+	}
+	
+	public static List<WorkspaceUser> convertUsers(final List<String> users) {
+		final List<WorkspaceUser> wsusers = new ArrayList<WorkspaceUser>();
+		if (users == null) {
+			return null;
+		}
+		for (String u: users) {
+			wsusers.add(new WorkspaceUser(u));
+		}
+		return wsusers;
 	}
 	
 	public List<ObjectData> translateObjectData(

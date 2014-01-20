@@ -25,6 +25,7 @@ NEW FEATURES:
 - Add owners to modules so that multiple users can upload typespecs.
 - Option to list only deleted objects or workspaces.
 - Filter objects or workspaces list by permission level.
+- Filter workspaces list by owner.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
@@ -47,8 +48,7 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - KBase Search API
 - Service Search API (e.g. MongoDB queries on TOs)
 - Object sharing queue (share specific versions of objects)
-- Add mutable metadata to a workspace
-- Filter list_workspace_info by metadata, owner, permissions
+- Add searchable, mutable metadata to a workspace
 - Filter list_objects by metadata, owner, permissions
 - Import TOs from shock
 - Update copied objects from source

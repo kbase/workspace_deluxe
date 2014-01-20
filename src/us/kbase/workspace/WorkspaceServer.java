@@ -622,7 +622,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
-				p, null, au.longToBoolean(params.getExcludeGlobal()),
+				p, ArgUtils.convertUsers(params.getOwners()),
+				au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted()),
 				au.longToBoolean(params.getShowOnlyDeleted())));
         //END list_workspace_info

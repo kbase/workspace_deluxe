@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple8;
@@ -80,21 +79,11 @@ public class WorkspaceServerMethods {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
-		final List<WorkspaceUser> users = new ArrayList<WorkspaceUser>();
-		for (String u: params.getUsers()) {
-			users.add(new WorkspaceUser(u));
-		}
-		final Map<String, Boolean> userok = AuthService.isValidUserName(
+		final List<WorkspaceUser> users = ArgUtils.validateUsers(
 				params.getUsers(), token);
-		for (String u: userok.keySet()) {
-			if (!userok.get(u)) {
-				throw new IllegalArgumentException(String.format(
-						"User %s is not a valid user", u));
-			}
-		}
 		ws.setPermissions(user, wsi, users, p);
 	}
-	
+
 	public void setGlobalPermission(final SetGlobalPermissionsParams params,
 			WorkspaceUser user)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,

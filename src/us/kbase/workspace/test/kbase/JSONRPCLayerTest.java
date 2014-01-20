@@ -2242,6 +2242,20 @@ public class JSONRPCLayerTest {
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)),
 				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)
+				.withOwners(new ArrayList<String>())),
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withOwners(Arrays.asList(USER1))),
+				Arrays.asList(std), Arrays.asList(deleted));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withOwners(Arrays.asList(USER2))),
+				Arrays.asList(globalread, write, admin), Arrays.asList(deleted));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withOwners(Arrays.asList(USER1, USER2))),
+				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 					.withPerm("n")),

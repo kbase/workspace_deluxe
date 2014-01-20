@@ -2,6 +2,7 @@
 package us.kbase.workspace;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Optional parameters:
  * permission perm - filter workspaces by permission level. 'None' and
  *         'readable' are ignored.
+ * list<username> owners - filter workspaces by owner.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
  * boolean showDeleted - show deleted workspaces that are owned by the
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "perm",
+    "owners",
     "excludeGlobal",
     "showDeleted",
     "showOnlyDeleted"
@@ -38,27 +41,44 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class ListWorkspaceInfoParams {
 
     @JsonProperty("perm")
-    private String perm;
+    private java.lang.String perm;
+    @JsonProperty("owners")
+    private List<String> owners;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
     private Long showDeleted;
     @JsonProperty("showOnlyDeleted")
     private Long showOnlyDeleted;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("perm")
-    public String getPerm() {
+    public java.lang.String getPerm() {
         return perm;
     }
 
     @JsonProperty("perm")
-    public void setPerm(String perm) {
+    public void setPerm(java.lang.String perm) {
         this.perm = perm;
     }
 
-    public ListWorkspaceInfoParams withPerm(String perm) {
+    public ListWorkspaceInfoParams withPerm(java.lang.String perm) {
         this.perm = perm;
+        return this;
+    }
+
+    @JsonProperty("owners")
+    public List<String> getOwners() {
+        return owners;
+    }
+
+    @JsonProperty("owners")
+    public void setOwners(List<String> owners) {
+        this.owners = owners;
+    }
+
+    public ListWorkspaceInfoParams withOwners(List<String> owners) {
+        this.owners = owners;
         return this;
     }
 
@@ -108,18 +128,18 @@ public class ListWorkspaceInfoParams {
     }
 
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
-        return ((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+    public java.lang.String toString() {
+        return ((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

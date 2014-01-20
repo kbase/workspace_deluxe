@@ -773,6 +773,7 @@ module Workspace {
 		Optional parameters:
 		permission perm - filter workspaces by permission level. 'None' and
 			'readable' are ignored.
+		list<username> owners - filter workspaces by owner.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
 		boolean showDeleted - show deleted workspaces that are owned by the
@@ -783,6 +784,7 @@ module Workspace {
 	*/
 	typedef structure { 
 		permission perm;
+		list<username> owners;
 		boolean excludeGlobal;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
