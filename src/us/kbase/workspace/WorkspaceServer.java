@@ -652,7 +652,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getShowDeletedObject());
 		returnVal = au.objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
-						Arrays.asList(wsi), type, null, false, showDeleted,
+						Arrays.asList(wsi), type, null, null, false, showDeleted,
 						false, false, true));
         //END list_workspace_objects
         return returnVal;
@@ -695,7 +695,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final boolean includeMetadata = au.longToBoolean(
 				params.getIncludeMetadata());
 		returnVal = au.objInfoToTuple(
-				ws.listObjects(getUser(authPart), wsis, type, p, showHidden,
+				ws.listObjects(getUser(authPart), wsis, type, p, null, showHidden,
 						showDeleted, showOnlyDeleted, showAllVers,
 						includeMetadata));
         //END list_objects

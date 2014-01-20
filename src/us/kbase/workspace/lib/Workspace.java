@@ -212,7 +212,7 @@ public class Workspace {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
 				checkLocked(perm, r);
-				comparePermission(user, perm, perms.getPermission(r), o,
+				comparePermission(user, perm, perms.getPermission(r, true), o,
 						operation);
 			} catch (WorkspaceAuthorizationException wae) {
 				throw new InaccessibleObjectException(String.format(
@@ -317,10 +317,10 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
 		final PermissionSet perms = db.getPermissions(user, wsid);
-		if (Permission.ADMIN.compareTo(perms.getPermission(wsid)) > 0) {
+		if (Permission.ADMIN.compareTo(perms.getPermission(wsid, true)) > 0) {
 			final Map<User, Permission> ret = new HashMap<User, Permission>();
-			ret.put(perms.getUser(), perms.getUserPermission(wsid));
-			if (perms.isWorldReadable(wsid)) {
+			ret.put(perms.getUser(), perms.getUserPermission(wsid, true));
+			if (perms.isWorldReadable(wsid, true)) {
 				ret.put(perms.getGlobalUser(), Permission.READ);
 			}
 			return ret;
@@ -623,9 +623,10 @@ public class Workspace {
 	
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
-			Permission minPerm, final boolean showHidden,
-			final boolean showDeleted, final boolean showOnlyDeleted,
-			final boolean showAllVers, final boolean includeMetaData)
+			Permission minPerm, final List<WorkspaceUser> savers,
+			final boolean showHidden, final boolean showDeleted,
+			final boolean showOnlyDeleted, final boolean showAllVers,
+			final boolean includeMetaData)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
@@ -641,16 +642,11 @@ public class Workspace {
 		final PermissionSet pset = db.getPermissions(user, rw, minPerm, false);
 		if (!wsis.isEmpty()) {
 			for (final WorkspaceIdentifier wsi: wsis) {
-				if (!pset.hasWorkspace(rwsis.get(wsi))) {
-					comparePermission(user, Permission.READ,
-							Permission.NONE, wsi, "read"); //triggers error
-				} else {
-					comparePermission(user, Permission.READ,
-							pset.getPermission(rwsis.get(wsi)), wsi, "read");
-				}
+				comparePermission(user, Permission.READ,
+						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, showHidden, showDeleted,
+		return db.getObjectInformation(pset, type, savers, showHidden, showDeleted,
 				showOnlyDeleted, showAllVers, includeMetaData);
 	}
 	

@@ -760,8 +760,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis,
-			final Permission perm,
-			final boolean excludeGlobalRead)
+			final Permission perm, final boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
@@ -794,12 +793,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ResolvedMongoWSID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);
-			pset.setPermission(rwsi, userperms.get(rwsi).get(user), gl);
+			gl = gl == null ? Permission.NONE : gl;
+			Permission p = userperms.get(rwsi).get(user);
+			p = p == null ? Permission.NONE : p;
+			if (!p.equals(Permission.NONE) || !gl.equals(Permission.NONE)) {
+				pset.setPermission(rwsi, p, gl);
+			}
 			globalperms.remove(rwsi);
 		}
 		for (final ResolvedMongoWSID rwsi: globalperms.keySet()) {
-			pset.setPermission(rwsi, Permission.NONE,
-					globalperms.get(rwsi).get(ALL_USERS));
+			final Permission gl = globalperms.get(rwsi).get(ALL_USERS);
+			if (gl != null && !gl.equals(Permission.NONE)) {
+				pset.setPermission(rwsi, Permission.NONE, gl);
+			}
 		}
 		return pset;
 	}
@@ -886,7 +892,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Permission getPermission(final WorkspaceUser user,
 			final ResolvedWorkspaceID wsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return getPermissions(user, wsi).getPermission(wsi);
+		return getPermissions(user, wsi).getPermission(wsi, true);
 	}
 	
 	public PermissionSet getPermissions(final WorkspaceUser user,
@@ -928,10 +934,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException(
 					"Illegal implementation of PermissionSet: " +
 					pset.getClass().getName());
-		}
-		if (pset.hasUnreadableWorkspace()) {
-			throw new IllegalArgumentException(
-					"Cannot provide information for unreadable workspaces");
 		}
 		final Map<Long, ResolvedMongoWSID> rwsis =
 				new HashMap<Long, ResolvedMongoWSID>();
@@ -2117,6 +2119,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<ObjectInformation> getObjectInformation(
 			final PermissionSet pset, final TypeDefId type,
+			final List<WorkspaceUser> savedby,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetadata)
@@ -2136,10 +2139,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
-		}
-		if (pset.hasUnreadableWorkspace()) {
-			throw new IllegalArgumentException(
-					"All workspaces in the permission set must be readable");
 		}
 		final DBObject verq = new BasicDBObject();
 		final Map<Long, ResolvedWorkspaceID> ids =

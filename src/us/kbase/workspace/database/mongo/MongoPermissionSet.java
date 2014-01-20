@@ -19,8 +19,6 @@ public class MongoPermissionSet implements PermissionSet {
 	private final Map<ResolvedWorkspaceID, Boolean> worldRead = 
 			new HashMap<ResolvedWorkspaceID, Boolean>();
 	
-	private boolean hasUnreadableWorkspace = false;
-	
 	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
 		if (globalUser == null) {
 			throw new IllegalArgumentException(
@@ -59,10 +57,19 @@ public class MongoPermissionSet implements PermissionSet {
 		}
 		final boolean globalread = Permission.READ.equals(globalPerm);
 		if (userPerm.equals(Permission.NONE) && !globalread) {
-			hasUnreadableWorkspace = true;
+			throw new IllegalArgumentException("Cannot add unreadable workspace");
 		}
 		userPerms.put(rwsi, userPerm);
 		worldRead.put(rwsi, globalread);
+	}
+	
+	@Override
+	public Permission getPermission(final ResolvedWorkspaceID rwsi,
+			final boolean returnNone) {
+		if (returnNone && !hasWorkspace(rwsi)) {
+			return Permission.NONE;
+		}
+		return getPermission(rwsi);
 	}
 	
 	@Override
@@ -82,6 +89,15 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 
 	@Override
+	public Permission getUserPermission(final ResolvedWorkspaceID rwsi,
+			final boolean returnNone) {
+		if (returnNone && !hasWorkspace(rwsi)) {
+			return Permission.NONE;
+		}
+		return getUserPermission(rwsi);
+	}
+	
+	@Override
 	public Permission getUserPermission(final ResolvedWorkspaceID rwsi) {
 		if (!userPerms.containsKey(rwsi)) {
 			throw new IllegalArgumentException(
@@ -96,6 +112,15 @@ public class MongoPermissionSet implements PermissionSet {
 		return getUserPermission(rwsi).compareTo(perm) > -1;
 	}
 
+	@Override
+	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi,
+			final boolean returnFalse) {
+		if (returnFalse && !hasWorkspace(rwsi)) {
+			return false;
+		}
+		return isWorldReadable(rwsi);
+	}
+	
 	@Override
 	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi) {
 		if (!worldRead.containsKey(rwsi)) {
@@ -121,15 +146,9 @@ public class MongoPermissionSet implements PermissionSet {
 	}
 
 	@Override
-	public boolean hasUnreadableWorkspace() {
-		return hasUnreadableWorkspace;
-	}
-
-	@Override
 	public String toString() {
 		return "MongoPermissionSet [user=" + user + ", globalUser="
 				+ globalUser + ", userPerms=" + userPerms + ", worldRead="
-				+ worldRead + ", hasUnreadableWorkspace="
-				+ hasUnreadableWorkspace + "]";
+				+ worldRead + "]";
 	}
 }
