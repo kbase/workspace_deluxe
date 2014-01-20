@@ -843,10 +843,12 @@ module Workspace {
 			version information will find any objects that match the provided
 			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
 			existing version.
-		permission perm - filter objects by permission level. 'None' and
-			'readable' are ignored.
 		
 		Optional arguments:
+		permission perm - filter objects by permission level. 'None' and
+			'readable' are ignored.
+		list<username> savedby - filter objects by the user that saved or
+			copied the object.
 		boolean showDeleted - show deleted objects in workspaces to which the
 			user has write access.
 		boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -864,6 +866,7 @@ module Workspace {
 		list<ws_id> ids;
 		type_string type;
 		permission perm;
+		list<username> savedby;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
 		boolean showHidden;

@@ -2530,6 +2530,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
 	perm has a value which is a Workspace.permission
+	savedby has a value which is a reference to a list where each element is a Workspace.username
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -2539,6 +2540,7 @@ ws_name is a string
 ws_id is an int
 type_string is a string
 permission is a string
+username is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2555,7 +2557,6 @@ object_info is a reference to a list containing 11 items:
 obj_id is an int
 obj_name is a string
 timestamp is a string
-username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
@@ -2571,6 +2572,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	ids has a value which is a reference to a list where each element is a Workspace.ws_id
 	type has a value which is a Workspace.type_string
 	perm has a value which is a Workspace.permission
+	savedby has a value which is a reference to a list where each element is a Workspace.username
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -2580,6 +2582,7 @@ ws_name is a string
 ws_id is an int
 type_string is a string
 permission is a string
+username is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2596,7 +2599,6 @@ object_info is a reference to a list containing 11 items:
 obj_id is an int
 obj_name is a string
 timestamp is a string
-username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 
 
@@ -7422,10 +7424,12 @@ Parameters for the 'list_objects' function.
                         version information will find any objects that match the provided
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
                         existing version.
-                permission perm - filter objects by permission level. 'None' and
-                        'readable' are ignored.
                 
                 Optional arguments:
+                permission perm - filter objects by permission level. 'None' and
+                        'readable' are ignored.
+                list<username> savedby - filter object by the user that saved or copied
+                        the object.
                 boolean showDeleted - show deleted objects in workspaces to which the
                         user has write access.
                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -7448,6 +7452,7 @@ workspaces has a value which is a reference to a list where each element is a Wo
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
 perm has a value which is a Workspace.permission
+savedby has a value which is a reference to a list where each element is a Workspace.username
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
@@ -7465,6 +7470,7 @@ workspaces has a value which is a reference to a list where each element is a Wo
 ids has a value which is a reference to a list where each element is a Workspace.ws_id
 type has a value which is a Workspace.type_string
 perm has a value which is a Workspace.permission
+savedby has a value which is a reference to a list where each element is a Workspace.username
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean

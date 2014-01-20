@@ -695,7 +695,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final boolean includeMetadata = au.longToBoolean(
 				params.getIncludeMetadata());
 		returnVal = au.objInfoToTuple(
-				ws.listObjects(getUser(authPart), wsis, type, p, null, showHidden,
+				ws.listObjects(getUser(authPart), wsis, type, p,
+						ArgUtils.convertUsers(params.getSavedby()), showHidden,
 						showDeleted, showOnlyDeleted, showAllVers,
 						includeMetadata));
         //END list_objects

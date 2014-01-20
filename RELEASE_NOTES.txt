@@ -26,6 +26,7 @@ NEW FEATURES:
 - Option to list only deleted objects or workspaces.
 - Filter objects or workspaces list by permission level.
 - Filter workspaces list by owner.
+- Filter object list by the person who saved the object.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
@@ -49,7 +50,7 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Service Search API (e.g. MongoDB queries on TOs)
 - Object sharing queue (share specific versions of objects)
 - Add searchable, mutable metadata to a workspace
-- Filter list_objects by metadata, owner, permissions
+- Filter list_objects by metadata
 - Import TOs from shock
 - Update copied objects from source
 - Improvements to returning the subset of an object

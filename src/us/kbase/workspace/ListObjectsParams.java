@@ -26,10 +26,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         version information will find any objects that match the provided
  *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
  *                         existing version.
- *                 permission perm - filter objects by permission level. 'None' and
- *                         'readable' are ignored.
  *                 
  *                 Optional arguments:
+ *                 permission perm - filter objects by permission level. 'None' and
+ *                         'readable' are ignored.
+ *                 list<username> savedby - filter object by the user that saved or copied
+ *                         the object.
  *                 boolean showDeleted - show deleted objects in workspaces to which the
  *                         user has write access.
  *                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -50,6 +52,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "ids",
     "type",
     "perm",
+    "savedby",
     "showDeleted",
     "showOnlyDeleted",
     "showHidden",
@@ -66,6 +69,8 @@ public class ListObjectsParams {
     private java.lang.String type;
     @JsonProperty("perm")
     private java.lang.String perm;
+    @JsonProperty("savedby")
+    private List<String> savedby;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
     @JsonProperty("showOnlyDeleted")
@@ -135,6 +140,21 @@ public class ListObjectsParams {
 
     public ListObjectsParams withPerm(java.lang.String perm) {
         this.perm = perm;
+        return this;
+    }
+
+    @JsonProperty("savedby")
+    public List<String> getSavedby() {
+        return savedby;
+    }
+
+    @JsonProperty("savedby")
+    public void setSavedby(List<String> savedby) {
+        this.savedby = savedby;
+    }
+
+    public ListObjectsParams withSavedby(List<String> savedby) {
+        this.savedby = savedby;
         return this;
     }
 
@@ -225,7 +245,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
