@@ -849,6 +849,10 @@ module Workspace {
 			'readable' are ignored.
 		list<username> savedby - filter objects by the user that saved or
 			copied the object.
+		usermeta meta - filter objects by the user supplied metadata. NOTE:
+			only one key/value pair is supported at this time. A full map
+			is provided as input for the possibility for expansion in the
+			future.
 		boolean showDeleted - show deleted objects in workspaces to which the
 			user has write access.
 		boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -867,6 +871,7 @@ module Workspace {
 		type_string type;
 		permission perm;
 		list<username> savedby;
+		usermeta meta;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
 		boolean showHidden;

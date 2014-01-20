@@ -2407,7 +2407,9 @@ public class JSONRPCLayerTest {
 		
 		
 		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("metastuff", "meta");
+		meta.put("meta1", "1");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "2");
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std1 =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
@@ -2416,7 +2418,7 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> std2 =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs1")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(anotherType2).withName("std")))).get(0);
+				.withMeta(meta2).withType(anotherType2).withName("std")))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> hidden =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
@@ -2426,7 +2428,7 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> deleted =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("listObjs2")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(anotherType).withName("deleted")))).get(0);
+				.withMeta(meta2).withType(anotherType).withName("deleted")))).get(0);
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWorkspace("listObjs2").withName("deleted")));
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> readable =
@@ -2438,79 +2440,96 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> writeable =
 				CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("listObjswrite")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(anotherType).withName("write")))).get(0);
+				.withMeta(meta2).withType(anotherType).withName("write")))).get(0);
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> adminable =
 				CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("listObjsadmin")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-				.withMeta(meta).withType(anotherType).withName("admin")))).get(0);
+				.withMeta(meta2).withType(anotherType).withName("admin")))).get(0);
 		
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, null, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, null, 1L, 1L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, 1L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()),null,  null, null, null, 1L, 1L, 1L, 1L, 1L,
 				Arrays.asList(deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info1.getE1()), null, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2), false);
-		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs2"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(hidden, deleted), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, null, null, 1L, 1L, 0L, 1L, 0L,
+		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), true);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
 		
+		//user filtering
 		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
-				new ArrayList<String>(), 1L, 1L, 0L, 1L, 1L,
+				new ArrayList<String>(), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
 		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
-				Arrays.asList(USER1, USER2), 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(USER1, USER2), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
 		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
-				Arrays.asList(USER1), 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(USER1), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted), false);
 		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
-				Arrays.asList(USER2), 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(USER2), null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(readable, writeable, adminable), false);
 		
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "n", null, 1L, 1L, 0L, 1L, 1L,
+		//perms testing
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "n", null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "r", null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "r", null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "w", null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "w", null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, writeable, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "a", null, 1L, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "a", null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, hidden, deleted, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, null, null, 1L, 1L, 0L, 1L, 1L,
+		
+		//meta data testing
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+				new HashMap<String, String>(), 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+				meta, 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(std1, hidden, readable), false);
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+				meta2, 1L, 1L, 0L, 1L, 1L,
+				Arrays.asList(deleted, writeable, adminable), false);
+		
+		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, null, null, null, 1L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std2), false);
-		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, null, null, 1L, 0L, 1L, 1L,
+		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, null, null, null, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, deleted), false);
-		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, null, null, 0L, 1L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs2"), Arrays.asList(info1.getE1()), null, null, null, null, 0L, 1L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, null, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, null, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 0L, 0L, 1L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 0L, 0L, 1L, 1L,
 				Arrays.asList(std1, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, 0L, null, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, null, 1L,
 				Arrays.asList(deleted, std2, hidden), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, 1L, 1L, 0L, 0L, 1L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, 0L, 1L,
 				Arrays.asList(deleted, std2, hidden), false);
 		
-		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), "Foo", null, 1L, 1L, 1L, 1L,
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), "Foo", null, null, 1L, 1L, 1L, 1L,
 				"Type Foo could not be split into a module and name");
-		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(-1L), null, null, 1L, 1L, 1L, 1L,
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(-1L), null, null, null, 1L, 1L, 1L, 1L,
 				"Workspace id must be > 0");
-		failListObjects(Arrays.asList("foo:bar:listObjs1"), Arrays.asList(1L), null, null, 1L, 1L, 1L, 1L,
+		failListObjects(Arrays.asList("foo:bar:listObjs1"), Arrays.asList(1L), null, null, null, 1L, 1L, 1L, 1L,
 				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
-		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, 1L, 1L, 1L, 1L,
+		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, null, 1L, 1L, 1L, 1L,
 				"No workspace with name listObjs1fake exists");
-		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, null, 1L, 1L, 1L, 1L,
+		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, null, null, 1L, 1L, 1L, 1L,
 				"At least one filter must be specified.");
-		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, "x", 1L, 1L, 1L, 1L,
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, "x", null, 1L, 1L, 1L, 1L,
 				"No such permission: x");
+		meta.put("this should", "force a fail");
+		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, null, meta, 1L, 1L, 1L, 1L,
+				"Only one metadata spec allowed");
 		
 		compareObjectInfo(CLIENT1.getObjectHistory(
 				new ObjectIdentity().withRef("listObjs1/std")), 
@@ -2542,14 +2561,14 @@ public class JSONRPCLayerTest {
 	}
 
 	private void failListObjects(List<String> wsnames, List<Long> wsids,
-			String type, String perm, Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
+			String type, String perm, Map<String, String> meta, Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
 			String exp)
 			throws Exception {
 		try {
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
-					.withIncludeMetadata(includeMeta).withPerm(perm));
+					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta));
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -2558,7 +2577,8 @@ public class JSONRPCLayerTest {
 	}
 
 	private void checkListObjects(List<String> wsnames, List<Long> wsids, String type, String perm,
-			List<String> savedby, Long showHidden, Long showDeleted, Long showOnlyDeleted, Long allVers, Long includeMeta,
+			List<String> savedby, Map<String, String> meta, Long showHidden,
+			Long showDeleted, Long showOnlyDeleted, Long allVers, Long includeMeta,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
 			boolean nullMeta) throws Exception {
 		Map<Long, Map<Long, Map<Long, Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>> expec =
@@ -2584,7 +2604,7 @@ public class JSONRPCLayerTest {
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowOnlyDeleted(showOnlyDeleted)
 					.withShowAllVersions(allVers).withIncludeMetadata(includeMeta)
-					.withPerm(perm).withSavedby(savedby))) {
+					.withPerm(perm).withSavedby(savedby).withMeta(meta))) {
 			if (seenSet.containsKey(g.getE7()) && seenSet.get(g.getE7()).containsKey(g.getE1()) &&
 					seenSet.get(g.getE7()).get(g.getE1()).contains(g.getE5())) {
 				fail("Saw same object twice: " + g);

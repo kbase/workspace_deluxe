@@ -30,8 +30,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Optional arguments:
  *                 permission perm - filter objects by permission level. 'None' and
  *                         'readable' are ignored.
- *                 list<username> savedby - filter object by the user that saved or copied
- *                         the object.
+ *                 list<username> savedby - filter objects by the user that saved or
+ *                         copied the object.
+ *                 usermeta meta - filter objects by the user supplied metadata. NOTE:
+ *                         only one key/value pair is supported at this time. A full map
+ *                         is provided as input for the possibility for expansion in the
+ *                         future.
  *                 boolean showDeleted - show deleted objects in workspaces to which the
  *                         user has write access.
  *                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -53,6 +57,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "type",
     "perm",
     "savedby",
+    "meta",
     "showDeleted",
     "showOnlyDeleted",
     "showHidden",
@@ -71,6 +76,8 @@ public class ListObjectsParams {
     private java.lang.String perm;
     @JsonProperty("savedby")
     private List<String> savedby;
+    @JsonProperty("meta")
+    private Map<String, String> meta;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
     @JsonProperty("showOnlyDeleted")
@@ -155,6 +162,21 @@ public class ListObjectsParams {
 
     public ListObjectsParams withSavedby(List<String> savedby) {
         this.savedby = savedby;
+        return this;
+    }
+
+    @JsonProperty("meta")
+    public Map<String, String> getMeta() {
+        return meta;
+    }
+
+    @JsonProperty("meta")
+    public void setMeta(Map<String, String> meta) {
+        this.meta = meta;
+    }
+
+    public ListObjectsParams withMeta(Map<String, String> meta) {
+        this.meta = meta;
         return this;
     }
 
@@ -245,7 +267,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
