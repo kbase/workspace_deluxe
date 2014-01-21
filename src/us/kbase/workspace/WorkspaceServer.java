@@ -154,7 +154,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
-		setMaxObjectSize(1200000000L);
+		setMaxObjectSize(250000000L);
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.

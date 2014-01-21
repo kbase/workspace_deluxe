@@ -14,12 +14,17 @@ Interface Description Language (KIDL). It has the following primary features:
 - Freezing and publishing workspaces
 
 Size limits:
-TOs are limited to 1GB
+TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
 VERSION: 0.1.1 (Released TBD)
 --------------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+- The maximum object size is temporarily limited to 200MB.
+- The maximum JSON string size received by the server is temporarily limited
+  to 250MB.
 
 NEW FEATURES:
 - Add owners to modules so that multiple users can upload typespecs.

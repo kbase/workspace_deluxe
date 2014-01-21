@@ -1817,8 +1817,10 @@ public class TestWorkspace {
 		sb.appendCodePoint(0x6A);
 		String test = sb.toString();
 		
+		int count = 4347900;
+		
 		data.put("subset", subdata);
-		for (int i = 0; i < 6000000; i++) {
+		for (int i = 0; i < count; i++) {
 			subdata.add(test);
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
@@ -1830,7 +1832,7 @@ public class TestWorkspace {
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")
 		List<String> newsd = (List<String>) newdata.get("subset");
-		assertThat("correct subdata size", newsd.size(), is(6000000));
+		assertThat("correct subdata size", newsd.size(), is(count));
 		for (String s: newsd) {
 			assertThat("correct string in subdata", s, is(test));
 		}

@@ -108,7 +108,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	private static final long MAX_OBJECT_SIZE = 1000000000;
+	private static final long MAX_OBJECT_SIZE = 200005000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	
