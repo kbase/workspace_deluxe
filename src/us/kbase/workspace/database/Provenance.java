@@ -27,11 +27,12 @@ public class Provenance {
 	
 	protected Provenance() {} //for subclasses using mongo
 	
-	public void addAction(ProvenanceAction action) {
+	public Provenance addAction(ProvenanceAction action) {
 		if (action == null) {
 			throw new IllegalArgumentException("action cannot be null");
 		}
 		actions.add(action);
+		return this;
 	}
 	
 	public WorkspaceUser getUser() {

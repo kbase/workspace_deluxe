@@ -2025,6 +2025,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_GETREFOBJ = newHashSet(
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_META,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
@@ -2074,8 +2075,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> provrefs = (List<String>) ver.get(
 					Fields.VER_PROVREF);
-			refs.addAll(provrefs);
-			for (final String ref: refs) {
+			final Set<String> allrefs = new HashSet<String>();
+			allrefs.addAll(refs);
+			allrefs.addAll(provrefs);
+			for (final String ref: allrefs) {
 				if (ref2id.containsKey(ref)) {
 					for (final ObjectIDResolvedWS oi: ref2id.get(ref)) {
 						ret.get(oi).add(voi.get(ver));

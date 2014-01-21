@@ -3565,6 +3565,12 @@ public class TestWorkspace {
 		expected.remove(adminable);
 		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user3), true,
 				false, false), expected);
+		
+		ws.setGlobalPermission(user2, new WorkspaceIdentifier("globalreadable"), Permission.NONE);
+		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("deletedglobalreadable"), false);
+		ws.setGlobalPermission(user2, new WorkspaceIdentifier("deletedglobalreadable"), Permission.NONE);
+		ws.setGlobalPermission(user, new WorkspaceIdentifier("globalws"), Permission.NONE);
+		ws.setGlobalPermission(user3, new WorkspaceIdentifier("listuser3glws"), Permission.NONE);
 	}
 
 	private void checkWSInfoList(List<WorkspaceInformation> ws,
@@ -3939,6 +3945,7 @@ public class TestWorkspace {
 		failGetObjectHistory(user2, new ObjectIdentifier(writeable, "deleted"),
 				new InaccessibleObjectException("Object 3 (name deleted) in workspace " + wsidwrite + " has been deleted"));
 		
+		ws.setGlobalPermission(user3, new WorkspaceIdentifier("thirdparty"), Permission.NONE);
 	}
 	
 	private void failGetObjectHistory(WorkspaceUser user,
@@ -3985,7 +3992,7 @@ public class TestWorkspace {
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
 	}
-
+	
 	private void compareObjectInfo(List<ObjectInformation> got,
 			List<ObjectInformation> expected) {
 		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
@@ -4171,6 +4178,147 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
+	}
+	
+	@Test
+	public void getReferencingObjects() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("refUser");
+		WorkspaceUser user2 = new WorkspaceUser("refUser2");
+		WorkspaceIdentifier wsitar1 = new WorkspaceIdentifier("refstarget1");
+		WorkspaceIdentifier wsitar2 = new WorkspaceIdentifier("refstarget2");
+		WorkspaceIdentifier wsisrc1 = new WorkspaceIdentifier("refssource1");
+		WorkspaceIdentifier wsisrc2 = new WorkspaceIdentifier("refssource2");
+		WorkspaceIdentifier wsisrc2noaccess = new WorkspaceIdentifier("refssource2noaccess");
+		WorkspaceIdentifier wsisrcdel1 = new WorkspaceIdentifier("refssourcedel1");
+		WorkspaceIdentifier wsisrc2gl = new WorkspaceIdentifier("refssourcegl");
+		
+		long wsidtar1 = ws.createWorkspace(user1, wsitar1.getName(), false, null).getId();
+		ws.setPermissions(user1, wsitar1, Arrays.asList(user2), Permission.READ);
+		long wsidtar2 = ws.createWorkspace(user2, wsitar2.getName(), false, null).getId();
+		ws.setPermissions(user2, wsitar2, Arrays.asList(user1), Permission.READ);
+		long wsidsrc1 = ws.createWorkspace(user1, wsisrc1.getName(), false, null).getId();
+		long wsidsrc2 = ws.createWorkspace(user2, wsisrc2.getName(), false, null).getId();
+		ws.setPermissions(user2, wsisrc2, Arrays.asList(user1), Permission.READ);
+		long wsidsrc2noaccess = ws.createWorkspace(user2, wsisrc2noaccess.getName(), false, null).getId();
+		long wsidsrcdel1 = ws.createWorkspace(user1, wsisrcdel1.getName(), false, null).getId();
+		long wsidsrcgl = ws.createWorkspace(user2, wsisrc2gl.getName(), true, null).getId();
+		
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
+		Map<String, String> meta1 = new HashMap<String, String>();
+		meta1.put("metastuff", "meta");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("meta2", "my hovercraft is full of eels");
+		
+		Map<String, Object> mtdata = new HashMap<String, Object>();
+		
+		ws.saveObjects(user1, wsitar1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
+						meta1, new Provenance(user1), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
+						meta2, new Provenance(user1), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single"), mtdata, SAFE_TYPE1,
+						meta1, new Provenance(user1), false)));
+		ws.saveObjects(user2, wsitar2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
+						meta1, new Provenance(user1), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
+						meta2, new Provenance(user1), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single2"), mtdata, SAFE_TYPE1,
+						meta1, new Provenance(user1), false)));
+		
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("ref", "refstarget1/stk/1");
+		ObjectInformation stdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
+						reftype, meta1,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/1"))), false))).get(0);
+		refdata.put("ref", "refstarget1/stk/2");
+		ObjectInformation stdref2 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
+						reftype, meta2, new Provenance(user1), false))).get(0);
+		refdata.put("ref", "refstarget1/stk");
+		ObjectInformation hiddenref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("hiddenref"), refdata,
+						reftype, meta1, new Provenance(user1), true))).get(0);
+		refdata.put("ref", "refstarget2/stk2");
+		@SuppressWarnings("unused")
+		ObjectInformation delref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delref"), refdata,
+						reftype, meta1,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/2"))), true))).get(0);
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsisrc1, "delref")), true);
+		
+		refdata.put("ref", "refstarget1/single");
+		ObjectInformation readable = ws.saveObjects(user2, wsisrc2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("readable"), refdata,
+						reftype, meta2, new Provenance(user2), true))).get(0);
+		
+		refdata.put("ref", "refstarget2/stk2/2");
+		@SuppressWarnings("unused")
+		ObjectInformation unreadable = ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadable"), refdata,
+						reftype, meta1, new Provenance(user2), true))).get(0);
+		
+		refdata.put("ref", "refstarget2/single2/1");
+		@SuppressWarnings("unused")
+		ObjectInformation wsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("wsdeletedreadable1"), refdata,
+						reftype, meta2, new Provenance(user1), false))).get(0);
+		ws.setWorkspaceDeleted(user1, wsisrcdel1, true);
+		
+		refdata.put("ref", "refstarget2/stk2/1");
+		ObjectInformation globalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("globalrd"), refdata,
+						reftype, meta1, new Provenance(user2), false))).get(0);
+		
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar1, "stk"),
+						new ObjectIdentifier(wsitar1, "stk", 2),
+						new ObjectIdentifier(wsitar1, "stk", 1))),
+				is(Arrays.asList(
+						oiset(stdref2, hiddenref),
+						oiset(stdref2, hiddenref),
+						oiset(stdref1))));
+		
+		Set<ObjectInformation> mtoiset = new HashSet<ObjectInformation>();
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar2, "stk2"),
+						new ObjectIdentifier(wsitar2, "stk2", 2),
+						new ObjectIdentifier(wsitar2, "stk2", 1))),
+				is(Arrays.asList(
+						mtoiset,
+						mtoiset,
+						oiset(globalrd))));
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar1, "single"),
+						new ObjectIdentifier(wsitar1, "single", 1),
+						new ObjectIdentifier(wsitar2, "single2"),
+						new ObjectIdentifier(wsitar2, "single2", 1))),
+				is(Arrays.asList(
+						oiset(readable),
+						oiset(readable),
+						mtoiset,
+						mtoiset)));
+		
+		//TODO provenance references - normal + same ref in object and prov
+		//TODO fail method
+		//TODO read through method for more test cases
+		
+		ws.setGlobalPermission(user2, wsisrc2gl, Permission.NONE);
+		
+	}
+
+	private Set<ObjectInformation> oiset(ObjectInformation... ois) {
+		return new HashSet<ObjectInformation>(Arrays.asList(ois));
 	}
 
 	@SuppressWarnings("unchecked")
