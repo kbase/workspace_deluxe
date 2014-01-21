@@ -63,6 +63,10 @@ public class ResolvedMongoObjectID {
 	public boolean isFullyResolved() {
 		return false;
 	}
+	
+	public MongoReference getReference() {
+		return new MongoReference(rwsi.getID(), id, version);
+	}
 
 	@Override
 	public String toString() {

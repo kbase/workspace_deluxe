@@ -699,8 +699,29 @@ public class Workspace {
 		return ret;
 	}
 	
-	public List<ObjectInformation> getObjectHistory(WorkspaceUser user,
-			ObjectIdentifier oi) throws WorkspaceCommunicationException,
+	public List<Set<ObjectInformation>> getReferencingObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		//could combine these next two lines, but probably doesn't matter
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read");
+		final PermissionSet perms =
+				db.getPermissions(user, Permission.READ, false);
+		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
+				db.getReferencingObjects(perms,
+						new HashSet<ObjectIDResolvedWS>(ws.values()));
+		
+		final List<Set<ObjectInformation>> ret =
+				new LinkedList<Set<ObjectInformation>>();
+		for (final ObjectIdentifier o: loi) {
+			ret.add(refs.get(ws.get(o)));
+		}
+		return ret;
+	}
+	
+	public List<ObjectInformation> getObjectHistory(final WorkspaceUser user,
+			final ObjectIdentifier oi) throws WorkspaceCommunicationException,
 			InaccessibleObjectException, CorruptWorkspaceDBException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, Arrays.asList(oi), Permission.READ, "read");

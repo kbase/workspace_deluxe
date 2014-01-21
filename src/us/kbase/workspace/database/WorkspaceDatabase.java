@@ -103,6 +103,11 @@ public interface WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
+	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
+			getReferencingObjects(PermissionSet perms,
+					Set<ObjectIDResolvedWS> objs)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
 			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
