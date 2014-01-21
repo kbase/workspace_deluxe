@@ -2194,7 +2194,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetadata)
 			throws WorkspaceCommunicationException {
-		//TODO yet another long method that needs pruning
 		/* Could make this method more efficient by doing different queries
 		 * based on the filters. If there's no filters except the workspace,
 		 * for example, just grab all the objects for the workspaces,
@@ -2210,14 +2209,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
-		final DBObject verq = new BasicDBObject();
-		final Map<Long, ResolvedWorkspaceID> ids =
-				new HashMap<Long, ResolvedWorkspaceID>();
+		final Set<Long> ids = new HashSet<Long>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			final ResolvedMongoWSID rm = query.convertResolvedWSID(rwsi);
-			ids.put(rm.getID(), rm);
+			ids.add(rwsi.getID());
 		}
-		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids.keySet()));
+		final DBObject verq = new BasicDBObject();
+		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
 		if (type != null) {
 			verq.put(Fields.VER_TYPE,
 					new BasicDBObject("$regex", "^" + type.getTypePrefix()));
@@ -2248,7 +2245,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (verobjs.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
-		//wsid -> obj ids
 		return new LinkedList<ObjectInformation>(
 				generateObjectInfo(pset, verobjs, showHidden, showDeleted,
 				showOnlyDeleted, showAllVers).values());
