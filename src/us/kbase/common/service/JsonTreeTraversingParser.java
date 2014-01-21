@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
@@ -13,6 +15,20 @@ public class JsonTreeTraversingParser extends TreeTraversingParser {
 		super(tree, oc);
 	}
 	
+	/**
+	 * This method helps to avoid copying of subtree during deserialization it into 
+	 * UObject.
+	 */
+    @SuppressWarnings("unchecked")
+	public <T extends TreeNode> T readValueAsTree() throws IOException, JsonProcessingException {
+		JsonNode curRoot = currentNode();
+		if (curRoot != null) {
+			skipChildren();
+			return (T)curRoot;
+		}
+    	return super.readValueAsTree();
+    }
+    
 	@Override
 	public long getLongValue() throws IOException, JsonParseException {
 		JsonNode node = currentNumericNode();
