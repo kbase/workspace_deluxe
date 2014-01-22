@@ -24,7 +24,7 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-share %o',
-    [ 'workspace|w', 'Name of workspace',{"default" => workspace()}],
+    [ 'workspace|w=s', 'Name of workspace',{"default" => workspace()}],
     [ 'globalread|g=s', 'Set global read permissions (r=read,n=none)',{"default"=>''}],
     [ 'users|u=s', "Set permissions for these users (';' delimited)",{"default"=>''}],
     [ 'perm|p=s', "The permission to set for the given users, default if not set is read only (a=admin,w=write/read,r=read,n=none)",{"default"=>'r'}],
