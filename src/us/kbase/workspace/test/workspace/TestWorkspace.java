@@ -1807,7 +1807,7 @@ public class TestWorkspace {
 				is(expectedRefs));
 	}
 	
-	@Test(timeout=40000)
+	@Test(timeout=60000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
@@ -3737,15 +3737,19 @@ public class TestWorkspace {
 		
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;
-		List<ObjectInformation> foo = ws.listObjects(user, Arrays.asList(lockWS),
-				null, null, null, null, false, false, false, false, true);
-		if (foo.size() > 1) {
-			fail("found more than one object in the locked workspace, this is unexpected");
-		}
-		if (foo.size() == 1) {
-			lock = foo.get(0);
-			locknometa = ws.listObjects(user, Arrays.asList(lockWS), null, null, 
-					null, null, false, false, false, false, false).get(0);
+		try {
+			List<ObjectInformation> foo = ws.listObjects(user, Arrays.asList(lockWS),
+					null, null, null, null, false, false, false, false, true);
+			if (foo.size() > 1) {
+				fail("found more than one object in the locked workspace, this is unexpected");
+			}
+			if (foo.size() == 1) {
+				lock = foo.get(0);
+				locknometa = ws.listObjects(user, Arrays.asList(lockWS), null, null, 
+						null, null, false, false, false, false, false).get(0);
+			}
+		} catch (NoSuchWorkspaceException nswe) {
+			//do nothing, lock workspace wasn't created yet
 		}
 		
 		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
