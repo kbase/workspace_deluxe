@@ -738,6 +738,12 @@ module Workspace {
 	*/
 	funcdef get_object_history(ObjectIdentity object)
 		 returns (list<object_info> history);
+	
+	/* 
+		List objects that reference one or more objects.
+	*/
+	funcdef list_referencing_objects(list<ObjectIdentity> object_ids)
+		returns (list<list<object_info>> referrers);
 		
 	/* 
 		Input parameters for the "list_workspaces" function. Provided for

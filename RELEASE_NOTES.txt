@@ -33,6 +33,8 @@ NEW FEATURES:
 - Filter workspaces list by owner.
 - Filter object list by the person who saved the object.
 - Filter object list by user metadata.
+- Return a list of objects that reference another object, either in the object
+  data or the provenance data.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Module owners can now see unreleased modules and types.
@@ -59,7 +61,6 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Import TOs from shock
 - Update copied objects from source
 - Improvements to returning the subset of an object
-- Find TOs that reference another TO
 
 VERSION: 0.1.0 (Released 1/9/2014)
 --------------------------------------

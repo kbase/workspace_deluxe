@@ -77,7 +77,10 @@ import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.workspace.FakeObjectInfo;
+import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -1017,6 +1020,19 @@ public class JSONRPCLayerTest {
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
 		
+		loi.set(2, new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
+		getObjectWBadParams(loi, "Object 1 cannot be accessed: No workspace with name ultrafakeworkspace exists");
+		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
+		getObjectWBadParams(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
+		getObjectWBadParams(loi, "No object with id 300 exists in workspace " + wsid);
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		getObjectWBadParams(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
+		
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("setgetunreadableto1"));
+		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
+		getObjectWBadParams(loi, "Object 1 cannot be accessed: User kbasetest may not read workspace setgetunreadableto1");
+		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("saveget").withNewPermission("n"));
 	}
@@ -1423,6 +1439,13 @@ public class JSONRPCLayerTest {
 		try {
 			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got meta with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.listReferencingObjects(loi);
+			fail("got referring objs with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
@@ -2547,19 +2570,47 @@ public class JSONRPCLayerTest {
 					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
 		}
 	}
-
+	
 	private void compareObjectInfo(
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> got,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected)
+			throws Exception {
+		compareObjectInfo(got, expected, true);
+	}
+
+	private void compareObjectInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> got,
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected,
+			boolean compareOrder)
 			throws Exception {
 		assertThat("same number of objects", got.size(), is(expected.size()));
 		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> gotiter =
 				got.iterator();
 		Iterator<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expiter =
 				expected.iterator();
-		while (gotiter.hasNext()) {
-			compareObjectInfo(gotiter.next(), expiter.next(), false);
+		if (compareOrder) {
+			while (gotiter.hasNext()) {
+				compareObjectInfo(gotiter.next(), expiter.next(), false);
+			}
+			return;
 		}
+		Set<FakeObjectInfo> g = objInfoToFakeObjInfo(got);
+		Set<FakeObjectInfo> e = objInfoToFakeObjInfo(expected);
+		assertThat("got same unordered objects", g, is(e));
+		
+	}
+
+	private Set<FakeObjectInfo> objInfoToFakeObjInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> tpl)
+			throws Exception {
+		Set<FakeObjectInfo> s = new HashSet<FakeObjectInfo>();
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> t: tpl) {
+			s.add(new FakeObjectInfo(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
+					t.getE5().intValue(), new WorkspaceUser(t.getE6()), 
+					new FakeResolvedWSID(t.getE8(), t.getE7()), t.getE9(),
+					t.getE10(), t.getE11()));
+		}
+		return s;
 	}
 
 	private void failListObjects(List<String> wsnames, List<Long> wsids,
@@ -2702,6 +2753,52 @@ public class JSONRPCLayerTest {
 	private Map<String, Object> createData(String json)
 			throws JsonParseException, JsonMappingException, IOException {
 		return new ObjectMapper().readValue(json, Map.class);
+	}
+	
+	@Test
+	public void listReferencingObjects() throws Exception {
+		final String specParseRef =
+				"module RefSpec {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"typedef structure {" +
+						"reference ref;" +
+					"} Ref;" +
+				"};";
+		CLIENT1.requestModuleOwnership("RefSpec");
+		administerCommand(CLIENT2, "approveModRequest", "module", "RefSpec");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(specParseRef)
+			.withNewTypes(Arrays.asList("Ref")));
+		String type ="RefSpec.Ref-0.1";
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referingobjs"));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("std")))).get(0);
+		
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("ref", "referingobjs/std/1");
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> ref =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(refdata))
+				.withType(type).withName("ref")))).get(0);
+		
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> prov =
+				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("prov").withProvenance(Arrays.asList(
+						new ProvenanceAction().withInputWsObjects(Arrays.asList("referingobjs/std/1"))))))).get(0);
+		
+		List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>> retrefs =
+				CLIENT1.listReferencingObjects(Arrays.asList(
+				new ObjectIdentity().withRef("referingobjs/std/1")));
+		
+		assertThat("one obj list returned", retrefs.size(), is(1));
+		assertThat("two refs returned", retrefs.get(0).size(), is(2));
+		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
 	}
 	
 	@Test

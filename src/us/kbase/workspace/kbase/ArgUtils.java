@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
@@ -153,6 +154,18 @@ public class ArgUtils {
 		return objInfoToTuple(m).get(0);
 	}
 
+	public List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
+			translateObjectDataList(
+					final List<Set<ObjectInformation>> lsoi) {
+		final List<List<Tuple11<Long, String, String, String, Long, String,
+				Long, String, String, Long, Map<String, String>>>> ret = 
+				new LinkedList<List<Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
+		for (Set<ObjectInformation> soi: lsoi) {
+			ret.add(objInfoToTuple(new LinkedList<ObjectInformation>(soi)));
+		}
+		return ret;
+	}
+	
 	public List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>>
 			objInfoToTuple(final List<ObjectInformation> info) {
