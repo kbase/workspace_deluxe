@@ -888,16 +888,7 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(priv, 2)));
 		}
-		try {
-			ws.getObjectsSubSet(bar, Arrays.asList(new SubObjectIdentifier(
-					new ObjectIdentifier(priv, 2), null)));
-			fail("Able to get obj data from private workspace");
-		} catch (InaccessibleObjectException ioe) {
-			assertThat("correct exception message", ioe.getLocalizedMessage(),
-					is("Object 2 cannot be accessed: User bar may not read workspace saveobj"));
-			assertThat("correct object returned", ioe.getInaccessibleObject(),
-					is(new ObjectIdentifier(priv, 2)));
-		}
+
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
@@ -916,6 +907,16 @@ public class TestWorkspace {
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
+		
+		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(read, "booger")),
+				new NoSuchObjectException("No object with name booger exists in workspace " + readid));
+		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(new WorkspaceIdentifier("saveAndGetFakefake"), "booger")),
+				new InaccessibleObjectException("Object booger cannot be accessed: No workspace with name saveAndGetFakefake exists"));
+		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.NONE);
+		failGetObjects(bar, Arrays.asList(new ObjectIdentifier(priv, 3)),
+				new InaccessibleObjectException("Object 3 cannot be accessed: User bar may not read workspace saveobj"));
+		failGetObjects(null, Arrays.asList(new ObjectIdentifier(priv, 3)),
+				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace saveobj"));
 		
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
@@ -970,6 +971,14 @@ public class TestWorkspace {
 		try {
 			ws.getObjectsSubSet(user, objIDToSubObjID(objs));
 			fail("called get subobjects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		try {
+			ws.getReferencingObjects(user, objs);
+			fail("called get refing objects with bad args");
 		} catch (Exception exp) {
 			assertThat("correct exception", exp.getLocalizedMessage(),
 					is(e.getLocalizedMessage()));
@@ -1798,7 +1807,7 @@ public class TestWorkspace {
 				is(expectedRefs));
 	}
 	
-	@Test(timeout=60000)
+	@Test(timeout=40000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
@@ -4165,6 +4174,17 @@ public class TestWorkspace {
 						Arrays.asList("/map/*/thing")))),
 				new InaccessibleObjectException(
 						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
+		
+		try {
+			ws.getObjectsSubSet(user2, Arrays.asList(new SubObjectIdentifier(
+					new ObjectIdentifier(wsi, 2), null)));
+			fail("Able to get obj data from private workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 2 cannot be accessed: User subUser2 may not read workspace subData"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(wsi, 2)));
+		}
 	}
 
 	private void failGetSubset(WorkspaceUser user, List<SubObjectIdentifier> objs,
@@ -4192,16 +4212,16 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsisrcdel1 = new WorkspaceIdentifier("refssourcedel1");
 		WorkspaceIdentifier wsisrc2gl = new WorkspaceIdentifier("refssourcegl");
 		
-		long wsidtar1 = ws.createWorkspace(user1, wsitar1.getName(), false, null).getId();
+		ws.createWorkspace(user1, wsitar1.getName(), false, null).getId();
 		ws.setPermissions(user1, wsitar1, Arrays.asList(user2), Permission.READ);
-		long wsidtar2 = ws.createWorkspace(user2, wsitar2.getName(), false, null).getId();
+		ws.createWorkspace(user2, wsitar2.getName(), false, null).getId();
 		ws.setPermissions(user2, wsitar2, Arrays.asList(user1), Permission.READ);
-		long wsidsrc1 = ws.createWorkspace(user1, wsisrc1.getName(), false, null).getId();
-		long wsidsrc2 = ws.createWorkspace(user2, wsisrc2.getName(), false, null).getId();
+		ws.createWorkspace(user1, wsisrc1.getName(), false, null).getId();
+		ws.createWorkspace(user2, wsisrc2.getName(), false, null).getId();
 		ws.setPermissions(user2, wsisrc2, Arrays.asList(user1), Permission.READ);
-		long wsidsrc2noaccess = ws.createWorkspace(user2, wsisrc2noaccess.getName(), false, null).getId();
-		long wsidsrcdel1 = ws.createWorkspace(user1, wsisrcdel1.getName(), false, null).getId();
-		long wsidsrcgl = ws.createWorkspace(user2, wsisrc2gl.getName(), true, null).getId();
+		ws.createWorkspace(user2, wsisrc2noaccess.getName(), false, null).getId();
+		ws.createWorkspace(user1, wsisrcdel1.getName(), false, null).getId();
+		ws.createWorkspace(user2, wsisrc2gl.getName(), true, null).getId();
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
@@ -4272,7 +4292,8 @@ public class TestWorkspace {
 		refdata.put("ref", "refstarget2/stk2/1");
 		ObjectInformation globalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("globalrd"), refdata,
-						reftype, meta1, new Provenance(user2), false))).get(0);
+						reftype, meta1, new Provenance(user2).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/single/1"))), false))).get(0);
 		
 		
 		assertThat("got correct refs", ws.getReferencingObjects(user1,
@@ -4304,19 +4325,104 @@ public class TestWorkspace {
 						new ObjectIdentifier(wsitar2, "single2"),
 						new ObjectIdentifier(wsitar2, "single2", 1))),
 				is(Arrays.asList(
-						oiset(readable),
-						oiset(readable),
+						oiset(readable, globalrd),
+						oiset(readable, globalrd),
 						mtoiset,
 						mtoiset)));
 		
-		//TODO provenance references - normal + same ref in object and prov
-		//TODO fail method
-		//TODO read through method for more test cases
+		
+		ObjectInformation pstdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pstdref"), mtdata,
+						SAFE_TYPE1, meta1,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/1"))), false))).get(0);
+		ObjectInformation pstdref2 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pstdref"), mtdata,
+						SAFE_TYPE1, meta2, new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/2"))), false))).get(0);
+		ObjectInformation phiddenref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("phiddenref"), mtdata,
+						SAFE_TYPE1, meta1, new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/stk"))), true))).get(0);
+		@SuppressWarnings("unused")
+		ObjectInformation pdelref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pdelref"), mtdata,
+						SAFE_TYPE1, meta1,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2"))), true))).get(0);
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsisrc1, "pdelref")), true);
+		
+		ObjectInformation preadable = ws.saveObjects(user2, wsisrc2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("preadable"), mtdata,
+						SAFE_TYPE1, meta2, new Provenance(user2).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/single"))), true))).get(0);
+		
+		@SuppressWarnings("unused")
+		ObjectInformation punreadable = ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("punreadable"), mtdata,
+						SAFE_TYPE1, meta1, new Provenance(user2).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2/2"))), true))).get(0);
+		
+		ws.setWorkspaceDeleted(user1, wsisrcdel1, false);
+		@SuppressWarnings("unused")
+		ObjectInformation pwsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pwsdeletedreadable1"), mtdata,
+						SAFE_TYPE1, meta2, new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget2/single2/1"))), false))).get(0);
+		ws.setWorkspaceDeleted(user1, wsisrcdel1, true);
+		
+		ObjectInformation pglobalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pglobalrd"), mtdata,
+						SAFE_TYPE1, meta1, new Provenance(user2).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2/1"))), false))).get(0);
+		
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar1, "stk"),
+						new ObjectIdentifier(wsitar1, "stk", 2),
+						new ObjectIdentifier(wsitar1, "stk", 1))),
+				is(Arrays.asList(
+						oiset(stdref2, hiddenref, pstdref2, phiddenref),
+						oiset(stdref2, hiddenref, pstdref2, phiddenref),
+						oiset(stdref1, pstdref1))));
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar2, "stk2"),
+						new ObjectIdentifier(wsitar2, "stk2", 2),
+						new ObjectIdentifier(wsitar2, "stk2", 1))),
+				is(Arrays.asList(
+						mtoiset,
+						mtoiset,
+						oiset(globalrd, pglobalrd))));
+		
+		assertThat("got correct refs", ws.getReferencingObjects(user1,
+				Arrays.asList(
+						new ObjectIdentifier(wsitar1, "single"),
+						new ObjectIdentifier(wsitar1, "single", 1),
+						new ObjectIdentifier(wsitar2, "single2"),
+						new ObjectIdentifier(wsitar2, "single2", 1))),
+				is(Arrays.asList(
+						oiset(readable, globalrd, preadable),
+						oiset(readable, globalrd, preadable),
+						mtoiset,
+						mtoiset)));
+		
+		try {
+			ws.getReferencingObjects(user2, Arrays.asList(
+					new ObjectIdentifier(wsisrc1, 1)));
+			fail("Able to get ref obj data from private workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 1 cannot be accessed: User refUser2 may not read workspace refssource1"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(wsisrc1, 1)));
+		}
 		
 		ws.setGlobalPermission(user2, wsisrc2gl, Permission.NONE);
-		
 	}
-
+	
 	private Set<ObjectInformation> oiset(ObjectInformation... ois) {
 		return new HashSet<ObjectInformation>(Arrays.asList(ois));
 	}
