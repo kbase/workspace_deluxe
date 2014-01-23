@@ -473,7 +473,7 @@ public class JsonServerServlet extends HttpServlet {
 		
 		private void checkForLength() {
 			if (maxObjectSize != null && commonLenght > maxObjectSize)
-				throw new IllegalStateException("Object is too big, length=" + commonLenght + " >= " + maxObjectSize);
+				throw new IllegalStateException("Object is too big, length is more than " + maxObjectSize + " bytes");
 		}
 		
 		@Override
