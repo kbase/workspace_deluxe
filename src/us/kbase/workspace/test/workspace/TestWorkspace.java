@@ -4478,6 +4478,25 @@ public class TestWorkspace {
 	}
 	
 	@Test
+	public void removeTypeTest() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("foo");
+		String moduleName = "MyMod3";
+		ws.requestModuleRegistration(user, moduleName);
+		ws.resolveModuleRegistration(moduleName, true);
+		ws.compileNewTypeSpec(user, "module " + moduleName + " {" +
+				"typedef structure {string foo; list<int> bar; int baz;} AType; " +
+				"typedef structure {string whooo;} BType;};", 
+				Arrays.asList("AType", "BType"), null, null, false, null);
+		ws.compileTypeSpec(user, moduleName, Collections.<String>emptyList(),
+				Arrays.asList("BType"), Collections.<String, Long>emptyMap(), false);
+		List<Long> vers = ws.getModuleVersions(moduleName, user);
+		Collections.sort(vers);
+		Assert.assertEquals(2, vers.size());
+		Assert.assertEquals(2, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size());
+		Assert.assertEquals(1, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size());
+	}
+	
+	@Test
 	public void admin() throws Exception {
 		assertThat("no admins before adding any", ws.getAdmins(),
 				is((Set<WorkspaceUser>) new HashSet<WorkspaceUser>()));

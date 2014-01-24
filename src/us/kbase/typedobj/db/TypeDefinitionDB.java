@@ -449,8 +449,10 @@ public class TypeDefinitionDB {
 		try {
 			long moduleVersion = findModuleVersion(moduleDef, userId, isAdmin);
 			ModuleInfo info = storage.getModuleInfoRecord(moduleName, moduleVersion);
-			Map<AbsoluteTypeDefId, String> ret = new HashMap<AbsoluteTypeDefId, String>();
+			Map<AbsoluteTypeDefId, String> ret = new LinkedHashMap<AbsoluteTypeDefId, String>();
 			for (TypeInfo ti : info.getTypes().values()) {
+				if (!ti.isSupported())
+					continue;
 				String typeVersionText = ti.getTypeVersion();
 				String jsonSchema = storage.getTypeSchemaRecord(moduleName, ti.getTypeName(), typeVersionText);
 				SemanticVersion typeVer = new SemanticVersion(typeVersionText);
