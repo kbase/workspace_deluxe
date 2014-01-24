@@ -436,7 +436,7 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void testCreateWorkspaceAndGetMeta() throws Exception {
+	public void createWorkspaceAndGetMeta() throws Exception {
 		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
 		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
 		long id = info.getId();
@@ -476,7 +476,7 @@ public class TestWorkspace {
 	}
 	
 	@Test
-	public void testCreateWorkspaceAndWorkspaceIdentifierWithBadInput()
+	public void createWorkspaceAndWorkspaceIdentifierWithBadInput()
 			throws Exception {
 		class TestRig {
 			public final WorkspaceUser user;
@@ -499,6 +499,8 @@ public class TestWorkspace {
 				"Illegal character in workspace name afeaff/af*ea: /"));
 		userWS.add(new TestRig(crap, "af?eaff*afea",
 				"Illegal character in workspace name af?eaff*afea: ?"));
+		userWS.add(new TestRig(crap, "64",
+				"Workspace names cannot be integers: 64"));
 		//check missing ws name
 		userWS.add(new TestRig(crap, null,
 				"Workspace name cannot be null or the empty string"));
@@ -539,6 +541,9 @@ public class TestWorkspace {
 		userWS.add(new TestRig(SOMEUSER, "notauser:foo", 
 				"Workspace name notauser:foo must only contain the user name "
 				+ SOMEUSER.getUser() + " prior to the : delimiter"));
+		//no ints
+		userWS.add(new TestRig(new WorkspaceUser("foo"), "foo:64",
+				"Workspace names cannot be integers: foo:64"));
 		
 		for (TestRig testdata: userWS) {
 			WorkspaceUser user = testdata.user;
@@ -897,13 +902,11 @@ public class TestWorkspace {
 				Arrays.asList(new FakeObjectInfo(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
 						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
 						chksum1, 23L, meta2)), Arrays.asList(data));
-		try {
-			ws.saveObjects(bar, priv, objects);
-			fail("saved objects to unwritable workspace");
-		} catch (WorkspaceAuthorizationException auth) {
-			assertThat("correct exception message", auth.getLocalizedMessage(),
-					is("User bar may not write to workspace saveobj"));
-		}
+		
+		failSave(bar, priv, objects, new WorkspaceAuthorizationException("User bar may not write to workspace saveobj"));
+		
+		
+		
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
@@ -919,6 +922,18 @@ public class TestWorkspace {
 				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace saveobj"));
 		
 		ws.setGlobalPermission(foo, read, Permission.NONE);
+	}
+	
+	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, List<WorkspaceSaveObject> wso,
+			Exception exp)
+			throws Exception {
+		try {
+			ws.saveObjects(user, wsi, wso);
+			fail("Saved bad objects");
+		} catch (Exception e) {
+			assertThat("correct exception type", e, is(exp.getClass()));
+			assertThat("correct exception", e.getLocalizedMessage(), is(exp.getLocalizedMessage()));
+		}
 	}
 
 	private void checkObjectAndInfo(WorkspaceUser bar,
@@ -2175,6 +2190,8 @@ public class TestWorkspace {
 		testObjectIdentifier(goodWs, null, "Object name cannot be null or the empty string");
 		testObjectIdentifier(goodWs, "", "Object name cannot be null or the empty string");
 		testObjectIdentifier(goodWs, "f|o.A-1_2+", "Illegal character in object name f|o.A-1_2+: +");
+		testObjectIdentifier(goodWs, "-1", "Object names cannot be integers: -1");
+		testObjectIdentifier(goodWs, "15", "Object names cannot be integers: 15");
 		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
 		testObjectIdentifier(goodWs, TEXT101, "Object name exceeds the maximum length of 100");
 		testObjectIdentifier(1);
@@ -2189,6 +2206,8 @@ public class TestWorkspace {
 		testCreate(goodWs, TEXT101, null, "Object name exceeds the maximum length of 100");
 		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
 		testCreate(goodWs, "boo", 1L, "Must provide one and only one of object name (was: boo) or id (was: 1)");
+		testCreate(goodWs, "-1", null, "Object names cannot be integers: -1");
+		testCreate(goodWs, "15", null, "Object names cannot be integers: 15");
 		testCreateVer(goodWs, "boo", null, 1);
 		testCreateVer(goodWs, null, 1L, 1);
 		testCreateVer(goodWs, "boo", null, null);
@@ -2984,6 +3003,10 @@ public class TestWorkspace {
 		// a couple tests here
 		failClone(user1, cp1, "bar:fakename", new IllegalArgumentException(
 				"Workspace name bar:fakename must only contain the user name foo prior to the : delimiter"));
+		failClone(user1, cp1, "9", new IllegalArgumentException(
+				"Workspace names cannot be integers: 9"));
+		failClone(user1, cp1, "foo:9", new IllegalArgumentException(
+				"Workspace names cannot be integers: foo:9"));
 		failClone(user1, cp1, "foo:fake(name", new IllegalArgumentException(
 				"Illegal character in workspace name foo:fake(name: ("));
 		failClone(user2, cp1, "fakename", new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
@@ -3223,6 +3246,8 @@ public class TestWorkspace {
 				new Provenance(user), false)));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "bad%name", new IllegalArgumentException(
 				"Illegal character in object name bad%name: %"));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "2", new IllegalArgumentException(
+				"Object names cannot be integers: 2"));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "myoldname", new IllegalArgumentException(
 				"There is already an object in the workspace named myoldname"));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "mynewname", new IllegalArgumentException(
@@ -3278,6 +3303,10 @@ public class TestWorkspace {
 		
 		failWSRename(user, newwsi, "foo|bar",
 				new IllegalArgumentException("Illegal character in workspace name foo|bar: |"));
+		failWSRename(user, newwsi, "renameWSUser:9",
+				new IllegalArgumentException("Workspace names cannot be integers: renameWSUser:9"));
+		failWSRename(user, newwsi, "9",
+				new IllegalArgumentException("Workspace names cannot be integers: 9"));
 		failWSRename(user, newwsi, "foo:foobar",
 				new IllegalArgumentException(
 						"Workspace name foo:foobar must only contain the user name renameWSUser prior to the : delimiter"));

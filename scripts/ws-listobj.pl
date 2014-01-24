@@ -36,22 +36,46 @@ $usage = "\nNAME\n  ws-listobj -- list the objects in a workspace\n\nSYNOPSIS\n 
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
-    exit;
+	exit 0;
 }
 
+
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-    	exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
+
 #Instantiating parameters
-my $params = {
-	workspaces=>[$opt->{workspace}],
-	
-};
+#typedef structure {
+#		list<ws_name> workspaces;
+#		list<ws_id> ids;
+#		type_string type;
+#		permission perm;
+#		list<username> savedby;
+#		usermeta meta;
+#		boolean showDeleted;
+#		boolean showOnlyDeleted;
+#		boolean showHidden;
+#		boolean showAllVersions;
+#		boolean includeMetadata;
+#	} ListObjectsParams;
+
+
+my $params = {};
+if ($opt->{workspace} =~ /^\d+$/ ) { #is ID
+	$params->{ids}=[$opt->{workspace}+0];
+} else { #is name
+	$params->{workspaces}=[$opt->{workspace}];
+}
+
 foreach my $key (keys(%{$translation})) {
 	if (defined($opt->{$key})) {
 		$params->{$translation->{$key}} = $opt->{$key};

@@ -27,6 +27,10 @@ if (defined($opt->{help})) {
 	print $usage;
     exit;
 }
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 
 my $workspace = workspace($ARGV[0]);
 

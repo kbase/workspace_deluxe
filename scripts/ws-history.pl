@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace getObjectRef parseObjectMeta parseWorkspaceMeta);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
@@ -34,16 +34,20 @@ if (defined($opt->{help})) {
 }
 
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-    	exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
 #Instantiating parameters
 my $params = {
-	      ref => $opt->{workspace} ."/".$opt->{"Object ID or Name"},
+	      ref => getObjectRef($opt->{workspace},$opt->{"Object ID or Name"},undef),
 	      };
 
 
