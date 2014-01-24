@@ -324,7 +324,10 @@ public class FileTypeStorage implements TypeStorage {
 			long moduleVersion = entry.getKey();
 			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
 			if (info.getTypes().containsKey(typeName)) {
-				String typeVer = info.getTypes().get(typeName).getTypeVersion();
+				TypeInfo ti = info.getTypes().get(typeName);
+				if (!ti.isSupported())
+					continue;
+				String typeVer = ti.getTypeVersion();
 				boolean prevTypeRet = ret.containsKey(typeVer) ? ret.get(typeVer) : false;
 				boolean newTypeRet = entry.getValue();
 				ret.put(typeVer, prevTypeRet || newTypeRet);
@@ -749,7 +752,8 @@ public class FileTypeStorage implements TypeStorage {
 		for (Map.Entry<Long, Boolean> entry : getAllModuleVersions(moduleName).entrySet()) {
 			long moduleVersion = entry.getKey();
 			ModuleInfo info = getModuleInfoRecord(moduleName, moduleVersion);
-			if (info.getTypes().containsKey(typeName) && info.getTypes().get(typeName).getTypeVersion().equals(typeVersion))
+			TypeInfo ti = info.getTypes().get(typeName);
+			if (ti != null && ti.isSupported() && ti.getTypeVersion().equals(typeVersion))
 				ret.put(moduleVersion, entry.getValue());
 		}
 		return ret;
