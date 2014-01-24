@@ -22,7 +22,7 @@ VERSION: 0.1.3 (Released 1/24/14)
 --------------------------------------
 
 UPDATED FEATURES / MAJOR BUG FIXES:
-- Fixed a bug where get_module_info reported removed types.
+- Fixed a bug where get_module_info and get_type_info reported removed types.
 - Scripts now allow IDs or object references to be used in place of object
   and workspace names.
 
