@@ -10,7 +10,7 @@ use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
 use JSON -support_by_pp;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta printObjectInfo);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace getObjectRef parseObjectMeta parseWorkspaceMeta printObjectInfo);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
@@ -39,21 +39,20 @@ if (defined($opt->{help})) {
 	exit;
 }
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-		exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
 #Instantiating parameters
-my $versionString='';
-if (defined($opt->{version})) {
-	$versionString="/".$opt->{version};
-}
-
 my $params = [{
-	      ref => $opt->{workspace} ."/".$opt->{"Object ID or Name"} .$versionString,
+	      ref => getObjectRef($opt->{workspace},$opt->{"Object ID or Name"},$opt->{version}),
 	      }];
 
 #Calling the server
