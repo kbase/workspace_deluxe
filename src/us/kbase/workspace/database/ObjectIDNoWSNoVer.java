@@ -56,10 +56,18 @@ public class ObjectIDNoWSNoVer {
 	//TODO unit tests
 	public static void checkObjectName(String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
+		
 		final Matcher m = INVALID_OBJ_NAMES.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal character in object name %s: %s", name, m.group()));
+		}
+		try {
+			Integer.parseInt(name);
+			throw new IllegalArgumentException(
+					"Object names cannot be integers: " + name);
+		} catch (NumberFormatException nfe) {
+			//do nothing, name is ok
 		}
 	}
 

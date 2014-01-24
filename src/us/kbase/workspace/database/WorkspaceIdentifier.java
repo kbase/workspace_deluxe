@@ -48,6 +48,12 @@ public class WorkspaceIdentifier {
 	public static void checkWorkspaceName(final String name,
 			final WorkspaceUser user) {
 		checkString(name, "Workspace name", MAX_NAME_LENGTH);
+		final Matcher m = INVALID_WS_NAMES.matcher(name);
+		String wsname = name;
+		if (m.find()) {
+			throw new IllegalArgumentException(String.format(
+					"Illegal character in workspace name %s: %s", name, m.group()));
+		}
 		int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
 			throw new IllegalArgumentException(String.format(
@@ -68,11 +74,14 @@ public class WorkspaceIdentifier {
 						"Workspace name %s must only contain the user name %s prior to the %s delimiter",
 						name, user.getUser(), WS_NAME_DELIMITER));
 			}
+			wsname = user_ws[1];
 		}
-		final Matcher m = INVALID_WS_NAMES.matcher(name);
-		if (m.find()) {
-			throw new IllegalArgumentException(String.format(
-					"Illegal character in workspace name %s: %s", name, m.group()));
+		try {
+			Integer.parseInt(wsname);
+			throw new IllegalArgumentException(
+					"Workspace names cannot be integers: " + name);
+		} catch (NumberFormatException nfe) {
+			//do nothing, name is ok
 		}
 	}
 	
