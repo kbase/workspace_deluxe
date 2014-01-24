@@ -7,7 +7,7 @@ use Exporter;
 use Config::Simple;
 use Data::Dumper;
 use parent qw(Exporter);
-our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta parseObjectInfo printObjectInfo);
+our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL getObjectRef parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta parseObjectInfo printObjectInfo);
 
 our $defaultURL = "https://kbase.us/services/ws";
 our $localhostURL = "http://127.0.0.1:7058";
@@ -129,6 +129,28 @@ sub workspaceURL {
 	}
 	return $currentURL;
 }
+
+
+# given the strings passed to a script as an ws, object name, and version returns
+# the reference string of the object. The magic is that if, in the object name,
+# it is a reference to begin with, then that reference information overrides
+# what is passed in as other args or if there is a default workspace set.
+sub getObjectRef {
+	my($ws,$obj,$ver) = @_;
+	my $versionString = '';
+	if (defined($ver)) { if($ver ne '') { $versionString="/".$ver;} }
+	my @tokens = split(/\//, $obj);
+	if (scalar(@tokens)==1) {
+		return $ws."/".$obj.$versionString;
+	} elsif (scalar(@tokens)==2) {
+		return $tokens[0]."/".$tokens[1].$versionString;
+	} elsif (scalar(@tokens)==3) {
+		return $obj;
+	}
+	#should never get here!!!
+	return $ws."/".$obj.$versionString;
+}
+
 
 sub parseObjectMeta {
 	my $object = shift;
