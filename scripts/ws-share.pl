@@ -42,11 +42,15 @@ if (defined($opt->{help})) {
     exit;
 }
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information.\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-    	exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information.\n";
+		exit 1;
 	}
 }
 #Instantiating parameters
@@ -62,9 +66,15 @@ if (defined($opt->{globalread})) {
 	if ($opt->{globalread} ne '') {
 		if ($opt->{showerror} == 0){
 			eval {
-				$serv->set_global_permission(
-					{workspace => $params->{workspace},
-					 new_permission => $opt->{globalread}});
+				if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+					$serv->set_global_permission(
+						{id => $params->{workspace},
+						new_permission => $opt->{globalread}});
+				} else { #is name
+					$serv->set_global_permission(
+						{workspace => $params->{workspace},
+						new_permission => $opt->{globalread}});
+				}
 			};
 			if($@) {
 				print "Cannot set global permission for workspace $params->{workspace}! Run with -e for full stack trace.\n";
@@ -74,9 +84,15 @@ if (defined($opt->{globalread})) {
 				exit 1;
 			}
 		} else {
-			$serv->set_global_permission(
-				{workspace => $params->{workspace},
-				 new_permission => $opt->{globalread}});
+			if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+				$serv->set_global_permission(
+					{id => $params->{workspace},
+					new_permission => $opt->{globalread}});
+			} else { #is name
+				$serv->set_global_permission(
+					{workspace => $params->{workspace},
+					new_permission => $opt->{globalread}});
+			}
 		}
 		# if we get here, setting global read worked
 		print "Successfully set global read permission to: $opt->{globalread}\n";
@@ -87,10 +103,17 @@ if (defined($opt->{users})) {
 	if (scalar(@userList)>0) {
 		if ($opt->{showerror} == 0){
 			eval {
-				$serv->set_permissions(
-					{workspace => $params->{workspace},
-					 new_permission => $opt->{perm},
-					 users => \@userList });
+				if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+					$serv->set_permissions(
+						{id => $params->{workspace},
+						 new_permission => $opt->{perm},
+						 users => \@userList });
+				} else { #is name
+					$serv->set_permissions(
+						{workspace => $params->{workspace},
+						 new_permission => $opt->{perm},
+						 users => \@userList });
+				}
 			};
 			if($@) {
 				print "Cannot set user permissions for workspace $params->{workspace}! Run with -e for full stack trace.\n";
@@ -100,10 +123,17 @@ if (defined($opt->{users})) {
 				exit 1;
 			}
 		} else {
-			$serv->set_permissions(
-				{workspace => $params->{workspace},
-				 new_permission => $opt->{perm},
-				 users => \@userList });
+			if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+				$serv->set_permissions(
+					{id => $params->{workspace},
+					 new_permission => $opt->{perm},
+					 users => \@userList });
+			} else { #is name
+				$serv->set_permissions(
+					{workspace => $params->{workspace},
+					 new_permission => $opt->{perm},
+					 users => \@userList });
+			}
 		}
 		print "Successfully set user permissions to: $opt->{perm}\n";
 	}
@@ -115,8 +145,13 @@ my $wsinfo;
 my $userPerm;
 if ($opt->{showerror} == 0){
 	eval {
-		$wsinfo = $serv->get_workspace_info({workspace => $params->{workspace}});
-		$userPerm = $serv->get_permissions({workspace => $params->{workspace}});
+		if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+			$wsinfo = $serv->get_workspace_info({id => $params->{workspace}});
+			$userPerm = $serv->get_permissions({id => $params->{workspace}});
+		} else { #is name
+			$wsinfo = $serv->get_workspace_info({workspace => $params->{workspace}});
+			$userPerm = $serv->get_permissions({workspace => $params->{workspace}});
+		}
 	};
 	if($@) {
 		print "Cannot view permissions for workspace $params->{workspace}! Run with -e for full stack trace.\n";
@@ -126,8 +161,13 @@ if ($opt->{showerror} == 0){
 		exit 1;
 	}
 } else {
-	$wsinfo = $serv->get_workspace_info({workspace => $params->{workspace}});
-	$userPerm = $serv->get_permissions({workspace => $params->{workspace}});
+	if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+		$wsinfo = $serv->get_workspace_info({id => $params->{workspace}});
+		$userPerm = $serv->get_permissions({id => $params->{workspace}});
+	} else { #is name
+		$wsinfo = $serv->get_workspace_info({workspace => $params->{workspace}});
+		$userPerm = $serv->get_permissions({workspace => $params->{workspace}});
+	}
 }
 
 #print results

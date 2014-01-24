@@ -37,17 +37,26 @@ if (defined($opt->{help})) {
 	exit;
 }
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-		exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
-
+my $wsi = {};
+if ($opt->{workspace} =~ /^\d+$/ ) { #is ID
+	$wsi->{id}=$opt->{workspace}+0;
+} else { #is name
+	$wsi->{workspace}=$opt->{workspace};
+}
 #Instantiating parameters
 my $params = {
-	      wsi => { workspace=>$opt->{workspace} },
+	      wsi => $wsi,
 	      workspace => $opt->{"Destination workspace name"}
 	      };
 foreach my $key (keys(%{$translation})) {
@@ -72,6 +81,6 @@ if ($opt->{showerror} == 0){
 }
 
 my $obj = parseWorkspaceInfo($output);
-print "Workspace with ".$obj->{objects}." objects cloned into: ".$obj->{workspace}." with id: ".$obj->{id}."\n";
+print "Workspace with ".$obj->{objects}." objects cloned into: ".$opt->{"Destination workspace name"}." with id: ".$obj->{id}."\n";
 
 exit 0;

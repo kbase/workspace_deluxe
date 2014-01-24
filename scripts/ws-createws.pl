@@ -34,11 +34,15 @@ if (defined($opt->{help})) {
 	exit 0;
 }
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-		exit 0;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
 #Instantiating parameters

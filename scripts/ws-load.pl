@@ -48,11 +48,15 @@ if (defined($opt->{help})) {
 }
 
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-    	exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
 #Instantiating parameters
@@ -123,7 +127,6 @@ $params->{provenance} = [ $PA ];
 
 # setup the new save_objects parameters
 my $saveObjectsParams = {
-		"workspace" => $params->{workspace},
 		"objects" => [
 			   {
 				"data"  => $params->{data},
@@ -134,6 +137,11 @@ my $saveObjectsParams = {
 			   }
 			]
 	};
+if ($params->{workspace} =~ /^\d+$/ ) { #is ID
+	$saveObjectsParams->{id}=$opt->{workspace}+0;
+} else { #is name
+	$saveObjectsParams->{workspace}=$opt->{workspace};
+}
 
 #Calling the server
 my $output;

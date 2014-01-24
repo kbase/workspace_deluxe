@@ -10,7 +10,7 @@ use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
 use JSON -support_by_pp;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace getObjectRef parseObjectMeta parseWorkspaceMeta);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
@@ -35,22 +35,31 @@ if (defined($opt->{help})) {
 	exit;
 }
 #Processing primary arguments
+if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	exit 1;
+}
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
 	if (!defined($opt->{$arg})) {
-		print $usage;
-		exit;
+		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
+		exit 1;
 	}
 }
 #Instantiating parameters
 my $versionRaw = $opt->{"Version to revert to"};
-my $versionString='';
-if (defined($opt->{"Version to revert to"})) {
-	$versionString="/".$opt->{"Version to revert to"};
+
+
+
+my @tokens = split(/\//, $opt->{"Object ID or Name"});
+if (scalar(@tokens)>=3) {
+	print STDERR "Malformed Object ID or Name - you cannot specify a version of an object to revert.\n";
+	exit 1;
 }
+	
 
 my $params = {
-	      ref => $opt->{workspace} ."/".$opt->{"Object ID or Name"} .$versionString,
+	      ref => getObjectRef($opt->{workspace}, $opt->{"Object ID or Name"},undef)."/".$opt->{"Version to revert to"},
 	      };
 
 #Calling the server
