@@ -4524,6 +4524,9 @@ public class TestWorkspace {
 		Assert.assertEquals(2, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size());
 		Assert.assertEquals(1, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size());
 		Assert.assertEquals(Arrays.asList(vers.get(0)), ws.getModuleVersions(new TypeDefId(moduleName + ".BType", "0.1"), user));
+		ws.releaseTypes(user, moduleName);
+		Assert.assertEquals(1, ws.getModuleVersions(new TypeDefId(moduleName + ".AType"), null).size());
+		Assert.assertEquals(moduleName + ".AType-1.0", ws.getTypeInfo(moduleName + ".AType", false, null).getTypeDefId());
 	}
 	
 	@Test
