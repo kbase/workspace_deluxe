@@ -28,7 +28,7 @@ if (defined($opt->{help})) {
     exit;
 }
 if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
-	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
+	print STDERR "Too many input arguments given.  Run with -h or --help for usage information.\n";
 	exit 1;
 }
 
@@ -40,7 +40,13 @@ print "Current workspace set to:\n".$workspace."\n";
 my $serv = get_ws_client();
 
 my $wsinfo;
-eval { $wsinfo = $serv->get_workspace_info({workspace=>$workspace}); };
+eval {
+	if ($workspace =~ /^\d+$/ ) { #is ID
+		$wsinfo = $serv->get_workspace_info({id=>$workspace});
+	} else { #is name
+		$wsinfo = $serv->get_workspace_info({workspace=>$workspace});
+	}
+};
 if($@) {
 	print "Cannot confirm that the workspace exists!\n";
 	print STDERR $@->{message}."\n";
