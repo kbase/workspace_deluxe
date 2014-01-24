@@ -606,9 +606,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
 			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#}", 
-					"versionTime", Long.class, "released", Boolean.class, 
-					moduleName, typeVersion);
+			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#," +
+					"'types." + typeName + ".supported':#}", "versionTime", Long.class, 
+					"released", Boolean.class, moduleName, typeVersion, true);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
