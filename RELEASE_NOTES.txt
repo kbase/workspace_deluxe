@@ -18,6 +18,12 @@ TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.1.3 (Released 1/24/14)
+--------------------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Fixed a bug where get_module_info reported removed types.
+
 VERSION: 0.1.2 (Released 1/23/14)
 --------------------------------------
 
