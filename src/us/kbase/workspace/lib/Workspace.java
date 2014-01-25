@@ -66,12 +66,9 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspace {
 	
 	//TODO general unit tests
-	//TODO list workspaces w/ filters on globalread, user, deleted (ONWER)
-	//TODO list objects w/ filters on ws, creator, type, meta, deleted (WRITE), hidden
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain
 	//TODO import shock objects
-	//TODO find objects that reference another object
 	//TODO think about listing most recent version of objects - possible to avoid sort if not querying by object id/name?
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
 	//TODO BIG SHOCK shock acl integration. Needs auth groups. group = workspace.
@@ -308,7 +305,6 @@ public class Workspace {
 		db.setGlobalPermission(wsid, permission);
 	}
 
-	//TODO refactor to use permission sets
 	public Map<User, Permission> getPermissions(final WorkspaceUser user,
 				final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
 				WorkspaceCommunicationException, CorruptWorkspaceDBException {

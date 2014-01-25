@@ -163,7 +163,6 @@ public class JSONRPCLayerTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		//TODO catch exceptions and print nice errors - next deploy
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
 		USER3 = System.getProperty("test.user3");
