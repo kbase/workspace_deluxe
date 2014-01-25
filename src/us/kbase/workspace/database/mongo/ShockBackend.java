@@ -68,6 +68,10 @@ public class ShockBackend implements BlobStore {
 		} catch (InvalidShockUrlException isue) {
 			throw new BlobStoreException(
 					"The shock url " + url + " is invalid", isue);
+		} catch (ShockHttpException she) {
+			throw new BlobStoreException(
+					"Shock appears to be misconfigured - the client could not initialize",
+					she);
 		} catch (TokenExpiredException ete) {
 			throw new BlobStoreException( //uh... this should never happen
 					"The token retrieved from the auth service is already " +
