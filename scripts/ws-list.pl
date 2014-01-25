@@ -100,7 +100,15 @@ my $table = Text::Table->new(
     );
 my @sorted_tbl = @$output;
 if (defined($opt->{column})) {
-	@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
+	if ($opt->{column}==5) {
+		#size is numeric, so sort numerically, largest first
+		@sorted_tbl = sort { $b->[$opt->{column}-1] <=> $a->[$opt->{column}-1] } @sorted_tbl;
+	} elsif ( $opt->{column}==1) {
+		#id is numeric, so sort numerically, largest last
+		@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
+	} else {
+		@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
+	}
 }
 $table->load(@sorted_tbl);
 print $table;

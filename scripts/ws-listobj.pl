@@ -142,7 +142,15 @@ if (!defined($output)) {
 		);
 	my @sorted_tbl = @$tbl;
 	if (defined($opt->{column})) {
-		@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
+		if ($opt->{column}==8) {
+			#size is numeric, so sort numerically, largest first
+			@sorted_tbl = sort { $b->[$opt->{column}-1] <=> $a->[$opt->{column}-1] } @sorted_tbl;
+		} elsif ( $opt->{column}==1 || $opt->{column}==3) {
+			#id and version numbers are numeric, so sort numerically, largest last
+			@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
+		} else {
+			@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
+		}
 	}
 	$table->load(@sorted_tbl);
 	print $table;
