@@ -1,10 +1,11 @@
 package us.kbase.workspace.lib;
 
+import static us.kbase.workspace.database.Util.checkSize;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -39,7 +40,7 @@ public class WorkspaceSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkMeta(userMeta);
+		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 	
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
@@ -55,7 +56,7 @@ public class WorkspaceSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkMeta(userMeta);
+		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 
 	private JsonNode transformData(final Object data) {
@@ -72,24 +73,6 @@ public class WorkspaceSaveObject {
 		return retdata;
 	}
 	
-	private final static String META_ERR = String.format(
-			"Metadata is > %s bytes", MAX_USER_META_SIZE);
-	
-	private void checkMeta(final Map<String, String> meta) {
-		if (meta != null) {
-			final String jsonmeta;
-			try {
-				jsonmeta = MAPPER.writeValueAsString(meta);
-			} catch (JsonProcessingException jpe) {
-				throw new IllegalArgumentException(
-						"Unable to serialize metadata", jpe);
-			}
-			if (jsonmeta.length() > MAX_USER_META_SIZE) {
-				throw new IllegalArgumentException(META_ERR);
-			}
-		}
-	}
-
 	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;
 	}

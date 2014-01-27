@@ -110,6 +110,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final long MAX_OBJECT_SIZE = 200005000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
+	private static final long MAX_WS_META_SIZE = 16000;
 	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -137,6 +138,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Arrays.asList(Fields.WS_ID), Arrays.asList(IDX_UNIQ));
 		//find workspaces by mutable name
 		ws.put(Arrays.asList(Fields.WS_NAME), Arrays.asList(IDX_UNIQ));
+		//find workspaces by metadata
+		ws.put(Arrays.asList(Fields.WS_META), Arrays.asList(IDX_SPARSE));
 		INDEXES.put(COL_WORKSPACES, ws);
 		
 		//workspace acl indexes

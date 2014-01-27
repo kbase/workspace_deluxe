@@ -26,6 +26,7 @@ public class Fields {
 	public static final String WS_NUMOBJ = "numObj";
 	public static final String WS_DESC = "desc";
 	public static final String WS_LOCKED = "lock";
+	public static final String WS_META = "meta";
 
 	// workspace acl fields
 	public static final String ACL_WSID = "id";
@@ -75,5 +76,4 @@ public class Fields {
 	
 	// admin fields
 	public static final String ADMIN_NAME = "user";
-
 }
