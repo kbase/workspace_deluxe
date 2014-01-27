@@ -313,6 +313,11 @@ public class JSONRPCLayerTest {
 	}
 	
 	@Test
+	public void ver() throws Exception {
+		assertThat("got correct version", CLIENT1.ver(), is("0.1.4"));
+	}
+	
+	@Test
 	public void createWSandCheck() throws Exception {
 		Tuple8<Long, String, String, String, Long, String, String, String> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()

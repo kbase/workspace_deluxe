@@ -18,6 +18,29 @@ TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.1.4 (Released TBD)
+--------------------------------------
+
+NEW FEATURES:
+- Get the version of the workspace server.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- 
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- Unified WS / Shock ACLs
+- Pointers to shock data too large to fit in the workspace
+- Get objects by reference chain
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing queue (share specific versions of objects)
+- Add searchable, mutable metadata to a workspace
+- Import TOs from shock
+- Update copied objects from source
+- Improvements to returning the subset of an object
+
 VERSION: 0.1.3 (Released 1/24/14)
 --------------------------------------
 
