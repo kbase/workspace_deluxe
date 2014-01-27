@@ -49,6 +49,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.CountingOutputStream;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;

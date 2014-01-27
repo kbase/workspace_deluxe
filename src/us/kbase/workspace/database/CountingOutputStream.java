@@ -1,4 +1,4 @@
-package us.kbase.workspace.database.mongo;
+package us.kbase.workspace.database;
 
 import java.io.IOException;
 import java.io.OutputStream;

@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import java.io.IOException;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,19 +21,25 @@ public class Util {
 	
 	public static void checkSize(final Map<String, ? extends Object> o,
 			final String dataName, final int maxsize) {
-		if (o != null) {
-			final String jsonmeta;
+		final CountingOutputStream cos = new CountingOutputStream();
+		try {
+			//writes in UTF8
+			MAPPER.writeValue(cos, o);
+		} catch (JsonProcessingException jpe) {
+			throw new IllegalArgumentException(
+					"Unable to serialize metadata", jpe);
+		} catch (IOException ioe) {
+			throw new RuntimeException("something's broken", ioe);
+		} finally {
 			try {
-				jsonmeta = MAPPER.writeValueAsString(o);
-			} catch (JsonProcessingException jpe) {
-				throw new IllegalArgumentException(
-						"Unable to serialize metadata", jpe);
-			}
-			if (jsonmeta.length() > maxsize) {
-				throw new IllegalArgumentException(String.format(
-						dataName + " is > %s bytes", maxsize));
+				cos.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException("something's broken", ioe);
 			}
 		}
+		if (cos.getSize() > maxsize) {
+				throw new IllegalArgumentException(String.format(
+						dataName + " is > %s bytes", maxsize));
+		}
 	}
-
 }
