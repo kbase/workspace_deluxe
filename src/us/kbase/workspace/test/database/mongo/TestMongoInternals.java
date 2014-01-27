@@ -96,7 +96,7 @@ public class TestMongoInternals {
 		TypeDefId refcounttype = new TypeDefId(new TypeDefName(mod, "RefType"), 0, 1);
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");
-		long wsid = ws.createWorkspace(userfoo, wspace.getName(), false, null).getId();
+		long wsid = ws.createWorkspace(userfoo, wspace.getName(), false, null, null).getId();
 		Provenance emptyprov = new Provenance(userfoo);
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
@@ -128,7 +128,7 @@ public class TestMongoInternals {
 		}
 		checkRefCounts(wsid, expected, 1);
 		WorkspaceIdentifier wspace2 = new WorkspaceIdentifier("refcount2");
-		ws.createWorkspace(userfoo, wspace2.getName(), false, null).getId();
+		ws.createWorkspace(userfoo, wspace2.getName(), false, null, null).getId();
 		
 		for (int i = 1; i <= 16; i++) {
 			ws.copyObject(userfoo, new ObjectIdentifier(wspace, "auto" + (i + 4)),
@@ -208,7 +208,7 @@ public class TestMongoInternals {
 		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetType"), 0, 1);
 		
 		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("subset");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null);
+		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("booger", 6);
 		Map<String, Object> bugs = new HashMap<String, Object>();
@@ -289,7 +289,7 @@ public class TestMongoInternals {
 		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetEscapeType"), null, null, false, null);
 		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetEscapeType"), 0, 1);
 		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("escapesubset");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null);
+		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> expected = new HashMap<String, Object>();
@@ -357,7 +357,7 @@ public class TestMongoInternals {
 		
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		WorkspaceIdentifier copyrev = new WorkspaceIdentifier(wsprefix);
-		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null).getId();
+		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null, null).getId();
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
@@ -472,7 +472,7 @@ public class TestMongoInternals {
 	public void dates() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		WorkspaceIdentifier dates = new WorkspaceIdentifier("dates");
-		long wsid = ws.createWorkspace(userfoo, dates.getName(), false, null).getId();
+		long wsid = ws.createWorkspace(userfoo, dates.getName(), false, null, null).getId();
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, dates, Arrays.asList(

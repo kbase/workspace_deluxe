@@ -388,7 +388,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
-			final String description) throws PreExistingWorkspaceException,
+			final String description, final Map<String, String> meta)
+			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		//avoid incrementing the counter if we don't have to
 		try {
@@ -453,7 +454,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// looked at using copyObject to do this but was too messy
 		final ResolvedMongoWSID fromWS = query.convertResolvedWSID(wsid);
 		final WorkspaceInformation wsinfo =
-				createWorkspace(user, newname, globalRead, description);
+				createWorkspace(user, newname, globalRead, description, null); //TODO deal with meta on cloning
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
 				wsinfo.getId(), wsinfo.isLocked());
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
@@ -2718,7 +2719,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 		@Test
 		public void createObject() throws Exception {
-			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null);
+			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
 			Map<String, Object> data = new HashMap<String, Object>();
 			Map<String, String> meta = new HashMap<String, String>();
 			Map<String, Object> moredata = new HashMap<String, Object>();

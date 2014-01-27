@@ -63,7 +63,7 @@ public class WorkspaceServerMethods {
 		Permission p = au.getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(user,
 				params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription());
+				params.getDescription(), null);
 		return au.wsInfoToTuple(meta);
 	}
 	

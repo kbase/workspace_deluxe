@@ -327,9 +327,9 @@ public class TestWorkspace {
 	
 	@Test
 	public void testWorkspaceDescription() throws Exception {
-		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT);
-		WorkspaceInformation ltpinfo = ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART);
-		WorkspaceInformation ltninfo = ws.createWorkspace(SOMEUSER, "ltn", false, null);
+		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
+		WorkspaceInformation ltpinfo = ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART, null);
+		WorkspaceInformation ltninfo = ws.createWorkspace(SOMEUSER, "ltn", false, null, null);
 		String desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
 		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"));
@@ -437,7 +437,7 @@ public class TestWorkspace {
 	
 	@Test
 	public void createWorkspaceAndGetMeta() throws Exception {
-		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen");
+		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen", null);
 		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
@@ -463,7 +463,7 @@ public class TestWorkspace {
 		}
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
-		info = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal");
+		info = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal", null);
 		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked");
 		id = info.getId();
 		moddate = info.getModDate();
@@ -549,7 +549,7 @@ public class TestWorkspace {
 			WorkspaceUser user = testdata.user;
 			String wksps = testdata.wsname;
 			try {
-				ws.createWorkspace(user, wksps, false, "iswaffertheen");
+				ws.createWorkspace(user, wksps, false, "iswaffertheen", null);
 				fail(String.format("able to create workspace with illegal input user: %s ws %s",
 						user, wksps));
 			} catch (IllegalArgumentException e) {
@@ -569,9 +569,9 @@ public class TestWorkspace {
 	
 	@Test
 	public void preExistingWorkspace() throws Exception {
-		ws.createWorkspace(AUSER, "preexist", false, null);
+		ws.createWorkspace(AUSER, "preexist", false, null, null);
 		try {
-			ws.createWorkspace(BUSER, "preexist", false, null);
+			ws.createWorkspace(BUSER, "preexist", false, null, null);
 			fail("able to create same workspace twice");
 		} catch (PreExistingWorkspaceException e) {
 			assertThat("exception message correct", e.getLocalizedMessage(),
@@ -623,9 +623,9 @@ public class TestWorkspace {
 	public void permissions() throws Exception {
 		//setup
 		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("perms_noglobal");
-		ws.createWorkspace(AUSER, "perms_noglobal", false, null);
+		ws.createWorkspace(AUSER, "perms_noglobal", false, null, null);
 		WorkspaceIdentifier wsiGL = new WorkspaceIdentifier("perms_global");
-		ws.createWorkspace(AUSER, "perms_global", true, "globaldesc");
+		ws.createWorkspace(AUSER, "perms_global", true, "globaldesc", null);
 		Map<User, Permission> expect = new HashMap<User, Permission>();
 		
 		//try some illegal ops
@@ -753,8 +753,8 @@ public class TestWorkspace {
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
-		ws.createWorkspace(foo, read.getIdentifierString(), true, null);
-		ws.createWorkspace(foo, priv.getIdentifierString(), false, null);
+		ws.createWorkspace(foo, read.getIdentifierString(), true, null, null);
+		ws.createWorkspace(foo, priv.getIdentifierString(), false, null, null);
 		long readid = ws.getWorkspaceInformation(foo, read).getId();
 		long privid = ws.getWorkspaceInformation(foo, priv).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -1067,7 +1067,7 @@ public class TestWorkspace {
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("typecheck");
-		ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
 		Provenance emptyprov = new Provenance(userfoo);
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
@@ -1240,7 +1240,7 @@ public class TestWorkspace {
 				new TypedObjectValidationException(
 						"Object #1 has inaccessible provenance reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
 		
-		ws.createWorkspace(userfoo, "tobedeleted", false, null);
+		ws.createWorkspace(userfoo, "tobedeleted", false, null, null);
 		ws.setWorkspaceDeleted(userfoo, new WorkspaceIdentifier("tobedeleted"), true);
 		refdata.put("ref", "tobedeleted/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
@@ -1252,7 +1252,7 @@ public class TestWorkspace {
 				new TypedObjectValidationException(
 						"Object #1 has inaccessible provenance reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
 		
-		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null);
+		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null, null);
 		refdata.put("ref", "stingyworkspace/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
@@ -1264,7 +1264,7 @@ public class TestWorkspace {
 						"Object #1 has inaccessible provenance reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
 		
 		//test inaccessible reference due to missing or deleted objects, incl bad versions
-		ws.createWorkspace(userfoo, "referencetesting", false, null);
+		ws.createWorkspace(userfoo, "referencetesting", false, null, null);
 		WorkspaceIdentifier reftest = new WorkspaceIdentifier("referencetesting");
 		ws.saveObjects(userfoo, reftest, Arrays.asList(
 				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)));
@@ -1325,7 +1325,7 @@ public class TestWorkspace {
 		ws.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
 		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 0, 1);
 
-		ws.createWorkspace(userfoo, "referencetypecheck", false, null);
+		ws.createWorkspace(userfoo, "referencetypecheck", false, null, null);
 		WorkspaceIdentifier reftypecheck = new WorkspaceIdentifier("referencetypecheck");
 		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
 		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
@@ -1459,7 +1459,7 @@ public class TestWorkspace {
 	public void saveProvenance() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("provenance");
-		ws.createWorkspace(foo, prov.getName(), false, null);
+		ws.createWorkspace(foo, prov.getName(), false, null, null);
 		long wsid = ws.getWorkspaceInformation(foo, prov).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "bar");
@@ -1626,7 +1626,7 @@ public class TestWorkspace {
 	public void saveLargeProvenance() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("bigprov");
-		ws.createWorkspace(foo, prov.getName(), false, null);
+		ws.createWorkspace(foo, prov.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "bar");
 		List<Object> methparams = new ArrayList<Object>();
@@ -1669,7 +1669,7 @@ public class TestWorkspace {
 		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetType"), 0, 1);
 		
 		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("bigsubdata");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null);
+		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
@@ -1697,7 +1697,7 @@ public class TestWorkspace {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
 		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
-		ws.createWorkspace(userfoo, bigdataws.getName(), false, null);
+		ws.createWorkspace(userfoo, bigdataws.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		data.put("subset", subdata);
@@ -1772,7 +1772,7 @@ public class TestWorkspace {
 		TypeDefId fromRef = new TypeDefId(new TypeDefName(mod, "FromRefType"), 0, 1);
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
-		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null);
+		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
 		long wsid = wi.getId();
 		Provenance emptyprov = new Provenance(userfoo);
 		Map<String, Object> torefdata = new HashMap<String, Object>();
@@ -1827,7 +1827,7 @@ public class TestWorkspace {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
 		WorkspaceIdentifier unicode = new WorkspaceIdentifier("unicode");
-		ws.createWorkspace(userfoo, unicode.getName(), false, null);
+		ws.createWorkspace(userfoo, unicode.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		StringBuilder sb = new StringBuilder();
@@ -1877,7 +1877,7 @@ public class TestWorkspace {
 	public void bigUserMetaErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, String> smallmeta = new HashMap<String, String>();
 		smallmeta.put("foo", "bar");
@@ -1911,7 +1911,7 @@ public class TestWorkspace {
 	public void saveWithWrongObjectId() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		JsonNode savedata = mapper.valueToTree(data);
 		try {
@@ -1930,7 +1930,7 @@ public class TestWorkspace {
 	public void unserializableData() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("unserializable");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
 		Object data = new StringReader("foo");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
@@ -1949,7 +1949,7 @@ public class TestWorkspace {
 	public void getNonexistantObjects() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null);
+		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
 		long readid = ws.getWorkspaceInformation(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
@@ -2236,7 +2236,7 @@ public class TestWorkspace {
 	public void deleteUndelete() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("deleteundelete");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
-		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip").getId();
+		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip", null).getId();
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
@@ -2549,7 +2549,7 @@ public class TestWorkspace {
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
 		WorkspaceIdentifier refs = new WorkspaceIdentifier(refws);
-		ws.createWorkspace(user1, refs.getName(), false, null);
+		ws.createWorkspace(user1, refs.getName(), false, null, null);
 		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 4; i++) {
 			refobjs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
@@ -2595,8 +2595,8 @@ public class TestWorkspace {
 		
 		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
 		WorkspaceIdentifier cp2 = new WorkspaceIdentifier(ws2);
-		ws.createWorkspace(user1, cp1.getName(), false, null).getId();
-		ws.createWorkspace(user2, cp2.getName(), false, null).getId();
+		ws.createWorkspace(user1, cp1.getName(), false, null, null).getId();
+		ws.createWorkspace(user2, cp2.getName(), false, null, null).getId();
 		saveObject(user1, cp1, meta1, data1, reftype, "hide", prov1, true);
 		saveObject(user1, cp1, meta2, data2, reftype, "hide", prov2, true);
 		saveObject(user1, cp1, meta3, data3, reftype, "hide", prov2, true);
@@ -3059,7 +3059,7 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("lockuser");
 		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
 		WorkspaceIdentifier wsi = lockWS;
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
@@ -3086,7 +3086,7 @@ public class TestWorkspace {
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is("No workspace with name nolock exists"));
 		}
-		ws.createWorkspace(user, "lock2", false, "foo");
+		ws.createWorkspace(user, "lock2", false, "foo", null);
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("lock2");
 		try {
 			ws.lockWorkspace(null, wsi2);
@@ -3226,8 +3226,8 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameObj");
 		WorkspaceUser user2 = new WorkspaceUser("renameObjUser2");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameObj2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
-		ws.createWorkspace(user2, wsi2.getName(), false, null);
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
@@ -3292,7 +3292,7 @@ public class TestWorkspace {
 		WorkspaceUser user2 = new WorkspaceUser("renameWSUser2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameWS");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameWS2");
-		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null);
+		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, null);
 		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
 		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
@@ -3311,7 +3311,7 @@ public class TestWorkspace {
 				new IllegalArgumentException(
 						"Workspace name foo:foobar must only contain the user name renameWSUser prior to the : delimiter"));
 		
-		ws.createWorkspace(user2, wsi2.getName(), false, null);
+		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
 		ws.setPermissions(user2, wsi2, Arrays.asList(user), Permission.WRITE);
 		failWSRename(user, newwsi, "renameWS2",
 				new IllegalArgumentException("There is already a workspace named renameWS2"));
@@ -3350,7 +3350,7 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("setGlobalUser");
 		WorkspaceUser user2 = new WorkspaceUser("setGlobalUser2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("global");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		failGetWorkspaceDesc(user2, wsi, new WorkspaceAuthorizationException(
 				"User setGlobalUser2 may not read workspace global"));
@@ -3409,7 +3409,7 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("hideObjUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("hideObj");
 		WorkspaceUser user2 = new WorkspaceUser("hideObjUser2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		ObjectInformation auto1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false))).get(0);
@@ -3483,38 +3483,38 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("listUser");
 		WorkspaceUser user2 = new WorkspaceUser("listUser2");
 		WorkspaceUser user3 = new WorkspaceUser("listUser3");
-		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null);
-		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null);
-		WorkspaceInformation deletedws = ws.createWorkspace(user, "deletedws", false, null);
+		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null, null);
+		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null, null);
+		WorkspaceInformation deletedws = ws.createWorkspace(user, "deletedws", false, null, null);
 		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("deletedws"), true);
 		
-		ws.createWorkspace(user2, "readable", false, null);
+		ws.createWorkspace(user2, "readable", false, null, null);
 		ws.setPermissions(user2, new WorkspaceIdentifier("readable"), Arrays.asList(user), Permission.READ);
 		WorkspaceInformation readable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("readable"));
-		ws.createWorkspace(user2, "writeable", false, null);
+		ws.createWorkspace(user2, "writeable", false, null, null);
 		ws.setPermissions(user2, new WorkspaceIdentifier("writeable"), Arrays.asList(user), Permission.WRITE);
 		WorkspaceInformation writeable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("writeable"));
-		ws.createWorkspace(user2, "adminable", false, null);
+		ws.createWorkspace(user2, "adminable", false, null, null);
 		ws.setPermissions(user2, new WorkspaceIdentifier("adminable"), Arrays.asList(user), Permission.ADMIN);
 		WorkspaceInformation adminable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("adminable"));
 		
 		@SuppressWarnings("unused")
-		WorkspaceInformation delreadable = ws.createWorkspace(user2, "delreadable", false, null);
+		WorkspaceInformation delreadable = ws.createWorkspace(user2, "delreadable", false, null, null);
 		ws.setPermissions(user2, new WorkspaceIdentifier("delreadable"), Arrays.asList(user), Permission.READ);
 		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("delreadable"), true);
-		ws.createWorkspace(user2, "globalreadable", true, null);
+		ws.createWorkspace(user2, "globalreadable", true, null, null);
 		WorkspaceInformation globalreadable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("globalreadable"));
 		@SuppressWarnings("unused")
 		WorkspaceInformation deletedglobalreadable =
-				ws.createWorkspace(user2, "deletedglobalreadable", true, null);
+				ws.createWorkspace(user2, "deletedglobalreadable", true, null, null);
 		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("deletedglobalreadable"), true);
 		@SuppressWarnings("unused")
-		WorkspaceInformation unreadable = ws.createWorkspace(user2, "unreadable", false, null);
+		WorkspaceInformation unreadable = ws.createWorkspace(user2, "unreadable", false, null, null);
 		
-		ws.createWorkspace(user3, "listuser3ws", false, null);
+		ws.createWorkspace(user3, "listuser3ws", false, null, null);
 		ws.setPermissions(user3, new WorkspaceIdentifier("listuser3ws"), Arrays.asList(user), Permission.READ);
 		WorkspaceInformation listuser3 = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3ws"));
-		ws.createWorkspace(user3, "listuser3glws", true, null);
+		ws.createWorkspace(user3, "listuser3glws", true, null, null);
 		WorkspaceInformation listuser3gl = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3glws"));
 		
 		
@@ -3660,15 +3660,15 @@ public class TestWorkspace {
 		WorkspaceIdentifier adminable = new WorkspaceIdentifier("listObjadmin");
 		WorkspaceIdentifier thirdparty = new WorkspaceIdentifier("thirdparty");
 		WorkspaceUser user2 = new WorkspaceUser("listObjUser2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
-		ws.createWorkspace(user2, readable.getName(), false, null).getId();
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user2, readable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, readable, Arrays.asList(user), Permission.READ);
-		long wsidwrite = ws.createWorkspace(user2, writeable.getName(), false, null).getId();
+		long wsidwrite = ws.createWorkspace(user2, writeable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, writeable, Arrays.asList(user), Permission.WRITE);
-		ws.createWorkspace(user2, adminable.getName(), false, null).getId();
+		ws.createWorkspace(user2, adminable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, adminable, Arrays.asList(user), Permission.ADMIN);
 		WorkspaceUser user3 = new WorkspaceUser("listObjUser3");
-		ws.createWorkspace(user3, thirdparty.getName(), true, null).getId();
+		ws.createWorkspace(user3, thirdparty.getName(), true, null, null).getId();
 		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("meta1", "1");
@@ -3947,7 +3947,7 @@ public class TestWorkspace {
 		failListObjects(user, Arrays.asList(wsi, writeable), null, meta32, true, true, false, true, true,
 				new IllegalArgumentException("Only one metadata spec allowed"));
 		
-		ws.createWorkspace(user, "listdel", false, null);
+		ws.createWorkspace(user, "listdel", false, null, null);
 		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("listdel"), true);
 		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listdel")), null, null, true, true, false, true, true,
 				new NoSuchWorkspaceException("Workspace listdel is deleted", wsi));
@@ -4055,7 +4055,7 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("subUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("subData");
 		WorkspaceUser user2 = new WorkspaceUser("subUser2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null).getId();
+		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
@@ -4245,16 +4245,16 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsisrcdel1 = new WorkspaceIdentifier("refssourcedel1");
 		WorkspaceIdentifier wsisrc2gl = new WorkspaceIdentifier("refssourcegl");
 		
-		ws.createWorkspace(user1, wsitar1.getName(), false, null).getId();
+		ws.createWorkspace(user1, wsitar1.getName(), false, null, null);
 		ws.setPermissions(user1, wsitar1, Arrays.asList(user2), Permission.READ);
-		ws.createWorkspace(user2, wsitar2.getName(), false, null).getId();
+		ws.createWorkspace(user2, wsitar2.getName(), false, null, null);
 		ws.setPermissions(user2, wsitar2, Arrays.asList(user1), Permission.READ);
-		ws.createWorkspace(user1, wsisrc1.getName(), false, null).getId();
-		ws.createWorkspace(user2, wsisrc2.getName(), false, null).getId();
+		ws.createWorkspace(user1, wsisrc1.getName(), false, null, null);
+		ws.createWorkspace(user2, wsisrc2.getName(), false, null, null);
 		ws.setPermissions(user2, wsisrc2, Arrays.asList(user1), Permission.READ);
-		ws.createWorkspace(user2, wsisrc2noaccess.getName(), false, null).getId();
-		ws.createWorkspace(user1, wsisrcdel1.getName(), false, null).getId();
-		ws.createWorkspace(user2, wsisrc2gl.getName(), true, null).getId();
+		ws.createWorkspace(user2, wsisrc2noaccess.getName(), false, null, null);
+		ws.createWorkspace(user1, wsisrcdel1.getName(), false, null, null);
+		ws.createWorkspace(user2, wsisrc2gl.getName(), true, null, null);
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		

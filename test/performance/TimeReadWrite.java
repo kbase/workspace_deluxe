@@ -445,7 +445,7 @@ public class TimeReadWrite {
 					new DefaultReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
-			ws.createWorkspace(foo, workspace, false, null);
+			ws.createWorkspace(foo, workspace, false, null, null);
 			type = TYPEDEF;
 		};
 		

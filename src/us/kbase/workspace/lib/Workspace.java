@@ -223,12 +223,13 @@ public class Workspace {
 	}
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
-			final String wsname, boolean globalread, final String description)
+			final String wsname, boolean globalread, final String description,
+			final Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
 		return db.createWorkspace(user, wsname, globalread,
-				pruneWorkspaceDescription(description));
+				pruneWorkspaceDescription(description), meta);
 	}
 	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
