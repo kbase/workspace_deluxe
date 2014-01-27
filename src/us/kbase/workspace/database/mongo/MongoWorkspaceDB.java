@@ -2,6 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static us.kbase.workspace.database.Util.checkSize;
 
 import java.io.File;
 import java.io.IOException;
@@ -111,7 +112,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final long MAX_OBJECT_SIZE = 200005000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
-	private static final long MAX_WS_META_SIZE = 16000;
+	private static final int MAX_WS_META_SIZE = 16000;
 	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -395,6 +396,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String description, final Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {
 			if (wsjongo.getCollection(COL_WORKSPACES).count(
@@ -424,6 +426,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
 		ws.put(Fields.WS_LOCKED, false);
+		if (meta != null) {
+			ws.put(Fields.WS_META, metaHashToMongoArray(meta));
+		}
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
@@ -1044,17 +1049,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Object> version = new HashMap<String, Object>();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
 		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
-		final List<Map<String, String>> meta = 
-				new ArrayList<Map<String, String>>();
-		if (pkg.wo.getUserMeta() != null) {
-			for (String key: pkg.wo.getUserMeta().keySet()) {
-				Map<String, String> m = new LinkedHashMap<String, String>(2);
-				m.put(Fields.VER_META_KEY, key);
-				m.put(Fields.VER_META_VALUE, pkg.wo.getUserMeta().get(key));
-				meta.add(m);
-			}
-		}
-		version.put(Fields.VER_META, meta);
+		version.put(Fields.VER_META, metaHashToMongoArray(
+				pkg.wo.getUserMeta()));
 		version.put(Fields.VER_REF, pkg.refs);
 		version.put(Fields.VER_PROVREF, pkg.provrefs);
 		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
@@ -1073,6 +1069,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
 				pkg.wo.getUserMeta() == null ? new HashMap<String, String>() :
 						pkg.wo.getUserMeta());
+	}
+
+	private List<Map<String, String>> metaHashToMongoArray(
+			final Map<String, String> usermeta) {
+		final List<Map<String, String>> meta = 
+				new ArrayList<Map<String, String>>();
+		if (usermeta != null) {
+			for (String key: usermeta.keySet()) {
+				Map<String, String> m = new LinkedHashMap<String, String>(2);
+				m.put(Fields.META_KEY, key);
+				m.put(Fields.META_VALUE, usermeta.get(key));
+				meta.add(m);
+			}
+		}
+		return meta;
 	}
 	
 
@@ -2234,8 +2245,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
 			for (final Entry<String, String> e: meta.entrySet()) {
 				final DBObject mentry = new BasicDBObject();
-				mentry.put(Fields.VER_META_KEY, e.getKey());
-				mentry.put(Fields.VER_META_VALUE, e.getValue());
+				mentry.put(Fields.META_KEY, e.getKey());
+				mentry.put(Fields.META_VALUE, e.getValue());
 				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
@@ -2429,8 +2440,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<Map<String, String>> meta) {
 		final Map<String, String> ret = new HashMap<String, String>();
 		for (final Map<String, String> m: meta) {
-			ret.put(m.get(Fields.VER_META_KEY),
-					m.get(Fields.VER_META_VALUE));
+			ret.put(m.get(Fields.META_KEY),
+					m.get(Fields.META_VALUE));
 		}
 		return ret;
 	}

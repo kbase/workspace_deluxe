@@ -59,9 +59,10 @@ public class Fields {
 	public static final String VER_RVRT = "revert";
 	public static final String VER_META = "meta";
 	public static final String VER_COPIED = "copied";
+	
 	// meta document key & value
-	public static final String VER_META_KEY = "k";
-	public static final String VER_META_VALUE = "v";
+	public static final String META_KEY = "k";
+	public static final String META_VALUE = "v";
 
 	// type fields
 	public static final String TYPE_CHKSUM = "chksum";
