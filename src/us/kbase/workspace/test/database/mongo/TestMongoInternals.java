@@ -137,7 +137,7 @@ public class TestMongoInternals {
 		checkRefCounts(wsid, expected, 2);
 		
 		WorkspaceIdentifier wspace3 = new WorkspaceIdentifier("refcount3");
-		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null);
+		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null, null);
 		checkRefCounts(wsid, expected, 3);
 		
 		for (int i = 1; i <= 16; i++) {
@@ -410,7 +410,7 @@ public class TestMongoInternals {
 			
 		}
 		
-		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2", false, null).getId();
+		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2", false, null, null).getId();
 		
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);

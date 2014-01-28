@@ -222,6 +222,7 @@ public class Workspace {
 		return ret;
 	}
 	
+	//TODO test what happens when removing/adding data to ws w/o meta
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
 			final String wsname, boolean globalread, final String description,
 			final Map<String, String> meta)
@@ -234,7 +235,8 @@ public class Workspace {
 	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname,
-			final boolean globalread, final String description)
+			final boolean globalread, final String description,
+			final Map<String, String> meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			PreExistingWorkspaceException {
@@ -242,7 +244,7 @@ public class Workspace {
 				"read");
 		new WorkspaceIdentifier(newname, user); //check for errors
 		return db.cloneWorkspace(user, wsid, newname, globalread,
-				pruneWorkspaceDescription(description));
+				pruneWorkspaceDescription(description), meta);
 	}
 	
 	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,

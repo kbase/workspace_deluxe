@@ -447,7 +447,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Arrays.asList(ALL_USERS), Permission.READ, false);
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
-				Permission.OWNER, globalRead, false);
+				Permission.OWNER, globalRead, false,
+				meta == null ? new HashMap<String, String>() : meta);
 	}
 	
 	private static final Set<String> FLDS_CLONE_WS =
@@ -457,13 +458,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final ResolvedWorkspaceID wsid, final String newname,
-			final boolean globalRead, final String description)
+			final boolean globalRead, final String description,
+			final Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		
 		// looked at using copyObject to do this but was too messy
 		final ResolvedMongoWSID fromWS = query.convertResolvedWSID(wsid);
 		final WorkspaceInformation wsinfo =
-				createWorkspace(user, newname, globalRead, description, null); //TODO deal with meta on cloning
+				createWorkspace(user, newname, globalRead, description, meta);
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
 				wsinfo.getId(), wsinfo.isLocked());
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
@@ -934,7 +937,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_WS_NO_DESC = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
 					Fields.WS_MODDATE, Fields.WS_NUMOBJ, Fields.WS_DEL,
-					Fields.WS_LOCKED);
+					Fields.WS_LOCKED, Fields.WS_META);
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
@@ -1002,6 +1005,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private WorkspaceInformation generateWSInfo(final ResolvedWorkspaceID rwsi,
 			final PermissionSet perms, final Map<String, Object> wsdata) {
+		
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> meta =
+				(List<Map<String, String>>) wsdata.get(Fields.WS_META);
 		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
@@ -1009,7 +1016,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(Long) wsdata.get(Fields.WS_NUMOBJ),
 				perms.getUserPermission(rwsi),
 				perms.isWorldReadable(rwsi),
-				(Boolean) wsdata.get(Fields.WS_LOCKED));
+				(Boolean) wsdata.get(Fields.WS_LOCKED),
+				metaMongoArrayToHash(meta));
 	}
 	
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
@@ -2437,11 +2445,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private Map<String, String> metaMongoArrayToHash(
-			final List<Map<String, String>> meta) {
+			final List<? extends Object> meta) {
 		final Map<String, String> ret = new HashMap<String, String>();
-		for (final Map<String, String> m: meta) {
-			ret.put(m.get(Fields.META_KEY),
-					m.get(Fields.META_VALUE));
+		if (meta != null) {
+			for (final Object o: meta) {
+				//frigging mongo
+				if (o instanceof DBObject) {
+					final DBObject dbo = (DBObject) o;
+					ret.put((String) dbo.get(Fields.META_KEY),
+							(String) dbo.get(Fields.META_VALUE));
+				} else {
+					@SuppressWarnings("unchecked")
+					final Map<String, String> m = (Map<String, String>) o;
+					ret.put(m.get(Fields.META_KEY),
+							m.get(Fields.META_VALUE));
+				}
+			}
 		}
 		return ret;
 	}

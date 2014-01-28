@@ -44,7 +44,7 @@ public interface WorkspaceDatabase {
 	
 	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description)
+			String description, Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	

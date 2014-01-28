@@ -1,8 +1,7 @@
 package us.kbase.workspace.database;
 
 import java.util.Date;
-
-
+import java.util.Map;
 
 public interface WorkspaceInformation {
 	
@@ -15,6 +14,7 @@ public interface WorkspaceInformation {
 	public boolean isGloballyReadable();
 	public boolean isLocked();
 	public String getLockState();
+	public Map<String, String> getUserMeta();
 	public boolean equals(Object obj);
 	public int hashCode();
 }

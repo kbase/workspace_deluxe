@@ -266,7 +266,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription());
+				params.getDescription(), null);
 		returnVal = au.wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;

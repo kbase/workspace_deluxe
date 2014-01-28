@@ -113,6 +113,8 @@ public class TestWorkspace {
 		}
 	}
 	
+	private static final Map<String, String> MT_META = new HashMap<String, String>();
+	
 	private static ShockBackend sbe = null;
 	
 	private static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
@@ -411,21 +413,22 @@ public class TestWorkspace {
 
 	private void checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate) throws Exception {
+			String lockstate, Map<String, String> meta) throws Exception {
 		checkWSInfo(ws.getWorkspaceInformation(owner, wsi), owner, name, objs,
-				perm, globalread, id, moddate, lockstate);
+				perm, globalread, id, moddate, lockstate, meta);
 	}
 	
 	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate) {
-		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate);
+			String lockstate, Map<String, String> meta) {
+		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate, meta);
 		assertThat("ws id correct", info.getId(), is(id));
 		assertThat("ws mod date correct", info.getModDate(), is(moddate));
 	}
 	
 	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, String lockstate) {
+			long objs, Permission perm, boolean globalread, String lockstate,
+			Map<String, String> meta) {
 		assertDateisRecent(info.getModDate());
 		assertThat("ws owner correct", info.getOwner(), is(owner));
 		assertThat("ws name correct", info.getName(), is(name));
@@ -433,19 +436,28 @@ public class TestWorkspace {
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
+		assertThat("ws meta correct", info.getUserMeta(), is(meta));
 	}
 	
 	@Test
-	public void createWorkspaceAndGetMeta() throws Exception {
+	public void createWorkspaceAndGetInfo() throws Exception {
 		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen", null);
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked");
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked", MT_META);
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked");
+		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		meta.put("baz", "bash");
+		WorkspaceInformation info2 = ws.createWorkspace(SOMEUSER, "foo2", true, "eeswaffertheen2", meta);
+		checkWSInfo(info2, SOMEUSER, "foo2", 0, Permission.OWNER, true, "unlocked", meta);
+		checkWSInfo(new WorkspaceIdentifier("foo2"), SOMEUSER, "foo2", 0, 
+				Permission.OWNER, true, info2.getId(), info2.getModDate(), "unlocked", meta);
 		
 		try {
 			ws.getWorkspaceInformation(BUSER, wsi);
@@ -464,15 +476,30 @@ public class TestWorkspace {
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
 		info = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal", null);
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked");
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked", MT_META);
 		id = info.getId();
 		moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked");
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
+		
+		Map<String, String> bigmeta = new HashMap<String, String>();
+		for (int i = 0; i < 141; i++) {
+			bigmeta.put("thing" + i, TEXT100);
+		}
+		ws.createWorkspace(SOMEUSER, "foo3", false, "eeswaffertheen", bigmeta);
+		bigmeta.put("thing", TEXT100);
+		try {
+			ws.createWorkspace(SOMEUSER, "foo4", false, "eeswaffertheen", bigmeta);
+			fail("created ws with > 16kb metadata");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Metadata is > 16000 bytes"));
+		}
 		
 		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
+		ws.setGlobalPermission(SOMEUSER, new WorkspaceIdentifier("foo2"), Permission.NONE);
 	}
 	
 	@Test
@@ -671,7 +698,7 @@ public class TestWorkspace {
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
 		WorkspaceInformation info= ws.getWorkspaceInformation(null, wsiGL);
-		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked");
+		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_META);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -2313,7 +2340,7 @@ public class TestWorkspace {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
+		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
@@ -2387,7 +2414,7 @@ public class TestWorkspace {
 		checkNonDeletedObjs(foo, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked");
+		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
 		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
 		
@@ -2936,10 +2963,14 @@ public class TestWorkspace {
 		setUpCopyWorkspaces(user1, user2, wsrefs, ws1, "cloneunused");
 		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
 		WorkspaceIdentifier clone1 = new WorkspaceIdentifier("newclone");
-		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("clone", "workspace");
+		
+		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null, meta);
 		
 		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
-				info1.getModDate(), "unlocked");
+				info1.getModDate(), "unlocked", meta);
 		assertNull("desc ok", ws.getWorkspaceDescription(user1, clone1));
 		
 		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
@@ -2976,10 +3007,10 @@ public class TestWorkspace {
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
 		
 		WorkspaceIdentifier clone2 = new WorkspaceIdentifier("newclone2");
-		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc");
+		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc", null);
 		
 		checkWSInfo(clone2, user1, "newclone2", 2, Permission.OWNER, true, info2.getId(),
-				info2.getModDate(), "unlocked");
+				info2.getModDate(), "unlocked", MT_META);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone2, "orig"));
@@ -2994,33 +3025,33 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, clone2, 3, 4);
 		
 		ws.setWorkspaceDeleted(user1, cp1, true);
-		failClone(user1, cp1, "fakename", new NoSuchWorkspaceException("Workspace clone1 is deleted", cp1));
+		failClone(user1, cp1, "fakename", null, new NoSuchWorkspaceException("Workspace clone1 is deleted", cp1));
 		ws.setWorkspaceDeleted(user1, cp1, false);
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
 		
-		failClone(null, cp1, "fakename", new WorkspaceAuthorizationException("Anonymous users may not read workspace clone1"));
+		failClone(null, cp1, "fakename", null, new WorkspaceAuthorizationException("Anonymous users may not read workspace clone1"));
 		//workspaceIdentifier used in the workspace method to check ws names tested extensively elsewhere, so just
 		// a couple tests here
-		failClone(user1, cp1, "bar:fakename", new IllegalArgumentException(
+		failClone(user1, cp1, "bar:fakename", null, new IllegalArgumentException(
 				"Workspace name bar:fakename must only contain the user name foo prior to the : delimiter"));
-		failClone(user1, cp1, "9", new IllegalArgumentException(
+		failClone(user1, cp1, "9", null, new IllegalArgumentException(
 				"Workspace names cannot be integers: 9"));
-		failClone(user1, cp1, "foo:9", new IllegalArgumentException(
+		failClone(user1, cp1, "foo:9", null, new IllegalArgumentException(
 				"Workspace names cannot be integers: foo:9"));
-		failClone(user1, cp1, "foo:fake(name", new IllegalArgumentException(
+		failClone(user1, cp1, "foo:fake(name", null, new IllegalArgumentException(
 				"Illegal character in workspace name foo:fake(name: ("));
-		failClone(user2, cp1, "fakename", new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
-		failClone(user1, cp1, "newclone2", new PreExistingWorkspaceException("Workspace newclone2 already exists"));
-		failClone(user1, new WorkspaceIdentifier("noclone"), "fakename",
+		failClone(user2, cp1, "fakename", null, new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
+		failClone(user1, cp1, "newclone2", null, new PreExistingWorkspaceException("Workspace newclone2 already exists"));
+		failClone(user1, new WorkspaceIdentifier("noclone"), "fakename", null,
 				new NoSuchWorkspaceException("No workspace with name noclone exists", cp1));
 		
 		ws.lockWorkspace(user1, cp1);
 		
 		WorkspaceIdentifier clone3 = new WorkspaceIdentifier("newclone3");
-		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2");
+		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2", meta);
 		
 		checkWSInfo(clone3, user1, "newclone3", 2, Permission.OWNER, false, info3.getId(),
-				info3.getModDate(), "unlocked");
+				info3.getModDate(), "unlocked", meta);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3), is("my desc2"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone3, "orig"));
@@ -3035,17 +3066,26 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, clone3, 3, 4);
 		
 		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
-		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT);
+		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT, null);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
+		
+		Map<String, String> bigmeta = new HashMap<String, String>();
+		for (int i = 0; i < 141; i++) {
+			bigmeta.put("thing" + i, TEXT100);
+		}
+		ws.cloneWorkspace(user1, cp1, "fakename", false, "eeswaffertheen", bigmeta);
+		bigmeta.put("thing", TEXT100);
+		failClone(user1, cp1, "fakename", bigmeta, new IllegalArgumentException(
+				"Metadata is > 16000 bytes"));
 		
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
 		ws.setGlobalPermission(user1, clone4, Permission.NONE);
 	}
 
 	private void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String name, Exception e) {
+			String name, Map<String, String> meta, Exception e) {
 		try {
-			ws.cloneWorkspace(user, wsi, name, false, null);
+			ws.cloneWorkspace(user, wsi, name, false, null, meta);
 			fail("expected clone to fail");
 		} catch (Exception exp) {
 			assertThat("correct exception", exp.getLocalizedMessage(),
@@ -3059,16 +3099,18 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("lockuser");
 		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
 		WorkspaceIdentifier wsi = lockWS;
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("some meta", "for u");
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, meta).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
 		//these should work
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
-		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked");
+		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked", meta);
 		successGetObjects(user, Arrays.asList(oi));
-		ws.cloneWorkspace(user, wsi, "lockclone", false, null);
+		ws.cloneWorkspace(user, wsi, "lockclone", false, null, null);
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);
@@ -3204,9 +3246,9 @@ public class TestWorkspace {
 		//should work
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		checkWSInfo(ws.getWorkspaceInformation(user, wsi),
-				user, "lock", 1, Permission.OWNER, true, "published");
+				user, "lock", 1, Permission.OWNER, true, "published", meta);
 		checkWSInfo(ws.getWorkspaceInformation(user2, wsi),
-				user, "lock", 1, Permission.NONE, true, "published");
+				user, "lock", 1, Permission.NONE, true, "published", meta);
 		ws.getWorkspaceDescription(user2, wsi);
 		
 		//shouldn't
@@ -3292,14 +3334,18 @@ public class TestWorkspace {
 		WorkspaceUser user2 = new WorkspaceUser("renameWSUser2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameWS");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameWS2");
-		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("?", "42");
+		meta.put("Panic", "towel");
+		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, meta);
 		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
 		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
-		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
+		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked", meta);
 		assertTrue("date updated on ws rename", info2.getModDate().after(info1.getModDate()));
 		checkWSInfo(ws.getWorkspaceInformation(user, newwsi),
-				user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked");
+				user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked", meta);
 		
 		failWSRename(user, newwsi, "foo|bar",
 				new IllegalArgumentException("Illegal character in workspace name foo|bar: |"));
@@ -3483,15 +3529,23 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("listUser");
 		WorkspaceUser user2 = new WorkspaceUser("listUser2");
 		WorkspaceUser user3 = new WorkspaceUser("listUser3");
-		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null, null);
-		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null, null);
+		
+		Map<String, String> meta1 = new HashMap<String, String>();
+		meta1.put("this is", "some meta meta");
+		meta1.put("bro", "heim");
+		
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("suckmaster", "burstingfoam");
+		
+		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null, meta1);
+		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null, meta2);
 		WorkspaceInformation deletedws = ws.createWorkspace(user, "deletedws", false, null, null);
 		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("deletedws"), true);
 		
-		ws.createWorkspace(user2, "readable", false, null, null);
+		ws.createWorkspace(user2, "readable", false, null, meta1);
 		ws.setPermissions(user2, new WorkspaceIdentifier("readable"), Arrays.asList(user), Permission.READ);
 		WorkspaceInformation readable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("readable"));
-		ws.createWorkspace(user2, "writeable", false, null, null);
+		ws.createWorkspace(user2, "writeable", false, null, meta2);
 		ws.setPermissions(user2, new WorkspaceIdentifier("writeable"), Arrays.asList(user), Permission.WRITE);
 		WorkspaceInformation writeable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("writeable"));
 		ws.createWorkspace(user2, "adminable", false, null, null);
@@ -3499,22 +3553,22 @@ public class TestWorkspace {
 		WorkspaceInformation adminable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("adminable"));
 		
 		@SuppressWarnings("unused")
-		WorkspaceInformation delreadable = ws.createWorkspace(user2, "delreadable", false, null, null);
+		WorkspaceInformation delreadable = ws.createWorkspace(user2, "delreadable", false, null, meta1);
 		ws.setPermissions(user2, new WorkspaceIdentifier("delreadable"), Arrays.asList(user), Permission.READ);
 		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("delreadable"), true);
-		ws.createWorkspace(user2, "globalreadable", true, null, null);
+		ws.createWorkspace(user2, "globalreadable", true, null, meta2);
 		WorkspaceInformation globalreadable = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("globalreadable"));
 		@SuppressWarnings("unused")
 		WorkspaceInformation deletedglobalreadable =
 				ws.createWorkspace(user2, "deletedglobalreadable", true, null, null);
 		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("deletedglobalreadable"), true);
 		@SuppressWarnings("unused")
-		WorkspaceInformation unreadable = ws.createWorkspace(user2, "unreadable", false, null, null);
+		WorkspaceInformation unreadable = ws.createWorkspace(user2, "unreadable", false, null, meta1);
 		
 		ws.createWorkspace(user3, "listuser3ws", false, null, null);
 		ws.setPermissions(user3, new WorkspaceIdentifier("listuser3ws"), Arrays.asList(user), Permission.READ);
 		WorkspaceInformation listuser3 = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3ws"));
-		ws.createWorkspace(user3, "listuser3glws", true, null, null);
+		ws.createWorkspace(user3, "listuser3glws", true, null, meta2);
 		WorkspaceInformation listuser3gl = ws.getWorkspaceInformation(user, new WorkspaceIdentifier("listuser3glws"));
 		
 		
