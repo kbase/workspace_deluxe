@@ -48,7 +48,7 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
-import us.kbase.common.service.Tuple8;
+import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
@@ -92,6 +92,8 @@ import us.kbase.workspace.test.workspace.FakeResolvedWSID;
  */
 public class JSONRPCLayerTest {
 	
+	//TODO test WS meta with create, clone, rename, list, getInfo, lock, admin create
+	
 	private static boolean printMemUsage = false;
 	
 	private static WorkspaceServer SERVER1 = null;
@@ -132,6 +134,9 @@ public class JSONRPCLayerTest {
 	
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
+	
+	public static final Map<String, String> MT_META =
+			new HashMap<String, String>();
 	
 	private static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -313,21 +318,21 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void createWSandCheck() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> meta =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
 					.withDescription("boogabooga"));
-		Tuple8<Long, String, String, String, Long, String, String, String> metaget =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> metaget =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
-		checkWS(meta, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga");
-		checkWS(metaget, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga");
+		checkWS(meta, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", MT_META);
+		checkWS(metaget, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", MT_META);
 	}
 		
-	private void checkWS(Tuple8<Long, String, String, String, Long, String, String, String> info,
+	private void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
 			long id, String moddate, String name, String user, long objects, String perm,
-			String globalperm, String lockstat, String desc) 
+			String globalperm, String lockstat, String desc, Map<String, String> meta) 
 			throws Exception {
 		assertThat("ids correct", info.getE1(), is(id));
 		assertThat("moddates correct", info.getE4(), is(moddate));
@@ -337,13 +342,14 @@ public class JSONRPCLayerTest {
 		assertThat("permission correct", info.getE6(), is(perm));
 		assertThat("global read correct", info.getE7(), is(globalperm));
 		assertThat("lockstate correct", info.getE8(), is(lockstat));
+		assertThat("meta correct", info.getE9(), is(meta));
 		assertThat("description correct", CLIENT1.getWorkspaceDescription(
 				new WorkspaceIdentity().withWorkspace(name)), is(desc));
 	}
 	
 	@Test
 	public void setWorkspaceDescription() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> meta =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> meta =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("wsdesc"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("wsdesc");
@@ -576,7 +582,7 @@ public class JSONRPCLayerTest {
 		String ws = "idproc";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws)
 				.withDescription("foo"));
-		Tuple8<Long, String, String, String, Long, String, String, String> meta =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> meta =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(ws));
 		//these should work
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(meta.getE1())
@@ -1055,7 +1061,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("depsave2")
 				.withGlobalread("r"));
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo = CLIENT1.getWorkspaceInfo(
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo = CLIENT1.getWorkspaceInfo(
 				new WorkspaceIdentity().withWorkspace("depsave"));
 		long wsid = wsinfo.getE1();
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("depsave")
@@ -1975,10 +1981,10 @@ public class JSONRPCLayerTest {
 		
 		CLIENT1.saveObjects(soc);
 		
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withDescription("a desc")
 				.withGlobalread("r").withWorkspace("newclone").withWsi(wssrc));
-		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "newclone", USER1, 1, "a", "r", "unlocked", "a desc");
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "newclone", USER1, 1, "a", "r", "unlocked", "a desc", MT_META);
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname"));
@@ -1987,9 +1993,9 @@ public class JSONRPCLayerTest {
 		compareObjectInfoAndData(objs.get(0), copystack.get(0), "newclone", wsinfo.getE1(), "myname", 1L, 1);
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
 		
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
 				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
-		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null);
+		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null, MT_META);
 		
 		
 		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
@@ -2017,7 +2023,7 @@ public class JSONRPCLayerTest {
 	@Test
 	public void lockWorkspace() throws Exception {
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("lock");
-		Tuple8<Long, String, String, String, Long, String, String, String> info =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("lock"));
 		long wsid = info.getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
@@ -2034,9 +2040,9 @@ public class JSONRPCLayerTest {
 		
 		CLIENT1.saveObjects(soc);
 		
-		Tuple8<Long, String, String, String, Long, String, String, String> lockinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> lockinfo =
 				CLIENT1.lockWorkspace(wsi);
-		checkWS(lockinfo, wsid, info.getE4(), "lock", USER1, 1, "a", "n", "locked", null);
+		checkWS(lockinfo, wsid, info.getE4(), "lock", USER1, 1, "a", "n", "locked", null, MT_META);
 		try {
 			CLIENT1.setWorkspaceDescription(new SetWorkspaceDescriptionParams().withDescription("foo")
 					.withWorkspace("lock"));
@@ -2049,12 +2055,12 @@ public class JSONRPCLayerTest {
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace("lock")
 				.withNewPermission("r"));
 		checkWS(CLIENT1.getWorkspaceInfo(wsi), wsid, info.getE4(), "lock",
-				USER1, 1, "a", "r", "published", null);
+				USER1, 1, "a", "r", "published", null, MT_META);
 	}
 	
 	@Test
 	public void renameObject() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameObj"));
 		long wsid = wsinfo.getE1();
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("renameObj")
@@ -2090,16 +2096,16 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void renameWorkspace() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameWS"));
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo2 =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
 				CLIENT1.renameWorkspace(new RenameWorkspaceParams().withWsi(
 				new WorkspaceIdentity().withWorkspace("renameWS")).withNewName("newrenameWS"));
 		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
-				0, "a", "n", "unlocked", null);
+				0, "a", "n", "unlocked", null, MT_META);
 		wsinfo2 = CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("newrenameWS"));
 		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
-				0, "a", "n", "unlocked", null);
+				0, "a", "n", "unlocked", null, MT_META);
 		RenameWorkspaceParams rwp = new RenameWorkspaceParams()
 				.withWsi(new WorkspaceIdentity().withWorkspace("newrenameWS"))
 				.withNewName("foo");
@@ -2122,7 +2128,7 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void setGlobalPermission() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("setglobal"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("setglobal");
 		assertThat("globalread is none", wsinfo.getE7(), is("n"));
@@ -2170,7 +2176,7 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void hiddenObjects() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("hideObj"));
 		long wsid = wsinfo.getE1();
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("hideObj")
@@ -2241,24 +2247,24 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void listWorkspaceInfo() throws Exception {
-		Tuple8<Long, String, String, String, Long, String, String, String> std =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> std =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("liststd"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listglobalread")
 				.withGlobalread("r"));
-		Tuple8<Long, String, String, String, Long, String, String, String> globalread =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> globalread =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listglobalread"));
-		Tuple8<Long, String, String, String, Long, String, String, String> deleted =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> deleted =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listdeleted"));
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("listdeleted"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listwrite"));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listwrite")
 				.withNewPermission("w").withUsers(Arrays.asList(USER1)));
-		Tuple8<Long, String, String, String, Long, String, String, String> write =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> write =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listwrite"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listadmin"));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listadmin")
 				.withNewPermission("a").withUsers(Arrays.asList(USER1)));
-		Tuple8<Long, String, String, String, Long, String, String, String> admin =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> admin =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
@@ -2308,11 +2314,11 @@ public class JSONRPCLayerTest {
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withShowDeleted(1L)),
 				Arrays.asList(std, deleted, globalread, write, admin),
-				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+				new ArrayList<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>());
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(1L)),
 				Arrays.asList(std, deleted, globalread, write, admin), 
-				new ArrayList<Tuple8<Long, String, String, String, Long, String, String, String>>());
+				new ArrayList<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>());
 		
 		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
 				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listglobalread")),
@@ -2342,21 +2348,21 @@ public class JSONRPCLayerTest {
 	}
 
 	private void checkWSInfoList(
-			List<Tuple8<Long, String, String, String, Long, String, String, String>> got,
-			List<Tuple8<Long, String, String, String, Long, String, String, String>> expected,
-			List<Tuple8<Long, String, String, String, Long, String, String, String>> notexpected) {
-		Map<Long, Tuple8<Long, String, String, String, Long, String, String, String>> expecmap = 
-				new HashMap<Long, Tuple8<Long,String,String,String,Long,String,String,String>>();
-		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: expected) {
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected) {
+		Map<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expecmap = 
+				new HashMap<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>();
+		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: expected) {
 			expecmap.put(inf.getE1(), inf);
 		}
 		Set<Long> seen = new HashSet<Long>();
 		Set<Long> seenexp = new HashSet<Long>();
 		Set<Long> notexp = new HashSet<Long>();
-		for (Tuple8<Long, String, String, String, Long, String, String, String> inf: notexpected) {
+		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: notexpected) {
 			notexp.add(inf.getE1());
 		}
-		for (Tuple8<Long, String, String, String, Long, String, String, String> info: got) {
+		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info: got) {
 			if (seen.contains(info.getE1())) {
 				fail("Saw same workspace twice");
 			}
@@ -2368,7 +2374,7 @@ public class JSONRPCLayerTest {
 				// if this is important add a 3rd user and client
 			}
 			seenexp.add(info.getE1());
-			Tuple8<Long, String, String, String, Long, String, String, String> exp =
+			Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> exp =
 					expecmap.get(info.getE1());
 			assertThat("ids correct", info.getE1(), is(exp.getE1()));
 //			assertThat("moddates correct", info.getE4(), is(moddate)); don't test dates
@@ -2415,9 +2421,9 @@ public class JSONRPCLayerTest {
 		String anotherType = "AnotherModule.AType-0.1";
 		String anotherType2 = "AnotherModule2.AType-0.1";
 		
-		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info1 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs1"));
-		Tuple8<Long, String, String, String, Long, String, String, String> info2 =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info2 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjs2"));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjsread"));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listObjsread")
@@ -2700,7 +2706,7 @@ public class JSONRPCLayerTest {
 		/* note most tests are performed at the same time as getObjects, so
 		 * only issues specific to subsets are tested here
 		 */
-		Tuple8<Long, String, String, String, Long, String, String, String> info1 =
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info1 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("subdata"));
 		
 		Map<String, Object> data = createData(
@@ -2923,16 +2929,16 @@ public class JSONRPCLayerTest {
 	@Test
 	public void adminUserFacade() throws Exception {
 		@SuppressWarnings("unchecked")
-		Tuple8<Long, String, String, String, Long, String, String, String> wsinfo =
-				list2WSTuple8((List<Object>) CLIENT2.administer(new UObject(createData(
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
+				list2WSTuple9((List<Object>) CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
 				"			   \"description\": \"mydesc\"}}"))).asInstance());
 		
-		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
 		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
-				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc");
+				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
 		try {
 			CLIENT2.getWorkspaceDescription(new WorkspaceIdentity().withId(wsinfo.getE1()));
 		} catch (ServerException se) {
@@ -3071,10 +3077,11 @@ public class JSONRPCLayerTest {
 		return ret;
 	}
 
-	private Tuple8<Long, String, String, String, Long, String, String, String> list2WSTuple8(
+	private Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> list2WSTuple9(
 			List<Object> got) {
-		Tuple8<Long, String, String, String, Long, String, String, String> ret =
-				new Tuple8<Long, String, String, String, Long, String, String, String>()
+		@SuppressWarnings("unchecked")
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> ret =
+				new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
 				.withE1(new Long((Integer) got.get(0)))
 				.withE2((String) got.get(1))
 				.withE3((String) got.get(2))
@@ -3082,7 +3089,8 @@ public class JSONRPCLayerTest {
 				.withE5(new Long((Integer) got.get(4)))
 				.withE6((String) got.get(5))
 				.withE7((String) got.get(6))
-				.withE8((String) got.get(7));
+				.withE8((String) got.get(7))
+				.withE9((Map<String, String>) got.get(8));
 		return ret;
 	}
 

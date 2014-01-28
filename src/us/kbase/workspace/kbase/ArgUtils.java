@@ -16,7 +16,7 @@ import java.util.Set;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
-import us.kbase.common.service.Tuple8;
+import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.UTCDateFormat;
 import us.kbase.auth.AuthException;
@@ -99,20 +99,20 @@ public class ArgUtils {
 		return params;
 	}
 	
-	public List<Tuple8<Long, String, String, String, Long, String, String, String>>
+	public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
 			wsInfoToTuple (final List<WorkspaceInformation> info) {
-		final List<Tuple8<Long, String, String, String, Long, String, String, String>> ret =
-				new LinkedList<Tuple8<Long, String, String, String, Long,
-				String, String, String>>();
+		final List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> ret =
+				new LinkedList<Tuple9<Long, String, String, String, Long, String,
+						String, String, Map<String, String>>>();
 		for (final WorkspaceInformation wi: info) {
 			ret.add(wsInfoToTuple(wi));
 		}
 		return ret;
 	}
 
-	public Tuple8<Long, String, String, String, Long, String, String, String>
+	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
 			wsInfoToTuple(final WorkspaceInformation info) {
-		return new Tuple8<Long, String, String, String, Long, String, String, String>()
+		return new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
 				.withE1(info.getId())
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
@@ -120,7 +120,8 @@ public class ArgUtils {
 				.withE5(info.getApproximateObjects())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
-				.withE8(info.getLockState());
+				.withE8(info.getLockState())
+				.withE9(info.getUserMeta());
 	}
 	
 	public List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(

@@ -17,6 +17,7 @@ Size limits:
 TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
+User provided metadata for workspaces and objects is limited to 16kB
 
 NOTE ON BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
@@ -135,11 +136,13 @@ module Workspace {
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
+		usermeta metadata - arbitrary user-supplied metadata about
+			the workspace.
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
 		int object, permission user_permission, permission globalread,
-		lock_status lockstat> workspace_info;
+		lock_status lockstat, usermeta metadata> workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */
 	typedef int obj_id;
@@ -368,11 +371,13 @@ module Workspace {
 		string description - A free-text description of the new workspace, 1000
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
+		usermeta meta - arbitrary user-supplied metadata for the workspace.
 	*/
 	typedef structure { 
 		ws_name workspace;
 		permission globalread;
 		string description;
+		usermeta meta;
 	} CreateWorkspaceParams;
 	
 	/*
@@ -397,12 +402,14 @@ module Workspace {
 		string description - A free-text description of the new workspace, 1000
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
+		usermeta meta - arbitrary user-supplied metadata for the workspace.
 	*/
 	typedef structure { 
 		WorkspaceIdentity wsi;
 		ws_name workspace;
 		permission globalread;
 		string description;
+		usermeta meta;
 	} CloneWorkspaceParams;
 	
 	/*

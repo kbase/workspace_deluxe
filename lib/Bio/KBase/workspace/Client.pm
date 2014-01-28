@@ -36,6 +36,7 @@ Size limits:
 TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
+User provided metadata for workspaces and objects is limited to 16kB
 
 NOTE ON BINARY DATA:
 All binary data must be hex encoded prior to storage in a workspace. 
@@ -101,9 +102,11 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
+	meta has a value which is a Workspace.usermeta
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 8 items:
+usermeta is a reference to a hash where the key is a string and the value is a string
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -112,6 +115,7 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 ws_id is an int
 username is a string
 timestamp is a string
@@ -129,9 +133,11 @@ CreateWorkspaceParams is a reference to a hash where the following keys are defi
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
+	meta has a value which is a Workspace.usermeta
 ws_name is a string
 permission is a string
-workspace_info is a reference to a list containing 8 items:
+usermeta is a reference to a hash where the key is a string and the value is a string
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -140,6 +146,7 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 ws_id is an int
 username is a string
 timestamp is a string
@@ -221,13 +228,15 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
+	meta has a value which is a Workspace.usermeta
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 permission is a string
-workspace_info is a reference to a list containing 8 items:
+usermeta is a reference to a hash where the key is a string and the value is a string
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -236,6 +245,7 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 lock_status is a string
@@ -253,13 +263,15 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	workspace has a value which is a Workspace.ws_name
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
+	meta has a value which is a Workspace.usermeta
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
 permission is a string
-workspace_info is a reference to a list containing 8 items:
+usermeta is a reference to a hash where the key is a string and the value is a string
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -268,6 +280,7 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 lock_status is a string
@@ -348,7 +361,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -357,10 +370,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -375,7 +390,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -384,10 +399,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
@@ -590,7 +607,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -599,10 +616,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -617,7 +636,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -626,10 +645,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
@@ -2412,7 +2433,7 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 permission is a string
 username is a string
 boolean is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -2421,10 +2442,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 ws_id is an int
 ws_name is a string
 timestamp is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -2443,7 +2466,7 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 permission is a string
 username is a string
 boolean is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -2452,10 +2475,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 ws_id is an int
 ws_name is a string
 timestamp is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
@@ -3103,7 +3128,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -3112,10 +3137,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -3133,7 +3160,7 @@ WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	id has a value which is a Workspace.ws_id
 ws_name is a string
 ws_id is an int
-workspace_info is a reference to a list containing 8 items:
+workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
@@ -3142,10 +3169,12 @@ workspace_info is a reference to a list containing 8 items:
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
+	8: (metadata) a Workspace.usermeta
 username is a string
 timestamp is a string
 permission is a string
 lock_status is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
@@ -6156,6 +6185,8 @@ Information about a workspace.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
+        usermeta metadata - arbitrary user-supplied metadata about
+                the workspace.
 
 
 =item Definition
@@ -6163,7 +6194,7 @@ Information about a workspace.
 =begin html
 
 <pre>
-a reference to a list containing 8 items:
+a reference to a list containing 9 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
@@ -6172,6 +6203,7 @@ a reference to a list containing 8 items:
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status
+8: (metadata) a Workspace.usermeta
 
 </pre>
 
@@ -6179,7 +6211,7 @@ a reference to a list containing 8 items:
 
 =begin text
 
-a reference to a list containing 8 items:
+a reference to a list containing 9 items:
 0: (id) a Workspace.ws_id
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
@@ -6188,6 +6220,7 @@ a reference to a list containing 8 items:
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status
+8: (metadata) a Workspace.usermeta
 
 
 =end text
@@ -6772,6 +6805,7 @@ Input parameters for the "create_workspace" function.
         string description - A free-text description of the new workspace, 1000
                 characters max. Longer strings will be mercilessly and brutally
                 truncated.
+        usermeta meta - arbitrary user-supplied metadata for the workspace.
 
 
 =item Definition
@@ -6783,6 +6817,7 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
+meta has a value which is a Workspace.usermeta
 
 </pre>
 
@@ -6794,6 +6829,7 @@ a reference to a hash where the following keys are defined:
 workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
+meta has a value which is a Workspace.usermeta
 
 
 =end text
@@ -6826,6 +6862,7 @@ Input parameters for the "clone_workspace" function.
         string description - A free-text description of the new workspace, 1000
                 characters max. Longer strings will be mercilessly and brutally
                 truncated.
+        usermeta meta - arbitrary user-supplied metadata for the workspace.
 
 
 =item Definition
@@ -6838,6 +6875,7 @@ wsi has a value which is a Workspace.WorkspaceIdentity
 workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
+meta has a value which is a Workspace.usermeta
 
 </pre>
 
@@ -6850,6 +6888,7 @@ wsi has a value which is a Workspace.WorkspaceIdentity
 workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
+meta has a value which is a Workspace.usermeta
 
 
 =end text

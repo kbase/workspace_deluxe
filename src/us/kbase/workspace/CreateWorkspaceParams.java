@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         string description - A free-text description of the new workspace, 1000
  *                 characters max. Longer strings will be mercilessly and brutally
  *                 truncated.
+ *         usermeta meta - arbitrary user-supplied metadata for the workspace.
  * </pre>
  * 
  */
@@ -32,76 +33,94 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "workspace",
     "globalread",
-    "description"
+    "description",
+    "meta"
 })
 public class CreateWorkspaceParams {
 
     @JsonProperty("workspace")
-    private String workspace;
+    private java.lang.String workspace;
     @JsonProperty("globalread")
-    private String globalread;
+    private java.lang.String globalread;
     @JsonProperty("description")
-    private String description;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private java.lang.String description;
+    @JsonProperty("meta")
+    private Map<String, String> meta;
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("workspace")
-    public String getWorkspace() {
+    public java.lang.String getWorkspace() {
         return workspace;
     }
 
     @JsonProperty("workspace")
-    public void setWorkspace(String workspace) {
+    public void setWorkspace(java.lang.String workspace) {
         this.workspace = workspace;
     }
 
-    public CreateWorkspaceParams withWorkspace(String workspace) {
+    public CreateWorkspaceParams withWorkspace(java.lang.String workspace) {
         this.workspace = workspace;
         return this;
     }
 
     @JsonProperty("globalread")
-    public String getGlobalread() {
+    public java.lang.String getGlobalread() {
         return globalread;
     }
 
     @JsonProperty("globalread")
-    public void setGlobalread(String globalread) {
+    public void setGlobalread(java.lang.String globalread) {
         this.globalread = globalread;
     }
 
-    public CreateWorkspaceParams withGlobalread(String globalread) {
+    public CreateWorkspaceParams withGlobalread(java.lang.String globalread) {
         this.globalread = globalread;
         return this;
     }
 
     @JsonProperty("description")
-    public String getDescription() {
+    public java.lang.String getDescription() {
         return description;
     }
 
     @JsonProperty("description")
-    public void setDescription(String description) {
+    public void setDescription(java.lang.String description) {
         this.description = description;
     }
 
-    public CreateWorkspaceParams withDescription(String description) {
+    public CreateWorkspaceParams withDescription(java.lang.String description) {
         this.description = description;
         return this;
     }
 
+    @JsonProperty("meta")
+    public Map<String, String> getMeta() {
+        return meta;
+    }
+
+    @JsonProperty("meta")
+    public void setMeta(Map<String, String> meta) {
+        this.meta = meta;
+    }
+
+    public CreateWorkspaceParams withMeta(Map<String, String> meta) {
+        this.meta = meta;
+        return this;
+    }
+
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
-        return ((((((((("CreateWorkspaceParams"+" [workspace=")+ workspace)+", globalread=")+ globalread)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+    public java.lang.String toString() {
+        return ((((((((((("CreateWorkspaceParams"+" [workspace=")+ workspace)+", globalread=")+ globalread)+", description=")+ description)+", meta=")+ meta)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -14,7 +14,7 @@ import java.util.Map;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.Tuple11;
-import us.kbase.common.service.Tuple8;
+import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
@@ -55,7 +55,8 @@ public class WorkspaceServerMethods {
 		this.ws = ws;
 	}
 	
-	public Tuple8<Long, String, String, String, Long, String, String, String> createWorkspace(
+	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
+			createWorkspace(
 			final CreateWorkspaceParams params, final WorkspaceUser user)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -63,7 +64,7 @@ public class WorkspaceServerMethods {
 		Permission p = au.getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(user,
 				params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription(), null);
+				params.getDescription(), params.getMeta());
 		return au.wsInfoToTuple(meta);
 	}
 	
