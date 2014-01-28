@@ -92,8 +92,6 @@ import us.kbase.workspace.test.workspace.FakeResolvedWSID;
  */
 public class JSONRPCLayerTest {
 	
-	//TODO test WS meta with create, clone, rename, list, getInfo, lock, admin create
-	
 	private static boolean printMemUsage = false;
 	
 	private static WorkspaceServer SERVER1 = null;
@@ -318,16 +316,19 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void createWSandCheck() throws Exception {
-		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> meta =
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("fry", "laurie");
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams()
 					.withWorkspace("foo")
 					.withGlobalread("r")
-					.withDescription("boogabooga"));
-		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> metaget =
+					.withDescription("boogabooga")
+					.withMeta(meta));
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> infoget =
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace("foo"));
-		checkWS(meta, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", MT_META);
-		checkWS(metaget, meta.getE1(), meta.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", MT_META);
+		checkWS(info, info.getE1(), info.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", meta);
+		checkWS(infoget, info.getE1(), info.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", meta);
 	}
 		
 	private void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
@@ -1588,6 +1589,15 @@ public class JSONRPCLayerTest {
 			assertThat("correct exception", se.getLocalizedMessage(),
 					is("Object 2 save error: Metadata is > 16000 bytes"));
 		}
+		try {
+			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
+					.withMeta(meta));
+			fail("called createWS with too large meta");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Metadata is > 16000 bytes"));
+		}
+		
 	}
 	
 	@Ignore //TODO unignore when mem issues sorted
@@ -1966,6 +1976,7 @@ public class JSONRPCLayerTest {
 	public void cloneWorkspace() throws Exception {
 		String source = "clonesource";
 		WorkspaceIdentity wssrc = new WorkspaceIdentity().withWorkspace(source);
+		
 		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(source)).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -1981,10 +1992,14 @@ public class JSONRPCLayerTest {
 		
 		CLIENT1.saveObjects(soc);
 		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("Bowhale", "the avenger");
+		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
 				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withDescription("a desc")
-				.withGlobalread("r").withWorkspace("newclone").withWsi(wssrc));
-		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "newclone", USER1, 1, "a", "r", "unlocked", "a desc", MT_META);
+				.withGlobalread("r").withWorkspace("newclone").withWsi(wssrc)
+				.withMeta(meta));
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "newclone", USER1, 1, "a", "r", "unlocked", "a desc", meta);
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.getObjectHistory(new ObjectIdentity().withWsid(wsid).withName("myname"));
@@ -2022,9 +2037,12 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void lockWorkspace() throws Exception {
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("Go to Spain", "there are millions of them");
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("lock");
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info =
-				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("lock"));
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("lock")
+						.withMeta(meta));
 		long wsid = info.getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -2042,7 +2060,7 @@ public class JSONRPCLayerTest {
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> lockinfo =
 				CLIENT1.lockWorkspace(wsi);
-		checkWS(lockinfo, wsid, info.getE4(), "lock", USER1, 1, "a", "n", "locked", null, MT_META);
+		checkWS(lockinfo, wsid, info.getE4(), "lock", USER1, 1, "a", "n", "locked", null, meta);
 		try {
 			CLIENT1.setWorkspaceDescription(new SetWorkspaceDescriptionParams().withDescription("foo")
 					.withWorkspace("lock"));
@@ -2055,7 +2073,7 @@ public class JSONRPCLayerTest {
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace("lock")
 				.withNewPermission("r"));
 		checkWS(CLIENT1.getWorkspaceInfo(wsi), wsid, info.getE4(), "lock",
-				USER1, 1, "a", "r", "published", null, MT_META);
+				USER1, 1, "a", "r", "published", null, meta);
 	}
 	
 	@Test
@@ -2096,16 +2114,19 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void renameWorkspace() throws Exception {
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("pimhole", "semprini");
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
-				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameWS"));
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("renameWS")
+						.withMeta(meta));
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
 				CLIENT1.renameWorkspace(new RenameWorkspaceParams().withWsi(
 				new WorkspaceIdentity().withWorkspace("renameWS")).withNewName("newrenameWS"));
 		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
-				0, "a", "n", "unlocked", null, MT_META);
+				0, "a", "n", "unlocked", null, meta);
 		wsinfo2 = CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("newrenameWS"));
 		checkWS(wsinfo2, wsinfo.getE1(), wsinfo2.getE4(), "newrenameWS", USER1,
-				0, "a", "n", "unlocked", null, MT_META);
+				0, "a", "n", "unlocked", null, meta);
 		RenameWorkspaceParams rwp = new RenameWorkspaceParams()
 				.withWsi(new WorkspaceIdentity().withWorkspace("newrenameWS"))
 				.withNewName("foo");
@@ -2247,8 +2268,16 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void listWorkspaceInfo() throws Exception {
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("credulous", "git");
+		
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("Flanders", "pidgeon murderer");
+		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> std =
-				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("liststd"));
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("liststd")
+						.withMeta(meta));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listglobalread")
 				.withGlobalread("r"));
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> globalread =
@@ -2256,7 +2285,8 @@ public class JSONRPCLayerTest {
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> deleted =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listdeleted"));
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("listdeleted"));
-		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listwrite"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listwrite")
+				.withMeta(meta2));
 		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("listwrite")
 				.withNewPermission("w").withUsers(Arrays.asList(USER1)));
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> write =
