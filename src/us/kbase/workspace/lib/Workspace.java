@@ -233,6 +233,8 @@ public class Workspace {
 				pruneWorkspaceDescription(description), meta);
 	}
 	
+	//might be worthwhile to make the meta methods work on multiple values,
+	// but keep things simple for now. 
 	public void removeWorkspaceMetadata(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String key)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
@@ -240,6 +242,13 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"alter metadata for");
 		db.removeWorkspaceMetaKey(wsid, key);
+	}
+	
+	
+	public void setWorkspaceMetadata(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final String key,
+			final String value) {
+		
 	}
 	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,

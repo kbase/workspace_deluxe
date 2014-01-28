@@ -3085,8 +3085,6 @@ public class JSONRPCLayerTest {
 		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set permissions on workspace " + wsstr);
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 	}
-	
-	
 
 	private Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> list2ObjTuple11(
 			List<Object> got) {
@@ -3122,6 +3120,36 @@ public class JSONRPCLayerTest {
 				.withE8((String) got.get(7))
 				.withE9((Map<String, String>) got.get(8));
 		return ret;
+	}
+	
+	@Test
+	public void checkFloat() throws Exception {
+		final String specFloat =
+				"module FloatSpec {" +
+					"typedef structure {" +
+						"float f;" +
+					"} F;" +
+				"};";
+		CLIENT1.requestModuleOwnership("FloatSpec");
+		administerCommand(CLIENT2, "approveModRequest", "module", "FloatSpec");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(specFloat)
+			.withNewTypes(Arrays.asList("F")));
+		String type = "FloatSpec.F-0.1";
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("float"));
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("f", 1.3e10);
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("float")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
+				.withType(type).withName("f"))));
+		
+		Map<String, Object> got = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
+				.withWorkspace("float").withName("f"))).get(0).getData().asInstance();
+		assertThat("got correct float back", got, is(data));
+		
 	}
 
 	@Test
