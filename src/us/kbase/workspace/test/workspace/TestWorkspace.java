@@ -503,6 +503,53 @@ public class TestWorkspace {
 	}
 	
 	@Test
+	public void workspaceMetadata() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("blahblah");
+		WorkspaceUser user2 = new WorkspaceUser("blahblah2");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("workspaceMetadata");
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		meta.put("foo2", "bar2");
+		meta.put("some", "meta");
+		WorkspaceInformation info = ws.createWorkspace(user, wsi.getName(), false, null, meta);
+		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.ADMIN);
+		checkWSInfo(info, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		meta.remove("foo2");
+		ws.removeWorkspaceMetadata(user, wsi, "foo2");
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		meta.remove("some");
+		ws.removeWorkspaceMetadata(user2, wsi, "some");
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		ws.removeWorkspaceMetadata(user, wsi, "foo3"); //no effect
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		
+		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
+		failRemoveWSMeta(user2, wsi, "foo", new WorkspaceAuthorizationException(
+				"User blahblah2 may not alter metadata for workspace workspaceMetadata"));
+		failRemoveWSMeta(null, wsi, "foo", new WorkspaceAuthorizationException(
+				"Anonymous users may not alter metadata for workspace workspaceMetadata"));
+		failRemoveWSMeta(user2, new WorkspaceIdentifier("thisiswayfake"), "foo", new NoSuchWorkspaceException(
+				"No workspace with name thisiswayfake exists", wsi));
+		ws.setWorkspaceDeleted(user, wsi, true);
+		failRemoveWSMeta(user, wsi, "foo", new NoSuchWorkspaceException(
+				"Workspace workspaceMetadata is deleted", wsi));
+		
+	}
+	
+	private void failRemoveWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
+			String key, Exception e) throws Exception {
+		try {
+			ws.removeWorkspaceMetadata(user, wsi, key);
+			fail("expected remove ws meta to fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+	
+	@Test
 	public void createWorkspaceAndWorkspaceIdentifierWithBadInput()
 			throws Exception {
 		class TestRig {
@@ -3242,6 +3289,9 @@ public class TestWorkspace {
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is("User lockuser2 may not read workspace lock"));
 		}
+		failRemoveWSMeta(user2, wsi, "some meta", new WorkspaceAuthorizationException(
+				"The workspace with id " + wsid +
+				", name lock, is locked and may not be modified"));
 		
 		//should work
 		ws.setGlobalPermission(user, wsi, Permission.READ);

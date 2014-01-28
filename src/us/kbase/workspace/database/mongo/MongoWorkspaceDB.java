@@ -451,10 +451,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				meta == null ? new HashMap<String, String>() : meta);
 	}
 	
+	private static final String M_REM_META_QRY = String.format(
+			"{$pull: {%s: {%s: #}}}", Fields.WS_META, Fields.META_KEY);
+	
+	@Override
+	public void removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
+			final String key) throws WorkspaceCommunicationException {
+		
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+					.update(M_WS_ID_QRY, rwsi.getID())
+					.with(M_REM_META_QRY, key);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+	
 	private static final Set<String> FLDS_CLONE_WS =
 			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
 					Fields.OBJ_HIDE);
-
+	
 	@Override
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final ResolvedWorkspaceID wsid, final String newname,
@@ -500,8 +517,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return getWorkspaceInformation(user, toWS);
 	}
 	
-	private final static String M_LOCK_WS_QRY = String.format("{%s: #}",
-			Fields.WS_ID);
 	private final static String M_LOCK_WS_WTH = String.format("{$set: {%s: #}}",
 			Fields.WS_LOCKED);
 	
@@ -512,7 +527,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			CorruptWorkspaceDBException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
-				.update(M_LOCK_WS_QRY, rwsi.getID())
+				.update(M_WS_ID_QRY, rwsi.getID())
 				.with(M_LOCK_WS_WTH, true);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -602,8 +617,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				rto.getName(), info);
 	}
 	
-	final private static String M_RENAME_WS_QRY = String.format(
-			"{%s: #}", Fields.WS_ID);
 	final private static String M_RENAME_WS_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
@@ -618,7 +631,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
-					.update(M_RENAME_WS_QRY, rwsi.getID())
+					.update(M_WS_ID_QRY, rwsi.getID())
 					.with(M_RENAME_WS_WTH, newname, new Date());
 		} catch (MongoException.DuplicateKey medk) {
 			throw new IllegalArgumentException(
@@ -688,7 +701,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private final static String M_WS_ID_QRY = String.format("{%s: #}",
 			Fields.WS_ID);
-	private final static String M_WS_ID_WTH = String.format(
+	private final static String M_DESC_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.WS_DESC, Fields.WS_MODDATE);
 	
 	@Override
@@ -698,7 +711,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_WS_ID_WTH, description, new Date());
+				.with(M_DESC_WTH, description, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -1490,8 +1503,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final String M_SAVE_QRY = String.format("{%s: #}",
-					Fields.WS_ID);
 	private static final String M_SAVE_WTH = String.format("{$inc: {%s: #}}",
 					Fields.WS_NUMOBJ);
 	private static final String M_SAVE_PROJ = String.format("{%s: 1, %s: 0}",
@@ -1598,7 +1609,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final long lastid;
 		try {
 			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
-					.findAndModify(M_SAVE_QRY, wsidmongo.getID())
+					.findAndModify(M_WS_ID_QRY, wsidmongo.getID())
 					.returnNew().with(M_SAVE_WTH, (long) newobjects)
 					.projection(M_SAVE_PROJ)
 					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();

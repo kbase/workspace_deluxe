@@ -233,6 +233,15 @@ public class Workspace {
 				pruneWorkspaceDescription(description), meta);
 	}
 	
+	public void removeWorkspaceMetadata(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final String key)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
+				"alter metadata for");
+		db.removeWorkspaceMetaKey(wsid, key);
+	}
+	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname,
 			final boolean globalread, final String description,

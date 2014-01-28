@@ -41,6 +41,9 @@ public interface WorkspaceDatabase {
 			Map<String, String> meta) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
+
+	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
+			throws WorkspaceCommunicationException;
 	
 	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname, boolean globalread,
