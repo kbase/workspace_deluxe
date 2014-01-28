@@ -314,7 +314,7 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT1.ver(), is("0.1.4"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.1.4"));
 	}
 	
 	@Test
