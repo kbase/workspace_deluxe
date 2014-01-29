@@ -357,6 +357,11 @@ module Workspace {
 		list<string> intermediate_outgoing;
 		string description;
 	} ProvenanceAction;
+	
+	/*
+		Returns the version of the workspace service.
+	*/
+	funcdef ver() returns(string ver);
 
 	 authentication required;
 

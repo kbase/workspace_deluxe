@@ -20,6 +20,7 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-list %o',
+    [ 'column|c:i','Sort by this column number (first column = 1)' ],
     [ 'deleted|d', 'Include deleted workspaces',{"default"=>0}],
     [ 'global|g', 'Include globally readable workspaces',{"default"=>0}],
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
@@ -35,6 +36,19 @@ if (defined($opt->{help})) {
 if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
 	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
 	exit 1;
+}
+if (defined($opt->{column})) {
+	if ($opt->{column} <= 0 || $opt->{column} >7) {
+		print STDERR "Invalid column number given.  Valid column numbers for sorting are:\n";
+		print STDERR "    1 = Workspace Id\n";
+		print STDERR "    2 = Workspace Name\n";
+		print STDERR "    3 = Owner\n";
+		print STDERR "    4 = Last Modified Date\n";
+		print STDERR "    5 = Size of Workspace (number of objects)\n";
+		print STDERR "    6 = Your permission (r=read,w=read/write,a=admin)\n";
+		print STDERR "    7 = Global access permission (n=none,r=read)\n";
+		exit 1;
+	}
 }
 foreach my $arg (@{$primaryArgs}) {
 	$opt->{$arg} = shift @ARGV;
@@ -84,6 +98,18 @@ if ($opt->{showerror} == 0){
 my $table = Text::Table->new(
     'Id', 'WsName', 'Owner', 'Last_Modified', 'Size', 'Permission', 'GlobalAccess'
     );
-$table->load(@$output);
+my @sorted_tbl = @$output;
+if (defined($opt->{column})) {
+	if ($opt->{column}==5) {
+		#size is numeric, so sort numerically, largest first
+		@sorted_tbl = sort { $b->[$opt->{column}-1] <=> $a->[$opt->{column}-1] } @sorted_tbl;
+	} elsif ( $opt->{column}==1) {
+		#id is numeric, so sort numerically, largest last
+		@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
+	} else {
+		@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
+	}
+}
+$table->load(@sorted_tbl);
 print $table;
 exit 0;

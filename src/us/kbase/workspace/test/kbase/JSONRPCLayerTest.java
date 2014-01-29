@@ -315,6 +315,11 @@ public class JSONRPCLayerTest {
 	}
 	
 	@Test
+	public void ver() throws Exception {
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.1.4"));
+	}
+	
+	@Test
 	public void createWSandCheck() throws Exception {
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("fry", "laurie");

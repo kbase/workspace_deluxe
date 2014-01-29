@@ -90,6 +90,22 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: ver</p>
+     * <pre>
+     * Returns the version of the workspace service.
+     * </pre>
+     * @return   parameter "ver" of String
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public String ver() throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
+        List<String> res = caller.jsonrpcCall("Workspace.ver", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: create_workspace</p>
      * <pre>
      * Creates a new workspace.

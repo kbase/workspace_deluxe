@@ -233,6 +233,22 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: ver</p>
+     * <pre>
+     * Returns the version of the workspace service.
+     * </pre>
+     * @return   parameter "ver" of String
+     */
+    @JsonServerMethod(rpc = "Workspace.ver")
+    public String ver() throws Exception {
+        String returnVal = null;
+        //BEGIN ver
+		returnVal = "0.1.4";
+        //END ver
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: create_workspace</p>
      * <pre>
      * Creates a new workspace.
