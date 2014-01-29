@@ -1036,7 +1036,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final boolean showDeleted, final boolean showOnlyDeleted)
+			final Map<String, String> meta, final boolean showDeleted,
+			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (!(pset instanceof MongoPermissionSet)) {
@@ -1054,6 +1055,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (owners != null && !owners.isEmpty()) {
 			q.put(Fields.WS_OWNER, new BasicDBObject("$in",
 					convertWorkspaceUsers(owners)));
+		}
+		if (meta != null && !meta.isEmpty()) {
+			final List<DBObject> andmetaq = new LinkedList<DBObject>();
+			for (final Entry<String, String> e: meta.entrySet()) {
+				final DBObject mentry = new BasicDBObject();
+				mentry.put(Fields.META_KEY, e.getKey());
+				mentry.put(Fields.META_VALUE, e.getValue());
+				andmetaq.add(new BasicDBObject(Fields.WS_META, mentry));
+			}
+			q.put("$and", andmetaq); //note more than one entry is untested
 		}
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);

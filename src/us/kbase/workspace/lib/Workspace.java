@@ -625,26 +625,29 @@ public class Workspace {
 		return tove;
 	}
 	
-	//TODO search by meta
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
-			final List<WorkspaceUser> users, final boolean excludeGlobal,
-			final boolean showDeleted, final boolean showOnlyDeleted)
+			final List<WorkspaceUser> users, final Map<String, String> meta,
+			final boolean excludeGlobal, final boolean showDeleted,
+			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
 			minPerm = Permission.READ;
 		}
+		if (meta != null && meta.size() > 1) {
+			throw new IllegalArgumentException("Only one metadata spec allowed");
+		}
 		final PermissionSet perms =
 				db.getPermissions(user, minPerm, excludeGlobal);
-		return db.getWorkspaceInformation(perms, users, showDeleted,
+		return db.getWorkspaceInformation(perms, users, meta, showDeleted,
 				showOnlyDeleted);
 	}
 	
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
-			Map<String, String> meta,
+			final Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetaData)

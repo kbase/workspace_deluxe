@@ -2501,7 +2501,7 @@ public class TestWorkspace {
 		}
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
 		ws.setWorkspaceDeleted(foo, read, true);
-		WorkspaceInformation read2 = ws.listWorkspaces(foo, null, null, true, true, false).get(0);
+		WorkspaceInformation read2 = ws.listWorkspaces(foo, null, null, null,true, true, false).get(0);
 		try {
 			ws.getWorkspaceDescription(foo, read);
 			fail("got description from deleted workspace");
@@ -3727,7 +3727,8 @@ public class TestWorkspace {
 		expected.put(writeable, false);
 		expected.put(adminable, false);
 		expected.put(listuser3, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, MT_META, true, false, false), expected);
 		
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
@@ -3740,23 +3741,23 @@ public class TestWorkspace {
 		if (locked != null) {
 			expected.put(locked, false);
 		}
-		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, false, false, false), expected);
 		
 		expected.put(deletedws, true);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, false, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, false, true, false), expected);
 		
 		expected.remove(globalreadable);
 		expected.remove(locked);
 		expected.remove(listuser3gl);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, true, true, false), expected);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, null, true, true, false), expected);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.READ, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, null, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.READ, null, null, true, true, false), expected);
 
 		expected.remove(readable);
 		expected.remove(listuser3);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.WRITE, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.WRITE, null, null, true, true, false), expected);
 		expected.remove(writeable);
-		checkWSInfoList(ws.listWorkspaces(user, Permission.ADMIN, null, true, true, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, Permission.ADMIN, null, null, true, true, false), expected);
 		
 		expected.clear();
 		expected.put(globalreadable, false);
@@ -3766,45 +3767,76 @@ public class TestWorkspace {
 		}
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("globalws")), false);
-		checkWSInfoList(ws.listWorkspaces(newb, null, null, false, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, null, false, false, false), expected);
 		expected.clear();
-		checkWSInfoList(ws.listWorkspaces(newb, null, null, false, false, true), expected);
-		checkWSInfoList(ws.listWorkspaces(newb, null, null, true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(newb, null, null, null, true, false, false), expected);
 		
 		expected.put(deletedws, true);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, false, true, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, true, true, true), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, false, false, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, false, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, true, true, true), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, false, false, true), expected);
 		
 		expected.clear();
 		expected.put(stdws, false);
 		expected.put(globalws, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user), false,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user), null, false,
 				false, false), expected);
 		expected.put(readable, false);
 		expected.put(writeable, false);
 		expected.put(adminable, false);
 		expected.put(globalreadable, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2), false,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2), null, false,
 				false, false), expected);
 		expected.put(listuser3, false);
 		expected.put(listuser3gl, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), false,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), null, false,
 				false, false), expected);
 		expected.remove(globalreadable);
 		expected.remove(listuser3gl);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), true,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user, user2, user3), null, true,
 				false, false), expected);
 		expected.remove(stdws);
 		expected.remove(globalws);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user2, user3), true,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user2, user3), null, true,
 				false, false), expected);
 		expected.remove(readable);
 		expected.remove(writeable);
 		expected.remove(adminable);
-		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user3), true,
+		checkWSInfoList(ws.listWorkspaces(user, null, Arrays.asList(user3), null, true,
 				false, false), expected);
+		
+		Map<String, String> querymeta = new HashMap<String, String>();
+		querymeta.put("suckmaster", "burstingfoam");
+		expected.clear();
+		expected.put(globalws, false);
+		expected.put(writeable, false);
+		expected.put(globalreadable, false);
+		expected.put(listuser3gl, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, false,
+				false, false), expected);
+		
+		querymeta.clear();
+		querymeta.put("this is", "some meta meta");
+		expected.clear();
+		expected.put(stdws, false);
+		expected.put(readable, false);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, false,
+				false, false), expected);
+		
+		querymeta.clear();
+		querymeta.put("bro", "heim");
+		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, false,
+				false, false), expected);
+		
+		try {
+			ws.listWorkspaces(user, null, null, meta1, false, false, false);
+			fail("listed ws with bad meta");
+		} catch (IllegalArgumentException exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is("Only one metadata spec allowed"));
+		}
 		
 		ws.setGlobalPermission(user2, new WorkspaceIdentifier("globalreadable"), Permission.NONE);
 		ws.setWorkspaceDeleted(user2, new WorkspaceIdentifier("deletedglobalreadable"), false);
