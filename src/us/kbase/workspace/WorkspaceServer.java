@@ -278,6 +278,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
+		//TODO test
 		final WorkspaceUser user = getUser(authPart);
 		if (params.getRemove() != null) {
 			for (final String key: params.getRemove()) {

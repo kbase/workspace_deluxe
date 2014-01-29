@@ -458,14 +458,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{%s: #, \"%s.%s\": #}", Fields.WS_ID, Fields.WS_META,
 			Fields.META_KEY);
 	private final static String M_SET_WS_META_WTH = String.format(
-			"{$set: {\"%s.$.%s\": #}}", Fields.WS_META, Fields.META_VALUE); 
+			"{$set: {\"%s.$.%s\": #, %s: #}}",
+			Fields.WS_META, Fields.META_VALUE, Fields.WS_MODDATE); 
 	
 	private final static String M_SET_WS_META_NOT_QRY = String.format(
 			"{%s: #, \"%s.%s\": {$nin: [#]}}", Fields.WS_ID, Fields.WS_META,
 			Fields.META_KEY);
 	private final static String M_SET_WS_META_NOT_WTH = String.format(
-			"{$push: {%s: {%s: #, %s: #}}}", Fields.WS_META, Fields.META_KEY,
-			Fields.META_VALUE); 
+			"{$push: {%s: {%s: #, %s: #}}, $set: {%s: #}}",
+			Fields.WS_META, Fields.META_KEY, Fields.META_VALUE,
+			Fields.WS_MODDATE); 
 	
 	@Override
 	public void setWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
@@ -495,7 +497,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				try {
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_WS_META_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_WTH, value);
+							.with(M_SET_WS_META_WTH, value, new Date());
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -509,7 +511,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				try {
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_NOT_WTH, key, value);
+							.with(M_SET_WS_META_NOT_WTH, key, value,
+									new Date());
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -529,19 +532,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	
 	private static final String M_REM_META_WTH = String.format(
-			"{$pull: {%s: {%s: #}}}", Fields.WS_META, Fields.META_KEY);
+			"{$pull: {%s: {%s: #}}, $set: {%s: #}}",
+			Fields.WS_META, Fields.META_KEY, Fields.WS_MODDATE);
 	
 	@Override
 	public void removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final String key) throws WorkspaceCommunicationException {
-		if (key == null) {
-			throw new IllegalArgumentException("Metadata key cannot be null");
-		}
 		
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_META_QRY, rwsi.getID(), key)
-					.with(M_REM_META_WTH, key);
+					.with(M_REM_META_WTH, key, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);

@@ -418,6 +418,15 @@ public class TestWorkspace {
 				perm, globalread, id, moddate, lockstate, meta);
 	}
 	
+	private Date checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
+			long objs, Permission perm, boolean globalread, long id,
+			String lockstate, Map<String, String> meta) throws Exception {
+		WorkspaceInformation info = ws.getWorkspaceInformation(owner, wsi);
+		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate, meta);
+		assertThat("ws id correct", info.getId(), is(id));
+		return info.getModDate();
+	}
+	
 	private void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id, Date moddate,
 			String lockstate, Map<String, String> meta) {
@@ -527,12 +536,12 @@ public class TestWorkspace {
 		Map<String, String> putmeta = new HashMap<String, String>();
 		putmeta.put("foo2", "bar3");
 		ws.setWorkspaceMetadata(user, wsi, putmeta);
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		Date d1 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		meta.put("foo3", "bar4"); //new
 		putmeta.clear();
 		putmeta.put("foo3", "bar4");
 		ws.setWorkspaceMetadata(user, wsi, putmeta);
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		Date d2 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		
 		putmeta.clear();
 		putmeta.put("foo3", "bar5"); //replace
@@ -544,22 +553,25 @@ public class TestWorkspace {
 		meta.put("foo", "whoa this is new");
 		meta.put("no, this part is new", "prunker");
 		ws.setWorkspaceMetadata(user, wsi, putmeta);
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		Date d3 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		
 		Map<String, String> newmeta = new HashMap<String, String>();
 		newmeta.put("new", "meta");
 		ws.setWorkspaceMetadata(user, wsiNo, newmeta);
-		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", newmeta);
+		Date nod1 = checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), "unlocked", newmeta);
 		
+		assertDatesAscending(infoNo.getModDate(), nod1);
 		
 		meta.remove("foo2");
 		ws.removeWorkspaceMetadata(user, wsi, "foo2");
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		Date d4 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		meta.remove("some");
 		ws.removeWorkspaceMetadata(user2, wsi, "some");
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		Date d5 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		ws.removeWorkspaceMetadata(user, wsi, "fake"); //no effect
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), d5, "unlocked", meta);
+		
+		assertDatesAscending(info.getModDate(), d1, d2, d3, d4, d5);
 		
 		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_META);
 		ws.removeWorkspaceMetadata(user, wsiNo2, "somekey"); //should do nothing
@@ -595,8 +607,12 @@ public class TestWorkspace {
 				"Metadata cannot be null or empty"));
 		failWSSetMeta(user, wsi, MT_META, new IllegalArgumentException(
 				"Metadata cannot be null or empty"));
-		failWSRemoveMeta(user, wsi, null, new IllegalArgumentException(
-				"Metadata key cannot be null"));
+	}
+	
+	private void assertDatesAscending(Date... dates) {
+		for (int i = 1; i < dates.length; i++) {
+			assertTrue("dates are ascending", dates[i-1].before(dates[i]));
+		}
 	}
 	
 	private void failWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
