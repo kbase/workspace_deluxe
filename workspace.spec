@@ -815,6 +815,10 @@ module Workspace {
 		permission perm - filter workspaces by permission level. 'None' and
 			'readable' are ignored.
 		list<username> owners - filter workspaces by owner.
+		usermeta meta - filter workspaces by the user supplied metadata. NOTE:
+			only one key/value pair is supported at this time. A full map
+			is provided as input for the possibility for expansion in the
+			future.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
 		boolean showDeleted - show deleted workspaces that are owned by the
@@ -826,6 +830,7 @@ module Workspace {
 	typedef structure { 
 		permission perm;
 		list<username> owners;
+		usermeta meta;
 		boolean excludeGlobal;
 		boolean showDeleted;
 		boolean showOnlyDeleted;

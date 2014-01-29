@@ -2594,11 +2594,13 @@ $wsinfo is a reference to a list where each element is a Workspace.workspace_inf
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	perm has a value which is a Workspace.permission
 	owners has a value which is a reference to a list where each element is a Workspace.username
+	meta has a value which is a Workspace.usermeta
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 permission is a string
 username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -2614,7 +2616,6 @@ ws_id is an int
 ws_name is a string
 timestamp is a string
 lock_status is a string
-usermeta is a reference to a hash where the key is a string and the value is a string
 
 </pre>
 
@@ -2627,11 +2628,13 @@ $wsinfo is a reference to a list where each element is a Workspace.workspace_inf
 ListWorkspaceInfoParams is a reference to a hash where the following keys are defined:
 	perm has a value which is a Workspace.permission
 	owners has a value which is a reference to a list where each element is a Workspace.username
+	meta has a value which is a Workspace.usermeta
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 permission is a string
 username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -2647,7 +2650,6 @@ ws_id is an int
 ws_name is a string
 timestamp is a string
 lock_status is a string
-usermeta is a reference to a hash where the key is a string and the value is a string
 
 
 =end text
@@ -7701,6 +7703,10 @@ Optional parameters:
 permission perm - filter workspaces by permission level. 'None' and
         'readable' are ignored.
 list<username> owners - filter workspaces by owner.
+usermeta meta - filter workspaces by the user supplied metadata. NOTE:
+        only one key/value pair is supported at this time. A full map
+        is provided as input for the possibility for expansion in the
+        future.
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
 boolean showDeleted - show deleted workspaces that are owned by the
@@ -7717,6 +7723,7 @@ boolean showOnlyDeleted - only show deleted workspaces that are owned
 a reference to a hash where the following keys are defined:
 perm has a value which is a Workspace.permission
 owners has a value which is a reference to a list where each element is a Workspace.username
+meta has a value which is a Workspace.usermeta
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -7730,6 +7737,7 @@ showOnlyDeleted has a value which is a Workspace.boolean
 a reference to a hash where the following keys are defined:
 perm has a value which is a Workspace.permission
 owners has a value which is a reference to a list where each element is a Workspace.username
+meta has a value which is a Workspace.usermeta
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean

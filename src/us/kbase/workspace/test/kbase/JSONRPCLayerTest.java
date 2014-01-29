@@ -2313,6 +2313,14 @@ public class JSONRPCLayerTest {
 				.withOwners(new ArrayList<String>())),
 				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
 		
+		//filter on meta
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withMeta(meta)),
+				Arrays.asList(std), Arrays.asList(deleted,  globalread, write, admin));
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withMeta(meta2)),
+				Arrays.asList(write), Arrays.asList(std, deleted, globalread, admin));
+		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withOwners(Arrays.asList(USER1))),
 				Arrays.asList(std), Arrays.asList(deleted));

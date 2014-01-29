@@ -20,6 +20,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * permission perm - filter workspaces by permission level. 'None' and
  *         'readable' are ignored.
  * list<username> owners - filter workspaces by owner.
+ * usermeta meta - filter workspaces by the user supplied metadata. NOTE:
+ *         only one key/value pair is supported at this time. A full map
+ *         is provided as input for the possibility for expansion in the
+ *         future.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
  * boolean showDeleted - show deleted workspaces that are owned by the
@@ -34,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "perm",
     "owners",
+    "meta",
     "excludeGlobal",
     "showDeleted",
     "showOnlyDeleted"
@@ -44,6 +49,8 @@ public class ListWorkspaceInfoParams {
     private java.lang.String perm;
     @JsonProperty("owners")
     private List<String> owners;
+    @JsonProperty("meta")
+    private Map<String, String> meta;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
@@ -79,6 +86,21 @@ public class ListWorkspaceInfoParams {
 
     public ListWorkspaceInfoParams withOwners(List<String> owners) {
         this.owners = owners;
+        return this;
+    }
+
+    @JsonProperty("meta")
+    public Map<String, String> getMeta() {
+        return meta;
+    }
+
+    @JsonProperty("meta")
+    public void setMeta(Map<String, String> meta) {
+        this.meta = meta;
+    }
+
+    public ListWorkspaceInfoParams withMeta(Map<String, String> meta) {
+        this.meta = meta;
         return this;
     }
 
@@ -139,7 +161,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", meta=")+ meta)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
