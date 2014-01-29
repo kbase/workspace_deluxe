@@ -244,15 +244,13 @@ public class Workspace {
 		db.removeWorkspaceMetaKey(wsid, key);
 	}
 	
-	//TODO make this work on multiple k/vs at once
 	public void setWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String key,
-			final String value)
+			final WorkspaceIdentifier wsi, final Map<String, String> meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"alter metadata for");
-		db.setWorkspaceMetaKey(wsid, key, value);
+		db.setWorkspaceMetaKey(wsid, meta);
 	}
 	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,

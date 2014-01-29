@@ -467,40 +467,48 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public void setWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
-			final String key, final String value)
+			final Map<String, String> meta)
 			throws WorkspaceCommunicationException {
 		//TODO check size ok
-		while (true) { //Danger, Will Robinson! Danger!
-			//replace the value if it exists already
-			WriteResult wr;
-			try {
-				wr = wsjongo.getCollection(COL_WORKSPACES)
-						.update(M_SET_WS_META_QRY, rwsi.getID(), key)
-						.with(M_SET_WS_META_WTH, value);
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
+		for (final Entry<String, String> e: meta.entrySet()) {
+			final String key = e.getKey();
+			final String value = e.getValue();
+			boolean success = false;
+			while (!success) { //Danger, Will Robinson! Danger!
+				//replace the value if it exists already
+				WriteResult wr;
+				try {
+					wr = wsjongo.getCollection(COL_WORKSPACES)
+							.update(M_SET_WS_META_QRY, rwsi.getID(), key)
+							.with(M_SET_WS_META_WTH, value);
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(
+							"There was a problem communicating with the database",
+							me);
+				}
+				if (wr.getN() == 1) { //ok, it worked
+					success = true;
+					continue;
+				}
+				//add the key/value pair to the array
+				try {
+					wr = wsjongo.getCollection(COL_WORKSPACES)
+							.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
+							.with(M_SET_WS_META_NOT_WTH, key, value);
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(
+							"There was a problem communicating with the database",
+							me);
+				}
+				if (wr.getN() == 1) { //ok, it worked
+					success = true;
+				}
+				/* amazingly, someone added that key to the metadata between the
+				   two calls above, so here we go again on our own
+				   Should be impossible to get stuck in a loop, but if so add
+				   counter and throw error if > 3 or something
+				 */
 			}
-			if (wr.getN() == 1) { //ok, it worked
-				return;
-			}
-			//add the key/value pair to the array
-			try {
-				wr = wsjongo.getCollection(COL_WORKSPACES)
-						.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
-						.with(M_SET_WS_META_NOT_WTH, key, value);
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
-			}
-			if (wr.getN() == 1) { //ok, it worked
-				return;
-			}
-			/* amazingly, someone added that key to the metadata between the
-			   two calls above, so here we go again on our own
-			   Should be impossible to get stuck in a loop, but if so add
-			   counter and throw error if > 3 or something
-			*/
 		}
 	}
 	

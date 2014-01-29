@@ -524,15 +524,31 @@ public class TestWorkspace {
 		
 		
 		meta.put("foo2", "bar3"); //replace
-		ws.setWorkspaceMetadata(user, wsi, "foo2", "bar3");
+		Map<String, String> putmeta = new HashMap<String, String>();
+		putmeta.put("foo2", "bar3");
+		ws.setWorkspaceMetadata(user, wsi, putmeta);
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
 		meta.put("foo3", "bar4"); //new
-		ws.setWorkspaceMetadata(user, wsi, "foo3", "bar4");
+		putmeta.clear();
+		putmeta.put("foo3", "bar4");
+		ws.setWorkspaceMetadata(user, wsi, putmeta);
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		
+		putmeta.clear();
+		putmeta.put("foo3", "bar5"); //replace
+		putmeta.put("some.garbage", "with.dots"); //new
+		putmeta.put("foo", "whoa this is new"); //replace
+		putmeta.put("no, this part is new", "prunker"); //new
+		meta.put("foo3", "bar5");
+		meta.put("some.garbage", "with.dots");
+		meta.put("foo", "whoa this is new");
+		meta.put("no, this part is new", "prunker");
+		ws.setWorkspaceMetadata(user, wsi, putmeta);
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
 		
 		Map<String, String> newmeta = new HashMap<String, String>();
 		newmeta.put("new", "meta");
-		ws.setWorkspaceMetadata(user, wsiNo, "new", "meta");
+		ws.setWorkspaceMetadata(user, wsiNo, newmeta);
 		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", newmeta);
 		
 		
@@ -574,8 +590,10 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put(key, value);
 		try {
-			ws.setWorkspaceMetadata(user, wsi, key, value);
+			ws.setWorkspaceMetadata(user, wsi, meta);
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertThat("correct exception", exp.getLocalizedMessage(),

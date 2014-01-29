@@ -23,11 +23,14 @@ VERSION: 0.1.4 (Released TBD)
 
 NEW FEATURES:
 - Get the version of the workspace server.
+- Set metadata on a workspace and search workspaces by metadata.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
-- 
+- On startup the WSS attempts to create a node in shock to test for shock
+  misconfiguration (shock client change)
 
 ANTICIPATED FUTURE DEVELOPMENTS:
+- Rewrite type checker / data extractor for speed and memory usage
 - Garbage collection
 - Unified WS / Shock ACLs
 - Pointers to shock data too large to fit in the workspace
@@ -36,7 +39,6 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - KBase Search API
 - Service Search API (e.g. MongoDB queries on TOs)
 - Object sharing queue (share specific versions of objects)
-- Add searchable, mutable metadata to a workspace
 - Import TOs from shock
 - Update copied objects from source
 - Improvements to returning the subset of an object

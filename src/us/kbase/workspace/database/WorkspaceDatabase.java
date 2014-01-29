@@ -42,8 +42,8 @@ public interface WorkspaceDatabase {
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
-	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key,
-			String value) throws WorkspaceCommunicationException;
+	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid,
+			Map<String, String> meta) throws WorkspaceCommunicationException;
 
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
