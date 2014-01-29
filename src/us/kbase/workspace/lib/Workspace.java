@@ -222,7 +222,6 @@ public class Workspace {
 		return ret;
 	}
 	
-	//TODO test what happens when removing/adding data to ws w/o meta
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
 			final String wsname, boolean globalread, final String description,
 			final Map<String, String> meta)
