@@ -590,10 +590,25 @@ public class TestWorkspace {
 		putmeta.put("148", TEXT100);
 		failWSSetMeta(user, wsiNo2, putmeta, new IllegalArgumentException(
 				"Updated metadata size of 16023 is > 16000 bytes"));
+		
+		failWSSetMeta(user, wsi, null, new IllegalArgumentException(
+				"Metadata cannot be null or empty"));
+		failWSSetMeta(user, wsi, MT_META, new IllegalArgumentException(
+				"Metadata cannot be null or empty"));
+		failWSRemoveMeta(user, wsi, null, new IllegalArgumentException(
+				"Metadata key cannot be null"));
 	}
 	
 	private void failWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
 			String key, String value, Exception e) throws Exception {
+		failWSRemoveMeta(user, wsi, key, e);
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put(key, value);
+		failWSSetMeta(user, wsi, meta, e);
+	}
+
+	private void failWSRemoveMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
+			String key, Exception e) {
 		try {
 			ws.removeWorkspaceMetadata(user, wsi, key);
 			fail("expected remove ws meta to fail");
@@ -602,9 +617,6 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put(key, value);
-		failWSSetMeta(user, wsi, meta, e);
 	}
 
 	private void failWSSetMeta(WorkspaceUser user, WorkspaceIdentifier wsi,

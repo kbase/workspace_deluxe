@@ -124,6 +124,22 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: alter_workspace_metadata</p>
+     * <pre>
+     * Change the metadata associated with a workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.AlterWorkspaceMetadataParams AlterWorkspaceMetadataParams}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.alter_workspace_metadata", args, retType, false, true);
+    }
+
+    /**
      * <p>Original spec-file function name: clone_workspace</p>
      * <pre>
      * Clones a workspace.

@@ -266,6 +266,31 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: alter_workspace_metadata</p>
+     * <pre>
+     * Change the metadata associated with a workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.AlterWorkspaceMetadataParams AlterWorkspaceMetadataParams}
+     */
+    @JsonServerMethod(rpc = "Workspace.alter_workspace_metadata")
+    public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart) throws Exception {
+        //BEGIN alter_workspace_metadata
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final WorkspaceIdentifier wsi =
+				processWorkspaceIdentifier(params.getWsi());
+		final WorkspaceUser user = getUser(authPart);
+		if (params.getRemove() != null) {
+			for (final String key: params.getRemove()) {
+				ws.removeWorkspaceMetadata(user, wsi, key);
+			}
+		}
+		if (params.getNew() != null) {
+			ws.setWorkspaceMetadata(user, wsi, params.getNew());
+		}
+        //END alter_workspace_metadata
+    }
+
+    /**
      * <p>Original spec-file function name: clone_workspace</p>
      * <pre>
      * Clones a workspace.

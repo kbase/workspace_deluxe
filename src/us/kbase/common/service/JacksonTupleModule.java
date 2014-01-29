@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -24,7 +25,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleDeserializers;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.module.SimpleSerializers;
-import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 @SuppressWarnings("serial")
@@ -129,10 +129,40 @@ public class JacksonTupleModule extends SimpleModule {
 					}
 					m.invoke(res, val);
 				}
-				p.nextToken();
+				while (true) {
+					JsonToken t = p.nextToken();
+					if (t == JsonToken.END_ARRAY)
+						break;
+					skipValueWithoutFirst(p);
+				}
 				return res;
 			} catch (Exception ex) {
 				throw new IllegalStateException(ex);
+			}
+		}
+
+		private static void skipValue(JsonParser jp) throws JsonParseException, IOException {
+			jp.nextToken();
+			skipValueWithoutFirst(jp);
+		}
+		
+		private static void skipValueWithoutFirst(JsonParser jp) throws JsonParseException, IOException {
+			JsonToken t = jp.getCurrentToken();
+			if (t == JsonToken.START_OBJECT) {
+				while (true) {
+					t = jp.nextToken();
+					if (t == JsonToken.END_OBJECT) {
+						break;
+					}
+					skipValue(jp);
+				}
+			} else if (t == JsonToken.START_ARRAY) {
+				while (true) {
+					t = jp.nextToken();
+					if (t == JsonToken.END_ARRAY)
+						break;
+					skipValueWithoutFirst(jp);
+				}
 			}
 		}
 

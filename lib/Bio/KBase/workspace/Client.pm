@@ -278,6 +278,105 @@ sub create_workspace
 
 
 
+=head2 alter_workspace_metadata
+
+  $obj->alter_workspace_metadata($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.AlterWorkspaceMetadataParams
+AlterWorkspaceMetadataParams is a reference to a hash where the following keys are defined:
+	wsi has a value which is a Workspace.WorkspaceIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.AlterWorkspaceMetadataParams
+AlterWorkspaceMetadataParams is a reference to a hash where the following keys are defined:
+	wsi has a value which is a Workspace.WorkspaceIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Change the metadata associated with a workspace.
+
+=back
+
+=cut
+
+sub alter_workspace_metadata
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function alter_workspace_metadata (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to alter_workspace_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'alter_workspace_metadata');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.alter_workspace_metadata",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'alter_workspace_metadata',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method alter_workspace_metadata",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'alter_workspace_metadata',
+				       );
+    }
+}
+
+
+
 =head2 clone_workspace
 
   $info = $obj->clone_workspace($params)
@@ -6898,6 +6997,54 @@ workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
 meta has a value which is a Workspace.usermeta
+
+
+=end text
+
+=back
+
+
+
+=head2 AlterWorkspaceMetadataParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "alter_workspace_metadata" function.
+
+Required arguments:
+WorkspaceIdentity wsi - the workspace to be altered
+
+One or both of the following arguments are required:
+usermeta new - metadata to assign to the workspace. Duplicate keys will
+        be overwritten.
+list<string> remove - these keys will be removed from the workspace
+        metadata key/value pairs.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+wsi has a value which is a Workspace.WorkspaceIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+wsi has a value which is a Workspace.WorkspaceIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
 
 
 =end text

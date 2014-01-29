@@ -390,7 +390,30 @@ module Workspace {
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
 		(workspace_info info);
+	
+	/* Input parameters for the "alter_workspace_metadata" function.
 		
+		Required arguments:
+		WorkspaceIdentity wsi - the workspace to be altered
+		
+		One or both of the following arguments are required:
+		usermeta new - metadata to assign to the workspace. Duplicate keys will
+			be overwritten.
+		list<string> remove - these keys will be removed from the workspace
+			metadata key/value pairs.
+	*/
+	typedef structure {
+		WorkspaceIdentity wsi;
+		usermeta new;
+		list<string> remove;
+	} AlterWorkspaceMetadataParams;
+	
+	/*
+		Change the metadata associated with a workspace.
+	*/
+	funcdef alter_workspace_metadata(AlterWorkspaceMetadataParams params)
+		returns();
+	
 	/* Input parameters for the "clone_workspace" function.
 	
 		Note that deleted objects are not cloned, although hidden objects are

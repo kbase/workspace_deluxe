@@ -454,7 +454,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
 	
-	private final static String M_SET_WS_META_QRY = String.format(
+	private final static String M_WS_META_QRY = String.format(
 			"{%s: #, \"%s.%s\": #}", Fields.WS_ID, Fields.WS_META,
 			Fields.META_KEY);
 	private final static String M_SET_WS_META_WTH = String.format(
@@ -473,6 +473,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
+		if (meta == null || meta.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Metadata cannot be null or empty");
+		}
 		final Map<String, Object> ws = query.queryWorkspace(
 				query.convertResolvedWSID(rwsi), FLDS_WS_META);
 		@SuppressWarnings("unchecked")
@@ -490,7 +494,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				WriteResult wr;
 				try {
 					wr = wsjongo.getCollection(COL_WORKSPACES)
-							.update(M_SET_WS_META_QRY, rwsi.getID(), key)
+							.update(M_WS_META_QRY, rwsi.getID(), key)
 							.with(M_SET_WS_META_WTH, value);
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
@@ -530,10 +534,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public void removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final String key) throws WorkspaceCommunicationException {
+		if (key == null) {
+			throw new IllegalArgumentException("Metadata key cannot be null");
+		}
 		
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
-					.update(M_WS_ID_QRY, rwsi.getID())
+					.update(M_WS_META_QRY, rwsi.getID(), key)
 					.with(M_REM_META_WTH, key);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
