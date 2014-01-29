@@ -495,7 +495,7 @@ public class TestWorkspace {
 			fail("created ws with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata is > 16000 bytes"));
+					is("Metadata size of 16076 is > 16000 bytes"));
 		}
 		
 		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
@@ -576,8 +576,20 @@ public class TestWorkspace {
 		ws.setWorkspaceDeleted(user, wsi, true);
 		failWSMeta(user, wsi, "foo", "val", new NoSuchWorkspaceException(
 				"Workspace workspaceMetadata is deleted", wsi));
+		ws.setWorkspaceDeleted(user, wsi, false);
 		
-		//TODO size tests for set vals
+		putmeta.clear();
+		for (int i = 0; i < 147; i++) {
+			putmeta.put("" + i, TEXT100);
+		}
+		ws.createWorkspace(user, "wsmetafake", false, null, putmeta); //should work
+		failWSSetMeta(user, wsi, putmeta, new IllegalArgumentException(
+				"Updated metadata size of 16013 is > 16000 bytes"));
+		
+		ws.setWorkspaceMetadata(user, wsiNo, putmeta); //should work
+		putmeta.put("148", TEXT100);
+		failWSSetMeta(user, wsiNo2, putmeta, new IllegalArgumentException(
+				"Updated metadata size of 16023 is > 16000 bytes"));
 	}
 	
 	private void failWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
@@ -592,6 +604,11 @@ public class TestWorkspace {
 		}
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put(key, value);
+		failWSSetMeta(user, wsi, meta, e);
+	}
+
+	private void failWSSetMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
+			Map<String, String> meta, Exception e) {
 		try {
 			ws.setWorkspaceMetadata(user, wsi, meta);
 			fail("expected set ws meta to fail");
@@ -2021,7 +2038,7 @@ public class TestWorkspace {
 			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata is > 16000 bytes"));
+					is("Metadata size of 19413 is > 16000 bytes"));
 		}
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
@@ -2030,7 +2047,7 @@ public class TestWorkspace {
 			fail("saved object with > 16kb metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata is > 16000 bytes"));
+					is("Metadata size of 19413 is > 16000 bytes"));
 		}
 	}
 	
@@ -3176,7 +3193,7 @@ public class TestWorkspace {
 		ws.cloneWorkspace(user1, cp1, "fakename", false, "eeswaffertheen", bigmeta);
 		bigmeta.put("thing", TEXT100);
 		failClone(user1, cp1, "fakename", bigmeta, new IllegalArgumentException(
-				"Metadata is > 16000 bytes"));
+				"Metadata size of 16076 is > 16000 bytes"));
 		
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
 		ws.setGlobalPermission(user1, clone4, Permission.NONE);

@@ -1592,7 +1592,7 @@ public class JSONRPCLayerTest {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2 save error: Metadata is > 16000 bytes"));
+					is("Object 2 save error: Metadata size of 16119 is > 16000 bytes"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
@@ -1600,7 +1600,7 @@ public class JSONRPCLayerTest {
 			fail("called createWS with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Metadata is > 16000 bytes"));
+					is("Metadata size of 16119 is > 16000 bytes"));
 		}
 		
 	}

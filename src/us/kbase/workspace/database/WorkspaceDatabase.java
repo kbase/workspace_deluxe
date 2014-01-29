@@ -43,7 +43,8 @@ public interface WorkspaceDatabase {
 			CorruptWorkspaceDBException;
 	
 	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid,
-			Map<String, String> meta) throws WorkspaceCommunicationException;
+			Map<String, String> meta)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;

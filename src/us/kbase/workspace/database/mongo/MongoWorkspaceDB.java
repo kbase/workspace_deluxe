@@ -452,6 +452,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				meta == null ? new HashMap<String, String>() : meta);
 	}
 	
+	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
+	
 	private final static String M_SET_WS_META_QRY = String.format(
 			"{%s: #, \"%s.%s\": #}", Fields.WS_ID, Fields.WS_META,
 			Fields.META_KEY);
@@ -468,8 +470,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public void setWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final Map<String, String> meta)
-			throws WorkspaceCommunicationException {
-		//TODO check size ok
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		
+		final Map<String, Object> ws = query.queryWorkspace(
+				query.convertResolvedWSID(rwsi), FLDS_WS_META);
+		@SuppressWarnings("unchecked")
+		Map<String, String> currMeta = metaMongoArrayToHash(
+				(List<Object>) ws.get(Fields.WS_META));
+		currMeta.putAll(meta);
+		checkSize(currMeta, "Updated metadata", MAX_WS_META_SIZE);
+		
 		for (final Entry<String, String> e: meta.entrySet()) {
 			final String key = e.getKey();
 			final String value = e.getValue();

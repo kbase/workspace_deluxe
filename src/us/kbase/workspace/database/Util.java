@@ -39,7 +39,8 @@ public class Util {
 		}
 		if (cos.getSize() > maxsize) {
 				throw new IllegalArgumentException(String.format(
-						dataName + " is > %s bytes", maxsize));
+						dataName + " size of %s is > %s bytes", cos.getSize(),
+						maxsize));
 		}
 	}
 }

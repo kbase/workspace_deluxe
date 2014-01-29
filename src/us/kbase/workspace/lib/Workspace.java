@@ -625,6 +625,7 @@ public class Workspace {
 		return tove;
 	}
 	
+	//TODO search by meta
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
 			final List<WorkspaceUser> users, final boolean excludeGlobal,
