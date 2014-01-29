@@ -52,6 +52,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.ListObjectsParams;
@@ -3156,7 +3157,78 @@ public class JSONRPCLayerTest {
 		assertThat("got correct float back", got, is(data));
 		
 	}
-
+	
+	@Test
+	public void alterWorkspaceMetadata() throws Exception {
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("metadata");
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(wsi.getWorkspace()).withMeta(meta));
+		checkWS(info, info.getE1(), info.getE4(), wsi.getWorkspace(), USER1, 0, "a",
+				"n", "unlocked", null, meta);
+		
+		Map<String, String> newmeta = new HashMap<String, String>();
+		newmeta.put("baz", "bing");
+		newmeta.put("baf", "bat");
+		meta.put("baz", "bing");
+		meta.put("baf", "bat");
+		meta.remove("foo");
+		CLIENT1.alterWorkspaceMetadata(new AlterWorkspaceMetadataParams()
+				.withRemove(Arrays.asList("foo")).withNew(newmeta)
+				.withWsi(wsi));
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info1 =
+				CLIENT1.getWorkspaceInfo(wsi);
+		checkWS(info1, info.getE1(), info1.getE4(), wsi.getWorkspace(), USER1, 0, "a",
+				"n", "unlocked", null, meta);
+		
+		meta.remove("baz");
+		CLIENT1.alterWorkspaceMetadata(new AlterWorkspaceMetadataParams()
+				.withRemove(Arrays.asList("baz")).withWsi(wsi));
+		info1 = CLIENT1.getWorkspaceInfo(wsi);
+		checkWS(info1, info.getE1(), info1.getE4(), wsi.getWorkspace(), USER1, 0, "a",
+		"n", "unlocked", null, meta);
+		
+		newmeta.clear();
+		newmeta.put("baf", "thing");
+		newmeta.put("123", "456");
+		meta.put("baf", "thing");
+		meta.put("123", "456");
+		CLIENT1.alterWorkspaceMetadata(new AlterWorkspaceMetadataParams()
+				.withNew(newmeta).withWsi(wsi));
+		info1 = CLIENT1.getWorkspaceInfo(wsi);
+		checkWS(info1, info.getE1(), info1.getE4(), wsi.getWorkspace(), USER1, 0, "a",
+		"n", "unlocked", null, meta);
+		
+		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withRemove(Arrays.asList("foo")),
+				"WorkspaceIdentifier cannot be null");
+		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi),
+				"The new and remove params cannot both be null");
+		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi)
+				.withRemove(Arrays.asList("foo")).withNew(MT_META),
+				"Metadata cannot be null or empty");
+		failAlterWSMeta(CLIENT2, new AlterWorkspaceMetadataParams().withWsi(wsi)
+				.withNew(newmeta),
+				"User " + USER2 + " may not alter metadata for workspace " + wsi.getWorkspace());
+		
+		AlterWorkspaceMetadataParams p = new AlterWorkspaceMetadataParams();
+		p.setAdditionalProperties("foo", "bar");
+		failAlterWSMeta(CLIENT1, p, "Unexpected arguments in AlterWorkspaceMetadataParams: foo");
+	}
+	
+	private void failAlterWSMeta(WorkspaceClient cli, AlterWorkspaceMetadataParams awmp,
+			String excep) throws Exception {
+		try {
+			cli.alterWorkspaceMetadata(awmp);
+			fail("altered meta with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
+	}
+	
+	
 	@Test
 	public void testTypeMD5() throws Exception {
 		String typeDefName = "SomeModule.AType";

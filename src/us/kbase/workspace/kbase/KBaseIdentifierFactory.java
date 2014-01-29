@@ -27,6 +27,10 @@ public class KBaseIdentifierFactory {
 
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
+		if (wsi == null) {
+			throw new IllegalArgumentException(
+					"WorkspaceIdentifier cannot be null");
+		}
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());
 	}

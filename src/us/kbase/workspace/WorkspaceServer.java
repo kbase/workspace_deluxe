@@ -276,9 +276,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart) throws Exception {
         //BEGIN alter_workspace_metadata
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (params.getNew() == null && params.getRemove() == null) {
+			throw new IllegalArgumentException(
+					"The new and remove params cannot both be null");
+		}
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
-		//TODO test
 		final WorkspaceUser user = getUser(authPart);
 		if (params.getRemove() != null) {
 			for (final String key: params.getRemove()) {
