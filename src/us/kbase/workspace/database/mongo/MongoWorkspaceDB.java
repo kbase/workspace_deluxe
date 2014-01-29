@@ -92,6 +92,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.WriteResult;
 
 @RunWith(Enclosed.class)
 public class MongoWorkspaceDB implements WorkspaceDatabase {
@@ -451,7 +452,60 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				meta == null ? new HashMap<String, String>() : meta);
 	}
 	
-	private static final String M_REM_META_QRY = String.format(
+	private final static String M_SET_WS_META_QRY = String.format(
+			"{%s: #, \"%s.%s\": #}", Fields.WS_ID, Fields.WS_META,
+			Fields.META_KEY);
+	private final static String M_SET_WS_META_WTH = String.format(
+			"{$set: {\"%s.$.%s\": #}}", Fields.WS_META, Fields.META_VALUE); 
+	
+	private final static String M_SET_WS_META_NOT_QRY = String.format(
+			"{%s: #, \"%s.%s\": {$nin: [#]}}", Fields.WS_ID, Fields.WS_META,
+			Fields.META_KEY);
+	private final static String M_SET_WS_META_NOT_WTH = String.format(
+			"{$push: {%s: {%s: #, %s: #}}}", Fields.WS_META, Fields.META_KEY,
+			Fields.META_VALUE); 
+	
+	@Override
+	public void setWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
+			final String key, final String value)
+			throws WorkspaceCommunicationException {
+		//TODO check size ok
+		while (true) { //Danger, Will Robinson! Danger!
+			//replace the value if it exists already
+			WriteResult wr;
+			try {
+				wr = wsjongo.getCollection(COL_WORKSPACES)
+						.update(M_SET_WS_META_QRY, rwsi.getID(), key)
+						.with(M_SET_WS_META_WTH, value);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			if (wr.getN() == 1) { //ok, it worked
+				return;
+			}
+			//add the key/value pair to the array
+			try {
+				wr = wsjongo.getCollection(COL_WORKSPACES)
+						.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
+						.with(M_SET_WS_META_NOT_WTH, key, value);
+			} catch (MongoException me) {
+				throw new WorkspaceCommunicationException(
+						"There was a problem communicating with the database", me);
+			}
+			if (wr.getN() == 1) { //ok, it worked
+				return;
+			}
+			/* amazingly, someone added that key to the metadata between the
+			   two calls above, so here we go again on our own
+			   Should be impossible to get stuck in a loop, but if so add
+			   counter and throw error if > 3 or something
+			*/
+		}
+	}
+	
+	
+	private static final String M_REM_META_WTH = String.format(
 			"{$pull: {%s: {%s: #}}}", Fields.WS_META, Fields.META_KEY);
 	
 	@Override
@@ -461,7 +515,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_REM_META_QRY, key);
+					.with(M_REM_META_WTH, key);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);

@@ -507,6 +507,8 @@ public class TestWorkspace {
 		WorkspaceUser user = new WorkspaceUser("blahblah");
 		WorkspaceUser user2 = new WorkspaceUser("blahblah2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("workspaceMetadata");
+		WorkspaceIdentifier wsiNo = new WorkspaceIdentifier("workspaceNoMetadata");
+		WorkspaceIdentifier wsiNo2 = new WorkspaceIdentifier("workspaceNoMetadata2");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
 		meta.put("foo2", "bar2");
@@ -515,33 +517,66 @@ public class TestWorkspace {
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.ADMIN);
 		checkWSInfo(info, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		WorkspaceInformation infoNo = ws.createWorkspace(user, wsiNo.getName(), false, null, null);
+		checkWSInfo(infoNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+		WorkspaceInformation infoNo2 = ws.createWorkspace(user, wsiNo2.getName(), false, null, null);
+		
+		
+		meta.put("foo2", "bar3"); //replace
+		ws.setWorkspaceMetadata(user, wsi, "foo2", "bar3");
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		meta.put("foo3", "bar4"); //new
+		ws.setWorkspaceMetadata(user, wsi, "foo3", "bar4");
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
+		
+		Map<String, String> newmeta = new HashMap<String, String>();
+		newmeta.put("new", "meta");
+		ws.setWorkspaceMetadata(user, wsiNo, "new", "meta");
+		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", newmeta);
+		
+		
 		meta.remove("foo2");
 		ws.removeWorkspaceMetadata(user, wsi, "foo2");
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
 		meta.remove("some");
 		ws.removeWorkspaceMetadata(user2, wsi, "some");
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
-		ws.removeWorkspaceMetadata(user, wsi, "foo3"); //no effect
+		ws.removeWorkspaceMetadata(user, wsi, "fake"); //no effect
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
 		
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_META);
+		ws.removeWorkspaceMetadata(user, wsiNo2, "somekey"); //should do nothing
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_META);
+		
+		
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
-		failRemoveWSMeta(user2, wsi, "foo", new WorkspaceAuthorizationException(
+		failWSMeta(user2, wsi, "foo", "val", new WorkspaceAuthorizationException(
 				"User blahblah2 may not alter metadata for workspace workspaceMetadata"));
-		failRemoveWSMeta(null, wsi, "foo", new WorkspaceAuthorizationException(
+		failWSMeta(null, wsi, "foo", "val", new WorkspaceAuthorizationException(
 				"Anonymous users may not alter metadata for workspace workspaceMetadata"));
-		failRemoveWSMeta(user2, new WorkspaceIdentifier("thisiswayfake"), "foo", new NoSuchWorkspaceException(
+		failWSMeta(user2, new WorkspaceIdentifier("thisiswayfake"), "foo", "val", new NoSuchWorkspaceException(
 				"No workspace with name thisiswayfake exists", wsi));
 		ws.setWorkspaceDeleted(user, wsi, true);
-		failRemoveWSMeta(user, wsi, "foo", new NoSuchWorkspaceException(
+		failWSMeta(user, wsi, "foo", "val", new NoSuchWorkspaceException(
 				"Workspace workspaceMetadata is deleted", wsi));
 		
+		//TODO size tests for set vals
 	}
 	
-	private void failRemoveWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String key, Exception e) throws Exception {
+	private void failWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
+			String key, String value, Exception e) throws Exception {
 		try {
 			ws.removeWorkspaceMetadata(user, wsi, key);
 			fail("expected remove ws meta to fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		try {
+			ws.setWorkspaceMetadata(user, wsi, key, value);
+			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertThat("correct exception", exp.getLocalizedMessage(),
 					is(e.getLocalizedMessage()));
@@ -3289,7 +3324,7 @@ public class TestWorkspace {
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is("User lockuser2 may not read workspace lock"));
 		}
-		failRemoveWSMeta(user2, wsi, "some meta", new WorkspaceAuthorizationException(
+		failWSMeta(user2, wsi, "some meta", "val", new WorkspaceAuthorizationException(
 				"The workspace with id " + wsid +
 				", name lock, is locked and may not be modified"));
 		

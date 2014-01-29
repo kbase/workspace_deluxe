@@ -233,7 +233,7 @@ public class Workspace {
 				pruneWorkspaceDescription(description), meta);
 	}
 	
-	//might be worthwhile to make the meta methods work on multiple values,
+	//might be worthwhile to make this work on multiple values,
 	// but keep things simple for now. 
 	public void removeWorkspaceMetadata(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String key)
@@ -244,11 +244,15 @@ public class Workspace {
 		db.removeWorkspaceMetaKey(wsid, key);
 	}
 	
-	
+	//TODO make this work on multiple k/vs at once
 	public void setWorkspaceMetadata(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String key,
-			final String value) {
-		
+			final String value)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
+				"alter metadata for");
+		db.setWorkspaceMetaKey(wsid, key, value);
 	}
 	
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
