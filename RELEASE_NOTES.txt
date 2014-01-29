@@ -18,7 +18,7 @@ TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.1.4 (Released TBD)
+VERSION: 0.1.4 (Released 1/30/14)
 --------------------------------------
 
 NEW FEATURES:
