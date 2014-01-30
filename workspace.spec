@@ -136,6 +136,7 @@ module Workspace {
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
+		lock_status lockstat - the status of the workspace lock.
 		usermeta metadata - arbitrary user-supplied metadata about
 			the workspace.
 			
