@@ -83,7 +83,6 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
-//TODO make sure ordered lists stay ordered
 @RunWith(Parameterized.class)
 public class TestWorkspace {
 	
