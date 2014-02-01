@@ -51,6 +51,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CountingOutputStream;
+import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
@@ -69,6 +70,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.UninitializedWorkspaceDBException;
@@ -2084,16 +2086,38 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			CorruptWorkspaceDBException, TypedObjectExtractionException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
 				resolveObjectIDs(objects.keySet());
+		return getObjects(objects, oids);
+	}
+
+	private Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjectsPreResolved(
+			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids)
+			throws WorkspaceCommunicationException, NoSuchObjectException,
+			TypedObjectExtractionException, CorruptWorkspaceDBException {
+		final Map<ObjectIDResolvedWS, ObjectPaths> paths =
+				new HashMap<ObjectIDResolvedWS, ObjectPaths>();
+		for (final ObjectIDResolvedWS oi: oids.keySet()) {
+			paths.put(oi, null);
+		}
+		return getObjects(paths, oids);
+	}
+	
+	private Map<ObjectIDResolvedWS, WorkspaceObjectData> getObjects(
+			final Map<ObjectIDResolvedWS, ObjectPaths> paths,
+			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs)
+			throws WorkspaceCommunicationException, NoSuchObjectException,
+			TypedObjectExtractionException, CorruptWorkspaceDBException {
+		
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				query.queryVersions(
-						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<String, JsonNode> chksumToData = new HashMap<String, JsonNode>();
+		final Map<String, JsonNode> chksumToData =
+				new HashMap<String, JsonNode>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
-		for (ObjectIDResolvedWS o: objects.keySet()) {
-			final ResolvedMongoObjectID roi = oids.get(o);
+		for (ObjectIDResolvedWS o: paths.keySet()) {
+			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
 				throw new NoSuchObjectException(String.format(
 						"No object with id %s (name %s) and version %s exists "
@@ -2114,7 +2138,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				 * memoize the subset
 				 */
 				ret.put(o, new WorkspaceObjectData(getDataSubSet(
-						chksumToData.get(meta.getCheckSum()), objects.get(o)),
+						chksumToData.get(meta.getCheckSum()), paths.get(o)),
 						meta, prov, refs));
 			} else {
 				final JsonNode data;
@@ -2135,7 +2159,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 				chksumToData.put(meta.getCheckSum(), data);
 				ret.put(o, new WorkspaceObjectData(getDataSubSet(
-						data, objects.get(o)), meta, prov, refs));
+						data, paths.get(o)), meta, prov, refs));
 			}
 		}
 		return ret;
@@ -2148,6 +2172,94 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			return data;
 		}
 		return TypedObjectExtractor.extract(paths, data);
+	}
+
+	private static final Set<String> FLDS_GETOBJREF = newHashSet(
+			Fields.VER_WS_ID, Fields.VER_PROVREF, Fields.VER_REF);
+
+	@Override
+	public Map<ObjectChainResolvedWS, WorkspaceObjectData> getReferencedObjects(
+			final Set<ObjectChainResolvedWS> chains)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+			NoSuchReferenceException, CorruptWorkspaceDBException {
+		final Set<ObjectIDResolvedWS> heads = new HashSet<ObjectIDResolvedWS>();
+		final Set<ObjectIDResolvedWS> ch = new HashSet<ObjectIDResolvedWS>();
+		for (final ObjectChainResolvedWS chain: chains) {
+			heads.add(chain.getHead());
+			ch.addAll(chain.getChain());
+		}
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resheads = 
+				resolveObjectIDs(heads);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> reschains = 
+				resolveObjectIDs(ch, false, true);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resall =
+				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>(resheads);
+		resall.putAll(reschains);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> foo =
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(resall.values()),
+						FLDS_GETOBJREF);
+		final Map<ObjectIDResolvedWS, Set<String>> refs =
+				setUpRefs(resall, foo);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> toGet =
+				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
+		for (final ObjectChainResolvedWS chain: chains) {
+			ObjectIDResolvedWS pos = chain.getHead();
+			final List<ObjectIDResolvedWS> lch = chain.getChain();
+			for (final ObjectIDResolvedWS oi: lch) {
+				final String ref = resall.get(oi).getReference().toString();
+				if (!refs.get(pos).contains(ref)) {
+					throw new NoSuchReferenceException(String.format(
+							"The object %s in workspace %s does not contain the reference %s",
+							pos.getIdentifierString(),
+							pos.getWorkspaceIdentifier().getName(), ref),
+							pos, oi);
+				}
+				pos = oi;
+			}
+			toGet.put(chain.getLast(), resall.get(chain.getLast()));
+		}
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData> res;
+		try {
+			res = getObjectsPreResolved(toGet);
+		} catch (TypedObjectExtractionException toee) {
+			throw new RuntimeException(
+					"No extraction done, so something's very wrong here", toee);
+		}
+		final Map<ObjectChainResolvedWS, WorkspaceObjectData> ret =
+				new HashMap<ObjectChainResolvedWS, WorkspaceObjectData>();
+		for (final ObjectChainResolvedWS chain: chains) {
+			ret.put(chain, res.get(chain.getLast()));
+		}
+		return ret;
+	}
+
+	private Map<ObjectIDResolvedWS, Set<String>> setUpRefs(
+			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> objs,
+			final Map<ResolvedMongoObjectID, Map<String, Object>> refs)
+			throws NoSuchObjectException {
+		
+		final Map<ObjectIDResolvedWS, Set<String>> ret =
+				new HashMap<ObjectIDResolvedWS, Set<String>>();
+		for (final ObjectIDResolvedWS oi: objs.keySet()) {
+			final ResolvedMongoObjectID roi = objs.get(oi);
+			if (!refs.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), oi);
+			}
+			final Map<String, Object> m = refs.get(objs.get(oi));
+			@SuppressWarnings("unchecked")
+			final List<String> r = (List<String>) m.get(Fields.VER_REF);
+			@SuppressWarnings("unchecked")
+			final List<String> pr = (List<String>) m.get(Fields.VER_PROVREF);
+			final Set<String> s = new HashSet<String>(r);
+			s.addAll(pr);
+			ret.put(oi, s);
+		}
+		return ret;
 	}
 
 	private static final Set<String> FLDS_GETREFOBJ = newHashSet(

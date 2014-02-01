@@ -10,6 +10,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -110,6 +111,11 @@ public interface WorkspaceDatabase {
 			final Map<ObjectIDResolvedWS, ObjectPaths> objects)
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
+	
+	public Map<ObjectChainResolvedWS, WorkspaceObjectData> getReferencedObjects(
+			Set<ObjectChainResolvedWS> values)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+			NoSuchReferenceException, CorruptWorkspaceDBException;
 	
 	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
 			getReferencingObjects(PermissionSet perms,
