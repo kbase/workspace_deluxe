@@ -37,6 +37,8 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.workspace.database.ObjectChain;
+import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
@@ -58,6 +60,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -177,8 +180,17 @@ public class Workspace {
 	
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation) throws
-			WorkspaceCommunicationException, InaccessibleObjectException,
+			final Permission perm, final String operation)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		return checkPerms(user, loi, perm, operation, false);
+	}
+	
+	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi,
+			final Permission perm, final String operation,
+			final boolean allowDeleted)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
@@ -192,7 +204,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-				rwsis = db.resolveWorkspaces(wsis.keySet());
+				rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
@@ -720,8 +732,50 @@ public class Workspace {
 		return ret;
 	}
 	
-	public List<Set<ObjectInformation>> getReferencingObjects(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi)
+	public List<WorkspaceObjectData> getReferencedObjects(
+			final WorkspaceUser user,
+			final List<ObjectChain> refchains)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException, NoSuchReferenceException {
+		final LinkedList<ObjectIdentifier> first =
+				new LinkedList<ObjectIdentifier>();
+		final LinkedList<ObjectIdentifier> rest =
+				new LinkedList<ObjectIdentifier>();
+		for (final ObjectChain oc: refchains) {
+			first.add(oc.getHead());
+			rest.addAll(oc.getChain());
+		}
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resheads = 
+				checkPerms(user, first, Permission.READ, "read");
+		Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		if (!rest.isEmpty()) {
+			reschains = checkPerms(user, rest, Permission.NONE, "foo", true);
+		}
+		final Map<ObjectChain, ObjectChainResolvedWS> objs =
+				new HashMap<ObjectChain, ObjectChainResolvedWS>();
+		for (final ObjectChain oc: refchains) {
+			final ObjectIDResolvedWS head = resheads.get(oc.getHead());
+			final List<ObjectIDResolvedWS> chain =
+					new LinkedList<ObjectIDResolvedWS>();
+			for (final ObjectIdentifier oi: oc.getChain()) {
+				chain.add(reschains.get(oi));
+			}
+			objs.put(oc, new ObjectChainResolvedWS(head, chain));
+		}
+		final Map<ObjectChainResolvedWS, WorkspaceObjectData> res =
+				db.getReferencedObjects(
+						new HashSet<ObjectChainResolvedWS>(objs.values()));
+		final List<WorkspaceObjectData> ret =
+				new LinkedList<WorkspaceObjectData>();
+		for (final ObjectChain oc: refchains) {
+			ret.add(res.get(objs.get(oc)));
+		}
+		return ret;
+	}
+	
+	public List<Set<ObjectInformation>> getReferencingObjects(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
 		//could combine these next two lines, but probably doesn't matter
