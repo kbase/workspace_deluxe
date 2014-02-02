@@ -13,7 +13,9 @@ import java.util.List;
 
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.FormatSchema;
+import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -25,7 +27,6 @@ import com.fasterxml.jackson.core.SerializableString;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonTokenStream extends JsonParser {
 	private String sdata = null;
@@ -36,16 +37,7 @@ public class JsonTokenStream extends JsonParser {
 	private int fixedLevels = 0;
 	private boolean currentTokenIsNull = false;
 	
-	private static final boolean debug = false;  //true;
-	
-	public static void main(String[] args) throws Exception {
-		String text = "[{\"key1\": [1, 2.0, [\"3\"]]},{\"key2\": {\"key3\": \"val\"}}]";
-		JsonTokenStream jts = new JsonTokenStream(text);
-		jts.setRoot("0/key1/2/0");
-		Object obj = new ObjectMapper().readValue(jts, Object.class);
-		jts.close();
-		System.out.println(obj);
-	}
+	private static final boolean debug = true;
 	
 	public JsonTokenStream(String data) throws JsonParseException, IOException {
 		sdata = data;
@@ -62,11 +54,33 @@ public class JsonTokenStream extends JsonParser {
 		init(null);
 	}
 
-	public void setRoot(String root) throws JsonParseException, IOException {
-		init(Arrays.asList(root.split("/")));
+	public JsonTokenStream setRoot(String root) throws JsonParseException, IOException {
+		if (root.isEmpty()) {
+			init(null);
+		} else {
+			init(Arrays.asList(root.split("/")));
+		}
+		return this;
+	}
+	
+	public String getCurrentPath() throws IOException {
+		if (getCurrentToken() == null)
+			nextToken();
+		StringBuilder ret = new StringBuilder();
+		int size = path.size() - 1;
+		for (int i = 0; i < size; i++) {
+			Object item = path.get(i);
+			if (ret.length() > 0)
+				ret.append('/');
+			ret.append(String.valueOf(item));
+		}
+		return ret.toString();
 	}
 	
 	private void init(List<String> root) throws JsonParseException, IOException {
+		path = new ArrayList<Object>();
+		fixedLevels = 0;
+		currentTokenIsNull = false;
 		JsonFactory jf = new JsonFactory();
 		super2 = sdata != null ? jf.createParser(sdata) :
 				(bdata == null ? jf.createParser(fdata) : jf.createParser(bdata));
@@ -74,7 +88,7 @@ public class JsonTokenStream extends JsonParser {
 			int pos = -1;
 			while (true) {
 				if (nextToken() == null)
-					throw new IllegalStateException("End of token stream");
+					throw new IllegalStateException("End of token stream for root path: " + root);
 				if (!eq(root, pos))
 					throw new IllegalStateException("Root path not found: " + root);
 				if (eq(root, pos + 1)) {
@@ -337,7 +351,25 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public JsonParser skipChildren() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.skipChildren();
+		JsonToken t = getCurrentToken();
+		if (t == JsonToken.START_OBJECT) {
+			while (true) {
+				t = nextToken();
+				if (t == JsonToken.END_OBJECT) {
+					break;
+				}
+				nextToken();
+				skipChildren();
+			}
+		} else if (t == JsonToken.START_ARRAY) {
+			while (true) {
+				t = nextToken();
+				if (t == JsonToken.END_ARRAY)
+					break;
+				skipChildren();
+			}
+		}
+		return this;
 	}
 	
 	@Override
@@ -599,5 +631,68 @@ public class JsonTokenStream extends JsonParser {
 	public void setSchema(FormatSchema arg0) {
 		if (debug) debug();
 		super2.setSchema(arg0);
+	}
+	
+	public void writeTokens(JsonGenerator jgen) throws IOException {
+		writeNextToken(jgen);
+		writeTokensWithoutFirst(jgen);
+	}
+	
+	public void writeJson(OutputStream os) throws IOException {
+		JsonFactory jf = new JsonFactory();
+		JsonGenerator jgen = jf.createGenerator(os, JsonEncoding.UTF8);
+		writeTokens(jgen);
+		jgen.flush();
+	}
+	
+	private void writeTokensWithoutFirst(JsonGenerator jgen) throws IOException {
+		JsonToken t = getCurrentToken();
+		if (t == JsonToken.START_OBJECT) {
+			while (true) {
+				t = writeNextToken(jgen);
+				if (t == JsonToken.END_OBJECT) {
+					break;
+				}
+				writeNextToken(jgen);
+				writeTokensWithoutFirst(jgen);
+			}
+		} else if (t == JsonToken.START_ARRAY) {
+			while (true) {
+				t = writeNextToken(jgen);
+				if (t == JsonToken.END_ARRAY)
+					break;
+				writeTokensWithoutFirst(jgen);
+			}
+		}
+	}
+	
+	private JsonToken writeNextToken(JsonGenerator jgen) throws IOException {
+		JsonToken t = nextToken();
+		if (t == JsonToken.START_ARRAY) {
+			jgen.writeStartArray();
+		} else if (t == JsonToken.START_OBJECT) {
+			jgen.writeStartObject();
+		} else if (t == JsonToken.END_ARRAY) {
+			jgen.writeEndArray();
+		} else if (t == JsonToken.END_OBJECT) {
+			jgen.writeEndObject();
+		} else if (t == JsonToken.FIELD_NAME) {
+			jgen.writeFieldName(getText());
+		} else if (t == JsonToken.VALUE_NUMBER_INT) {
+			jgen.writeNumber(getIntValue());
+		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
+			jgen.writeNumber(getDoubleValue());
+		} else if (t == JsonToken.VALUE_STRING) {
+			jgen.writeString(getText());
+		} else if (t == JsonToken.VALUE_NULL) {
+			jgen.writeNull();
+		} else if (t == JsonToken.VALUE_FALSE) {
+			jgen.writeBoolean(false);
+		} else if (t == JsonToken.VALUE_TRUE) {
+			jgen.writeBoolean(true);
+		} else {
+			throw new IOException("Unexpected token type: " + t);
+		}
+		return t;
 	}
 }
