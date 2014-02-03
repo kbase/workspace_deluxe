@@ -13,6 +13,9 @@ public class ObjectChainResolvedWS {
 		if (head == null || chain == null) {
 			throw new IllegalArgumentException("Neither head nor chain can be null");
 		}
+		if (chain.isEmpty()) {
+			throw new IllegalArgumentException("Chain cannot be empty");
+		}
 		for (final ObjectIDResolvedWS oi: chain) {
 			if (oi == null) {
 				throw new IllegalArgumentException("Nulls are not allowed in reference chains");

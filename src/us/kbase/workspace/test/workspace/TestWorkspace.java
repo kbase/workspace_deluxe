@@ -57,6 +57,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectChain;
+import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
@@ -4770,6 +4771,51 @@ public class TestWorkspace {
 		WorkspaceObjectData wod = ws.getReferencedObjects(user,
 				Arrays.asList(chain)).get(0);
 		compareObjectAndInfo(wod, oi, p, data, refs, refmap);
+	}
+	
+	@Test
+	public void objectChain() throws Exception {
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("foo");
+		ObjectIdentifier oi = new ObjectIdentifier(wsi, "thing");
+		failCreateObjectChain(null, new ArrayList<ObjectIdentifier>(),
+				new IllegalArgumentException("Neither head nor chain can be null"));
+		failCreateObjectChain(oi, null,
+				new IllegalArgumentException("Neither head nor chain can be null"));
+		failCreateObjectChain(oi, new ArrayList<ObjectIdentifier>(),
+				new IllegalArgumentException("Chain cannot be empty"));
+		failCreateObjectChain(oi, Arrays.asList(oi, null, oi),
+				new IllegalArgumentException("Nulls are not allowed in reference chains"));
+	}
+	
+	private void failCreateObjectChain(ObjectIdentifier oi, List<ObjectIdentifier> chain,
+			Exception e) {
+		try {
+			new ObjectChain(oi, chain);
+			fail("bad args to object chain");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		ObjectIDResolvedWS roi = oi == null ? null : oi.resolveWorkspace(new FakeResolvedWSID(1));
+		
+		List<ObjectIDResolvedWS> loi = null;
+		if (chain != null) {
+			loi = new LinkedList<ObjectIDResolvedWS>();
+			for (ObjectIdentifier o: chain) {
+				loi.add(o == null ? null : o.resolveWorkspace(new FakeResolvedWSID(1)));
+			}
+		}
+		try {
+			new ObjectChainResolvedWS(roi, loi);
+			fail("bad args to resolved object chain");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+		
+		
 	}
 	
 	private Set<ObjectInformation> oiset(ObjectInformation... ois) {

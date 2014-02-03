@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ObjectChain {
-	
+
 	private ObjectIdentifier head;
 	private List<ObjectIdentifier> chain;
 	
@@ -12,6 +12,9 @@ public class ObjectChain {
 			final List<ObjectIdentifier> chain) {
 		if (head == null || chain == null) {
 			throw new IllegalArgumentException("Neither head nor chain can be null");
+		}
+		if (chain.isEmpty()) {
+			throw new IllegalArgumentException("Chain cannot be empty");
 		}
 		for (final ObjectIdentifier oi: chain) {
 			if (oi == null) {
