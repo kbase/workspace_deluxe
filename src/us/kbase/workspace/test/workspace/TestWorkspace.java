@@ -56,6 +56,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
@@ -72,6 +73,7 @@ import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -4691,7 +4693,83 @@ public class TestWorkspace {
 	
 	@Test
 	public void getReferencedObjects() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("refedUser");
+		WorkspaceUser user2 = new WorkspaceUser("refedUser2");
+		WorkspaceIdentifier wsiacc1 = new WorkspaceIdentifier("refedaccessible");
+		WorkspaceIdentifier wsiacc2 = new WorkspaceIdentifier("refedaccessible2");
+		WorkspaceIdentifier wsiun1 = new WorkspaceIdentifier("refedunacc");
+		WorkspaceIdentifier wsiun2 = new WorkspaceIdentifier("refedunacc2");
+		WorkspaceIdentifier wsidel = new WorkspaceIdentifier("refeddel");
 		
+		long wsid1 = ws.createWorkspace(user1, wsiacc1.getName(), false, null, null).getId();
+		ws.setPermissions(user1, wsiacc1, Arrays.asList(user2), Permission.WRITE);
+		long wsid2 = ws.createWorkspace(user2, wsiacc2.getName(), true, null, null).getId();
+		long wsidun1 = ws.createWorkspace(user2, wsiun1.getName(), false, null, null).getId();
+		ws.createWorkspace(user2, wsiun2.getName(), false, null, null);
+		ws.createWorkspace(user2, wsidel.getName(), false, null, null);
+		
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
+		Map<String, String> meta1 = new HashMap<String, String>();
+		meta1.put("some", "very special metadata");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("some", "very special metadata2");
+		
+		Map<String, Object> data1 = createData(
+				"{\"thing1\": \"whoop whoop\"," +
+				" \"thing2\": \"aroooga\"}");
+		Map<String, Object> data2 = createData(
+				"{\"thing3\": \"whoop whoop\"," +
+				" \"thing4\": \"aroooga\"}");
+		
+		ObjectInformation leaf1 = saveObject(user2, wsiun1, meta1, data1, SAFE_TYPE1, "leaf1", new Provenance(user2));
+		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
+		ObjectInformation leaf2 = saveObject(user2, wsiun2, meta2, data2, SAFE_TYPE1, "leaf2", new Provenance(user2));
+		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun2, "leaf2")),
+				new InaccessibleObjectException("Object leaf2 cannot be accessed: User refedUser may not read workspace refedunacc2"));
+		
+		ObjectInformation simpleref = saveObject(user2, wsiacc1, MT_META,
+				makeRefData("refedunacc/leaf1"),reftype, "simpleref", new Provenance(user2));
+		ObjectInformation simpleref2 = saveObject(user2, wsiacc2, MT_META,
+				makeRefData("refedunacc2/leaf2"),reftype, "simpleref2", new Provenance(user2));
+		
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
+				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc/leaf1"))),
+				leaf1, new Provenance(user2), data1, new LinkedList<String>(), new HashMap<String, String>());
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
+				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc2/leaf2"))),
+				leaf2, new Provenance(user2), data2, new LinkedList<String>(), new HashMap<String, String>());
+		
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new NoSuchReferenceException("The object simpleref2 in workspace refedaccessible2 does not contain the reference " +
+				wsidun1 + "/1/1", null, null));
+		
+		
+		//TODO read thru method
+		//TODO standard fails - deleted ws, deleted obj, readable - read other methods
+		ws.setGlobalPermission(user2, wsiacc2, Permission.NONE);
+	}
+	
+	private void failGetReferencedObjects(WorkspaceUser user, List<ObjectChain> chains,
+			Exception e) throws Exception {
+		try {
+			ws.getReferencedObjects(user, chains);
+			fail("called getReferencedObjects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
+	}
+	
+	private void checkReferencedObject(WorkspaceUser user, ObjectChain chain,
+			ObjectInformation oi, Provenance p, Map<String, Object> data,
+			List<String> refs, Map<String, String> refmap) throws Exception {
+		WorkspaceObjectData wod = ws.getReferencedObjects(user,
+				Arrays.asList(chain)).get(0);
+		compareObjectAndInfo(wod, oi, p, data, refs, refmap);
 	}
 	
 	private Set<ObjectInformation> oiset(ObjectInformation... ois) {

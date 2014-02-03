@@ -1,7 +1,6 @@
 package us.kbase.workspace.database;
 
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 public class ObjectChainResolvedWS {
@@ -11,9 +10,16 @@ public class ObjectChainResolvedWS {
 	
 	public ObjectChainResolvedWS(final ObjectIDResolvedWS head,
 			final List<ObjectIDResolvedWS> chain) {
+		if (head == null || chain == null) {
+			throw new IllegalArgumentException("Neither head nor chain can be null");
+		}
+		for (final ObjectIDResolvedWS oi: chain) {
+			if (oi == null) {
+				throw new IllegalArgumentException("Nulls are not allowed in reference chains");
+			}
+		}
 		this.head = head;
-		this.chain = Collections.unmodifiableList(
-				new LinkedList<ObjectIDResolvedWS>());
+		this.chain = Collections.unmodifiableList(chain);
 	}
 
 	public ObjectIDResolvedWS getHead() {
