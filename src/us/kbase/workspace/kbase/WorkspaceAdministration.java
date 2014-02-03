@@ -38,6 +38,7 @@ public class WorkspaceAdministration {
 	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
+	//TODO remove hard coded admin
 	private static final String ROOT = "workspaceadmin";
 	
 	private final Set<String> internaladmins = new HashSet<String>(); 

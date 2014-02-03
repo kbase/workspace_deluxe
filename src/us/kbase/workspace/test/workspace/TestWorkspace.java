@@ -270,7 +270,7 @@ public class TestWorkspace {
 					"/* @id ws */" +
 					"typedef string reference;" +
 					"typedef structure {" +
-						"reference ref;" +
+						"list<reference> refs;" +
 					"} RefType;" +
 				"};";
 		
@@ -2737,9 +2737,9 @@ public class TestWorkspace {
 		Map<String, String> meta1 = makeSimpleMeta("foo", "bar");
 		Map<String, String> meta2 = makeSimpleMeta("foo", "baz");
 		Map<String, String> meta3 = makeSimpleMeta("foo", "bak");
-		Map<String, String> data1 = makeRefData(refws + "/auto2/2");
-		Map<String, String> data2 = makeRefData(refws + "/auto4");
-		Map<String, String> data3 = makeRefData(refws + "/auto1");
+		Map<String, List<String>> data1 = makeRefData(refws + "/auto2/2");
+		Map<String, List<String>> data2 = makeRefData(refws + "/auto4");
+		Map<String, List<String>> data3 = makeRefData(refws + "/auto1");
 		
 		Provenance prov1 = new Provenance(user1);
 		prov1.addAction(new ProvenanceAction()
@@ -3013,9 +3013,9 @@ public class TestWorkspace {
 		return map;
 	}
 	
-	private Map<String, String> makeRefData(String ref) {
-		Map<String, String> data = new HashMap<String, String>();
-		data.put("ref", ref);
+	private Map<String, List<String>> makeRefData(String ref) {
+		Map<String, List<String>> data = new HashMap<String, List<String>>();
+		data.put("refs", Arrays.asList(ref));
 		return data;
 	}
 
@@ -3082,15 +3082,15 @@ public class TestWorkspace {
 	}
 
 	private ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, Map<String, String> data, TypeDefId type,
+			Map<String, String> meta, Map<String, ? extends Object> data, TypeDefId type,
 			String name, Provenance prov)
 			throws Exception {
 		return saveObject(user, wsi, meta, data, type, name, prov, false);
 	}
 	
 	private ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, Map<String, String> data, TypeDefId type, String name,
-			Provenance prov, boolean hide)
+			Map<String, String> meta, Map<String, ? extends Object> data,
+			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
@@ -4312,7 +4312,7 @@ public class TestWorkspace {
 				"			\"id3\": {\"id\": 3," +
 				"					  \"thing\": \"foo3\"}" +
 				"			}," +
-				" \"ref\": \"subData/auto1\"" +
+				" \"refs\": [\"subData/auto1\"]" +
 				"}"
 				);
 		
@@ -4324,7 +4324,7 @@ public class TestWorkspace {
 				"			  {\"id\": 3," +
 				"			   \"thing\": \"foo3\"}" +
 				"			  ]," +
-				" \"ref\": \"subData/auto2\"" +
+				" \"refs\": [\"subData/auto2\"]" +
 				"}"
 				);
 		
@@ -4337,7 +4337,7 @@ public class TestWorkspace {
 				"			  {\"id\": 4," +
 				"			   \"thing\": \"foo4\"}" +
 				"			  ]," +
-				" \"ref\": \"subData/auto2\"" +
+				" \"refs\": [\"subData/auto2\"]" +
 				"}"
 				);
 		
@@ -4514,21 +4514,21 @@ public class TestWorkspace {
 						meta1, new Provenance(user1), false)));
 		
 		Map<String, Object> refdata = new HashMap<String, Object>();
-		refdata.put("ref", "refstarget1/stk/1");
+		refdata.put("refs", Arrays.asList("refstarget1/stk/1"));
 		ObjectInformation stdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
 						reftype, meta1,
 						new Provenance(user1).addAction(new ProvenanceAction()
 						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/1"))), false))).get(0);
-		refdata.put("ref", "refstarget1/stk/2");
+		refdata.put("refs", Arrays.asList("refstarget1/stk/2"));
 		ObjectInformation stdref2 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
 						reftype, meta2, new Provenance(user1), false))).get(0);
-		refdata.put("ref", "refstarget1/stk");
+		refdata.put("refs", Arrays.asList("refstarget1/stk"));
 		ObjectInformation hiddenref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("hiddenref"), refdata,
 						reftype, meta1, new Provenance(user1), true))).get(0);
-		refdata.put("ref", "refstarget2/stk2");
+		refdata.put("refs", Arrays.asList("refstarget2/stk2"));
 		@SuppressWarnings("unused")
 		ObjectInformation delref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delref"), refdata,
@@ -4537,25 +4537,25 @@ public class TestWorkspace {
 						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/2"))), true))).get(0);
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsisrc1, "delref")), true);
 		
-		refdata.put("ref", "refstarget1/single");
+		refdata.put("refs", Arrays.asList("refstarget1/single"));
 		ObjectInformation readable = ws.saveObjects(user2, wsisrc2, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("readable"), refdata,
 						reftype, meta2, new Provenance(user2), true))).get(0);
 		
-		refdata.put("ref", "refstarget2/stk2/2");
+		refdata.put("refs", Arrays.asList("refstarget2/stk2/2"));
 		@SuppressWarnings("unused")
 		ObjectInformation unreadable = ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadable"), refdata,
 						reftype, meta1, new Provenance(user2), true))).get(0);
 		
-		refdata.put("ref", "refstarget2/single2/1");
+		refdata.put("refs", Arrays.asList("refstarget2/single2/1"));
 		@SuppressWarnings("unused")
 		ObjectInformation wsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("wsdeletedreadable1"), refdata,
 						reftype, meta2, new Provenance(user1), false))).get(0);
 		ws.setWorkspaceDeleted(user1, wsisrcdel1, true);
 		
-		refdata.put("ref", "refstarget2/stk2/1");
+		refdata.put("refs", Arrays.asList("refstarget2/stk2/1"));
 		ObjectInformation globalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("globalrd"), refdata,
 						reftype, meta1, new Provenance(user2).addAction(new ProvenanceAction()
@@ -4687,6 +4687,11 @@ public class TestWorkspace {
 		}
 		
 		ws.setGlobalPermission(user2, wsisrc2gl, Permission.NONE);
+	}
+	
+	@Test
+	public void getReferencedObjects() throws Exception {
+		
 	}
 	
 	private Set<ObjectInformation> oiset(ObjectInformation... ois) {

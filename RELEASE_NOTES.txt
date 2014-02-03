@@ -18,6 +18,30 @@ TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.1.5 (Released TBD)
+--------------------------------------
+
+NEW FEATURES:
+- Get objects by reference, which allows retrieval of any objects that
+  are referenced by objects to which the user has access.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- N/A
+
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Rewrite type checker / data extractor for speed and memory usage
+- Garbage collection
+- Unified WS / Shock ACLs
+- Pointers to shock data too large to fit in the workspace
+- Get objects by reference chain
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing queue (share specific versions of objects)
+- Import TOs from shock
+- Update copied objects from source
+- Improvements to returning the subset of an object
+
 VERSION: 0.1.4 (Released 1/30/14)
 --------------------------------------
 
