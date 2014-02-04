@@ -2589,7 +2589,7 @@ public class TestWorkspace {
 		failGetObjects(user, objs, new NoSuchObjectException(exception));
 		try {
 			ws.getObjectInformation(user, objs, true);
-			fail("got deleted object's metadata");
+			fail("got deleted object's history");
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
 		}
@@ -4716,6 +4716,7 @@ public class TestWorkspace {
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("some", "very special metadata2");
 		
+		Map<String, String> mtdata = new HashMap<String, String>();
 		Map<String, Object> data1 = createData(
 				"{\"thing1\": \"whoop whoop\"," +
 				" \"thing2\": \"aroooga\"}");
@@ -4735,10 +4736,25 @@ public class TestWorkspace {
 		ObjectInformation simpleref2 = saveObject(user2, wsiacc2, MT_META,
 				makeRefData("refedunacc2/leaf2"),reftype, "simpleref2", new Provenance(user2));
 		
+		Provenance p1 = new Provenance(user2).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList("refedunacc/leaf1")));
+		Provenance p2 = new Provenance(user2).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList("refedunacc2/leaf2")));
+		ObjectInformation provref = saveObject(user2, wsiacc1, MT_META,
+				mtdata, SAFE_TYPE1, "provref", p1);
+		ObjectInformation provref2 = saveObject(user2, wsiacc2, MT_META,
+				mtdata, SAFE_TYPE1, "provref2", p2);
+		
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
 				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc/leaf1"))),
 				leaf1, new Provenance(user2), data1, new LinkedList<String>(), new HashMap<String, String>());
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
+				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc2/leaf2"))),
+				leaf2, new Provenance(user2), data2, new LinkedList<String>(), new HashMap<String, String>());
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "provref"),
+				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc/leaf1"))),
+				leaf1, new Provenance(user2), data1, new LinkedList<String>(), new HashMap<String, String>());
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "provref2"),
 				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc2/leaf2"))),
 				leaf2, new Provenance(user2), data2, new LinkedList<String>(), new HashMap<String, String>());
 		
@@ -4747,9 +4763,39 @@ public class TestWorkspace {
 				new NoSuchReferenceException("The object simpleref2 in workspace refedaccessible2 does not contain the reference " +
 				wsidun1 + "/1/1", null, null));
 		
-		
+		//TODO test when object is deleted
+		//TODO test when workspace is deleted
+		//TODO test getting refs
+		//TODO test getting provenance
 		//TODO read thru method
-		//TODO standard fails - deleted ws, deleted obj, readable - read other methods
+		//TODO test intertwining chains
+		
+		failGetReferencedObjects(user2, new ArrayList<ObjectChain>(),
+				new IllegalArgumentException("No object identifiers provided"));
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf3"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("No object with name leaf3 exists in workspace " + wsidun1));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(new WorkspaceIdentifier("fakefakefake"), "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: No workspace with name fakefakefake exists"));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
+		failGetReferencedObjects(null, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: Anonymous users may not read workspace refedunacc"));
+		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), true);
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("Object 1 (name leaf1) in workspace " + 
+				wsidun1 + " has been deleted"));
+		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), false);
+		ws.setWorkspaceDeleted(user2, wsiun1, true);
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: Workspace refedunacc is deleted"));
+		
+		
 		ws.setGlobalPermission(user2, wsiacc2, Permission.NONE);
 	}
 	
