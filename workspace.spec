@@ -204,6 +204,14 @@ module Workspace {
 		obj_ref ref;
 	} ObjectIdentity;
 	
+	/* A chain of objects with references to one another.
+	
+		An object reference chain consists of a list of objects where the nth
+		object possesses a reference, either in the object itself or in the
+		object provenance, to the n+1th object.
+	*/
+	typedef list<ObjectIdentity> ref_chain;
+	
 	/* A path into an object. 
 		Identify a sub portion of an object by providing the path, delimited by
 		a slash (/), to that portion of the object. Thus the path may not have
@@ -780,6 +788,25 @@ module Workspace {
 	*/
 	funcdef list_referencing_objects(list<ObjectIdentity> object_ids)
 		returns (list<list<object_info>> referrers);
+	
+	/* Get objects by references from other objects.
+	
+		NOTE: In the vast majority of cases, this method is not necessary and
+		get_objects should be used instead. 
+		
+		get_referenced_objects guarantees that a user that has access to an
+		object can always see a) objects that are referenced inside the object
+		and b) objects that are referenced in the object's provenance. This
+		ensures that the user has visibility into the entire provenance of the
+		object and the object's object dependencies (e.g. references).
+		
+		The user must have at least read access to the first object in each
+		reference chain, but need not have access to any further objects in
+		the chain, and those objects may be deleted.
+	
+	*/
+	funcdef get_referenced_objects(list<ref_chain> ref_chains)
+		returns (list<ObjectData> data);
 		
 	/* 
 		Input parameters for the "list_workspaces" function. Provided for

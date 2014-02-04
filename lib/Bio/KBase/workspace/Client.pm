@@ -2459,6 +2459,202 @@ sub list_referencing_objects
 
 
 
+=head2 get_referenced_objects
+
+  $data = $obj->get_referenced_objects($ref_chains)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$ref_chains is a reference to a list where each element is a Workspace.ref_chain
+$data is a reference to a list where each element is a Workspace.ObjectData
+ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$ref_chains is a reference to a list where each element is a Workspace.ref_chain
+$data is a reference to a list where each element is a Workspace.ObjectData
+ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectData is a reference to a hash where the following keys are defined:
+	data has a value which is an UnspecifiedObject, which can hold any non-null object
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+
+=end text
+
+=item Description
+
+Get objects by references from other objects.
+
+        NOTE: In the vast majority of cases, this method is not necessary and
+        get_objects should be used instead. 
+        
+        get_referenced_objects guarantees that a user that has access to an
+        object can always see a) objects that are referenced inside the object
+        and b) objects that are referenced in the object's provenance. This
+        ensures that the user has visibility into the entire provenance of the
+        object and the object's object dependencies (e.g. references).
+        
+        The user must have at least read access to the first object in each
+        reference chain, but need not have access to any further objects in
+        the chain, and those objects may be deleted.
+
+=back
+
+=cut
+
+sub get_referenced_objects
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_referenced_objects (received $n, expecting 1)");
+    }
+    {
+	my($ref_chains) = @args;
+
+	my @_bad_arguments;
+        (ref($ref_chains) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"ref_chains\" (value was \"$ref_chains\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_referenced_objects:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_referenced_objects');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_referenced_objects",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_referenced_objects',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_referenced_objects",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_referenced_objects',
+				       );
+    }
+}
+
+
+
 =head2 list_workspaces
 
   $workspaces = $obj->list_workspaces($params)
@@ -6354,6 +6550,7 @@ Information about a workspace.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
+        lock_status lockstat - the status of the workspace lock.
         usermeta metadata - arbitrary user-supplied metadata about
                 the workspace.
 
@@ -6593,6 +6790,41 @@ objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
 
+
+=end text
+
+=back
+
+
+
+=head2 ref_chain
+
+=over 4
+
+
+
+=item Description
+
+A chain of objects with references to one another.
+
+        An object reference chain consists of a list of objects where the nth
+        object possesses a reference, either in the object itself or in the
+        object provenance, to the n+1th object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a list where each element is a Workspace.ObjectIdentity
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a list where each element is a Workspace.ObjectIdentity
 
 =end text
 

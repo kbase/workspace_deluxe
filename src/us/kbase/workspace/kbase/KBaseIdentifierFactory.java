@@ -76,6 +76,10 @@ public class KBaseIdentifierFactory {
 	
 	public static List<ObjectIdentifier> processObjectIdentifiers(
 			List<ObjectIdentity> objectIDs) {
+		if (objectIDs == null) {
+			throw new IllegalArgumentException(
+					"The object identifer list cannot be null");
+		}
 		if (objectIDs.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
