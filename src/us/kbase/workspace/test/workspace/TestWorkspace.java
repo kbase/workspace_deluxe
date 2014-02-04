@@ -3016,11 +3016,12 @@ public class TestWorkspace {
 		return map;
 	}
 	
-	private Map<String, List<String>> makeRefData(String ref) {
+	private Map<String, List<String>> makeRefData(String... refs) {
 		Map<String, List<String>> data = new HashMap<String, List<String>>();
-		data.put("refs", Arrays.asList(ref));
+		data.put("refs", Arrays.asList(refs));
 		return data;
 	}
+	
 
 	private void compareObjectAndInfo(ObjectInformation original,
 			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 
@@ -3055,14 +3056,15 @@ public class TestWorkspace {
 	}
 	
 	private void compareObjectAndInfo(WorkspaceObjectData got,
-			ObjectInformation info, Provenance prov, Map<String, Object> data,
+			ObjectInformation info, Provenance prov, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap)
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
 		assertThat("returned data same", got.getData(), is((Object) data));
 		assertThat("returned data jsonnode same", got.getDataAsJsonNode(),
 				is(new ObjectMapper().valueToTree(data)));
-		assertThat("returned refs same", got.getReferences(), is(refs));
+		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
+				is(new HashSet<String>(refs)));
 		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
 	}
 
@@ -4702,11 +4704,11 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsiun2 = new WorkspaceIdentifier("refedunacc2");
 		WorkspaceIdentifier wsidel = new WorkspaceIdentifier("refeddel");
 		
-		long wsid1 = ws.createWorkspace(user1, wsiacc1.getName(), false, null, null).getId();
+		ws.createWorkspace(user1, wsiacc1.getName(), false, null, null);
 		ws.setPermissions(user1, wsiacc1, Arrays.asList(user2), Permission.WRITE);
-		long wsid2 = ws.createWorkspace(user2, wsiacc2.getName(), true, null, null).getId();
+		ws.createWorkspace(user2, wsiacc2.getName(), true, null, null);
 		long wsidun1 = ws.createWorkspace(user2, wsiun1.getName(), false, null, null).getId();
-		ws.createWorkspace(user2, wsiun2.getName(), false, null, null);
+		long wsidun2 = ws.createWorkspace(user2, wsiun2.getName(), false, null, null).getId();
 		ws.createWorkspace(user2, wsidel.getName(), false, null, null);
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
@@ -4725,50 +4727,112 @@ public class TestWorkspace {
 				" \"thing4\": \"aroooga\"}");
 		
 		ObjectInformation leaf1 = saveObject(user2, wsiun1, meta1, data1, SAFE_TYPE1, "leaf1", new Provenance(user2));
-		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")),
-				new InaccessibleObjectException("Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
+		ObjectIdentifier leaf1oi = new ObjectIdentifier(wsiun1, "leaf1");
+		failGetObjects(user1, Arrays.asList(leaf1oi), new InaccessibleObjectException(
+				"Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
 		ObjectInformation leaf2 = saveObject(user2, wsiun2, meta2, data2, SAFE_TYPE1, "leaf2", new Provenance(user2));
-		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun2, "leaf2")),
-				new InaccessibleObjectException("Object leaf2 cannot be accessed: User refedUser may not read workspace refedunacc2"));
+		ObjectIdentifier leaf2oi = new ObjectIdentifier(wsiun2, "leaf2");
+		failGetObjects(user1, Arrays.asList(leaf2oi), new InaccessibleObjectException(
+				"Object leaf2 cannot be accessed: User refedUser may not read workspace refedunacc2"));
+		saveObject(user2, wsiun2, meta2, data2, SAFE_TYPE1, "unlinked", new Provenance(user2));
+		ObjectIdentifier unlinkedoi = new ObjectIdentifier(wsiun2, "unlinked");
+		failGetObjects(user1, Arrays.asList(unlinkedoi), new InaccessibleObjectException(
+				"Object unlinked cannot be accessed: User refedUser may not read workspace refedunacc2"));
 		
-		ObjectInformation simpleref = saveObject(user2, wsiacc1, MT_META,
-				makeRefData("refedunacc/leaf1"),reftype, "simpleref", new Provenance(user2));
-		ObjectInformation simpleref2 = saveObject(user2, wsiacc2, MT_META,
-				makeRefData("refedunacc2/leaf2"),reftype, "simpleref2", new Provenance(user2));
+		final String leaf1r = "refedunacc/leaf1";
+		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r),reftype,
+				"simpleref", new Provenance(user2));
+		final String leaf2r = "refedunacc2/leaf2";
+		saveObject(user2, wsiacc2, MT_META, makeRefData(leaf2r),reftype,
+				"simpleref2", new Provenance(user2));
 		
-		Provenance p1 = new Provenance(user2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList("refedunacc/leaf1")));
-		Provenance p2 = new Provenance(user2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList("refedunacc2/leaf2")));
-		ObjectInformation provref = saveObject(user2, wsiacc1, MT_META,
-				mtdata, SAFE_TYPE1, "provref", p1);
-		ObjectInformation provref2 = saveObject(user2, wsiacc2, MT_META,
-				mtdata, SAFE_TYPE1, "provref2", p2);
+		saveObject(user2, wsiacc1, MT_META, mtdata, SAFE_TYPE1, "provref", new Provenance(user2)
+				.addAction(new ProvenanceAction().withWorkspaceObjects(
+						Arrays.asList(leaf1r))));
+		saveObject(user2, wsiacc2, MT_META, mtdata, SAFE_TYPE1, "provref2", new Provenance(user2)
+				.addAction(new ProvenanceAction().withWorkspaceObjects(
+						Arrays.asList(leaf2r))));
 		
+		final HashMap<String, String> mtmap = new HashMap<String, String>();
+		final LinkedList<String> mtlist = new LinkedList<String>();
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
-				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc/leaf1"))),
-				leaf1, new Provenance(user2), data1, new LinkedList<String>(), new HashMap<String, String>());
+				Arrays.asList(leaf1oi)), leaf1, new Provenance(user2), data1, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
-				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc2/leaf2"))),
-				leaf2, new Provenance(user2), data2, new LinkedList<String>(), new HashMap<String, String>());
+				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "provref"),
-				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc/leaf1"))),
-				leaf1, new Provenance(user2), data1, new LinkedList<String>(), new HashMap<String, String>());
+				Arrays.asList(leaf1oi)), leaf1, new Provenance(user2), data1, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "provref2"),
-				Arrays.asList(ObjectIdentifier.parseObjectReference("refedunacc2/leaf2"))),
-				leaf2, new Provenance(user2), data2, new LinkedList<String>(), new HashMap<String, String>());
+				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
-				new NoSuchReferenceException("The object simpleref2 in workspace refedaccessible2 does not contain the reference " +
+				Arrays.asList(leaf1oi))), new NoSuchReferenceException(
+				"The object simpleref2 in workspace refedaccessible2 does not contain the reference " +
 				wsidun1 + "/1/1", null, null));
 		
-		//TODO test when object is deleted
-		//TODO test when workspace is deleted
-		//TODO test getting refs
-		//TODO test getting provenance
-		//TODO read thru method
-		//TODO test intertwining chains
+		ObjectInformation del1 = saveObject(user2, wsiun1, meta2,
+				makeRefData(leaf1r, leaf2r), reftype, "del1", new Provenance(user2));
+		ObjectIdentifier del1oi = new ObjectIdentifier(wsiun1, "del1");
+		final Provenance p = new Provenance(user2).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(leaf1r, leaf2r)));
+		ObjectInformation del2 = saveObject(user2, wsiun2, meta1, makeRefData(),
+				reftype, "del2", p);
+		ObjectIdentifier del2oi = new ObjectIdentifier(wsiun2, "del2");
+		saveObject(user2, wsidel, meta1, makeRefData(leaf2r), reftype, "delws", new Provenance(user2));
+		ObjectIdentifier delwsoi = new ObjectIdentifier(wsidel, "delws");
+		
+		saveObject(user2, wsiacc1, MT_META, makeRefData("refedunacc/del1", "refedunacc2/del2"),
+				reftype, "delptr12", new Provenance(user2));
+		ObjectIdentifier delptr12oi = new ObjectIdentifier(wsiacc1, "delptr12");
+		saveObject(user2, wsiacc2, MT_META, makeRefData("refedunacc2/del2"),
+				reftype, "delptr2", new Provenance(user2));
+		ObjectIdentifier delptr2oi = new ObjectIdentifier(wsiacc2, "delptr2");
+		saveObject(user2, wsiacc2, MT_META, makeRefData("refeddel/delws"),
+				reftype, "delptrws", new Provenance(user2));
+		ObjectIdentifier delptrwsoi = new ObjectIdentifier(wsiacc2, "delptrws");
+		ws.setObjectsDeleted(user2, Arrays.asList(del1oi, del2oi), true);
+		ws.setWorkspaceDeleted(user2, wsidel, true);
+		
+		List<WorkspaceObjectData> lwod = ws.getReferencedObjects(user1, Arrays.asList(
+				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf1oi)),
+				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2oi)),
+				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf1oi)),
+				new ObjectChain(delptrwsoi, Arrays.asList(delwsoi, leaf2oi)),
+				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf2oi)),
+				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf1oi)),
+				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf2oi))
+				));
+		assertThat("correct list size", lwod.size(), is(7));
+		compareObjectAndInfo(lwod.get(0), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(2), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(3), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(4), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(5), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		
+		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del1oi)),
+				del1, new Provenance(user2), makeRefData(wsidun1 + "/1/1", wsidun2 + "/1/1"),
+				Arrays.asList(wsidun1 + "/1/1", wsidun2 + "/1/1"),  mtmap);
+		Map<String, String> provmap = new HashMap<String, String>();
+		provmap.put(leaf1r, wsidun1 + "/1/1");
+		provmap.put(leaf2r, wsidun2 + "/1/1");
+		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del2oi)),
+				del2, p, makeRefData(), mtlist, provmap);
+		
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr2oi,
+				Arrays.asList(del1oi, leaf1oi))), new NoSuchReferenceException(
+				"The object delptr2 in workspace refedaccessible2 does not contain the reference " +
+				wsidun1 + "/2/1", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del1oi, unlinkedoi))), new NoSuchReferenceException(
+				"The object del1 in workspace refedunacc does not contain the reference " +
+				wsidun2 + "/2/1", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del1oi, new ObjectIdentifier(wsiun1, "leaf2")))), new NoSuchObjectException(
+				"No object with name leaf2 exists in workspace " + wsidun1, null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del1oi, new ObjectIdentifier(wsiun1, "leaf1", 2)))), new NoSuchObjectException(
+				"No object with id 1 (name leaf1) and version 2 exists in workspace " + wsidun1, null, null));
 		
 		failGetReferencedObjects(user2, new ArrayList<ObjectChain>(),
 				new IllegalArgumentException("No object identifiers provided"));
@@ -4795,7 +4859,6 @@ public class TestWorkspace {
 				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: Workspace refedunacc is deleted"));
 		
-		
 		ws.setGlobalPermission(user2, wsiacc2, Permission.NONE);
 	}
 	
@@ -4812,7 +4875,7 @@ public class TestWorkspace {
 	}
 	
 	private void checkReferencedObject(WorkspaceUser user, ObjectChain chain,
-			ObjectInformation oi, Provenance p, Map<String, Object> data,
+			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap) throws Exception {
 		WorkspaceObjectData wod = ws.getReferencedObjects(user,
 				Arrays.asList(chain)).get(0);
