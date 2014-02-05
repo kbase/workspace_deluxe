@@ -18,7 +18,7 @@ TOs are limited to 0.2GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.1.5 (Released TBD)
+VERSION: 0.1.6 (Released TBD)
 --------------------------------------
 
 NEW FEATURES:
@@ -41,6 +41,11 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Import TOs from shock
 - Update copied objects from source
 - Improvements to returning the subset of an object
+
+VERSION: 0.1.5 (Released 2/5/14)
+--------------------------------------
+
+Hotfix to use updated auth libs with 60d token lifetime.
 
 VERSION: 0.1.4 (Released 1/30/14)
 --------------------------------------
