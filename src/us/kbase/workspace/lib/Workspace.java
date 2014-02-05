@@ -654,6 +654,7 @@ public class Workspace {
 				showOnlyDeleted);
 	}
 	
+	//TODO filter by excludeGlobal
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
