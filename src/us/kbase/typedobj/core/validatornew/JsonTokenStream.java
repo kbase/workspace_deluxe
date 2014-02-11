@@ -1,15 +1,29 @@
 package us.kbase.typedobj.core.validatornew;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.FormatSchema;
@@ -36,26 +50,29 @@ public class JsonTokenStream extends JsonParser {
 	private List<Object> path = new ArrayList<Object>();
 	private int fixedLevels = 0;
 	private boolean currentTokenIsNull = false;
+	private Map<String, long[]> largeStringPos = new LinkedHashMap<String, long[]>(); 
 	
 	private static final boolean debug = true;
+	private final int stringBufferSize;
+
+	public JsonTokenStream(Object data) throws JsonParseException, IOException {
+		this(data, 1000000);
+	}
 	
-	public JsonTokenStream(String data) throws JsonParseException, IOException {
-		sdata = data;
-		init(null);
-	}
-
-	public JsonTokenStream(byte[] data) throws JsonParseException, IOException {
-		bdata = data;
-		init(null);
-	}
-
-	public JsonTokenStream(File data) throws JsonParseException, IOException {
-		fdata = data;
+	public JsonTokenStream(Object data, int largeStringbufferSize) throws JsonParseException, IOException {
+		if (data instanceof String) {
+			sdata = (String)data;
+		} else if (data instanceof File) {
+			fdata = (File)data;
+		} else {
+			bdata = (byte[])data;
+		}
+		stringBufferSize = largeStringbufferSize;
 		init(null);
 	}
 
 	public JsonTokenStream setRoot(String root) throws JsonParseException, IOException {
-		if (root.isEmpty()) {
+		if (root == null || root.isEmpty()) {
 			init(null);
 		} else {
 			init(Arrays.asList(root.split("/")));
@@ -81,9 +98,19 @@ public class JsonTokenStream extends JsonParser {
 		path = new ArrayList<Object>();
 		fixedLevels = 0;
 		currentTokenIsNull = false;
-		JsonFactory jf = new JsonFactory();
-		super2 = sdata != null ? jf.createParser(sdata) :
-				(bdata == null ? jf.createParser(fdata) : jf.createParser(bdata));
+		/*BufferedReader r2 = new BufferedReader(getWrapperForLargeStrings(getDataReader()));
+		PrintWriter pw = new PrintWriter(new File("test/temp2.txt"));
+		while (true) {
+			String l = r2.readLine();
+			if (l == null)
+				break;
+			pw.println(l);
+		}
+		pw.close();
+		r2.close();*/
+		Reader r = getDataReader();
+		r = getWrapperForLargeStrings(r);
+		super2 = new JsonFactory().createParser(r);
 		if (root != null && root.size() > 0) {
 			int pos = -1;
 			while (true) {
@@ -103,6 +130,152 @@ public class JsonTokenStream extends JsonParser {
 			currentTokenIsNull = true;
 		}
 		System.out.println("end of init");
+	}
+
+	public Reader getDataReader() throws FileNotFoundException, IOException {
+		Reader r;
+		if (sdata != null) {
+			r = new StringReader(sdata);
+		} else if (bdata != null) {
+			r = new InputStreamReader(new ByteArrayInputStream(bdata));
+		} else if (fdata != null) {
+			r = new InputStreamReader(new BufferedInputStream(new FileInputStream(fdata)));
+		} else {
+			throw new IOException("Data source was not set");
+		}
+		return r;
+	}
+	
+	private Reader getWrapperForLargeStrings(final Reader r) {
+		return new Reader() {
+			long pos = 0;
+			boolean inQ = false;
+			boolean wasBS = false;
+			char[] buffer = new char[stringBufferSize];
+			int bufPos = 0;
+			int bufSize = 0;
+			int maxLargeStringPosKey = 40;
+			@Override
+			public int read(char[] retbuf, int off, int len) throws IOException {
+				int ret = 0;
+				while (ret < len) {
+					if (bufPos == bufSize) {
+						if (bufSize == buffer.length) {
+							bufPos = 0;
+							bufSize = 0;
+						}
+						fillBuffer();
+						if (bufPos == bufSize)
+							break;
+					}
+					char ch = buffer[bufPos];
+					retbuf[off + ret] = ch;
+					ret++;
+					pos++;
+					bufPos++;
+					if (inQ) {
+						if (wasBS) {
+							wasBS = false;
+						} else if (ch == '\\') {
+							wasBS = true;
+						} else if (ch == '\"') {  // Close string value
+							inQ = false;
+						}
+					} else if (ch == '\"') {  // Open string value
+						inQ = true;
+						wasBS = false;
+						lookup();
+					}
+				}
+				if (ret == 0)
+					return -1;
+				return ret;
+			}
+			private void lookup() throws IOException {  // Open string value
+				int internalPos = bufPos;
+				boolean wasBS = false;
+				long largeStringStart = -1;
+				while (true) {
+					if (internalPos == bufSize) {
+						if (largeStringStart < 0) {
+							if (internalPos == buffer.length) {
+								if (bufPos > 0) {
+									internalPos = repos(internalPos);
+								} else {  // Here we are, all the string prefix is in our buffer and this string is going to be longer
+									largeStringStart = pos;
+									pos += bufSize;
+									bufSize = maxLargeStringPosKey;
+									internalPos = bufSize;
+								}
+							}
+							fillBuffer();
+						} else {
+							if (bufSize == buffer.length) {
+								if (bufPos != maxLargeStringPosKey)
+									throw new IllegalStateException();
+								internalPos = maxLargeStringPosKey;
+								pos += (bufSize - maxLargeStringPosKey);
+								bufSize = maxLargeStringPosKey;
+							}
+							fillBuffer();
+							if (internalPos == bufSize)
+								break;
+						}
+					}
+					char ch = buffer[internalPos];
+					if (wasBS) {
+						wasBS = false;
+					} else if (ch == '\\') {
+						wasBS = true;
+					} else if (ch == '\"') {  // Close string value
+						break;
+					}
+					internalPos++;
+				}
+				if (largeStringStart >= 0) {
+					pos += internalPos - maxLargeStringPosKey;
+					long largeStringLen = pos - largeStringStart;
+					String key = "^*->#" + largeStringStart + "," + largeStringLen;
+					int keyLen = key.length();
+					if (keyLen > maxLargeStringPosKey)
+						throw new IllegalStateException("Key is too large: " + keyLen);
+					largeStringPos.put(key, new long[] {largeStringStart, largeStringLen});
+					System.arraycopy(key.toCharArray(), 0, buffer, 0, keyLen);
+					for (int i = 0; i < bufSize - internalPos; i++)
+						buffer[keyLen + i] = buffer[internalPos + i];
+					bufSize = keyLen + bufSize - internalPos;
+					bufPos = 0;
+				}
+			}
+			private int repos(int internalPos) throws IOException {
+				if (bufPos > 0) {
+					int count = bufSize - bufPos;
+					for (int i = 0; i < count; i++)
+						buffer[i] = buffer[bufPos + i];
+					internalPos -= bufPos;
+					bufSize -= bufPos;
+					bufPos = 0;
+					fillBuffer();
+				}
+				return internalPos;
+			}
+			private void fillBuffer() throws IOException {
+				if (bufSize < buffer.length) {
+					while (true) {
+						int count = r.read(buffer, bufSize, buffer.length - bufSize);
+						if (count < 0)
+							break;
+						bufSize += count;
+						if (bufSize == buffer.length)
+							break;
+					}
+				}
+			}
+			@Override
+			public void close() throws IOException {
+				r.close();
+			}
+		};
 	}
 	
 	private boolean eq(List<String> root, int pos) {
@@ -637,6 +810,12 @@ public class JsonTokenStream extends JsonParser {
 		writeNextToken(jgen);
 		writeTokensWithoutFirst(jgen);
 	}
+
+	public void writeJson(File f) throws IOException {
+		OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+		writeJson(os);
+		os.close();
+	}
 	
 	public void writeJson(OutputStream os) throws IOException {
 		JsonFactory jf = new JsonFactory();
@@ -683,7 +862,12 @@ public class JsonTokenStream extends JsonParser {
 		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
 			jgen.writeNumber(getDoubleValue());
 		} else if (t == JsonToken.VALUE_STRING) {
-			jgen.writeString(getText());
+			String text = getText();
+			if (largeStringPos.containsKey(text)) {
+				jgen.writeString(text);
+			} else {
+				jgen.writeString(text);
+			}
 		} else if (t == JsonToken.VALUE_NULL) {
 			jgen.writeNull();
 		} else if (t == JsonToken.VALUE_FALSE) {

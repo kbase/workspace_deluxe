@@ -1,13 +1,21 @@
 package us.kbase.typedobj.core.validatornew;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -17,9 +25,6 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.workspace.kbase.Util;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonTokenValidatorTest {
 	private static final String WORK_DIR = "/Users/rsutormin/Work/2014-01-15_hugeobject";
@@ -33,8 +38,9 @@ public class JsonTokenValidatorTest {
 		// create a validator that uses the type def db
 		String username = "wstester1";
 		String moduleName = "KBaseNetworks";
-		String kbSpec = loadSpecFile(new File(WORK_DIR, moduleName + ".spec"));
+		//String kbSpec = loadSpecFile(new File(WORK_DIR, moduleName + ".spec"));
 		String typeName = "Network";
+		String kbSpec = "module " + moduleName + " {typedef structure {string val;} " + typeName + ";};";
 		db.requestModuleRegistration(moduleName, username);
 		db.approveModuleRegistrationRequest(username, moduleName, true);
 		db.registerModule(kbSpec, Arrays.asList(typeName), username);
@@ -43,14 +49,29 @@ public class JsonTokenValidatorTest {
 		//NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
 		//JsonFactory jf = new JsonFactory();
 		//JsonParser jp = jf.createParser(new File(WORK_DIR, "network.json"));
-		JsonNode tree = new ObjectMapper().readTree(new File(WORK_DIR, "network.json"));
-		System.out.println("Data was loaded");
+		//JsonNode tree = new ObjectMapper().readTree(new File(WORK_DIR, "network.json"));
+		File f = new File("test/temp.json");
+		/*Writer fw = new BufferedWriter(new FileWriter(f));
+		fw.write("{\"val\":\"");
+		for (int i = 0; i < 80000000; i++)
+			fw.write("test" + i);
+		fw.write("\"}");
+		fw.close();*/
+		Map<String, String> map = new LinkedHashMap<String, String>();
+		map.put("val", "123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_1234567890");
+		for (int i = 0; i < 100; i++)
+			map.put("\"val" + i, "test\"" + i);
+		new ObjectMapper().writeValue(f, map);
+		System.out.println("Data was loaded (" + Runtime.getRuntime().maxMemory() + ")");
 		long time = System.currentTimeMillis();
-		TypedObjectValidationReport report = new JsonTokenValidator(db).validate(tree, 
+		JsonTokenStream jp = new JsonTokenStream(f, 100);
+		TypedObjectValidationReport report = new JsonTokenValidator(db).validate(jp, 
 				new TypeDefId(new TypeDefName(moduleName, typeName)));
 		System.out.println(report.isInstanceValid());
 		System.out.println(report.getErrorMessagesAsList());
 		System.out.println("Time: " + (System.currentTimeMillis() - time) + " ms");
+		jp.setRoot(null);
+		jp.writeJson(new File("test/temp2.json"));
 	}
 	
 	private static String loadSpecFile(File specPath) throws Exception {
