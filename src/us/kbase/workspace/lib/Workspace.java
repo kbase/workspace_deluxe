@@ -68,10 +68,9 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspace {
 	
-	//TODO hasObjects
+	//TODO 2 hasObjects
+	//TODO 3 paginate list objects/workspaces
 	//TODO general unit tests
-	//TODO get objects by ref chain
-	//TODO get provenance by ref chain
 	//TODO import shock objects
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
 	//TODO BIG SHOCK shock acl integration. Needs auth groups. group = workspace.
@@ -655,14 +654,13 @@ public class Workspace {
 				showOnlyDeleted);
 	}
 	
-	//TODO filter by excludeGlobal
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
 			final Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetaData)
+			final boolean includeMetaData, final boolean excludeGlobal)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
@@ -678,7 +676,8 @@ public class Workspace {
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
 		final HashSet<ResolvedWorkspaceID> rw =
 				new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(user, rw, minPerm, false);
+		final PermissionSet pset = db.getPermissions(user, rw, minPerm,
+				excludeGlobal);
 		if (!wsis.isEmpty()) {
 			for (final WorkspaceIdentifier wsi: wsis) {
 				comparePermission(user, Permission.READ,

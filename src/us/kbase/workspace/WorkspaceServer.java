@@ -700,7 +700,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains));
-		//TODO test
         //END get_referenced_objects
         return returnVal;
     }
@@ -774,7 +773,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = au.objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, null, null, null,
-						false, showDeleted, false, false, true));
+						false, showDeleted, false, false, true, false));
         //END list_workspace_objects
         return returnVal;
     }
@@ -819,7 +818,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
 						params.getMeta(), showHidden, showDeleted,
-						showOnlyDeleted, showAllVers, includeMetadata));
+						showOnlyDeleted, showAllVers, includeMetadata, false));
         //END list_objects
         return returnVal;
     }
