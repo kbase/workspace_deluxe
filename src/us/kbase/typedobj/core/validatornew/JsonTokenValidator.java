@@ -1,6 +1,7 @@
 package us.kbase.typedobj.core.validatornew;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import us.kbase.common.service.JsonTreeTraversingParser;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -13,6 +14,7 @@ import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -43,11 +45,11 @@ public class JsonTokenValidator {
 		this.typeDefDB = typeDefDB;
 	}
 	
-	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
+	public TypedObjectValidationReport validate(JsonTokenStream jp, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, 
 			BadJsonSchemaDocumentException, TypeStorageException, JsonParseException, 
 			JsonMappingException, IOException, JsonTokenValidationException {
-		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
+		//JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
 		NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
@@ -65,7 +67,7 @@ public class JsonTokenValidator {
 					}
 			}
 		});
-		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
+		return new TypedObjectValidationReport(report, absoluteTypeDefDB, null);
 	}
 
 }
