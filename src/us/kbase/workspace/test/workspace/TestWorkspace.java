@@ -4070,6 +4070,15 @@ public class TestWorkspace {
 				true, true, false, true, true, true),
 				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
 						deleted, readobj, adminobj));
+		//if the globally readable workspace is explicitly listed, should ignore excludeGlobal
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable, thirdparty),
+				null, null, null, null, true, true, false, true, true, false),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, hidden, deleted, thirdobj));
+		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable, thirdparty),
+				null, null, null, null, true, true, false, true, true, true),
+				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
+						stdws2, hidden, deleted, thirdobj));
 		
 		//test user filtering
 		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,

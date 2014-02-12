@@ -3066,6 +3066,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showHidden has a value which is a Workspace.boolean
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
+	excludeGlobal has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -3109,6 +3110,7 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showHidden has a value which is a Workspace.boolean
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
+	excludeGlobal has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -8079,6 +8081,8 @@ Parameters for the 'list_objects' function.
                 boolean includeMetadata - include the user provided metadata in the
                         returned object_info. If false (0 or null), the default, the
                         metadata will be null.
+                boolean excludeGlobal - exclude objects in global workspaces. This
+                        parameter only has an effect when filtering by types alone.
 
 
 =item Definition
@@ -8098,6 +8102,7 @@ showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
+excludeGlobal has a value which is a Workspace.boolean
 
 </pre>
 
@@ -8117,6 +8122,7 @@ showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
+excludeGlobal has a value which is a Workspace.boolean
 
 
 =end text

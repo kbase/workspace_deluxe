@@ -46,6 +46,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 boolean includeMetadata - include the user provided metadata in the
  *                         returned object_info. If false (0 or null), the default, the
  *                         metadata will be null.
+ *                 boolean excludeGlobal - exclude objects in global workspaces. This
+ *                         parameter only has an effect when filtering by types alone.
  * </pre>
  * 
  */
@@ -62,7 +64,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "showOnlyDeleted",
     "showHidden",
     "showAllVersions",
-    "includeMetadata"
+    "includeMetadata",
+    "excludeGlobal"
 })
 public class ListObjectsParams {
 
@@ -88,6 +91,8 @@ public class ListObjectsParams {
     private java.lang.Long showAllVersions;
     @JsonProperty("includeMetadata")
     private java.lang.Long includeMetadata;
+    @JsonProperty("excludeGlobal")
+    private java.lang.Long excludeGlobal;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("workspaces")
@@ -255,6 +260,21 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("excludeGlobal")
+    public java.lang.Long getExcludeGlobal() {
+        return excludeGlobal;
+    }
+
+    @JsonProperty("excludeGlobal")
+    public void setExcludeGlobal(java.lang.Long excludeGlobal) {
+        this.excludeGlobal = excludeGlobal;
+    }
+
+    public ListObjectsParams withExcludeGlobal(java.lang.Long excludeGlobal) {
+        this.excludeGlobal = excludeGlobal;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -267,7 +287,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

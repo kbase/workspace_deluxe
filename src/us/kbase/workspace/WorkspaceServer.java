@@ -675,7 +675,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.get_referenced_objects", authOptional=true)
     public List<ObjectData> getReferencedObjects(List<List<ObjectIdentity>> refChains, AuthToken authPart) throws Exception {
         List<ObjectData> returnVal = null;
-        //BEGIN get_referenced_object
+        //BEGIN get_referenced_objects
 		if (refChains == null) {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
@@ -814,11 +814,14 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getShowAllVersions());
 		final boolean includeMetadata = au.longToBoolean(
 				params.getIncludeMetadata());
+		final boolean excludeGlobal = au.longToBoolean(
+				params.getExcludeGlobal());
 		returnVal = au.objInfoToTuple(
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
 						params.getMeta(), showHidden, showDeleted,
-						showOnlyDeleted, showAllVers, includeMetadata, false));
+						showOnlyDeleted, showAllVers, includeMetadata,
+						excludeGlobal));
         //END list_objects
         return returnVal;
     }
