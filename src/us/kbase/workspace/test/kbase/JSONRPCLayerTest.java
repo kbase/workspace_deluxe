@@ -133,6 +133,7 @@ public class JSONRPCLayerTest {
 	
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
+	public static final String REF_TYPE ="RefSpec.Ref-0.1";
 	
 	public static final Map<String, String> MT_META =
 			new HashMap<String, String>();
@@ -210,6 +211,22 @@ public class JSONRPCLayerTest {
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT1.releaseModule("SomeModule");
+		
+		//set up a type with references
+		final String specParseRef =
+				"module RefSpec {" +
+					"/* @id ws */" +
+					"typedef string reference;" +
+					"typedef structure {" +
+						"reference ref;" +
+					"} Ref;" +
+				"};";
+		CLIENT1.requestModuleOwnership("RefSpec");
+		administerCommand(CLIENT2, "approveModRequest", "module", "RefSpec");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(specParseRef)
+			.withNewTypes(Arrays.asList("Ref")));
 		
 		SERVER2 = startupWorkspaceServer(2);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
@@ -317,7 +334,7 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.1.4"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.1.6"));
 	}
 	
 	@Test
@@ -886,6 +903,8 @@ public class JSONRPCLayerTest {
 			}
 		}
 	}
+	
+	
 
 	@Test
 	public void saveAndGetObjects() throws Exception {
@@ -978,7 +997,7 @@ public class JSONRPCLayerTest {
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		
-		getObjectWBadParams(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
+		failGetObjects(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 		
 		try {
 			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>(), 0L);
@@ -992,58 +1011,58 @@ public class JSONRPCLayerTest {
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #2: Illegal number of separators / in object reference kb|wss." + wsid + ".obj.2");
+		failGetObjects(loi, "Error on ObjectIdentity #2: Illegal number of separators / in object reference kb|wss." + wsid + ".obj.2");
 		
 		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Illegal number of separators / in object reference kb|ws." + wsid);
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal number of separators / in object reference kb|ws." + wsid);
 		
 		//there are 32 different ways to get this type of error. Just try a few.
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object name: 2");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Object name: 2");
 		
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withObjid(2L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. object id: 2");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Object id: 2");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withVer(2L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. version: 2");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Version: 2");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWorkspace("saveget"));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace: saveget");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Workspace: saveget");
 
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace id: " + wsid);
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Workspace id: " + wsid);
 		
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withWsid(wsid).withWorkspace("saveget").withVer(2L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. workspace: saveget workspace id: " + wsid + " version: 2");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object reference kb|ws." + wsid + " provided; cannot provide any other means of identifying an object. Workspace: saveget Workspace id: " + wsid + " Version: 2");
 		
 		ObjectIdentity oi = new ObjectIdentity().withRef("saveget/1");
 		oi.setAdditionalProperties("foo", "bar");
 		loi.set(2, oi);
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object id must be > 0");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object id must be > 0");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(0L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Object version must be > 0");
+		failGetObjects(loi, "Error on ObjectIdentity #3: Object version must be > 0");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
-		getObjectWBadParams(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
+		failGetObjects(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
-		getObjectWBadParams(loi, "Object 1 cannot be accessed: No workspace with name ultrafakeworkspace exists");
+		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with name ultrafakeworkspace exists");
 		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
-		getObjectWBadParams(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
+		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		getObjectWBadParams(loi, "No object with id 300 exists in workspace " + wsid);
+		failGetObjects(loi, "No object with id 300 exists in workspace " + wsid);
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
-		getObjectWBadParams(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
+		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
 		
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("setgetunreadableto1"));
 		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
-		getObjectWBadParams(loi, "Object 1 cannot be accessed: User kbasetest may not read workspace setgetunreadableto1");
+		failGetObjects(loi, "Object 1 cannot be accessed: User " + USER1 + " may not read workspace setgetunreadableto1");
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("saveget").withNewPermission("n"));
@@ -1432,7 +1451,7 @@ public class JSONRPCLayerTest {
 		}
 	}
 
-	private void getObjectWBadParams(List<ObjectIdentity> loi, String exception)
+	private void failGetObjects(List<ObjectIdentity> loi, String exception)
 			throws Exception {
 		try {
 			CLIENT1.getObjects(loi);
@@ -1516,6 +1535,26 @@ public class JSONRPCLayerTest {
 		return ret;
 	}
 
+	private void compareData(List<ObjectData> expected, List<ObjectData> got) 
+			throws Exception {
+		
+		assertThat("same number of ObjectData", got.size(), is(expected.size()));
+		Iterator<ObjectData> eIter = expected.iterator();
+		Iterator<ObjectData> gIter = got.iterator();
+		while (eIter.hasNext()) {
+			ObjectData exp = eIter.next();
+			ObjectData gt = gIter.next();
+			
+			compareObjectInfo(gt.getInfo(), exp.getInfo());
+			assertThat("object data is correct", gt.getData().asClassInstance(Object.class),
+					is(exp.getData().asClassInstance(Object.class)));
+			assertThat("creator same", gt.getCreator(), is(exp.getCreator()));
+			assertThat("created same", gt.getCreated(), is(exp.getCreated()));
+			assertThat("prov same", gt.getProvenance(), is(exp.getProvenance()));
+			assertThat("refs same", gt.getRefs(), is(exp.getRefs()));
+		}
+	}
+	
 	private void checkData(ObjectData retdata, long id, String name,
 			String typeString, int ver, String user, long wsid, String wsname,
 			String chksum, long size, Map<String, String> meta, Map<String, Object> data) 
@@ -1847,13 +1886,13 @@ public class JSONRPCLayerTest {
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
 		CLIENT1.deleteWorkspace(wsi);
 		
-		getObjectWBadParams(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
+		failGetObjects(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
 
 		try {
 			CLIENT1.getWorkspaceDescription(wsi);
@@ -1868,7 +1907,7 @@ public class JSONRPCLayerTest {
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
 		
-		getObjectWBadParams(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
 
 		CLIENT1.saveObjects(soc);
 		checkData(loi, data);
@@ -2729,6 +2768,13 @@ public class JSONRPCLayerTest {
 	
 	private void compareObjectInfo(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> got,
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> expec) 
+			throws Exception {
+		compareObjectInfo(got, expec, false);
+	}
+	
+	private void compareObjectInfo(
+			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> got,
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> expec,
 			boolean nullMeta) 
 			throws Exception {
@@ -2806,22 +2852,6 @@ public class JSONRPCLayerTest {
 	
 	@Test
 	public void listReferencingObjects() throws Exception {
-		final String specParseRef =
-				"module RefSpec {" +
-					"/* @id ws */" +
-					"typedef string reference;" +
-					"typedef structure {" +
-						"reference ref;" +
-					"} Ref;" +
-				"};";
-		CLIENT1.requestModuleOwnership("RefSpec");
-		administerCommand(CLIENT2, "approveModRequest", "module", "RefSpec");
-		CLIENT1.registerTypespec(new RegisterTypespecParams()
-			.withDryrun(0L)
-			.withSpec(specParseRef)
-			.withNewTypes(Arrays.asList("Ref")));
-		String type ="RefSpec.Ref-0.1";
-		
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referingobjs"));
 		
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
@@ -2833,7 +2863,7 @@ public class JSONRPCLayerTest {
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> ref =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(refdata))
-				.withType(type).withName("ref")))).get(0);
+				.withType(REF_TYPE).withName("ref")))).get(0);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> prov =
 				CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
@@ -2848,6 +2878,106 @@ public class JSONRPCLayerTest {
 		assertThat("one obj list returned", retrefs.size(), is(1));
 		assertThat("two refs returned", retrefs.get(0).size(), is(2));
 		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
+	}
+	
+	
+	@Test
+	public void getReferencedObjects() throws Exception {
+		
+		long wsid1 = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referenced")).getE1();
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("referenced")
+				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
+		long wsid2 = CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("referencedPriv")).getE1();
+		
+		Map<String, Object> data1 = createData("{\"foobar\": \"somestuff\"}");
+		Map<String, Object> data2 = createData("{\"foobar\": \"somestuff2\"}");
+		
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("referencedPriv")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data1))
+				.withType(SAFE_TYPE).withName("one"))));
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("referencedPriv")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data2))
+				.withType(SAFE_TYPE).withName("two"))));
+		
+		Map<String, Object> refdata = createData("{\"ref\": \"referencedPriv/one\"}");
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("referenced")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(refdata))
+				.withType(REF_TYPE).withName("ref"))));
+		
+		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("referenced")
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+				.withType(SAFE_TYPE).withName("prov").withProvenance(Arrays.asList(
+						new ProvenanceAction().withInputWsObjects(Arrays.asList("referencedPriv/two")))))));
+		
+		List<ObjectData> exp = CLIENT2.getObjects(Arrays.asList(
+				new ObjectIdentity().withRef("referencedPriv/one"),
+				new ObjectIdentity().withRef("referencedPriv/two")));
+		
+		getReferencedObjectsCheckData(exp);
+		
+		
+		failGetReferencedObjects(null, "refChains may not be null");
+		failGetReferencedObjects(Arrays.asList(null, Arrays.asList(null, new ObjectIdentity().withRef("referenced/ref"))),
+				"Error on object chain #1: The object identifier list cannot be null");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+				new ObjectIdentity().withRef("referencedPriv/one")), null),
+				"Error on object chain #2: The object identifier list cannot be null");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+				new ObjectIdentity().withRef("referencedPriv/one")), new ArrayList<ObjectIdentity>()),
+				"Error on object chain #2: No object identifiers provided");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"))),
+				"Error on object chain #1: The minimum size of a reference chain is 2 ObjectIdentities");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), null)),
+				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentities cannot be null");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref").withName("foo"),
+				new ObjectIdentity().withRef("referenced/ref"))),
+				"Error on object chain #1: Error on ObjectIdentity #1: Object reference referenced/ref provided; cannot provide any other means of identifying an object. Object name: foo");
+		
+		ObjectIdentity oi = new ObjectIdentity().withRef("saveget/1");
+		oi.setAdditionalProperties("foo", "bar");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+				oi)), "Error on object chain #1: Error on ObjectIdentity #2: Unexpected arguments in ObjectIdentity: foo");
+		
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referencedPriv").withName("one"),
+				new ObjectIdentity().withRef("referencedPriv/two"))), "Object one cannot be accessed: User " + USER1 + " may not read workspace referencedPriv");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+				new ObjectIdentity().withRef("referencedPrivfake/two"))), "Object two cannot be accessed: No workspace with name referencedPrivfake exists");
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+				new ObjectIdentity().withRef("referencedPriv/three"))), "No object with name three exists in workspace " + wsid2);
+
+		CLIENT2.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"),
+				new ObjectIdentity().withRef("referencedPriv/two")));
+		CLIENT2.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referencedPriv"));
+		getReferencedObjectsCheckData(exp);
+		
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referenced/ref")));
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+				new ObjectIdentity().withRef("referencedPriv/one"))),
+				"Object 1 (name ref) in workspace " + wsid1 + " has been deleted");
+		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referenced"));
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+				new ObjectIdentity().withRef("referencedPriv/one"))),
+				"Object ref cannot be accessed: Workspace referenced is deleted");
+	
+	}
+
+	private void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
+			JsonClientException, Exception {
+		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
+				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), new ObjectIdentity().withRef("referencedPriv/one")),
+				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"), new ObjectIdentity().withRef("referencedPriv/two"))));
+		compareData(exp, res);
+	}
+	
+	private void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
+			String excep) throws Exception {
+		try {
+			CLIENT1.getReferencedObjects(chains);
+			fail("got referenced objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
 	}
 	
 	@Test
@@ -3235,7 +3365,6 @@ public class JSONRPCLayerTest {
 					is(excep));
 		}
 	}
-	
 	
 	@Test
 	public void testTypeMD5() throws Exception {

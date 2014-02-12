@@ -92,6 +92,8 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
+	
+	private static final String VER = "0.1.6";
 
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
@@ -244,7 +246,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String ver() throws Exception {
         String returnVal = null;
         //BEGIN ver
-		returnVal = "0.1.4";
+		returnVal = VER;
         //END ver
         return returnVal;
     }
@@ -678,13 +680,23 @@ public class WorkspaceServer extends JsonServerServlet {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
 		final List<ObjectChain> chains = new LinkedList<ObjectChain>();
+		int count = 1;
 		for (List<ObjectIdentity> loy: refChains) {
-			final List<ObjectIdentifier> lor = processObjectIdentifiers(loy);
+			final List<ObjectIdentifier> lor;
+			try {
+				lor = processObjectIdentifiers(loy);
+			} catch (Exception e) {
+				throw new IllegalArgumentException(String.format(
+						"Error on object chain #%s: %s",
+						count, e.getLocalizedMessage()), e);
+			}
 			if (lor.size() < 2) {
-				throw new IllegalArgumentException(
-						"The minimum size of a reference chain is 2 ObjectIdentities");
+				throw new IllegalArgumentException(String.format(
+						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
+						count));
 			}
 			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
+			count++;
 		}
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains));

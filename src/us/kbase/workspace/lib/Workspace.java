@@ -68,6 +68,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspace {
 	
+	//TODO hasObjects
 	//TODO general unit tests
 	//TODO get objects by ref chain
 	//TODO get provenance by ref chain

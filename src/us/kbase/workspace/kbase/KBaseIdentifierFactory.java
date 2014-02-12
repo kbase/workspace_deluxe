@@ -54,19 +54,19 @@ public class KBaseIdentifierFactory {
 				oi.getVer() != null) {
 			final List<String> err = new ArrayList<String>(4);
 			if (oi.getWorkspace() != null) {
-				err.add("workspace: " + oi.getWorkspace());
+				err.add("Workspace: " + oi.getWorkspace());
 			}
 			if (oi.getWsid() != null) {
-				err.add("workspace id: " + oi.getWsid());
+				err.add("Workspace id: " + oi.getWsid());
 			}
 			if (oi.getName() != null) {
-				err.add("object name: " + oi.getName());
+				err.add("Object name: " + oi.getName());
 			}
 			if (oi.getObjid() != null) {
-				err.add("object id: " + oi.getObjid());
+				err.add("Object id: " + oi.getObjid());
 			}
 			if (oi.getVer() != null) {
-				err.add("version: " + oi.getVer());
+				err.add("Version: " + oi.getVer());
 			}
 			throw new IllegalArgumentException(String.format(
 					"Object reference %s provided; cannot provide any other means of identifying an object. %s",
@@ -78,7 +78,7 @@ public class KBaseIdentifierFactory {
 			List<ObjectIdentity> objectIDs) {
 		if (objectIDs == null) {
 			throw new IllegalArgumentException(
-					"The object identifer list cannot be null");
+					"The object identifier list cannot be null");
 		}
 		if (objectIDs.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
@@ -99,6 +99,9 @@ public class KBaseIdentifierFactory {
 	
 	public static ObjectIdentifier processObjectIdentifier(
 			final ObjectIdentity oi) {
+		if (oi == null) {
+			throw new IllegalArgumentException("ObjectIdentities cannot be null");
+		}
 		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			verifyRefOnly(oi);
