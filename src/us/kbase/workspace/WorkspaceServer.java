@@ -773,7 +773,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = au.objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, null, null, null,
-						false, showDeleted, false, false, true, false));
+						false, showDeleted, false, false, true, false, 0, 10000));
         //END list_workspace_objects
         return returnVal;
     }
@@ -821,7 +821,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						ArgUtils.convertUsers(params.getSavedby()),
 						params.getMeta(), showHidden, showDeleted,
 						showOnlyDeleted, showAllVers, includeMetadata,
-						excludeGlobal));
+						excludeGlobal, 0, 10000));
         //END list_objects
         return returnVal;
     }

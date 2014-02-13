@@ -84,6 +84,7 @@ public class Workspace {
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
+	private final static int MAX_INFO_COUNT = 10000;
 	
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
@@ -654,15 +655,23 @@ public class Workspace {
 				showOnlyDeleted);
 	}
 	
+	//insanely long method signatures get me hot
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
 			final Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetaData, final boolean excludeGlobal)
+			final boolean includeMetaData, final boolean excludeGlobal,
+			int skip, int limit)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if (skip < 0) {
+			skip = 0;
+		}
+		if (limit < 1 || limit > MAX_INFO_COUNT) {
+			limit = MAX_INFO_COUNT;
+		}
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
 			minPerm = Permission.READ;
 		}
@@ -685,7 +694,8 @@ public class Workspace {
 			}
 		}
 		return db.getObjectInformation(pset, type, savers, meta, showHidden,
-				showDeleted, showOnlyDeleted, showAllVers, includeMetaData);
+				showDeleted, showOnlyDeleted, showAllVers, includeMetaData,
+				skip, limit);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
