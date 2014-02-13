@@ -773,7 +773,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = au.objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, null, null, null,
-						false, showDeleted, false, false, true, false));
+						false, showDeleted, false, false, true, false, 0, 10000));
         //END list_workspace_objects
         return returnVal;
     }
@@ -816,12 +816,14 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getIncludeMetadata());
 		final boolean excludeGlobal = au.longToBoolean(
 				params.getExcludeGlobal());
+		final int skip = au.longToInt(params.getSkip(), "Skip", -1);
+		final int limit = au.longToInt(params.getLimit(), "Limit", -1);
 		returnVal = au.objInfoToTuple(
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
 						params.getMeta(), showHidden, showDeleted,
 						showOnlyDeleted, showAllVers, includeMetadata,
-						excludeGlobal));
+						excludeGlobal, skip, limit));
         //END list_objects
         return returnVal;
     }

@@ -24,10 +24,11 @@ VERSION: 0.1.6 (Released TBD)
 NEW FEATURES:
 - Get objects by reference, which allows retrieval of any objects that
   are referenced by objects to which the user has access.
-- Optionally exclude globally readable workspaces from list_objects
 
 UPDATED FEATURES / MAJOR BUG FIXES:
-- N/A
+- Optionally exclude globally readable objects from list_objects
+- list_objects now takes skip and limit parameters and returns at most
+  10000 objects. list_workspace_objects returns at most 10000 objects.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage

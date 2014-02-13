@@ -2433,7 +2433,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<WorkspaceUser> savedby, final Map<String, String> meta,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetadata)
+			final boolean includeMetadata, final int skip, final int limit)
 			throws WorkspaceCommunicationException {
 		/* Could make this method more efficient by doing different queries
 		 * based on the filters. If there's no filters except the workspace,
@@ -2482,7 +2482,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			fields = FLDS_LIST_OBJ_VER;
 		}
 		final List<Map<String, Object>> verobjs = query.queryCollection(
-				COL_WORKSPACE_VERS, verq, fields);
+				COL_WORKSPACE_VERS, verq, fields, skip, limit);
 		if (verobjs.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}

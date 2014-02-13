@@ -385,6 +385,13 @@ public class QueryMethods {
 	List<Map<String, Object>> queryCollection(final String collection,
 			final DBObject query, final Set<String> fields) throws
 			WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, -1, -1);
+	}
+	
+	List<Map<String, Object>> queryCollection(final String collection,
+			final DBObject query, final Set<String> fields, final int skip,
+			final int limit)
+			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		for (final String field: fields) {
 			projection.put(field, 1);
@@ -395,6 +402,12 @@ public class QueryMethods {
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
+		}
+		if (skip > -1) {
+			im.skip(skip);
+		}
+		if (limit > 0) {
+			im.limit(limit);
 		}
 		final List<Map<String, Object>> result =
 				new ArrayList<Map<String,Object>>();

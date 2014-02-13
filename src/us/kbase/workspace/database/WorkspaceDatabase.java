@@ -171,7 +171,7 @@ public interface WorkspaceDatabase {
 			PermissionSet pset, TypeDefId type, List<WorkspaceUser> savers,
 			Map<String, String> meta, boolean showHidden, boolean showDeleted,
 			boolean showOnlyDeleted, boolean showAllVers,
-			boolean includeMetaData)
+			boolean includeMetaData, int skip, int limit)
 			throws WorkspaceCommunicationException;
 
 	public List<ObjectInformation> getObjectHistory(

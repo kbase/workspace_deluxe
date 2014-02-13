@@ -2669,6 +2669,53 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
+	@Test
+	public void listObjectsPagination() throws Exception {
+		String ws = "pagination";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
+		
+		
+		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
+		for (int i = 0; i < 200; i++) {
+			objs.add(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
+					.withType(SAFE_TYPE));
+		}
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws)
+				.withObjects(objs));
+		
+		//this depends on the natural sort order of mongo
+		checkObjectPagination(ws, null, null, 1, 200);
+		checkObjectPagination(ws, -1L, 0L, 1, 200);
+		checkObjectPagination(ws, -1L, 50L, 1, 50);
+		checkObjectPagination(ws, 100L, 50L, 101, 150);
+		checkObjectPagination(ws, 100L, 100L, 101, 200);
+		checkObjectPagination(ws, 150L, 100L, 151, 200);
+		checkObjectPagination(ws, 150L, 1L, 151, 151);
+		checkObjectPagination(ws, 200L, -1L, 2, 1); //hack
+		
+		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
+				0L, 0L, 4000000000L, 1L, "Skip can be no greater than 2147483647");
+		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
+				0L, 0L, 1L, 4000000000L, "Limit can be no greater than 2147483647");
+	}
+	
+	private void checkObjectPagination(String wsname,
+			Long skip, Long limit, int minid, int maxid) 
+			throws Exception {
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> res =
+				CLIENT1.listObjects(new ListObjectsParams()
+				.withWorkspaces(Arrays.asList(wsname)).withSkip(skip)
+				.withLimit(limit));
+				
+		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> oi: res) {
+			if (oi.getE1() < minid || oi.getE1() > maxid) {
+				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
+						oi.getE1(), minid, maxid));
+			}
+		}
+	}
+	
 	private void compareObjectInfo(
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> got,
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> expected)
@@ -2710,16 +2757,25 @@ public class JSONRPCLayerTest {
 		}
 		return s;
 	}
+	
+	private void failListObjects(List<String> wsnames, List<Long> wsids,
+			String type, String perm, Map<String, String> meta, Long showHidden,
+			Long showDeleted, Long allVers, Long includeMeta, String exp)
+			throws Exception {
+		failListObjects(wsnames, wsids, type, perm, meta, showHidden,
+				showDeleted, allVers, includeMeta, -1, -1, exp);
+	}
 
 	private void failListObjects(List<String> wsnames, List<Long> wsids,
-			String type, String perm, Map<String, String> meta, Long showHidden, Long showDeleted, Long allVers, Long includeMeta,
-			String exp)
+			String type, String perm, Map<String, String> meta, Long showHidden,
+			Long showDeleted, Long allVers, Long includeMeta, long skip, long limit, String exp)
 			throws Exception {
 		try {
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
-					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta));
+					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
+					.withSkip(skip).withLimit(limit));
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
