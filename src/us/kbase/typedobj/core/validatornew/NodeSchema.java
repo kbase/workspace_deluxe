@@ -1,11 +1,6 @@
 package us.kbase.typedobj.core.validatornew;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,7 +9,6 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.SerializableString;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -176,8 +170,7 @@ public class NodeSchema {
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING)
 				lst.addError("String is expected but found " + t);
-			//final OutputStream os = new BufferedOutputStream(new FileOutputStream(new File("test/temp2.txt")));
-			System.out.println("Text: " + jp.getText());
+			//System.out.println("Text: " + jp.getText());
 		} else if (type == Type.integer) {
 			if (stat != null)
 				stat.integerCount++;

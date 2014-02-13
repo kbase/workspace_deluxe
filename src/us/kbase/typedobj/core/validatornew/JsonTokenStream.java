@@ -2,7 +2,6 @@ package us.kbase.typedobj.core.validatornew;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,13 +10,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -27,7 +26,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.FormatSchema;
-import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonLocation;
@@ -51,12 +49,18 @@ public class JsonTokenStream extends JsonParser {
 	private int fixedLevels = 0;
 	private boolean currentTokenIsNull = false;
 	private Map<String, long[]> largeStringPos = new LinkedHashMap<String, long[]>(); 
-	
-	private static final boolean debug = true;
 	private final int stringBufferSize;
-
+	
+	private static final boolean debug = false;  //true;
+	private static final Charset utf8 = Charset.forName("UTF-8");
+	private static final String largeStringSubstPrefix = "^*->#";
+	
 	public JsonTokenStream(Object data) throws JsonParseException, IOException {
-		this(data, 1000000);
+		this(data, true);
+	}
+
+	public JsonTokenStream(Object data, boolean optimizeLargeStrings) throws JsonParseException, IOException {
+		this(data, optimizeLargeStrings ? 1000000 : 0);
 	}
 	
 	public JsonTokenStream(Object data, int largeStringbufferSize) throws JsonParseException, IOException {
@@ -98,18 +102,9 @@ public class JsonTokenStream extends JsonParser {
 		path = new ArrayList<Object>();
 		fixedLevels = 0;
 		currentTokenIsNull = false;
-		/*BufferedReader r2 = new BufferedReader(getWrapperForLargeStrings(getDataReader()));
-		PrintWriter pw = new PrintWriter(new File("test/temp2.txt"));
-		while (true) {
-			String l = r2.readLine();
-			if (l == null)
-				break;
-			pw.println(l);
-		}
-		pw.close();
-		r2.close();*/
 		Reader r = getDataReader();
-		r = getWrapperForLargeStrings(r);
+		if (stringBufferSize > 0)
+			r = getWrapperForLargeStrings(r);
 		super2 = new JsonFactory().createParser(r);
 		if (root != null && root.size() > 0) {
 			int pos = -1;
@@ -129,7 +124,8 @@ public class JsonTokenStream extends JsonParser {
 			fixedLevels = root.size();
 			currentTokenIsNull = true;
 		}
-		System.out.println("end of init");
+		if (debug)
+			System.out.println("end of init");
 	}
 
 	public Reader getDataReader() throws FileNotFoundException, IOException {
@@ -139,7 +135,7 @@ public class JsonTokenStream extends JsonParser {
 		} else if (bdata != null) {
 			r = new InputStreamReader(new ByteArrayInputStream(bdata));
 		} else if (fdata != null) {
-			r = new InputStreamReader(new BufferedInputStream(new FileInputStream(fdata)));
+			r = new InputStreamReader(new BufferedInputStream(new FileInputStream(fdata)), utf8);
 		} else {
 			throw new IOException("Data source was not set");
 		}
@@ -148,12 +144,12 @@ public class JsonTokenStream extends JsonParser {
 	
 	private Reader getWrapperForLargeStrings(final Reader r) {
 		return new Reader() {
-			long pos = 0;
+			long bufSizeGlobalPos = 0;	// reflects global position of bufSize place in input data source before substitution (array/String/file)
 			boolean inQ = false;
 			boolean wasBS = false;
 			char[] buffer = new char[stringBufferSize];
-			int bufPos = 0;
-			int bufSize = 0;
+			int bufPos = 0;			// position in buffer pointing to next character after last processed one
+			int bufSize = 0;		// part of buffer filled by characters
 			int maxLargeStringPosKey = 40;
 			@Override
 			public int read(char[] retbuf, int off, int len) throws IOException {
@@ -171,7 +167,7 @@ public class JsonTokenStream extends JsonParser {
 					char ch = buffer[bufPos];
 					retbuf[off + ret] = ch;
 					ret++;
-					pos++;
+					//pos++;
 					bufPos++;
 					if (inQ) {
 						if (wasBS) {
@@ -202,9 +198,10 @@ public class JsonTokenStream extends JsonParser {
 								if (bufPos > 0) {
 									internalPos = repos(internalPos);
 								} else {  // Here we are, all the string prefix is in our buffer and this string is going to be longer
-									largeStringStart = pos;
-									pos += bufSize;
+									largeStringStart = bufSizeGlobalPos - bufSize;
+									//pos += bufSize;
 									bufSize = maxLargeStringPosKey;
+									bufPos = bufSize;
 									internalPos = bufSize;
 								}
 							}
@@ -214,7 +211,7 @@ public class JsonTokenStream extends JsonParser {
 								if (bufPos != maxLargeStringPosKey)
 									throw new IllegalStateException();
 								internalPos = maxLargeStringPosKey;
-								pos += (bufSize - maxLargeStringPosKey);
+								//pos += (bufSize - maxLargeStringPosKey);
 								bufSize = maxLargeStringPosKey;
 							}
 							fillBuffer();
@@ -233,9 +230,9 @@ public class JsonTokenStream extends JsonParser {
 					internalPos++;
 				}
 				if (largeStringStart >= 0) {
-					pos += internalPos - maxLargeStringPosKey;
+					long pos = bufSizeGlobalPos - (bufSize - internalPos);
 					long largeStringLen = pos - largeStringStart;
-					String key = "^*->#" + largeStringStart + "," + largeStringLen;
+					String key = largeStringSubstPrefix + largeStringStart + "," + largeStringLen;
 					int keyLen = key.length();
 					if (keyLen > maxLargeStringPosKey)
 						throw new IllegalStateException("Key is too large: " + keyLen);
@@ -266,6 +263,7 @@ public class JsonTokenStream extends JsonParser {
 						if (count < 0)
 							break;
 						bufSize += count;
+						bufSizeGlobalPos += count;
 						if (bufSize == buffer.length)
 							break;
 					}
@@ -499,7 +497,8 @@ public class JsonTokenStream extends JsonParser {
 			super2.close();
 			ret = null;
 		}
-		System.out.println("Token: " + ret + ", path: " + path);
+		if (debug)
+			System.out.println("Token: " + ret + ", path: " + path);
 		return ret;
 	}
 	
@@ -816,12 +815,146 @@ public class JsonTokenStream extends JsonParser {
 		writeJson(os);
 		os.close();
 	}
-	
+
 	public void writeJson(OutputStream os) throws IOException {
+		writeJson(new OutputStreamWriter(os, utf8));
+	}
+	
+	public void writeJson(Writer w) throws IOException {
+		if (stringBufferSize > 0)
+			w = getWrapperForLargeStrings(w);
 		JsonFactory jf = new JsonFactory();
-		JsonGenerator jgen = jf.createGenerator(os, JsonEncoding.UTF8);
+		JsonGenerator jgen = jf.createGenerator(w);
 		writeTokens(jgen);
 		jgen.flush();
+	}
+	
+	public boolean isLargeString(String text) {
+		return largeStringPos.containsKey(text);
+	}
+	
+	public Reader getLargeStringReader(String text) throws IOException {
+		long[] borders = largeStringPos.get(text);
+		if (borders == null)
+			throw new IllegalArgumentException("It's not large string");
+		return getLargeStringReader(borders[0], borders[1]);
+	}
+	
+	private Reader getLargeStringReader(long pos, final long commonLength) throws IOException {
+		final Reader r = getDataReader();
+		r.skip(pos);
+		return new Reader() {
+			private long processed = 0;
+			@Override
+			public void close() throws IOException {
+				r.close();
+			}
+			@Override
+			public int read(char[] cbuf, int off, int len) throws IOException {
+				if (processed >= commonLength)
+					return -1;
+				if (processed + len > commonLength)
+					len = (int)(commonLength - processed);
+				int ret = r.read(cbuf, off, len);
+				processed += ret;
+				return ret;
+			}
+		};
+	}
+	
+	private Writer getWrapperForLargeStrings(final Writer w) {
+		return new Writer() {
+			long pos = 0;
+			boolean inQ = false;
+			boolean wasBS = false;
+			char[] buffer = new char[stringBufferSize];
+			int afterOpenQuotPos = -1;
+			int bufSize = 0;
+			int maxLargeStringPosKey = 40;
+			@Override
+			public void write(char[] cbuf, int off, int len) throws IOException {
+				for (int i = 0; i < len; i++) {
+					char ch = cbuf[off + i];
+					if (bufSize == buffer.length) {
+						if (inQ && afterOpenQuotPos == 0)
+							throw new IllegalStateException("String value is longer than buffer but it should be substituted on reading stage");
+						forwardBuffer();
+					}
+					pos++;
+					buffer[bufSize] = ch;
+					bufSize++;
+					if (inQ) {
+						if (wasBS) {
+							wasBS = false;
+						} else if (ch == '\\') {
+							wasBS = true;
+						} else if (ch == '\"') {  // Close string value
+							inQ = false;
+							if (afterOpenQuotPos >= 0 && bufSize - 1 - afterOpenQuotPos <= maxLargeStringPosKey) {
+								boolean prefixIsGood = true;
+								for (int p = 0; p < largeStringSubstPrefix.length(); p++)
+									if (buffer[afterOpenQuotPos + p] != largeStringSubstPrefix.charAt(p)) {
+										prefixIsGood = false;  // It's not large string, treat it normally.
+										break;
+									}
+								long[] borders = null;
+								if (prefixIsGood) {
+									String key = new String(buffer, afterOpenQuotPos, bufSize - 1 - afterOpenQuotPos);
+									borders = largeStringPos.get(key);
+								}
+								if (borders != null) {  // It's our large string 
+									pos -= (bufSize - afterOpenQuotPos);
+									//System.out.println("Large string: pos+len=" + borders[0] + "+" + borders[1] + ", afterquotpos=" + pos);
+									bufSize = afterOpenQuotPos;
+									afterOpenQuotPos = -1;
+									Reader lsr = getLargeStringReader(borders[0], borders[1]);
+									while (true) {
+										if (bufSize == buffer.length)
+											forwardBuffer();
+										int partLen = lsr.read(buffer, bufSize, buffer.length - bufSize);
+										if (partLen < 0)
+											break;
+										bufSize += partLen;
+										pos += partLen;
+									}
+									if (bufSize == buffer.length)
+										forwardBuffer();
+									buffer[bufSize] = '\"';
+									bufSize++;
+									pos++;
+								} else {  // It's not large string, treat it normally.
+									afterOpenQuotPos = -1;
+								}
+							}
+						}
+					} else if (ch == '\"') {  // Open string value
+						inQ = true;
+						wasBS = false;
+						afterOpenQuotPos = bufSize;
+					}
+				}
+			}
+			private void forwardBuffer() throws IOException {
+				int count = inQ && (afterOpenQuotPos >= 0) ? afterOpenQuotPos : bufSize;
+				if (count > 0) {
+					w.write(buffer, 0, count);
+					for (int i = count; i < bufSize; i++)
+						buffer[i - count] = buffer[i];
+					bufSize -= count;
+					if (inQ && afterOpenQuotPos >= 0)
+						afterOpenQuotPos = Math.max(-1, afterOpenQuotPos - count);
+				}
+			}
+			@Override
+			public void flush() throws IOException {
+				forwardBuffer();
+				w.flush();
+			}
+			@Override
+			public void close() throws IOException {
+				w.close();
+			}
+		};
 	}
 	
 	private void writeTokensWithoutFirst(JsonGenerator jgen) throws IOException {
@@ -864,6 +997,7 @@ public class JsonTokenStream extends JsonParser {
 		} else if (t == JsonToken.VALUE_STRING) {
 			String text = getText();
 			if (largeStringPos.containsKey(text)) {
+				//System.out.println("Large string: " + text);
 				jgen.writeString(text);
 			} else {
 				jgen.writeString(text);
