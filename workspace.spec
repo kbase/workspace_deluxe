@@ -937,6 +937,8 @@ module Workspace {
 		boolean includeMetadata - include the user provided metadata in the
 			returned object_info. If false (0 or null), the default, the
 			metadata will be null.
+		boolean excludeGlobal - exclude objects in global workspaces. This
+			parameter only has an effect when filtering by types alone.
 		
 	*/
 	typedef structure {
@@ -951,6 +953,7 @@ module Workspace {
 		boolean showHidden;
 		boolean showAllVersions;
 		boolean includeMetadata;
+		boolean excludeGlobal;
 	} ListObjectsParams;
 	
 	/*
