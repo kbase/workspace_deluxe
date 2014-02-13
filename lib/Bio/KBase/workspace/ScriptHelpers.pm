@@ -7,7 +7,20 @@ use Exporter;
 use Config::Simple;
 use Data::Dumper;
 use parent qw(Exporter);
-our @EXPORT_OK = qw(loadTableFile printJobData getToken getUser get_ws_client workspace workspaceURL getObjectRef parseObjectMeta parseWorkspaceInfo parseWorkspaceMeta printObjectMeta printWorkspaceMeta parseObjectInfo printObjectInfo);
+our @EXPORT_OK = qw(	loadTableFile
+			printJobData
+			getToken
+			getUser
+			get_ws_client
+			workspace workspaceURL
+			getObjectRef
+			parseObjectMeta
+			parseWorkspaceInfo
+			parseWorkspaceMeta
+			printObjectMeta
+			printWorkspaceMeta
+			parseObjectInfo
+			printObjectInfo);
 
 our $defaultURL = "https://kbase.us/services/ws";
 our $localhostURL = "http://127.0.0.1:7058";
@@ -98,7 +111,9 @@ sub workspaceURL {
 		
 		if ($newUrl eq "default") {
 			$newUrl = $defaultURL;
-		} elsif ($newUrl eq "localhost") {
+		} elsif ($newUrl eq "prod") {
+			$newUrl = $defaultURL;
+		}elsif ($newUrl eq "localhost") {
 			$newUrl = $localhostURL;
 		} elsif ($newUrl eq "dev") {
 			$newUrl = $devURL;
@@ -139,6 +154,20 @@ sub getObjectRef {
 	my($ws,$obj,$ver) = @_;
 	my $versionString = '';
 	if (defined($ver)) { if($ver ne '') { $versionString="/".$ver;} }
+	
+	# check for refs of the form kb|ws.1.obj.2.ver.4
+	my @idtokens = split(/\./,$obj);
+	if (scalar(@idtokens)==4) {
+		if ($idtokens[0] eq 'kb|ws' && $idtokens[2] eq 'obj' && $idtokens[1]=~/^\d+$/ && $idtokens[3]=~/^\d+$/) {
+			return $idtokens[1]."/".$idtokens[3].$versionString;
+		}
+	} elsif(scalar(@idtokens)==6) {
+		if ($idtokens[0] eq 'kb|ws' && $idtokens[2] eq 'obj' && $idtokens[4] eq 'ver' && $idtokens[1]=~/^\d+$/ && $idtokens[3]=~/^\d+$/ && $idtokens[5]=~/^\d+$/) {
+			return $idtokens[1]."/".$idtokens[3]."/".$idtokens[5];
+		}
+	}
+	
+	# check for refs of the form ws/obj/ver
 	my @tokens = split(/\//, $obj);
 	if (scalar(@tokens)==1) {
 		return $ws."/".$obj.$versionString;
@@ -147,6 +176,7 @@ sub getObjectRef {
 	} elsif (scalar(@tokens)==3) {
 		return $obj;
 	}
+	
 	#should never get here!!!
 	return $ws."/".$obj.$versionString;
 }
