@@ -50,6 +50,7 @@ public class JsonTokenStream extends JsonParser {
 	private boolean currentTokenIsNull = false;
 	private Map<String, long[]> largeStringPos = new LinkedHashMap<String, long[]>(); 
 	private final int stringBufferSize;
+	private final LargeStringSearchingReader largeStringReader = new LargeStringSearchingReader();
 	
 	private static final boolean debug = false;  //true;
 	private static final Charset utf8 = Charset.forName("UTF-8");
@@ -303,6 +304,7 @@ public class JsonTokenStream extends JsonParser {
 	public void close() throws IOException {
 		if (debug) debug();
 		super2.close();
+		largeStringReader.close();
 	}
 	
 	@Override
@@ -841,7 +843,7 @@ public class JsonTokenStream extends JsonParser {
 	}
 	
 	private Reader getLargeStringReader(long pos, final long commonLength) throws IOException {
-		final Reader r = getDataReader();
+		/*final Reader r = getDataReader();
 		r.skip(pos);
 		return new Reader() {
 			private long processed = 0;
@@ -859,7 +861,8 @@ public class JsonTokenStream extends JsonParser {
 				processed += ret;
 				return ret;
 			}
-		};
+		};*/
+		return largeStringReader.place(pos, commonLength);
 	}
 	
 	private Writer getWrapperForLargeStrings(final Writer w) {
@@ -1012,5 +1015,51 @@ public class JsonTokenStream extends JsonParser {
 			throw new IOException("Unexpected token type: " + t);
 		}
 		return t;
+	}
+	
+	private class LargeStringSearchingReader extends Reader {
+		private Reader r = null;
+		private long pos = 0;
+		private long processed = 0;
+		private long commonLength = 0;
+		private boolean isClosed = false;
+		
+		public LargeStringSearchingReader place(long start, long len) throws IOException {
+			if (r == null || isClosed) {
+				r = getDataReader();
+				pos = 0;
+			} else if (pos > start) {
+				r.reset();
+				pos = 0;
+			}
+			if (pos < start) {
+				r.skip(start - pos);
+				pos = start;
+			}
+			processed = 0;
+			commonLength = len;
+			return this;
+		}
+		
+		@Override
+		public void close() throws IOException {
+			isClosed = true;
+			if (r != null)
+				r.close();
+		}
+		
+		@Override
+		public int read(char[] cbuf, int off, int len) throws IOException {
+			if (processed >= commonLength)
+				return -1;
+			if (processed + len > commonLength)
+				len = (int)(commonLength - processed);
+			int ret = r.read(cbuf, off, len);
+			if (ret < 0)
+				throw new IllegalStateException("Unexpected end of file");
+			processed += ret;
+			pos += ret;
+			return ret;
+		}
 	}
 }
