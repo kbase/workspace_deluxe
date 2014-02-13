@@ -816,12 +816,14 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getIncludeMetadata());
 		final boolean excludeGlobal = au.longToBoolean(
 				params.getExcludeGlobal());
+		final int skip = au.longToInt(params.getSkip(), "Skip", -1);
+		final int limit = au.longToInt(params.getLimit(), "Limit", -1);
 		returnVal = au.objInfoToTuple(
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
 						params.getMeta(), showHidden, showDeleted,
 						showOnlyDeleted, showAllVers, includeMetadata,
-						excludeGlobal, 0, 10000));
+						excludeGlobal, skip, limit));
         //END list_objects
         return returnVal;
     }

@@ -341,6 +341,17 @@ public class ArgUtils {
 		return b != 0;
 	}
 	
+	public int longToInt(final Long l, final String name, final int deflt) {
+		if (l == null) {
+			return deflt;
+		}
+		if (l > Integer.MAX_VALUE) {
+				throw new IllegalArgumentException(
+						name + " can be no greater than " + Integer.MAX_VALUE);
+		}
+		return new Long(l).intValue();
+	}
+	
 	public Permission getGlobalWSPerm(final String globalRead) {
 		Permission p = Permission.NONE;
 		if (globalRead != null) {

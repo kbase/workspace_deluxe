@@ -3067,6 +3067,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
+	skip has a value which is an int
+	limit has a value which is an int
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -3111,6 +3113,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
+	skip has a value which is an int
+	limit has a value which is an int
 ws_name is a string
 ws_id is an int
 type_string is a string
@@ -8083,6 +8087,10 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
+                int skip - skip the first X objects. Maximum value is 2^31, skip values
+                        < 0 are treated as 0, the default.
+                int limit - limit the output to X objects. Default and maximum value
+                        is 10000. Limit values < 1 are treated as 1.
 
 
 =item Definition
@@ -8103,6 +8111,8 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
+skip has a value which is an int
+limit has a value which is an int
 
 </pre>
 
@@ -8123,6 +8133,8 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
+skip has a value which is an int
+limit has a value which is an int
 
 
 =end text

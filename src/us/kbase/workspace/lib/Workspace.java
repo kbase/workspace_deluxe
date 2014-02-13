@@ -69,7 +69,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspace {
 	
 	//TODO 2 hasObjects
-	//TODO 3 paginate list objects/workspaces
 	//TODO general unit tests
 	//TODO import shock objects
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
