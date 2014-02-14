@@ -20,22 +20,29 @@ my $translation = {
     showhidden=>"showHidden",
     showversions=>"showAllVersions",
     type => "type",
+    skip => "skip",
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-listobj %o',
     [ 'workspace|w=s', 'Name of a workspace to search (can also be provided as arguments to this command without this flag, if none is given your default workspace is assumed)' ],
     [ 'type|t=s','Specify that only objects of the given type should be listed'],
-    [ 'limit|l:i','Limit the number of objects listed to this number' ],
-    [ 'column|c:i','Sort by this column number (first column = 1)' ],
+    [ 'limit|l=i','Limit the number of objects listed to this number (after sorting)' ],
+    [ 'column|c=i','Sort by this column number (first column = 1)' ],
     [ 'megabytes|m','Report size in MB (bytes/1024^2)' ],
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
     [ 'showhidden|a','Include hidden objects', {"default" =>0} ],
     [ 'showdeleted|s','Include objects that have been deleted', {"default" =>0} ],
+    [ 'skip=i','Specify that the first N objects found (before sorting) are skipped', {} ],
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
 $usage = "\nNAME\n  ws-listobj -- list the objects in a workspace\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    List objects in one or more workspaces.  Note that the Workspace service will\n";
+$usage .= "    limit the number of objects returned to 10,000.  If you need to iterate over\n";
+$usage .= "    all items, you should use the --skip [N] option to skip over the first 10000\n";
+$usage .= "    objects get the next set of objects.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
@@ -55,16 +62,17 @@ if (scalar(@workspacesToSearch)==0) {
 }
 
 if (defined($opt->{column})) {
-	if ($opt->{column} <= 0 || $opt->{column} >8) {
+	if ($opt->{column} <= 0 || $opt->{column} >9) {
 		print STDERR "Invalid column number given.  Valid column numbers for sorting are:\n";
 		print STDERR "    1 = Object Id\n";
 		print STDERR "    2 = Object Name\n";
 		print STDERR "    3 = Version Number\n";
 		print STDERR "    4 = Object Type\n";
-		print STDERR "    5 = Containing Workspace\n";
-		print STDERR "    6 = Last Modified By\n";
-		print STDERR "    7 = Last Modified Date\n";
-		print STDERR "    8 = Size (in bytes or MB)\n";
+		print STDERR "    5 = Containing Workspace ID\n";
+		print STDERR "    6 = Containing Workspace Name\n";
+		print STDERR "    7 = Last Modified By\n";
+		print STDERR "    8 = Last Modified Date\n";
+		print STDERR "    9 = Size (in bytes or MB)\n";
 		exit 1;
 	}
 }
