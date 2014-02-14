@@ -6,11 +6,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.github.fge.jsonschema.report.ProcessingMessage;
 
 public class NodeSchema {
 	enum Type {
@@ -35,6 +39,8 @@ public class NodeSchema {
 	@SuppressWarnings("unchecked")
 	public static NodeSchema parseJsonSchema(String document) 
 			throws JsonParseException, JsonMappingException, IOException {
+		//System.out.println(document);
+		//System.out.println("--------------------------------------------------------------");
 		Map<String, Object> data = new ObjectMapper().readValue(document, Map.class);
 		return parseJsonSchema(data);
 	}
@@ -99,12 +105,16 @@ public class NodeSchema {
 	
 	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
+		//if (idReference != null)
+		//	new IllegalStateException("idReference: " + idReference).printStackTrace();
 		if (type == Type.object) {
 			if (stat != null)
 				stat.objectCount++;
 			JsonToken t = jp.getCurrentToken();
-			if (t == null || t != JsonToken.START_OBJECT)
+			if (t == null || t != JsonToken.START_OBJECT) {
 				lst.addError("Object start is expected but found " + t);
+				throw new JsonTokenValidationException();
+			}
 			boolean[] reqPropUsage = new boolean[objectRequired.size()];
 			int reqPropUsageCount = 0;
 			while (true) {
@@ -115,15 +125,26 @@ public class NodeSchema {
 					lst.addError("Object field name is expected but found " + t);
 				}
 				String fieldName = jp.getCurrentName();
+				/*
+				ProcessingMessage pm = new ProcessingMessage()
+				.setMessage(IdRefValidationBuilder.keyword)
+				.put("id", node.textValue())
+				.put("id-spec-info", idRefSpecificationData)
+				.put("location",data.getInstance().getPointer())
+				.put("is-field-name",BooleanNode.FALSE) ;
+				report.info(pm);
+				*/
 				if (objectRequired.containsKey(fieldName)) {
 					reqPropUsageCount++;
 					reqPropUsage[objectRequired.get(fieldName)] = true;
 				}
 				NodeSchema childType = objectProperties.get(fieldName);
 				if (childType == null) {
-					if (!objectAdditionalPropertiesBoolean)
-						lst.addError("Object field name doesn't contain in allowed " +
-								"object properties: " + objectProperties.keySet());
+					if (!objectAdditionalPropertiesBoolean) {
+						if (objectProperties.size() > 0)
+							lst.addError("Object field name [" + fieldName + "] is not in allowed " +
+									"object properties: " + objectProperties.keySet());
+					}
 					childType = objectAdditionalPropertiesType;
 				}
 				if (childType == null) {
@@ -143,8 +164,10 @@ public class NodeSchema {
 			if (stat != null)
 				stat.arrayCount++;
 			JsonToken t = jp.getCurrentToken();
-			if (t == null || t != JsonToken.START_ARRAY)
+			if (t == null || t != JsonToken.START_ARRAY) {
 				lst.addError("Array start is expected but found " + t);
+				throw new JsonTokenValidationException();
+			}
 			int itemPos = 0;
 			while (true) {
 				if (arrayMaxItems != null && itemPos >= arrayMaxItems)

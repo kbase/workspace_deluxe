@@ -3,15 +3,21 @@ package us.kbase.typedobj.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.report.ListProcessingReport;
 import com.github.fge.jsonschema.report.ListReportProvider;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
+import us.kbase.common.service.JsonTreeTraversingParser;
+import us.kbase.typedobj.core.validatornew.JsonTokenValidationException;
+import us.kbase.typedobj.core.validatornew.JsonTokenValidationListener;
+import us.kbase.typedobj.core.validatornew.NodeSchema;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 
@@ -123,14 +129,36 @@ public final class TypedObjectValidator {
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
-		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
+		//final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
 		// Actually perform the validation and return the report
-		ProcessingReport report;
-		try {
+		final ListProcessingReport report;
+		/*try {
 			report = schema.validate(instanceRootNode);
 		} catch (ProcessingException e) {
 			report = repackageProcessingExceptionIntoReport(e,typeDefId);
+		}*/
+		
+		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
+		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
+		report = new ListProcessingReport(LogLevel.INFO, LogLevel.FATAL);
+		try {
+			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
+			schema.checkJsonData(jp, null, new JsonTokenValidationListener() {
+				int errorCount = 0;
+				@Override
+				public void addError(String message) throws JsonTokenValidationException {
+					errorCount++;
+					if (errorCount <= 10)
+						try {
+							report.error(new ProcessingMessage().setMessage(message));
+						} catch (ProcessingException ex) {
+							throw new JsonTokenValidationException(ex.getMessage());
+						}
+				}
+			});
+		} catch (Exception ex) {
+			//throw new InstanceValidationException("Validation error", ex);
 		}
 		
 		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
@@ -151,6 +179,8 @@ public final class TypedObjectValidator {
 	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
+		if (true)
+			throw new IllegalStateException("Unsupported");
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
