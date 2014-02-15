@@ -114,12 +114,26 @@ if (defined($opt->{metadata})) {
 	}
 }
 
+#lookup version number of WS Service that will be loading the data
+my $ws_ver = '';
+if ($opt->{showerror} == 0){
+	eval { $ws_ver = $serv->ver(); };
+	if($@) {
+		print "Object could not be saved! Error connecting to the WS server.\n";
+		print STDERR $@->{message}."\n";
+		if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
+		print STDERR "\n";
+		exit 1;
+	}
+} else{
+	$ws_ver = $serv->ver();
+}
+
 # set provenance info
 my $PA = {
 		"service"=>"Workspace",
-		"service_ver"=>"0.1.0",
+		"service_ver"=>$ws_ver,
 		"script"=>"ws-load",
-		"script_ver"=>"0.1.0",
 		"script_command_line"=>$fullCommand
 	  };
 $params->{provenance} = [ $PA ];

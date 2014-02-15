@@ -88,6 +88,7 @@ public class JsonTokenValidatorTest {
 			jp.setRoot(null);
 			File f2 = new File("test/temp2.json");
 			jp.writeJson(f2);
+			jp.close();
 			compareFiles(f, f2);
 		}
 	}
@@ -137,7 +138,9 @@ public class JsonTokenValidatorTest {
 		char[] data = new char[len];
 		for (int i = 0; i < len; i++)
 			data[i] = (char)(32 + rnd.nextInt(95));
-		return new String(data);
+		String largeValue = new String(data);
+		//largeValue = "123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_1234567890";
+		return largeValue;
 	}
 	
 	private static String loadSpecFile(File specPath) throws Exception {
