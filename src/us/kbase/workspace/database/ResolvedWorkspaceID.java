@@ -19,6 +19,7 @@ public interface ResolvedWorkspaceID {
 	public long getID();
 	public String getName();
 	public boolean isLocked();
+	public boolean isDeleted();
 	public int hashCode();
 	public boolean equals(Object obj);
 
