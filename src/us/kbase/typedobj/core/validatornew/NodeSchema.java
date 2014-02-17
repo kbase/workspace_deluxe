@@ -6,12 +6,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.github.fge.jsonschema.report.ProcessingMessage;
@@ -25,22 +27,20 @@ public class NodeSchema {
 	//private String description;						// For all: description
 	private Type type;									// For all: type
 	//private String originalType;						// For all: original-type
-	private Map<String, Object> idReference;			// For scalars and mappings: id-reference
+	private JsonNode idReference;			// For scalars and mappings: id-reference
 	private Map<String, Object> searchableWsSubset;		// For structures: searchable-ws-subset
 	private Map<String, NodeSchema> objectProperties;	// For structures: properties
 	private NodeSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
 	private boolean objectAdditionalPropertiesBoolean;	// For structures: additionalProperties
 	private Map<String, Integer> objectRequired;		// For structures: required
 	private NodeSchema arrayItems;						// For list: items (one type for all items)
-	private List<NodeSchema> arrayItemList;			// For tuple: items (list of types)
+	private List<NodeSchema> arrayItemList;				// For tuple: items (list of types)
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 
 	@SuppressWarnings("unchecked")
 	public static NodeSchema parseJsonSchema(String document) 
 			throws JsonParseException, JsonMappingException, IOException {
-		//System.out.println(document);
-		//System.out.println("--------------------------------------------------------------");
 		Map<String, Object> data = new ObjectMapper().readValue(document, Map.class);
 		return parseJsonSchema(data);
 	}
@@ -52,7 +52,8 @@ public class NodeSchema {
 		//ret.description = (String)data.get("description");
 		ret.type = Type.valueOf("" + data.get("type"));
 		//ret.originalType = (String)data.get("original-type");
-		ret.idReference = (Map<String, Object>)data.get("id-reference");
+		if (data.containsKey("id-reference"))
+			ret.idReference = UObject.transformObjectToJackson(data.get("id-reference"));
 		ret.searchableWsSubset = (Map<String, Object>)data.get("searchable-ws-subset");
 		if (ret.type == Type.object) {
 			ret.objectProperties = new LinkedHashMap<String, NodeSchema>();
@@ -96,24 +97,30 @@ public class NodeSchema {
 		}
 		return ret;
 	}
-	
+
 	public void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
-		jp.nextToken();
-		checkJsonDataWithoutFirst(jp, stat, lst);
+		checkJsonData(jp, stat, lst, new ArrayList<String>());
 	}
 	
-	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst) 
+	private void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, List<String> path) 
+			throws JsonParseException, IOException, JsonTokenValidationException {
+		jp.nextToken();
+		checkJsonDataWithoutFirst(jp, stat, lst, path);
+	}
+	
+	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, List<String> path) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		//if (idReference != null)
 		//	new IllegalStateException("idReference: " + idReference).printStackTrace();
 		if (type == Type.object) {
+			path.add("{");
+			try {
 			if (stat != null)
 				stat.objectCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t == null || t != JsonToken.START_OBJECT) {
-				lst.addError("Object start is expected but found " + t);
-				throw new JsonTokenValidationException();
+				throw new JsonTokenValidationException("Object start is expected but found " + t);
 			}
 			boolean[] reqPropUsage = new boolean[objectRequired.size()];
 			int reqPropUsageCount = 0;
@@ -122,18 +129,10 @@ public class NodeSchema {
 				if (t == JsonToken.END_OBJECT) {
 					break;
 				} else if (t != JsonToken.FIELD_NAME) {
-					lst.addError("Object field name is expected but found " + t);
+					throw new JsonTokenValidationException("Object field name is expected but found " + t);
 				}
 				String fieldName = jp.getCurrentName();
-				/*
-				ProcessingMessage pm = new ProcessingMessage()
-				.setMessage(IdRefValidationBuilder.keyword)
-				.put("id", node.textValue())
-				.put("id-spec-info", idRefSpecificationData)
-				.put("location",data.getInstance().getPointer())
-				.put("is-field-name",BooleanNode.FALSE) ;
-				report.info(pm);
-				*/
+				path.set(path.size() - 1, fieldName);
 				if (objectRequired.containsKey(fieldName)) {
 					reqPropUsageCount++;
 					reqPropUsage[objectRequired.get(fieldName)] = true;
@@ -150,7 +149,11 @@ public class NodeSchema {
 				if (childType == null) {
 					skipValue(jp);
 				} else {
-					childType.checkJsonData(jp, stat, lst);
+					childType.checkJsonData(jp, stat, lst, path);
+				}
+				if (idReference != null) {
+					lst.addIdRefMessage(fieldName, idReference, path.subList(0, path.size() - 1), true);
+					//System.out.println("NodeSchema: path=" + path + ", id=" + jp.getText());
 				}
 			}
 			if (reqPropUsageCount != reqPropUsage.length) {
@@ -160,40 +163,54 @@ public class NodeSchema {
 						absentProperties.add(entry.getKey());
 				lst.addError("Object doesn't have required fields : " + absentProperties);
 			}
+			} finally {
+				path.remove(path.size() - 1);
+			}
 		} else if (type == Type.array) {
+			path.add("-1");
+			try {
 			if (stat != null)
 				stat.arrayCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t == null || t != JsonToken.START_ARRAY) {
-				lst.addError("Array start is expected but found " + t);
-				throw new JsonTokenValidationException();
+				throw new JsonTokenValidationException("Array start is expected but found " + t);
 			}
 			int itemPos = 0;
+			boolean skipAll = false;
 			while (true) {
-				if (arrayMaxItems != null && itemPos >= arrayMaxItems)
+				if (arrayMaxItems != null && itemPos > arrayMaxItems) {
 					lst.addError("Array contains more than " + arrayMaxItems + " items");
+					skipAll = true;
+				}
 				t = jp.nextToken();
 				if (t == JsonToken.END_ARRAY)
 					break;
+				path.set(path.size() - 1, "" + itemPos);
 				NodeSchema childType = arrayItems;
-				if (childType == null && arrayItemList != null && itemPos < arrayItemList.size())
+				if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
 					childType = arrayItemList.get(itemPos);
-				if (childType == null) {
+				if (skipAll || childType == null) {
 					skipValueWithoutFirst(jp);
 				} else {
-					childType.checkJsonDataWithoutFirst(jp, stat, lst);
+					childType.checkJsonDataWithoutFirst(jp, stat, lst, path);
 				}
 				itemPos++;
 			}
-			if (arrayMinItems != null && itemPos >= arrayMaxItems)
+			if (arrayMinItems != null && itemPos < arrayMinItems)
 				lst.addError("Array contains less than " + arrayMinItems + " items");
+			} finally {
+				path.remove(path.size() - 1);
+			}
 		} else if (type == Type.string) {
 			if (stat != null)
 				stat.stringCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING)
 				lst.addError("String is expected but found " + t);
-			//System.out.println("Text: " + jp.getText());
+			if (idReference != null) {
+				lst.addIdRefMessage(jp.getText(), idReference, path, false);
+				//System.out.println("NodeSchema: path=" + path + ", id=" + jp.getText());
+			}
 		} else if (type == Type.integer) {
 			if (stat != null)
 				stat.integerCount++;
@@ -244,7 +261,7 @@ public class NodeSchema {
 		return type;
 	}
 	
-	public Map<String, Object> getIdReference() {
+	public JsonNode getIdReference() {
 		return idReference;
 	}
 	

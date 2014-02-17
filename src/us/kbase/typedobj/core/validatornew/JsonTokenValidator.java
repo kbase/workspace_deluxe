@@ -54,7 +54,7 @@ public class JsonTokenValidator {
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
 		NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
 		final ListProcessingReport report = new ListProcessingReport(LogLevel.ERROR, LogLevel.FATAL);
-		schema.checkJsonData(jp, null, new JsonTokenValidationListener() {
+		schema.checkJsonData(jp, null, null); /*new JsonTokenValidationListener() {
 			int errorCount = 0;
 			@Override
 			public void addError(String message) throws JsonTokenValidationException {
@@ -66,7 +66,7 @@ public class JsonTokenValidator {
 						throw new JsonTokenValidationException(ex.getMessage());
 					}
 			}
-		});
+		});*/
 		return new TypedObjectValidationReport(report, absoluteTypeDefDB, null);
 	}
 

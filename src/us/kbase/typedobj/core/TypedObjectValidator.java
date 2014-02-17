@@ -6,6 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.report.ListProcessingReport;
@@ -15,6 +16,8 @@ import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.JsonTreeTraversingParser;
+import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 import us.kbase.typedobj.core.validatornew.JsonTokenValidationException;
 import us.kbase.typedobj.core.validatornew.JsonTokenValidationListener;
 import us.kbase.typedobj.core.validatornew.NodeSchema;
@@ -138,8 +141,13 @@ public final class TypedObjectValidator {
 		} catch (ProcessingException e) {
 			report = repackageProcessingExceptionIntoReport(e,typeDefId);
 		}*/
-		
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
+		if (false) {
+			System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
+			System.out.println("-------------------------------------------------------------");
+			System.out.println(schemaText);
+			System.out.println("--------------------------------------------------------------");
+		}
 		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
 		report = new ListProcessingReport(LogLevel.INFO, LogLevel.FATAL);
 		try {
@@ -156,9 +164,26 @@ public final class TypedObjectValidator {
 							throw new JsonTokenValidationException(ex.getMessage());
 						}
 				}
+				
+				@Override
+				public void addIdRefMessage(String id, JsonNode idRefSpecificationData, List<String> path, boolean isField) {
+					ProcessingMessage pm = new ProcessingMessage()
+						.setMessage(IdRefValidationBuilder.keyword)
+						.put("id", id)
+						.put("id-spec-info", idRefSpecificationData)
+						.put("location", UObject.transformObjectToJackson(path))
+						.put("is-field-name", isField ? BooleanNode.TRUE : BooleanNode.FALSE);
+					try {
+						report.info(pm);
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				}
 			});
 		} catch (Exception ex) {
-			//throw new InstanceValidationException("Validation error", ex);
+			try {
+				report.error(new ProcessingMessage().setMessage(ex.getMessage()));
+			} catch (ProcessingException ignore) {}
 		}
 		
 		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);

@@ -240,6 +240,7 @@ public class TestIdProcessing {
 		
 		// check that all expected Ids are in fact found
 		List<IdReference> fullIdList = report.getAllIdReferences();
+		//System.out.println("fullIdList: " + fullIdList.size());
 		for(IdReference ref: fullIdList) {
 			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
 					expectedIdList.containsKey(ref.getId()));

@@ -50,8 +50,8 @@ public class IdReference {
 		for(int k=0; k<location.size(); k++) {
 			String field = location.get(k).textValue();
 			if(field==null) { continue; } // probably this shouldn't happen, but we don't do checking here...
-			String realFieldName = field.replaceAll("~1","/").replaceAll("~0","~");
-			location.set(k, TextNode.valueOf(realFieldName));
+			//String realFieldName = field.replaceAll("~1","/").replaceAll("~0","~");
+			//location.set(k, TextNode.valueOf(realFieldName));
 		}
 	}
 	
@@ -137,7 +137,7 @@ public class IdReference {
 				}
 				mappingObj.put(replacementId, value);
 			} else {
-				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance was not found  at "+locationAsString());
+				throw new RelabelIdReferenceException("relabeling '"+id+"' to '"+replacementId+"' failed because location in the JsonNode instance is not an object at "+locationAsString());
 			}
 		} else {
 			//traverse to the parent of the field we want to change
@@ -182,7 +182,7 @@ public class IdReference {
 	protected String locationAsString() {
 		StringBuilder sb = new StringBuilder();
 		for(int d=0; d<location.size(); d++) {
-			sb.append("/"+location.get(d).asText());
+			sb.append("/\""+location.get(d).asText() + "\"");
 		}
 		return sb.toString();
 	}
