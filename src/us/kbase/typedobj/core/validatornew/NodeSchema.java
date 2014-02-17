@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -15,8 +14,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.github.fge.jsonschema.report.ProcessingMessage;
 
 public class NodeSchema {
 	enum Type {
@@ -27,8 +24,8 @@ public class NodeSchema {
 	//private String description;						// For all: description
 	private Type type;									// For all: type
 	//private String originalType;						// For all: original-type
-	private JsonNode idReference;			// For scalars and mappings: id-reference
-	private Map<String, Object> searchableWsSubset;		// For structures: searchable-ws-subset
+	private JsonNode idReference;						// For scalars and mappings: id-reference
+	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
 	private Map<String, NodeSchema> objectProperties;	// For structures: properties
 	private NodeSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
 	private boolean objectAdditionalPropertiesBoolean;	// For structures: additionalProperties
@@ -54,8 +51,9 @@ public class NodeSchema {
 		//ret.originalType = (String)data.get("original-type");
 		if (data.containsKey("id-reference"))
 			ret.idReference = UObject.transformObjectToJackson(data.get("id-reference"));
-		ret.searchableWsSubset = (Map<String, Object>)data.get("searchable-ws-subset");
 		if (ret.type == Type.object) {
+			if (data.containsKey("searchable-ws-subset"))
+				ret.searchableWsSubset = UObject.transformObjectToJackson(data.get("searchable-ws-subset"));
 			ret.objectProperties = new LinkedHashMap<String, NodeSchema>();
 			Map<String, Object> props = (Map<String, Object>)data.get("properties");
 			if (props != null) {
@@ -111,9 +109,9 @@ public class NodeSchema {
 	
 	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, List<String> path) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
-		//if (idReference != null)
-		//	new IllegalStateException("idReference: " + idReference).printStackTrace();
 		if (type == Type.object) {
+			if (searchableWsSubset != null)
+				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			path.add("{");
 			try {
 			if (stat != null)
@@ -265,7 +263,7 @@ public class NodeSchema {
 		return idReference;
 	}
 	
-	public Map<String, Object> getSearchableWsSubset() {
+	public JsonNode getSearchableWsSubset() {
 		return searchableWsSubset;
 	}
 	

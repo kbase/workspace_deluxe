@@ -142,7 +142,7 @@ public final class TypedObjectValidator {
 			report = repackageProcessingExceptionIntoReport(e,typeDefId);
 		}*/
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
-		if (false) {
+		if (true) {
 			System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
 			System.out.println("-------------------------------------------------------------");
 			System.out.println(schemaText);
@@ -175,6 +175,17 @@ public final class TypedObjectValidator {
 						.put("is-field-name", isField ? BooleanNode.TRUE : BooleanNode.FALSE);
 					try {
 						report.info(pm);
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				}
+				
+				@Override
+				public void addSearchableWsSubsetMessage(JsonNode searchData) {
+					try {
+						report.info(new ProcessingMessage()
+							.setMessage("searchable-ws-subset")
+							.put("search-data", searchData));
 					} catch (Exception ex) {
 						ex.printStackTrace();
 					}
