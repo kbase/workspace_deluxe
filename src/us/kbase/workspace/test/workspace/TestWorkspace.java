@@ -958,7 +958,7 @@ public class TestWorkspace {
 				"No object identifiers provided"));
 		
 		try {
-			ws.getObjectInformation(foo, new ArrayList<ObjectIdentifier>(), true);
+			ws.getObjectInformation(foo, new ArrayList<ObjectIdentifier>(), true, false);
 			fail("called method with no identifiers");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
@@ -992,8 +992,8 @@ public class TestWorkspace {
 		loi.add(new ObjectIdentifier(read, "auto3-2", 1));
 		loi.add(new ObjectIdentifier(read, 3, 1));
 
-		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true);
-		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false);
+		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true, false);
+		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false, false);
 		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
 		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
 		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
@@ -1044,12 +1044,12 @@ public class TestWorkspace {
 		objinfo = ws.saveObjects(foo, read, objects);
 		ws.saveObjects(foo, priv, objects);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
-		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true);
+		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true, false);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
 		
-		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true); //should work
+		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true, false); //should work
 		try {
-			ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
+			ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true, false);
 			fail("Able to get obj meta from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
@@ -1069,7 +1069,7 @@ public class TestWorkspace {
 		}
 
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
-		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true);
+		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true, false);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
 		
 		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
@@ -1078,8 +1078,6 @@ public class TestWorkspace {
 						chksum1, 23L, meta2)), Arrays.asList(data));
 		
 		failSave(bar, priv, objects, new WorkspaceAuthorizationException("User bar may not write to workspace saveobj"));
-		
-		
 		
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects);
@@ -1095,6 +1093,52 @@ public class TestWorkspace {
 		failGetObjects(null, Arrays.asList(new ObjectIdentifier(priv, 3)),
 				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace saveobj"));
 		
+		//test get object info where null is returned instead of exception
+		List<ObjectIdentifier> nullloi = new ArrayList<ObjectIdentifier>();
+		nullloi.add(new ObjectIdentifier(read, 1));
+		nullloi.add(new ObjectIdentifier(read, "booger"));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier("saveAndGetFakefake"), "booger"));
+		nullloi.add(new ObjectIdentifier(read, 1, 1));
+		
+		List<ObjectInformation> nullobjinfo = ws.getObjectInformation(foo, nullloi, true, true);
+		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
+		checkObjInfo(nullobjinfo.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		
+		nullloi.clear();
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3"));
+		nullloi.add(new ObjectIdentifier(priv, 2));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3", 1));
+		nullloi.add(new ObjectIdentifier(priv, 3));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1));
+		
+		nullobjinfo = ws.getObjectInformation(bar, nullloi, false, true);
+		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
+		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
+		checkObjInfo(nullobjinfo.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		
+		nullloi.clear();
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1, 1));
+		nullloi.add(new ObjectIdentifier(priv, 3));
+		nullloi.add(new ObjectIdentifier(read, "auto3"));
+		
+		nullobjinfo = ws.getObjectInformation(null, nullloi, true, true);
+		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
+		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		
+		ws.setObjectsDeleted(foo, Arrays.asList(new ObjectIdentifier(priv, 3)), true);
+		ws.setWorkspaceDeleted(foo, read, true);
+		
+		nullobjinfo = ws.getObjectInformation(null, nullloi, true, true);
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(0));
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
+		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
+		
+		ws.setWorkspaceDeleted(foo, read, false);
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 	
@@ -2145,7 +2189,7 @@ public class TestWorkspace {
 	private void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
 			String exception) throws Exception {
 		try {
-			ws.getObjectInformation(foo, Arrays.asList(oi), false);
+			ws.getObjectInformation(foo, Arrays.asList(oi), false, false);
 			fail("got non-existant object");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getLocalizedMessage(), 
@@ -2535,7 +2579,7 @@ public class TestWorkspace {
 		failGetObjects(bar, objs, new InaccessibleObjectException(
 				"Object obj cannot be accessed: Workspace deleteundelete is deleted"));
 		try {
-			ws.getObjectInformation(bar, objs, false);
+			ws.getObjectInformation(bar, objs, false, false);
 			fail("got obj meta from deleted workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception msg", ioe.getLocalizedMessage(),
@@ -2588,7 +2632,7 @@ public class TestWorkspace {
 			List<ObjectIdentifier> objs, String exception) throws Exception {
 		failGetObjects(user, objs, new NoSuchObjectException(exception));
 		try {
-			ws.getObjectInformation(user, objs, true);
+			ws.getObjectInformation(user, objs, true, false);
 			fail("got deleted object's history");
 		} catch (NoSuchObjectException e) {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exception));
@@ -3928,81 +3972,81 @@ public class TestWorkspace {
 				new ObjectIDNoWSNoVer("std"), new HashMap<String, String>(), SAFE_TYPE1,
 				null, new Provenance(user), false))).get(0);
 		ObjectInformation stdnometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "std")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "std")), false, false).get(0);
 		
 		ObjectInformation objstack1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("objstack"), new HashMap<String, String>(), SAFE_TYPE1_10, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation objstack1nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 1)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 1)), false, false).get(0);
 		
 		ObjectInformation objstack2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("objstack"), passTCdata, SAFE_TYPE1_20, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation objstack2nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 2)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "objstack", 2)), false, false).get(0);
 		
 		ObjectInformation type2_1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_1nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "type2", 1)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 1)), false, false).get(0);
 		
 		ObjectInformation type2_2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), new HashMap<String, String>(), SAFE_TYPE2_10, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_2nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "type2", 2)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 2)), false, false).get(0);
 		
 		ObjectInformation type2_3 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_20, meta32,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_3nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "type2", 3)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 3)), false, false).get(0);
 		
 		ObjectInformation type2_4 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("type2"), passTCdata, SAFE_TYPE2_21, meta3,
 				new Provenance(user), false))).get(0);
 		ObjectInformation type2_4nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(wsi, "type2", 4)), false).get(0);
+				Arrays.asList(new ObjectIdentifier(wsi, "type2", 4)), false, false).get(0);
 		
 		ObjectInformation stdws2 = ws.saveObjects(user2, writeable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("stdws2"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation stdws2nometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(writeable, "stdws2")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(writeable, "stdws2")), false, false).get(0);
 		
 		ObjectInformation hidden = ws.saveObjects(user, writeable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("hidden"), new HashMap<String, String>(), SAFE_TYPE1, meta2,
 				new Provenance(user), false))).get(0);
 		ObjectInformation hiddennometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(writeable, "hidden")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(writeable, "hidden")), false, false).get(0);
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(writeable, "hidden")), true);
 		
 		ObjectInformation deleted = ws.saveObjects(user2, writeable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("deleted"), new HashMap<String, String>(), SAFE_TYPE1, meta32,
 				new Provenance(user), false))).get(0);
 		ObjectInformation deletednometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(writeable, "deleted")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(writeable, "deleted")), false, false).get(0);
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(writeable, "deleted")), true);
 		
 		ObjectInformation readobj = ws.saveObjects(user2, readable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("readobj"), new HashMap<String, String>(), SAFE_TYPE1, meta3,
 				new Provenance(user), false))).get(0);
 		ObjectInformation readobjnometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(readable, "readobj")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(readable, "readobj")), false, false).get(0);
 		
 		ObjectInformation adminobj = ws.saveObjects(user2, adminable, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("adminobj"), new HashMap<String, String>(), SAFE_TYPE1, meta3,
 				new Provenance(user), false))).get(0);
 		ObjectInformation adminobjnometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(adminable, "adminobj")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(adminable, "adminobj")), false, false).get(0);
 		
 		ObjectInformation thirdobj = ws.saveObjects(user3, thirdparty, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("thirdobj"), new HashMap<String, String>(), SAFE_TYPE1, meta,
 				new Provenance(user), false))).get(0);
 		ObjectInformation thirdobjnometa = ws.getObjectInformation(user,
-				Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobj")), false).get(0);
+				Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobj")), false, false).get(0);
 		
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;

@@ -848,7 +848,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		returnVal = au.objInfoToMetaTuple(
 				ws.getObjectInformation(getUser(params.getAuth(), authPart),
-						Arrays.asList(oi), true).get(0));
+						Arrays.asList(oi), true, false).get(0));
         //END get_objectmeta
         return returnVal;
     }
@@ -871,7 +871,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = au.objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
-						au.longToBoolean(includeMetadata)));
+						au.longToBoolean(includeMetadata), false));
         //END get_object_info
         return returnVal;
     }

@@ -652,7 +652,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			rto = resolveObjectIDs(
 					new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
-					true, false, true).get(to); //don't except if there's no object
+					true, false, true).get(to); //don't except if there's no object //TODO 1 should excdeptOnDeleted be false? Seems so
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
