@@ -24,6 +24,9 @@ VERSION: 0.1.6 (Released TBD)
 NEW FEATURES:
 - Get objects by reference, which allows retrieval of any objects that
   are referenced by objects to which the user has access.
+- A new version of get_object_info, get_object_info_new, allows ignoring errors
+  when listing object information. get_object_info is deprecated in favor of
+  this method.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Optionally exclude globally readable objects from list_objects
@@ -38,7 +41,6 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
 - Unified WS / Shock ACLs
 - Pointers to shock data too large to fit in the workspace
-- Get objects by reference chain
 - ACLs based on KBase groups
 - KBase Search API
 - Service Search API (e.g. MongoDB queries on TOs)

@@ -178,19 +178,23 @@ public class ArgUtils {
 			String, Long, String, String, Long, Map<String, String>>>();
 
 		for (ObjectInformation m: info) {
-			ret.add(new Tuple11<Long, String, String, String, Long,
-					String, Long, String, String, Long, Map<String, String>>()
-					.withE1(m.getObjectId())
-					.withE2(m.getObjectName())
-					.withE3(m.getTypeString())
-					.withE4(dateFormat.formatDate(m.getSavedDate()))
-					.withE5(new Long(m.getVersion()))
-					.withE6(m.getSavedBy().getUser())
-					.withE7(m.getWorkspaceId())
-					.withE8(m.getWorkspaceName())
-					.withE9(m.getCheckSum())
-					.withE10(m.getSize())
-					.withE11(m.getUserMetaData()));
+			if (m == null) {
+				ret.add(null);
+			} else {
+				ret.add(new Tuple11<Long, String, String, String, Long,
+						String, Long, String, String, Long, Map<String, String>>()
+						.withE1(m.getObjectId())
+						.withE2(m.getObjectName())
+						.withE3(m.getTypeString())
+						.withE4(dateFormat.formatDate(m.getSavedDate()))
+						.withE5(new Long(m.getVersion()))
+						.withE6(m.getSavedBy().getUser())
+						.withE7(m.getWorkspaceId())
+						.withE8(m.getWorkspaceName())
+						.withE9(m.getCheckSum())
+						.withE10(m.getSize())
+						.withE11(m.getUserMetaData()));
+			}
 		}
 		return ret;
 	}

@@ -68,7 +68,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspace {
 	
-	//TODO 2 hasObjects
 	//TODO 3 filter ws/obj on mod date
 	//TODO general unit tests
 	//TODO import shock objects
@@ -835,7 +834,7 @@ public class Workspace {
 	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final boolean includeMetadata, final boolean nullIfInaccessible) //TODO 2 add ability to return nulls instead of throw errors
+			final boolean includeMetadata, final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 

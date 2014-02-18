@@ -3421,10 +3421,15 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-Get information about an object from the workspace.
+Get information about objects from the workspace.
 
 Set includeMetadata true to include the user specified metadata.
 Otherwise the metadata in the object_info will be null.
+
+This method will be replaced by the behavior of get_object_info_new
+in the future.
+
+@deprecated Workspace.get_object_info_new
 
 =back
 
@@ -3472,6 +3477,155 @@ sub get_object_info
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_object_info',
+				       );
+    }
+}
+
+
+
+=head2 get_object_info_new
+
+  $info = $obj->get_object_info_new($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.GetObjectInfoNewParams
+$info is a reference to a list where each element is a Workspace.object_info
+GetObjectInfoNewParams is a reference to a hash where the following keys are defined:
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+	includeMetadata has a value which is a Workspace.boolean
+	ignoreErrors has a value which is a Workspace.boolean
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+boolean is an int
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.GetObjectInfoNewParams
+$info is a reference to a list where each element is a Workspace.object_info
+GetObjectInfoNewParams is a reference to a hash where the following keys are defined:
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+	includeMetadata has a value which is a Workspace.boolean
+	ignoreErrors has a value which is a Workspace.boolean
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+boolean is an int
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Get information about objects from the workspace.
+
+=back
+
+=cut
+
+sub get_object_info_new
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object_info_new (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object_info_new:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object_info_new');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_object_info_new",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_object_info_new',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info_new",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object_info_new',
 				       );
     }
 }
@@ -8190,6 +8344,56 @@ id has a value which is a Workspace.obj_name
 workspace has a value which is a Workspace.ws_name
 instance has a value which is an int
 auth has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 GetObjectInfoNewParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "get_object_info_new" function.
+
+        Required arguments:
+        list<ObjectIdentity> objects - the objects for which the information
+                should be fetched
+        
+        Optional arguments:
+        boolean includeMetadata - include the object metadata in the returned
+                information. Default false.
+        boolean ignoreErrors - Don't throw an exception if an object cannot
+                be accessed; return null for that object's information instead.
+                Default false.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+includeMetadata has a value which is a Workspace.boolean
+ignoreErrors has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+objects has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
+includeMetadata has a value which is a Workspace.boolean
+ignoreErrors has a value which is a Workspace.boolean
 
 
 =end text

@@ -856,9 +856,12 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_object_info</p>
      * <pre>
-     * Get information about an object from the workspace.
+     * Get information about objects from the workspace.
      * Set includeMetadata true to include the user specified metadata.
      * Otherwise the metadata in the object_info will be null.
+     * This method will be replaced by the behavior of get_object_info_new
+     * in the future.
+     * @deprecated Workspace.get_object_info_new
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @param   includeMetadata   instance of original type "boolean" (A boolean. 0 = false, other = true.)
@@ -873,6 +876,30 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.getObjectInformation(getUser(authPart), loi,
 						au.longToBoolean(includeMetadata), false));
         //END get_object_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object_info_new</p>
+     * <pre>
+     * Get information about objects from the workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjectInfoNewParams GetObjectInfoNewParams}
+     * @return   parameter "info" of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object_info_new", authOptional=true)
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectInfoNew(GetObjectInfoNewParams params, AuthToken authPart) throws Exception {
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
+        //BEGIN get_object_info_new
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(
+				params.getObjects());
+		returnVal = au.objInfoToTuple(
+				ws.getObjectInformation(getUser(authPart), loi,
+						au.longToBoolean(params.getIncludeMetadata()),
+						au.longToBoolean(params.getIgnoreErrors())));
+        //END get_object_info
+        //END get_object_info_new
         return returnVal;
     }
 

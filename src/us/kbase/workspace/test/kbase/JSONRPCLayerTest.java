@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -35,11 +36,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -55,19 +51,20 @@ import us.kbase.common.test.TestException;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
-import us.kbase.workspace.ListObjectsParams;
-import us.kbase.workspace.ListWorkspaceInfoParams;
-import us.kbase.workspace.RegisterTypespecCopyParams;
-import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
+import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
+import us.kbase.workspace.RegisterTypespecCopyParams;
+import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.RenameWorkspaceParams;
 import us.kbase.workspace.SaveObjectsParams;
@@ -82,6 +79,11 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.FakeObjectInfo;
 import us.kbase.workspace.test.workspace.FakeResolvedWSID;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -999,14 +1001,6 @@ public class JSONRPCLayerTest {
 		
 		failGetObjects(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 		
-		try {
-			CLIENT1.getObjectInfo(new ArrayList<ObjectIdentity>(), 0L);
-			fail("called get meta with no ids");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is("No object identifiers provided"));
-		}
-		
 		// try some bad refs and id/name combos
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
@@ -1064,8 +1058,76 @@ public class JSONRPCLayerTest {
 		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: User " + USER1 + " may not read workspace setgetunreadableto1");
 		
+		//test get_object_info w/o errors
+		GetObjectInfoNewParams p = new GetObjectInfoNewParams().withObjects(Arrays.asList(loi.get(0)));
+		p.setAdditionalProperties("wooga", "foo");
+		failGetObjectInfoNew(p, "Unexpected arguments in GetObjectInfoNewParams: wooga");
+		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(null),
+				"The object identifier list cannot be null");
+		
+		List<ObjectIdentity> nullloi = new ArrayList<ObjectIdentity>();
+		nullloi.add(new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
+		nullloi.add(new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
+		nullloi.add(new ObjectIdentity().withRef("saveget/2"));
+		nullloi.add(new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
+		nullloi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
+		nullloi.add(new ObjectIdentity().withRef(wsid + "/2"));
+		nullloi.add(new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		nullloi.add(new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> nullret =
+				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
+				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret.get(0));
+		assertNull("Got object info when expected null", nullret.get(1));
+		checkInfo(nullret.get(2), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret.get(3));
+		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		checkInfo(nullret.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret.get(6));
+		assertNull("Got object info when expected null", nullret.get(7));
+		
+		CLIENT2.setPermissions(new SetPermissionsParams().withNewPermission("r")
+				.withUsers(Arrays.asList(USER1)).withWorkspace("setgetunreadableto1"));
+		CLIENT2.deleteWorkspace(new WorkspaceIdentity().withWorkspace("setgetunreadableto1"));
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("saveget/1")));
+		
+		nullloi.set(2, new ObjectIdentity().withRef("saveget/1"));
+		nullloi.set(5, new ObjectIdentity().withWorkspace("setgetunreadableto1")
+				.withName("foo"));
+		
+		nullret = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
+				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret.get(0));
+		assertNull("Got object info when expected null", nullret.get(1));
+		assertNull("Got object info when expected null", nullret.get(2));
+		assertNull("Got object info when expected null", nullret.get(3));
+		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret.get(5));
+		assertNull("Got object info when expected null", nullret.get(6));
+		assertNull("Got object info when expected null", nullret.get(7));
+		
+		
+		//clean up
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("saveget").withNewPermission("n"));
+	}
+	
+	private void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)
+			throws Exception {
+		try {
+			CLIENT1.getObjectInfoNew(params);
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -1451,6 +1513,7 @@ public class JSONRPCLayerTest {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private void failGetObjects(List<ObjectIdentity> loi, String exception)
 			throws Exception {
 		try {
@@ -1468,8 +1531,16 @@ public class JSONRPCLayerTest {
 					is(exception.replace("ObjectIdentity", "SubObjectIdentity")));
 		}
 		try {
+			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+			fail("got info with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		//deprecated, remove when removed from code.
+		try {
 			CLIENT1.getObjectInfo(loi, 0L);
-			fail("got meta with bad id");
+			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
@@ -1483,6 +1554,7 @@ public class JSONRPCLayerTest {
 		}
 	}
 	
+	@SuppressWarnings("deprecation")
 	private void checkSavedObjects(List<ObjectIdentity> loi, long id, String name,
 			String type, int ver, String user, long wsid, String wsname, String chksum, long size,
 			Map<String, String> meta, Map<String, Object> data) throws Exception {
@@ -1500,8 +1572,19 @@ public class JSONRPCLayerTest {
 		}
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-				String, Long, Map<String, String>>> retusermeta =
-				CLIENT1.getObjectInfo(loi, 1L);
+		String, Long, Map<String, String>>> retusermeta =
+		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		.withObjects(loi).withIncludeMetadata(1L));
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (Tuple11<Long, String, String, String, Long, String, Long,
+				String, String, Long, Map<String, String>> o: retusermeta) {
+			checkInfo(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta);
+		}
+
+		//deprecated, remove when removed from code.
+		retusermeta = CLIENT1.getObjectInfo(loi, 1L);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -1510,6 +1593,16 @@ public class JSONRPCLayerTest {
 					chksum, size, meta);
 		}
 		
+		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (Tuple11<Long, String, String, String, Long, String, Long,
+				String, String, Long, Map<String, String>> o: retusermeta) {
+			checkInfo(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, null);
+		}
+		
+		//deprecated, remove when removed from code.
 		retusermeta = CLIENT1.getObjectInfo(loi, 0L);
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -1749,7 +1842,7 @@ public class JSONRPCLayerTest {
 			Thread.sleep(1000);
 		}
 	}
-	
+
 	@Test
 	public void unicode() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
@@ -2134,8 +2227,8 @@ public class JSONRPCLayerTest {
 				CLIENT1.renameObject(new RenameObjectParams().withNewName("mynewname")
 				.withObj(new ObjectIdentity().withRef("renameObj/1")));
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
-		info = CLIENT1.getObjectInfo(Arrays.asList(new ObjectIdentity().withWorkspace("renameObj")
-				.withObjid(1L)), 0L).get(0);
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(
+				Arrays.asList(new ObjectIdentity().withWorkspace("renameObj").withObjid(1L)))).get(0);
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
 				.withObj(new ObjectIdentity().withRef("renameObj/1"));
