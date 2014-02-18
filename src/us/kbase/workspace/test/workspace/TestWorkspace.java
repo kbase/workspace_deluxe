@@ -2838,8 +2838,9 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, cp1, 9, 14);
 		
 		//copy hidden object to pre-existing visible object
+		//check that the to version is ignored
 		copied = ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"),
-				new ObjectIdentifier(cp1, 5));
+				new ObjectIdentifier(cp1, 5, 600));
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 4);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 5));
 		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "copied", 4);
@@ -2926,9 +2927,10 @@ public class TestWorkspace {
 						"No object with name foo exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "foo"),  new NoSuchObjectException(
 						"No object with name foo exists in workspace " + wsid1));
-		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
-				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
-						"No object with id 3 (name hidetarget) and version 5 exists in workspace " + wsid1));
+		//this shouldn't fail, since the to version is ignored.
+//		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+//				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
+//						"No object with id 3 (name hidetarget) and version 5 exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
 						"No object with id 2 (name orig) and version 4 exists in workspace " + wsid1));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),

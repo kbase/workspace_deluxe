@@ -20,8 +20,8 @@ package us.kbase.workspace.database.mongo;
 public class ResolvedMongoOIDWithObjLastVer extends ResolvedMongoObjectID {
 	
 	ResolvedMongoOIDWithObjLastVer(final ResolvedMongoWSID rwsi, final String name,
-			final long id, final int version) {
-		super(rwsi, name, id, version);
+			final long id, final int version, final boolean deleted) {
+		super(rwsi, name, id, version, deleted);
 	}
 	
 	@Override

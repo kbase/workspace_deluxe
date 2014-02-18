@@ -452,9 +452,9 @@ public class QueryMethods {
 		return queryPermissions(null, users, minPerm);
 	}
 	
-	private final static HashSet<String> PROJ_WS_ID_NAME_LOCK = 
+	private final static HashSet<String> PROJ_WS_ID_NAME_LOCK_DEL = 
 			new HashSet<String>(Arrays.asList(Fields.WS_ID, Fields.WS_NAME,
-					Fields.WS_LOCKED));
+					Fields.WS_LOCKED, Fields.WS_DEL));
 	
 	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
 			final Set<ResolvedMongoWSID> rwsis, final Set<User> users,
@@ -522,12 +522,13 @@ public class QueryMethods {
 		}
 		if (!noWS.isEmpty()) {
 			final Map<Long, Map<String, Object>> ws =
-					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK);
+					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL);
 			for (final Long id: ws.keySet()) {
 				final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
 						(String) ws.get(id).get(Fields.WS_NAME),
 						(Long) ws.get(id).get(Fields.WS_ID),
-						(Boolean) ws.get(id).get(Fields.WS_LOCKED));
+						(Boolean) ws.get(id).get(Fields.WS_LOCKED),
+						(Boolean) ws.get(id).get(Fields.WS_DEL));
 				for (final DBObject m: noWS.get(id)) {
 					addPerm(wsidToPerms, m, wsid);
 				}

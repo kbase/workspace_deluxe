@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL);
+use Bio::KBase::workspace::ScriptHelpers qw(workspaceURL get_ws_client);
 #Defining globals describing behavior
 my $primaryArgs = ["New server URL"];
 #Defining usage and options
@@ -25,11 +25,26 @@ $usage .= "    url, run the command: \"ws-url default\"\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
-    exit;
+	exit 0;
 }
 if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
 	print STDERR "Too many input arguments given.  Run with -h or --help for usage information.\n";
 	exit 1;
 }
 
-print "Current URL is: \n".workspaceURL($ARGV[0])."\n";
+my $wsurl = workspaceURL($ARGV[0]);
+print "Current URL is: \n".$wsurl."\n";
+
+my $ws = get_ws_client();
+my $ver = '';
+eval { $ver = $ws->ver(); };
+if($@) {
+	print "Unable to get a valid response from that endpoint.\n";
+	print STDERR $@->{message}."\n";
+	if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
+	print STDERR "\n";
+	exit 1;
+}
+
+print "URL is valid and running Workspace v$ver.\n";
+exit 0;

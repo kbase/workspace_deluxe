@@ -13,59 +13,66 @@ use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectM
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
-my $primaryArgs = [];
+my $primaryArgs = ["Workspace Names / IDs ..."];
 my $servercommand = "list_objects";
 my $translation = {
     showdeleted=>"showDeleted",
     showhidden=>"showHidden",
     showversions=>"showAllVersions",
     type => "type",
+    skip => "skip",
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-listobj %o',
-    [ 'workspace|w=s', 'Name of the workspace to search', {"default" => workspace()} ],
+    [ 'workspace|w=s', 'Name of a workspace to search (can also be provided as arguments to this command without this flag, if none is given your default workspace is assumed)' ],
     [ 'type|t=s','Specify that only objects of the given type should be listed'],
-    [ 'column|c:i','Sort by this column number (first column = 1)' ],
+    [ 'limit|l=i','Limit the number of objects listed to this number (after sorting)' ],
+    [ 'column|c=i','Sort by this column number (first column = 1)' ],
     [ 'megabytes|m','Report size in MB (bytes/1024^2)' ],
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
     [ 'showhidden|a','Include hidden objects', {"default" =>0} ],
     [ 'showdeleted|s','Include objects that have been deleted', {"default" =>0} ],
+    [ 'skip=i','Specify that the first N objects found (before sorting) are skipped', {} ],
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
 $usage = "\nNAME\n  ws-listobj -- list the objects in a workspace\n\nSYNOPSIS\n  ".$usage;
+$usage .= "\nDESCRIPTION\n";
+$usage .= "    List objects in one or more workspaces.  Note that the Workspace service will\n";
+$usage .= "    limit the number of objects returned to 10,000.  If you need to iterate over\n";
+$usage .= "    all items, you should use the --skip [N] option to skip over the first 10000\n";
+$usage .= "    objects get the next set of objects.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
 	exit 0;
 }
 
-
-#Processing primary arguments
-if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
-	print STDERR "Too many input arguments given.  Run with -h or --help for usage information\n";
-	exit 1;
+#process arguments
+my @workspacesToSearch;
+if (defined($opt->{workspace})) {
+	push(@workspacesToSearch,$opt->{workspace});
 }
-foreach my $arg (@{$primaryArgs}) {
-	$opt->{$arg} = shift @ARGV;
-	if (!defined($opt->{$arg})) {
-		print STDERR "Not enough input arguments provided.  Run with -h or --help for usage information\n";
-		exit 1;
-	}
+foreach my $arg (@ARGV) {
+	push(@workspacesToSearch,$arg);
+}
+if (scalar(@workspacesToSearch)==0) {
+	push(@workspacesToSearch,workspace());
 }
 
 if (defined($opt->{column})) {
-	if ($opt->{column} <= 0 || $opt->{column} >8) {
+	if ($opt->{column} <= 0 || $opt->{column} >9) {
 		print STDERR "Invalid column number given.  Valid column numbers for sorting are:\n";
 		print STDERR "    1 = Object Id\n";
 		print STDERR "    2 = Object Name\n";
 		print STDERR "    3 = Version Number\n";
 		print STDERR "    4 = Object Type\n";
-		print STDERR "    5 = Containing Workspace\n";
-		print STDERR "    6 = Last Modified By\n";
-		print STDERR "    7 = Last Modified Date\n";
-		print STDERR "    8 = Size (in bytes or MB)\n";
+		print STDERR "    5 = Containing Workspace ID\n";
+		print STDERR "    6 = Containing Workspace Name\n";
+		print STDERR "    7 = Last Modified By\n";
+		print STDERR "    8 = Last Modified Date\n";
+		print STDERR "    9 = Size (in bytes or MB)\n";
 		exit 1;
 	}
 }
@@ -87,11 +94,13 @@ if (defined($opt->{column})) {
 #	} ListObjectsParams;
 
 
-my $params = {};
-if ($opt->{workspace} =~ /^\d+$/ ) { #is ID
-	$params->{ids}=[$opt->{workspace}+0];
-} else { #is name
-	$params->{workspaces}=[$opt->{workspace}];
+my $params = {ids=>[],workspaces=>[]};
+foreach my $w (@workspacesToSearch) {
+	if ($w =~ /^\d+$/ ) { #is ID
+		push(@{$params->{ids}},$w+0);
+	} else { #is name
+		push(@{$params->{workspaces}},$w);
+	}
 }
 
 foreach my $key (keys(%{$translation})) {
@@ -131,27 +140,32 @@ if (!defined($output)) {
 	    if (defined($opt->{megabytes})) {
 		$size = int(($size/1048576)*1000+0.5)/1000; # convert to MB, rounded to three decimals
 	    }
-	    push(@{$tbl},[$r->[0],$r->[1],$r->[4],$r->[2],$r->[7],$r->[5],$r->[3],$size]);
+	    push(@{$tbl},[$r->[0],$r->[1],$r->[4],$r->[2],$r->[6],$r->[7],$r->[5],$r->[3],$size]);
 	}
 	my $sizeHeader = 'Size(bytes)';
 	if (defined($opt->{megabytes})) {
 		$sizeHeader = 'Size(MB)';
 	}
 	my $table = Text::Table->new(
-		'ID', 'ObjName', 'Vers', 'Type','WS','Last_modby','Moddate',$sizeHeader
+		'ID', 'ObjName', 'Vers', 'Type','WSID','WS','Last_modby','Moddate',$sizeHeader
 		);
 	my @sorted_tbl = @$tbl;
 	if (defined($opt->{column})) {
-		if ($opt->{column}==8) {
+		if ($opt->{column}==9) {
 			#size is numeric, so sort numerically, largest first
 			@sorted_tbl = sort { $b->[$opt->{column}-1] <=> $a->[$opt->{column}-1] } @sorted_tbl;
-		} elsif ( $opt->{column}==1 || $opt->{column}==3) {
-			#id and version numbers are numeric, so sort numerically, largest last
+		} elsif ( $opt->{column}==1 || $opt->{column}==3 || $opt->{column}==5) {
+			#ids and version numbers are numeric, so sort numerically, largest last
 			@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
 		} else {
 			@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
 		}
 	}
+	# splice out the first n if limit is set
+	if (defined($opt->{limit})) {
+		@sorted_tbl=splice(@sorted_tbl,0,$opt->{limit});
+	}
+	
 	$table->load(@sorted_tbl);
 	print $table;
 }

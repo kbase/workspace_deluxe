@@ -192,6 +192,17 @@ public class Workspace {
 			final boolean allowDeleted)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
+		return checkPerms(user, loi, perm, operation, allowDeleted, false,
+				false);
+	}
+	
+	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi,
+			final Permission perm, final String operation,
+			final boolean allowDeleted, final boolean allowMissing,
+			final boolean allowInaccessible)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
@@ -204,7 +215,8 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-				rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted);
+				rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted,
+						allowMissing);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
@@ -217,16 +229,23 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
+			if (!rwsis.containsKey(o.getWorkspaceIdentifier())) {
+				continue; //missing workspace
+			}
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
 				checkLocked(perm, r);
 				comparePermission(user, perm, perms.getPermission(r, true), o,
 						operation);
 			} catch (WorkspaceAuthorizationException wae) {
-				throw new InaccessibleObjectException(String.format(
-						"Object %s cannot be accessed: %s",
-						o.getIdentifierString(), wae.getLocalizedMessage()),
-						o, wae);
+				if (allowInaccessible) {
+					continue;
+				} else {
+					throw new InaccessibleObjectException(String.format(
+							"Object %s cannot be accessed: %s",
+							o.getIdentifierString(), wae.getLocalizedMessage()),
+							o, wae);
+				}
 			}
 			ret.put(o, o.resolveWorkspace(r));
 		}
@@ -815,20 +834,26 @@ public class Workspace {
 	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final boolean includeMetadata)
+			final boolean includeMetadata)//, final boolean nullIfInaccessible) //TODO add ability to return nulls instead of throw errors
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
+				checkPerms(user, loi, Permission.READ, "read");//,
+//						nullIfInaccessible, nullIfInaccessible,
+//						nullIfInaccessible);
 		final Map<ObjectIDResolvedWS, ObjectInformation> meta = 
 				db.getObjectInformation(
 						new HashSet<ObjectIDResolvedWS>(ws.values()),
-						includeMetadata);
+						includeMetadata, false);//, nullIfInaccessible);
 		final List<ObjectInformation> ret =
 				new ArrayList<ObjectInformation>();
 		
 		for (final ObjectIdentifier o: loi) {
-			ret.add(meta.get(ws.get(o)));
+			if (!ws.containsKey(o) || !meta.containsKey(ws.get(o))) {
+				ret.add(null);
+			} else {
+				ret.add(meta.get(ws.get(o)));
+			}
 		}
 		return ret;
 	}

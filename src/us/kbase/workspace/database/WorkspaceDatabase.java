@@ -34,7 +34,8 @@ public interface WorkspaceDatabase {
 			WorkspaceCommunicationException;
 	
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			Set<WorkspaceIdentifier> wsis, boolean allowDeleted)
+			Set<WorkspaceIdentifier> wsis, boolean allowDeleted,
+			boolean allowMissing)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,
@@ -123,7 +124,8 @@ public interface WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
-			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata)
+			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata,
+			boolean ignoreMissingAndDeleted)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
