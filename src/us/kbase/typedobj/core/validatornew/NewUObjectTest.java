@@ -22,11 +22,15 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 public class NewUObjectTest {
 	
 	public static void main(String[] args) throws Exception {
-		String text = "[{\"key1\": [1, 2.0, [{\"3\": \"4\"}]]},{\"key2\": {\"key3\": [\"1\", 2, 3.0]}}]";
+		//String text = "[{\"key1\": [1, 2.0, [{\"3\": \"4\"}]]},{\"key2\": {\"key3\": [\"1\", 2, 3.0]}}]";
+		//String text = "[{\"key1\": [1, 2.0, [{\"3\": \"4\"}]],\"key2\": {\"key3\": [\"1\", 2, 3.0]}}]";
+		String text = "{\"params\":[\"0\", {\"1\":2},{\"1\":3},[5,6,7],[8,9], 1, 2.0, \"3\"]}";
 		JsonTokenStream jts = new JsonTokenStream(text);
 		ObjectMapper mapper = createObjectMapperForNewUObject();
-		TypeReference<List<Map<String, NewUObject>>> type = new TypeReference<List<Map<String,NewUObject>>>() {};
-		List<Map<String, NewUObject>> obj = mapper.readValue(jts, type);
+		//TypeReference<List<Map<String, NewUObject>>> type = new TypeReference<List<Map<String,NewUObject>>>() {};
+		//List<Map<String, NewUObject>> obj = mapper.readValue(jts, type);
+		TypeReference<Map<String, List<NewUObject>>> type = new TypeReference<Map<String, List<NewUObject>>>() {};
+		Map<String, List<NewUObject>> obj = mapper.readValue(jts, type);
 		jts.close();
 		System.out.println(obj);
 	}
@@ -48,11 +52,9 @@ public class NewUObjectTest {
 			.addDeserializer(NewUObject.class, new JsonDeserializer<NewUObject>() {
 				public NewUObject deserialize(JsonParser p, DeserializationContext ctx) throws IOException, JsonProcessingException {
 					try {
-						new Exception("Before NewUObject deserializing").printStackTrace(System.out);
 						JsonTokenStream jts = (JsonTokenStream)p;
 						String path = jts.getCurrentPath();
-						jts.skipChildren();  //Value();
-						System.out.println("Before NewUObject deserializing");
+						jts.skipChildren();
 						return new NewUObject(jts, path);
 					} catch (Exception ex) {
 						throw new IOException(ex);

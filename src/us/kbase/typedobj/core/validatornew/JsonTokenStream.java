@@ -86,12 +86,21 @@ public class JsonTokenStream extends JsonParser {
 	}
 	
 	public String getCurrentPath() throws IOException {
-		if (getCurrentToken() == null)
-			nextToken();
+		JsonToken lastToken = getCurrentToken();
+		if (lastToken == null)
+			lastToken = nextToken();
 		StringBuilder ret = new StringBuilder();
 		int size = path.size() - 1;
 		for (int i = 0; i < size; i++) {
 			Object item = path.get(i);
+			if (ret.length() > 0)
+				ret.append('/');
+			ret.append(String.valueOf(item));
+		}
+		if (lastToken != JsonToken.START_OBJECT && lastToken != JsonToken.START_ARRAY) {
+			Object item = path.get(size);
+			if (item instanceof Integer)
+				item = ((Integer)item) - 1;
 			if (ret.length() > 0)
 				ret.append('/');
 			ret.append(String.valueOf(item));
@@ -474,6 +483,13 @@ public class JsonTokenStream extends JsonParser {
 		} else if (ret == JsonToken.END_ARRAY) {
 			path.remove(lastPos);
 			lastPos--;
+			if (fixedLevels > 0 && path.size() == fixedLevels) {
+				super2.close();
+			} else if (lastPos >= 0) {
+				Object obj = path.get(lastPos);
+				if (obj instanceof Integer) 
+					path.set(lastPos, (Integer)obj + 1);
+			}
 		} else if (ret == JsonToken.START_OBJECT) {
 			path.add("{");
 		} else if (ret == JsonToken.END_OBJECT) {
