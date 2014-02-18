@@ -1,4 +1,4 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.common.service;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,6 +39,7 @@ import com.fasterxml.jackson.core.SerializableString;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class JsonTokenStream extends JsonParser {
 	private String sdata = null;
@@ -69,6 +70,9 @@ public class JsonTokenStream extends JsonParser {
 			sdata = (String)data;
 		} else if (data instanceof File) {
 			fdata = (File)data;
+		} else if (data instanceof JsonNode) {
+			JsonNode jdata = (JsonNode)data;
+			sdata = UObject.transformJacksonToString(jdata);
 		} else {
 			bdata = (byte[])data;
 		}
@@ -116,6 +120,9 @@ public class JsonTokenStream extends JsonParser {
 		if (stringBufferSize > 0)
 			r = getWrapperForLargeStrings(r);
 		super2 = new JsonFactory().createParser(r);
+		if (super2.getCodec() == null) {
+			super2.setCodec(UObject.getMapper());
+		}
 		if (root != null && root.size() > 0) {
 			int pos = -1;
 			while (true) {
@@ -859,25 +866,6 @@ public class JsonTokenStream extends JsonParser {
 	}
 	
 	private Reader getLargeStringReader(long pos, final long commonLength) throws IOException {
-		/*final Reader r = getDataReader();
-		r.skip(pos);
-		return new Reader() {
-			private long processed = 0;
-			@Override
-			public void close() throws IOException {
-				r.close();
-			}
-			@Override
-			public int read(char[] cbuf, int off, int len) throws IOException {
-				if (processed >= commonLength)
-					return -1;
-				if (processed + len > commonLength)
-					len = (int)(commonLength - processed);
-				int ret = r.read(cbuf, off, len);
-				processed += ret;
-				return ret;
-			}
-		};*/
 		return largeStringReader.place(pos, commonLength);
 	}
 	

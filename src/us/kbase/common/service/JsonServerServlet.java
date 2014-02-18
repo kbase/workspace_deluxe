@@ -5,8 +5,10 @@ import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,6 +22,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -33,9 +36,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.ini4j.Ini;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class JsonServerServlet extends HttpServlet {
@@ -57,6 +58,8 @@ public class JsonServerServlet extends HttpServlet {
 	private Integer jettyPort = null;
 	private boolean startupFailed = false;
 	private Long maxObjectSize = null;
+	private int maxRpcMemoryCacheSize = 16 * 1024 * 1024;
+	private File rpcDiskCacheTempDir = null;
 		
 	/**
 	 * Starts a test jetty server on an OS-determined port. Blocks until the
@@ -231,23 +234,76 @@ public class JsonServerServlet extends HttpServlet {
 		OutputStream output	= response.getOutputStream();
 		String rpcName = null;
 		AuthToken userProfile = null;
+		JsonTokenStream jts = null; 
+		File tempFile = null;
 		try {
 			InputStream input = request.getInputStream();
-			JsonNode node;
+			byte[] rpcBuffer = new byte[Math.max(maxRpcMemoryCacheSize, 10000)];
+			long rpcSize = 0;
+			while (rpcSize < maxRpcMemoryCacheSize) {
+				int count = input.read(rpcBuffer, (int)rpcSize, maxRpcMemoryCacheSize - (int)rpcSize);
+				if (count < 0)
+					break;
+				rpcSize += count;
+			}
+			if (rpcSize >= maxRpcMemoryCacheSize) {
+				OutputStream os;
+				if (rpcDiskCacheTempDir == null) {
+					os = new ByteArrayOutputStream();
+				} else {
+					long suffix = System.currentTimeMillis();
+					while (true) {
+						tempFile = new File(rpcDiskCacheTempDir, "rpc" + suffix + ".json");
+						if (!tempFile.exists())
+							break;
+					}
+					os = new BufferedOutputStream(new FileOutputStream(tempFile));
+				}
+				os.write(rpcBuffer, 0, (int)rpcSize);
+				while (true) {
+					int count = input.read(rpcBuffer, 0, rpcBuffer.length);
+					if (count < 0)
+						break;
+					os.write(rpcBuffer, 0, count);
+					rpcSize += count;
+					if (maxObjectSize != null && rpcSize > maxObjectSize) {
+						writeError(response, -32700, "Object is too big, length is more than " + maxObjectSize + " bytes", output);
+						os.close();
+						return;
+					}
+				}
+				os.close();
+				if (tempFile == null) {
+					jts = new JsonTokenStream(((ByteArrayOutputStream)os).toByteArray());
+				} else {
+					jts = new JsonTokenStream(tempFile);
+				}
+			} else {
+				byte[] bdata = new byte[(int)rpcSize];
+				System.arraycopy(rpcBuffer, 0, bdata, 0, bdata.length);
+				jts = new JsonTokenStream(bdata);
+			}
+			RpcCallData rpcCallData;
 			try {
-				node = mapper.readTree(new KBaseJsonParser(mapper.getFactory(), new UnclosableInputStream(input, maxObjectSize)));
+				rpcCallData = mapper.readValue(jts, RpcCallData.class);
 			} catch (Exception ex) {
-				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", output);
+				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", ex, output);
 				return;
 			}
-			JsonNode idNode = node.get("id");
+			Object idNode = rpcCallData.getId();
 			try {
-				info.setId(idNode == null || node.isNull() ? null : idNode.asText());
+				info.setId(idNode == null ? null : "" + idNode);
 			} catch (Exception ex) {}
-			JsonNode methodNode = node.get("method");
-			ArrayNode paramsNode = (ArrayNode)node.get("params");
-			node = null;
-			rpcName = (methodNode!=null && !methodNode.isNull()) ? methodNode.asText() : null;
+			rpcName = rpcCallData.getMethod();
+			if (rpcName == null) {
+				writeError(response, -32601, "JSON RPC method property is not defined", output);
+				return;
+			}
+			List<UObject> paramsList = rpcCallData.getParams();
+			if (paramsList == null) {
+				writeError(response, -32601, "JSON RPC params property is not defined", output);
+				return;
+			}
 			if (rpcName.contains(".")) {
 				int pos = rpcName.indexOf('.');
 				info.setModule(rpcName.substring(0, pos));
@@ -270,7 +326,7 @@ public class JsonServerServlet extends HttpServlet {
 						if (userProfile != null)
 							info.setUser(userProfile.getClientId());
 					} catch (Throwable ex) {
-						writeError(response, -32400, "Token validation failed: " + ex.getMessage(), output);
+						writeError(response, -32400, "Token validation failed: " + ex.getMessage(), ex, output);
 						return;
 					}
 				}
@@ -280,28 +336,27 @@ public class JsonServerServlet extends HttpServlet {
 				writeError(response, -32603, "The server did not start up properly. Please check the log files for the cause.", output);
 				return;
 			}
-			if (paramsNode.size() != rpcArgCount) {
+			if (paramsList.size() != rpcArgCount) {
 				writeError(response, -32602, "Wrong parameter count for method " + rpcName, output);
 				return;
 			}
-			for (int typePos = 0; paramsNode.size() > 0; typePos++) {
-				JsonNode jsonData = paramsNode.remove(0);
+			for (int typePos = 0; typePos < paramsList.size(); typePos++) {
+				UObject jsonData = paramsList.get(typePos);
 				Type paramType = rpcMethod.getGenericParameterTypes()[typePos];
 				PlainTypeRef paramJavaType = new PlainTypeRef(paramType);
 				try {
 					Object obj;
 					if (paramType instanceof Class && paramType.equals(UObject.class)) {
-						obj = new UObject(jsonData);
+						obj = jsonData;
 					} else {
-						obj = mapper.readValue(new JsonTreeTraversingParser(jsonData, mapper), paramJavaType);
+						obj = mapper.readValue(jsonData.getPlacedStream(), paramJavaType);
 					}
 					methodValues[typePos] = obj;
 				} catch (Exception ex) {
-					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", output);	
+					writeError(response, -32602, "Wrong type of parameter " + typePos + " for method " + rpcName + " (" + ex.getMessage() + ")", ex, output);	
 					return;
 				}
 			}
-			paramsNode = null;
 			if (userProfile != null && methodValues[methodValues.length - 1] == null)
 				methodValues[methodValues.length - 1] = userProfile;
 			Object result;
@@ -326,7 +381,18 @@ public class JsonServerServlet extends HttpServlet {
 			mapper.writeValue(new UnclosableOutputStream(output), ret);
 			output.flush();
 		} catch (Exception ex) {
-			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", output);	
+			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", ex, output);	
+		} finally {
+			if (jts != null) {
+				try {
+					jts.close();
+				} catch (Exception ignore) {}
+				if (tempFile != null) {
+					try {
+						tempFile.delete();
+					} catch (Exception ignore) {}
+				}
+			}
 		}
 	}
 	
@@ -353,21 +419,23 @@ public class JsonServerServlet extends HttpServlet {
 	}
 	
 	private void writeError(HttpServletResponse response, int code, String message, OutputStream output) {
-		sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), message);
 		writeError(response, code, message, null, output);
 	}
 	
 	private void writeError(HttpServletResponse response, int code, Throwable ex, OutputStream output) {
-		sysLogger.logErr(ex, getClass().getName());
-		StringWriter sw = new StringWriter();
-		ex.printStackTrace(new PrintWriter(sw));
-		String errorMessage = ex.getLocalizedMessage();
-		if (errorMessage == null)
-			errorMessage = ex.getMessage();
-		writeError(response, code, errorMessage, sw.toString(), output);
+		writeError(response, code, ex.getMessage(), ex, output);
 	}
 	
-	private void writeError(HttpServletResponse response, int code, String message, String data, OutputStream output) {
+	private void writeError(HttpServletResponse response, int code, String message, Throwable ex, OutputStream output) {
+		String data = null;
+		if (ex != null) {
+			StringWriter sw = new StringWriter();
+			ex.printStackTrace(new PrintWriter(sw));
+			data = sw.toString();
+			sysLogger.logErr(ex, getClass().getName());
+		} else {
+			sysLogger.log(LOG_LEVEL_ERR, getClass().getName(), message);
+		}
 		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		ObjectNode ret = mapper.createObjectNode();
 		ObjectNode error = mapper.createObjectNode();
@@ -393,6 +461,61 @@ public class JsonServerServlet extends HttpServlet {
 		}
 	}
 	
+	public int getMaxRpcMemoryCacheSize() {
+		return maxRpcMemoryCacheSize;
+	}
+	
+	public void setMaxRpcMemoryCacheSize(int maxRpcMemoryCacheSize) {
+		this.maxRpcMemoryCacheSize = maxRpcMemoryCacheSize;
+	}
+	
+	public File getRpcDiskCacheTempDir() {
+		return rpcDiskCacheTempDir;
+	}
+	
+	public void setRpcDiskCacheTempDir(File rpcDiskCacheTempDir) {
+		this.rpcDiskCacheTempDir = rpcDiskCacheTempDir;
+	}
+	
+	public static class RpcCallData {
+		private Object id;
+		private String method;
+		private List<UObject> params;
+		private Object version;
+		
+		public Object getId() {
+			return id;
+		}
+		
+		public void setId(Object id) {
+			this.id = id;
+		}
+		
+		public String getMethod() {
+			return method;
+		}
+		
+		public void setMethod(String method) {
+			this.method = method;
+		}
+
+		public List<UObject> getParams() {
+			return params;
+		}
+		
+		public void setParams(List<UObject> params) {
+			this.params = params;
+		}
+		
+		public Object getVersion() {
+			return version;
+		}
+		
+		public void setVersion(Object version) {
+			this.version = version;
+		}
+	}
+	
 	private static class PlainTypeRef extends TypeReference<Object> {
 		Type type;
 		PlainTypeRef(Type type) {
@@ -402,92 +525,6 @@ public class JsonServerServlet extends HttpServlet {
 		@Override
 		public Type getType() {
 			return type;
-		}
-	}
-	
-	private static class UnclosableInputStream extends InputStream {
-		private InputStream inner;
-		private boolean isClosed = false;
-		private long commonLenght = 0;
-		private final Long maxObjectSize;
-		
-		public UnclosableInputStream(InputStream inner, Long maxObjectSize) {
-			this.inner = inner;
-			this.maxObjectSize = maxObjectSize;
-		}
-		
-		@Override
-		public int read() throws IOException {
-			if (isClosed)
-				return -1;
-			int ret = inner.read();
-			if (ret >= 0)
-				commonLenght++;
-			checkForLength();
-			return ret;
-		}
-		
-		@Override
-		public int available() throws IOException {
-			if (isClosed)
-				return 0;
-			return inner.available();
-		}
-		
-		@Override
-		public void close() throws IOException {
-			isClosed = true;
-		}
-		
-		@Override
-		public synchronized void mark(int readlimit) {
-			inner.mark(readlimit);
-		}
-		
-		@Override
-		public boolean markSupported() {
-			return inner.markSupported();
-		}
-		
-		@Override
-		public int read(byte[] b) throws IOException {
-			if (isClosed)
-				return 0;
-			int ret = inner.read(b);
-			if (ret > 0)
-				commonLenght += ret;
-			checkForLength();
-			return ret;
-		}
-		
-		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
-			if (isClosed)
-				return 0;
-			int ret = inner.read(b, off, len);
-			if (ret > 0)
-				commonLenght += ret;
-			checkForLength();
-			return ret;
-		}
-		
-		private void checkForLength() {
-			if (maxObjectSize != null && commonLenght > maxObjectSize)
-				throw new IllegalStateException("Object is too big, length is more than " + maxObjectSize + " bytes");
-		}
-		
-		@Override
-		public synchronized void reset() throws IOException {
-			if (isClosed)
-				return;
-			inner.reset();
-		}
-		
-		@Override
-		public long skip(long n) throws IOException {
-			if (isClosed)
-				return 0;
-			return inner.skip(n);
 		}
 	}
 	

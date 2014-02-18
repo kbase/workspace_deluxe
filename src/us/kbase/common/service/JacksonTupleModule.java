@@ -125,7 +125,11 @@ public class JacksonTupleModule extends SimpleModule {
 						val = p.getCodec().readValue(new JsonTreeTraversingParser(tempNode, p.getCodec()), types.get(i));
 						p.nextToken();
 					} else {
-						val = p.getCodec().readValue(p, types.get(i));
+						try {
+							val = p.getCodec().readValue(p, types.get(i));
+						} catch (Exception ex) {
+							throw ex;
+						}
 					}
 					m.invoke(res, val);
 				}
@@ -182,7 +186,11 @@ public class JacksonTupleModule extends SimpleModule {
 		public void serialize(UObject value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 			try {
 				UObject obj = (UObject)value;
-				jgen.getCodec().writeValue(jgen, obj.getUserObject());
+				if (obj.isTokenStream()) {
+					obj.write(jgen);
+				} else {
+					jgen.getCodec().writeValue(jgen, obj.getUserObject());
+				}
 			} catch (Exception ex) {
 				throw new IllegalStateException(ex);
 			}
@@ -193,6 +201,12 @@ public class JacksonTupleModule extends SimpleModule {
 
 		public UObject deserialize(JsonParser p, DeserializationContext ctx) throws IOException, JsonProcessingException {
 			try {
+				if (p instanceof JsonTokenStream) {
+					JsonTokenStream jts = (JsonTokenStream)p;
+					String path = jts.getCurrentPath();
+					jts.skipChildren();
+					return new UObject(jts, path);
+				}
 				return new UObject(p.readValueAsTree());
 			} catch (Exception ex) {
 				throw new IllegalStateException(ex);

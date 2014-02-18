@@ -129,26 +129,24 @@ public final class TypedObjectValidator {
 	 * @throws TypeStorageException
 	 */
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
-	{
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
+		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
+		return validate(instanceRootNode, jp, typeDefId);
+	}
+	
+	public TypedObjectValidationReport validate(JsonNode instanceRootNode, JsonParser jp, TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {	
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
-		//final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
 		// Actually perform the validation and return the report
 		final ListProcessingReport report;
-		/*try {
-			report = schema.validate(instanceRootNode);
-		} catch (ProcessingException e) {
-			report = repackageProcessingExceptionIntoReport(e,typeDefId);
-		}*/
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
-		if (true) {
-			System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
-			System.out.println("-------------------------------------------------------------");
-			System.out.println(schemaText);
-			System.out.println("--------------------------------------------------------------");
-		}
-		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
+		/*
+		System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
+		System.out.println("-------------------------------------------------------------");
+		System.out.println(schemaText);
+		System.out.println("--------------------------------------------------------------");
+		*/
 		report = new ListProcessingReport(LogLevel.INFO, LogLevel.FATAL);
 		try {
 			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
@@ -200,7 +198,7 @@ public final class TypedObjectValidator {
 		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
 	}
 
-	/**
+	/*
 	 * Batch validation of the given Json instances, all against a single TypeDefId.  This method saves some communication
 	 * steps with the backend 
 	 * @param instanceRootNodes
@@ -211,12 +209,9 @@ public final class TypedObjectValidator {
 	 * @throws InstanceValidationException
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
-	 */
 	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
 	{
-		if (true)
-			throw new IllegalStateException("Unsupported");
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
 		
@@ -232,7 +227,7 @@ public final class TypedObjectValidator {
 			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB,node));
 		}
 		return reportList;
-	}
+	}*/
 	
 	
 	/**

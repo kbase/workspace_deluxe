@@ -1,19 +1,15 @@
 package us.kbase.typedobj.core.validatornew;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,9 +19,11 @@ import junit.framework.Assert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
@@ -33,7 +31,7 @@ import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.workspace.kbase.Util;
 
 public class JsonTokenValidatorTest {
-	private static final String WORK_DIR = "/Users/rsutormin/Work/2014-01-15_hugeobject";
+	//private static final String WORK_DIR = "/Users/rsutormin/Work/2014-01-15_hugeobject";
 	private static final long seed = 1234567890L;
 	private static final Random rnd = new Random(seed);
 
@@ -72,7 +70,7 @@ public class JsonTokenValidatorTest {
 			map.put("val_", generateLargeString(rnd, buffer - 1));
 			map.put("val", generateLargeString(rnd, buffer));
 			map.put("val-", generateLargeString(rnd, buffer + 1));
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < 1000; i++) {
 				int len = buffer + rnd.nextInt(buffer);
 				map.put("\"val" + i, "test\"" + i + ((i % 10) == 9 ? generateLargeString(rnd, len) : ""));
 			}
@@ -80,11 +78,11 @@ public class JsonTokenValidatorTest {
 			//System.out.println("Data was loaded (" + Runtime.getRuntime().maxMemory() + ")");
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f, buffer);
-			TypedObjectValidationReport report = new JsonTokenValidator(db).validate(jp, 
+			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(null, jp, 
 					new TypeDefId(new TypeDefName(moduleName, typeName)));
 			Assert.assertTrue(report.isInstanceValid());
 			//System.out.println(report.getErrorMessagesAsList());
-			System.out.println(buffer + "\t" + (System.currentTimeMillis() - time) + " ms");
+			System.out.println(buffer + "\t" + f.length() + "\t" + (System.currentTimeMillis() - time) + " ms");
 			jp.setRoot(null);
 			File f2 = new File("test/temp2.json");
 			jp.writeJson(f2);

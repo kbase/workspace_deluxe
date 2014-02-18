@@ -1,7 +1,9 @@
 package us.kbase.common.service;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -15,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class UObject {
 	private Object userObj;
+	private String tokenStreamRootPath = null;
 		
 	private static ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	
@@ -32,6 +35,23 @@ public class UObject {
 		userObj = obj;
 	}
 
+	public UObject(JsonTokenStream jts, String rootPath) {
+		this.userObj = jts;
+		this.tokenStreamRootPath = rootPath;
+	}
+	
+	public static ObjectMapper getMapper() {
+		return mapper;
+	}
+	
+	public JsonTokenStream getPlacedStream() throws IOException {
+		return ((JsonTokenStream)userObj).setRoot(tokenStreamRootPath);
+	}
+	
+	public String getRootPath() {
+		return tokenStreamRootPath;
+	}
+	
 	/**
 	 * @return true in case UObject was created from Jackson tree rather 
 	 * than from plain maps, lists, scalars and POJOs 
@@ -40,12 +60,23 @@ public class UObject {
 		return userObj instanceof JsonNode;
 	}
 
+	public boolean isTokenStream() {
+		return userObj instanceof JsonTokenStream;
+	}
+	
 	/**
 	 * @return Jackson tree representation of this object
 	 */
 	public JsonNode asJsonNode() {
 		if (isJsonNode())
 			return (JsonNode)userObj;
+		if (isTokenStream()) {
+			try {
+				mapper.readTree(getPlacedStream());
+			} catch (IOException ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
 		return transformObjectToJackson(userObj);
 	}
 	
@@ -201,6 +232,13 @@ public class UObject {
 	public <T> T asClassInstance(Class<T> retType) {
 		if (isJsonNode())
 			return transformJacksonToObject(asJsonNode(), retType);
+		if (isTokenStream()) {
+			try {
+				return mapper.readValue(getPlacedStream(), retType);
+			} catch (IOException ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
 		return transformObjectToObject(userObj, retType);
 	}
 
@@ -210,7 +248,38 @@ public class UObject {
 	public <T> T asClassInstance(TypeReference<T> retType) {
 		if (isJsonNode())
 			return transformJacksonToObject(asJsonNode(), retType);
+		if (isTokenStream()) {
+			try {
+				return mapper.readValue(getPlacedStream(), retType);
+			} catch (IOException ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
 		return transformObjectToObject(userObj, retType);
+	}
+
+	public void write(JsonGenerator jgen) throws IOException {
+		if (isTokenStream()) {
+			getPlacedStream().writeTokens(jgen);
+		} else {
+			mapper.writeValue(jgen, userObj);
+		}
+	}
+	
+	public void write(OutputStream os) throws IOException {
+		if (isTokenStream()) {
+			getPlacedStream().writeJson(os);
+		} else {
+			mapper.writeValue(os, userObj);
+		}
+	}
+
+	public void write(Writer w) throws IOException {
+		if (isTokenStream()) {
+			getPlacedStream().writeJson(w);
+		} else {
+			mapper.writeValue(w, userObj);
+		}
 	}
 
 	/**
@@ -219,12 +288,22 @@ public class UObject {
 	public String toJsonString() {
 		if (isJsonNode())
 			return transformJacksonToString(asJsonNode());
+		if (isTokenStream()) {
+			StringWriter sw = new StringWriter();
+			try {
+				write(sw);
+				sw.close();
+			} catch (IOException ex) {
+				throw new IllegalStateException(ex);
+			}
+			return sw.toString();
+		}
 		return transformObjectToString(getUserObject());
 	}
 
 	@Override
 	public String toString() {
-		return "UObject [userObj=" + (isJsonNode() ? toJsonString() : ("" + userObj)) + "]";
+		return "UObject [userObj=" + (isJsonNode() || isTokenStream() ? toJsonString() : ("" + userObj)) + "]";
 	}
 	
 	/**
