@@ -108,6 +108,8 @@ public class TestWorkspace {
 		}
 	}
 	private static String TEXT101 = TEXT100 + "f";
+	private static String TEXT255 = TEXT100 + TEXT100 + TEXT100.substring(0, 55);
+	private static String TEXT256 = TEXT255 + "f";
 	private static String TEXT1000 = "";
 	static {
 		for (int i = 0; i < 10; i++) {
@@ -681,8 +683,8 @@ public class TestWorkspace {
 		userWS.add(new TestRig(crap, "",
 				"Workspace name cannot be null or the empty string"));
 		//check long names
-		userWS.add(new TestRig(crap, TEXT101,
-				"Workspace name exceeds the maximum length of 100"));
+		userWS.add(new TestRig(crap, TEXT256,
+				"Workspace name exceeds the maximum length of 255"));
 		//check missing user and/or workspace name in compound name
 		userWS.add(new TestRig(crap, ":",
 				"Workspace name missing from :"));
@@ -2411,7 +2413,7 @@ public class TestWorkspace {
 		testObjectIdentifier(goodWs, "-1", "Object names cannot be integers: -1");
 		testObjectIdentifier(goodWs, "15", "Object names cannot be integers: 15");
 		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
-		testObjectIdentifier(goodWs, TEXT101, "Object name exceeds the maximum length of 100");
+		testObjectIdentifier(goodWs, TEXT256, "Object name exceeds the maximum length of 255");
 		testObjectIdentifier(1);
 		testObjectIdentifier(1, 1);
 		testObjectIdentifier(null, 1, "wsi cannot be null");
@@ -2421,7 +2423,7 @@ public class TestWorkspace {
 		testCreate(goodWs, "f|o.A-1_2", null);
 		testCreate(goodWs, null, 1L);
 		testCreate(null, "boo", null, "wsi cannot be null");
-		testCreate(goodWs, TEXT101, null, "Object name exceeds the maximum length of 100");
+		testCreate(goodWs, TEXT256, null, "Object name exceeds the maximum length of 255");
 		testCreate(goodWs, null, null, "Must provide one and only one of object name (was: null) or id (was: null)");
 		testCreate(goodWs, "boo", 1L, "Must provide one and only one of object name (was: boo) or id (was: 1)");
 		testCreate(goodWs, "-1", null, "Object names cannot be integers: -1");
@@ -2431,12 +2433,12 @@ public class TestWorkspace {
 		testCreateVer(goodWs, "boo", null, null);
 		testCreateVer(goodWs, null, 1L, null);
 		testCreateVer(goodWs, "boo", null, 0, "Object version must be > 0");
-		testCreateVer(goodWs, TEXT101, null, 1, "Object name exceeds the maximum length of 100");
+		testCreateVer(goodWs, TEXT256, null, 1, "Object name exceeds the maximum length of 255");
 		testCreateVer(goodWs, null, 1L, 0, "Object version must be > 0");
 		testRef("foo/bar");
 		testRef("foo/bar/1");
 		testRef("foo/bar/1/2", "Illegal number of separators / in object reference foo/bar/1/2");
-		testRef("foo/" + TEXT101 + "/1", "Object name exceeds the maximum length of 100");
+		testRef("foo/" + TEXT256 + "/1", "Object name exceeds the maximum length of 255");
 		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
 		testRef("foo", "Illegal number of separators / in object reference foo");
 		testRef("1/2");

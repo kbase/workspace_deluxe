@@ -115,14 +115,14 @@ public class JSONRPCLayerTest {
 		DATE_FORMAT.setLenient(false);
 	}
 	
-	private final static String TEXT101;
+	private final static String TEXT256;
 	static {
 		String foo = "";
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 25; i++) {
 			foo += "aaaaabbbbb";
 		}
-		foo += "f";
-		TEXT101 = foo;
+		foo += "aaaaaf";
+		TEXT256 = foo;
 	}
 	private final static String TEXT1000;
 	static {
@@ -661,10 +661,10 @@ public class JSONRPCLayerTest {
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams()
-					.withWorkspace(TEXT101));
+					.withWorkspace(TEXT256));
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("Workspace name exceeds the maximum length of 100"));
+					is("Workspace name exceeds the maximum length of 255"));
 		}
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
@@ -716,8 +716,8 @@ public class JSONRPCLayerTest {
 		objects.set(0, new ObjectSaveData().withName("myname+"));
 		saveBadObject(objects, "Illegal character in object name myname+: +");
 		
-		objects.set(0, new ObjectSaveData().withName(TEXT101));
-		saveBadObject(objects, "Object name exceeds the maximum length of 100");
+		objects.set(0, new ObjectSaveData().withName(TEXT256));
+		saveBadObject(objects, "Object name exceeds the maximum length of 255");
 		
 		objects.set(0, new ObjectSaveData().withObjid(0L));
 		saveBadObject(objects, "Object id must be > 0");

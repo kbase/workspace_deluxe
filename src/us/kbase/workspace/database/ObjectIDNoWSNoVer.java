@@ -10,7 +10,7 @@ public class ObjectIDNoWSNoVer {
 	
 	private final static Pattern INVALID_OBJ_NAMES = 
 			Pattern.compile("[^\\w\\|._-]");
-	private final static int MAX_NAME_LENGTH = 100;
+	private final static int MAX_NAME_LENGTH = 255;
 	
 	private final String name;
 	private final Long id;
