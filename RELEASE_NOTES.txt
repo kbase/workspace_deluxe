@@ -35,6 +35,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where trying to copy an object to an object with a version
   > than the maximum existing version would fail. The incoming copy target
   version number should be ignored.
+- Fixed a bug where trying to copy an object to a deleted object would fail.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage

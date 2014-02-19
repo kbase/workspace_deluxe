@@ -2854,7 +2854,6 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 4, "copyhide", 3);
 		checkUnhiddenObjectCount(user1, cp1, 6, 10);
 		
-		
 		objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "orig"));
 		save11 = objs.get(0);
 		save12 = objs.get(1);
@@ -2959,6 +2958,23 @@ public class TestWorkspace {
 		compareObjectAndInfo(save13, copystack.get(2), user1, wsid2, cp2.getName(), 1, "copied", 3);
 		checkUnhiddenObjectCount(user1, cp2, 3, 3);
 		checkUnhiddenObjectCount(user1, cp1, 13, 20);
+		
+		//copy to deleted object
+		ws.setObjectsDeleted(user1, Arrays.asList(
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied")), true);
+		copied = ws.copyObject(user1,
+				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
+				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 7);
+		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
+		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
+		compareObjectAndInfo(save12, copystack.get(1), user1, wsid1, cp1.getName(), 5, "copied", 2);
+		compareObjectAndInfo(save13, copystack.get(2), user1, wsid1, cp1.getName(), 5, "copied", 3);
+		compareObjectAndInfo(save13, copystack.get(3), user1, wsid1, cp1.getName(), 5, "copied", 4);
+		compareObjectAndInfo(save12, copystack.get(4), user1, wsid1, cp1.getName(), 5, "copied", 5);
+		compareObjectAndInfo(save12, copystack.get(5), user1, wsid1, cp1.getName(), 5, "copied", 6);
+		compareObjectAndInfo(save13, copystack.get(6), user1, wsid1, cp1.getName(), 5, "copied", 7);
+		checkUnhiddenObjectCount(user1, cp1, 14, 21);
 
 		failCopy(null, new ObjectIdentifier(cp1, "whooga"),
 				new ObjectIdentifier(cp1, "hidetarget"), new InaccessibleObjectException(
@@ -2971,10 +2987,6 @@ public class TestWorkspace {
 						"No object with name foo exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "foo"),  new NoSuchObjectException(
 						"No object with name foo exists in workspace " + wsid1));
-		//this shouldn't fail, since the to version is ignored.
-//		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
-//				new ObjectIdentifier(cp1, "hidetarget", 5), new NoSuchObjectException(
-//						"No object with id 3 (name hidetarget) and version 5 exists in workspace " + wsid1));
 		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
 						"No object with id 2 (name orig) and version 4 exists in workspace " + wsid1));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
@@ -2987,9 +2999,10 @@ public class TestWorkspace {
 						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		failRevert(user1, new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
 						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
-		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
-				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
-						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
+		//now works
+//		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
+//				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
+//						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		
 		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
 		ws.setWorkspaceDeleted(user2, cp2, true);
