@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
@@ -25,8 +26,8 @@ public class DummyTypedObjectValidationReport extends
 		TypedObjectValidationReport {
 	
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
-			final JsonNode data) {
-		super(null, type, data);
+			final UObject data) {
+		super(null, type, data, null);
 	}
 	
 	@Override

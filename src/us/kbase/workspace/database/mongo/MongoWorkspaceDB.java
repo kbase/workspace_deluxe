@@ -6,6 +6,7 @@ import static us.kbase.workspace.database.Util.checkSize;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -37,6 +38,7 @@ import org.junit.runner.RunWith;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
@@ -44,8 +46,10 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
@@ -1460,12 +1464,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(
-								o.getRep().extractSearchableWsSubset(null),		// TODO
+								o.getRep().extractSearchableWsSubset(o.getRep().relabelWsIdReferences()),		// TODO
 								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
+			} catch (RelabelIdReferenceException e) {
+				throw new RuntimeException(
+						"Should never get a reference relabling exception here", e);
 			}
 			
 			escapeSubdata(subdata);
@@ -1473,7 +1480,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					o.getObjectIdentifier(), objnum, "subdata");
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(o.getRep().createJsonInstance(),
+			pkg.td = new TypeData(o.getRep().createJsonWritable(),
 					o.getRep().getValidationTypeDefId(), subdata);
 			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
 				throw new IllegalArgumentException(String.format(
@@ -3007,7 +3014,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		@Test
 		public void createObject() throws Exception {
 			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
-			Map<String, Object> data = new HashMap<String, Object>();
+			final Map<String, Object> data = new HashMap<String, Object>();
 			Map<String, String> meta = new HashMap<String, String>();
 			Map<String, Object> moredata = new HashMap<String, Object>();
 			moredata.put("foo", "bar");
@@ -3018,7 +3025,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 			WorkspaceSaveObject wo = new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer("testobj"),
-					MAPPER.valueToTree(data), t, meta, p, false);
+					new UObject(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>()));
@@ -3026,7 +3033,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
 					new HashSet<Reference>(), new LinkedList<Reference>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1, false, false);
-			pkg.td = new TypeData(MAPPER.valueToTree(data), at, data);
+			pkg.td = new TypeData(new Writable() {
+				@Override
+				public void write(Writer w) throws IOException {
+					MAPPER.writeValue(w, data);				
+				}
+			}, at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;

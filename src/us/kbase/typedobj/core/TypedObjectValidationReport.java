@@ -1,6 +1,7 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -13,11 +14,14 @@ import us.kbase.typedobj.core.validatornew.IdRefNode;
 import us.kbase.typedobj.core.validatornew.JsonTokenStreamWriter;
 import us.kbase.typedobj.core.validatornew.KBaseJsonTreeGenerator;
 import us.kbase.typedobj.core.validatornew.TokenSequenceProvider;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceManager;
 import us.kbase.typedobj.idref.WsIdReference;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -67,6 +71,8 @@ public class TypedObjectValidationReport {
 	 * keep a jackson mapper around so we don't have to create a new one over and over during subset extration
 	 */
 	private ObjectMapper mapper;
+	
+	private Map<String,String> absoluteIdRefMapping = null;
 	
 	/**
 	 * Initialize with the given processingReport (created when a JsonSchema is used to validate) and the
@@ -189,8 +195,14 @@ public class TypedObjectValidationReport {
 		return idRefManager.getAllIdReferencesOfType(type);
 	}
 	
-	public JsonNode createJsonInstance() {
-		return null;
+	public Writable createJsonWritable() {
+		return new Writable() {
+			
+			@Override
+			public void write(Writer w) throws IOException {
+				relabelWsIdReferencesIntoWriter(absoluteIdRefMapping, w);
+			}
+		};
 	}
 	
 	/**
@@ -205,100 +217,126 @@ public class TypedObjectValidationReport {
 	 * to rename the ids a second time, you must still refer to the id as its original name,
 	 * not necessarily be the name in the current version of the object.
 	 */
-	public JsonNode relabelWsIdReferences(final Map<String,String> absoluteIdRefMapping) throws RelabelIdReferenceException {
+	public JsonNode relabelWsIdReferences(final Map<String,String> absoluteIdRefMapping) 
+			throws RelabelIdReferenceException {
+		this.absoluteIdRefMapping = absoluteIdRefMapping;
+		return relabelWsIdReferences();
+	}
+	
+	public JsonNode relabelWsIdReferences() 
+			throws RelabelIdReferenceException {
+		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
 		try {
-			final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-			TokenSequenceProvider idSubst = new TokenSequenceProvider() {
-				List<Object> path = new ArrayList<Object>();
-				List<IdRefNode> refPath = new ArrayList<IdRefNode>(Arrays.asList(idRefTree));
-				boolean wasField = false;
-				@Override
-				public JsonToken nextToken() throws IOException, JsonParseException {
-					wasField = false;
-					JsonToken t = jts.nextToken();
-					if (t == JsonToken.START_OBJECT) {
-						incrementArrayPos();
-						path.add("{");			// next level
-					} else if (t == JsonToken.START_ARRAY) {
-						incrementArrayPos();
-						path.add(-1);			// next level
-					} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
-						while (refPath.size() > path.size())
-							refPath.remove(refPath.size() - 1);
-						path.remove(path.size() - 1);
-					} else if (t == JsonToken.FIELD_NAME) {
-						setCurrentLevel(jts.getText());
-						wasField = true;
-					} else {
-						incrementArrayPos();
-					}
-					return t;
-				}
-
-				@Override
-				public String getText() throws IOException, JsonParseException {
-					String ret = jts.getText();
-					if (refPath.size() == path.size() + 1) {
-						IdRefNode node = refPath.get(path.size());
-						IdReference ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
-						if (ref != null) {
-							String subst = absoluteIdRefMapping.get(ret);
-							if (ref.getId().equals(ret)) {
-								if (subst == null)
-									throw new IllegalStateException("Id was not found: " + ret);
-								return subst;
-							} else {
-								throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref.getId() + ", actual id=" + ret);
-							}
-						}
-					}
-					return ret;
-				}
-
-				@Override
-				public long getLongValue() throws IOException, JsonParseException {
-					return jts.getLongValue();
-				}
-
-				@Override
-				public double getDoubleValue() throws IOException, JsonParseException {
-					return jts.getDoubleValue();
-				}
-				
-				private void setCurrentLevel(Object value) {
-					path.set(path.size() - 1, value);
-					while (refPath.size() > path.size())
-						refPath.remove(refPath.size() - 1);
-					if (refPath.size() == path.size()) {
-						IdRefNode refNode = refPath.get(refPath.size() - 1);
-						if (refNode.getChildren() != null) {
-							String text = "" + value;
-							IdRefNode child = refNode.getChildren().get(text);
-							if (child != null)
-								refPath.add(child);
-						}
-					}
-				}
-				
-				private void incrementArrayPos() {
-					if (path.size() > 0) {
-						Object obj = path.get(path.size() - 1);
-						if (obj instanceof Integer) {
-							int pos = (Integer)obj;
-							setCurrentLevel(pos + 1);
-						}
-					}
-				}
-			};
-			KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
-			new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
-			JsonNode originalInstance = jgen.getTree();
-			//idRefManager.setWsReplacementNames(absoluteIdRefMapping);
-			//idRefManager.relabelWsIds(originalInstance);
-			return originalInstance;
+			relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
 		} catch (IOException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
 		}
+		JsonNode originalInstance = jgen.getTree();
+		//idRefManager.setWsReplacementNames(absoluteIdRefMapping);
+		//idRefManager.relabelWsIds(originalInstance);
+		return originalInstance;
+	}
+	
+	public void setAbsoluteIdRefMapping(Map<String, String> absoluteIdRefMapping) {
+		this.absoluteIdRefMapping = absoluteIdRefMapping;
+	}
+	
+	public Map<String, String> getAbsoluteIdRefMapping() {
+		return absoluteIdRefMapping;
+	}
+	
+	public void relabelWsIdReferencesIntoWriter(final Map<String, String> absoluteIdRefMapping, 
+			Writer w) throws IOException {
+		JsonGenerator jgen = new JsonFactory().createGenerator(w);
+		relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
+	}
+	
+	public void relabelWsIdReferencesIntoGenerator(final Map<String, String> absoluteIdRefMapping, 
+			JsonGenerator jgen) throws IOException {
+		final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+		TokenSequenceProvider idSubst = new TokenSequenceProvider() {
+			List<Object> path = new ArrayList<Object>();
+			List<IdRefNode> refPath = new ArrayList<IdRefNode>(Arrays.asList(idRefTree));
+			boolean wasField = false;
+			@Override
+			public JsonToken nextToken() throws IOException, JsonParseException {
+				wasField = false;
+				JsonToken t = jts.nextToken();
+				if (t == JsonToken.START_OBJECT) {
+					incrementArrayPos();
+					path.add("{");			// next level
+				} else if (t == JsonToken.START_ARRAY) {
+					incrementArrayPos();
+					path.add(-1);			// next level
+				} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
+					while (refPath.size() > path.size())
+						refPath.remove(refPath.size() - 1);
+					path.remove(path.size() - 1);
+				} else if (t == JsonToken.FIELD_NAME) {
+					setCurrentLevel(jts.getText());
+					wasField = true;
+				} else {
+					incrementArrayPos();
+				}
+				return t;
+			}
+
+			@Override
+			public String getText() throws IOException, JsonParseException {
+				String ret = jts.getText();
+				if (refPath.size() == path.size() + 1) {
+					IdRefNode node = refPath.get(path.size());
+					IdReference ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
+					if (ref != null) {
+						String subst = absoluteIdRefMapping.get(ret);
+						if (ref.getId().equals(ret)) {
+							if (subst == null)
+								throw new IllegalStateException("Id was not found: " + ret);
+							return subst;
+						} else {
+							throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref.getId() + ", actual id=" + ret);
+						}
+					}
+				}
+				return ret;
+			}
+
+			@Override
+			public long getLongValue() throws IOException, JsonParseException {
+				return jts.getLongValue();
+			}
+
+			@Override
+			public double getDoubleValue() throws IOException, JsonParseException {
+				return jts.getDoubleValue();
+			}
+
+			private void setCurrentLevel(Object value) {
+				path.set(path.size() - 1, value);
+				while (refPath.size() > path.size())
+					refPath.remove(refPath.size() - 1);
+				if (refPath.size() == path.size()) {
+					IdRefNode refNode = refPath.get(refPath.size() - 1);
+					if (refNode.getChildren() != null) {
+						String text = "" + value;
+						IdRefNode child = refNode.getChildren().get(text);
+						if (child != null)
+							refPath.add(child);
+					}
+				}
+			}
+
+			private void incrementArrayPos() {
+				if (path.size() > 0) {
+					Object obj = path.get(path.size() - 1);
+					if (obj instanceof Integer) {
+						int pos = (Integer)obj;
+						setCurrentLevel(pos + 1);
+					}
+				}
+			}
+		};
+		new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
 	}
 	
 	/*

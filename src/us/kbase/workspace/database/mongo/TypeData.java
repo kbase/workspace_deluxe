@@ -2,12 +2,17 @@ package us.kbase.workspace.database.mongo;
 
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.validatornew.Writable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -27,7 +32,7 @@ public class TypeData {
 	public static final String TYPE_COL_PREFIX = "type_";
 	
 	@JsonIgnore
-	private JsonNode data = null;
+	private Writable data = null;
 	
 	//these attributes are actually saved in mongo
 	private String type = null;
@@ -36,7 +41,7 @@ public class TypeData {
 	private Map<String, Object> subdata;
 	private long size;
 	
-	public TypeData(final JsonNode data, final AbsoluteTypeDefId type,
+	public TypeData(final Writable data, final AbsoluteTypeDefId type,
 			final Map<String,Object> subdata)  {
 		if (data == null) {
 			throw new IllegalArgumentException("data may not be null");
@@ -57,14 +62,15 @@ public class TypeData {
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
+		Writer w = new OutputStreamWriter(md5, Charset.forName("UTF-8"));
 		try {
 			//writes in UTF8
-			MAPPER.writeValue(md5, data);
+			data.write(w);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something is broken here", ioe);
 		} finally {
 			try {
-				md5.close();
+				w.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("something is broken here", ioe);
 			}
@@ -93,7 +99,7 @@ public class TypeData {
 		return TYPE_COL_PREFIX + DigestUtils.md5Hex(t);
 	}
 
-	public JsonNode getData() {
+	public Writable getData() {
 		return data;
 	}
 	

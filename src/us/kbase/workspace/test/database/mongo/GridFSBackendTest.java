@@ -5,6 +5,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -38,12 +41,12 @@ public class GridFSBackendTest {
 		Map<String, Object> subdata = new HashMap<String, Object>(); //subdata not used here
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("key", "value");
-		TypeData td = new TypeData(MAPPER.valueToTree(data), wt, subdata);
+		TypeData td = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmd = new MD5(td.getChksum());
 		gfsb.saveBlob(tdmd, td.getData());
 		//have to use the same data to get same md5
 		wt = new AbsoluteTypeDefId(new TypeDefName("foo1", "foo1"), 2, 1);
-		TypeData tdr = new TypeData(MAPPER.valueToTree(data), wt, subdata);
+		TypeData tdr = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmdr = new MD5(tdr.getChksum());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> returned = MAPPER.treeToValue(gfsb.getBlob(tdmdr), Map.class);
@@ -58,7 +61,7 @@ public class GridFSBackendTest {
 		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName("foo", "foo"), 1, 0);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("no such", "data");
-		TypeData td = new TypeData(MAPPER.valueToTree(data), wt, new HashMap<String, Object>());
+		TypeData td = new TypeData(valueToTree(data), wt, new HashMap<String, Object>());
 		try {
 			gfsb.getBlob(new MD5(td.getChksum()));
 			fail("getblob should throw exception");
@@ -73,7 +76,16 @@ public class GridFSBackendTest {
 		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName("foo", "foo"), 1, 0);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("no such", "data");
-		TypeData td = new TypeData(MAPPER.valueToTree(data), wt, new HashMap<String, Object>());
+		TypeData td = new TypeData(valueToTree(data), wt, new HashMap<String, Object>());
 		gfsb.removeBlob(new MD5(td.getChksum())); //should silently not remove anything
+	}
+	
+	private static Writable valueToTree(final Object value) {
+		return new Writable() {
+			@Override
+			public void write(Writer w) throws IOException {
+				MAPPER.writeValue(w, value);
+			}
+		};
 	}
 }

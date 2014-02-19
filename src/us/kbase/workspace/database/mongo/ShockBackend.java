@@ -2,7 +2,10 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
@@ -16,6 +19,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -111,7 +115,7 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final JsonNode data)
+	public void saveBlob(final MD5 md5, final Writable data)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		if (data == null) {
@@ -155,15 +159,16 @@ public class ShockBackend implements BlobStore {
 				return sn;
 			}
 		};
+		Writer w = new OutputStreamWriter(osis, Charset.forName("UTF-8"));
 		try {
 			//writes in UTF8
-			MAPPER.writeValue(osis, data);
+			data.write(w);
 		} catch (IOException ioe) {
 			throw new RuntimeException("IO Error during streaming of JsonNode: "
 					+ ioe.getLocalizedMessage(), ioe);
 		} finally {
 			try {
-				osis.close();
+				w.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException(
 						"Couldn't close JsonNode output stream: " +

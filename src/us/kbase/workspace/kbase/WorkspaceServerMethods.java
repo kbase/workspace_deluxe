@@ -153,11 +153,11 @@ public class WorkspaceServerMethods {
 			final boolean hidden = au.longToBoolean(d.getHidden());
 			try {
 				if (oi == null) {
-					woc.add(new WorkspaceSaveObject(d.getData().asJsonNode(),
+					woc.add(new WorkspaceSaveObject(d.getData(),
 							t, d.getMeta(), p, hidden));
 				} else {
 					woc.add(new WorkspaceSaveObject(oi,
-							d.getData().asJsonNode(), t, d.getMeta(), p,
+							d.getData(), t, d.getMeta(), p,
 							hidden));
 				}
 			} catch (IllegalArgumentException iae) {

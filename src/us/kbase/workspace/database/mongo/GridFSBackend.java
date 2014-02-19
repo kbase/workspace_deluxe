@@ -2,8 +2,12 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
@@ -32,7 +36,7 @@ public class GridFSBackend implements BlobStore {
 	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
 	 */
 	@Override
-	public void saveBlob(final MD5 md5, final JsonNode data)
+	public void saveBlob(final MD5 md5, final Writable data)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
@@ -57,14 +61,15 @@ public class GridFSBackend implements BlobStore {
 				return null;
 			}
 		};
+		Writer w = new OutputStreamWriter(osis, Charset.forName("UTF-8"));
 		try {
 			//writes in UTF8
-			MAPPER.writeValue(osis, data);
+			data.write(w);
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
 		} finally {
 			try {
-				osis.close();
+				w.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("Something is broken", ioe);
 			}

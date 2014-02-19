@@ -581,7 +581,8 @@ public class Workspace {
 			}
 			try {
 				//modifies data in place
-				rep.relabelWsIdReferences(replacerefs);
+				rep.setAbsoluteIdRefMapping(replacerefs);
+				rep.relabelWsIdReferences();
 			} catch (RelabelIdReferenceException ref) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost

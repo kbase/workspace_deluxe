@@ -5,6 +5,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -61,7 +64,7 @@ public class ShockBackendTest {
 		Map<String, Object> subdata = new HashMap<String,Object>(); //subdata not used here
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("key", "value");
-		TypeData td = new TypeData(MAPPER.valueToTree(data), wt, subdata);
+		TypeData td = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmd = new MD5(td.getChksum());
 		sb.saveBlob(tdmd, td.getData());
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(tdmd));
@@ -69,7 +72,7 @@ public class ShockBackendTest {
 				UUID.matcher(id.getId()).matches());
 		assertThat("Ext id is the shock node", id.getId(),
 				is(sb.getExternalIdentifier(tdmd)));
-		TypeData faketd = new TypeData(MAPPER.valueToTree(data), wt, subdata); //use same data to get same chksum
+		TypeData faketd = new TypeData(valueToTree(data), wt, subdata); //use same data to get same chksum
 		MD5 tdfakemd = new MD5(faketd.getChksum());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> ret = MAPPER.treeToValue(sb.getBlob(tdfakemd), Map.class);
@@ -84,7 +87,7 @@ public class ShockBackendTest {
 		}
 		Map<String, Object> baddata = new HashMap<String, Object>();
 		data.put("keyfoo", "value");
-		TypeData badtd = new TypeData(MAPPER.valueToTree(baddata), wt, subdata);
+		TypeData badtd = new TypeData(valueToTree(baddata), wt, subdata);
 		try {
 			sb.getBlob(new MD5(badtd.getChksum()));
 			fail("Got non-existant blob");
@@ -92,5 +95,14 @@ public class ShockBackendTest {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
 					is("No blob saved with chksum 99914b932bd37a50b983c5e7c90ae93b"));
 		}
+	}
+	
+	private static Writable valueToTree(final Object value) {
+		return new Writable() {
+			@Override
+			public void write(Writer w) throws IOException {
+				MAPPER.writeValue(w, value);
+			}
+		};
 	}
 }

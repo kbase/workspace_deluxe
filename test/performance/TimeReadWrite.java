@@ -2,6 +2,8 @@ package performance;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Writer;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
@@ -278,6 +281,15 @@ public class TimeReadWrite {
 		return new Perf(writeNanoSec, readNanoSec, errors);
 	}
 	
+	private static Writable treeToWritable(final JsonNode value) {
+		return new Writable() {
+			@Override
+			public void write(Writer w) throws IOException {
+				MAP.writeValue(w, value);
+			}
+		};
+	}
+
 	public static class Workspace005JsonRPCShock extends AbstractReadWriteTest {
 
 		private WorkspaceServiceClient wsc;
@@ -516,7 +528,7 @@ public class TimeReadWrite {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				sb.saveBlob(md5, jsonData);
+				sb.saveBlob(md5, treeToWritable(jsonData));
 			}
 			return 0;
 		}
@@ -556,7 +568,7 @@ public class TimeReadWrite {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.saveBlob(md5, jsonData);
+				gfsb.saveBlob(md5, treeToWritable(jsonData));
 			}
 			return 0;
 		}

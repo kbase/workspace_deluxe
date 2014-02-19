@@ -17,6 +17,7 @@ import org.jongo.Jongo;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -105,7 +106,7 @@ public class TestMongoInternals {
 			for (int j = 0; j < 4; j++) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj" + i),
-								data1, SAFE_TYPE, null, emptyprov, false)));
+								new UObject(data1), SAFE_TYPE, null, emptyprov, false)));
 			}
 		}
 		// now we've got a 4x4 set of objects
@@ -118,11 +119,11 @@ public class TestMongoInternals {
 			expected[obj][ver]++;
 			if (i % 2 == 0) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(withRef(data1, wsid, "obj" + obj, ver),
+						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, "obj" + obj, ver)),
 						refcounttype, null, emptyprov, false)));
 			} else {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(withRef(data1, wsid, obj, ver),
+						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, obj, ver)),
 						refcounttype, null, emptyprov, false)));
 			}
 		}
@@ -250,7 +251,7 @@ public class TestMongoInternals {
 		data.put("looloo1", looloo1);
 		
 		ws.saveObjects(userfoo, subdataws, Arrays.asList(
-				new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)));
 		
 		((Map<String, Object>) expected.get("bugs")).remove("patronymic");
 		((Map<String, Object>) expected.get("bugs")).remove("charisma");
@@ -336,7 +337,7 @@ public class TestMongoInternals {
 		expected.put("stuff", expectedstuff);
 		
 		ws.saveObjects(userfoo, subdataws, Arrays.asList(
-				new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)));
 		
 		ResolvedWorkspaceID rwi = mwdb.resolveWorkspace(subdataws);
 		ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwi, 1L);
@@ -361,14 +362,14 @@ public class TestMongoInternals {
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), hide)));
+				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)));
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE, null, new Provenance(userfoo), hide)));
+				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)));
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
 						null, new Provenance(userfoo), hide)));
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), data, SAFE_TYPE,
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
 						null, new Provenance(userfoo), hide)));
 		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2, 2),
 				new ObjectIdentifier(copyrev, "auto3"));
@@ -476,7 +477,7 @@ public class TestMongoInternals {
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, dates, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), data,
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
 						SAFE_TYPE, null, new Provenance(userfoo), false)));
 		Date orig = getDate(wsid, 1);
 		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),

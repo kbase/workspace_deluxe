@@ -3,13 +3,14 @@ package us.kbase.workspace.database.mongo;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public interface BlobStore {
 	
-	public void saveBlob(MD5 md5, JsonNode data) throws BlobStoreAuthorizationException,
+	public void saveBlob(MD5 md5, Writable data) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	
 	public JsonNode getBlob(MD5 md5) throws BlobStoreAuthorizationException,

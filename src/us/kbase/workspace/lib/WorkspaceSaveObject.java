@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -17,11 +15,10 @@ import us.kbase.workspace.database.Reference;
 
 public class WorkspaceSaveObject {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final int MAX_USER_META_SIZE = 16000;
 	
 	private final ObjectIDNoWSNoVer id;
-	private final JsonNode data;
+	private final UObject data;
 	private final TypeDefId type;
 	private final Map<String, String> userMeta;
 	private final Provenance provenance;
@@ -59,7 +56,11 @@ public class WorkspaceSaveObject {
 		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 
-	private JsonNode transformData(final Object data) {
+	private UObject transformData(final Object data) {
+		return data instanceof UObject ? (UObject)data : new UObject(data);
+	}
+
+	/*private JsonNode transformData(final Object data) {
 		final JsonNode retdata;
 		if (!(data instanceof JsonNode)) {
 			try {
@@ -71,14 +72,14 @@ public class WorkspaceSaveObject {
 			retdata = (JsonNode) data;
 		}
 		return retdata;
-	}
+	}*/
 	
 	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;
 	}
 
 	//mutable!
-	public JsonNode getData() {
+	public UObject getData() {
 		return data;
 	}
 
