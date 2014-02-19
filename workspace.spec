@@ -1002,13 +1002,45 @@ module Workspace {
 		returns(object_metadata metadata); 
 	
 	/* 
-		Get information about an object from the workspace.
+		Get information about objects from the workspace.
 		
 		Set includeMetadata true to include the user specified metadata.
 		Otherwise the metadata in the object_info will be null.
+		
+		This method will be replaced by the behavior of get_object_info_new
+		in the future.
+		
+		@deprecated Workspace.get_object_info_new
 	*/
 	funcdef get_object_info(list<ObjectIdentity> object_ids,
 		boolean includeMetadata) returns (list<object_info> info);
+	
+	/* Input parameters for the "get_object_info_new" function.
+	
+		Required arguments:
+		list<ObjectIdentity> objects - the objects for which the information
+			should be fetched
+		
+		Optional arguments:
+		boolean includeMetadata - include the object metadata in the returned
+			information. Default false.
+		boolean ignoreErrors - Don't throw an exception if an object cannot
+			be accessed; return null for that object's information instead.
+			Default false.
+			
+	*/
+	typedef structure { 
+		list<ObjectIdentity> objects;
+		boolean includeMetadata;
+		boolean ignoreErrors;
+	} GetObjectInfoNewParams;
+	
+	/* 
+		Get information about objects from the workspace.
+		
+	*/
+	funcdef get_object_info_new(GetObjectInfoNewParams params)
+		returns (list<object_info> info);
 	
 	authentication required;
 	
