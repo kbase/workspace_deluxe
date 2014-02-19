@@ -63,7 +63,6 @@ sub getKBaseCfg {
 
 sub workspace {
         my $newWs = shift;
-	print "blah\n";
         my $currentWs;
         if (defined($newWs)) {
                 $currentWs = $newWs;
@@ -73,7 +72,6 @@ sub workspace {
                         $cfg->save();
                         $cfg->close();
                 } else {
-			print "in iris\n";
                         require "Bio/KBase/workspaceService/Client.pm";
 			my $oldws = Bio::KBase::workspaceService::Client->new("http://kbase.us/services/workspace");
 			$oldws->set_user_settings({
@@ -93,7 +91,6 @@ sub workspace {
                         }
                         $cfg->close();
                 } else {
-			print "in iris\n";
 			require "Bio/KBase/workspaceService/Client.pm";
 			my $oldws = Bio::KBase::workspaceService::Client->new("http://kbase.us/services/workspace");
 			my $settings = $oldws->get_user_settings({auth => getToken()});
