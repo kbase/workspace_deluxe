@@ -137,7 +137,7 @@ deploy-scripts:
 else ifneq ($(TOP_DIR_NAME), dev_container)
 deploy-scripts: deploy-perl-scripts
 
-deploy-perl-scripts:
+deploy-perl-scripts: undeploy-perl-scripts
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
 	export KB_PERL_PATH=$(TARGET)/lib ; \
@@ -152,7 +152,13 @@ deploy-perl-scripts:
 	done
 endif
 
-deploy-perl-scripts:
+undeploy-perl-scripts:
+	rm -f $(TARGET)/plbin/ws-*.pl
+	rm -f $(TARGET)/plbin/kbws-*.pl
+	rm -f $(TARGET)/bin/kbws-*
+	rm -f $(TARGET)/bin/ws-*
+
+deploy-perl-scripts: undeploy-perl-scripts
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
 	export KB_PERL_PATH=$(TARGET)/lib ; \
