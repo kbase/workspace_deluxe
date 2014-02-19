@@ -75,11 +75,11 @@ public class DummyTypedObjectValidationReport extends
 		return mapper.createObjectNode();
 	}
 
-	@Override
+	/*@Override
 	public JsonNode getJsonInstance() {
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.createObjectNode();
-	}
+	}*/
 	
 	public JsonNode extractSearchableWsSubset() {
 		ObjectMapper mapper = new ObjectMapper();

@@ -34,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.TypeDefId;
@@ -267,9 +268,7 @@ public class TestIdProcessing {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
-		report.relabelWsIdReferences(absoluteIdMapping);
-		
-		JsonNode relabeledInstance = report.getJsonInstance();
+		JsonNode relabeledInstance = report.relabelWsIdReferences(absoluteIdMapping);
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
@@ -282,7 +281,11 @@ public class TestIdProcessing {
 		
 		// make sure that the relabeled object matches what we expect
 		JsonNode expectedRelabeled = idsRootNode.get("renamed-expected");
-		JsonNode diff = JsonDiff.asJson(relabeledInstance,expectedRelabeled);
+		JsonNode diff = diff(relabeledInstance,expectedRelabeled);
+		if (diff.size() != 0) {
+			System.out.println("TestIdProcessing: " + relabeledInstance);
+			System.out.println("TestIdProcessing: " + expectedRelabeled);
+		}
 		//if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
 		assertTrue("  -("+instance.resourceName+") extracted object does not match expected extract; diff="+diff,
 						diff.size()==0);
@@ -290,7 +293,19 @@ public class TestIdProcessing {
 		System.out.println("      PASS.");
 	}
 	
+	private static JsonNode diff(JsonNode relabeledInstance, JsonNode expectedRelabeled) throws IOException {
+		return JsonDiff.asJson(sort(relabeledInstance),sort(expectedRelabeled));
+	}
 	
+	private static JsonNode sort(JsonNode tree) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		//TreeNode schemaTree = mapper.readTree(tree);
+		Object obj = mapper.treeToValue(tree, Object.class);
+		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+		String text = mapper.writeValueAsString(obj);
+		return mapper.readTree(text);
+	}
 	
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test

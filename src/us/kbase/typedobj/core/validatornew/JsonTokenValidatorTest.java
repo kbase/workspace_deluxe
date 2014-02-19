@@ -20,6 +20,7 @@ import junit.framework.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -78,7 +79,7 @@ public class JsonTokenValidatorTest {
 			//System.out.println("Data was loaded (" + Runtime.getRuntime().maxMemory() + ")");
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f, buffer);
-			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(null, jp, 
+			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, ""), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)));
 			Assert.assertTrue(report.isInstanceValid());
 			//System.out.println(report.getErrorMessagesAsList());

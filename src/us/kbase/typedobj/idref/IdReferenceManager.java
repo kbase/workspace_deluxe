@@ -140,8 +140,6 @@ public class IdReferenceManager {
 			JsonNode mssgContent = m.asJson();
 			String id           = mssgContent.get("id").asText();           // the id parsed from the json node instance
 			JsonNode idInfo     = mssgContent.get("id-spec-info");          // the object containing info on the type of id
-			if (idInfo.get("id-type") == null)
-				System.out.println("IdReferenceManager: id=" + id + ", idInfo=" + idInfo);
 			String type         = idInfo.get("id-type").asText();           // the id-type must be defined
 			ArrayNode location  = (ArrayNode)mssgContent.get("location");   // the pointer so that we can navigate to this exact id later
 			boolean isFieldName = mssgContent.get("is-field-name").asBoolean();

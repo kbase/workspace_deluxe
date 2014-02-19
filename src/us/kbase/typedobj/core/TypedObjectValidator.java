@@ -1,5 +1,6 @@
 package us.kbase.typedobj.core;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,9 +16,11 @@ import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.JsonTreeTraversingParser;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
+import us.kbase.typedobj.core.validatornew.IdRefNode;
 import us.kbase.typedobj.core.validatornew.JsonTokenValidationException;
 import us.kbase.typedobj.core.validatornew.JsonTokenValidationListener;
 import us.kbase.typedobj.core.validatornew.NodeSchema;
@@ -57,7 +60,7 @@ import us.kbase.typedobj.exceptions.*;
  * 
  * @author msneddon
  * @author gaprice@lbl.gov
- *
+ * @author rsutormin
  */
 public final class TypedObjectValidator {
 
@@ -130,11 +133,16 @@ public final class TypedObjectValidator {
 	 */
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
-		JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
-		return validate(instanceRootNode, jp, typeDefId);
+		//JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
+		try {
+			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), "");
+			return validate(obj, typeDefId);
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 	
-	public TypedObjectValidationReport validate(JsonNode instanceRootNode, JsonParser jp, TypeDefId typeDefId)
+	public TypedObjectValidationReport validate(UObject obj, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {	
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		
@@ -148,9 +156,10 @@ public final class TypedObjectValidator {
 		System.out.println("--------------------------------------------------------------");
 		*/
 		report = new ListProcessingReport(LogLevel.INFO, LogLevel.FATAL);
+		IdRefNode idRefTree = new IdRefNode(null);
 		try {
 			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
-			schema.checkJsonData(jp, null, new JsonTokenValidationListener() {
+			schema.checkJsonData(obj.getPlacedStream(), null, new JsonTokenValidationListener() {
 				int errorCount = 0;
 				@Override
 				public void addError(String message) throws JsonTokenValidationException {
@@ -188,14 +197,14 @@ public final class TypedObjectValidator {
 						ex.printStackTrace();
 					}
 				}
-			});
+			}, idRefTree);
 		} catch (Exception ex) {
 			try {
 				report.error(new ProcessingMessage().setMessage(ex.getMessage()));
 			} catch (ProcessingException ignore) {}
 		}
 		
-		return new TypedObjectValidationReport(report, absoluteTypeDefDB, instanceRootNode);
+		return new TypedObjectValidationReport(report, absoluteTypeDefDB, obj, idRefTree);
 	}
 
 	/*

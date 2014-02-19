@@ -2,11 +2,14 @@ package us.kbase.typedobj.core.validatornew;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.idref.IdReference;
+import us.kbase.typedobj.idref.WsIdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -14,6 +17,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class NodeSchema {
 	enum Type {
@@ -96,107 +101,115 @@ public class NodeSchema {
 		return ret;
 	}
 
-	public void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst) 
+	public void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, 
+			IdRefNode refRoot) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
-		checkJsonData(jp, stat, lst, new ArrayList<String>());
+		checkJsonData(jp, stat, lst, new ArrayList<String>(), new ArrayList<IdRefNode>(Arrays.asList(refRoot)));
 	}
 	
-	private void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, List<String> path) 
+	private void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, 
+			List<String> path, List<IdRefNode> refPath) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		jp.nextToken();
-		checkJsonDataWithoutFirst(jp, stat, lst, path);
+		checkJsonDataWithoutFirst(jp, stat, lst, path, refPath);
 	}
 	
-	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, List<String> path) 
+	private void checkJsonDataWithoutFirst(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, 
+			List<String> path, List<IdRefNode> refPath) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		if (type == Type.object) {
 			if (searchableWsSubset != null)
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			path.add("{");
 			try {
-			if (stat != null)
-				stat.objectCount++;
-			JsonToken t = jp.getCurrentToken();
-			if (t == null || t != JsonToken.START_OBJECT) {
-				throw new JsonTokenValidationException("Object start is expected but found " + t);
-			}
-			boolean[] reqPropUsage = new boolean[objectRequired.size()];
-			int reqPropUsageCount = 0;
-			while (true) {
-				t = jp.nextToken();
-				if (t == JsonToken.END_OBJECT) {
-					break;
-				} else if (t != JsonToken.FIELD_NAME) {
-					throw new JsonTokenValidationException("Object field name is expected but found " + t);
+				if (stat != null)
+					stat.objectCount++;
+				JsonToken t = jp.getCurrentToken();
+				if (t == null || t != JsonToken.START_OBJECT) {
+					throw new JsonTokenValidationException("Object start is expected but found " + t);
 				}
-				String fieldName = jp.getCurrentName();
-				path.set(path.size() - 1, fieldName);
-				if (objectRequired.containsKey(fieldName)) {
-					reqPropUsageCount++;
-					reqPropUsage[objectRequired.get(fieldName)] = true;
-				}
-				NodeSchema childType = objectProperties.get(fieldName);
-				if (childType == null) {
-					if (!objectAdditionalPropertiesBoolean) {
-						if (objectProperties.size() > 0)
-							lst.addError("Object field name [" + fieldName + "] is not in allowed " +
-									"object properties: " + objectProperties.keySet());
+				boolean[] reqPropUsage = new boolean[objectRequired.size()];
+				int reqPropUsageCount = 0;
+				while (true) {
+					t = jp.nextToken();
+					if (t == JsonToken.END_OBJECT) {
+						break;
+					} else if (t != JsonToken.FIELD_NAME) {
+						throw new JsonTokenValidationException("Object field name is expected but found " + t);
 					}
-					childType = objectAdditionalPropertiesType;
+					String fieldName = jp.getCurrentName();
+					path.set(path.size() - 1, fieldName);
+					if (objectRequired.containsKey(fieldName)) {
+						reqPropUsageCount++;
+						reqPropUsage[objectRequired.get(fieldName)] = true;
+					}
+					NodeSchema childType = objectProperties.get(fieldName);
+					if (childType == null) {
+						if (!objectAdditionalPropertiesBoolean) {
+							if (objectProperties.size() > 0)
+								lst.addError("Object field name [" + fieldName + "] is not in allowed " +
+										"object properties: " + objectProperties.keySet());
+						}
+						childType = objectAdditionalPropertiesType;
+					}
+					if (childType == null) {
+						skipValue(jp);
+					} else {
+						childType.checkJsonData(jp, stat, lst, path, refPath);
+					}
+					if (idReference != null) {
+						lst.addIdRefMessage(fieldName, idReference, path.subList(0, path.size() - 1), true);
+						IdReference ref = createRef(fieldName, idReference, path.subList(0, path.size() - 1), true);
+						getIdRefNode(path, refPath).setParentKeyRef(ref);
+					}
 				}
-				if (childType == null) {
-					skipValue(jp);
-				} else {
-					childType.checkJsonData(jp, stat, lst, path);
+				if (reqPropUsageCount != reqPropUsage.length) {
+					List<String> absentProperties = new ArrayList<String>();
+					for (Map.Entry<String, Integer> entry : objectRequired.entrySet())
+						if (!reqPropUsage[entry.getValue()])
+							absentProperties.add(entry.getKey());
+					lst.addError("Object doesn't have required fields : " + absentProperties);
 				}
-				if (idReference != null) {
-					lst.addIdRefMessage(fieldName, idReference, path.subList(0, path.size() - 1), true);
-					//System.out.println("NodeSchema: path=" + path + ", id=" + jp.getText());
-				}
-			}
-			if (reqPropUsageCount != reqPropUsage.length) {
-				List<String> absentProperties = new ArrayList<String>();
-				for (Map.Entry<String, Integer> entry : objectRequired.entrySet())
-					if (!reqPropUsage[entry.getValue()])
-						absentProperties.add(entry.getKey());
-				lst.addError("Object doesn't have required fields : " + absentProperties);
-			}
 			} finally {
+				while (refPath.size() > path.size()) 
+					refPath.remove(refPath.size() - 1);
 				path.remove(path.size() - 1);
 			}
 		} else if (type == Type.array) {
 			path.add("-1");
 			try {
-			if (stat != null)
-				stat.arrayCount++;
-			JsonToken t = jp.getCurrentToken();
-			if (t == null || t != JsonToken.START_ARRAY) {
-				throw new JsonTokenValidationException("Array start is expected but found " + t);
-			}
-			int itemPos = 0;
-			boolean skipAll = false;
-			while (true) {
-				if (arrayMaxItems != null && itemPos > arrayMaxItems) {
-					lst.addError("Array contains more than " + arrayMaxItems + " items");
-					skipAll = true;
+				if (stat != null)
+					stat.arrayCount++;
+				JsonToken t = jp.getCurrentToken();
+				if (t == null || t != JsonToken.START_ARRAY) {
+					throw new JsonTokenValidationException("Array start is expected but found " + t);
 				}
-				t = jp.nextToken();
-				if (t == JsonToken.END_ARRAY)
-					break;
-				path.set(path.size() - 1, "" + itemPos);
-				NodeSchema childType = arrayItems;
-				if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
-					childType = arrayItemList.get(itemPos);
-				if (skipAll || childType == null) {
-					skipValueWithoutFirst(jp);
-				} else {
-					childType.checkJsonDataWithoutFirst(jp, stat, lst, path);
+				int itemPos = 0;
+				boolean skipAll = false;
+				while (true) {
+					if (arrayMaxItems != null && itemPos > arrayMaxItems) {
+						lst.addError("Array contains more than " + arrayMaxItems + " items");
+						skipAll = true;
+					}
+					t = jp.nextToken();
+					if (t == JsonToken.END_ARRAY)
+						break;
+					path.set(path.size() - 1, "" + itemPos);
+					NodeSchema childType = arrayItems;
+					if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
+						childType = arrayItemList.get(itemPos);
+					if (skipAll || childType == null) {
+						skipValueWithoutFirst(jp);
+					} else {
+						childType.checkJsonDataWithoutFirst(jp, stat, lst, path, refPath);
+					}
+					itemPos++;
 				}
-				itemPos++;
-			}
-			if (arrayMinItems != null && itemPos < arrayMinItems)
-				lst.addError("Array contains less than " + arrayMinItems + " items");
+				if (arrayMinItems != null && itemPos < arrayMinItems)
+					lst.addError("Array contains less than " + arrayMinItems + " items");
 			} finally {
+				while (refPath.size() > path.size()) 
+					refPath.remove(refPath.size() - 1);
 				path.remove(path.size() - 1);
 			}
 		} else if (type == Type.string) {
@@ -207,7 +220,8 @@ public class NodeSchema {
 				lst.addError("String is expected but found " + t);
 			if (idReference != null) {
 				lst.addIdRefMessage(jp.getText(), idReference, path, false);
-				//System.out.println("NodeSchema: path=" + path + ", id=" + jp.getText());
+				IdReference ref = createRef(jp.getText(), idReference, path, false);
+				getIdRefNode(path, refPath).setScalarValueRef(ref);
 			}
 		} else if (type == Type.integer) {
 			if (stat != null)
@@ -223,6 +237,36 @@ public class NodeSchema {
 				lst.addError("Float is expected but found " + t);
 		} else {
 			lst.addError("Unsupported node type: " + type);
+		}
+	}
+	
+	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {
+		if (refPath.size() == 0 || refPath.size() > path.size() + 1)
+			throw new IllegalStateException("Reference branch path has wrong length: " + refPath.size());
+		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getLastPathLocation().equals(path.get(refPath.size() - 2))) {
+			refPath.remove(refPath.size() - 1);
+		}
+		while (refPath.size() <= path.size()) {
+			int pos = refPath.size() - 1;
+			IdRefNode parent = refPath.get(pos);
+			String key = path.get(pos);
+			IdRefNode child = new IdRefNode(key);
+			parent.addChild(key, child);
+			refPath.add(child);
+		}
+		return refPath.get(path.size());
+	}
+	
+	private static IdReference createRef(String id, JsonNode idInfo, List<String> path, boolean isFieldName) { 
+		String type = idInfo.get("id-type").asText();           // the id-type must be defined
+		ArrayNode location = (ArrayNode)UObject.transformObjectToJackson(path);
+		// construct the IdReference object
+		if(type.equals(WsIdReference.typestring)) {
+			return new WsIdReference(id, location, (ObjectNode)idInfo, isFieldName);
+		}
+		else {
+			// catch all other idref types that we don't explicitly handle
+			return new IdReference(type, id, location, (ObjectNode)idInfo, isFieldName);
 		}
 	}
 	

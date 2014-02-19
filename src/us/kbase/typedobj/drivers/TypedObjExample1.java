@@ -123,7 +123,7 @@ public class TypedObjExample1 {
 			absoluteIdRefMapping.put("kb|f/1", "bad_id");
 			
 			// relabel, take a look at the results
-			report.relabelWsIdReferences(absoluteIdRefMapping);
+			JsonNode relabeled = report.relabelWsIdReferences(absoluteIdRefMapping);
 			
 			//JsonNode relabeled = report.getJsonInstance();
 			//validator.relableToAbsoluteIds(instance1RootNode, report);
@@ -134,7 +134,7 @@ public class TypedObjExample1 {
 			s.reset();
 			
 			// extract just the subset
-			JsonNode indexableSubset = report.extractSearchableWsSubset(); //.extractWsSearchableSubset(instance1RootNode, report);
+			JsonNode indexableSubset = report.extractSearchableWsSubset(relabeled); //.extractWsSearchableSubset(instance1RootNode, report);
 			System.out.println("subset:");
 			writer.writeValue(s, indexableSubset);
 			System.out.println(s.toString());

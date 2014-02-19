@@ -1460,7 +1460,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(
-								o.getRep().extractSearchableWsSubset(),
+								o.getRep().extractSearchableWsSubset(null),		// TODO
 								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
@@ -1473,7 +1473,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					o.getObjectIdentifier(), objnum, "subdata");
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(o.getRep().getJsonInstance(),
+			pkg.td = new TypeData(o.getRep().createJsonInstance(),
 					o.getRep().getValidationTypeDefId(), subdata);
 			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
 				throw new IllegalArgumentException(String.format(
