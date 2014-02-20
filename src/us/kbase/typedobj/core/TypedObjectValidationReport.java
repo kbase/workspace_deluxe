@@ -1,7 +1,8 @@
 package us.kbase.typedobj.core;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -10,6 +11,7 @@ import java.util.Map;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.validatorconfig.SortedKeysJsonFile;
 import us.kbase.typedobj.core.validatornew.IdRefNode;
 import us.kbase.typedobj.core.validatornew.JsonTokenStreamWriter;
 import us.kbase.typedobj.core.validatornew.KBaseJsonTreeGenerator;
@@ -64,6 +66,8 @@ public class TypedObjectValidationReport {
 	 */
 	//private JsonNode originalInstance;
 	private UObject tokenStreamProvider;
+	
+	private byte[] cacheForSorting;
 	
 	private IdRefNode idRefTree;
 	
@@ -199,8 +203,12 @@ public class TypedObjectValidationReport {
 		return new Writable() {
 			
 			@Override
-			public void write(Writer w) throws IOException {
-				relabelWsIdReferencesIntoWriter(absoluteIdRefMapping, w);
+			public void write(OutputStream os) throws IOException {
+				if (cacheForSorting != null) {
+					os.write(cacheForSorting);
+				} else {
+					relabelWsIdReferencesIntoWriter(absoluteIdRefMapping, os);
+				}
 			}
 		};
 	}
@@ -221,6 +229,25 @@ public class TypedObjectValidationReport {
 			throws RelabelIdReferenceException {
 		this.absoluteIdRefMapping = absoluteIdRefMapping;
 		return relabelWsIdReferences();
+	}
+	
+	public void checkRelabelingAndSorting() throws RelabelIdReferenceException {
+		try {
+			boolean sorted = relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, null);
+			if (!sorted) {
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				JsonGenerator jgen = mapper.getFactory().createGenerator(os);
+				relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
+				jgen.close();
+				cacheForSorting = os.toByteArray();
+				os = new ByteArrayOutputStream();
+				new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
+				os.close();
+				cacheForSorting = os.toByteArray();
+			}
+		} catch (IOException ex) {
+			throw new RelabelIdReferenceException(ex.getMessage(), ex);
+		}
 	}
 	
 	public JsonNode relabelWsIdReferences() 
@@ -246,18 +273,21 @@ public class TypedObjectValidationReport {
 	}
 	
 	public void relabelWsIdReferencesIntoWriter(final Map<String, String> absoluteIdRefMapping, 
-			Writer w) throws IOException {
-		JsonGenerator jgen = new JsonFactory().createGenerator(w);
+			OutputStream os) throws IOException {
+		JsonGenerator jgen = new JsonFactory().createGenerator(os);
 		relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
+		jgen.flush();
 	}
 	
-	public void relabelWsIdReferencesIntoGenerator(final Map<String, String> absoluteIdRefMapping, 
+	public boolean relabelWsIdReferencesIntoGenerator(final Map<String, String> absoluteIdRefMapping, 
 			JsonGenerator jgen) throws IOException {
 		final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+		final boolean[] sorted = {true};
 		TokenSequenceProvider idSubst = new TokenSequenceProvider() {
 			List<Object> path = new ArrayList<Object>();
 			List<IdRefNode> refPath = new ArrayList<IdRefNode>(Arrays.asList(idRefTree));
 			boolean wasField = false;
+			String prevFieldName = null;
 			@Override
 			public JsonToken nextToken() throws IOException, JsonParseException {
 				wasField = false;
@@ -265,6 +295,7 @@ public class TypedObjectValidationReport {
 				if (t == JsonToken.START_OBJECT) {
 					incrementArrayPos();
 					path.add("{");			// next level
+					prevFieldName = null;
 				} else if (t == JsonToken.START_ARRAY) {
 					incrementArrayPos();
 					path.add(-1);			// next level
@@ -273,8 +304,12 @@ public class TypedObjectValidationReport {
 						refPath.remove(refPath.size() - 1);
 					path.remove(path.size() - 1);
 				} else if (t == JsonToken.FIELD_NAME) {
-					setCurrentLevel(jts.getText());
+					String curFieldName = jts.getText();
+					if (prevFieldName != null && prevFieldName.compareTo(curFieldName) >= 0)
+						sorted[0] = false;
+					setCurrentLevel(curFieldName);
 					wasField = true;
+					prevFieldName = curFieldName;
 				} else {
 					incrementArrayPos();
 				}
@@ -337,6 +372,7 @@ public class TypedObjectValidationReport {
 			}
 		};
 		new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
+		return sorted[0];
 	}
 	
 	/*

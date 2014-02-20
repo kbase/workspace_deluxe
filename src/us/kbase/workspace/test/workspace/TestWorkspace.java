@@ -2159,9 +2159,9 @@ public class TestWorkspace {
 					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE1, meta,
 					new Provenance(foo), false)));
 			fail("saved unserializable object");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Cannot serialize data"));
+		} catch (TypedObjectValidationException iae) {
+			assertTrue("Actual exception: " + iae.getMessage(), 
+					iae.getMessage().contains("No serializer found for class java.io.StringReader"));
 		}
 	}
 	

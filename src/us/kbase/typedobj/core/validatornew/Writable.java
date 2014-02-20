@@ -1,8 +1,8 @@
 package us.kbase.typedobj.core.validatornew;
 
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 
 public interface Writable {
-	public void write(Writer w) throws IOException;
+	public void write(OutputStream os) throws IOException;
 }

@@ -35,6 +35,8 @@ public class JsonTokenStreamWriter {
 	
 	private JsonToken writeNextToken(TokenSequenceProvider src, JsonGenerator jgen) throws IOException {
 		JsonToken t = src.nextToken();
+		if (jgen == null)
+			return t;
 		if (t == JsonToken.START_ARRAY) {
 			jgen.writeStartArray();
 		} else if (t == JsonToken.START_OBJECT) {

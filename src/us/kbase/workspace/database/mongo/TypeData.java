@@ -2,21 +2,16 @@ package us.kbase.workspace.database.mongo;
 
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.validatornew.Writable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -62,15 +57,14 @@ public class TypeData {
 				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		this.subdata = subdata;
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
-		Writer w = new OutputStreamWriter(md5, Charset.forName("UTF-8"));
 		try {
 			//writes in UTF8
-			data.write(w);
+			data.write(md5);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something is broken here", ioe);
 		} finally {
 			try {
-				w.close();
+				md5.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException("something is broken here", ioe);
 			}

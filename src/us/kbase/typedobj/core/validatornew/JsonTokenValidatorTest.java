@@ -88,32 +88,42 @@ public class JsonTokenValidatorTest {
 			File f2 = new File("test/temp2.json");
 			jp.writeJson(f2);
 			jp.close();
-			compareFiles(f, f2);
+			compareFiles(f, f2, false);
 		}
 	}
 
-	private static void compareFiles(File f1, File f2) throws IOException {
+	public static void compareFiles(File f1, File f2, boolean debug) throws IOException {
 		Reader r1 = new FileReader(f1);
 		Reader r2 = new FileReader(f2);
-		compareReaders(r1, r2);
+		compareReaders(r1, r2, debug);
 		r1.close();
 		r2.close();
 	}
 	
-	private static void compareReaders(Reader r1, Reader r2) throws IOException {
-		int bufSize = 1000000;
+	private static void compareReaders(Reader r1, Reader r2, boolean debug) throws IOException {
+		int bufSize = 1000;
 		char[] buf1 = new char[bufSize];
 		char[] buf2 = new char[bufSize];
 		long size = 0;
 		while (true) {
 			int c1 = readAsMuchAsPossible(r1, buf1);
 			int c2 = readAsMuchAsPossible(r2, buf2);
-			if (c1 != c2)
+			if (c1 != c2) {
+				if (debug) {
+					System.out.println(new String(buf1, 0, c1));
+					System.out.println(new String(buf2, 0, c2));
+				}
 				throw new IllegalStateException("Sources have different sizes: " + 
 						(c1 == bufSize ? ">" : "") + (size + c1) + ", " + (c2 == bufSize ? ">" : "") + (size + c2));
+			}
 			for (int i = 0; i < c1; i++)
-				if (buf1[i] != buf2[i])
+				if (buf1[i] != buf2[i]) {
+					if (debug) {
+						System.out.println(new String(buf1, 0, c1));
+						System.out.println(new String(buf2, 0, c2));
+					}
 					throw new IllegalStateException("Sources differ at position " + (size + i));
+				}
 			size += c1;
 			if (c1 < bufSize)
 				break;

@@ -6,7 +6,7 @@ import static us.kbase.workspace.database.Util.checkSize;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -3035,8 +3035,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1, false, false);
 			pkg.td = new TypeData(new Writable() {
 				@Override
-				public void write(Writer w) throws IOException {
-					MAPPER.writeValue(w, data);				
+				public void write(OutputStream os) throws IOException {
+					MAPPER.writeValue(os, data);				
 				}
 			}, at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);

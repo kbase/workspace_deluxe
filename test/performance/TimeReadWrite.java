@@ -3,7 +3,7 @@ package performance;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -284,7 +284,7 @@ public class TimeReadWrite {
 	private static Writable treeToWritable(final JsonNode value) {
 		return new Writable() {
 			@Override
-			public void write(Writer w) throws IOException {
+			public void write(OutputStream w) throws IOException {
 				MAP.writeValue(w, value);
 			}
 		};

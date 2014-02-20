@@ -2,10 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
@@ -159,16 +156,15 @@ public class ShockBackend implements BlobStore {
 				return sn;
 			}
 		};
-		Writer w = new OutputStreamWriter(osis, Charset.forName("UTF-8"));
 		try {
 			//writes in UTF8
-			data.write(w);
+			data.write(osis);
 		} catch (IOException ioe) {
 			throw new RuntimeException("IO Error during streaming of JsonNode: "
 					+ ioe.getLocalizedMessage(), ioe);
 		} finally {
 			try {
-				w.close();
+				osis.close();
 			} catch (IOException ioe) {
 				throw new RuntimeException(
 						"Couldn't close JsonNode output stream: " +

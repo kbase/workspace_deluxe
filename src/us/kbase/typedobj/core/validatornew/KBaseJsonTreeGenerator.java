@@ -44,9 +44,13 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	private String currentFieldName = null;
 	
 	public KBaseJsonTreeGenerator(ObjectMapper codec) {
+		this(codec, codec.getSerializationConfig().isEnabled(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS));
+	}
+
+	public KBaseJsonTreeGenerator(ObjectMapper codec, boolean sortKeys) {
 		this.codec = codec;
 		this.nodeFactory = codec.getNodeFactory();
-		this.sortKeys = codec.getSerializationConfig().isEnabled(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+		this.sortKeys = sortKeys;
 	}
 
 	public JsonNode getTree() {

@@ -176,14 +176,14 @@ public class NodeSchema {
 				path.remove(path.size() - 1);
 			}
 		} else if (type == Type.array) {
+			JsonToken t = jp.getCurrentToken();
+			if (t == null || t != JsonToken.START_ARRAY) {
+				throw new JsonTokenValidationException(generateError(type, t, path));
+			}
 			path.add("-1");
 			try {
 				if (stat != null)
 					stat.arrayCount++;
-				JsonToken t = jp.getCurrentToken();
-				if (t == null || t != JsonToken.START_ARRAY) {
-					throw new JsonTokenValidationException("Array start is expected but found " + t);
-				}
 				int itemPos = 0;
 				boolean skipAll = false;
 				while (true) {
@@ -217,7 +217,7 @@ public class NodeSchema {
 				stat.stringCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING)
-				lst.addError("String is expected but found " + t);
+				lst.addError(generateError(type, t, path));
 			if (idReference != null) {
 				lst.addIdRefMessage(jp.getText(), idReference, path, false);
 				IdReference ref = createRef(jp.getText(), idReference, path, false);
@@ -228,16 +228,59 @@ public class NodeSchema {
 				stat.integerCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_NUMBER_INT)
-				lst.addError("Integer is expected but found " + t);
+				lst.addError(generateError(type, t, path));
 		} else if (type == Type.number) {
 			if (stat != null)
 				stat.floatCount++;
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_NUMBER_FLOAT)
-				lst.addError("Float is expected but found " + t);
+				lst.addError(generateError(type, t, path));
 		} else {
 			lst.addError("Unsupported node type: " + type);
 		}
+	}
+	
+	private static String generateError(Type expectedType, JsonToken actualToken, List<String> path) {
+		String expected = expectedType == Type.number ? "float" : expectedType.toString();
+		String actual = tokenToType(actualToken);
+		return "instance type ("+actual+") does not match any allowed primitive type " +
+				"(allowed: [\""+expected+"\"]), at " + getPathText(path);
+	}
+	
+	private static String tokenToType(JsonToken t) {
+		switch (t) {
+		case START_OBJECT:
+			return "object";
+		case END_OBJECT:
+			return "object end";
+		case START_ARRAY:
+			return "array";
+		case END_ARRAY:
+			return "array end";
+		case FIELD_NAME:
+			return "object field";
+		case VALUE_NUMBER_FLOAT:
+			return "float";
+		case VALUE_NUMBER_INT:
+			return "integer";
+		case VALUE_STRING:
+			return "string";
+		case VALUE_NULL:
+			return "null";
+		case VALUE_TRUE:
+			return "boolean";
+		case VALUE_FALSE:
+			return "boolean";
+		default:
+			return t.asString();
+		}
+	}
+	
+	private static String getPathText(List<String> path) {
+		StringBuilder ret = new StringBuilder();
+		for (String part : path)
+			ret.append('/').append(part);
+		return ret.toString();
 	}
 	
 	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {

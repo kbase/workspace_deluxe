@@ -45,7 +45,9 @@ public class UObject {
 	}
 	
 	public JsonTokenStream getPlacedStream() throws IOException {
-		return ((JsonTokenStream)userObj).setRoot(tokenStreamRootPath);
+		if (isTokenStream())
+			return ((JsonTokenStream)userObj).setRoot(tokenStreamRootPath);
+		return new JsonTokenStream(asJsonNode());
 	}
 	
 	public String getRootPath() {

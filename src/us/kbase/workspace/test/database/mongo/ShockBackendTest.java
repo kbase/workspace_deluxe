@@ -6,7 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -100,7 +100,7 @@ public class ShockBackendTest {
 	private static Writable valueToTree(final Object value) {
 		return new Writable() {
 			@Override
-			public void write(Writer w) throws IOException {
+			public void write(OutputStream w) throws IOException {
 				MAPPER.writeValue(w, value);
 			}
 		};

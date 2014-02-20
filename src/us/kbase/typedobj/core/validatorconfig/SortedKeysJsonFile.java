@@ -35,10 +35,11 @@ public class SortedKeysJsonFile {
 		mainIs = new PosBufInputStream(raf, maxBufSize);
 	}
 
-	public void writeIntoStream(OutputStream os) throws IOException {
+	public SortedKeysJsonFile writeIntoStream(OutputStream os) throws IOException {
 		UnthreadedBufferedOutputStream ubos = new UnthreadedBufferedOutputStream(os, maxBufSize);
 		write(ubos);
 		ubos.flush();
+		return this;
 	}
 	
 	private void write(UnthreadedBufferedOutputStream os) throws IOException {
