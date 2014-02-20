@@ -304,11 +304,11 @@ public class TypedObjectValidationReport {
 						refPath.remove(refPath.size() - 1);
 					path.remove(path.size() - 1);
 				} else if (t == JsonToken.FIELD_NAME) {
-					String curFieldName = jts.getText();
+					setCurrentLevel(jts.getText());
+					wasField = true;
+					String curFieldName = getText();
 					if (prevFieldName != null && prevFieldName.compareTo(curFieldName) >= 0)
 						sorted[0] = false;
-					setCurrentLevel(curFieldName);
-					wasField = true;
 					prevFieldName = curFieldName;
 				} else {
 					incrementArrayPos();
