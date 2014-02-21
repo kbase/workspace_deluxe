@@ -4,12 +4,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Random;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.typedobj.core.validatornew.JsonTokenValidatorTest;
 
 public class SortedKeysJsonFileTest {
 	public static void main(String[] args) throws Exception {
-		testForLargeNetwork();
+		//testForLargeNetwork();
+		testLargeMap();
 	}
 	
 	private static void testForLargeNetwork() throws Exception {
@@ -38,5 +44,29 @@ public class SortedKeysJsonFileTest {
 		os.close();
 		System.out.println("Time2: " + (System.currentTimeMillis() - time));
 		JsonTokenValidatorTest.compareFiles(outFile, outFile2, true);
+	}
+	
+	private static void testLargeMap() throws Exception {
+		int size = 1000000;
+		Random rnd = new Random(1234567890L);
+		for (int n = 0; n < 5; n++) {
+			File dir = new File("temp_files");
+			if (!dir.exists())
+				dir.mkdir();
+			Map<String, String> data = new LinkedHashMap<String, String>();
+			for (int i = 0; i < size; i++) {
+				int val = rnd.nextInt(size);
+				data.put("key" + val, "value" + val);
+			}
+			File f = new File(dir, "temp_large_map.json");
+			new ObjectMapper().writeValue(f, data);
+			File outFile2 = new File(dir, "temp_large_map2.json");
+			long time = System.currentTimeMillis();
+			OutputStream os = new FileOutputStream(outFile2);
+			new SortedKeysJsonFile(f).writeIntoStream(os);
+			os.close();
+			System.out.println(size + "\t" + f.length() + "\t" + (System.currentTimeMillis() - time));
+			size *= 2;
+		}
 	}
 }
