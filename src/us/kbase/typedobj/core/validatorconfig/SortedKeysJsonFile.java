@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,40 +14,67 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class SortedKeysJsonFile {
 	private final RandomAccessSource raf;
-	private final PosBufInputStream mainIs;
-	private int maxBufSize;
+	private PosBufInputStream mainIs;
+	private int maxBufferSize = 10 * 1024;
+	private boolean skipKeyDuplication = false;
+	private boolean useStringsForKeyStoring = false;
+	private long maxMemoryForKeyStoring = -1;
 	
 	private static final ObjectMapper mapper = new ObjectMapper();
-	public static final int DEFAULT_BUFFER_SIZE = 100000; 
+	private static final Charset utf8 = Charset.forName("UTF-8");
 	
 	public SortedKeysJsonFile(File f) throws IOException {
-		this(f, DEFAULT_BUFFER_SIZE);
-	}
-	
-	public SortedKeysJsonFile(File f, int maxBufferSize) throws IOException {
-		maxBufSize = maxBufferSize;
 		raf = new RandomAccessSource(f);
-		mainIs = new PosBufInputStream(raf, maxBufSize);
 	}
 
 	public SortedKeysJsonFile(byte[] byteSource) throws IOException {
-		maxBufSize = DEFAULT_BUFFER_SIZE;
 		raf = new RandomAccessSource(byteSource);
-		mainIs = new PosBufInputStream(raf, maxBufSize);
 	}
 
+	public boolean isSkipKeyDuplication() {
+		return skipKeyDuplication;
+	}
+	
+	public SortedKeysJsonFile setSkipKeyDuplication(boolean skipKeyDuplication) {
+		this.skipKeyDuplication = skipKeyDuplication;
+		return this;
+	}
+
+	public boolean isUseStringsForKeyStoring() {
+		return useStringsForKeyStoring;
+	}
+	
+	public SortedKeysJsonFile setUseStringsForKeyStoring(boolean useStringsForKeyStoring) {
+		this.useStringsForKeyStoring = useStringsForKeyStoring;
+		return this;
+	}
+	
+	public int getMaxBufferSize() {
+		return maxBufferSize;
+	}
+	
+	public SortedKeysJsonFile setMaxBufferSize(int maxBufferSize) {
+		this.maxBufferSize = maxBufferSize;
+		return this;
+	}
+	
+	public long getMaxMemoryForKeyStoring() {
+		return maxMemoryForKeyStoring;
+	}
+	
+	public SortedKeysJsonFile setMaxMemoryForKeyStoring(long maxMemoryForKeyStoring) {
+		this.maxMemoryForKeyStoring = maxMemoryForKeyStoring;
+		return this;
+	}
+	
 	public SortedKeysJsonFile writeIntoStream(OutputStream os) throws IOException {
-		UnthreadedBufferedOutputStream ubos = new UnthreadedBufferedOutputStream(os, maxBufSize);
-		write(ubos);
+		UnthreadedBufferedOutputStream ubos = new UnthreadedBufferedOutputStream(os, 100000);
+		write(0, -1, maxMemoryForKeyStoring > 0 ? new long[] {0L} : null, ubos);
 		ubos.flush();
 		return this;
 	}
 	
-	private void write(UnthreadedBufferedOutputStream os) throws IOException {
-		write(0, -1, os);
-	}
-	
-	private void write(long globalStart, long globalStop, UnthreadedBufferedOutputStream os) throws IOException {
+	private void write(long globalStart, long globalStop, long[] keysByteSize, UnthreadedBufferedOutputStream os) throws IOException {
 		PosBufInputStream is = setPosition(globalStart);
 		while (true) {
 			if (globalStop >= 0 && is.getFilePointer() >= globalStop)
@@ -55,18 +83,26 @@ public class SortedKeysJsonFile {
 			if (b == -1)
 				break;
 			if (b == '{') {
-				//long start = is.getFilePointer() - 1;  // Open bracket
-				List<KeyLocation> fieldPosList = searchForMapCloseBracket(is, true);
+				long[] keysByteSizeTemp = keysByteSize == null ? null : new long[] {keysByteSize[0]};
+				List<KeyValueLocation> fieldPosList = searchForMapCloseBracket(is, true, keysByteSizeTemp);
 				Collections.sort(fieldPosList);
-				checkForKeyDuplications(fieldPosList);
 				long stop = is.getFilePointer();  // After close bracket
 				os.write(b);
 				boolean wasEntry = false;
-				for (KeyLocation loc : fieldPosList) {
+				KeyValueLocation prevLoc = null;
+				for (KeyValueLocation loc : fieldPosList) {
+					if (prevLoc != null && prevLoc.areKeysEqual(loc)) {
+						if (skipKeyDuplication) {
+							continue;
+						} else {
+							throw new IOException("Duplicated key: " + loc.getKey());
+						}
+					}
 					if (wasEntry)
 						os.write(',');
-					write(loc.keyStart, loc.stop, os);
+					write(loc.keyStart, loc.stop, keysByteSizeTemp, os);
 					wasEntry = true;
+					prevLoc = loc;
 				}
 				os.write('}');
 				is.setGlobalPos(stop);
@@ -92,21 +128,14 @@ public class SortedKeysJsonFile {
 		}
 	}
 	
-	private void checkForKeyDuplications(List<KeyLocation> keyList) throws IOException {
-		String prevKey = null;
-		for (KeyLocation loc : keyList) {
-			if (prevKey != null && prevKey.equals(loc.key))
-				throw new IOException("Duplicated key: " + prevKey);
-			prevKey = loc.key;
-		}
-	}
-	
 	private PosBufInputStream setPosition(long pos) throws IOException {
+		if (mainIs == null)
+			mainIs = new PosBufInputStream(raf, maxBufferSize);
 		return mainIs.setGlobalPos(pos);
 	}
 	
-	private List<KeyLocation> searchForMapCloseBracket(PosBufInputStream raf, boolean createMap) throws IOException {
-		List<KeyLocation> ret = createMap ? new ArrayList<KeyLocation>() : null;
+	private List<KeyValueLocation> searchForMapCloseBracket(PosBufInputStream raf, boolean createMap, long[] keysByteSize) throws IOException {
+		List<KeyValueLocation> ret = createMap ? new ArrayList<KeyValueLocation>() : null;
 		boolean isBeforeField = true;
 		String currentKey = null;
 		long currentKeyStart = -1;
@@ -119,7 +148,9 @@ public class SortedKeysJsonFile {
 				if (currentKey != null && createMap) {
 					if (currentValueStart < 0 || currentKeyStart < 0)
 						throw new IllegalStateException("Value without key in mapping");
-					ret.add(new KeyLocation(currentKey,currentKeyStart, currentValueStart, raf.getFilePointer() - 1));
+					ret.add(new KeyValueLocation(currentKey,currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
+					if (keysByteSize != null)
+						countKeysMemory(keysByteSize, currentKey);
 					currentKey = null;
 					currentKeyStart = -1;
 					currentValueStart = -1;
@@ -144,14 +175,16 @@ public class SortedKeysJsonFile {
 			} else if (b == '{') {
 				if (isBeforeField)
 					throw new IllegalStateException("Mapping opened before key text");
-				searchForMapCloseBracket(raf, false);
+				searchForMapCloseBracket(raf, false, null);
 			} else if (b == ',') {
 				if (createMap) {
 					if (currentKey == null)
 						throw new IllegalStateException("Comma in mapping without key-value pair before");
 					if (currentValueStart < 0 || currentKeyStart < 0)
 						throw new IllegalStateException("Value without key in mapping");
-					ret.add(new KeyLocation(currentKey, currentKeyStart, currentValueStart, raf.getFilePointer() - 1));
+					ret.add(new KeyValueLocation(currentKey, currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
+					if (keysByteSize != null)
+						countKeysMemory(keysByteSize, currentKey);
 					currentKey = null;
 					currentKeyStart = -1;
 					currentValueStart = -1;
@@ -166,6 +199,12 @@ public class SortedKeysJsonFile {
 		return ret;
 	}
 
+	public void countKeysMemory(long[] keysByteSize, String currentKey) {
+		keysByteSize[0] += useStringsForKeyStoring ? (2 * currentKey.length() + 8 + 4 + 3 * 8) : (currentKey.length() + 3 * 8);
+		if (maxMemoryForKeyStoring > 0 && keysByteSize[0] > maxMemoryForKeyStoring)
+			throw new IllegalStateException("Memory for keys were exceeded");
+	}
+
 	private void searchForArrayCloseBracket(PosBufInputStream raf) throws IOException {
 		while (true) {
 			int b = raf.read();
@@ -176,7 +215,7 @@ public class SortedKeysJsonFile {
 			} else if (b == '"') {
 				searchForEndQuot(raf, false);
 			} else if (b == '{') {
-				searchForMapCloseBracket(raf, false);
+				searchForMapCloseBracket(raf, false, null);
 			} else if (b == '[') {
 				searchForArrayCloseBracket(raf);
 			}
@@ -328,55 +367,73 @@ public class SortedKeysJsonFile {
 		}
 	}
 	
-	private static class KeyLocation implements Comparable<KeyLocation> {
-		String key;
+	private static class KeyValueLocation implements Comparable<KeyValueLocation> {
+		Object key;
 		long keyStart;
-		long valueStart;
 		long stop;
 		
-		public KeyLocation(String key, long fieldStart, long start, long stop) {
-			this.key = key;
-			this.keyStart = fieldStart;
-			this.valueStart = start;
+		public KeyValueLocation(String key, long keyStart, long valueStart, long stop, boolean useString) {
+			this.key = useString ? key : key.getBytes(utf8);
+			this.keyStart = keyStart;
 			this.stop = stop;
+		}
+		
+		public String getKey() {
+			if (key instanceof String)
+				return (String)key;
+			return new String((byte[])key, utf8);
 		}
 		
 		@Override
 		public String toString() {
-			return key + "(" + keyStart + ":" + valueStart + "-" + stop + ")";
+			return key + "(" + keyStart + "-" + stop + ")";
 		}
 		
 		@Override
-		public int compareTo(KeyLocation o) {
-			return key.compareTo(o.key);
+		public int compareTo(KeyValueLocation o) {
+			return getKey().compareTo(o.getKey());
+		}
+		
+		public boolean areKeysEqual(KeyValueLocation loc) {
+			if (key instanceof String || loc.key instanceof String) {
+				return getKey().equals(loc.getKey());
+			}
+			byte[] key1 = (byte[])key;
+			byte[] key2 = (byte[])loc.key;
+			if (key1.length != key2.length)
+				return false;
+			for (int i = 0; i < key1.length; i++)
+				if (key1[i] != key2[i])
+					return false;
+			return true;
 		}
 	}
 	
 	private static class UnthreadedBufferedOutputStream extends OutputStream {
 	    OutputStream out;
-	    byte buf[];
-	    int count;
+	    byte buffer[];
+	    int bufSize;
 
 	    public UnthreadedBufferedOutputStream(OutputStream out, int size) {
 	        this.out = out;
 	        if (size <= 0) {
-	            throw new IllegalArgumentException("Buffer size <= 0");
+	            throw new IllegalArgumentException("Buffer size should be a positive number");
 	        }
-	        buf = new byte[size];
+	        buffer = new byte[size];
 	    }
 
 	    void flushBuffer() throws IOException {
-	        if (count > 0) {
-	            out.write(buf, 0, count);
-	            count = 0;
+	        if (bufSize > 0) {
+	            out.write(buffer, 0, bufSize);
+	            bufSize = 0;
 	        }
 	    }
 
 	    public void write(int b) throws IOException {
-	        if (count >= buf.length) {
+	        if (bufSize >= buffer.length) {
 	            flushBuffer();
 	        }
-	        buf[count++] = (byte)b;
+	        buffer[bufSize++] = (byte)b;
 	    }
 
 	    public void write(byte b[]) throws IOException {
@@ -384,16 +441,16 @@ public class SortedKeysJsonFile {
 	    }
 
 	    public void write(byte b[], int off, int len) throws IOException {
-	        if (len >= buf.length) {
+	        if (len >= buffer.length) {
 	            flushBuffer();
 	            out.write(b, off, len);
 	            return;
 	        }
-	        if (len > buf.length - count) {
+	        if (len > buffer.length - bufSize) {
 	            flushBuffer();
 	        }
-	        System.arraycopy(b, off, buf, count, len);
-	        count += len;
+	        System.arraycopy(b, off, buffer, bufSize, len);
+	        bufSize += len;
 	    }
 
 	    public void flush() throws IOException {
