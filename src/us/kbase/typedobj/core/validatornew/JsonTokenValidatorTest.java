@@ -79,7 +79,7 @@ public class JsonTokenValidatorTest {
 			//System.out.println("Data was loaded (" + Runtime.getRuntime().maxMemory() + ")");
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f, buffer);
-			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, ""), 
+			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)));
 			Assert.assertTrue(report.isInstanceValid());
 			//System.out.println(report.getErrorMessagesAsList());

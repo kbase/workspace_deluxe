@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,36 +79,32 @@ public class JsonTokenStream extends JsonParser {
 		init(null);
 	}
 
-	public JsonTokenStream setRoot(String root) throws JsonParseException, IOException {
+	public JsonTokenStream setRoot(List<String> root) throws JsonParseException, IOException {
 		if (root == null || root.isEmpty()) {
 			init(null);
 		} else {
-			init(Arrays.asList(root.split("/")));
+			init(root);
 		}
 		return this;
 	}
 	
-	public String getCurrentPath() throws IOException {
+	public List<String> getCurrentPath() throws IOException {
 		JsonToken lastToken = getCurrentToken();
 		if (lastToken == null)
 			lastToken = nextToken();
-		StringBuilder ret = new StringBuilder();
+		List<String> ret = new ArrayList<String>();
 		int size = path.size() - 1;
 		for (int i = 0; i < size; i++) {
 			Object item = path.get(i);
-			if (ret.length() > 0)
-				ret.append('/');
-			ret.append(String.valueOf(item));
+			ret.add(String.valueOf(item));
 		}
 		if (lastToken != JsonToken.START_OBJECT && lastToken != JsonToken.START_ARRAY) {
 			Object item = path.get(size);
 			if (item instanceof Integer)
 				item = ((Integer)item) - 1;
-			if (ret.length() > 0)
-				ret.append('/');
-			ret.append(String.valueOf(item));
+			ret.add(String.valueOf(item));
 		}
-		return ret.toString();
+		return ret;
 	}
 	
 	private void init(List<String> root) throws JsonParseException, IOException {
@@ -869,6 +864,7 @@ public class JsonTokenStream extends JsonParser {
 		return largeStringReader.place(pos, commonLength);
 	}
 	
+	@SuppressWarnings("unused")
 	private Writer getWrapperForLargeStrings(final Writer w) {
 		return new Writer() {
 			long pos = 0;

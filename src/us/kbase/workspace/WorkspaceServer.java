@@ -898,7 +898,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.getObjectInformation(getUser(authPart), loi,
 						au.longToBoolean(params.getIncludeMetadata()),
 						au.longToBoolean(params.getIgnoreErrors())));
-        //END get_object_info
         //END get_object_info_new
         return returnVal;
     }

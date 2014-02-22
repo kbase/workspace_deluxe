@@ -1644,18 +1644,66 @@ public class TestWorkspace {
 			assertThat("sub obj reference included correctly", wodsub.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
-		
+	}
+	
+	@Test
+	public void saveObjectWithTypeCheckingWrongRef() throws Exception {
+		String mod = "TestTypeCheckingErr";
+		final String specTypeCheck1 =
+				"module " + mod + " {" +
+					"typedef structure {" +
+						"int foo;" +
+						"list<int> bar;" +
+						"string baz;" +
+					"} CheckType;" +
+				"};";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		Provenance emptyprov = new Provenance(userfoo);
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
+		ws.releaseTypes(userfoo, mod);
+		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
+		String wsName = "reftypecheckerror";
+		ws.createWorkspace(userfoo, wsName, false, null, null);
+		WorkspaceIdentifier reftypecheck = new WorkspaceIdentifier(wsName);
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("foo", 3);
+		refdata.put("baz", "astring");
+		refdata.put("bar", Arrays.asList(-3, 1, 234567890));
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
+				new WorkspaceSaveObject(refdata, abstype0 , null, emptyprov, false)));
+		String refmod = "TestTypeCheckingRefTypeErr";
+		final String specTypeCheckRefs =
+				"module " + refmod + " {" +
+					"/* @id ws " + mod + ".CheckType */" +
+					"typedef string reference;" +
+					"/* @optional refmap */" +
+					"typedef structure {" +
+						"int foo;" +
+						"list<int> bar;" +
+						"string baz;" +
+						"reference ref;" +
+						"mapping<reference, string> refmap;" + 
+					"} CheckRefType;" +
+				"};";
+		ws.requestModuleRegistration(userfoo, refmod);
+		ws.resolveModuleRegistration(refmod, true);
+		ws.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
+		ws.releaseTypes(userfoo, refmod);
+		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 1, 0);
+		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
 		//test the edge case where two keys in a hash resolve to the same reference
-		refdata.put("ref", "referencetypecheck/2/1");
+		refdata.put("ref", wsName + "/1/1");
 		Map<String, String> refmap = new HashMap<String, String>();
-		refmap.put("referencetypecheck/2/1", "pootypoot");
-		refmap.put("referencetypecheck/auto2/1", "pootypoot");
+		refmap.put(wsName + "/1/1", "pootypoot");
+		refmap.put(wsName + "/auto1/1", "pootypoot");
 		assertThat("refmap has 2 refs", refmap.size(), is(2));
 		refdata.put("refmap", refmap);
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: relabeling 'referencetypecheck/2/1' to '"
-						+ reftypewsid + "/2/1' failed because the field name already exists at /refmap"));
+						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: " +
+						"Duplicated key: " + reftypewsid + "/1/1"));
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 

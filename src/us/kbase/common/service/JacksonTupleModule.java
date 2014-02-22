@@ -203,7 +203,7 @@ public class JacksonTupleModule extends SimpleModule {
 			try {
 				if (p instanceof JsonTokenStream) {
 					JsonTokenStream jts = (JsonTokenStream)p;
-					String path = jts.getCurrentPath();
+					List<String> path = jts.getCurrentPath();
 					jts.skipChildren();
 					return new UObject(jts, path);
 				}

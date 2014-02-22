@@ -1,15 +1,12 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
-import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.report.ListProcessingReport;
 import com.github.fge.jsonschema.report.ListReportProvider;
 import com.github.fge.jsonschema.report.LogLevel;
@@ -17,7 +14,6 @@ import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.JsonTokenStream;
-import us.kbase.common.service.JsonTreeTraversingParser;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 import us.kbase.typedobj.core.validatornew.IdRefNode;
@@ -135,7 +131,7 @@ public final class TypedObjectValidator {
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
 		//JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
 		try {
-			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), "");
+			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), null);
 			return validate(obj, typeDefId);
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);

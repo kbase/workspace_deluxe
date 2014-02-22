@@ -307,8 +307,9 @@ public class TypedObjectValidationReport {
 					setCurrentLevel(jts.getText());
 					wasField = true;
 					String curFieldName = getText();
-					if (prevFieldName != null && prevFieldName.compareTo(curFieldName) >= 0)
+					if (prevFieldName != null && prevFieldName.compareTo(curFieldName) >= 0) {
 						sorted[0] = false;
+					}
 					prevFieldName = curFieldName;
 				} else {
 					incrementArrayPos();

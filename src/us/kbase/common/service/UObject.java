@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class UObject {
 	private Object userObj;
-	private String tokenStreamRootPath = null;
+	private List<String> tokenStreamRootPath = null;
 		
 	private static ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
 	
@@ -35,7 +35,7 @@ public class UObject {
 		userObj = obj;
 	}
 
-	public UObject(JsonTokenStream jts, String rootPath) {
+	public UObject(JsonTokenStream jts, List<String> rootPath) {
 		this.userObj = jts;
 		this.tokenStreamRootPath = rootPath;
 	}
@@ -50,7 +50,7 @@ public class UObject {
 		return new JsonTokenStream(asJsonNode());
 	}
 	
-	public String getRootPath() {
+	public List<String> getRootPath() {
 		return tokenStreamRootPath;
 	}
 	
