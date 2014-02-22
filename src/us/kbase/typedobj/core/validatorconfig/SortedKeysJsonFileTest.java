@@ -1,10 +1,17 @@
 package us.kbase.typedobj.core.validatorconfig;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Random;
+
+import junit.framework.Assert;
+
+import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerationException;
@@ -13,13 +20,75 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class SortedKeysJsonFileTest {
 	public static void main(String[] args) throws Exception {
-		testLargeList();
+		testSmallMap();
 		System.out.println("---------------------------------");
-		testLargeMapBuffer();
+		testLargeList();
 		System.out.println("---------------------------------");
 		testLargeMap();
 		System.out.println("---------------------------------");
 		testLargeListBuffer();
+		System.out.println("---------------------------------");
+		testLargeMapBuffer();
+	}
+	
+	@Test
+	public void testArrayWithMap() {
+		assertSort(
+				"[1, 2.0, \"4{\\\"\", {\"kkk\":\"vvv\",\n\"aaa\":\"bbb\"}, \"}3\\\\\", true]", 
+				"[1, 2.0, \"4{\\\"\", {\"aaa\":\"bbb\",\"kkk\":\"vvv\"}, \"}3\\\\\", true]");
+	}
+
+	@Test
+	public void testMapWithMaps() {
+		assertSort(
+				"{\"kkk\":[1,{\"k2\":\"vvv\",\"k1\":\"v1\"},null], \"aaa\":{\"bbb\":{}}}", 
+				"{\"aaa\":{\"bbb\":{}},\"kkk\":[1,{\"k1\":\"v1\",\"k2\":\"vvv\"},null]}");
+	}
+
+	@Test
+	public void testDoubleKeys() {
+		assertSort("{\"kkk\":1, \"kkk\":2}", "{\"kkk\":1}");
+	}
+
+	@Test
+	public void testDoubleKeysError() {
+		try {
+			sort("{\"kkk\":1, \"kkk\":2}", false);
+			Assert.fail("Should be exception");
+		} catch (IOException e) {
+			Assert.assertEquals("Duplicated key: kkk", e.getMessage());
+		}
+	}
+
+	private static void assertSort(String before, String after) {
+		try {
+			String actual = sort(before, true);
+			Assert.assertEquals(after, actual);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+	
+	private static String sort(String json, boolean skipDoubleKeys) throws IOException {
+		Charset ch = Charset.forName("UTF-8");
+		byte[] data = json.getBytes(ch);
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		new SortedKeysJsonFile(data).setMaxBufferSize(10 * 1024).setSkipKeyDuplication(skipDoubleKeys).writeIntoStream(os);
+		os.close();
+		return new String(os.toByteArray(), ch);
+	}
+	
+	private static void testSmallMap() throws Exception {
+		System.out.println("Small map test (buffer=10k):");
+		System.out.println("map_size, file_size, time_ms");
+		Random rnd = new Random(1234567890L);
+		int size = 600000;
+		byte[] data = writeRandomMapIntoByteArray(rnd, size);
+		long time = System.currentTimeMillis();
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		new SortedKeysJsonFile(data).setMaxBufferSize(10 * 1024).setSkipKeyDuplication(true).writeIntoStream(os);
+		os.close();
+		System.out.println(size + ", " + data.length + ", " + (System.currentTimeMillis() - time));
 	}
 	
 	private static void testLargeMap() throws Exception {
@@ -138,18 +207,30 @@ public class SortedKeysJsonFileTest {
 
 	private static void writeRandomMapIntoFile(Random rnd, int size, File f)
 			throws IOException, JsonGenerationException {
-		JsonGenerator jgen = new ObjectMapper().getFactory().createGenerator(f, JsonEncoding.UTF8);
+		writeRandomMapIntoFile(rnd, size, 8, new BufferedOutputStream(new FileOutputStream(f)));
+	}
+	
+	private static void writeRandomMapIntoFile(Random rnd, int size, int valueRepeats, OutputStream os)
+			throws IOException, JsonGenerationException {
+		JsonGenerator jgen = new ObjectMapper().getFactory().createGenerator(os, JsonEncoding.UTF8);
 		jgen.writeStartObject();
 		for (int i = 0; i < size; i++) {
 			int num = rnd.nextInt(size);
 			jgen.writeFieldName("key" + num);
 			String value = "";
-			for (int j = 0; j < 8; j++)
+			for (int j = 0; j < valueRepeats; j++)
 				value += "value" + num;
 			jgen.writeString(value);
 		}
 		jgen.writeEndObject();
 		jgen.close();
+	}
+
+	private static byte[] writeRandomMapIntoByteArray(Random rnd, int size)
+			throws IOException, JsonGenerationException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		writeRandomMapIntoFile(rnd, size, 1, os);
+		return os.toByteArray();
 	}
 
 	private static void writeRandomListIntoFile(Random rnd, int size, File f)

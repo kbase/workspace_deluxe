@@ -111,14 +111,14 @@ public class SortedKeysJsonFile {
 				while (true) {
 					b = is.read();
 					if (b == -1)
-						throw new IllegalStateException("String close quot wasn't found");
+						throw new IOException("String close quot wasn't found");
 					os.write(b);
 					if (b == '"')
 						break;
 					if (b == '\\') {
 						b = is.read();
 						if (b == -1)
-							throw new IllegalStateException("String close quot wasn't found");
+							throw new IOException("String close quot wasn't found");
 						os.write(b);
 					}
 				}
@@ -143,11 +143,11 @@ public class SortedKeysJsonFile {
 		while (true) {
 			int b = raf.read();
 			if (b == -1)
-				throw new IllegalStateException("Mapping close bracket wasn't found");
+				throw new IOException("Mapping close bracket wasn't found");
 			if (b == '}') {
 				if (currentKey != null && createMap) {
 					if (currentValueStart < 0 || currentKeyStart < 0)
-						throw new IllegalStateException("Value without key in mapping");
+						throw new IOException("Value without key in mapping");
 					ret.add(new KeyValueLocation(currentKey,currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
 					if (keysByteSize != null)
 						countKeysMemory(keysByteSize, currentKey);
@@ -165,23 +165,23 @@ public class SortedKeysJsonFile {
 				}
 			} else if (b == ':') {
 				if (!isBeforeField)
-					throw new IllegalStateException("Unexpected colon sign in the middle of value text");
+					throw new IOException("Unexpected colon sign in the middle of value text");
 				if (createMap) {
 					if (currentKey == null)
-						throw new IllegalStateException("Unexpected colon sign before key text");
+						throw new IOException("Unexpected colon sign before key text");
 					currentValueStart = raf.getFilePointer();
 				}
 				isBeforeField = false;
 			} else if (b == '{') {
 				if (isBeforeField)
-					throw new IllegalStateException("Mapping opened before key text");
+					throw new IOException("Mapping opened before key text");
 				searchForMapCloseBracket(raf, false, null);
 			} else if (b == ',') {
 				if (createMap) {
 					if (currentKey == null)
-						throw new IllegalStateException("Comma in mapping without key-value pair before");
+						throw new IOException("Comma in mapping without key-value pair before");
 					if (currentValueStart < 0 || currentKeyStart < 0)
-						throw new IllegalStateException("Value without key in mapping");
+						throw new IOException("Value without key in mapping");
 					ret.add(new KeyValueLocation(currentKey, currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
 					if (keysByteSize != null)
 						countKeysMemory(keysByteSize, currentKey);
@@ -192,24 +192,24 @@ public class SortedKeysJsonFile {
 				isBeforeField = true;
 			} else if (b == '[') {
 				if (isBeforeField)
-					throw new IllegalStateException("Array opened before key text");
+					throw new IOException("Array opened before key text");
 				searchForArrayCloseBracket(raf);
 			}
 		}
 		return ret;
 	}
 
-	public void countKeysMemory(long[] keysByteSize, String currentKey) {
+	public void countKeysMemory(long[] keysByteSize, String currentKey) throws IOException {
 		keysByteSize[0] += useStringsForKeyStoring ? (2 * currentKey.length() + 8 + 4 + 3 * 8) : (currentKey.length() + 3 * 8);
 		if (maxMemoryForKeyStoring > 0 && keysByteSize[0] > maxMemoryForKeyStoring)
-			throw new IllegalStateException("Memory for keys were exceeded");
+			throw new IOException("Memory for keys were exceeded");
 	}
 
 	private void searchForArrayCloseBracket(PosBufInputStream raf) throws IOException {
 		while (true) {
 			int b = raf.read();
 			if (b == -1)
-				throw new IllegalStateException("Array close bracket wasn't found");
+				throw new IOException("Array close bracket wasn't found");
 			if (b == ']') {
 				break;
 			} else if (b == '"') {
@@ -231,7 +231,7 @@ public class SortedKeysJsonFile {
 		while (true) {
 			int b = raf.read();
 			if (b == -1)
-				throw new IllegalStateException("String close quot wasn't found");
+				throw new IOException("String close quot wasn't found");
 			if (createString)
 				ret.write(b);
 			if (b == '"')
@@ -239,7 +239,7 @@ public class SortedKeysJsonFile {
 			if (b == '\\') {
 				b = raf.read();
 				if (b == -1)
-					throw new IllegalStateException("String close quot wasn't found");
+					throw new IOException("String close quot wasn't found");
 				if (createString)
 					ret.write(b);
 			}
@@ -353,7 +353,7 @@ public class SortedKeysJsonFile {
 			for (int arrPos = 0; arrPos < array.length; arrPos++) {
 				if (posInBuf >= bufSize) {
 					if (!nextBufferLoad())
-						throw new IllegalStateException("Unexpected end of file");
+						throw new IOException("Unexpected end of file");
 				}
 				array[arrPos] = buffer[posInBuf];
 				posInBuf++;
@@ -414,10 +414,10 @@ public class SortedKeysJsonFile {
 	    byte buffer[];
 	    int bufSize;
 
-	    public UnthreadedBufferedOutputStream(OutputStream out, int size) {
+	    public UnthreadedBufferedOutputStream(OutputStream out, int size) throws IOException {
 	        this.out = out;
 	        if (size <= 0) {
-	            throw new IllegalArgumentException("Buffer size should be a positive number");
+	            throw new IOException("Buffer size should be a positive number");
 	        }
 	        buffer = new byte[size];
 	    }
