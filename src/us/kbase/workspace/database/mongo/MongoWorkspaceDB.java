@@ -1464,15 +1464,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(
-								o.getRep().extractSearchableWsSubset(o.getRep().relabelWsIdReferences()),		// TODO
+								o.getRep().extractSearchableWsSubset(),
 								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
-			} catch (RelabelIdReferenceException e) {
-				throw new RuntimeException(
-						"Should never get a reference relabling exception here", e);
 			}
 			
 			escapeSubdata(subdata);

@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
-
 
 /**
  * The report generated when a typed object instance is validated.  If the type definition indicates
@@ -74,9 +73,9 @@ public class TypedObjectValidationReport {
 	/**
 	 * keep a jackson mapper around so we don't have to create a new one over and over during subset extration
 	 */
-	private ObjectMapper mapper;
+	private static ObjectMapper mapper = new ObjectMapper();
 	
-	private Map<String,String> absoluteIdRefMapping = null;
+	private Map<String,String> absoluteIdRefMapping = Collections.emptyMap();
 	
 	/**
 	 * Initialize with the given processingReport (created when a JsonSchema is used to validate) and the
@@ -89,7 +88,6 @@ public class TypedObjectValidationReport {
 		this.processingReport=processingReport;
 		this.validationTypeDefId=validationTypeDefId;
 		this.idRefManager= new IdReferenceManager(processingReport);
-		this.mapper = new ObjectMapper();
 		try {
 			this.tokenStreamProvider =  new UObject(new JsonTokenStream(instance));
 		} catch (IOException ex) {
@@ -102,7 +100,6 @@ public class TypedObjectValidationReport {
 		this.processingReport=processingReport;
 		this.validationTypeDefId=validationTypeDefId;
 		this.idRefManager= new IdReferenceManager(processingReport);
-		this.mapper = new ObjectMapper();
 		this.tokenStreamProvider = tokenStreamProvider;
 		this.idRefTree = idRefTree;
 	}
@@ -207,7 +204,7 @@ public class TypedObjectValidationReport {
 				if (cacheForSorting != null) {
 					os.write(cacheForSorting);
 				} else {
-					relabelWsIdReferencesIntoWriter(absoluteIdRefMapping, os);
+					relabelWsIdReferencesIntoWriter(os);
 				}
 			}
 		};
@@ -225,19 +222,26 @@ public class TypedObjectValidationReport {
 	 * to rename the ids a second time, you must still refer to the id as its original name,
 	 * not necessarily be the name in the current version of the object.
 	 */
-	public JsonNode relabelWsIdReferences(final Map<String,String> absoluteIdRefMapping) 
-			throws RelabelIdReferenceException {
-		this.absoluteIdRefMapping = absoluteIdRefMapping;
-		return relabelWsIdReferences();
+	public JsonNode relabelWsIdReferences() throws RelabelIdReferenceException {
+		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
+		try {
+			relabelWsIdReferencesIntoGenerator(jgen);
+		} catch (IOException ex) {
+			throw new RelabelIdReferenceException(ex.getMessage(), ex);
+		}
+		JsonNode originalInstance = jgen.getTree();
+		//idRefManager.setWsReplacementNames(absoluteIdRefMapping);
+		//idRefManager.relabelWsIds(originalInstance);
+		return originalInstance;
 	}
 	
 	public void checkRelabelingAndSorting() throws RelabelIdReferenceException {
 		try {
-			boolean sorted = relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, null);
+			boolean sorted = relabelWsIdReferencesIntoGenerator(null);
 			if (!sorted) {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				JsonGenerator jgen = mapper.getFactory().createGenerator(os);
-				relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
+				relabelWsIdReferencesIntoGenerator(jgen);
 				jgen.close();
 				cacheForSorting = os.toByteArray();
 				os = new ByteArrayOutputStream();
@@ -250,20 +254,6 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	public JsonNode relabelWsIdReferences() 
-			throws RelabelIdReferenceException {
-		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
-		try {
-			relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
-		} catch (IOException ex) {
-			throw new RelabelIdReferenceException(ex.getMessage(), ex);
-		}
-		JsonNode originalInstance = jgen.getTree();
-		//idRefManager.setWsReplacementNames(absoluteIdRefMapping);
-		//idRefManager.relabelWsIds(originalInstance);
-		return originalInstance;
-	}
-	
 	public void setAbsoluteIdRefMapping(Map<String, String> absoluteIdRefMapping) {
 		this.absoluteIdRefMapping = absoluteIdRefMapping;
 	}
@@ -272,108 +262,23 @@ public class TypedObjectValidationReport {
 		return absoluteIdRefMapping;
 	}
 	
-	public void relabelWsIdReferencesIntoWriter(final Map<String, String> absoluteIdRefMapping, 
-			OutputStream os) throws IOException {
+	public void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
 		JsonGenerator jgen = new JsonFactory().createGenerator(os);
-		relabelWsIdReferencesIntoGenerator(absoluteIdRefMapping, jgen);
+		relabelWsIdReferencesIntoGenerator(jgen);
 		jgen.flush();
 	}
 	
-	public boolean relabelWsIdReferencesIntoGenerator(final Map<String, String> absoluteIdRefMapping, 
-			JsonGenerator jgen) throws IOException {
+	private IdRefTokenSequenceProvider createIdRefTokenSequenceProvider() throws IOException {
+		if (absoluteIdRefMapping == null)
+			throw new IllegalStateException("AbsoluteIdRefMapping wasn't set");
 		final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-		final boolean[] sorted = {true};
-		TokenSequenceProvider idSubst = new TokenSequenceProvider() {
-			List<Object> path = new ArrayList<Object>();
-			List<IdRefNode> refPath = new ArrayList<IdRefNode>(Arrays.asList(idRefTree));
-			boolean wasField = false;
-			String prevFieldName = null;
-			@Override
-			public JsonToken nextToken() throws IOException, JsonParseException {
-				wasField = false;
-				JsonToken t = jts.nextToken();
-				if (t == JsonToken.START_OBJECT) {
-					incrementArrayPos();
-					path.add("{");			// next level
-					prevFieldName = null;
-				} else if (t == JsonToken.START_ARRAY) {
-					incrementArrayPos();
-					path.add(-1);			// next level
-				} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
-					while (refPath.size() > path.size())
-						refPath.remove(refPath.size() - 1);
-					path.remove(path.size() - 1);
-				} else if (t == JsonToken.FIELD_NAME) {
-					setCurrentLevel(jts.getText());
-					wasField = true;
-					String curFieldName = getText();
-					if (prevFieldName != null && prevFieldName.compareTo(curFieldName) >= 0) {
-						sorted[0] = false;
-					}
-					prevFieldName = curFieldName;
-				} else {
-					incrementArrayPos();
-				}
-				return t;
-			}
-
-			@Override
-			public String getText() throws IOException, JsonParseException {
-				String ret = jts.getText();
-				if (refPath.size() == path.size() + 1) {
-					IdRefNode node = refPath.get(path.size());
-					IdReference ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
-					if (ref != null) {
-						String subst = absoluteIdRefMapping.get(ret);
-						if (ref.getId().equals(ret)) {
-							if (subst == null)
-								throw new IllegalStateException("Id was not found: " + ret);
-							return subst;
-						} else {
-							throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref.getId() + ", actual id=" + ret);
-						}
-					}
-				}
-				return ret;
-			}
-
-			@Override
-			public long getLongValue() throws IOException, JsonParseException {
-				return jts.getLongValue();
-			}
-
-			@Override
-			public double getDoubleValue() throws IOException, JsonParseException {
-				return jts.getDoubleValue();
-			}
-
-			private void setCurrentLevel(Object value) {
-				path.set(path.size() - 1, value);
-				while (refPath.size() > path.size())
-					refPath.remove(refPath.size() - 1);
-				if (refPath.size() == path.size()) {
-					IdRefNode refNode = refPath.get(refPath.size() - 1);
-					if (refNode.getChildren() != null) {
-						String text = "" + value;
-						IdRefNode child = refNode.getChildren().get(text);
-						if (child != null)
-							refPath.add(child);
-					}
-				}
-			}
-
-			private void incrementArrayPos() {
-				if (path.size() > 0) {
-					Object obj = path.get(path.size() - 1);
-					if (obj instanceof Integer) {
-						int pos = (Integer)obj;
-						setCurrentLevel(pos + 1);
-					}
-				}
-			}
-		};
+		return new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
+	}
+	
+	public boolean relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
+		IdRefTokenSequenceProvider idSubst = createIdRefTokenSequenceProvider();
 		new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
-		return sorted[0];
+		return idSubst.isSorted();
 	}
 	
 	/*
@@ -387,7 +292,40 @@ public class TypedObjectValidationReport {
 		return tokenStreamProvider.getPlacedStream();
 	}
 	
-	
+	public TokenSequenceProvider createTokenSequenceForWsSubset() throws IOException {
+		if (cacheForSorting != null) {
+			final JsonTokenStream afterSort = new JsonTokenStream(cacheForSorting);
+			return new TokenSequenceProvider() {
+				
+				@Override
+				public JsonToken nextToken() throws IOException, JsonParseException {
+					return afterSort.nextToken();
+				}
+				
+				@Override
+				public String getText() throws IOException, JsonParseException {
+					return afterSort.getText();
+				}
+				
+				@Override
+				public long getLongValue() throws IOException, JsonParseException {
+					return afterSort.getLongValue();
+				}
+				
+				@Override
+				public double getDoubleValue() throws IOException, JsonParseException {
+					return afterSort.getDoubleValue();
+				}
+				
+				@Override
+				public void close() throws IOException {
+					afterSort.close();
+				}
+			};
+		} else {
+			return createIdRefTokenSequenceProvider();
+		}
+	}
 	
 	/**
 	 * If a searchable ws_subset was defined in the Json Schema, then you can use this method
@@ -397,11 +335,43 @@ public class TypedObjectValidationReport {
 	 * deep copy of the original instance if you intend to modify it and subset data has already
 	 * been extracted.
 	 */
-	public JsonNode extractSearchableWsSubset(JsonNode instance) {
+	public JsonNode extractSearchableWsSubset() {
 		if(!isInstanceValid()) {
 			return mapper.createObjectNode();
 		}
-		
+		// Identify what we need to extract
+		ObjectNode keys_of  = null;
+		ObjectNode fields   = null;
+		Iterator<ProcessingMessage> mssgs = processingReport.iterator();
+		while(mssgs.hasNext()) {
+			ProcessingMessage m = mssgs.next();
+			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
+				JsonNode searchData = m.asJson().get("search-data");
+				keys_of = (ObjectNode)searchData.get("keys");
+				fields = (ObjectNode)searchData.get("fields");
+				//there can only one per report, so we can break as soon as we got it!
+				break;
+			}
+		}
+		try {
+			return SearchableWsSubsetExtractor.extractFields(
+					createTokenSequenceForWsSubset(), keys_of, fields);
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	/*public JsonNode extractSearchableWsSubset() {
+		JsonNode instance;
+		try {
+			instance = relabelWsIdReferences();
+		} catch (RelabelIdReferenceException e) {
+			throw new IllegalStateException(e);
+		}
+		if(!isInstanceValid()) {
+			return mapper.createObjectNode();
+		}
+		System.out.println("TypedObjectValidatorReport: instance=" + ("" + instance).length());
 		// Create the new node to store our subset
 		ObjectNode subset = mapper.createObjectNode();
 		
@@ -419,16 +389,23 @@ public class TypedObjectValidationReport {
 				break;
 			}
 		}
-		
+		System.out.println("TypedObjectValidatorReport: keys_of=" + keys_of);
+		System.out.println("TypedObjectValidatorReport: fields=" + fields);
 		// call our private method for extracting out the fields and keys_of mappings
 		if(fields!=null)
 			extractFields(subset, instance, fields, false);
 		if(keys_of!=null)
 			extractFields(subset, instance, keys_of, true);
-		
+		System.out.println("TypedObjectValidatorReport: subset=" + subset);
+		try {
+			JsonNode subset2 = SearchableWsSubsetExtractor.extractFields(
+					createTokenSequenceForWsSubset(), keys_of, fields);
+			System.out.println("TypedObjectValidatorReport: subset2=" + ("" + subset2).length());
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
 		return subset;
-	}
-	
+	}*/
 	
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
@@ -592,12 +569,6 @@ public class TypedObjectValidationReport {
 		}
 		return;
 	}
-	
-	
-	
-	
-	
-	
 	
 	@Override
 	public String toString() {

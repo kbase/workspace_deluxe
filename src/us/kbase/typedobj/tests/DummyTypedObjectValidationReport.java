@@ -71,7 +71,7 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public JsonNode relabelWsIdReferences(Map<String,String> absoluteIdRefMapping) throws RelabelIdReferenceException {
+	public JsonNode relabelWsIdReferences() throws RelabelIdReferenceException {
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.createObjectNode();
 	}

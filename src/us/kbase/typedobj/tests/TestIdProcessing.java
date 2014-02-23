@@ -268,7 +268,8 @@ public class TestIdProcessing {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
-		JsonNode relabeledInstance = report.relabelWsIdReferences(absoluteIdMapping);
+		report.setAbsoluteIdRefMapping(absoluteIdMapping);
+		JsonNode relabeledInstance = report.relabelWsIdReferences();
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
