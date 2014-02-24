@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
@@ -34,15 +35,19 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -210,17 +215,17 @@ public class TestWorkspace {
 		WorkspaceDatabase wsdb = null;
 		if (mUser != null) {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
-					kidlpath, null);
+					kidlpath, null, TempFilesManager.forTests());
 		} else {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
-					kidlpath, null);
+					kidlpath, null, TempFilesManager.forTests());
 		}
 		Workspace work = new Workspace(wsdb, new DefaultReferenceParser());
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		if ("shock".equals(type)) {
 			sbe = new ShockBackend(db, "shock_",
-					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd);
+					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd, 16000000, TempFilesManager.forTests());
 		}
 		return work;
 	}
@@ -1966,18 +1971,27 @@ public class TestWorkspace {
 		
 		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
 		ws.createWorkspace(userfoo, bigdataws.getName(), false, null, null);
-		Map<String, Object> data = new HashMap<String, Object>();
-		List<String> subdata = new LinkedList<String>();
-		data.put("subset", subdata);
-		for (int i = 0; i < 997008; i++) {
-			//force allocation of a new char[]
-			subdata.add("" + TEXT1000);
+		File tempFile = ws.getTempFilesManager().generateTempFile("bigdata", "json");
+		try {
+			JsonGenerator jgen = mapper.getFactory().createGenerator(tempFile, JsonEncoding.UTF8);
+			jgen.writeStartObject();
+			jgen.writeFieldName("subset");
+			jgen.writeStartArray();
+			for (int i = 0; i < 997008; i++) {
+				jgen.writeString(TEXT1000);
+			}
+			jgen.writeEndArray();
+			jgen.writeEndObject();
+			jgen.close();
+			//printMem("*** created object ***");
+			UObject data = new UObject(tempFile);
+			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
+					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
+		} finally {
+			tempFile.delete();
 		}
-//		printMem("*** created object ***");
-		ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
-//		printMem("*** saved object ***");
-		subdata.add("" + TEXT1000);
+		//printMem("*** saved object ***");
+		/*subdata.add("" + TEXT1000);
 		try {
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList(
 					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
@@ -1987,10 +2001,10 @@ public class TestWorkspace {
 					is("Object #1 data size 1000000039 exceeds limit of 1000000000"));
 		}
 		data = null;
-		subdata = null;
-//		System.gc();
+		subdata = null;*/
+		//System.gc();
 		
-//		printMem("*** released refs ***");
+		//printMem("*** released refs ***");
 		
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
@@ -3170,7 +3184,7 @@ public class TestWorkspace {
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
 		assertThat("returned data same", got.getData(), is((Object) data));
-		assertThat("returned data jsonnode same", got.getDataAsJsonNode(),
+		assertThat("returned data jsonnode same", got.getDataAsJsonNode().getAsJsonNode(),
 				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));

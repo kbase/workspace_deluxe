@@ -42,6 +42,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectExtractor;
@@ -49,7 +50,6 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
@@ -91,7 +91,6 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -116,7 +115,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	private static final long MAX_OBJECT_SIZE = 200005000;
+	private static final long MAX_OBJECT_SIZE = 2000005000;
+	private static final int MAX_IN_MEMORY_SIZE = 16000000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -129,6 +129,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final TypedObjectValidator typeValidator;
 	
 	private final Set<String> typeIndexEnsured = new HashSet<String>();
+	private final TempFilesManager tfm;
 	
 	//TODO constants class
 
@@ -200,9 +201,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret)
+			final String backendSecret, TempFilesManager tfm)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
+		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -221,10 +223,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
-			final String password)
+			final String password, TempFilesManager tfm)
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
 			MongoAuthException {
+		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -245,10 +248,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
 			final String password, final String kidlpath,
-			final String typeDBdir)
+			final String typeDBdir, TempFilesManager tfm)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException {
+		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -264,6 +268,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								typeDBdir == null ? null : new File(typeDBdir), kidlpath, "both"));
 		ensureIndexes();
 		ensureTypeIndexes();
+	}
+	
+	@Override
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
 	}
 	
 	private void ensureIndexes() {
@@ -354,7 +363,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String backendSecret) throws CorruptWorkspaceDBException,
 			DBAuthorizationException, WorkspaceDBInitializationException {
 		if (settings.isGridFSBackend()) {
-			return new GridFSBackend(wsmongo);
+			return new GridFSBackend(wsmongo, MAX_IN_MEMORY_SIZE, tfm);
 		}
 		if (settings.isShockBackend()) {
 			URL shockurl = null;
@@ -368,7 +377,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			BlobStore bs;
 			try {
 				bs = new ShockBackend(wsmongo, COL_SHOCK_PREFIX,
-						shockurl, settings.getShockUser(), backendSecret);
+						shockurl, settings.getShockUser(), backendSecret,
+						MAX_IN_MEMORY_SIZE, tfm);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
 						"Not authorized to access the blob store database", e);
@@ -2128,8 +2138,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<String, JsonNode> chksumToData =
-				new HashMap<String, JsonNode>();
+		final Map<String, ByteStorageWithFileCache> chksumToData =
+				new HashMap<String, ByteStorageWithFileCache>();
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectData>();
 		for (ObjectIDResolvedWS o: paths.keySet()) {
@@ -2157,7 +2167,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						chksumToData.get(meta.getCheckSum()), paths.get(o)),
 						meta, prov, refs));
 			} else {
-				final JsonNode data;
+				final ByteStorageWithFileCache data;
 				try {
 					data = blob.getBlob(new MD5(meta.getCheckSum()));
 				} catch (BlobStoreCommunicationException e) {
@@ -2181,13 +2191,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private JsonNode getDataSubSet(final JsonNode data,
+	private ByteStorageWithFileCache getDataSubSet(final ByteStorageWithFileCache data,
 			final ObjectPaths paths)
 			throws TypedObjectExtractionException {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}
-		return TypedObjectExtractor.extract(paths, data);
+		data.setJsonNode(TypedObjectExtractor.extract(paths, data.getAsJsonNode()));
+		return data;
 	}
 
 	private static final Set<String> FLDS_GETOBJREF = newHashSet(
@@ -3001,10 +3012,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String kidlpath = new Util().getKIDLpath();
 			if (mUser == null || mUser == "") {
 				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", "foo",
-						"foo", null);
+						"foo", null, TempFilesManager.forTests());
 			} else {
 				testdb = new MongoWorkspaceDB(host, db1, kidlpath, mUser, mPwd,
-						"foo", null);
+						"foo", null, TempFilesManager.forTests());
 			}
 		}
 		

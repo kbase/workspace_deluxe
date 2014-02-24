@@ -31,6 +31,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -154,7 +155,7 @@ public class TimeReadWrite {
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
-		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
+		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
 				new DefaultReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
@@ -453,7 +454,7 @@ public class TimeReadWrite {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password),
+			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
 					new DefaultReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
@@ -508,7 +509,8 @@ public class TimeReadWrite {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
-					"temp_shock_node_map", shockURL, token.getUserName(), password);
+					"temp_shock_node_map", shockURL, token.getUserName(), password,
+					16000000, TempFilesManager.forTests());
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
@@ -548,7 +550,8 @@ public class TimeReadWrite {
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
+					16000000, TempFilesManager.forTests());
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.GridFSBackend;
@@ -32,7 +33,8 @@ public class GridFSBackendTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		gfsb = new GridFSBackend(WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null));
+		gfsb = new GridFSBackend(WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null), 
+				16000000, TempFilesManager.forTests());
 	}
 	
 	@Test
@@ -49,7 +51,7 @@ public class GridFSBackendTest {
 		TypeData tdr = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmdr = new MD5(tdr.getChksum());
 		@SuppressWarnings("unchecked")
-		Map<String, Object> returned = MAPPER.treeToValue(gfsb.getBlob(tdmdr), Map.class);
+		Map<String, Object> returned = MAPPER.treeToValue(gfsb.getBlob(tdmdr).getAsJsonNode(), Map.class);
 		assertThat("Didn't get same data back from store", returned, is(data));
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdmdr) == null);
 		gfsb.saveBlob(tdmd, td.getData()); //should be able to save the same thing twice with no error

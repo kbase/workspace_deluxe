@@ -1,5 +1,6 @@
 package us.kbase.workspace.lib;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -88,6 +90,8 @@ public class Workspace {
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
 	private final ReferenceParser refparse;
+	private final TempFilesManager tfm;
+	private long maxInMemorySortSize = 16 * 1024 * 1024;
 	
 	public Workspace(final WorkspaceDatabase db,
 			final ReferenceParser refparse) {
@@ -100,6 +104,7 @@ public class Workspace {
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
 		this.refparse = refparse;
+		this.tfm = db.getTempFilesManager();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -582,7 +587,7 @@ public class Workspace {
 			try {
 				//modifies data in place
 				rep.setAbsoluteIdRefMapping(replacerefs);
-				rep.checkRelabelingAndSorting();
+				rep.checkRelabelingAndSorting(getTempFilesManager(), getMaxInMemorySortSize());
 			} catch (RelabelIdReferenceException ref) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost
@@ -1152,5 +1157,17 @@ public class Workspace {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		db.addAdmin(user);
+	}
+
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
+	}
+
+	public long getMaxInMemorySortSize() {
+		return maxInMemorySortSize;
+	}
+	
+	public void setMaxInMemorySortSize(long maxInMemorySortSize) {
+		this.maxInMemorySortSize = maxInMemorySortSize;
 	}
 }

@@ -302,7 +302,7 @@ public class ArgUtils {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			ret.add(new ObjectData()
-					.withData(new UObject(o.getDataAsJsonNode()))
+					.withData(o.getDataAsJsonNode().getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))

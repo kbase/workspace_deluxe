@@ -1,5 +1,6 @@
 package us.kbase.common.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,10 +31,18 @@ public class UObject {
 	}
 	
 	/**
-	 * Creates instance of UObject from Jackson tree, POJO, Map, List or scalar.
+	 * Creates instance of UObject from File, JsonTokenStream, JsonNode, POJO, Map, List or scalar.
 	 */
 	public UObject(Object obj) {
-		userObj = obj;
+		if (obj instanceof File) {
+			try {
+				userObj = new JsonTokenStream(obj);
+			} catch (IOException e) {
+				throw new IllegalStateException(e);
+			}
+		} else {
+			userObj = obj;
+		}
 	}
 
 	public UObject(JsonTokenStream jts, List<String> rootPath) {
@@ -74,7 +84,7 @@ public class UObject {
 			return (JsonNode)userObj;
 		if (isTokenStream()) {
 			try {
-				mapper.readTree(getPlacedStream());
+				return mapper.readTree(getPlacedStream());
 			} catch (IOException ex) {
 				throw new IllegalStateException(ex);
 			}

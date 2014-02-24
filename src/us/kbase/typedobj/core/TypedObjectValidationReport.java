@@ -1,7 +1,11 @@
 package us.kbase.typedobj.core;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,14 +26,13 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceManager;
 import us.kbase.typedobj.idref.WsIdReference;
 
+import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
@@ -41,6 +44,7 @@ import com.github.fge.jsonschema.report.ProcessingReport;
  * searchable subset flag is set in the type definition, you can extract that too.
  *
  * @author msneddon
+ * @author rsutormin
  */
 public class TypedObjectValidationReport {
 
@@ -64,11 +68,13 @@ public class TypedObjectValidationReport {
 	 * the ws searchable subset
 	 */
 	//private JsonNode originalInstance;
-	private UObject tokenStreamProvider;
+	private final UObject tokenStreamProvider;
 	
 	private byte[] cacheForSorting;
 	
-	private IdRefNode idRefTree;
+	private File fileForSorting;
+	
+	private final IdRefNode idRefTree;
 	
 	/**
 	 * keep a jackson mapper around so we don't have to create a new one over and over during subset extration
@@ -83,18 +89,6 @@ public class TypedObjectValidationReport {
 	 * @param processingReport
 	 * @param validationTypeDefId
 	 */
-	public TypedObjectValidationReport(ProcessingReport processingReport, AbsoluteTypeDefId validationTypeDefId, 
-			JsonNode instance) {
-		this.processingReport=processingReport;
-		this.validationTypeDefId=validationTypeDefId;
-		this.idRefManager= new IdReferenceManager(processingReport);
-		try {
-			this.tokenStreamProvider =  new UObject(new JsonTokenStream(instance));
-		} catch (IOException ex) {
-			throw new IllegalStateException(ex);
-		}
-	}
-	
 	public TypedObjectValidationReport(ProcessingReport processingReport, AbsoluteTypeDefId validationTypeDefId, 
 			UObject tokenStreamProvider, IdRefNode idRefTree) {
 		this.processingReport=processingReport;
@@ -198,11 +192,21 @@ public class TypedObjectValidationReport {
 	
 	public Writable createJsonWritable() {
 		return new Writable() {
-			
 			@Override
 			public void write(OutputStream os) throws IOException {
 				if (cacheForSorting != null) {
 					os.write(cacheForSorting);
+				} else if (fileForSorting != null) {
+					InputStream is = new FileInputStream(fileForSorting);
+					byte[] buffer = new byte[10000];
+					while (true) {
+						int len = is.read(buffer);
+						if (len < 0)
+							break;
+						if (len > 0)
+							os.write(buffer, 0, len);
+					}
+					is.close();
 				} else {
 					relabelWsIdReferencesIntoWriter(os);
 				}
@@ -235,19 +239,52 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
-	public void checkRelabelingAndSorting() throws RelabelIdReferenceException {
+	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) throws RelabelIdReferenceException {
 		try {
+			final long[] size = {0L};
+			OutputStream sizeOs = new OutputStream() {
+				@Override
+				public void write(int b) throws IOException {
+					size[0]++;
+				}
+				@Override
+				public void write(byte[] b, int off, int len)
+						throws IOException {
+					size[0] += len;
+				}
+			};
+			JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
 			boolean sorted = relabelWsIdReferencesIntoGenerator(null);
+			jgen.close();
+			jgen = null;
 			if (!sorted) {
-				ByteArrayOutputStream os = new ByteArrayOutputStream();
-				JsonGenerator jgen = mapper.getFactory().createGenerator(os);
-				relabelWsIdReferencesIntoGenerator(jgen);
-				jgen.close();
-				cacheForSorting = os.toByteArray();
-				os = new ByteArrayOutputStream();
-				new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
-				os.close();
-				cacheForSorting = os.toByteArray();
+				if (maxInMemorySortSize <= 0 || size[0] <= maxInMemorySortSize || tfm == null) {
+					ByteArrayOutputStream os = new ByteArrayOutputStream();
+					jgen = mapper.getFactory().createGenerator(os);
+					relabelWsIdReferencesIntoGenerator(jgen);
+					jgen.close();
+					cacheForSorting = os.toByteArray();
+					os = new ByteArrayOutputStream();
+					new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
+					os.close();
+					cacheForSorting = os.toByteArray();
+				} else {
+					File f1 = tfm.generateTempFile("sortinp", "json");
+					try {
+						jgen = mapper.getFactory().createGenerator(f1, JsonEncoding.UTF8);
+						relabelWsIdReferencesIntoGenerator(jgen);
+						jgen.close();
+						jgen = null;
+						fileForSorting = tfm.generateTempFile("sortout", "json");
+						FileOutputStream os = new FileOutputStream(fileForSorting);
+						new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
+						os.close();
+					} finally {
+						f1.delete();
+						if (jgen != null)
+							jgen.close();
+					}
+				}
 			}
 		} catch (IOException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
@@ -262,22 +299,21 @@ public class TypedObjectValidationReport {
 		return absoluteIdRefMapping;
 	}
 	
-	public void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
+	private void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
 		JsonGenerator jgen = new JsonFactory().createGenerator(os);
 		relabelWsIdReferencesIntoGenerator(jgen);
 		jgen.flush();
 	}
 	
 	private IdRefTokenSequenceProvider createIdRefTokenSequenceProvider() throws IOException {
-		if (absoluteIdRefMapping == null)
-			throw new IllegalStateException("AbsoluteIdRefMapping wasn't set");
 		final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
 		return new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
 	}
 	
-	public boolean relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
+	private boolean relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
 		IdRefTokenSequenceProvider idSubst = createIdRefTokenSequenceProvider();
 		new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
+		idSubst.close();
 		return idSubst.isSorted();
 	}
 	
@@ -288,35 +324,27 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}*/
 	
-	public JsonTokenStream getJsonTokenStream() throws IOException {
-		return tokenStreamProvider.getPlacedStream();
-	}
-	
-	public TokenSequenceProvider createTokenSequenceForWsSubset() throws IOException {
-		if (cacheForSorting != null) {
-			final JsonTokenStream afterSort = new JsonTokenStream(cacheForSorting);
+	private TokenSequenceProvider createTokenSequenceForWsSubset() throws IOException {
+		if (cacheForSorting != null || fileForSorting != null) {
+			final JsonTokenStream afterSort = new JsonTokenStream(
+					cacheForSorting != null ? cacheForSorting : fileForSorting);
 			return new TokenSequenceProvider() {
-				
 				@Override
 				public JsonToken nextToken() throws IOException, JsonParseException {
 					return afterSort.nextToken();
 				}
-				
 				@Override
 				public String getText() throws IOException, JsonParseException {
 					return afterSort.getText();
 				}
-				
 				@Override
 				public long getLongValue() throws IOException, JsonParseException {
 					return afterSort.getLongValue();
 				}
-				
 				@Override
 				public double getDoubleValue() throws IOException, JsonParseException {
 					return afterSort.getDoubleValue();
 				}
-				
 				@Override
 				public void close() throws IOException {
 					afterSort.close();
@@ -354,222 +382,15 @@ public class TypedObjectValidationReport {
 			}
 		}
 		try {
-			return SearchableWsSubsetExtractor.extractFields(
-					createTokenSequenceForWsSubset(), keys_of, fields);
+			TokenSequenceProvider tsp = createTokenSequenceForWsSubset();
+			JsonNode ret = SearchableWsSubsetExtractor.extractFields(tsp, keys_of, fields);
+			tsp.close();
+			return ret;
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
 
-	/*public JsonNode extractSearchableWsSubset() {
-		JsonNode instance;
-		try {
-			instance = relabelWsIdReferences();
-		} catch (RelabelIdReferenceException e) {
-			throw new IllegalStateException(e);
-		}
-		if(!isInstanceValid()) {
-			return mapper.createObjectNode();
-		}
-		System.out.println("TypedObjectValidatorReport: instance=" + ("" + instance).length());
-		// Create the new node to store our subset
-		ObjectNode subset = mapper.createObjectNode();
-		
-		// Identify what we need to extract
-		ObjectNode keys_of  = null;
-		ObjectNode fields   = null;
-		Iterator<ProcessingMessage> mssgs = processingReport.iterator();
-		while(mssgs.hasNext()) {
-			ProcessingMessage m = mssgs.next();
-			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
-				JsonNode searchData = m.asJson().get("search-data");
-				keys_of = (ObjectNode)searchData.get("keys");
-				fields = (ObjectNode)searchData.get("fields");
-				//there can only one per report, so we can break as soon as we got it!
-				break;
-			}
-		}
-		System.out.println("TypedObjectValidatorReport: keys_of=" + keys_of);
-		System.out.println("TypedObjectValidatorReport: fields=" + fields);
-		// call our private method for extracting out the fields and keys_of mappings
-		if(fields!=null)
-			extractFields(subset, instance, fields, false);
-		if(keys_of!=null)
-			extractFields(subset, instance, keys_of, true);
-		System.out.println("TypedObjectValidatorReport: subset=" + subset);
-		try {
-			JsonNode subset2 = SearchableWsSubsetExtractor.extractFields(
-					createTokenSequenceForWsSubset(), keys_of, fields);
-			System.out.println("TypedObjectValidatorReport: subset2=" + ("" + subset2).length());
-		} catch (IOException ex) {
-			throw new IllegalStateException(ex);
-		}
-		return subset;
-	}*/
-	
-	/**
-	 * extract the fields listed in selection from the element and add them to the subset
-	 * 
-	 * selection must either be an object containing structure field names to extract, '*' in the case of
-	 * extracting a mapping, or '[*]' for extracting a list.  if the selection is empty, nothing is added.
-	 * If extractKeysOf is set, and the element is an Object (ie a kidl mapping), then an array of the keys
-	 * is added instead of the entire mapping.
-	 * 
-	 * we assume here that selection has already been validated against the structure of the document, so that
-	 * if we get true on extractKeysOf, it really is a mapping, and if we get a '*' or '[*]', it really is
-	 * a mapping or array.
-	 */
-	private void extractFields(JsonNode subset, JsonNode element, ObjectNode selection, boolean extractKeysOf) {
-		
-		//System.out.println(" - subset: "+subset);
-		//System.out.println(" - element: "+element);
-		//System.out.println(" - selection: " + selection);
-		Iterator <Map.Entry<String,JsonNode>> selectedFields = selection.fields();
-		
-		//if the selection is empty, we return without adding anything
-		if(!selectedFields.hasNext()) return;
-		
-		//otherwise we need to add every selected field in the selection from the element to the subset
-		while(selectedFields.hasNext()) {
-			
-			// get the selected field name
-			Map.Entry<String,JsonNode> selectedField = selectedFields.next();
-			String selectedFieldName = selectedField.getKey();
-			
-			// if there are no more subfields beyond this, we figure it out now...
-			boolean atTheEnd = false;
-			if(selectedField.getValue().size()==0) {
-				atTheEnd = true;
-			}
-			
-			////// KIDL MAPPING
-			if(selectedFieldName.equals("*")) {
-				// we have descended into a kidl mapping, so we need to handle with care.
-				// we must go through each value in the mapping, and add the extracted portion
-				// Note: subset must be an ObjectNode if we are at a mapping
-				Iterator <Map.Entry<String,JsonNode>> mappingElements = element.fields();
-				while(mappingElements.hasNext()) {
-					Map.Entry<String,JsonNode> mappingElement = mappingElements.next();
-					String mappingKey      = mappingElement.getKey();
-					JsonNode mappingValue  = mappingElement.getValue();
-						
-					if(atTheEnd) {
-						// if we are at the end, we either add the data or add "keys_of" the sub mapping
-						if(extractKeysOf) {
-							ArrayNode subKeyList = JsonNodeFactory.instance.arrayNode();
-							((ObjectNode)subset).set(mappingKey,subKeyList);
-							Iterator <Map.Entry<String,JsonNode>> subMappingElements = mappingValue.fields();
-							while(subMappingElements.hasNext()) {
-								subKeyList.add(subMappingElements.next().getKey());
-							}
-						} else {
-							// we want everything here, so add it...
-							((ObjectNode)subset).set(mappingKey,mappingValue);
-						}
-					}
-						
-					else {
-						// if we are not at the end, then we recurse down
-						JsonNode subsetDataForKey = subset.get(mappingKey);
-						if(subsetDataForKey==null) {
-							if(mappingValue.isObject()) {
-								subsetDataForKey = mapper.createObjectNode();
-								((ObjectNode)subset).set(mappingKey,subsetDataForKey);
-							} else if(mappingValue.isArray()) {
-								subsetDataForKey = JsonNodeFactory.instance.arrayNode();
-								((ObjectNode)subset).set(mappingKey,subsetDataForKey);
-							}
-						}
-						extractFields(subsetDataForKey, mappingValue, (ObjectNode)selection.get("*"), extractKeysOf);
-					}
-				}
-			}
-			
-			////// KIDL LIST
-			else if (selectedFieldName.equals("[*]")) {
-				// we have descended into a kidl list, so we must deal with that
-				// subset must be an ArrayNode, and it is not possible to get keys_of an ArrayNode, so we don't need to handle anything special there
-				//  (could explicitly check and throw an error if extractKeysOf is true!?)
-				// loop over every item in the array element and add it to the ArrayNode subset
-				for(int k=0; k<element.size(); k++) {
-					// get the data
-					JsonNode elementDataAtK = element.get(k);
-					if(atTheEnd) {
-						// if we are at the end, then we add the element to the ArrayNode (we could do a quick check to make sure nothing was added
-						// at this position yet.  But for now if there was something added, then we just blow it away, which should be ok...)
-						if(subset.get(k)==null) {
-							((ArrayNode)subset).add(elementDataAtK);
-						} else {
-							((ArrayNode)subset).set(k, elementDataAtK);
-						}
-					} else {
-						// check if there is anything in the subset for this object yet, if not we have to create it
-						JsonNode subsetDataAtK = subset.get(k);
-						if(subsetDataAtK==null) {
-							if(elementDataAtK.isObject()) {
-								subsetDataAtK = mapper.createObjectNode();
-								((ArrayNode)subset).add(subsetDataAtK);
-							} else if(elementDataAtK.isArray()) {
-								subsetDataAtK = JsonNodeFactory.instance.arrayNode();
-								((ArrayNode)subset).add(subsetDataAtK);
-							}
-						}
-						extractFields(subsetDataAtK, elementDataAtK, (ObjectNode)selection.get("[*]"), extractKeysOf);
-					}
-				}
-			}
-			
-			////// KIDL FIELD
-			else {
-				// we are descending into a field of an object, so go down to that field.
-				JsonNode fieldData = element.get(selectedFieldName);
-				// fieldData may be null if it was an optional field.  If that is the case we can skip it without error.
-				if(fieldData!=null) {
-					// if there are no more sub selections, we can just add a pointer to the element data at this field and be done with it
-					// (of course, if we indicate keys_of, then we need to extract the keys as an array) 
-					if(atTheEnd) {
-						if(extractKeysOf) {
-							ArrayNode keyList = JsonNodeFactory.instance.arrayNode();
-							((ObjectNode)subset).set(selectedFieldName, keyList);
-							Iterator <Map.Entry<String,JsonNode>> mappingPairs = element.get(selectedFieldName).fields();
-							while(mappingPairs.hasNext()) {
-								keyList.add(mappingPairs.next().getKey());
-							}
-						} else {
-							((ObjectNode)subset).set(selectedFieldName, element.get(selectedFieldName));
-						}
-					}
-					
-					// otherwise there are sub selections, so we have to handle them.
-					else {
-						if(fieldData.isObject()) {
-							ObjectNode structSubsetData = (ObjectNode)subset.get(selectedFieldName);
-							if(structSubsetData==null) {
-								structSubsetData = mapper.createObjectNode();
-								((ObjectNode)subset).set(selectedFieldName, structSubsetData);
-							}
-							extractFields(structSubsetData, fieldData, (ObjectNode)selectedField.getValue(), extractKeysOf);
-						}
-						
-						else if(fieldData.isArray()) {
-							ArrayNode structSubsetArrayData = (ArrayNode)subset.get(selectedFieldName);
-							if(structSubsetArrayData==null) {
-								structSubsetArrayData = JsonNodeFactory.instance.arrayNode();
-								((ObjectNode)subset).set(selectedFieldName, structSubsetArrayData);
-							}
-							extractFields(structSubsetArrayData, fieldData, (ObjectNode)selectedField.getValue(), extractKeysOf);
-						}
-					}
-				}
-			}
-			
-			// NOTE: we cannot descend into a tuple - we could support it by detecting something like [1] or [4], but for now
-			// we do not allow it!  We will encounter an error if subfields of a tuple are defined
-			
-		}
-		return;
-	}
-	
 	@Override
 	public String toString() {
 		StringBuilder mssg = new StringBuilder();

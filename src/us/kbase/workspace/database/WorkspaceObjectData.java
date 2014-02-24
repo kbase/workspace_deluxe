@@ -2,6 +2,8 @@ package us.kbase.workspace.database;
 
 import java.util.List;
 
+import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,12 +12,12 @@ public class WorkspaceObjectData {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private final JsonNode data;
+	private final ByteStorageWithFileCache data;
 	private final ObjectInformation info;
 	private final Provenance prov;
 	private final List<String> references;
 
-	public WorkspaceObjectData(final JsonNode data,
+	public WorkspaceObjectData(final ByteStorageWithFileCache data,
 			final ObjectInformation info, final Provenance prov,
 			final List<String> references) {
 		if (data == null || info == null || prov == null ||
@@ -29,14 +31,15 @@ public class WorkspaceObjectData {
 		this.references = references;
 	}
 
-	public JsonNode getDataAsJsonNode() {
+	public ByteStorageWithFileCache getDataAsJsonNode() {
 		return data;
 	}
 	
 	public Object getData() {
 		try {
-			return MAPPER.treeToValue(data, Object.class);
-		} catch (JsonProcessingException jpe) {
+			//return MAPPER.treeToValue(data, Object.class);
+			return data.getUObject().asClassInstance(Object.class);
+		} catch (Exception jpe) {
 			//this should never happen
 			throw new RuntimeException("something's dun broke", jpe);
 		}

@@ -87,7 +87,6 @@ public class JsonTokenValidatorTest {
 			jp.setRoot(null);
 			File f2 = new File("test/temp2.json");
 			jp.writeJson(f2);
-			jp.close();
 			compareFiles(f, f2, false);
 		}
 	}

@@ -228,6 +228,7 @@ public class JsonServerServlet extends HttpServlet {
 	
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		checkMemoryForRpc();
 		JsonServerSyslog.RpcInfo info = JsonServerSyslog.getCurrentRpcInfo().reset();
 		info.setIp(request.getRemoteAddr());
 		setupResponseHeaders(request, response);
@@ -251,12 +252,7 @@ public class JsonServerServlet extends HttpServlet {
 				if (rpcDiskCacheTempDir == null) {
 					os = new ByteArrayOutputStream();
 				} else {
-					long suffix = System.currentTimeMillis();
-					while (true) {
-						tempFile = new File(rpcDiskCacheTempDir, "rpc" + suffix + ".json");
-						if (!tempFile.exists())
-							break;
-					}
+					tempFile = generateTempFile();
 					os = new BufferedOutputStream(new FileOutputStream(tempFile));
 				}
 				os.write(rpcBuffer, 0, (int)rpcSize);
@@ -395,7 +391,23 @@ public class JsonServerServlet extends HttpServlet {
 			}
 		}
 	}
+
+	protected void checkMemoryForRpc() {
+		// Do nothing. Inherited classes could define proper implementation.
+	}
 	
+	protected File generateTempFile() {
+		File tempFile = null;
+		long suffix = System.currentTimeMillis();
+		while (true) {
+			tempFile = new File(rpcDiskCacheTempDir, "rpc" + suffix + ".json");
+			if (!tempFile.exists())
+				break;
+			suffix++;
+		}
+		return tempFile;
+	}
+
 	protected Long getMaxObjectSize() {
 		return this.maxObjectSize;
 	}
@@ -430,7 +442,9 @@ public class JsonServerServlet extends HttpServlet {
 		String data = null;
 		if (ex != null) {
 			StringWriter sw = new StringWriter();
-			ex.printStackTrace(new PrintWriter(sw));
+			PrintWriter pw = new PrintWriter(sw);
+			ex.printStackTrace(pw);
+			pw.close();
 			data = sw.toString();
 			sysLogger.logErr(ex, getClass().getName());
 		} else {

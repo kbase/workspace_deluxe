@@ -16,6 +16,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.validatornew.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
@@ -44,11 +45,14 @@ public class ShockBackend implements BlobStore {
 	private String password;
 	private BasicShockClient client;
 	private DBCollection mongoCol;
+	private final int maxInMemorySize;
+	private final TempFilesManager tfm;
 	
 	private static final String IDX_UNIQ = "unique";
 	
 	public ShockBackend(final DB mongoDB, final String collectionPrefix,
-			final URL url, final String user, final String password)
+			final URL url, final String user, final String password,
+			int maxInMemorySize, TempFilesManager tfm)
 			throws BlobStoreAuthorizationException,
 			BlobStoreException {
 		if (collectionPrefix == null || mongoDB == null) {
@@ -63,6 +67,8 @@ public class ShockBackend implements BlobStore {
 		mongoCol.ensureIndex(dbo, opts);
 		this.user = user;
 		this.password = password;
+		this.maxInMemorySize = maxInMemorySize;
+		this.tfm = tfm;
 		try {
 			client = new BasicShockClient(url, getToken());
 		} catch (InvalidShockUrlException isue) {
@@ -217,20 +223,20 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public JsonNode getBlob(final MD5 md5) throws
+	public ByteStorageWithFileCache getBlob(final MD5 md5) throws
 			BlobStoreAuthorizationException, BlobStoreCommunicationException,
 			NoSuchBlobException {
 		checkAuth();
 		final String node = getNode(md5);
 		
-		final OutputStreamToInputStream<JsonNode> osis =
-				new OutputStreamToInputStream<JsonNode>(true,
+		final OutputStreamToInputStream<ByteStorageWithFileCache> osis =
+				new OutputStreamToInputStream<ByteStorageWithFileCache>(true,
 						ExecutorServiceFactory.getExecutor(
 								ExecutionModel.THREAD_PER_INSTANCE), 10000000) { //speeds up by 2-3x
 					
 			@Override
-			protected JsonNode doRead(InputStream is) throws Exception {
-				return MAPPER.readTree(is);
+			protected ByteStorageWithFileCache doRead(InputStream is) throws Exception {
+				return new ByteStorageWithFileCache(is, maxInMemorySize, tfm);
 			}
 		};
 		try {

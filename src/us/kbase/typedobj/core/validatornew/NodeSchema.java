@@ -105,6 +105,7 @@ public class NodeSchema {
 			IdRefNode refRoot) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		checkJsonData(jp, stat, lst, new ArrayList<String>(), new ArrayList<IdRefNode>(Arrays.asList(refRoot)));
+		jp.close();
 	}
 	
 	private void checkJsonData(JsonParser jp, ProcessStat stat, JsonTokenValidationListener lst, 

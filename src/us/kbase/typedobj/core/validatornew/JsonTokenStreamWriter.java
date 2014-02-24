@@ -5,14 +5,21 @@ import java.io.IOException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class is a pipe between TokenSequenceProvider as a source of tokens and
+ * JsonGenerator as a target.
+ * @author rsutormin
+ */
 public class JsonTokenStreamWriter {
 	
-	public void writeTokens(TokenSequenceProvider src, JsonGenerator jgen) throws IOException {
+	public void writeTokens(TokenSequenceProvider src, 
+			JsonGenerator jgen) throws IOException {
 		JsonToken t = writeNextToken(src, jgen);
 		writeTokensWithoutFirst(src, t, jgen);
 	}
 
-	private void writeTokensWithoutFirst(TokenSequenceProvider src, JsonToken currentToken, JsonGenerator jgen) throws IOException {
+	private void writeTokensWithoutFirst(TokenSequenceProvider src, 
+			JsonToken currentToken, JsonGenerator jgen) throws IOException {
 		JsonToken t = currentToken;
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
@@ -33,7 +40,8 @@ public class JsonTokenStreamWriter {
 		}
 	}
 	
-	private JsonToken writeNextToken(TokenSequenceProvider src, JsonGenerator jgen) throws IOException {
+	private JsonToken writeNextToken(TokenSequenceProvider src, 
+			JsonGenerator jgen) throws IOException {
 		JsonToken t = src.nextToken();
 		if (jgen == null)
 			return t;

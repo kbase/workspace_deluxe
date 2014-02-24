@@ -20,6 +20,7 @@ import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectId
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -37,6 +38,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -111,17 +113,18 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static int instanceCount = 0;
 	
+	private final TempFilesManager tfm = new TempFilesManager(new File("temp_files"));
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd) {
+			final String secret, final String user, final String pwd, TempFilesManager tfm) {
 		try {
 			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, user, pwd);
+				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm);
 			} else {
-				return new MongoWorkspaceDB(host, dbs, secret);
+				return new MongoWorkspaceDB(host, dbs, secret, tfm);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -152,6 +155,11 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public static void clearConfigForTests() {
 		wsConfig = null;
+	}
+	
+	@Override
+	protected File generateTempFile() {
+		return ws.getTempFilesManager().generateTempFile("rpc", "json");
 	}
     //END_CLASS_HEADER
 
@@ -208,7 +216,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd);
+			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;
@@ -558,7 +566,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
 		returnVal = new GetObjectOutput()
-			.withData(new UObject(ret.getDataAsJsonNode()))
+			.withData(ret.getDataAsJsonNode().getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
         //END get_object
         return returnVal;

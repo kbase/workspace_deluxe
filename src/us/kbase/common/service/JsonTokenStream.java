@@ -828,6 +828,7 @@ public class JsonTokenStream extends JsonParser {
 	public void writeTokens(JsonGenerator jgen) throws IOException {
 		writeNextToken(jgen);
 		writeTokensWithoutFirst(jgen);
+		close();
 	}
 
 	public void writeJson(File f) throws IOException {

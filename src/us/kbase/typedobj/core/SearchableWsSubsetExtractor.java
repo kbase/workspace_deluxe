@@ -20,6 +20,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class SearchableWsSubsetExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
+	/**
+	 * extract the fields listed in selection from the element and add them to the subset
+	 * 
+	 * selection must either be an object containing structure field names to extract, '*' in the case of
+	 * extracting a mapping, or '[*]' for extracting a list.  if the selection is empty, nothing is added.
+	 * If extractKeysOf is set, and the element is an Object (ie a kidl mapping), then an array of the keys
+	 * is added instead of the entire mapping.
+	 * 
+	 * we assume here that selection has already been validated against the structure of the document, so that
+	 * if we get true on extractKeysOf, it really is a mapping, and if we get a '*' or '[*]', it really is
+	 * a mapping or array.
+	 */
 	public static JsonNode extractFields(TokenSequenceProvider jts, 
 			ObjectNode keysOfSelection, ObjectNode fieldsSelection) throws IOException {
 		WsSubsetNode root = new WsSubsetNode();

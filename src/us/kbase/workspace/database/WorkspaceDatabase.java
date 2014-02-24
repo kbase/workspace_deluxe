@@ -1,10 +1,12 @@
 package us.kbase.workspace.database;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -191,4 +193,6 @@ public interface WorkspaceDatabase {
 
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException;
+	
+	public TempFilesManager getTempFilesManager();
 }
