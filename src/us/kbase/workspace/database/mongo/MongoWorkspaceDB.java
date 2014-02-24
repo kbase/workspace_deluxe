@@ -367,7 +367,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						shockurl, settings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
-						"Not authorized to access the blob store database", e);
+						"Not authorized to access the blob store database: "
+						+ e.getLocalizedMessage(), e);
 			} catch (BlobStoreException e) {
 				throw new WorkspaceDBInitializationException(
 						"The database could not be initialized: " +
