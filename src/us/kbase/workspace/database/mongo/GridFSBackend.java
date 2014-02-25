@@ -28,9 +28,6 @@ public class GridFSBackend implements BlobStore {
 		gfs = new GridFS(mongodb);
 	}
 
-	/* (non-Javadoc)
-	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
-	 */
 	@Override
 	public void saveBlob(final MD5 md5, final JsonNode data)
 			throws BlobStoreCommunicationException {
