@@ -746,12 +746,26 @@ public class TestWorkspace {
 	@Test
 	public void preExistingWorkspace() throws Exception {
 		ws.createWorkspace(AUSER, "preexist", false, null, null);
+		failCreateWorkspace(BUSER, "preexist", false, null, null,
+				new PreExistingWorkspaceException("Workspace name preexist is already in use"));
+		ws.setWorkspaceDeleted(AUSER, new WorkspaceIdentifier("preexist"), true);
+		failCreateWorkspace(BUSER, "preexist", false, null, null,
+				new PreExistingWorkspaceException("Workspace name preexist is already in use"));
+		failCreateWorkspace(AUSER, "preexist", false, null, null,
+				new PreExistingWorkspaceException(
+						"Workspace name preexist is already in use by a deleted workspace"));
+	}
+	
+	private void failCreateWorkspace(WorkspaceUser user, String name,
+			boolean global, Map<String,String> meta, String description, Exception e)
+			throws Exception {
 		try {
-			ws.createWorkspace(BUSER, "preexist", false, null, null);
-			fail("able to create same workspace twice");
-		} catch (PreExistingWorkspaceException e) {
-			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("Workspace preexist already exists"));
+			ws.createWorkspace(user, name, global, description, meta);
+			fail("created workspace w/ bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
 		}
 	}
 	
@@ -3251,7 +3265,8 @@ public class TestWorkspace {
 		failClone(user1, cp1, "foo:fake(name", null, new IllegalArgumentException(
 				"Illegal character in workspace name foo:fake(name: ("));
 		failClone(user2, cp1, "fakename", null, new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
-		failClone(user1, cp1, "newclone2", null, new PreExistingWorkspaceException("Workspace newclone2 already exists"));
+		failClone(user1, cp1, "newclone2", null, new PreExistingWorkspaceException(
+				"Workspace name newclone2 is already in use"));
 		failClone(user1, new WorkspaceIdentifier("noclone"), "fakename", null,
 				new NoSuchWorkspaceException("No workspace with name noclone exists", cp1));
 		

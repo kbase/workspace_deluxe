@@ -391,8 +391,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return blob.getStoreType();
 	}
 	
-	private static final String M_CREATE_WS_QRY = String.format("{%s: #}",
-			Fields.WS_NAME);
+	private static final Set<String> FLDS_CREATE_WS =
+			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
 
 	@Override
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
@@ -403,10 +403,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {
-			if (wsjongo.getCollection(COL_WORKSPACES).count(
-					M_CREATE_WS_QRY, wsname) > 0) {
-				throw new PreExistingWorkspaceException(String.format(
-						"Workspace %s already exists", wsname));
+			final List<Map<String, Object>> ws = query.queryCollection(
+					COL_WORKSPACES, new BasicDBObject(Fields.WS_NAME, wsname),
+					FLDS_CREATE_WS);
+			if (ws.size() == 1) {
+				final boolean del = (Boolean) ws.get(0).get(Fields.WS_DEL);
+				final String owner = (String) ws.get(0).get(Fields.WS_OWNER);
+				String err = String.format(
+						"Workspace name %s is already in use", wsname);
+				if (del && owner.equals(user.getUser())) {
+					err += " by a deleted workspace";
+				}
+				throw new PreExistingWorkspaceException(err);
+			} else if (ws.size() > 1) { //should be impossible
+				throw new CorruptWorkspaceDBException(String.format(
+						"There is more than one workspace with the name %s",
+						wsname));
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -438,7 +450,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} catch (MongoException.DuplicateKey mdk) {
 			//this is almost impossible to test and will probably almost never happen
 			throw new PreExistingWorkspaceException(String.format(
-					"Workspace %s already exists", wsname));
+					"Workspace name %s is already in use", wsname));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
