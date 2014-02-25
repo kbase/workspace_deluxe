@@ -114,13 +114,14 @@ public class TypedObjectValidationReport {
 		return errors;
 	}
 	
-	public String [] getErrorMessages() {
+	public String[] getErrorMessages() {
 		List <String> errMssgs = getErrorMessagesAsList();
 		return errMssgs.toArray(new String [errMssgs.size()]);
 	}
 	
 	public List<WsIdReference> getWsIdReferences() {
-		return oldIdRefs; //idRefManager.getAllWsIdReferences();
+		return oldIdRefs;
+		//idRefManager.getAllWsIdReferences();
 	}
 	
 	public List<IdReference> getAllIdReferences() {
@@ -134,10 +135,6 @@ public class TypedObjectValidationReport {
 			ret.add(ref.getId());
 		return ret;
 		//return idRefManager.getAllIds();
-	}
-	
-	public List<IdReference> getAllIdReferencesOfType(String type) {
-		return null; //idRefManager.getAllIdReferencesOfType(type);
 	}
 	
 	public Writable createJsonWritable() {
@@ -182,7 +179,7 @@ public class TypedObjectValidationReport {
 	 * to rename the ids a second time, you must still refer to the id as its original name,
 	 * not necessarily be the name in the current version of the object.
 	 */
-	public JsonNode relabelWsIdReferences() throws RelabelIdReferenceException {
+	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws RelabelIdReferenceException {
 		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
 		try {
 			relabelWsIdReferencesIntoGenerator(jgen);

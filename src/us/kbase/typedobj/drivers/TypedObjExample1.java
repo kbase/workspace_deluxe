@@ -123,7 +123,7 @@ public class TypedObjExample1 {
 			
 			// relabel, take a look at the results
 			report.setAbsoluteIdRefMapping(absoluteIdRefMapping);
-			JsonNode relabeled = report.relabelWsIdReferences();
+			JsonNode relabeled = report.getInstanceAfterIdRefRelabelingForTests();
 			
 			//JsonNode relabeled = report.getJsonInstance();
 			//validator.relableToAbsoluteIds(instance1RootNode, report);
