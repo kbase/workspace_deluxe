@@ -36,6 +36,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
+import sun.misc.Cleaner;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -84,6 +85,8 @@ import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1745,7 +1748,6 @@ public class JSONRPCLayerTest {
 		
 	}
 	
-	@Ignore //TODO unignore when mem issues sorted
 	@Test
 	public void saveBigData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
@@ -1766,7 +1768,7 @@ public class JSONRPCLayerTest {
 			System.out.println("----------------------------------------------------------------------");
 			t2 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during saveObject", threadStopWrapper2);
 		}
-		File tempFile = SERVER1.getTempFilesManager().generateTempFile("bigdata", "json");
+		File tempFile = SERVER1.getTempFilesManager().generateTempFile("clreq", "json");
 		try {
 			JsonGenerator jgen = new ObjectMapper().getFactory().createGenerator(tempFile, JsonEncoding.UTF8);
 			jgen.writeStartObject();
@@ -1802,6 +1804,8 @@ public class JSONRPCLayerTest {
 			t3 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during getObject", threadStopWrapper3);
 		}
 		// need 3g to get to this point
+		File tempFile2 = SERVER1.getTempFilesManager().generateTempFile("clresp", "json");
+		CLIENT1._setFileForNextRpcResponse(tempFile2);
 		UObject data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData();
 		if (printMemUsage) {
@@ -1809,6 +1813,19 @@ public class JSONRPCLayerTest {
 			t3.join();
 			System.out.println("----------------------------------------------------------------------");
 //			waitForGC("[JSONRPCLayerTest.saveBigData] Used memory after getObject", 3000000000L);
+		}
+		try {
+			UObject array = new UObject(data, "subset");
+			JsonParser jp = array.getPlacedStream();
+			Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
+			for (int i = 0; i < 997008; i++) {
+				Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
+				assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
+			}
+			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
+			jp.close();
+		} finally {
+			tempFile2.delete();
 		}
 		//need 6g to get past readValueAsTree() in UObjectDeserializer
 		/*assertThat("correct obj keys", data.keySet(),

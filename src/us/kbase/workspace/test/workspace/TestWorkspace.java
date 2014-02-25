@@ -1979,7 +1979,7 @@ public class TestWorkspace {
 		
 		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
 		ws.createWorkspace(userfoo, bigdataws.getName(), false, null, null);
-		File tempFile = ws.getTempFilesManager().generateTempFile("bigdata", "json");
+		File tempFile = ws.getTempFilesManager().generateTempFile("clreq", "json");
 		try {
 			JsonGenerator jgen = mapper.getFactory().createGenerator(tempFile, JsonEncoding.UTF8);
 			jgen.writeStartObject();
@@ -2019,18 +2019,19 @@ public class TestWorkspace {
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");
-		UObject array = new UObject(newdata.getUObject(), "subset");
-		//assertThat("correct obj keys", newdata.keySet(),
-		//		is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
-		JsonParser jp = array.getPlacedStream();
-		Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
-		for (int i = 0; i < 997008; i++) {
-			Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
-			assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
+		try {
+			UObject array = new UObject(newdata.getUObject(), "subset");
+			JsonParser jp = array.getPlacedStream();
+			Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
+			for (int i = 0; i < 997008; i++) {
+				Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
+				assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
+			}
+			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
+			jp.close();
+		} finally {
+			newdata.deleteTempFile();
 		}
-		Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
-		jp.close();
-		newdata.deleteTempFile();
 //		newdata = null;
 //		newsd = null;
 //		printMem("*** released refs ***");
