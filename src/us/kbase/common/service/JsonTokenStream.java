@@ -44,7 +44,7 @@ public class JsonTokenStream extends JsonParser {
 	private String sdata = null;
 	private byte[] bdata = null;
 	private File fdata = null;
-	private JsonParser super2;
+	private JsonParser inner;
 	private List<Object> path = new ArrayList<Object>();
 	private int fixedLevels = 0;
 	private boolean currentTokenIsNull = false;
@@ -55,6 +55,7 @@ public class JsonTokenStream extends JsonParser {
 	private static final boolean debug = false;  //true;
 	private static final Charset utf8 = Charset.forName("UTF-8");
 	private static final String largeStringSubstPrefix = "^*->#";
+	private static DebugOpenCloseListener debugOpenCloseListener = null;
 	
 	public JsonTokenStream(Object data) throws JsonParseException, IOException {
 		this(data, true);
@@ -111,12 +112,10 @@ public class JsonTokenStream extends JsonParser {
 		path = new ArrayList<Object>();
 		fixedLevels = 0;
 		currentTokenIsNull = false;
-		Reader r = getDataReader();
-		if (stringBufferSize > 0)
-			r = getWrapperForLargeStrings(r);
-		super2 = new JsonFactory().createParser(r);
-		if (super2.getCodec() == null) {
-			super2.setCodec(UObject.getMapper());
+		if (inner != null) {
+			if (!inner.isClosed())
+				throw new IOException("Inner parser wasn't closed previously");
+			inner = null;
 		}
 		if (root != null && root.size() > 0) {
 			int pos = -1;
@@ -138,6 +137,24 @@ public class JsonTokenStream extends JsonParser {
 		}
 		if (debug)
 			System.out.println("end of init");
+	}
+	
+	protected JsonParser getInner() {
+		if (inner == null) {
+			try {
+				Reader r = getDataReader();
+				if (debugOpenCloseListener != null)
+					debugOpenCloseListener.onStreamOpen(this);
+				if (stringBufferSize > 0)
+					r = getWrapperForLargeStrings(r);
+				inner = new JsonFactory().createParser(r);
+				if (inner.getCodec() == null)
+					inner.setCodec(UObject.getMapper());
+			} catch (IOException ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
+		return inner;
 	}
 
 	public Reader getDataReader() throws FileNotFoundException, IOException {
@@ -308,13 +325,17 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public void clearCurrentToken() {
 		if (debug) debug();
-		super2.clearCurrentToken();
+		getInner().clearCurrentToken();
 	}
 	
 	@Override
 	public void close() throws IOException {
 		if (debug) debug();
-		super2.close();
+		if (inner != null && !inner.isClosed()) {
+			inner.close();
+			if (debugOpenCloseListener != null)
+					debugOpenCloseListener.onStreamClosed(this);
+		}
 		largeStringReader.close();
 	}
 	
@@ -322,32 +343,32 @@ public class JsonTokenStream extends JsonParser {
 	public BigInteger getBigIntegerValue() throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getBigIntegerValue();
+		return getInner().getBigIntegerValue();
 	}
 	
 	@Override
 	public byte[] getBinaryValue(Base64Variant arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getBinaryValue(arg0);
+		return getInner().getBinaryValue(arg0);
 	}
 	
 	@Override
 	public ObjectCodec getCodec() {
 		if (debug) debug();
-		return super2.getCodec();
+		return getInner().getCodec();
 	}
 	
 	@Override
 	public JsonLocation getCurrentLocation() {
 		if (debug) debug();
-		return super2.getCurrentLocation();
+		return getInner().getCurrentLocation();
 	}
 	
 	@Override
 	public String getCurrentName() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getCurrentName();
+		return getInner().getCurrentName();
 	}
 	
 	@Override
@@ -356,129 +377,129 @@ public class JsonTokenStream extends JsonParser {
 		if (currentTokenIsNull) {
 			return null;
 		}
-		return super2.getCurrentToken();
+		return getInner().getCurrentToken();
 	}
 	
 	@Override
 	public BigDecimal getDecimalValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getDecimalValue();
+		return getInner().getDecimalValue();
 	}
 	
 	@Override
 	public double getDoubleValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getDoubleValue();
+		return getInner().getDoubleValue();
 	}
 	
 	@Override
 	public Object getEmbeddedObject() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getEmbeddedObject();
+		return getInner().getEmbeddedObject();
 	}
 	
 	@Override
 	public float getFloatValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getFloatValue();
+		return getInner().getFloatValue();
 	}
 	
 	@Override
 	public int getIntValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getIntValue();
+		return getInner().getIntValue();
 	}
 	
 	@Override
 	public JsonToken getLastClearedToken() {
 		if (debug) debug();
-		return super2.getLastClearedToken();
+		return getInner().getLastClearedToken();
 	}
 	
 	@Override
 	public long getLongValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getLongValue();
+		return getInner().getLongValue();
 	}
 	
 	@Override
 	public NumberType getNumberType() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getNumberType();
+		return getInner().getNumberType();
 	}
 	
 	@Override
 	public Number getNumberValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getNumberValue();
+		return getInner().getNumberValue();
 	}
 	
 	@Override
 	public JsonStreamContext getParsingContext() {
 		if (debug) debug();
-		return super2.getParsingContext();
+		return getInner().getParsingContext();
 	}
 	
 	@Override
 	public String getText() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getText();
+		return getInner().getText();
 	}
 	
 	@Override
 	public char[] getTextCharacters() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getTextCharacters();
+		return getInner().getTextCharacters();
 	}
 	
 	@Override
 	public int getTextLength() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getTextLength();
+		return getInner().getTextLength();
 	}
 	
 	@Override
 	public int getTextOffset() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getTextOffset();
+		return getInner().getTextOffset();
 	}
 	
 	@Override
 	public JsonLocation getTokenLocation() {
 		if (debug) debug();
-		return super2.getTokenLocation();
+		return getInner().getTokenLocation();
 	}
 	
 	@Override
 	public String getValueAsString(String arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsString(arg0);
+		return getInner().getValueAsString(arg0);
 	}
 	
 	@Override
 	public boolean hasCurrentToken() {
 		if (debug) debug();
-		return super2.hasCurrentToken();
+		return getInner().hasCurrentToken();
 	}
 	
 	@Override
 	public boolean hasTextCharacters() {
 		if (debug) debug();
-		return super2.hasTextCharacters();
+		return getInner().hasTextCharacters();
 	}
 	
 	@Override
 	public boolean isClosed() {
 		if (debug) debug();
-		return super2.isClosed();
+		return inner == null || inner.isClosed();
 	}
 	
 	@Override
 	public JsonToken nextToken() throws IOException, JsonParseException {
 		if (debug) debug();
 		currentTokenIsNull = false;
-		JsonToken ret = super2.nextToken();
+		JsonToken ret = getInner().nextToken();
 		int lastPos = path.size() - 1;
 		if (ret == JsonToken.START_ARRAY) {
 			path.add(0);
@@ -486,7 +507,7 @@ public class JsonTokenStream extends JsonParser {
 			path.remove(lastPos);
 			lastPos--;
 			if (fixedLevels > 0 && path.size() == fixedLevels) {
-				super2.close();
+				close();
 			} else if (lastPos >= 0) {
 				Object obj = path.get(lastPos);
 				if (obj instanceof Integer) 
@@ -498,14 +519,14 @@ public class JsonTokenStream extends JsonParser {
 			path.remove(lastPos);
 			lastPos--;
 			if (fixedLevels > 0 && path.size() == fixedLevels) {
-				super2.close();
+				close();
 			} else if (lastPos >= 0) {
 				Object obj = path.get(lastPos);
 				if (obj instanceof Integer) 
 					path.set(lastPos, (Integer)obj + 1);
 			}
 		} else if (ret == JsonToken.FIELD_NAME) {
-			path.set(lastPos, super2.getText());
+			path.set(lastPos, inner.getText());
 		} else {
 			if (lastPos >= 0) {
 				Object obj = path.get(lastPos);
@@ -514,7 +535,7 @@ public class JsonTokenStream extends JsonParser {
 			}
 		}
 		if (fixedLevels > 0 && path.size() < fixedLevels) {
-			super2.close();
+			close();
 			ret = null;
 		}
 		if (debug)
@@ -525,19 +546,19 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public JsonToken nextValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.nextValue();
+		return getInner().nextValue();
 	}
 	
 	@Override
 	public void overrideCurrentName(String arg0) {
 		if (debug) debug();
-		super2.overrideCurrentName(arg0);
+		getInner().overrideCurrentName(arg0);
 	}
 	
 	@Override
 	public void setCodec(ObjectCodec arg0) {
 		if (debug) debug();
-		super2.setCodec(arg0);
+		getInner().setCodec(arg0);
 	}
 	
 	@Override
@@ -567,181 +588,181 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public Version version() {
 		if (debug) debug();
-		return super2.version();
+		return getInner().version();
 	}
 
 	@Override
 	public boolean canUseSchema(FormatSchema arg0) {
 		if (debug) debug();
-		return super2.canUseSchema(arg0);
+		return getInner().canUseSchema(arg0);
 	}
 	
 	@Override
 	public JsonParser configure(Feature arg0, boolean arg1) {
 		if (debug) debug();
-		return super2.configure(arg0, arg1);
+		return getInner().configure(arg0, arg1);
 	}
 	
 	@Override
 	public JsonParser disable(Feature arg0) {
 		if (debug) debug();
-		return super2.disable(arg0);
+		return getInner().disable(arg0);
 	}
 	
 	@Override
 	public JsonParser enable(Feature arg0) {
 		if (debug) debug();
-		return super2.enable(arg0);
+		return getInner().enable(arg0);
 	}
 	
 	@Override
 	public byte[] getBinaryValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getBinaryValue();
+		return getInner().getBinaryValue();
 	}
 	
 	@Override
 	public boolean getBooleanValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getBooleanValue();
+		return getInner().getBooleanValue();
 	}
 	
 	@Override
 	public byte getByteValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getByteValue();
+		return getInner().getByteValue();
 	}
 	
 	@Override
 	public Object getInputSource() {
 		if (debug) debug();
-		return super2.getInputSource();
+		return getInner().getInputSource();
 	}
 	
 	@Override
 	public FormatSchema getSchema() {
 		if (debug) debug();
-		return super2.getSchema();
+		return getInner().getSchema();
 	}
 	
 	@Override
 	public short getShortValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getShortValue();
+		return getInner().getShortValue();
 	}
 	
 	@Override
 	public boolean getValueAsBoolean() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsBoolean();
+		return getInner().getValueAsBoolean();
 	}
 	
 	@Override
 	public boolean getValueAsBoolean(boolean arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsBoolean(arg0);
+		return getInner().getValueAsBoolean(arg0);
 	}
 	
 	@Override
 	public double getValueAsDouble() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsDouble();
+		return getInner().getValueAsDouble();
 	}
 	
 	@Override
 	public double getValueAsDouble(double arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsDouble(arg0);
+		return getInner().getValueAsDouble(arg0);
 	}
 	
 	@Override
 	public int getValueAsInt() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsInt();
+		return getInner().getValueAsInt();
 	}
 	
 	@Override
 	public int getValueAsInt(int arg0) throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsInt(arg0);
+		return getInner().getValueAsInt(arg0);
 	}
 	
 	@Override
 	public long getValueAsLong() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsLong();
+		return getInner().getValueAsLong();
 	}
 	
 	@Override
 	public long getValueAsLong(long arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsLong(arg0);
+		return getInner().getValueAsLong(arg0);
 	}
 	
 	@Override
 	public String getValueAsString() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.getValueAsString();
+		return getInner().getValueAsString();
 	}
 	
 	@Override
 	public boolean isEnabled(Feature arg0) {
 		if (debug) debug();
-		return super2.isEnabled(arg0);
+		return getInner().isEnabled(arg0);
 	}
 	
 	@Override
 	public boolean isExpectedStartArrayToken() {
 		if (debug) debug();
-		return super2.isExpectedStartArrayToken();
+		return getInner().isExpectedStartArrayToken();
 	}
 	
 	@Override
 	public Boolean nextBooleanValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.nextBooleanValue();
+		return getInner().nextBooleanValue();
 	}
 	
 	@Override
 	public boolean nextFieldName(SerializableString arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.nextFieldName(arg0);
+		return getInner().nextFieldName(arg0);
 	}
 	
 	@Override
 	public int nextIntValue(int arg0) throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.nextIntValue(arg0);
+		return getInner().nextIntValue(arg0);
 	}
 	
 	@Override
 	public long nextLongValue(long arg0) throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.nextLongValue(arg0);
+		return getInner().nextLongValue(arg0);
 	}
 	
 	@Override
 	public String nextTextValue() throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.nextTextValue();
+		return getInner().nextTextValue();
 	}
 	
 	@Override
 	public int readBinaryValue(Base64Variant arg0, OutputStream arg1)
 			throws IOException, JsonParseException {
 		if (debug) debug();
-		return super2.readBinaryValue(arg0, arg1);
+		return getInner().readBinaryValue(arg0, arg1);
 	}
 	
 	@Override
 	public int readBinaryValue(OutputStream arg0) throws IOException,
 			JsonParseException {
 		if (debug) debug();
-		return super2.readBinaryValue(arg0);
+		return getInner().readBinaryValue(arg0);
 	}
 	
 	@Override
@@ -804,31 +825,34 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public int releaseBuffered(OutputStream arg0) throws IOException {
 		if (debug) debug();
-		return super2.releaseBuffered(arg0);
+		return getInner().releaseBuffered(arg0);
 	}
 	
 	@Override
 	public int releaseBuffered(Writer arg0) throws IOException {
 		if (debug) debug();
-		return super2.releaseBuffered(arg0);
+		return getInner().releaseBuffered(arg0);
 	}
 	
 	@Override
 	public boolean requiresCustomCodec() {
 		if (debug) debug();
-		return super2.requiresCustomCodec();
+		return getInner().requiresCustomCodec();
 	}
 	
 	@Override
 	public void setSchema(FormatSchema arg0) {
 		if (debug) debug();
-		super2.setSchema(arg0);
+		getInner().setSchema(arg0);
 	}
 	
 	public void writeTokens(JsonGenerator jgen) throws IOException {
-		writeNextToken(jgen);
-		writeTokensWithoutFirst(jgen);
-		close();
+		try {
+			writeNextToken(jgen);
+			writeTokensWithoutFirst(jgen);
+		} finally {
+			close();
+		}
 	}
 
 	public void writeJson(File f) throws IOException {
@@ -1018,6 +1042,11 @@ public class JsonTokenStream extends JsonParser {
 		return t;
 	}
 	
+	public static void setDebugOpenCloseListener(
+			DebugOpenCloseListener debugOpenCloseListener) {
+		JsonTokenStream.debugOpenCloseListener = debugOpenCloseListener;
+	}
+	
 	private class LargeStringSearchingReader extends Reader {
 		private Reader r = null;
 		private long pos = 0;
@@ -1045,8 +1074,10 @@ public class JsonTokenStream extends JsonParser {
 		@Override
 		public void close() throws IOException {
 			isClosed = true;
-			if (r != null)
+			if (r != null) {
 				r.close();
+				r = null;
+			}
 		}
 		
 		@Override
@@ -1062,5 +1093,10 @@ public class JsonTokenStream extends JsonParser {
 			pos += ret;
 			return ret;
 		}
+	}
+	
+	public interface DebugOpenCloseListener {
+		public void onStreamOpen(JsonTokenStream instance);
+		public void onStreamClosed(JsonTokenStream instance);
 	}
 }

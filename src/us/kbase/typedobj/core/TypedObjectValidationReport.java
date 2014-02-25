@@ -211,6 +211,12 @@ public class TypedObjectValidationReport {
 					relabelWsIdReferencesIntoWriter(os);
 				}
 			}
+			
+			@Override
+			public void releaseResources() throws IOException {
+				if (fileForSorting != null)
+					fileForSorting.delete();
+			}
 		};
 	}
 	
@@ -254,7 +260,7 @@ public class TypedObjectValidationReport {
 				}
 			};
 			JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
-			boolean sorted = relabelWsIdReferencesIntoGenerator(null);
+			boolean sorted = relabelWsIdReferencesIntoGenerator(jgen);
 			jgen.close();
 			jgen = null;
 			if (!sorted) {
@@ -277,7 +283,7 @@ public class TypedObjectValidationReport {
 						jgen = null;
 						fileForSorting = tfm.generateTempFile("sortout", "json");
 						FileOutputStream os = new FileOutputStream(fileForSorting);
-						new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
+						new SortedKeysJsonFile(f1).writeIntoStream(os).close();
 						os.close();
 					} finally {
 						f1.delete();

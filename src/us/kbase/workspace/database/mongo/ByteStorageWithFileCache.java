@@ -67,7 +67,12 @@ public class ByteStorageWithFileCache {
 		}
 	}
 	
+	public File getTempFile() {
+		return tempFile;
+	}
+	
 	public void deleteTempFile() {
-		tempFile.delete();
+		if (tempFile != null)
+			tempFile.delete();
 	}
 }

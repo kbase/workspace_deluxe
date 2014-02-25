@@ -165,6 +165,7 @@ public class ShockBackend implements BlobStore {
 		try {
 			//writes in UTF8
 			data.write(osis);
+			data.releaseResources();
 		} catch (IOException ioe) {
 			throw new RuntimeException("IO Error during streaming of JsonNode: "
 					+ ioe.getLocalizedMessage(), ioe);

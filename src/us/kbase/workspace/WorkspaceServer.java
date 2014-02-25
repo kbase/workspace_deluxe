@@ -56,6 +56,7 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
@@ -118,6 +119,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
+	private ThreadLocal<List<File>> resourcesToDelete = new ThreadLocal<List<File>>();
+	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd, TempFilesManager tfm) {
 		try {
@@ -161,12 +164,27 @@ public class WorkspaceServer extends JsonServerServlet {
 	protected File generateTempFile() {
 		return ws.getTempFilesManager().generateTempFile("rpc", "json");
 	}
+	
+	@Override
+	protected void onRpcMethodDone() {
+		if (resourcesToDelete.get() != null) {
+			for (File f : resourcesToDelete.get())
+				try {
+					f.delete();
+				} catch (Exception ignore) {}
+			resourcesToDelete.set(null);
+		}
+	}
+	
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
-		setMaxObjectSize(250000000L);
+		setMaxObjectSize(2050000000L);
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.
@@ -239,6 +257,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				System.out.println(mem);
 				logInfo(mem);
 			}
+			setRpcDiskCacheTempDir(tfm.getTempDir());
 		}
         //END_CONSTRUCTOR
     }
@@ -565,9 +584,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
+		ByteStorageWithFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
-			.withData(ret.getDataAsJsonNode().getUObject())
+			.withData(resource.getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
+		if (resource.getTempFile() != null)
+			resourcesToDelete.set(Arrays.asList(resource.getTempFile()));
         //END get_object
         return returnVal;
     }
@@ -585,8 +607,11 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		List<File> files = new ArrayList<File>();
 		returnVal = au.translateObjectData(
-				ws.getObjects(getUser(authPart), loi));
+				ws.getObjects(getUser(authPart), loi), files);
+		if (!files.isEmpty())
+			resourcesToDelete.set(files);
         //END get_objects
         return returnVal;
     }
@@ -616,8 +641,11 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_subset
 		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
+		List<File> files = new ArrayList<File>();
 		returnVal = au.translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi));
+				ws.getObjectsSubSet(getUser(authPart), loi), files);
+		if (!files.isEmpty())
+			resourcesToDelete.set(files);
         //END get_object_subset
         return returnVal;
     }
@@ -706,8 +734,11 @@ public class WorkspaceServer extends JsonServerServlet {
 			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
+		List<File> files = new ArrayList<File>();
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
-				getUser(authPart), chains));
+				getUser(authPart), chains), files);
+		if (!files.isEmpty())
+			resourcesToDelete.set(files);
         //END get_referenced_objects
         return returnVal;
     }

@@ -31,10 +31,14 @@ public class WorkspaceObjectData {
 		this.references = references;
 	}
 
-	public ByteStorageWithFileCache getDataAsJsonNode() {
+	public ByteStorageWithFileCache getDataAsTokens() {
 		return data;
 	}
 	
+	/**
+	 * You can call this method only once since it deleted temporary file with data.
+	 * @return Maps/lists/scalars
+	 */
 	public Object getData() {
 		try {
 			//return MAPPER.treeToValue(data, Object.class);
@@ -42,6 +46,8 @@ public class WorkspaceObjectData {
 		} catch (Exception jpe) {
 			//this should never happen
 			throw new RuntimeException("something's dun broke", jpe);
+		} finally {
+			data.deleteTempFile();
 		}
 	}
 

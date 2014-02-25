@@ -12,6 +12,10 @@ public class TempFilesManager {
 			tempDir.mkdir();
 	}
 	
+	public File getTempDir() {
+		return tempDir;
+	}
+	
 	public synchronized File generateTempFile(String prefix, String extention) {
 		long suffix = System.currentTimeMillis();
 		if (suffix <= lastUsedSuffix)

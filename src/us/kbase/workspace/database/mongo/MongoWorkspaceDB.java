@@ -3046,6 +3046,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				public void write(OutputStream os) throws IOException {
 					MAPPER.writeValue(os, data);				
 				}
+				@Override
+				public void releaseResources() throws IOException {
+				}
 			}, at, data);
 			testdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");

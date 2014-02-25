@@ -5,6 +5,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 
 /**
  * not thread safe
@@ -297,12 +299,13 @@ public class ArgUtils {
 		return wsusers;
 	}
 	
-	public List<ObjectData> translateObjectData(
-			final List<WorkspaceObjectData> objects) {
+	public List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
+			List<File> filesToDelete) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
+			ByteStorageWithFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
-					.withData(o.getDataAsJsonNode().getUObject())
+					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
@@ -310,6 +313,8 @@ public class ArgUtils {
 					.withCreated(dateFormat.formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
+			if (resource.getTempFile() != null)
+				filesToDelete.add(resource.getTempFile());
 		}
 		return ret;
 	}

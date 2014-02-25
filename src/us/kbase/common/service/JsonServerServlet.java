@@ -22,6 +22,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.ini4j.Ini;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -285,6 +287,8 @@ public class JsonServerServlet extends HttpServlet {
 			} catch (Exception ex) {
 				writeError(response, -32700, "Parse error (" + ex.getMessage() + ")", ex, output);
 				return;
+			} finally {
+				jts.close();
 			}
 			Object idNode = rpcCallData.getId();
 			try {
@@ -345,7 +349,11 @@ public class JsonServerServlet extends HttpServlet {
 					if (paramType instanceof Class && paramType.equals(UObject.class)) {
 						obj = jsonData;
 					} else {
-						obj = mapper.readValue(jsonData.getPlacedStream(), paramJavaType);
+						try {
+							obj = mapper.readValue(jsonData.getPlacedStream(), paramJavaType);
+						} finally {
+							jts.close();
+						}
 					}
 					methodValues[typePos] = obj;
 				} catch (Exception ex) {
@@ -365,17 +373,24 @@ public class JsonServerServlet extends HttpServlet {
 					ex = ex.getCause();
 				}
 				writeError(response, -32500, ex, output);
+				onRpcMethodDone();
 				return;
 			}
-			boolean isTuple = rpcMethod.getAnnotation(JsonServerMethod.class).tuple();
-			if (!isTuple) {
-				result = Arrays.asList(result);
+			try {
+				boolean isTuple = rpcMethod.getAnnotation(JsonServerMethod.class).tuple();
+				if (!isTuple) {
+					result = Arrays.asList(result);
+				}
+				Map<String, Object> ret = new LinkedHashMap<String, Object>();
+				ret.put("version", "1.1");
+				ret.put("result", result);
+				mapper.writeValue(new UnclosableOutputStream(output), ret);
+				output.flush();
+			} finally {
+				try {
+					onRpcMethodDone();
+				} catch (Exception ignore) {}
 			}
-			ObjectNode ret = mapper.createObjectNode();
-			ret.put("version", "1.1");
-			ret.put("result", mapper.valueToTree(result));
-			mapper.writeValue(new UnclosableOutputStream(output), ret);
-			output.flush();
 		} catch (Exception ex) {
 			writeError(response, -32400, "Unexpected internal error (" + ex.getMessage() + ")", ex, output);	
 		} finally {
@@ -396,6 +411,10 @@ public class JsonServerServlet extends HttpServlet {
 		// Do nothing. Inherited classes could define proper implementation.
 	}
 	
+	protected void onRpcMethodDone() {
+		// Do nothing. Inherited classes could define proper implementation.
+	}
+	
 	protected File generateTempFile() {
 		File tempFile = null;
 		long suffix = System.currentTimeMillis();
@@ -407,7 +426,7 @@ public class JsonServerServlet extends HttpServlet {
 		}
 		return tempFile;
 	}
-
+	
 	protected Long getMaxObjectSize() {
 		return this.maxObjectSize;
 	}
@@ -441,6 +460,7 @@ public class JsonServerServlet extends HttpServlet {
 	private void writeError(HttpServletResponse response, int code, String message, Throwable ex, OutputStream output) {
 		String data = null;
 		if (ex != null) {
+			ex.printStackTrace();
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			ex.printStackTrace(pw);

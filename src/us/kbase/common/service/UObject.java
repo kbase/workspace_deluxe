@@ -6,13 +6,13 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +49,21 @@ public class UObject {
 		this.userObj = jts;
 		this.tokenStreamRootPath = rootPath;
 	}
-	
+
+	public UObject(UObject parent, String... relativePath) {
+		if (!parent.isTokenStream())
+			throw new IllegalStateException("Relative path is supported only for token streams");
+		this.userObj = parent.userObj;
+		List<String> fullPath = parent.tokenStreamRootPath;
+		if (relativePath.length > 0) {
+			fullPath = new ArrayList<String>();
+			if (parent.tokenStreamRootPath != null)
+				fullPath.addAll(parent.tokenStreamRootPath);
+			fullPath.addAll(Arrays.asList(relativePath));
+		}
+		this.tokenStreamRootPath = fullPath;
+	}
+
 	public static ObjectMapper getMapper() {
 		return mapper;
 	}
@@ -87,9 +101,17 @@ public class UObject {
 				return mapper.readTree(getPlacedStream());
 			} catch (IOException ex) {
 				throw new IllegalStateException(ex);
+			} finally {
+				close();
 			}
 		}
 		return transformObjectToJackson(userObj);
+	}
+	
+	private void close() {
+		try {
+			((JsonTokenStream)userObj).close();
+		} catch (IOException ignore) {}
 	}
 	
 	Object getUserObject() {
@@ -249,6 +271,8 @@ public class UObject {
 				return mapper.readValue(getPlacedStream(), retType);
 			} catch (IOException ex) {
 				throw new IllegalStateException(ex);
+			} finally {
+				close();
 			}
 		}
 		return transformObjectToObject(userObj, retType);
@@ -265,6 +289,8 @@ public class UObject {
 				return mapper.readValue(getPlacedStream(), retType);
 			} catch (IOException ex) {
 				throw new IllegalStateException(ex);
+			} finally {
+				close();
 			}
 		}
 		return transformObjectToObject(userObj, retType);

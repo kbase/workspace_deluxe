@@ -88,6 +88,9 @@ public class GridFSBackendTest {
 			public void write(OutputStream w) throws IOException {
 				MAPPER.writeValue(w, value);
 			}
+			@Override
+			public void releaseResources() throws IOException {
+			}
 		};
 	}
 }

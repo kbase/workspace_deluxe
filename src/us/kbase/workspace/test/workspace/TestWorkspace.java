@@ -29,7 +29,6 @@ import junit.framework.Assert;
 
 import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,6 +37,8 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -82,6 +83,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
+import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
@@ -89,6 +91,7 @@ import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.ModuleInfo;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
+import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
@@ -149,6 +152,10 @@ public class TestWorkspace {
 	private static final TypeDefId SAFE_TYPE2_21 =
 			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
 
+	static {
+		JsonTokenStreamOCStat.register();
+	}
+	
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
 		printMem("*** startup ***");
@@ -174,6 +181,7 @@ public class TestWorkspace {
 			System.out.println("deleting all shock nodes");
 			sbe.removeAllBlobs();
 		}
+		JsonTokenStreamOCStat.showStat();
 	}
 	
 	private static final Map<String, Workspace> configs =
@@ -1963,7 +1971,7 @@ public class TestWorkspace {
 		}
 	}
 	
-	@Test @Ignore
+	@Test
 	public void saveWithBigData() throws Exception {
 //		System.gc();
 //		printMem("*** starting saveWithBigData, ran gc ***");
@@ -2006,21 +2014,23 @@ public class TestWorkspace {
 		
 		//printMem("*** released refs ***");
 		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getData();
+		ByteStorageWithFileCache newdata = ws.getObjects(userfoo, 
+				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getDataAsTokens();
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");
-		
-		assertThat("correct obj keys", newdata.keySet(),
-				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
-		@SuppressWarnings("unchecked")
-		List<String> newsd = (List<String>) newdata.get("subset");
-		assertThat("correct subdata size", newsd.size(), is(997008));
-		for (String s: newsd) {
-			assertThat("correct string in subdata", s, is(TEXT1000));
+		UObject array = new UObject(newdata.getUObject(), "subset");
+		//assertThat("correct obj keys", newdata.keySet(),
+		//		is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
+		JsonParser jp = array.getPlacedStream();
+		Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
+		for (int i = 0; i < 997008; i++) {
+			Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
+			assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
 		}
+		Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
+		jp.close();
+		newdata.deleteTempFile();
 //		newdata = null;
 //		newsd = null;
 //		printMem("*** released refs ***");
@@ -3184,7 +3194,7 @@ public class TestWorkspace {
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
 		assertThat("returned data same", got.getData(), is((Object) data));
-		assertThat("returned data jsonnode same", got.getDataAsJsonNode().getAsJsonNode(),
+		assertThat("returned data jsonnode same", got.getDataAsTokens().getAsJsonNode(),
 				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
