@@ -335,9 +335,25 @@ public class Workspace {
 			final Permission permission) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
+		if (user == null) {
+			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
+		}
+		if (users == null || users.isEmpty()) {
+			throw new IllegalArgumentException(
+					"The users list may not be null or empty");
+		}
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
+//		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+//		final Permission perm = db.getPermissions(user, wsid)
+//				.getUserPermission(wsid, true);
+//		if (Permission.ADMIN.compareTo(perm) > 0) {
+//			if (!users.equals(Arrays.asList(user)) || 
+//					perm.compareTo(permission) > 0) {
+//				throw new Illegal
+//			}
+//		}
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"set permissions on", false, true);
 		db.setPermissions(wsid, users, permission);
