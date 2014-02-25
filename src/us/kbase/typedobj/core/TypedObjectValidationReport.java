@@ -15,12 +15,8 @@ import java.util.Map;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.validatorconfig.SortedKeysJsonFile;
-import us.kbase.typedobj.core.validatornew.IdRefNode;
-import us.kbase.typedobj.core.validatornew.JsonTokenStreamWriter;
-import us.kbase.typedobj.core.validatornew.KBaseJsonTreeGenerator;
-import us.kbase.typedobj.core.validatornew.TokenSequenceProvider;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.SortedKeysJsonFile;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceManager;

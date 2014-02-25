@@ -16,10 +16,6 @@ import com.github.fge.jsonschema.report.ProcessingReport;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
-import us.kbase.typedobj.core.validatornew.IdRefNode;
-import us.kbase.typedobj.core.validatornew.JsonTokenValidationException;
-import us.kbase.typedobj.core.validatornew.JsonTokenValidationListener;
-import us.kbase.typedobj.core.validatornew.NodeSchema;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 

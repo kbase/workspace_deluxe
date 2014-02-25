@@ -6,9 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.core.validatornew.KBaseJsonTreeGenerator;
-import us.kbase.typedobj.core.validatornew.TokenSequenceProvider;
-import us.kbase.typedobj.core.validatornew.WsSubsetNode;
+import us.kbase.common.util.KBaseJsonTreeGenerator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -17,6 +15,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Extraction of ws-searchable subset based on json token stream.
+ * @author rsutormin
+ */
 public class SearchableWsSubsetExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	

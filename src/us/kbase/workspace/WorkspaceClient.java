@@ -1,7 +1,6 @@
 package us.kbase.workspace;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -94,7 +93,7 @@ public class WorkspaceClient {
 	public void _setFileForNextRpcResponse(File f) {
 		caller.setFileForNextRpcResponse(f);
 	}
-    
+
     /**
      * <p>Original spec-file function name: ver</p>
      * <pre>

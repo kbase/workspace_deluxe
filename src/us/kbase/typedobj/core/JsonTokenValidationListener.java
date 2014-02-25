@@ -1,6 +1,7 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.util.List;
+
 
 import com.fasterxml.jackson.databind.JsonNode;
 

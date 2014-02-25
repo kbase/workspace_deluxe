@@ -17,7 +17,7 @@ import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;

@@ -14,6 +14,10 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TempFilesManager;
 
+/**
+ * Class is used for getting data from gridfs/shock and keeping it on disk before sending back to client.
+ * @author rsutormin
+ */
 public class ByteStorageWithFileCache {
 	private File tempFile;
 	private JsonTokenStream jts;

@@ -1,4 +1,4 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 public class JsonTokenValidationException extends Exception {
 	public JsonTokenValidationException() {

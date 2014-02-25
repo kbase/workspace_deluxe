@@ -1,8 +1,13 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * This class describes schema of filtering user-defined data
+ * in order to construct ws-searchable subset.
+ * @author rsutormin
+ */
 public class WsSubsetNode {
 	private boolean needKeys = false;
 	private boolean needAll = false;

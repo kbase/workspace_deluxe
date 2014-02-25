@@ -1,4 +1,4 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.io.IOException;
 import java.io.OutputStream;

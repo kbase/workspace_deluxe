@@ -1,6 +1,7 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.io.IOException;
+
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonToken;

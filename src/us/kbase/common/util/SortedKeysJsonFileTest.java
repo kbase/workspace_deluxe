@@ -1,4 +1,4 @@
-package us.kbase.typedobj.core.validatorconfig;
+package us.kbase.common.util;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;

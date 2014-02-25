@@ -33,7 +33,7 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;

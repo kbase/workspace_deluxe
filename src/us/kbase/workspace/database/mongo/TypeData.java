@@ -8,7 +8,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;

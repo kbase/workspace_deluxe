@@ -5,7 +5,7 @@ import java.io.InputStream;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 

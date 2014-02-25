@@ -10,10 +10,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 
 import us.kbase.common.service.JsonTokenStream;
-import us.kbase.typedobj.core.validatornew.IdRefNode;
-import us.kbase.typedobj.core.validatornew.TokenSequenceProvider;
 import us.kbase.typedobj.idref.IdReference;
 
+/**
+ * This class lets you to substitute id references into text tokens (string 
+ * keys and values) on the fly during json token stream reading.
+ * @author rsutormin
+ */
 public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	private JsonTokenStream jts;
 	private Map<String, String> absoluteIdRefMapping;

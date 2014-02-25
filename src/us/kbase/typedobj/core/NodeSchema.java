@@ -1,4 +1,4 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,6 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * This is main validation algorithm.
+ * @author rsutormin
+ */
 public class NodeSchema {
 	enum Type {
 		object, array, string, integer, number

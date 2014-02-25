@@ -83,13 +83,16 @@ import us.kbase.workspace.test.workspace.FakeObjectInfo;
 import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 
 import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -3036,6 +3039,30 @@ public class JSONRPCLayerTest {
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("subdata").withNewPermission("n"));
 	}
+	
+	public static void main(String[] args) throws IOException {
+		String text = "{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"foobar\": \"somestuff\"" +
+				"}";
+		TreeNode tree = new ObjectMapper().readTree(text);
+		System.out.println(sortJson(tree));
+	}
+	
+	private static JsonNode sortJson(TreeNode tree) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		Object map = mapper.treeToValue(tree, Object.class);
+		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+		String text = mapper.writeValueAsString(map);
+		return mapper.readTree(text);
+	}
+
 	
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> createData(String json)

@@ -1,10 +1,14 @@
-package us.kbase.typedobj.core.validatornew;
+package us.kbase.typedobj.core;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import us.kbase.typedobj.idref.IdReference;
 
+/**
+ * This class describes schema of id reference substitution.
+ * @author rsutormin
+ */
 public class IdRefNode {
 	private final String lastPathLocation; 
 	private IdReference parentKeyRef = null;

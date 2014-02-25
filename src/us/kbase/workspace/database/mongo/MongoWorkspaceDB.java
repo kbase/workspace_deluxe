@@ -47,7 +47,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;

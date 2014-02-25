@@ -19,7 +19,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.validatornew.Writable;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
