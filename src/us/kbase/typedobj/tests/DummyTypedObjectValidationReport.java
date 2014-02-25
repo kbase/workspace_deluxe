@@ -1,12 +1,11 @@
 package us.kbase.typedobj.tests;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -27,7 +26,7 @@ public class DummyTypedObjectValidationReport extends
 	
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
 			final UObject data) {
-		super(null, type, data, null);
+		super(Collections.<String>emptyList(), null, type, data, null, Collections.<WsIdReference>emptyList());
 	}
 	
 	@Override
@@ -36,21 +35,9 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public int getErrorCount() {
-		return 0;
-	}
-	
-	@Override
 	public List <String> getErrorMessagesAsList() {
 		return new ArrayList<String>();
 	}
-	
-	
-	@Override
-	public ProcessingReport getRawProcessingReport() {
-		throw new RuntimeException("cannot get the processing report from a dummy typed object validation report.");
-	}
-	
 	
 	@Override
 	public List<WsIdReference> getWsIdReferences() {

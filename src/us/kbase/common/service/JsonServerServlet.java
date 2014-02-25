@@ -345,7 +345,9 @@ public class JsonServerServlet extends HttpServlet {
 				PlainTypeRef paramJavaType = new PlainTypeRef(paramType);
 				try {
 					Object obj;
-					if (paramType instanceof Class && paramType.equals(UObject.class)) {
+					if (jsonData == null) {
+						obj = null;
+					} else if (paramType instanceof Class && paramType.equals(UObject.class)) {
 						obj = jsonData;
 					} else {
 						try {

@@ -71,15 +71,15 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		String ret = jts.getText();
 		if (refPath.size() == path.size() + 1) {
 			IdRefNode node = refPath.get(path.size());
-			IdReference ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
+			String ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
 			if (ref != null) {
 				String subst = absoluteIdRefMapping.get(ret);
-				if (ref.getId().equals(ret)) {
+				if (ref.equals(ret)) {
 					if (subst == null)
 						throw new IllegalStateException("Id was not found: " + ret);
 					return subst;
 				} else {
-					throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref.getId() + ", actual id=" + ret);
+					throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref + ", actual id=" + ret);
 				}
 			}
 		}

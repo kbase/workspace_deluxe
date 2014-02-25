@@ -11,8 +11,8 @@ import us.kbase.typedobj.idref.IdReference;
  */
 public class IdRefNode {
 	private final String lastPathLocation; 
-	private IdReference parentKeyRef = null;
-	private IdReference scalarValueRef = null;
+	private String parentKeyRef = null;
+	private String scalarValueRef = null;
 	private Map<String, IdRefNode> children = null;
 	
 	public IdRefNode(String lastPathLocation) {
@@ -33,19 +33,19 @@ public class IdRefNode {
 		children.put(key, child);
 	}
 	
-	public IdReference getParentKeyRef() {
+	public String getParentKeyRef() {
 		return parentKeyRef;
 	}
 	
-	public void setParentKeyRef(IdReference parentKeyRef) {
+	public void setParentKeyRef(String parentKeyRef) {
 		this.parentKeyRef = parentKeyRef;
 	}
 	
-	public IdReference getScalarValueRef() {
+	public String getScalarValueRef() {
 		return scalarValueRef;
 	}
 	
-	public void setScalarValueRef(IdReference scalarValueRef) {
+	public void setScalarValueRef(String scalarValueRef) {
 		this.scalarValueRef = scalarValueRef;
 	}
 }

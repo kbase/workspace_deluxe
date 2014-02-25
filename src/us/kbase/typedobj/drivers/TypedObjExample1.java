@@ -25,7 +25,6 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.InstanceValidationException;
-import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -98,13 +97,13 @@ public class TypedObjExample1 {
 			}
 			
 			
-			List<IdReference> idRefLists = report.getAllIdReferences();
+			/*List<IdReference> idRefLists = report.getAllIdReferences();
 			System.out.println("found ids:");
 			for(IdReference idref: idRefLists) {
 				System.out.println("\t"+idref);
-			}
+			}*/
 			
-			System.out.println(report.getRawProcessingReport());
+			//sSystem.out.println(report.getRawProcessingReport());
 			
 			
 			

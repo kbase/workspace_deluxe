@@ -31,6 +31,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.TypeDefId;
@@ -206,13 +207,29 @@ public class TestWsSubsetExtraction {
 		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
 		//		actualSubset.equals(expectedSubset));
 		// this method generates a patch, so that if they differ you can see what's up
-		JsonNode diff = JsonDiff.asJson(actualSubset,expectedSubset);
-		if(VERBOSE) if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
-		//System.out.println(actualSubset);
-		//System.out.println(expectedSubset);
+		JsonNode diff = compare(expectedSubset, actualSubset);
+		if(VERBOSE) if(diff.size()!=0) {
+			System.out.println("      expected:  " + expectedSubset);
+			System.out.println("      actual:    " + actualSubset);
+			System.out.println("      FAIL: diff:"+diff);
+		}
 		assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset; diff="+diff,
 						diff.size()==0);
 		
+	}
+
+	public JsonNode compare(JsonNode expectedSubset, JsonNode actualSubset) throws IOException {
+		expectedSubset = sortJson(expectedSubset);
+		actualSubset = sortJson(actualSubset);
+		return JsonDiff.asJson(actualSubset,expectedSubset);
+	}
+
+	private static JsonNode sortJson(JsonNode tree) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		Object map = mapper.treeToValue(tree, Object.class);
+		String text = mapper.writeValueAsString(map);
+		return mapper.readTree(text);
 	}
 
 	/**

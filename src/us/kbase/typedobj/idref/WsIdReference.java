@@ -6,8 +6,6 @@ import us.kbase.typedobj.core.TypeDefName;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-
-
 public class WsIdReference extends IdReference {
 
 	public static final String typestring = "ws";

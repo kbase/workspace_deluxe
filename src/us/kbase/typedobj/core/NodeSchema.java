@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -163,9 +162,11 @@ public class NodeSchema {
 						childType.checkJsonData(jp, stat, lst, path, refPath);
 					}
 					if (idReference != null) {
-						lst.addIdRefMessage(fieldName, idReference, path.subList(0, path.size() - 1), true);
-						IdReference ref = createRef(fieldName, idReference, path.subList(0, path.size() - 1), true);
-						getIdRefNode(path, refPath).setParentKeyRef(ref);
+						WsIdReference ref = createRef(fieldName, idReference, path.subList(0, path.size() - 1), true);
+						if (ref != null) {
+							lst.addIdRefMessage(ref);
+							getIdRefNode(path, refPath).setParentKeyRef(fieldName);
+						}
 					}
 				}
 				if (reqPropUsageCount != reqPropUsage.length) {
@@ -224,9 +225,11 @@ public class NodeSchema {
 			if (t != JsonToken.VALUE_STRING)
 				lst.addError(generateError(type, t, path));
 			if (idReference != null) {
-				lst.addIdRefMessage(jp.getText(), idReference, path, false);
-				IdReference ref = createRef(jp.getText(), idReference, path, false);
-				getIdRefNode(path, refPath).setScalarValueRef(ref);
+				WsIdReference ref = createRef(jp.getText(), idReference, path, false);
+				if (ref != null) {
+					lst.addIdRefMessage(ref);
+					getIdRefNode(path, refPath).setScalarValueRef(jp.getText());
+				}
 			}
 		} else if (type == Type.integer) {
 			if (stat != null)
@@ -305,17 +308,14 @@ public class NodeSchema {
 		return refPath.get(path.size());
 	}
 	
-	private static IdReference createRef(String id, JsonNode idInfo, List<String> path, boolean isFieldName) { 
+	private static WsIdReference createRef(String id, JsonNode idInfo, List<String> path, boolean isFieldName) { 
 		String type = idInfo.get("id-type").asText();           // the id-type must be defined
 		ArrayNode location = (ArrayNode)UObject.transformObjectToJackson(path);
 		// construct the IdReference object
-		if(type.equals(WsIdReference.typestring)) {
+		if (type.equals(WsIdReference.typestring)) {
 			return new WsIdReference(id, location, (ObjectNode)idInfo, isFieldName);
 		}
-		else {
-			// catch all other idref types that we don't explicitly handle
-			return new IdReference(type, id, location, (ObjectNode)idInfo, isFieldName);
-		}
+		return null;
 	}
 	
 	private static void skipValue(JsonParser jp) throws JsonParseException, IOException, JsonTokenValidationException {

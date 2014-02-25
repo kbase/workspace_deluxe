@@ -1,13 +1,12 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
-import com.github.fge.jsonschema.report.ListProcessingReport;
 import com.github.fge.jsonschema.report.ListReportProvider;
 import com.github.fge.jsonschema.report.LogLevel;
 import com.github.fge.jsonschema.report.ProcessingMessage;
@@ -15,9 +14,9 @@ import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.validatorconfig.IdRefValidationBuilder;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
+import us.kbase.typedobj.idref.WsIdReference;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -55,7 +54,8 @@ import us.kbase.typedobj.exceptions.*;
  * @author rsutormin
  */
 public final class TypedObjectValidator {
-
+	
+	private static final int maxErrorCount = 10;
 	
 	/**
 	 * This object is used to fetch the typed object Json Schema documents and
@@ -139,7 +139,7 @@ public final class TypedObjectValidator {
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
-		final ListProcessingReport report;
+		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
 		/*
 		System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
@@ -147,8 +147,9 @@ public final class TypedObjectValidator {
 		System.out.println(schemaText);
 		System.out.println("--------------------------------------------------------------");
 		*/
-		report = new ListProcessingReport(LogLevel.INFO, LogLevel.FATAL);
+		final List<WsIdReference> oldRefIds = new ArrayList<WsIdReference>();
 		IdRefNode idRefTree = new IdRefNode(null);
+		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
 			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
 			schema.checkJsonData(obj.getPlacedStream(), null, new JsonTokenValidationListener() {
@@ -156,47 +157,27 @@ public final class TypedObjectValidator {
 				@Override
 				public void addError(String message) throws JsonTokenValidationException {
 					errorCount++;
-					if (errorCount <= 10)
-						try {
-							report.error(new ProcessingMessage().setMessage(message));
-						} catch (ProcessingException ex) {
-							throw new JsonTokenValidationException(ex.getMessage());
-						}
+					if (errorCount < maxErrorCount) {
+						errors.add(message);
+					} else {
+						throw new JsonTokenValidationException(message);
+					}
 				}
 				
 				@Override
-				public void addIdRefMessage(String id, JsonNode idRefSpecificationData, List<String> path, boolean isField) {
-					ProcessingMessage pm = new ProcessingMessage()
-						.setMessage(IdRefValidationBuilder.keyword)
-						.put("id", id)
-						.put("id-spec-info", idRefSpecificationData)
-						.put("location", UObject.transformObjectToJackson(path))
-						.put("is-field-name", isField ? BooleanNode.TRUE : BooleanNode.FALSE);
-					try {
-						report.info(pm);
-					} catch (Exception ex) {
-						ex.printStackTrace();
-					}
+				public void addIdRefMessage(WsIdReference ref) {
+					oldRefIds.add(ref);
 				}
 				
 				@Override
 				public void addSearchableWsSubsetMessage(JsonNode searchData) {
-					try {
-						report.info(new ProcessingMessage()
-							.setMessage("searchable-ws-subset")
-							.put("search-data", searchData));
-					} catch (Exception ex) {
-						ex.printStackTrace();
-					}
+					searchDataWrap[0] = searchData;
 				}
 			}, idRefTree);
 		} catch (Exception ex) {
-			try {
-				report.error(new ProcessingMessage().setMessage(ex.getMessage()));
-			} catch (ProcessingException ignore) {}
+			errors.add(ex.getMessage());
 		}
-		
-		return new TypedObjectValidationReport(report, absoluteTypeDefDB, obj, idRefTree);
+		return new TypedObjectValidationReport(errors, searchDataWrap[0], absoluteTypeDefDB, obj, idRefTree, oldRefIds);
 	}
 
 	/*
