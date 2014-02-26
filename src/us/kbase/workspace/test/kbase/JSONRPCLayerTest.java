@@ -573,7 +573,7 @@ public class JSONRPCLayerTest {
 					.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		} catch (ServerException e) {
 			assertThat("Correct excp message", e.getLocalizedMessage(),
-					is("User "+USER2+" may not set permissions on workspace permspriv"));
+					is("User "+USER2+" may not alter other user's permissions on workspace permspriv"));
 		}
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("a").withUsers(Arrays.asList(USER2)));
@@ -3386,7 +3386,8 @@ public class JSONRPCLayerTest {
 				is(expected));
 		
 		adminParams.put("user", USER2);
-		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set permissions on workspace " + wsstr);
+		((SetPermissionsParams) adminParams.get("params")).setNewPermission("a");
+		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may only reduce their permission level on workspace " + wsstr);
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 	}
 

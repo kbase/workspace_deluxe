@@ -335,9 +335,6 @@ public class Workspace {
 			final Permission permission) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		if (user == null) {
-			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
-		}
 		if (users == null || users.isEmpty()) {
 			throw new IllegalArgumentException(
 					"The users list may not be null or empty");
@@ -345,17 +342,24 @@ public class Workspace {
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
-//		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-//		final Permission perm = db.getPermissions(user, wsid)
-//				.getUserPermission(wsid, true);
-//		if (Permission.ADMIN.compareTo(perm) > 0) {
-//			if (!users.equals(Arrays.asList(user)) || 
-//					perm.compareTo(permission) > 0) {
-//				throw new Illegal
-//			}
-//		}
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set permissions on", false, true);
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+		final Permission currentPerm = db.getPermissions(user, wsid)
+				.getUserPermission(wsid, true);
+		if (currentPerm.equals(Permission.NONE)) {
+			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
+		}
+		if (Permission.ADMIN.compareTo(currentPerm) > 0) {
+			if (!users.equals(Arrays.asList(user))) {
+				throw new WorkspaceAuthorizationException(String.format(
+						"User %s may not alter other user's permissions on workspace %s",
+						user.getUser(), wsi.getIdentifierString()));
+			}
+			if (currentPerm.compareTo(permission) < 0) {
+				throw new WorkspaceAuthorizationException(String.format(
+						"User %s may only reduce their permission level on workspace %s",
+						user.getUser(), wsi.getIdentifierString()));
+			}
+		}
 		db.setPermissions(wsid, users, permission);
 	}
 	

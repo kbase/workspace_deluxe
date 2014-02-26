@@ -32,6 +32,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Optionally exclude globally readable objects from list_objects
 - list_objects now takes skip and limit parameters and returns at most
   10000 objects. list_workspace_objects returns at most 10000 objects.
+- A user can reduce their own permissions on any workspace.
 - Fixed a bug where trying to copy an object to an object with a version
   > than the maximum existing version would fail. The incoming copy target
   version number should be ignored.

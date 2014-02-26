@@ -833,20 +833,17 @@ public class TestWorkspace {
 			assertThat("Correct exception message", e.getLocalizedMessage(),
 					is("Anonymous users may not read workspace perms_noglobal"));
 		}
-		try {
-			ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.OWNER);
-			fail("was able to set owner permissions");
-		} catch (IllegalArgumentException e) {
-			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("Cannot set owner permission"));
-		}
-		try {
-			ws.setPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
-			fail("was able to set permissions with unauth'd username");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b may not set permissions on workspace perms_noglobal"));
-		}
+		failSetPermissions(null, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
+				new WorkspaceAuthorizationException(
+						"Anonymous users may not set permissions on workspace perms_noglobal"));
+		failSetPermissions(null, wsiNG, null, Permission.READ,
+				new IllegalArgumentException("The users list may not be null or empty"));
+		failSetPermissions(null, wsiNG, new LinkedList<WorkspaceUser>(), Permission.READ,
+				new IllegalArgumentException("The users list may not be null or empty"));
+		failSetPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.OWNER,
+				new IllegalArgumentException("Cannot set owner permission"));
+		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
+				new WorkspaceAuthorizationException("User b may not set permissions on workspace perms_noglobal"));
 		//check basic permissions for new private and public workspaces
 		expect.put(AUSER, Permission.OWNER);
 		assertThat("ws has correct perms for owner", ws.getPermissions(AUSER, wsiNG), is(expect));
@@ -860,7 +857,7 @@ public class TestWorkspace {
 		//test read permissions
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
-		WorkspaceInformation info= ws.getWorkspaceInformation(null, wsiGL);
+		WorkspaceInformation info = ws.getWorkspaceInformation(null, wsiGL);
 		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_META);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
@@ -871,13 +868,33 @@ public class TestWorkspace {
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
 		assertThat("no permission leakage", ws.getPermissions(BUSER, wsiNG), is(expect));
-		try {
-			ws.setPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
-			fail("was able to set permissions with unauth'd username");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b may not set permissions on workspace perms_noglobal"));
-		}
+		
+		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
+				new WorkspaceAuthorizationException(
+						"User b may not alter other user's permissions on workspace perms_noglobal"));
+		failSetPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.WRITE,
+				new WorkspaceAuthorizationException(
+						"User b may only reduce their permission level on workspace perms_noglobal"));
+		
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ); //should have no effect
+		expect.clear();
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(BUSER, Permission.READ);
+		expect.put(CUSER, Permission.READ);
+		assertThat("user setting same perms has no effect", ws.getPermissions(AUSER, wsiNG), is(expect));
+		expect.clear();
+		expect.put(BUSER, Permission.READ);
+		assertThat("setting own perms to same has no effect", ws.getPermissions(BUSER, wsiNG), is(expect));
+		
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.NONE);
+		expect.clear();
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(CUSER, Permission.READ);
+		assertThat("user removed own perms", ws.getPermissions(AUSER, wsiNG), is(expect));
+		expect.clear();
+		expect.put(BUSER, Permission.NONE);
+		assertThat("can remove own perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		
 		//test write permissions
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.WRITE);
 		expect.put(AUSER, Permission.OWNER);
@@ -887,13 +904,9 @@ public class TestWorkspace {
 		expect.clear();
 		expect.put(BUSER, Permission.WRITE);
 		assertThat("no permission leakage", ws.getPermissions(BUSER, wsiNG), is(expect));
-		try {
-			ws.setPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
-			fail("was able to set permissions with unauth'd username");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("exception message correct", e.getLocalizedMessage(),
-					is("User b may not set permissions on workspace perms_noglobal"));
-		}
+		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
+				new WorkspaceAuthorizationException(
+						"User b may not alter other user's permissions on workspace perms_noglobal"));
 		//test admin permissions
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.ADMIN);
 		expect.put(AUSER, Permission.OWNER);
@@ -912,6 +925,18 @@ public class TestWorkspace {
 		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
 		
 		ws.setGlobalPermission(AUSER, new WorkspaceIdentifier("perms_global"), Permission.NONE);
+	}
+	
+	private void failSetPermissions(WorkspaceUser user, WorkspaceIdentifier wsi,
+			List<WorkspaceUser> users, Permission perm, Exception e) throws Exception {
+		try {
+			ws.setPermissions(user, wsi, users, perm);
+			fail("set perms when should fail");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
 	}
 	
 	private void checkObjInfo(ObjectInformation info, long id,
