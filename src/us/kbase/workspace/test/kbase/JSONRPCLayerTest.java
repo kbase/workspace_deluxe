@@ -27,6 +27,7 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
@@ -2959,7 +2960,20 @@ public class JSONRPCLayerTest {
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info1 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("subdata"));
 		
-		Map<String, Object> data = createData(
+		String strdata = 
+				"{\"foobar\":\"somestuff\"," +
+				 "\"map\":{\"id1\":{\"id\":1," +
+								   "\"thing\":\"foo\"}," +
+						  "\"id2\":{\"id\":2," +
+								   "\"thing\":\"foo2\"}," +
+						  "\"id3\":{\"id\":3," +
+								   "\"thing\":\"foo3\"}" +
+						  "}" +
+				"}";
+		String md5 = DigestUtils.md5Hex(strdata);
+		assertThat("md5 correct", md5, is("06c2ae8f77ad36e262bca7b186c944ec"));
+		
+		Map<String, Object> data = createData( // intentionally unsorted
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
 				"			\"id2\": {\"id\": 2," +
@@ -2987,7 +3001,7 @@ public class JSONRPCLayerTest {
 				"}"
 				);
 		checkData(od, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
-				"eb28c185d1745c5c379eaf95fef83412", 119, new HashMap<String, String>(),
+				md5, 119, new HashMap<String, String>(),
 				expdata);
 		
 		try {
