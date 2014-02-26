@@ -724,6 +724,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
+		updateWorkspaceModifiedDate(toWS);
 		return generateObjectInfo(toWS, objid, rto == null ? to.getName() :
 				rto.getName(), info);
 	}
@@ -786,7 +787,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
 				roi.getWorkspaceIdentifier(), roi.getId(), roi.getVersion());
 		input = new HashSet<ObjectIDResolvedWS>(Arrays.asList(oid));
-		return getObjectInformation(input, false, false).get(oid);
+		
+		final ObjectInformation oinf =
+				getObjectInformation(input, false, false).get(oid);
+		updateWorkspaceModifiedDate(roi.getWorkspaceIdentifier());
+		return oinf;
 	}
 	
 	//projection lists
@@ -2902,6 +2907,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedMongoWSID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
+			updateWorkspaceModifiedDate(ws);
 		}
 	}
 	

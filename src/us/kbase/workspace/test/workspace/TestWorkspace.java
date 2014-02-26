@@ -1014,6 +1014,8 @@ public class TestWorkspace {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1, meta, p, false));
 		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
+		
+		readLastDate = ws.getWorkspaceInformation(foo, read).getModDate();
 		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects);
 		readLastDate = assertWorkspaceDateUpdated(foo, read, readLastDate, "ws date modified on save");
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
@@ -1083,6 +1085,7 @@ public class TestWorkspace {
 				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
 		checkObjectAndInfo(foo, loi, retinfo, retdata);
 		
+		privLastDate = ws.getWorkspaceInformation(foo, priv).getModDate();
 		ws.saveObjects(foo, priv, objects);
 		privLastDate = assertWorkspaceDateUpdated(foo, read, privLastDate, "ws date modified on save");
 		
@@ -2507,18 +2510,21 @@ public class TestWorkspace {
 	
 	@Test
 	public void deleteUndelete() throws Exception {
-		WorkspaceUser foo = new WorkspaceUser("deleteundelete");
+		WorkspaceUser user = new WorkspaceUser("deleteundelete");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("deleteundelete");
-		long wsid = ws.createWorkspace(foo, read.getIdentifierString(), false, "descrip", null).getId();
+		WorkspaceInformation readinfo = ws.createWorkspace(user,
+				read.getIdentifierString(), false, "descrip", null);
+		long wsid = readinfo.getId();
+		Date lastReadDate = readinfo.getModDate();
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
 		data2.put("data", "2");
 		WorkspaceSaveObject sobj1 = new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE1, null, new Provenance(foo), false);
-		ws.saveObjects(foo, read, Arrays.asList(sobj1,
+				new ObjectIDNoWSNoVer("obj"), data1, SAFE_TYPE1, null, new Provenance(user), false);
+		ws.saveObjects(user, read, Arrays.asList(sobj1,
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data2, SAFE_TYPE1,
-				null, new Provenance(foo), false)));
+				null, new Provenance(user), false)));
 		ObjectIdentifier o1 = new ObjectIdentifier(read, "obj", 1);
 		ObjectIdentifier o2 = new ObjectIdentifier(read, "obj", 2);
 		
@@ -2527,7 +2533,7 @@ public class TestWorkspace {
 		idToData.put(o2, data2);
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		
-		checkNonDeletedObjs(foo, idToData);
+		checkNonDeletedObjs(user, idToData);
 		List<ObjectIdentifier> obj1 = new ArrayList<ObjectIdentifier>(Arrays.asList(o1));
 		List<ObjectIdentifier> obj2 = new ArrayList<ObjectIdentifier>(Arrays.asList(o2));
 		try {
@@ -2548,51 +2554,59 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(o1));
 		}
-		ws.setObjectsDeleted(foo, obj1, true);
+		lastReadDate = ws.getWorkspaceInformation(user, read).getModDate();
+		ws.setObjectsDeleted(user, obj1, true);
+		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate, "ws date updated on delete");
 		String err = String.format("Object 1 (name obj) in workspace %s has been deleted", wsid);
-		failToGetDeletedObjects(foo, objs, err);
-		failToGetDeletedObjects(foo, obj1, err);
-		failToGetDeletedObjects(foo, obj2, err);
+		failToGetDeletedObjects(user, objs, err);
+		failToGetDeletedObjects(user, obj1, err);
+		failToGetDeletedObjects(user, obj2, err);
 		
 		try {
-			ws.setObjectsDeleted(foo, obj2, true); //should have no effect
+			ws.setObjectsDeleted(user, obj2, true); //should have no effect
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception", nsoe.getLocalizedMessage(),
 					is("Object 1 (name obj) in workspace " + wsid + " has been deleted"));
 		}
-		failToGetDeletedObjects(foo, objs, err);
-		failToGetDeletedObjects(foo, obj1, err);
-		failToGetDeletedObjects(foo, obj2, err);
+		failToGetDeletedObjects(user, objs, err);
+		failToGetDeletedObjects(user, obj1, err);
+		failToGetDeletedObjects(user, obj2, err);
 		
-		ws.setObjectsDeleted(foo, obj2, false);
-		checkNonDeletedObjs(foo, idToData);
+		lastReadDate = ws.getWorkspaceInformation(user, read).getModDate();
+		ws.setObjectsDeleted(user, obj2, false);
+		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate, "ws date updated on undelete");
+		checkNonDeletedObjs(user, idToData);
 		
-		ws.setObjectsDeleted(foo, obj1, false);//should have no effect
-		checkNonDeletedObjs(foo, idToData);
+		lastReadDate = ws.getWorkspaceInformation(user, read).getModDate();
+		ws.setObjectsDeleted(user, obj1, false);//should have no effect
+		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate, "ws date updated on undelete");
+		checkNonDeletedObjs(user, idToData);
 		
-		ws.setObjectsDeleted(foo, obj2, true);
-		failToGetDeletedObjects(foo, objs, err);
-		failToGetDeletedObjects(foo, obj1, err);
-		failToGetDeletedObjects(foo, obj2, err);
+		lastReadDate = ws.getWorkspaceInformation(user, read).getModDate();
+		ws.setObjectsDeleted(user, obj2, true);
+		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate, "ws date updated on delete");
+		failToGetDeletedObjects(user, objs, err);
+		failToGetDeletedObjects(user, obj1, err);
+		failToGetDeletedObjects(user, obj2, err);
 
 		//save should undelete
-		ws.saveObjects(foo, read, Arrays.asList(
+		ws.saveObjects(user, read, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj"), data1,
-						SAFE_TYPE1, null, new Provenance(foo), false)));
+						SAFE_TYPE1, null, new Provenance(user), false)));
 		ObjectIdentifier o3 = new ObjectIdentifier(read, "obj", 3);
 		idToData.put(o3, data1);
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		
-		checkNonDeletedObjs(foo, idToData);
-		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
+		checkNonDeletedObjs(user, idToData);
+		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
+		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
 		WorkspaceUser bar = new WorkspaceUser("bar");
-		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
+		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
-		p.put(foo, Permission.OWNER);
+		p.put(user, Permission.OWNER);
 		p.put(bar, Permission.ADMIN);
-		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
+		assertThat("can get perms", ws.getPermissions(user, read), is(p));
 		try {
 			ws.setWorkspaceDeleted(bar, read, true);
 			fail("Non owner deleted workspace");
@@ -2600,32 +2614,32 @@ public class TestWorkspace {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("User bar may not delete workspace deleteundelete"));
 		}
-		WorkspaceInformation read1 = ws.getWorkspaceInformation(foo, read);
-		ws.setWorkspaceDeleted(foo, read, true);
-		WorkspaceInformation read2 = ws.listWorkspaces(foo, null, null, null,true, true, false).get(0);
+		WorkspaceInformation read1 = ws.getWorkspaceInformation(user, read);
+		ws.setWorkspaceDeleted(user, read, true);
+		WorkspaceInformation read2 = ws.listWorkspaces(user, null, null, null,true, true, false).get(0);
 		try {
-			ws.getWorkspaceDescription(foo, read);
+			ws.getWorkspaceDescription(user, read);
 			fail("got description from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.getWorkspaceInformation(foo, read);
+			ws.getWorkspaceInformation(user, read);
 			fail("got meta from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.setPermissions(foo, read, Arrays.asList(bar), Permission.NONE);
+			ws.setPermissions(user, read, Arrays.asList(bar), Permission.NONE);
 			fail("set perms on deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
 					is("Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.getPermissions(foo, read);
+			ws.getPermissions(user, read);
 			fail("got perms from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
@@ -2655,14 +2669,14 @@ public class TestWorkspace {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(o1));
 		}
-		ws.setWorkspaceDeleted(foo, read, false);
-		WorkspaceInformation read3 = ws.getWorkspaceInformation(foo, read);
-		checkNonDeletedObjs(foo, idToData);
-		assertThat("can get ws description", ws.getWorkspaceDescription(foo, read),
+		ws.setWorkspaceDeleted(user, read, false);
+		WorkspaceInformation read3 = ws.getWorkspaceInformation(user, read);
+		checkNonDeletedObjs(user, idToData);
+		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(foo, read), foo, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
-		ws.setPermissions(foo, read, Arrays.asList(bar), Permission.ADMIN);
-		assertThat("can get perms", ws.getPermissions(foo, read), is(p));
+		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
+		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
+		assertThat("can get perms", ws.getPermissions(user, read), is(p));
 		
 		assertTrue("date changed on delete", read1.getModDate().before(read2.getModDate()));
 		assertTrue("date changed on undelete", read2.getModDate().before(read3.getModDate()));
@@ -2890,8 +2904,12 @@ public class TestWorkspace {
 		setUpCopyWorkspaces(user1, user2, wsrefs, ws1, ws2);
 		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
 		WorkspaceIdentifier cp2 = new WorkspaceIdentifier(ws2);
-		long wsid1 = ws.getWorkspaceInformation(user1, cp1).getId();
-		long wsid2 = ws.getWorkspaceInformation(user2, cp2).getId();
+		WorkspaceInformation cp1info = ws.getWorkspaceInformation(user1, cp1);
+		WorkspaceInformation cp2info = ws.getWorkspaceInformation(user2, cp2);
+		long wsid1 = cp1info.getId();
+		long wsid2 = cp2info.getId();
+		Date cp1LastDate = cp1info.getModDate();
+		Date cp2LastDate = cp2info.getModDate();
 		
 		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
 		ObjectInformation save11 = objs.get(0);
@@ -2899,9 +2917,11 @@ public class TestWorkspace {
 		ObjectInformation save13 = objs.get(2);
 		
 		//copy entire stack of hidden objects
+		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
 		ObjectInformation copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
+		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copyhide", 3);
 		List<ObjectInformation> copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 4));
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 4, "copyhide", 1);
@@ -2918,6 +2938,7 @@ public class TestWorkspace {
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 3);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
@@ -2929,6 +2950,7 @@ public class TestWorkspace {
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				new ObjectIdentifier(cp1, "hidetarget"));
+		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, 3));
 		//0 is original object
@@ -2978,8 +3000,10 @@ public class TestWorkspace {
 		checkUnhiddenObjectCount(user1, cp1, 12, 18);
 		
 		//revert normal object
+		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
 		copied = ws.revertObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/copied/2"));
+		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on revert");
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "copied", 6);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "copied"));
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
@@ -2993,6 +3017,7 @@ public class TestWorkspace {
 		//revert hidden object
 		copied = ws.revertObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget/2"));
+		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on revert");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 4);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hidetarget"));
 		//0 is original object
@@ -3003,9 +3028,11 @@ public class TestWorkspace {
 		
 		//copy to new ws
 		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
+		cp2LastDate = ws.getWorkspaceInformation(user1, cp2).getModDate();
 		copied = ws.copyObject(user1,
 				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
 				ObjectIdentifier.parseObjectReference("copyrevert2/copied"));
+		cp2LastDate = assertWorkspaceDateUpdated(user1, cp2, cp2LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid2, cp2.getName(), 1, "copied", 3);
 		copystack = ws.getObjectHistory(user1, new ObjectIdentifier(cp2, "copied"));
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid2, cp2.getName(), 1, "copied", 1);
@@ -3059,7 +3086,9 @@ public class TestWorkspace {
 //				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
 //						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
 		
+		cp2LastDate = ws.getWorkspaceInformation(user1, cp2).getModDate();
 		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
+		cp2LastDate = assertWorkspaceDateUpdated(user1, cp2, cp2LastDate, "ws date updated on copy");
 		ws.setWorkspaceDeleted(user2, cp2, true);
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo1"),
 				new InaccessibleObjectException("Object foo1 cannot be accessed: Workspace copyrevert2 is deleted"));
@@ -3535,7 +3564,9 @@ public class TestWorkspace {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("renameObj");
 		WorkspaceUser user2 = new WorkspaceUser("renameObjUser2");
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameObj2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, null);
+		long wsid1 = info1.getId();
+		Date lastWSDate = info1.getModDate();
 		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
@@ -3543,7 +3574,9 @@ public class TestWorkspace {
 		ws.saveObjects(user2, wsi2, Arrays.asList(new WorkspaceSaveObject(
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)));
+		lastWSDate = ws.getWorkspaceInformation(user, wsi).getModDate();
 		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"), "mynewname");
+		assertWorkspaceDateUpdated(user, wsi, lastWSDate, "ws date updated on rename");
 		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE1.getTypeString(), 1, user,
 				wsid1, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		String newname = ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
