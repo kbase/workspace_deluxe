@@ -29,6 +29,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.ObjectPaths;
@@ -122,7 +123,7 @@ public class TestObjectExtractionByPath {
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			
-			JsonNode diff = JsonDiff.asJson(extract,expectedExtract);
+			JsonNode diff = compare(extract,expectedExtract);
 			if(VERBOSE) if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
 			assertTrue("  -("+instance.resourceName+") extracted object does not match expected extract; diff="+diff,
 							diff.size()==0);
@@ -134,6 +135,19 @@ public class TestObjectExtractionByPath {
 		if(VERBOSE) System.out.println("      PASS.");
 	}
 	
+	public JsonNode compare(JsonNode expectedSubset, JsonNode actualSubset) throws IOException {
+		expectedSubset = sortJson(expectedSubset);
+		actualSubset = sortJson(actualSubset);
+		return JsonDiff.asJson(actualSubset,expectedSubset);
+	}
+
+	private static JsonNode sortJson(JsonNode tree) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+		Object map = mapper.treeToValue(tree, Object.class);
+		String text = mapper.writeValueAsString(map);
+		return mapper.readTree(text);
+	}
 	
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test
