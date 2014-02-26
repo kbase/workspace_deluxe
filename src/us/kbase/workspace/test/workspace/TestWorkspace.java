@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
 import org.junit.Ignore;
@@ -5237,5 +5239,34 @@ public class TestWorkspace {
 				ws.isAdmin(new WorkspaceUser("adminguy2")));
 		assertFalse("correctly detected as not an admin",
 				ws.isAdmin(new WorkspaceUser("adminguy3")));
+	}
+	
+	@Test
+	public void sortForMD5() throws Exception {
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("sorting");
+		ws.createWorkspace(foo, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data = new LinkedHashMap<String, Object>();
+		data.put("g", 7);
+		data.put("d", 4);
+		data.put("a", 1);
+		data.put("e", 5);
+		data.put("b", 2);
+		data.put("f", 6);
+		data.put("c", 3);
+		String expected = "{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5,\"f\":6,\"g\":7}";
+		String md5 = DigestUtils.md5Hex(expected);
+		assertThat("md5 correct", md5, is("f906e268b16cbfa1c302c6bb51a6b784"));
+		
+		JsonNode savedata = mapper.valueToTree(data);
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		List<WorkspaceSaveObject> objects = Arrays.asList(
+				new WorkspaceSaveObject(savedata, SAFE_TYPE1, null, p, false));
+		List<ObjectInformation> objinfo = ws.saveObjects(foo, wsi, objects);
+		assertThat("workspace calculated md5 correct", objinfo.get(0).getCheckSum(),
+				is(md5));
+		objinfo = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(wsi, 1)), false, false);
+		assertThat("workspace calculated md5 correct", objinfo.get(0).getCheckSum(),
+				is(md5));
 	}
 }

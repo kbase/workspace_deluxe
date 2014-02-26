@@ -59,7 +59,7 @@ public class TypeData {
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
 		try {
 			//writes in UTF8
-			MAPPER.writeValue(md5, data);
+			MAPPER.writeValue(md5, MAPPER.treeToValue(data, Map.class));
 		} catch (IOException ioe) {
 			throw new RuntimeException("something is broken here", ioe);
 		} finally {
