@@ -1083,7 +1083,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final Map<String, String> meta, final boolean showDeleted,
+			final Map<String, String> meta, final Date after,
+			final Date before, final boolean showDeleted, 
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -1112,6 +1113,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				andmetaq.add(new BasicDBObject(Fields.WS_META, mentry));
 			}
 			q.put("$and", andmetaq); //note more than one entry is untested
+		}
+		if (before != null || after != null) {
+			final DBObject d = new BasicDBObject();
+			if (before != null) {
+				d.put("$lt", before);
+			}
+			if (after != null) {
+				d.put("$gt", after);
+			}
+			q.put(Fields.WS_MODDATE, d);
 		}
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);

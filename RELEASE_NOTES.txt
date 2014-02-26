@@ -29,16 +29,21 @@ NEW FEATURES:
   this method.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+- Filter list_objects and list_workspace_info by date
 - Optionally exclude globally readable objects from list_objects
 - list_objects now takes skip and limit parameters and returns at most
   10000 objects. list_workspace_objects returns at most 10000 objects.
 - A user can reduce their own permissions on any workspace.
+- Workspace and object names can now be up to 255 characters in length.
+- Workspace mod dates are now updated on a save/copy/revert/delete/rename
+  of an object.
+- Fixed a bug that cause object checksums to be calculated incorrectly. Note
+  that any checksums calculated before this version are incorrect.
 - Fixed a bug where trying to copy an object to an object with a version
   > than the maximum existing version would fail. The incoming copy target
   version number should be ignored.
 - Fixed a bug where trying to copy an object to a deleted object would fail.
 - Clarified some exceptions / error messages.
-- Workspace and object names can now be up to 255 characters in length.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage

@@ -720,7 +720,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
 		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
-				getUser(params.getAuth(), authPart), null, null, null,
+				getUser(params.getAuth(), authPart), null, null, null, null, null,
 				au.longToBoolean(params.getExcludeGlobal()), false, false));
         //END list_workspaces
         return returnVal;
@@ -743,6 +743,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				translatePermission(params.getPerm());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
+				null, null, //TODO fix when working in libs
 				au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted()),
 				au.longToBoolean(params.getShowOnlyDeleted())));

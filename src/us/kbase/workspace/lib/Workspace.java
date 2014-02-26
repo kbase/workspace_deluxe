@@ -2,6 +2,7 @@ package us.kbase.workspace.lib;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -674,9 +675,11 @@ public class Workspace {
 		return tove;
 	}
 	
+	//should probably make an options builder
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
 			final List<WorkspaceUser> users, final Map<String, String> meta,
+			final Date after, final Date before,
 			final boolean excludeGlobal, final boolean showDeleted,
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
@@ -689,8 +692,8 @@ public class Workspace {
 		}
 		final PermissionSet perms =
 				db.getPermissions(user, minPerm, excludeGlobal);
-		return db.getWorkspaceInformation(perms, users, meta, showDeleted,
-				showOnlyDeleted);
+		return db.getWorkspaceInformation(perms, users, meta, after, before,
+				showDeleted, showOnlyDeleted);
 	}
 	
 	//insanely long method signatures get me hot
