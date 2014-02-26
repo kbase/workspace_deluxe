@@ -390,10 +390,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public String getBackendType() {
 		return blob.getStoreType();
 	}
+
+	private final static String M_WS_DATE_WTH = String.format(
+			"{$set: {%s: #}}", Fields.WS_MODDATE);
 	
+	private void updateWorkspaceModifiedDate(final ResolvedMongoWSID rwsi)
+			throws WorkspaceCommunicationException {
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+				.update(M_WS_ID_QRY, rwsi.getID())
+				.with(M_WS_DATE_WTH, new Date());
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+
 	private static final Set<String> FLDS_CREATE_WS =
 			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
-
+	
 	@Override
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
@@ -1719,6 +1734,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
 			}
 		}
+		updateWorkspaceModifiedDate(wsidmongo);
 		return ret;
 	}
 

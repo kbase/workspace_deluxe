@@ -38,6 +38,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   version number should be ignored.
 - Fixed a bug where trying to copy an object to a deleted object would fail.
 - Clarified some exceptions / error messages.
+- Workspace and object names can now be up to 255 characters in length.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage

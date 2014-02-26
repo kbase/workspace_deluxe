@@ -968,10 +968,14 @@ public class TestWorkspace {
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
-		ws.createWorkspace(foo, read.getIdentifierString(), true, null, null);
-		ws.createWorkspace(foo, priv.getIdentifierString(), false, null, null);
-		long readid = ws.getWorkspaceInformation(foo, read).getId();
-		long privid = ws.getWorkspaceInformation(foo, priv).getId();
+		WorkspaceInformation readinfo = ws.createWorkspace(
+				foo, read.getIdentifierString(), true, null, null);
+		WorkspaceInformation privinfo = ws.createWorkspace(
+				foo, priv.getIdentifierString(), false, null, null);
+		Date readLastDate = readinfo.getModDate();
+		Date privLastDate = privinfo.getModDate();
+		long readid = readinfo.getId();
+		long privid = privinfo.getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -1011,6 +1015,7 @@ public class TestWorkspace {
 		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
 		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
 		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects);
+		readLastDate = assertWorkspaceDateUpdated(foo, read, readLastDate, "ws date modified on save");
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
 		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
@@ -1079,6 +1084,7 @@ public class TestWorkspace {
 		checkObjectAndInfo(foo, loi, retinfo, retdata);
 		
 		ws.saveObjects(foo, priv, objects);
+		privLastDate = assertWorkspaceDateUpdated(foo, read, privLastDate, "ws date modified on save");
 		
 		objects.clear();
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE1, meta2, p, false));
@@ -1181,6 +1187,14 @@ public class TestWorkspace {
 		
 		ws.setWorkspaceDeleted(foo, read, false);
 		ws.setGlobalPermission(foo, read, Permission.NONE);
+	}
+
+	private Date assertWorkspaceDateUpdated(WorkspaceUser user,
+			WorkspaceIdentifier wsi, Date lastDate, String assertion)
+			throws Exception {
+		Date readCurrentDate = ws.getWorkspaceInformation(user, wsi).getModDate();
+		assertTrue(assertion, readCurrentDate.after(lastDate));
+		return readCurrentDate;
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, List<WorkspaceSaveObject> wso,
