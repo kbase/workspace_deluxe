@@ -53,11 +53,6 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public List<IdReference> getAllIdReferencesOfType(String type) {
-		return new ArrayList<IdReference>();
-	}
-	
-	@Override
 	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws RelabelIdReferenceException {
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.createObjectNode();
