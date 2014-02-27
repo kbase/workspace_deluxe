@@ -847,6 +847,10 @@ module Workspace {
 			only one key/value pair is supported at this time. A full map
 			is provided as input for the possibility for expansion in the
 			future.
+		timestamp after - only return workspaces that were modified after this
+			date.
+		timestamp before - only return workspaces that were modified before
+			this date.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
 		boolean showDeleted - show deleted workspaces that are owned by the
@@ -859,6 +863,8 @@ module Workspace {
 		permission perm;
 		list<username> owners;
 		usermeta meta;
+		timestamp after;
+		timestamp before;
 		boolean excludeGlobal;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
@@ -927,6 +933,10 @@ module Workspace {
 			only one key/value pair is supported at this time. A full map
 			is provided as input for the possibility for expansion in the
 			future.
+		timestamp after - only return objects that were created after this
+			date.
+		timestamp before - only return objects that were created before this
+			date.
 		boolean showDeleted - show deleted objects in workspaces to which the
 			user has write access.
 		boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -942,7 +952,7 @@ module Workspace {
 		int skip - skip the first X objects. Maximum value is 2^31, skip values
 			< 0 are treated as 0, the default.
 		int limit - limit the output to X objects. Default and maximum value
-			is 10000. Limit values < 1 are treated as 1.
+			is 10000. Limit values < 1 are treated as 10000, the default.
 		
 	*/
 	typedef structure {
@@ -952,6 +962,8 @@ module Workspace {
 		permission perm;
 		list<username> savedby;
 		usermeta meta;
+		timestamp after;
+		timestamp before;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
 		boolean showHidden;

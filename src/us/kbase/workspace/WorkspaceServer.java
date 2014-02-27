@@ -743,7 +743,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				translatePermission(params.getPerm());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
-				null, null, //TODO fix when working in libs
+				au.parseDate(params.getAfter()),
+				au.parseDate(params.getBefore()),
 				au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted()),
 				au.longToBoolean(params.getShowOnlyDeleted())));
@@ -820,11 +821,13 @@ public class WorkspaceServer extends JsonServerServlet {
 		final int skip = au.longToInt(params.getSkip(), "Skip", -1);
 		final int limit = au.longToInt(params.getLimit(), "Limit", -1);
 		returnVal = au.objInfoToTuple(
+				//this sig is insane
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), null, null, showHidden, showDeleted, //TODO add dates when working
-						showOnlyDeleted, showAllVers, includeMetadata,
-						excludeGlobal, skip, limit));
+						params.getMeta(), au.parseDate(params.getAfter()),
+						au.parseDate(params.getBefore()), showHidden,
+						showDeleted, showOnlyDeleted, showAllVers,
+						includeMetadata, excludeGlobal, skip, limit));
         //END list_objects
         return returnVal;
     }
@@ -899,7 +902,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws.getObjectInformation(getUser(authPart), loi,
 						au.longToBoolean(params.getIncludeMetadata()),
 						au.longToBoolean(params.getIgnoreErrors())));
-        //END get_object_info
         //END get_object_info_new
         return returnVal;
     }

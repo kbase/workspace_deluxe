@@ -2523,11 +2523,81 @@ public class JSONRPCLayerTest {
 					is("Unexpected arguments in ListWorkspaceInfoParams: booga"));
 		}
 	}
+	
+	@Test
+	public void listWorkspaceInfoByDate() throws Exception {
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> mt =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate1"));
+		Thread.sleep(2000);
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w2 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate2"));
+		Thread.sleep(2000);
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w3 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate3"));
+		String beforeall = subSec(w1.getE4()); //max res is 1s
+		String afterall = addSec(w3.getE4());
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)),
+				Arrays.asList(w1, w2, w3), mt, true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(beforeall).withBefore(afterall)),
+				Arrays.asList(w1, w2, w3), mt, true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(afterall).withBefore(beforeall)),
+				mt, Arrays.asList(w1, w2, w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(addSec(w1.getE4()))),
+				Arrays.asList(w2, w3), Arrays.asList(w1), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withBefore(subSec(w3.getE4()))),
+				Arrays.asList(w1, w2), Arrays.asList(w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(addSec(w1.getE4())).withBefore(subSec(w3.getE4()))),
+				Arrays.asList(w2), Arrays.asList(w1, w3), true);
+		
+		failListWorkspaceByDate("crappy date", "Unparseable date: \"crappy date\"");
+	}
+	
+	private void failListWorkspaceByDate(String date, String exception) throws Exception {
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withAfter(date));
+			fail("listed workspace info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withBefore(date));
+			fail("listed workspace info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+	}
+	
+	private String addSec(String time) throws Exception {
+		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() + 1000);
+	}
+	
+	private String subSec(String time) throws Exception {
+		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() - 1000);
+	}
 
 	private void checkWSInfoList(
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected) {
+		checkWSInfoList(got, expected, notexpected, false);
+	}
+	
+	private void checkWSInfoList(
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected,
+			boolean testDates) {
 		Map<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expecmap = 
 				new HashMap<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>();
 		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: expected) {
@@ -2554,7 +2624,9 @@ public class JSONRPCLayerTest {
 			Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> exp =
 					expecmap.get(info.getE1());
 			assertThat("ids correct", info.getE1(), is(exp.getE1()));
-//			assertThat("moddates correct", info.getE4(), is(moddate)); don't test dates
+			if (testDates) {
+				assertThat("moddates correct", info.getE4(), is(exp.getE4())); 
+			}
 			assertThat("ws name correct", info.getE2(), is(exp.getE2()));
 			assertThat("user name correct", info.getE3(), is(exp.getE3()));
 			assertThat("obj counts are 0", info.getE5(), is(exp.getE5()));
@@ -2768,7 +2840,6 @@ public class JSONRPCLayerTest {
 		String ws = "pagination";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		
-		
 		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
 		for (int i = 0; i < 200; i++) {
 			objs.add(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
@@ -2807,6 +2878,63 @@ public class JSONRPCLayerTest {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getE1(), minid, maxid));
 			}
+		}
+	}
+	
+	@Test
+	public void listObjectsByDate() throws Exception {
+		ArrayList<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> mt =
+				new ArrayList<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>();
+		String ws = "listObjsByDate";
+		UObject d = new UObject(new HashMap<String, String>());
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
+		SaveObjectsParams p = new SaveObjectsParams().withWorkspace(ws)
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(d)
+						.withType(SAFE_TYPE).withName("o1")));
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o1 =
+				CLIENT1.saveObjects(p).get(0);
+		p.getObjects().get(0).setName("o2");
+		Thread.sleep(2000);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o2 =
+				CLIENT1.saveObjects(p).get(0);
+		p.getObjects().get(0).setName("o3");
+		Thread.sleep(2000);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o3 =
+				CLIENT1.saveObjects(p).get(0);
+		String beforeall = subSec(o1.getE4()); //max res is 1s
+		String afterall = addSec(o3.getE4());
+		
+		ListObjectsParams lp = new ListObjectsParams().withWorkspaces(Arrays.asList(ws))
+				.withIncludeMetadata(1L);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
+		lp = lp.withAfter(beforeall).withBefore(afterall);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
+		lp = lp.withAfter(afterall).withBefore(beforeall);
+		compareObjectInfo(CLIENT1.listObjects(lp), mt, false);
+		lp = lp.withAfter(addSec(o1.getE4())).withBefore(null);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2, o3), false);
+		lp = lp.withAfter(null).withBefore(subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2), false);
+		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
+		
+		failListObjectsByDate("crappy obj date", "Unparseable date: \"crappy obj date\"");
+	}
+	
+	private void failListObjectsByDate(String date, String exception) throws Exception {
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withAfter(date));
+			fail("listed obj info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withBefore(date));
+			fail("listed obj info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
 		}
 	}
 	
