@@ -3027,9 +3027,10 @@ public class JSONRPCLayerTest {
 				expdata);
 		
 		try {
-			CLIENT1.getObjectSubset(Arrays.asList(
+			ObjectData ret = CLIENT1.getObjectSubset(Arrays.asList(
 					new SubObjectIdentity().withRef("subdata/1")
 					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))).get(0);
+			System.out.println(ret);
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),

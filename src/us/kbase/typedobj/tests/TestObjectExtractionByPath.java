@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
@@ -119,7 +120,7 @@ public class TestObjectExtractionByPath {
 		}
 		ObjectPaths op = new ObjectPaths(pathStrings);
 		try {
-			JsonNode extract = TypedObjectExtractor.extract(op, data);
+			JsonNode extract = SubdataExtractor.extract(op, data);
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			

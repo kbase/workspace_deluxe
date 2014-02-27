@@ -2192,12 +2192,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private ByteStorageWithFileCache getDataSubSet(final ByteStorageWithFileCache data,
-			final ObjectPaths paths)
-			throws TypedObjectExtractionException {
+			final ObjectPaths paths) throws TypedObjectExtractionException {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}
-		data.setJsonNode(TypedObjectExtractor.extract(paths, data.getAsJsonNode()));
+		data.setSubdataExtraction(paths);
 		return data;
 	}
 

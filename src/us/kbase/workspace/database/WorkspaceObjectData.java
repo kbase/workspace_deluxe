@@ -43,6 +43,8 @@ public class WorkspaceObjectData {
 		try {
 			//return MAPPER.treeToValue(data, Object.class);
 			return data.getUObject().asClassInstance(Object.class);
+		} catch (RuntimeException jpe) {
+			throw jpe;
 		} catch (Exception jpe) {
 			//this should never happen
 			throw new RuntimeException("something's dun broke", jpe);

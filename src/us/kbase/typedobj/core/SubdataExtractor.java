@@ -6,12 +6,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import us.kbase.common.service.UObject;
 import us.kbase.common.util.KBaseJsonTreeGenerator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,12 +24,14 @@ import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 public class SubdataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
-	public static JsonNode extractFields(ObjectPaths objpaths, JsonNode input) 
+	public static JsonNode extract(ObjectPaths objpaths, JsonNode input) 
 			throws IOException, TypedObjectExtractionException {
-		TokenSequenceProvider tsp = createTokenSequenceProvider(input);
-		JsonNode ret = extractFields(objpaths, tsp);
+		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
+		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(mapper);
+		extractFields(objpaths, tsp, jgen);
 		tsp.close();
-		return ret;
+		jgen.close();
+		return jgen.getTree();
 	}
 	
 	/**
@@ -45,7 +47,12 @@ public class SubdataExtractor {
 	 * a mapping or array.
 	 * @throws TypedObjectExtractionException 
 	 */
-	public static JsonNode extractFields(ObjectPaths objpaths, TokenSequenceProvider jts) 
+	public static void extract(ObjectPaths objpaths, JsonParser jp, JsonGenerator output) 
+			throws IOException, TypedObjectExtractionException {
+		extractFields(objpaths, createTokenSequenceProvider(jp), output);
+	}
+	
+	private static void extractFields(ObjectPaths objpaths, TokenSequenceProvider jts, JsonGenerator output) 
 			throws IOException, TypedObjectExtractionException {
 		//if the selection is empty, we return without adding anything
 		SubdataExtractionNode root = new SubdataExtractionNode();
@@ -54,34 +61,30 @@ public class SubdataExtractor {
 			root.addPath(path);
 		}
 		JsonToken t = jts.nextToken();
-		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(mapper);
-		extractFieldsWithOpenToken(jts, t, root, jgen, new ArrayList<String>());
-		jgen.close();
-		return jgen.getTree();
+		extractFieldsWithOpenToken(jts, t, root, output, new ArrayList<String>());
 	}
 	
-	private static TokenSequenceProvider createTokenSequenceProvider(JsonNode tree) {
-		final TreeTraversingParser ttp = new TreeTraversingParser(tree);
+	private static TokenSequenceProvider createTokenSequenceProvider(final JsonParser jp) {
 		return new TokenSequenceProvider() {
 			@Override
 			public JsonToken nextToken() throws IOException, JsonParseException {
-				return ttp.nextToken();
+				return jp.nextToken();
 			}
 			@Override
 			public String getText() throws IOException, JsonParseException {
-				return ttp.getText();
+				return jp.getText();
 			}
 			@Override
 			public long getLongValue() throws IOException, JsonParseException {
-				return ttp.getLongValue();
+				return jp.getLongValue();
 			}
 			@Override
 			public double getDoubleValue() throws IOException, JsonParseException {
-				return ttp.getDoubleValue();
+				return jp.getDoubleValue();
 			}
 			@Override
 			public void close() throws IOException {
-				ttp.close();
+				jp.close();
 			}
 		};
 	}
@@ -266,8 +269,11 @@ public class SubdataExtractor {
 					if (allChild != null) {
 						child = allChild; 
 					} else {
-						child = selection.getChildren().get("" + pos);
-						selectedFields.remove("" + pos);
+						String key = "" + pos;
+						if (selection.getChildren().containsKey(key)) {
+							child = selection.getChildren().get(key);
+							selectedFields.remove(key);
+						}
 					}
 					if (child == null) {
 						skipChildren(jts, t);

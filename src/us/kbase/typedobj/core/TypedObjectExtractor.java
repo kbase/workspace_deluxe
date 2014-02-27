@@ -1,6 +1,5 @@
 package us.kbase.typedobj.core;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Iterator;
 
@@ -24,15 +23,6 @@ public class TypedObjectExtractor {
 	 * side effect: your list of paths will get sorted
 	 */
 	public static JsonNode extract(final ObjectPaths objpaths, final JsonNode data) throws TypedObjectExtractionException {
-		//return extractOld(objpaths, data);
-		try {
-			return SubdataExtractor.extractFields(objpaths, data);
-		} catch (IOException ex) {
-			throw new TypedObjectExtractionException(ex.getMessage(), ex);
-		}
-	}
-		
-	public static JsonNode extractOld(final ObjectPaths objpaths, final JsonNode data) throws TypedObjectExtractionException {
 		// sort the list so that if we get elements in an array, ordering is preserved
 		final List<String> paths = objpaths.getPaths();
 		java.util.Collections.sort(paths);
