@@ -4802,6 +4802,7 @@ public class TestWorkspace {
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
 		
+
 		Map<String, Object> mtdata = new HashMap<String, Object>();
 		
 		ws.saveObjects(user1, wsitar1, Arrays.asList(

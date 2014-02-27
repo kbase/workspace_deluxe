@@ -69,7 +69,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class Workspace {
 	
-	//TODO 3 filter ws/obj on mod date
 	//TODO general unit tests
 	//TODO import shock objects
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
@@ -843,6 +842,23 @@ public class Workspace {
 				new LinkedList<Set<ObjectInformation>>();
 		for (final ObjectIdentifier o: loi) {
 			ret.add(refs.get(ws.get(o)));
+		}
+		return ret;
+	}
+	
+	public List<Integer> getReferencingObjectCounts(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, Integer> counts =
+				db.getReferencingObjectCounts(
+						new HashSet<ObjectIDResolvedWS>(ws.values()));
+		final List<Integer> ret =
+				new LinkedList<Integer>();
+		for (final ObjectIdentifier o: loi) {
+			ret.add(counts.get(ws.get(o)));
 		}
 		return ret;
 	}

@@ -124,6 +124,10 @@ public interface WorkspaceDatabase {
 					Set<ObjectIDResolvedWS> objs)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
+			Set<ObjectIDResolvedWS> objects)
+			throws WorkspaceCommunicationException;
+	
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
 			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata,
 			boolean ignoreMissingAndDeleted)

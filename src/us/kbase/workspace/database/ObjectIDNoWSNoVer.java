@@ -73,7 +73,7 @@ public class ObjectIDNoWSNoVer {
 
 	@Override
 	public String toString() {
-		return "WorkspaceObjectID [name=" + name + ", id=" + id + "]";
+		return "ObjectIDNoWSNoVer [name=" + name + ", id=" + id + "]";
 	}
 
 	@Override
