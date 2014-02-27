@@ -700,7 +700,7 @@ public class Workspace {
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
-			final Map<String, String> meta,
+			final Map<String, String> meta, final Date after, final Date before,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetaData, final boolean excludeGlobal,
@@ -734,9 +734,9 @@ public class Workspace {
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, savers, meta, showHidden,
-				showDeleted, showOnlyDeleted, showAllVers, includeMetaData,
-				skip, limit);
+		return db.getObjectInformation(pset, type, savers, meta, after, before,
+				showHidden, showDeleted, showOnlyDeleted, showAllVers,
+				includeMetaData, skip, limit);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

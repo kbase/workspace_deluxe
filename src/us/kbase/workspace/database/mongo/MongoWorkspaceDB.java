@@ -2488,6 +2488,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public List<ObjectInformation> getObjectInformation(
 			final PermissionSet pset, final TypeDefId type,
 			final List<WorkspaceUser> savedby, final Map<String, String> meta,
+			final Date after, final Date before,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetadata, final int skip, final int limit)
@@ -2530,6 +2531,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
+		}
+		if (before != null || after != null) {
+			final DBObject d = new BasicDBObject();
+			if (before != null) {
+				d.put("$lt", before);
+			}
+			if (after != null) {
+				d.put("$gt", after);
+			}
+			verq.put(Fields.VER_SAVEDATE, d);
 		}
 		final Set<String> fields;
 		if (includeMetadata) {
