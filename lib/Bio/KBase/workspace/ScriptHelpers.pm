@@ -73,34 +73,44 @@ sub getKBaseCfg {
 	return $cfg;
 }
 
+
 sub workspace {
-	my $newWs = shift;
-	my $currentWs;
-	if (defined($newWs)) {
-		$currentWs = $newWs;
-		if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
-			my $cfg = getKBaseCfg();
-			$cfg->param("workspace_deluxe.workspace",$newWs);
-			$cfg->save();
-			$cfg->close();
-		} elsif ($ENV{KB_WORKSPACEURL}) {
-			$ENV{KB_WORKSPACE} = $currentWs;
-		}
-	} else {
-		if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
-			my $cfg = getKBaseCfg();
-			$currentWs = $cfg->param("workspace_deluxe.workspace");
-			if (!defined($currentWs)) {
-				$cfg->param("workspace_deluxe.workspace","no_workspace_set");
-				$cfg->save();
-				$currentWs="no_workspace_set";
-			}
-			$cfg->close();
-		} else { #elsif (defined($ENV{KB_WORKSPACE})) {
-			$currentWs = $ENV{KB_WORKSPACE};
-		}
-	}
-	return $currentWs;
+        my $newWs = shift;
+        my $currentWs;
+        if (defined($newWs)) {
+                $currentWs = $newWs;
+                if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
+                        my $cfg = getKBaseCfg();
+                        $cfg->param("workspace_deluxe.workspace",$newWs);
+                        $cfg->save();
+                        $cfg->close();
+                } else {
+                        require "Bio/KBase/workspaceService/Client.pm";
+			my $oldws = Bio::KBase::workspaceService::Client->new("http://kbase.us/services/workspace");
+			$oldws->set_user_settings({
+					setting => "workspace",
+					value => $currentWs,
+					auth => getToken()
+				});
+                }
+        } else {
+                if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
+                        my $cfg = getKBaseCfg();
+                        $currentWs = $cfg->param("workspace_deluxe.workspace");
+                        if (!defined($currentWs)) {
+                                $cfg->param("workspace_deluxe.workspace","no_workspace_set");
+                                $cfg->save();
+                                $currentWs="no_workspace_set";
+                        }
+                        $cfg->close();
+                } else {
+			require "Bio/KBase/workspaceService/Client.pm";
+			my $oldws = Bio::KBase::workspaceService::Client->new("http://kbase.us/services/workspace");
+			my $settings = $oldws->get_user_settings({auth => getToken()});
+			$currentWs = $settings->{workspace};
+                }
+        }
+        return $currentWs;
 }
 
 
