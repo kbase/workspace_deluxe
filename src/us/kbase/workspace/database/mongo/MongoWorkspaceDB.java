@@ -2672,14 +2672,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final Map<String, Object> o: objs) {
 			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
 			final long objid = (Long) o.get(Fields.OBJ_ID);
-			final int latestVersion;
-			if ((Integer) o.get(Fields.OBJ_LATEST) == null) {
-				latestVersion = (Integer) o.get(Fields.OBJ_VCNT);
-			} else {
-				//TODO check this works with GC
-				latestVersion = (Integer) o.get(Fields.OBJ_LATEST);
-			}
-			o.put(LATEST_VERSION, latestVersion);
+			calcLatestObjVersion(o);
 			if (!ret.containsKey(wsid)) {
 				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
 			}
@@ -2875,17 +2868,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
-			final Integer latestVersion;
-			if ((Integer) ids.get(o).get(Fields.OBJ_LATEST) == null) {
-				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_VCNT);
-			} else {
-				//TODO check this works with GC
-				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_LATEST);
-			}
-			ids.get(o).put(LATEST_VERSION, latestVersion);
+			calcLatestObjVersion(ids.get(o));
 			ret.put(oid, ids.get(o));
 		}
 		return ret;
+	}
+
+	private void calcLatestObjVersion(Map<String, Object> m) {
+		final Integer latestVersion;
+		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
+			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
+		} else {
+			//TODO check this works with GC
+			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
+		}
+		m.put(LATEST_VERSION, latestVersion);
 	}
 	
 	private void verifyVersions(final Set<ResolvedMongoObjectID> objs)
