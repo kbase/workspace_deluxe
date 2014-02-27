@@ -29,55 +29,39 @@ public class ByteStorageWithFileCache {
 	
 	public ByteStorageWithFileCache(InputStream input, int maxInMemorySize, TempFilesManager tfm) throws IOException {
 		this.tfm = tfm;
-		byte[] buffer = new byte[maxInMemorySize];
+		byte[] buf = new byte[100000];
+		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
 		long size = 0;
 		while (size < maxInMemorySize) {
-			int count = input.read(buffer, (int)size, maxInMemorySize - (int)size);
+			int count = input.read(buf, 0, Math.min(buf.length, maxInMemorySize - (int)size));
 			if (count < 0)
 				break;
+			bufOs.write(buf, 0, count);
 			size += count;
 		}
+		bufOs.close();
 		if (size >= maxInMemorySize) {
 			tempFile = tfm.generateTempFile("resp", "json");
 			OutputStream os = new BufferedOutputStream(new FileOutputStream(tempFile));
-			os.write(buffer, 0, (int)size);
+			os.write(bufOs.toByteArray());
+			bufOs = null;
 			while (true) {
-				int count = input.read(buffer, 0, buffer.length);
+				int count = input.read(buf, 0, buf.length);
 				if (count < 0)
 					break;
-				os.write(buffer, 0, count);
+				os.write(buf, 0, count);
 				size += count;
 			}
 			os.close();
 			jts = new JsonTokenStream(tempFile);
 		} else {
-			byte[] bdata = new byte[(int)size];
-			System.arraycopy(buffer, 0, bdata, 0, bdata.length);
-			jts = new JsonTokenStream(bdata);
+			jts = new JsonTokenStream(bufOs.toByteArray());
+			bufOs = null;
 		}
 	}
 	
 	public UObject getUObject() {
 		return new UObject(jts);
-		/*} else {
-			return new UObject(jts) {
-				@Override
-				public void write(JsonGenerator jgen) throws IOException {
-					try {
-						SubdataExtractor.extract(subdataPaths, jts.setRoot(null), jgen);
-					} catch (TypedObjectExtractionException e) {
-						throw new IllegalStateException(e.getMessage(), e);
-					} finally {
-						jts.close();
-					}
-				}
-				
-				@Override
-				public <T> T asClassInstance(Class<T> retType) {
-					return UObject.transformObjectToObject(this, retType);
-				}
-			};
-		}*/
 	}
 	
 	public JsonNode getAsJsonNode() {

@@ -240,28 +240,32 @@ public class JsonServerServlet extends HttpServlet {
 		File tempFile = null;
 		try {
 			InputStream input = request.getInputStream();
-			byte[] rpcBuffer = new byte[Math.max(maxRpcMemoryCacheSize, 10000)];
+			byte[] buffer = new byte[100000];
+			ByteArrayOutputStream bufferOs = new ByteArrayOutputStream();
 			long rpcSize = 0;
 			while (rpcSize < maxRpcMemoryCacheSize) {
-				int count = input.read(rpcBuffer, (int)rpcSize, maxRpcMemoryCacheSize - (int)rpcSize);
+				int count = input.read(buffer, 0, Math.min(buffer.length, maxRpcMemoryCacheSize - (int)rpcSize));
 				if (count < 0)
 					break;
+				bufferOs.write(buffer, 0, count);
 				rpcSize += count;
 			}
 			if (rpcSize >= maxRpcMemoryCacheSize) {
 				OutputStream os;
 				if (rpcDiskCacheTempDir == null) {
-					os = new ByteArrayOutputStream();
+					os = bufferOs;
 				} else {
 					tempFile = generateTempFile();
 					os = new BufferedOutputStream(new FileOutputStream(tempFile));
+					bufferOs.close();
+					os.write(bufferOs.toByteArray());
+					bufferOs = null;
 				}
-				os.write(rpcBuffer, 0, (int)rpcSize);
 				while (true) {
-					int count = input.read(rpcBuffer, 0, rpcBuffer.length);
+					int count = input.read(buffer, 0, buffer.length);
 					if (count < 0)
 						break;
-					os.write(rpcBuffer, 0, count);
+					os.write(buffer, 0, count);
 					rpcSize += count;
 					if (maxObjectSize != null && rpcSize > maxObjectSize) {
 						writeError(response, -32700, "Object is too big, length is more than " + maxObjectSize + " bytes", output);
@@ -272,14 +276,15 @@ public class JsonServerServlet extends HttpServlet {
 				os.close();
 				if (tempFile == null) {
 					jts = new JsonTokenStream(((ByteArrayOutputStream)os).toByteArray());
+					bufferOs = null;
 				} else {
 					jts = new JsonTokenStream(tempFile);
 				}
 			} else {
-				byte[] bdata = new byte[(int)rpcSize];
-				System.arraycopy(rpcBuffer, 0, bdata, 0, bdata.length);
-				jts = new JsonTokenStream(bdata);
+				bufferOs.close();
+				jts = new JsonTokenStream(bufferOs.toByteArray());
 			}
+			bufferOs = null;
 			RpcCallData rpcCallData;
 			try {
 				rpcCallData = mapper.readValue(jts, RpcCallData.class);
