@@ -45,7 +45,6 @@ import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
@@ -381,7 +380,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						MAX_IN_MEMORY_SIZE, tfm);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
-						"Not authorized to access the blob store database", e);
+						"Not authorized to access the blob store database: "
+						+ e.getLocalizedMessage(), e);
 			} catch (BlobStoreException e) {
 				throw new WorkspaceDBInitializationException(
 						"The database could not be initialized: " +
@@ -403,10 +403,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public String getBackendType() {
 		return blob.getStoreType();
 	}
-	
-	private static final String M_CREATE_WS_QRY = String.format("{%s: #}",
-			Fields.WS_NAME);
 
+	private final static String M_WS_DATE_WTH = String.format(
+			"{$set: {%s: #}}", Fields.WS_MODDATE);
+	
+	private void updateWorkspaceModifiedDate(final ResolvedMongoWSID rwsi)
+			throws WorkspaceCommunicationException {
+		try {
+			wsjongo.getCollection(COL_WORKSPACES)
+				.update(M_WS_ID_QRY, rwsi.getID())
+				.with(M_WS_DATE_WTH, new Date());
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+
+	private static final Set<String> FLDS_CREATE_WS =
+			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
+	
 	@Override
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
@@ -416,10 +431,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {
-			if (wsjongo.getCollection(COL_WORKSPACES).count(
-					M_CREATE_WS_QRY, wsname) > 0) {
-				throw new PreExistingWorkspaceException(String.format(
-						"Workspace %s already exists", wsname));
+			final List<Map<String, Object>> ws = query.queryCollection(
+					COL_WORKSPACES, new BasicDBObject(Fields.WS_NAME, wsname),
+					FLDS_CREATE_WS);
+			if (ws.size() == 1) {
+				final boolean del = (Boolean) ws.get(0).get(Fields.WS_DEL);
+				final String owner = (String) ws.get(0).get(Fields.WS_OWNER);
+				String err = String.format(
+						"Workspace name %s is already in use", wsname);
+				if (del && owner.equals(user.getUser())) {
+					err += " by a deleted workspace";
+				}
+				throw new PreExistingWorkspaceException(err);
+			} else if (ws.size() > 1) { //should be impossible
+				throw new CorruptWorkspaceDBException(String.format(
+						"There is more than one workspace with the name %s",
+						wsname));
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -451,7 +478,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} catch (MongoException.DuplicateKey mdk) {
 			//this is almost impossible to test and will probably almost never happen
 			throw new PreExistingWorkspaceException(String.format(
-					"Workspace %s already exists", wsname));
+					"Workspace name %s is already in use", wsname));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -710,6 +737,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
+		updateWorkspaceModifiedDate(toWS);
 		return generateObjectInfo(toWS, objid, rto == null ? to.getName() :
 				rto.getName(), info);
 	}
@@ -772,7 +800,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
 				roi.getWorkspaceIdentifier(), roi.getId(), roi.getVersion());
 		input = new HashSet<ObjectIDResolvedWS>(Arrays.asList(oid));
-		return getObjectInformation(input, false, false).get(oid);
+		
+		final ObjectInformation oinf =
+				getObjectInformation(input, false, false).get(oid);
+		updateWorkspaceModifiedDate(roi.getWorkspaceIdentifier());
+		return oinf;
 	}
 	
 	//projection lists
@@ -1064,7 +1096,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final Map<String, String> meta, final boolean showDeleted,
+			final Map<String, String> meta, final Date after,
+			final Date before, final boolean showDeleted, 
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -1093,6 +1126,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				andmetaq.add(new BasicDBObject(Fields.WS_META, mentry));
 			}
 			q.put("$and", andmetaq); //note more than one entry is untested
+		}
+		if (before != null || after != null) {
+			final DBObject d = new BasicDBObject();
+			if (before != null) {
+				d.put("$lt", before);
+			}
+			if (after != null) {
+				d.put("$gt", after);
+			}
+			q.put(Fields.WS_MODDATE, d);
 		}
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);
@@ -1720,6 +1763,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
 			}
 		}
+		updateWorkspaceModifiedDate(wsidmongo);
 		return ret;
 	}
 
@@ -2457,6 +2501,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public List<ObjectInformation> getObjectInformation(
 			final PermissionSet pset, final TypeDefId type,
 			final List<WorkspaceUser> savedby, final Map<String, String> meta,
+			final Date after, final Date before,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetadata, final int skip, final int limit)
@@ -2499,6 +2544,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
+		}
+		if (before != null || after != null) {
+			final DBObject d = new BasicDBObject();
+			if (before != null) {
+				d.put("$lt", before);
+			}
+			if (after != null) {
+				d.put("$gt", after);
+			}
+			verq.put(Fields.VER_SAVEDATE, d);
 		}
 		final Set<String> fields;
 		if (includeMetadata) {
@@ -2887,6 +2942,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedMongoWSID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
+			updateWorkspaceModifiedDate(ws);
 		}
 	}
 	

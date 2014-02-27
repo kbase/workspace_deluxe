@@ -3,6 +3,7 @@ package us.kbase.workspace.lib;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -340,11 +341,31 @@ public class Workspace {
 			final Permission permission) throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
+		if (users == null || users.isEmpty()) {
+			throw new IllegalArgumentException(
+					"The users list may not be null or empty");
+		}
 		if (Permission.OWNER.compareTo(permission) <= 0) {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set permissions on", false, true);
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+		final Permission currentPerm = db.getPermissions(user, wsid)
+				.getUserPermission(wsid, true);
+		if (currentPerm.equals(Permission.NONE)) {
+			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
+		}
+		if (Permission.ADMIN.compareTo(currentPerm) > 0) {
+			if (!users.equals(Arrays.asList(user))) {
+				throw new WorkspaceAuthorizationException(String.format(
+						"User %s may not alter other user's permissions on workspace %s",
+						user.getUser(), wsi.getIdentifierString()));
+			}
+			if (currentPerm.compareTo(permission) < 0) {
+				throw new WorkspaceAuthorizationException(String.format(
+						"User %s may only reduce their permission level on workspace %s",
+						user.getUser(), wsi.getIdentifierString()));
+			}
+		}
 		db.setPermissions(wsid, users, permission);
 	}
 	
@@ -660,9 +681,11 @@ public class Workspace {
 		return tove;
 	}
 	
+	//should probably make an options builder
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
 			final List<WorkspaceUser> users, final Map<String, String> meta,
+			final Date after, final Date before,
 			final boolean excludeGlobal, final boolean showDeleted,
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
@@ -675,15 +698,15 @@ public class Workspace {
 		}
 		final PermissionSet perms =
 				db.getPermissions(user, minPerm, excludeGlobal);
-		return db.getWorkspaceInformation(perms, users, meta, showDeleted,
-				showOnlyDeleted);
+		return db.getWorkspaceInformation(perms, users, meta, after, before,
+				showDeleted, showOnlyDeleted);
 	}
 	
 	//insanely long method signatures get me hot
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
 			Permission minPerm, final List<WorkspaceUser> savers,
-			final Map<String, String> meta,
+			final Map<String, String> meta, final Date after, final Date before,
 			final boolean showHidden, final boolean showDeleted,
 			final boolean showOnlyDeleted, final boolean showAllVers,
 			final boolean includeMetaData, final boolean excludeGlobal,
@@ -717,9 +740,9 @@ public class Workspace {
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, savers, meta, showHidden,
-				showDeleted, showOnlyDeleted, showAllVers, includeMetaData,
-				skip, limit);
+		return db.getObjectInformation(pset, type, savers, meta, after, before,
+				showHidden, showDeleted, showOnlyDeleted, showAllVers,
+				includeMetaData, skip, limit);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

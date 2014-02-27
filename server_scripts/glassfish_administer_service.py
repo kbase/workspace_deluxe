@@ -29,6 +29,10 @@ def _parseArgs():
     parser.add_argument('-d', '--domain', required=True,
                          help='name of the Glassfish domain where the ' +
                          'application is or will be installed.')
+    parser.add_argument('-l', '--domain-dir',
+                         help='directory where the glassfish domain ' +
+                         'information and logs will be stored. Defaults to ' +
+                         'glassfish/domains.')
     parser.add_argument('-p', '--port', required=True, type=int,
                          help='the port where the application runs.')
     parser.add_argument('-t', '--threads', type=int, default=20,
@@ -49,13 +53,25 @@ def _parseArgs():
 
 class CommandGlassfishDomain(object):
 
-    def __init__(self, asadminpath, domain):
+    def __init__(self, asadminpath, domain, domainpath):
         self.asadminpath = asadminpath
         self.domain = domain
+        self.path = None
+        if (domainpath):
+            domaindir = os.path.abspath(os.path.expanduser(domainpath))
+            if not os.path.isdir(domaindir):
+                if not os.path.exists(domaindir):
+                    os.mkdir(domaindir)
+                else:
+                    print('Domain path ' + domainpath + ' must be a directory')
+                    sys.exit(1)
+            self.path = domaindir
+        p = (' at ' + self.path) if(self.path) else ''
         if self.exists():
-            print("Domain " + self.domain + " exists, skipping creation")
+            print('Domain ' + self.domain + ' exists' + p +
+                  ', skipping creation')
         else:
-            print("Creating domain " + self.domain)
+            print('Creating domain ' + self.domain + p)
             print(self._run_local_command('create-domain', '--nopassword=true',
                                           self.domain).rstrip())
         self.adminport = self.get_admin_port()
@@ -63,9 +79,12 @@ class CommandGlassfishDomain(object):
 
     def get_admin_port(self):
         #the fact I have to do this is moronic
-        bindir = os.path.dirname(self.asadminpath)
-        glassfish = os.path.join(bindir, "..")
-        domains = os.path.join(glassfish, "domains")
+        if (self.path):
+            domains = self.path
+        else:
+            bindir = os.path.dirname(self.asadminpath)
+            glassfish = os.path.join(bindir, "..")
+            domains = os.path.join(glassfish, "domains")
         domain = os.path.join(domains, self.domain)
         configfile = os.path.join(domain, "config/domain.xml")
         xml = ET.parse(configfile)
@@ -237,9 +256,12 @@ class CommandGlassfishDomain(object):
     def _list_domains(self):
         return self._run_local_command('list-domains')
 
-    def _run_local_command(self, *cmd):
+    def _run_local_command(self, subcmd, *args):
+        cmd = [self.asadminpath, subcmd]
+        if (self.path):
+            cmd.extend(['--domaindir', self.path])
         try:
-            return subprocess.check_output([self.asadminpath] + list(cmd))
+            return subprocess.check_output(cmd + list(args))
         except CalledProcessError as cpe:
             print(cpe.output.rstrip())
             sys.exit(1)
@@ -247,7 +269,7 @@ class CommandGlassfishDomain(object):
     def _run_remote_command(self, *cmd):
         try:
             return subprocess.check_output([self.asadminpath, '-p',
-                                             self.adminport] + list(cmd))
+                                            self.adminport] + list(cmd))
         except CalledProcessError as cpe:
             print(cpe.output.rstrip())
             sys.exit(1)
@@ -255,7 +277,7 @@ class CommandGlassfishDomain(object):
 
 if __name__ == '__main__':
     args = _parseArgs()
-    gf = CommandGlassfishDomain(args.admin, args.domain)
+    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir)
     if (args.war == None):
         gf.stop_service(args.port)
     else:

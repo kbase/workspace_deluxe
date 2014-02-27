@@ -9,7 +9,6 @@ import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
@@ -22,8 +21,6 @@ import com.mongodb.gridfs.GridFSInputFile;
 
 public class GridFSBackend implements BlobStore {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
 	private final GridFS gfs;
 	private final int maxInMemorySize;
 	private final TempFilesManager tfm;
@@ -34,9 +31,6 @@ public class GridFSBackend implements BlobStore {
 		this.tfm = tfm;
 	}
 
-	/* (non-Javadoc)
-	 * @see us.kbase.workspace.database.BlobStore#saveBlob(us.kbase.workspace.database.TypeData)
-	 */
 	@Override
 	public void saveBlob(final MD5 md5, final Writable data)
 			throws BlobStoreCommunicationException {

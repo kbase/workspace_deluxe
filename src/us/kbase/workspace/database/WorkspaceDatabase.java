@@ -1,6 +1,6 @@
 package us.kbase.workspace.database;
 
-import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,15 +167,15 @@ public interface WorkspaceDatabase {
 
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			PermissionSet pset, List<WorkspaceUser> owners,
-			Map<String, String> meta, boolean showDeleted,
-			boolean showOnlyDeleted)
+			Map<String, String> meta, Date after, Date before,
+			boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public List<ObjectInformation> getObjectInformation(
 			PermissionSet pset, TypeDefId type, List<WorkspaceUser> savers,
-			Map<String, String> meta, boolean showHidden, boolean showDeleted,
-			boolean showOnlyDeleted, boolean showAllVers,
-			boolean includeMetaData, int skip, int limit)
+			Map<String, String> meta, Date after, Date before,
+			boolean showHidden, boolean showDeleted, boolean showOnlyDeleted,
+			boolean showAllVers, boolean includeMetaData, int skip, int limit)
 			throws WorkspaceCommunicationException;
 
 	public List<ObjectInformation> getObjectHistory(

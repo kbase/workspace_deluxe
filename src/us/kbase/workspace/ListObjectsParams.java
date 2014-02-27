@@ -36,6 +36,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         only one key/value pair is supported at this time. A full map
  *                         is provided as input for the possibility for expansion in the
  *                         future.
+ *                 timestamp after - only return objects that were created after this
+ *                         date.
+ *                 timestamp before - only return objects that were created before this
+ *                         date.
  *                 boolean showDeleted - show deleted objects in workspaces to which the
  *                         user has write access.
  *                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -51,7 +55,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 int skip - skip the first X objects. Maximum value is 2^31, skip values
  *                         < 0 are treated as 0, the default.
  *                 int limit - limit the output to X objects. Default and maximum value
- *                         is 10000. Limit values < 1 are treated as 1.
+ *                         is 10000. Limit values < 1 are treated as 10000, the default.
  * </pre>
  * 
  */
@@ -64,6 +68,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "perm",
     "savedby",
     "meta",
+    "after",
+    "before",
     "showDeleted",
     "showOnlyDeleted",
     "showHidden",
@@ -87,6 +93,10 @@ public class ListObjectsParams {
     private List<String> savedby;
     @JsonProperty("meta")
     private Map<String, String> meta;
+    @JsonProperty("after")
+    private java.lang.String after;
+    @JsonProperty("before")
+    private java.lang.String before;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
     @JsonProperty("showOnlyDeleted")
@@ -192,6 +202,36 @@ public class ListObjectsParams {
 
     public ListObjectsParams withMeta(Map<String, String> meta) {
         this.meta = meta;
+        return this;
+    }
+
+    @JsonProperty("after")
+    public java.lang.String getAfter() {
+        return after;
+    }
+
+    @JsonProperty("after")
+    public void setAfter(java.lang.String after) {
+        this.after = after;
+    }
+
+    public ListObjectsParams withAfter(java.lang.String after) {
+        this.after = after;
+        return this;
+    }
+
+    @JsonProperty("before")
+    public java.lang.String getBefore() {
+        return before;
+    }
+
+    @JsonProperty("before")
+    public void setBefore(java.lang.String before) {
+        this.before = before;
+    }
+
+    public ListObjectsParams withBefore(java.lang.String before) {
+        this.before = before;
         return this;
     }
 
@@ -327,7 +367,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", skip=")+ skip)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", skip=")+ skip)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

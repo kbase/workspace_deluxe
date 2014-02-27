@@ -759,7 +759,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
 		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
-				getUser(params.getAuth(), authPart), null, null, null,
+				getUser(params.getAuth(), authPart), null, null, null, null, null,
 				au.longToBoolean(params.getExcludeGlobal()), false, false));
         //END list_workspaces
         return returnVal;
@@ -782,6 +782,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				translatePermission(params.getPerm());
 		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
 				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
+				au.parseDate(params.getAfter()),
+				au.parseDate(params.getBefore()),
 				au.longToBoolean(params.getExcludeGlobal()),
 				au.longToBoolean(params.getShowDeleted()),
 				au.longToBoolean(params.getShowOnlyDeleted())));
@@ -811,7 +813,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getShowDeletedObject());
 		returnVal = au.objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
-						Arrays.asList(wsi), type, null, null, null,
+						Arrays.asList(wsi), type, null, null, null, null, null,
 						false, showDeleted, false, false, true, false, 0, 10000));
         //END list_workspace_objects
         return returnVal;
@@ -858,11 +860,13 @@ public class WorkspaceServer extends JsonServerServlet {
 		final int skip = au.longToInt(params.getSkip(), "Skip", -1);
 		final int limit = au.longToInt(params.getLimit(), "Limit", -1);
 		returnVal = au.objInfoToTuple(
+				//this sig is insane
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), showHidden, showDeleted,
-						showOnlyDeleted, showAllVers, includeMetadata,
-						excludeGlobal, skip, limit));
+						params.getMeta(), au.parseDate(params.getAfter()),
+						au.parseDate(params.getBefore()), showHidden,
+						showDeleted, showOnlyDeleted, showAllVers,
+						includeMetadata, excludeGlobal, skip, limit));
         //END list_objects
         return returnVal;
     }

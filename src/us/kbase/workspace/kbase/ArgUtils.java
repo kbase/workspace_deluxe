@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,7 @@ public class ArgUtils {
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(a.getTime() == null ? null :
-						dateFormat.parseDate(a.getTime()))
+					.withTime(parseDate(a.getTime()))
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
 					.withMethod(a.getMethod())
@@ -74,6 +74,10 @@ public class ArgUtils {
 					);
 		}
 		return p;
+	}
+	
+	public Date parseDate(final String date) throws ParseException {
+		return date == null ? null : dateFormat.parseDate(date);
 	}
 	
 	private List<Object> translateMethodParametersToObject(

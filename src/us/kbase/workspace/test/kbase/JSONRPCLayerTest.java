@@ -27,6 +27,7 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
@@ -36,7 +37,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
-import sun.misc.Cleaner;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -586,7 +586,7 @@ public class JSONRPCLayerTest {
 					.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		} catch (ServerException e) {
 			assertThat("Correct excp message", e.getLocalizedMessage(),
-					is("User "+USER2+" may not set permissions on workspace permspriv"));
+					is("User "+USER2+" may not alter other user's permissions on workspace permspriv"));
 		}
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("a").withUsers(Arrays.asList(USER2)));
@@ -2558,11 +2558,81 @@ public class JSONRPCLayerTest {
 					is("Unexpected arguments in ListWorkspaceInfoParams: booga"));
 		}
 	}
+	
+	@Test
+	public void listWorkspaceInfoByDate() throws Exception {
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> mt =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w1 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate1"));
+		Thread.sleep(2000);
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w2 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate2"));
+		Thread.sleep(2000);
+		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w3 =
+				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate3"));
+		String beforeall = subSec(w1.getE4()); //max res is 1s
+		String afterall = addSec(w3.getE4());
+		
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)),
+				Arrays.asList(w1, w2, w3), mt, true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(beforeall).withBefore(afterall)),
+				Arrays.asList(w1, w2, w3), mt, true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(afterall).withBefore(beforeall)),
+				mt, Arrays.asList(w1, w2, w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(addSec(w1.getE4()))),
+				Arrays.asList(w2, w3), Arrays.asList(w1), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withBefore(subSec(w3.getE4()))),
+				Arrays.asList(w1, w2), Arrays.asList(w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(addSec(w1.getE4())).withBefore(subSec(w3.getE4()))),
+				Arrays.asList(w2), Arrays.asList(w1, w3), true);
+		
+		failListWorkspaceByDate("crappy date", "Unparseable date: \"crappy date\"");
+	}
+	
+	private void failListWorkspaceByDate(String date, String exception) throws Exception {
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withAfter(date));
+			fail("listed workspace info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withBefore(date));
+			fail("listed workspace info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+	}
+	
+	private String addSec(String time) throws Exception {
+		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() + 1000);
+	}
+	
+	private String subSec(String time) throws Exception {
+		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() - 1000);
+	}
 
 	private void checkWSInfoList(
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected) {
+		checkWSInfoList(got, expected, notexpected, false);
+	}
+	
+	private void checkWSInfoList(
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected,
+			boolean testDates) {
 		Map<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expecmap = 
 				new HashMap<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>();
 		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: expected) {
@@ -2589,7 +2659,9 @@ public class JSONRPCLayerTest {
 			Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> exp =
 					expecmap.get(info.getE1());
 			assertThat("ids correct", info.getE1(), is(exp.getE1()));
-//			assertThat("moddates correct", info.getE4(), is(moddate)); don't test dates
+			if (testDates) {
+				assertThat("moddates correct", info.getE4(), is(exp.getE4())); 
+			}
 			assertThat("ws name correct", info.getE2(), is(exp.getE2()));
 			assertThat("user name correct", info.getE3(), is(exp.getE3()));
 			assertThat("obj counts are 0", info.getE5(), is(exp.getE5()));
@@ -2803,7 +2875,6 @@ public class JSONRPCLayerTest {
 		String ws = "pagination";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		
-		
 		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
 		for (int i = 0; i < 200; i++) {
 			objs.add(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
@@ -2842,6 +2913,63 @@ public class JSONRPCLayerTest {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getE1(), minid, maxid));
 			}
+		}
+	}
+	
+	@Test
+	public void listObjectsByDate() throws Exception {
+		ArrayList<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> mt =
+				new ArrayList<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>();
+		String ws = "listObjsByDate";
+		UObject d = new UObject(new HashMap<String, String>());
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
+		SaveObjectsParams p = new SaveObjectsParams().withWorkspace(ws)
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(d)
+						.withType(SAFE_TYPE).withName("o1")));
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o1 =
+				CLIENT1.saveObjects(p).get(0);
+		p.getObjects().get(0).setName("o2");
+		Thread.sleep(2000);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o2 =
+				CLIENT1.saveObjects(p).get(0);
+		p.getObjects().get(0).setName("o3");
+		Thread.sleep(2000);
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o3 =
+				CLIENT1.saveObjects(p).get(0);
+		String beforeall = subSec(o1.getE4()); //max res is 1s
+		String afterall = addSec(o3.getE4());
+		
+		ListObjectsParams lp = new ListObjectsParams().withWorkspaces(Arrays.asList(ws))
+				.withIncludeMetadata(1L);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
+		lp = lp.withAfter(beforeall).withBefore(afterall);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
+		lp = lp.withAfter(afterall).withBefore(beforeall);
+		compareObjectInfo(CLIENT1.listObjects(lp), mt, false);
+		lp = lp.withAfter(addSec(o1.getE4())).withBefore(null);
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2, o3), false);
+		lp = lp.withAfter(null).withBefore(subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2), false);
+		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
+		
+		failListObjectsByDate("crappy obj date", "Unparseable date: \"crappy obj date\"");
+	}
+	
+	private void failListObjectsByDate(String date, String exception) throws Exception {
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withAfter(date));
+			fail("listed obj info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
+			CLIENT1.listObjects(new ListObjectsParams().withBefore(date));
+			fail("listed obj info with bad date");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
 		}
 	}
 	
@@ -2995,7 +3123,20 @@ public class JSONRPCLayerTest {
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info1 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("subdata"));
 		
-		Map<String, Object> data = createData(
+		String strdata = 
+				"{\"foobar\":\"somestuff\"," +
+				 "\"map\":{\"id1\":{\"id\":1," +
+								   "\"thing\":\"foo\"}," +
+						  "\"id2\":{\"id\":2," +
+								   "\"thing\":\"foo2\"}," +
+						  "\"id3\":{\"id\":3," +
+								   "\"thing\":\"foo3\"}" +
+						  "}" +
+				"}";
+		String md5 = DigestUtils.md5Hex(strdata);
+		assertThat("md5 correct", md5, is("06c2ae8f77ad36e262bca7b186c944ec"));
+		
+		Map<String, Object> data = createData( // intentionally unsorted
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
 				"			\"id2\": {\"id\": 2," +
@@ -3023,14 +3164,13 @@ public class JSONRPCLayerTest {
 				"}"
 				);
 		checkData(od, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
-				"06c2ae8f77ad36e262bca7b186c944ec", 119, new HashMap<String, String>(),
+				md5, 119, new HashMap<String, String>(),
 				expdata);
 		
 		try {
-			ObjectData ret = CLIENT1.getObjectSubset(Arrays.asList(
+			CLIENT1.getObjectSubset(Arrays.asList(
 					new SubObjectIdentity().withRef("subdata/1")
 					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))).get(0);
-			System.out.println(ret);
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -3040,30 +3180,6 @@ public class JSONRPCLayerTest {
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("subdata").withNewPermission("n"));
 	}
-	
-	public static void main(String[] args) throws IOException {
-		String text = "{\"map\": {\"id1\": {\"id\": 1," +
-				"					  \"thing\": \"foo\"}," +
-				"			\"id2\": {\"id\": 2," +
-				"					  \"thing\": \"foo2\"}," +
-				"			\"id3\": {\"id\": 3," +
-				"					  \"thing\": \"foo3\"}" +
-				"			}," +
-				" \"foobar\": \"somestuff\"" +
-				"}";
-		TreeNode tree = new ObjectMapper().readTree(text);
-		System.out.println(sortJson(tree));
-	}
-	
-	private static JsonNode sortJson(TreeNode tree) throws IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-		Object map = mapper.treeToValue(tree, Object.class);
-		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-		String text = mapper.writeValueAsString(map);
-		return mapper.readTree(text);
-	}
-
 	
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> createData(String json)
@@ -3447,7 +3563,8 @@ public class JSONRPCLayerTest {
 				is(expected));
 		
 		adminParams.put("user", USER2);
-		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set permissions on workspace " + wsstr);
+		((SetPermissionsParams) adminParams.get("params")).setNewPermission("a");
+		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may only reduce their permission level on workspace " + wsstr);
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 	}
 

@@ -24,6 +24,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         only one key/value pair is supported at this time. A full map
  *         is provided as input for the possibility for expansion in the
  *         future.
+ * timestamp after - only return workspaces that were modified after this
+ *         date.
+ * timestamp before - only return workspaces that were modified before
+ *         this date.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
  * boolean showDeleted - show deleted workspaces that are owned by the
@@ -39,6 +43,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "perm",
     "owners",
     "meta",
+    "after",
+    "before",
     "excludeGlobal",
     "showDeleted",
     "showOnlyDeleted"
@@ -51,6 +57,10 @@ public class ListWorkspaceInfoParams {
     private List<String> owners;
     @JsonProperty("meta")
     private Map<String, String> meta;
+    @JsonProperty("after")
+    private java.lang.String after;
+    @JsonProperty("before")
+    private java.lang.String before;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
@@ -101,6 +111,36 @@ public class ListWorkspaceInfoParams {
 
     public ListWorkspaceInfoParams withMeta(Map<String, String> meta) {
         this.meta = meta;
+        return this;
+    }
+
+    @JsonProperty("after")
+    public java.lang.String getAfter() {
+        return after;
+    }
+
+    @JsonProperty("after")
+    public void setAfter(java.lang.String after) {
+        this.after = after;
+    }
+
+    public ListWorkspaceInfoParams withAfter(java.lang.String after) {
+        this.after = after;
+        return this;
+    }
+
+    @JsonProperty("before")
+    public java.lang.String getBefore() {
+        return before;
+    }
+
+    @JsonProperty("before")
+    public void setBefore(java.lang.String before) {
+        this.before = before;
+    }
+
+    public ListWorkspaceInfoParams withBefore(java.lang.String before) {
+        this.before = before;
         return this;
     }
 
@@ -161,7 +201,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", meta=")+ meta)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

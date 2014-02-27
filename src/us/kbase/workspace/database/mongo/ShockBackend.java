@@ -24,7 +24,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gc.iotools.stream.base.ExecutionModel;
 import com.gc.iotools.stream.base.ExecutorServiceFactory;
@@ -38,7 +37,6 @@ import com.mongodb.MongoException;
 
 public class ShockBackend implements BlobStore {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final String nodeMap = "nodeMap";
 	
 	private String user;
@@ -96,7 +94,7 @@ public class ShockBackend implements BlobStore {
 			u = AuthService.login(user, password);
 		} catch (AuthException ae) {
 			throw new BlobStoreAuthorizationException(
-					"Could not authenticate backend user " + user, ae);
+					"Could not authenticate backend user", ae);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend auth provider: " +
@@ -167,6 +165,12 @@ public class ShockBackend implements BlobStore {
 			data.write(osis);
 			data.releaseResources();
 		} catch (IOException ioe) {
+			//no way to test this easily, manually tested for now.
+			//be sure to test manually if making changes
+			if (ioe.getCause().getClass().equals(
+					BlobStoreCommunicationException.class)) {
+				throw (BlobStoreCommunicationException) ioe.getCause();
+			}
 			throw new RuntimeException("IO Error during streaming of JsonNode: "
 					+ ioe.getLocalizedMessage(), ioe);
 		} finally {

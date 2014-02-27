@@ -3,7 +3,7 @@ SERVICE = workspace
 SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
-URL = http://kbase.us/services/ws/
+URL = https://kbase.us/services/ws/
 
 THREADPOOL_SIZE = 20
 MEMORY = 10000
@@ -117,6 +117,8 @@ deploy: deploy-client deploy-service
 
 deploy-client: deploy-client-libs deploy-docs deploy-scripts
 
+deploy-scripts: deploy-perl-scripts
+
 deploy-client-libs:
 	mkdir -p $(TARGET)/lib/
 	cp dist/client/$(CLIENT_JAR) $(TARGET)/lib/
@@ -135,7 +137,7 @@ deploy-scripts:
 else ifneq ($(TOP_DIR_NAME), dev_container)
 deploy-scripts: deploy-perl-scripts
 
-deploy-perl-scripts:
+deploy-perl-scripts: undeploy-perl-scripts
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
 	export KB_PERL_PATH=$(TARGET)/lib ; \
@@ -145,8 +147,32 @@ deploy-perl-scripts:
 		echo install $$src $$base ; \
 		cp $$src $(TARGET)/plbin ; \
 		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
+		echo install $$src kb$$base ; \
+		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/kb$$base ; \
 	done
 endif
+
+undeploy-perl-scripts:
+	rm -f $(TARGET)/plbin/ws-*.pl
+	rm -f $(TARGET)/plbin/kbws-*.pl
+	rm -f $(TARGET)/bin/kbws-*
+	rm -f $(TARGET)/bin/ws-*
+
+deploy-perl-scripts: undeploy-perl-scripts
+	export KB_TOP=$(TARGET); \
+	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
+	export KB_PERL_PATH=$(TARGET)/lib ; \
+	for src in $(SRC_PERL) ; do \
+		basefile=`basename $$src`; \
+		base=`basename $$src .pl`; \
+		echo install $$src $$base ; \
+		cp $$src $(TARGET)/plbin ; \
+		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
+		echo install $$src kb$$base ; \
+		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/kb$$base ; \
+	done
+
+
 
 # use this target to deploy scripts and dependent libs; this target allows you
 # to deploy scripts and only the needed perl client and perl script helper lib
@@ -169,9 +195,16 @@ deploy-service-scripts:
 	echo "then" >> $(SERVICE_DIR)/start_service
 	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
 	echo "fi" >> $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -w $(SERVICE_DIR)/$(WAR) -p $(SERVICE_PORT) -t $(THREADPOOL_SIZE) -s $(MEMORY) -x $(MAX_MEMORY) -g -r KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG" >> $(SERVICE_DIR)/start_service
+	echo "$(SERVICE_DIR)/glassfish_administer_service.py --admin $(ASADMIN)\
+		--domain $(SERVICE_CAPS) --domain-dir $(SERVICE_DIR)/glassfish_domain\
+		--war $(SERVICE_DIR)/$(WAR) --port $(SERVICE_PORT)\
+		--threads $(THREADPOOL_SIZE) --Xms $(MEMORY) --Xmx $(MAX_MEMORY)\
+		--noparallelgc --properties KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG"\
+		>> $(SERVICE_DIR)/start_service
 	chmod +x $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_administer_service.py -a $(ASADMIN) -d $(SERVICE_CAPS) -p $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
+	echo "$(SERVICE_DIR)/glassfish_administer_service.py --admin $(ASADMIN)\
+		--domain $(SERVICE_CAPS) --domain-dir $(SERVICE_DIR)/glassfish_domain\
+		--port $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
 	chmod +x $(SERVICE_DIR)/stop_service
 
 undeploy:

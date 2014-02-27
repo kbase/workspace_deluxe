@@ -51,7 +51,7 @@ sub new
     
     if (!defined($url))
     {
-	$url = 'http://kbase.us/services/ws/';
+	$url = 'https://kbase.us/services/ws/';
     }
 
     my $self = {
@@ -2791,12 +2791,15 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	perm has a value which is a Workspace.permission
 	owners has a value which is a reference to a list where each element is a Workspace.username
 	meta has a value which is a Workspace.usermeta
+	after has a value which is a Workspace.timestamp
+	before has a value which is a Workspace.timestamp
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+timestamp is a string
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -2810,7 +2813,6 @@ workspace_info is a reference to a list containing 9 items:
 	8: (metadata) a Workspace.usermeta
 ws_id is an int
 ws_name is a string
-timestamp is a string
 lock_status is a string
 
 </pre>
@@ -2825,12 +2827,15 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	perm has a value which is a Workspace.permission
 	owners has a value which is a reference to a list where each element is a Workspace.username
 	meta has a value which is a Workspace.usermeta
+	after has a value which is a Workspace.timestamp
+	before has a value which is a Workspace.timestamp
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+timestamp is a string
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -2844,7 +2849,6 @@ workspace_info is a reference to a list containing 9 items:
 	8: (metadata) a Workspace.usermeta
 ws_id is an int
 ws_name is a string
-timestamp is a string
 lock_status is a string
 
 
@@ -3061,6 +3065,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	perm has a value which is a Workspace.permission
 	savedby has a value which is a reference to a list where each element is a Workspace.username
 	meta has a value which is a Workspace.usermeta
+	after has a value which is a Workspace.timestamp
+	before has a value which is a Workspace.timestamp
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -3075,6 +3081,7 @@ type_string is a string
 permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+timestamp is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -3090,7 +3097,6 @@ object_info is a reference to a list containing 11 items:
 	10: (meta) a Workspace.usermeta
 obj_id is an int
 obj_name is a string
-timestamp is a string
 
 </pre>
 
@@ -3107,6 +3113,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	perm has a value which is a Workspace.permission
 	savedby has a value which is a reference to a list where each element is a Workspace.username
 	meta has a value which is a Workspace.usermeta
+	after has a value which is a Workspace.timestamp
+	before has a value which is a Workspace.timestamp
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -3121,6 +3129,7 @@ type_string is a string
 permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+timestamp is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -3136,7 +3145,6 @@ object_info is a reference to a list containing 11 items:
 	10: (meta) a Workspace.usermeta
 obj_id is an int
 obj_name is a string
-timestamp is a string
 
 
 =end text
@@ -8099,6 +8107,10 @@ usermeta meta - filter workspaces by the user supplied metadata. NOTE:
         only one key/value pair is supported at this time. A full map
         is provided as input for the possibility for expansion in the
         future.
+timestamp after - only return workspaces that were modified after this
+        date.
+timestamp before - only return workspaces that were modified before
+        this date.
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
 boolean showDeleted - show deleted workspaces that are owned by the
@@ -8116,6 +8128,8 @@ a reference to a hash where the following keys are defined:
 perm has a value which is a Workspace.permission
 owners has a value which is a reference to a list where each element is a Workspace.username
 meta has a value which is a Workspace.usermeta
+after has a value which is a Workspace.timestamp
+before has a value which is a Workspace.timestamp
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -8130,6 +8144,8 @@ a reference to a hash where the following keys are defined:
 perm has a value which is a Workspace.permission
 owners has a value which is a reference to a list where each element is a Workspace.username
 meta has a value which is a Workspace.usermeta
+after has a value which is a Workspace.timestamp
+before has a value which is a Workspace.timestamp
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -8229,6 +8245,10 @@ Parameters for the 'list_objects' function.
                         only one key/value pair is supported at this time. A full map
                         is provided as input for the possibility for expansion in the
                         future.
+                timestamp after - only return objects that were created after this
+                        date.
+                timestamp before - only return objects that were created before this
+                        date.
                 boolean showDeleted - show deleted objects in workspaces to which the
                         user has write access.
                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -8244,7 +8264,7 @@ Parameters for the 'list_objects' function.
                 int skip - skip the first X objects. Maximum value is 2^31, skip values
                         < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
-                        is 10000. Limit values < 1 are treated as 1.
+                        is 10000. Limit values < 1 are treated as 10000, the default.
 
 
 =item Definition
@@ -8259,6 +8279,8 @@ type has a value which is a Workspace.type_string
 perm has a value which is a Workspace.permission
 savedby has a value which is a reference to a list where each element is a Workspace.username
 meta has a value which is a Workspace.usermeta
+after has a value which is a Workspace.timestamp
+before has a value which is a Workspace.timestamp
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
@@ -8281,6 +8303,8 @@ type has a value which is a Workspace.type_string
 perm has a value which is a Workspace.permission
 savedby has a value which is a reference to a list where each element is a Workspace.username
 meta has a value which is a Workspace.usermeta
+after has a value which is a Workspace.timestamp
+before has a value which is a Workspace.timestamp
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean

@@ -48,7 +48,7 @@ public class WorkspaceClient {
     private static URL DEFAULT_URL = null;
     static {
         try {
-            DEFAULT_URL = new URL("http://kbase.us/services/ws/");
+            DEFAULT_URL = new URL("https://kbase.us/services/ws/");
         } catch (MalformedURLException mue) {
             throw new RuntimeException("Compile error in client - bad url compiled");
         }
