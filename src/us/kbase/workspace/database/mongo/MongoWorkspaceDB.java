@@ -2391,11 +2391,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			final Set<ObjectIDResolvedWS> objects)
-			throws WorkspaceCommunicationException {
+			throws WorkspaceCommunicationException, NoSuchObjectException {
 		//TODO test w/ garbage collection
-		
-		//TODO common method for getting the latest version
-		return null;
+		final Map<ObjectIDResolvedWS, Map<String, Object>> objdata =
+				queryObjects(objects, FLDS_REF_CNT, true, true);
+		final Map<ObjectIDResolvedWS, Integer> ret =
+				new HashMap<ObjectIDResolvedWS, Integer>();
+		for (final ObjectIDResolvedWS o: objects) {
+			//this is another place where extremely rare failures could cause
+			//problems
+			final int ver;
+			if (o.getVersion() == null) {
+				ver = (Integer) objdata.get(o).get(LATEST_VERSION);
+			} else {
+				ver = o.getVersion();
+			}
+			@SuppressWarnings("unchecked")
+			final List<Integer> refs = (List<Integer>) objdata.get(o).get(
+					Fields.OBJ_REFCOUNTS);
+			ret.put(o, refs.get(ver - 1));
+		}
+		return ret;
 	}
 	
 	private Map<ObjectId, MongoProvenance> getProvenance(

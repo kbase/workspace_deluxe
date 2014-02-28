@@ -126,7 +126,7 @@ public interface WorkspaceDatabase {
 	
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			Set<ObjectIDResolvedWS> objects)
-			throws WorkspaceCommunicationException;
+			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
 			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata,

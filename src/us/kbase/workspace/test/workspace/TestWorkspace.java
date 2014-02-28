@@ -1277,6 +1277,14 @@ public class TestWorkspace {
 					is(e.getLocalizedMessage()));
 			assertThat("correct exception type", exp, is(e.getClass()));
 		}
+		try {
+			ws.getReferencingObjectCounts(user, objs);
+			fail("called get refing objects with bad args");
+		} catch (Exception exp) {
+			assertThat("correct exception", exp.getLocalizedMessage(),
+					is(e.getLocalizedMessage()));
+			assertThat("correct exception type", exp, is(e.getClass()));
+		}
 	}
 
 	private List<SubObjectIdentifier> objIDToSubObjID(
@@ -4868,40 +4876,45 @@ public class TestWorkspace {
 						reftype, meta1, new Provenance(user2).addAction(new ProvenanceAction()
 						.withWorkspaceObjects(Arrays.asList("refstarget1/single/1"))), false))).get(0);
 		
-		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar1, "stk"),
-						new ObjectIdentifier(wsitar1, "stk", 2),
-						new ObjectIdentifier(wsitar1, "stk", 1))),
+		List<ObjectIdentifier> objs = Arrays.asList(
+				new ObjectIdentifier(wsitar1, "stk"),
+				new ObjectIdentifier(wsitar1, "stk", 2),
+				new ObjectIdentifier(wsitar1, "stk", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
 						oiset(stdref2, hiddenref),
 						oiset(stdref2, hiddenref),
 						oiset(stdref1))));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(3, 3, 1)));
 		
 		Set<ObjectInformation> mtoiset = new HashSet<ObjectInformation>();
 		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar2, "stk2"),
-						new ObjectIdentifier(wsitar2, "stk2", 2),
-						new ObjectIdentifier(wsitar2, "stk2", 1))),
+		objs = Arrays.asList(
+				new ObjectIdentifier(wsitar2, "stk2"),
+				new ObjectIdentifier(wsitar2, "stk2", 2),
+				new ObjectIdentifier(wsitar2, "stk2", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
 						mtoiset,
 						mtoiset,
 						oiset(globalrd))));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(2, 2, 1)));
 		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar1, "single"),
-						new ObjectIdentifier(wsitar1, "single", 1),
-						new ObjectIdentifier(wsitar2, "single2"),
-						new ObjectIdentifier(wsitar2, "single2", 1))),
+		objs = Arrays.asList(
+				new ObjectIdentifier(wsitar1, "single"),
+				new ObjectIdentifier(wsitar1, "single", 1),
+				new ObjectIdentifier(wsitar2, "single2"),
+				new ObjectIdentifier(wsitar2, "single2", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1,objs),
 				is(Arrays.asList(
 						oiset(readable, globalrd),
 						oiset(readable, globalrd),
 						mtoiset,
 						mtoiset)));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(2, 2, 1, 1)));
 		
 		
 		ObjectInformation pstdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
@@ -4949,43 +4962,58 @@ public class TestWorkspace {
 						SAFE_TYPE1, meta1, new Provenance(user2).addAction(new ProvenanceAction()
 						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2/1"))), false))).get(0);
 		
-		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar1, "stk"),
-						new ObjectIdentifier(wsitar1, "stk", 2),
-						new ObjectIdentifier(wsitar1, "stk", 1))),
+		objs = Arrays.asList(
+				new ObjectIdentifier(wsitar1, "stk"),
+				new ObjectIdentifier(wsitar1, "stk", 2),
+				new ObjectIdentifier(wsitar1, "stk", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
 						oiset(stdref2, hiddenref, pstdref2, phiddenref),
 						oiset(stdref2, hiddenref, pstdref2, phiddenref),
 						oiset(stdref1, pstdref1))));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(5, 5, 2)));
 		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar2, "stk2"),
-						new ObjectIdentifier(wsitar2, "stk2", 2),
-						new ObjectIdentifier(wsitar2, "stk2", 1))),
+		objs = Arrays.asList(
+				new ObjectIdentifier(wsitar2, "stk2"),
+				new ObjectIdentifier(wsitar2, "stk2", 2),
+				new ObjectIdentifier(wsitar2, "stk2", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
 						mtoiset,
 						mtoiset,
 						oiset(globalrd, pglobalrd))));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(4, 4, 2)));
 		
-		assertThat("got correct refs", ws.getReferencingObjects(user1,
-				Arrays.asList(
-						new ObjectIdentifier(wsitar1, "single"),
-						new ObjectIdentifier(wsitar1, "single", 1),
-						new ObjectIdentifier(wsitar2, "single2"),
-						new ObjectIdentifier(wsitar2, "single2", 1))),
+		objs = Arrays.asList(
+				new ObjectIdentifier(wsitar1, "single"),
+				new ObjectIdentifier(wsitar1, "single", 1),
+				new ObjectIdentifier(wsitar2, "single2"),
+				new ObjectIdentifier(wsitar2, "single2", 1));
+		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
 						oiset(readable, globalrd, preadable),
 						oiset(readable, globalrd, preadable),
 						mtoiset,
 						mtoiset)));
+		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+				is(Arrays.asList(3, 3, 2, 2)));
 		
 		try {
 			ws.getReferencingObjects(user2, Arrays.asList(
 					new ObjectIdentifier(wsisrc1, 1)));
 			fail("Able to get ref obj data from private workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("Object 1 cannot be accessed: User refUser2 may not read workspace refssource1"));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(wsisrc1, 1)));
+		}
+		try {
+			ws.getReferencingObjectCounts(user2, Arrays.asList(
+					new ObjectIdentifier(wsisrc1, 1)));
+			fail("Able to get ref obj count from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
 					is("Object 1 cannot be accessed: User refUser2 may not read workspace refssource1"));
