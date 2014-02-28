@@ -456,6 +456,27 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: list_referencing_object_counts</p>
+     * <pre>
+     * List the number of times objects have been referenced.
+     * This count includes both provenance and object-to-object references
+     * and, unlike list_referencing_objects, includes objects that are
+     * inaccessible to the user.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @return   parameter "counts" of list of Long
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<Long> listReferencingObjectCounts(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objectIds);
+        TypeReference<List<List<Long>>> retType = new TypeReference<List<List<Long>>>() {};
+        List<List<Long>> res = caller.jsonrpcCall("Workspace.list_referencing_object_counts", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
      * Get objects by references from other objects.

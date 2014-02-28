@@ -2397,6 +2397,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private static final Set<String> FLDS_REF_CNT = newHashSet(
+			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
+			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_REFCOUNTS);
+	
+	@Override
+	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
+			final Set<ObjectIDResolvedWS> objects)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
+		//TODO test w/ garbage collection
+		final Map<ObjectIDResolvedWS, Map<String, Object>> objdata =
+				queryObjects(objects, FLDS_REF_CNT, true, true);
+		final Map<ObjectIDResolvedWS, Integer> ret =
+				new HashMap<ObjectIDResolvedWS, Integer>();
+		for (final ObjectIDResolvedWS o: objects) {
+			//this is another place where extremely rare failures could cause
+			//problems
+			final int ver;
+			if (o.getVersion() == null) {
+				ver = (Integer) objdata.get(o).get(LATEST_VERSION);
+			} else {
+				ver = o.getVersion();
+			}
+			@SuppressWarnings("unchecked")
+			final List<Integer> refs = (List<Integer>) objdata.get(o).get(
+					Fields.OBJ_REFCOUNTS);
+			//TODO when GC enabled handle the case where the version is deleted
+			ret.put(o, refs.get(ver - 1));
+		}
+		return ret;
+	}
+	
 	private Map<ObjectId, MongoProvenance> getProvenance(
 			final Map<ResolvedMongoObjectID, Map<String, Object>> vers)
 			throws WorkspaceCommunicationException {
@@ -2495,7 +2526,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
 			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
 	
-	private static final String LATEST_VERSION = "latestVersion";
+	private static final String LATEST_VERSION = "_latestVersion";
 
 	@Override
 	public List<ObjectInformation> getObjectInformation(
@@ -2671,14 +2702,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final Map<String, Object> o: objs) {
 			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
 			final long objid = (Long) o.get(Fields.OBJ_ID);
-			final int latestVersion;
-			if ((Integer) o.get(Fields.OBJ_LATEST) == null) {
-				latestVersion = (Integer) o.get(Fields.OBJ_VCNT);
-			} else {
-				//TODO check this works with GC
-				latestVersion = (Integer) o.get(Fields.OBJ_LATEST);
-			}
-			o.put(LATEST_VERSION, latestVersion);
+			calcLatestObjVersion(o);
 			if (!ret.containsKey(wsid)) {
 				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
 			}
@@ -2797,6 +2821,48 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean exceptIfDeleted, final boolean exceptIfMissing,
 			final boolean ignoreVersion)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWS, Map<String, Object>> ids = 
+				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
+						exceptIfMissing);
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
+				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
+		for (final ObjectIDResolvedWS o: ids.keySet()) {
+			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
+			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
+			final boolean deleted = (Boolean) ids.get(o).get(Fields.OBJ_DEL);
+			final int latestVersion = (Integer) ids.get(o).get(LATEST_VERSION);
+			if (o.getVersion() == null || ignoreVersion ||
+					o.getVersion().equals(latestVersion)) {
+				//TODO this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed
+				ret.put(o, new ResolvedMongoOIDWithObjLastVer(
+						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
+						name, id, latestVersion, deleted));
+			} else {
+				if (o.getVersion().compareTo(latestVersion) > 0) {
+					if (exceptIfMissing) {
+						throw new NoSuchObjectException(String.format(
+								"No object with id %s (name %s) and version %s"
+								+ " exists in workspace %s", id, name,
+								o.getVersion(), 
+								o.getWorkspaceIdentifier().getID()), o);
+					}
+				} else {
+					ret.put(o, new ResolvedMongoObjectID(
+							query.convertResolvedWSID(
+									o.getWorkspaceIdentifier()),
+									name, id, o.getVersion().intValue(),
+									deleted));
+				}
+			}
+		}
+		return ret;
+	}
+	
+	
+	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
+			final Set<ObjectIDResolvedWS> objectIDs, Set<String> fields,
+			final boolean exceptIfDeleted, final boolean exceptIfMissing)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
 		final Map<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer> nover =
 				new HashMap<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
@@ -2805,10 +2871,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ids = 
 				query.queryObjects(
 						new HashSet<ObjectIDResolvedWSNoVer>(nover.values()),
-						FLDS_RESOLVE_OBJS);
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
-				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
+						fields);
+		final Map<ObjectIDResolvedWS, Map<String, Object>> ret =
+				new HashMap<ObjectIDResolvedWS, Map<String,Object>>();
 		for (final ObjectIDResolvedWS oid: nover.keySet()) {
+			//this could happen multiple times per object *shrug*
+			//if becomes a problem, hash nover -> ver and just loop through
+			//the novers
 			final ObjectIDResolvedWSNoVer o = nover.get(oid);
 			if (!ids.containsKey(o)) {
 				if (exceptIfMissing) {
@@ -2829,38 +2898,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
-			final Integer latestVersion;
-			if ((Integer) ids.get(o).get(Fields.OBJ_LATEST) == null) {
-				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_VCNT);
-			} else {
-				//TODO check this works with GC
-				latestVersion = (Integer) ids.get(o).get(Fields.OBJ_LATEST);
-			}
-			if (oid.getVersion() == null || ignoreVersion ||
-					oid.getVersion().equals(latestVersion)) {
-				//TODO this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed
-				ret.put(oid, new ResolvedMongoOIDWithObjLastVer(
-						query.convertResolvedWSID(oid.getWorkspaceIdentifier()),
-						name, id, latestVersion, deleted));
-			} else {
-				if (oid.getVersion().compareTo(latestVersion) > 0) {
-					if (exceptIfMissing) {
-						throw new NoSuchObjectException(String.format(
-								"No object with id %s (name %s) and version %s"
-								+ " exists in workspace %s", id, name,
-								oid.getVersion(), 
-								oid.getWorkspaceIdentifier().getID()), oid);
-					}
-				} else {
-					ret.put(oid, new ResolvedMongoObjectID(
-							query.convertResolvedWSID(
-									oid.getWorkspaceIdentifier()),
-									name, id, oid.getVersion().intValue(),
-									deleted));
-				}
-			}
+			calcLatestObjVersion(ids.get(o));
+			ret.put(oid, ids.get(o));
 		}
 		return ret;
+	}
+
+	private void calcLatestObjVersion(Map<String, Object> m) {
+		final Integer latestVersion;
+		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
+			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
+		} else {
+			//TODO check this works with GC
+			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
+		}
+		m.put(LATEST_VERSION, latestVersion);
 	}
 	
 	private void verifyVersions(final Set<ResolvedMongoObjectID> objs)
