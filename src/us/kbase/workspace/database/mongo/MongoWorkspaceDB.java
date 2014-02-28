@@ -2409,6 +2409,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<Integer> refs = (List<Integer>) objdata.get(o).get(
 					Fields.OBJ_REFCOUNTS);
+			//TODO when GC enabled handle the case where the version is deleted
 			ret.put(o, refs.get(ver - 1));
 		}
 		return ret;

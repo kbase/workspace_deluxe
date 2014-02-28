@@ -27,6 +27,8 @@ NEW FEATURES:
 - A new version of get_object_info, get_object_info_new, allows ignoring errors
   when listing object information. get_object_info is deprecated in favor of
   this method.
+- Get the number of objects that reference an object via provenance or object-
+  to-object references, including inaccessible objects.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Filter list_objects and list_workspace_info by date

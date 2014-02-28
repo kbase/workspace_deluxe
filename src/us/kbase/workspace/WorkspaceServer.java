@@ -653,6 +653,30 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: list_referencing_object_counts</p>
+     * <pre>
+     * List the number of times objects have been referenced.
+     * This count includes both provenance and object-to-object references
+     * and, unlike list_referencing_objects, includes objects that are
+     * inaccessible to the user.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @return   parameter "counts" of list of Long
+     */
+    @JsonServerMethod(rpc = "Workspace.list_referencing_object_counts", authOptional=true)
+    public List<Long> listReferencingObjectCounts(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
+        List<Long> returnVal = null;
+        //BEGIN list_referencing_object_counts
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		returnVal = new LinkedList<Long>();
+		for (int i: ws.getReferencingObjectCounts(getUser(authPart), loi)) {
+			returnVal.add((long) i);
+		}
+        //END list_referencing_object_counts
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
      * Get objects by references from other objects.

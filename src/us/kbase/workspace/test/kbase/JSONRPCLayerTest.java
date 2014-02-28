@@ -1553,6 +1553,13 @@ public class JSONRPCLayerTest {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
+		try {
+			CLIENT1.listReferencingObjectCounts(loi);
+			fail("got referring obj counts with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -3173,13 +3180,15 @@ public class JSONRPCLayerTest {
 				.withType(SAFE_TYPE).withName("prov").withProvenance(Arrays.asList(
 						new ProvenanceAction().withInputWsObjects(Arrays.asList("referingobjs/std/1"))))))).get(0);
 		
+		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity().withRef("referingobjs/std/1"));
 		List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>> retrefs =
-				CLIENT1.listReferencingObjects(Arrays.asList(
-				new ObjectIdentity().withRef("referingobjs/std/1")));
+				CLIENT1.listReferencingObjects(loi);
 		
 		assertThat("one obj list returned", retrefs.size(), is(1));
 		assertThat("two refs returned", retrefs.get(0).size(), is(2));
 		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
+		List<Long> refcnts = CLIENT1.listReferencingObjectCounts(loi);
+		assertThat("got correct refcounts", refcnts, is(Arrays.asList(2L)));
 	}
 	
 	

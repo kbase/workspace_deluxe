@@ -2459,6 +2459,117 @@ sub list_referencing_objects
 
 
 
+=head2 list_referencing_object_counts
+
+  $counts = $obj->list_referencing_object_counts($object_ids)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$counts is a reference to a list where each element is an int
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$counts is a reference to a list where each element is an int
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+
+
+=end text
+
+=item Description
+
+List the number of times objects have been referenced.
+
+This count includes both provenance and object-to-object references
+and, unlike list_referencing_objects, includes objects that are
+inaccessible to the user.
+
+=back
+
+=cut
+
+sub list_referencing_object_counts
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_referencing_object_counts (received $n, expecting 1)");
+    }
+    {
+	my($object_ids) = @args;
+
+	my @_bad_arguments;
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_referencing_object_counts:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_referencing_object_counts');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_referencing_object_counts",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'list_referencing_object_counts',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_referencing_object_counts",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_referencing_object_counts',
+				       );
+    }
+}
+
+
+
 =head2 get_referenced_objects
 
   $data = $obj->get_referenced_objects($ref_chains)

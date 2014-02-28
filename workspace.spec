@@ -788,6 +788,16 @@ module Workspace {
 	*/
 	funcdef list_referencing_objects(list<ObjectIdentity> object_ids)
 		returns (list<list<object_info>> referrers);
+		
+	/* 
+		List the number of times objects have been referenced.
+		
+		This count includes both provenance and object-to-object references
+		and, unlike list_referencing_objects, includes objects that are
+		inaccessible to the user.
+	*/
+	funcdef list_referencing_object_counts(list<ObjectIdentity> object_ids)
+		returns (list<int> counts);
 	
 	/* Get objects by references from other objects.
 	
