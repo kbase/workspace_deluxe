@@ -31,7 +31,6 @@ import junit.framework.Assert;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -84,7 +83,6 @@ import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.ModuleInfo;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
-import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
