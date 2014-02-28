@@ -2181,7 +2181,7 @@ public class TestWorkspace {
 				is(expectedRefs));
 	}
 	
-	@Test(timeout=60000)
+	@Test(timeout=180000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		
