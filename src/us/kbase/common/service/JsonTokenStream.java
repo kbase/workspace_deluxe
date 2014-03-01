@@ -5,7 +5,6 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,16 +39,44 @@ import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * This class gives a way to keep json data in different types of source (file, string or byte array) 
+ * and to process this data through sequence of json tokens. The difference of this class comparing to
+ * standard UTF8StreamJsonParser or ReaderBasedJsonParser is that here we can deal with large text
+ * values since they are processed as whole tokens in standard jackson approach. Here we substitute
+ * these large text values by special keywords storing mapping from these keywords to position of real
+ * text in character stream. This mapping is stored in largeStringPos. For that we wrap input reader
+ * before parsing it into tokens by wrapper searching these large texts (see getWrapperForLargeStrings
+ * method for Reader for details). And during writing operation we wrap output writer by wrapper 
+ * substituting these keywords back into large strings (see getWrapperForLargeStrings for Writer).
+ * For searching large string by stored position LargeStringSearchingReader is used by calling
+ * getLargeStringReader method.
+ * Another useful feature which is not present in standard parsers is tracking current json path. Even
+ * more, you can define json path as a root point for your token stream and after that this stream
+ * will provide tokens only from subtree of your json data deeper than root path. This feature is
+ * important for UObject creation based on fragment in bigger json data covered by JsonTokenStream.
+ * @author rsutormin
+ */
 public class JsonTokenStream extends JsonParser {
+	// string data source, only one of sdata/bdata/fdata could be not null
 	private String sdata = null;
+	// byte array data source, only one of sdata/bdata/fdata could be not null
 	private byte[] bdata = null;
+	// file data source, only one of sdata/bdata/fdata could be not null
 	private File fdata = null;
+	// standard jackson parser created for chosen data source
 	private JsonParser inner;
+	// current path following to processed token
 	private List<Object> path = new ArrayList<Object>();
+	// minimum number of levels, more than 0 in case root point is deeper than real root
 	private int fixedLevels = 0;
+	// currentTokenIsNull could be true only at the beginning of process after root point definition
 	private boolean currentTokenIsNull = false;
+	// main mapping for large strings found in data source, value is two-element array {start, length}
 	private Map<String, long[]> largeStringPos = new LinkedHashMap<String, long[]>(); 
+	// in case large string has length > this size it's processed with substitution by keyword (def=1000000)
 	private final int stringBufferSize;
+	// reader for large string extraction, it should be positioned by calling getLargeStringReader
 	private final LargeStringSearchingReader largeStringReader = new LargeStringSearchingReader();
 	
 	private static final boolean debug = false;  //true;
@@ -57,14 +84,34 @@ public class JsonTokenStream extends JsonParser {
 	private static final String largeStringSubstPrefix = "^*->#";
 	private static DebugOpenCloseListener debugOpenCloseListener = null;
 	
+	/**
+	 * Create token stream for data source of one of the following types: File, String, byte[], JsonNode.
+	 * @param data
+	 * @throws JsonParseException
+	 * @throws IOException
+	 */
 	public JsonTokenStream(Object data) throws JsonParseException, IOException {
 		this(data, true);
 	}
 
+	/**
+	 * Create token stream for data source of one of the following types: File, String, byte[], JsonNode.
+	 * @param data data source
+	 * @param optimizeLargeStrings flag for usage of large string substitutions
+	 * @throws JsonParseException
+	 * @throws IOException
+	 */
 	public JsonTokenStream(Object data, boolean optimizeLargeStrings) throws JsonParseException, IOException {
 		this(data, optimizeLargeStrings ? 1000000 : 0);
 	}
 	
+	/**
+	 * Create token stream for data source of one of the following types: File, String, byte[], JsonNode.
+	 * @param data data source
+	 * @param largeStringbufferSize size of buffer used for large string substitutions, 0 - for switching it off
+	 * @throws JsonParseException
+	 * @throws IOException
+	 */
 	public JsonTokenStream(Object data, int largeStringbufferSize) throws JsonParseException, IOException {
 		if (data instanceof String) {
 			sdata = (String)data;
@@ -80,6 +127,13 @@ public class JsonTokenStream extends JsonParser {
 		init(null);
 	}
 
+	/**
+	 * Define root point in data source from which token stream should start.
+	 * @param root list of fields or array numbers defining json path
+	 * @return
+	 * @throws JsonParseException
+	 * @throws IOException
+	 */
 	public JsonTokenStream setRoot(List<String> root) throws JsonParseException, IOException {
 		if (root == null || root.isEmpty()) {
 			init(null);
@@ -89,6 +143,11 @@ public class JsonTokenStream extends JsonParser {
 		return this;
 	}
 	
+	/**
+	 * Json path before current token.
+	 * @return list of fields or array numbers defining json path
+	 * @throws IOException
+	 */
 	public List<String> getCurrentPath() throws IOException {
 		JsonToken lastToken = getCurrentToken();
 		if (lastToken == null)
@@ -139,10 +198,14 @@ public class JsonTokenStream extends JsonParser {
 			System.out.println("end of init");
 	}
 	
+	/**
+	 * Standard json parser used inside this parser.
+	 * @return
+	 */
 	protected JsonParser getInner() {
 		if (inner == null) {
 			try {
-				Reader r = getDataReader();
+				Reader r = createDataReader();
 				if (debugOpenCloseListener != null)
 					debugOpenCloseListener.onStreamOpen(this);
 				if (stringBufferSize > 0)
@@ -157,7 +220,12 @@ public class JsonTokenStream extends JsonParser {
 		return inner;
 	}
 
-	public Reader getDataReader() throws FileNotFoundException, IOException {
+	/**
+	 * Create reader for data source.
+	 * @return Reader
+	 * @throws IOException
+	 */
+	public Reader createDataReader() throws IOException {
 		Reader r;
 		if (sdata != null) {
 			r = new StringReader(sdata);
@@ -846,6 +914,11 @@ public class JsonTokenStream extends JsonParser {
 		getInner().setSchema(arg0);
 	}
 	
+	/**
+	 * Write all selected (probably through setRoot) tokens into output generator.
+	 * @param jgen
+	 * @throws IOException
+	 */
 	public void writeTokens(JsonGenerator jgen) throws IOException {
 		try {
 			writeNextToken(jgen);
@@ -855,16 +928,31 @@ public class JsonTokenStream extends JsonParser {
 		}
 	}
 
+	/**
+	 * Write all selected (probably through setRoot) tokens into output file.
+	 * @param f
+	 * @throws IOException
+	 */
 	public void writeJson(File f) throws IOException {
 		OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
 		writeJson(os);
 		os.close();
 	}
 
+	/**
+	 * Write all selected (probably through setRoot) tokens into output stream.
+	 * @param os
+	 * @throws IOException
+	 */
 	public void writeJson(OutputStream os) throws IOException {
 		writeJson(new OutputStreamWriter(os, utf8));
 	}
 	
+	/**
+	 * Write all selected (probably through setRoot) tokens into output writer.
+	 * @param w
+	 * @throws IOException
+	 */
 	public void writeJson(Writer w) throws IOException {
 		if (stringBufferSize > 0)
 			w = getWrapperForLargeStrings(w);
@@ -874,10 +962,21 @@ public class JsonTokenStream extends JsonParser {
 		jgen.flush();
 	}
 	
+	/**
+	 * Check if this text is keyword mapping to position of real large string.
+	 * @param text
+	 * @return
+	 */
 	public boolean isLargeString(String text) {
 		return largeStringPos.containsKey(text);
 	}
 	
+	/**
+	 * Search large string position and allow to read this large string as reader.
+	 * @param text
+	 * @return
+	 * @throws IOException
+	 */
 	public Reader getLargeStringReader(String text) throws IOException {
 		long[] borders = largeStringPos.get(text);
 		if (borders == null)
@@ -1042,6 +1141,10 @@ public class JsonTokenStream extends JsonParser {
 		return t;
 	}
 	
+	/**
+	 * Useful for listening data stream open/close events for debug purposes.
+	 * @param debugOpenCloseListener
+	 */
 	public static void setDebugOpenCloseListener(
 			DebugOpenCloseListener debugOpenCloseListener) {
 		JsonTokenStream.debugOpenCloseListener = debugOpenCloseListener;
@@ -1056,7 +1159,7 @@ public class JsonTokenStream extends JsonParser {
 		
 		public LargeStringSearchingReader place(long start, long len) throws IOException {
 			if (r == null || isClosed) {
-				r = getDataReader();
+				r = createDataReader();
 				pos = 0;
 			} else if (pos > start) {
 				r.reset();
@@ -1095,6 +1198,10 @@ public class JsonTokenStream extends JsonParser {
 		}
 	}
 	
+	/**
+	 * Useful for listening data stream open/close events for debug purposes.
+	 * @author rsutormin
+	 */
 	public interface DebugOpenCloseListener {
 		public void onStreamOpen(JsonTokenStream instance);
 		public void onStreamClosed(JsonTokenStream instance);

@@ -1,6 +1,7 @@
 package us.kbase.common.service;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,7 +94,15 @@ public class JacksonTupleModule extends SimpleModule {
 					jgen.getCodec().writeValue(jgen, res);
 				}
 				jgen.writeEndArray();
-			} catch (Exception ex) {
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalStateException(ex);
+			} catch (SecurityException ex) {
+				throw new IllegalStateException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalStateException(ex);
+			} catch (IllegalArgumentException ex) {
+				throw new IllegalStateException(ex);
+			} catch (InvocationTargetException ex) {
 				throw new IllegalStateException(ex);
 			}
 		}
@@ -115,7 +124,7 @@ public class JacksonTupleModule extends SimpleModule {
 					System.out.println("Bad parse in TupleDeserializer: " + p.getCurrentToken());
 					return null;
 				}
-				p.nextToken();
+				JsonToken t = p.nextToken();
 				for (int i = 0; i < types.size(); i++) {
 					Method m = res.getClass().getMethod("setE" + (i + 1), Object.class);
 					Object val;
@@ -134,13 +143,25 @@ public class JacksonTupleModule extends SimpleModule {
 					m.invoke(res, val);
 				}
 				while (true) {
-					JsonToken t = p.nextToken();
+					t = p.nextToken();
+					if (t == null)
+						throw new IOException("Tuple of size " + types.size() + " was unexpectedly closed");
 					if (t == JsonToken.END_ARRAY)
 						break;
 					skipValueWithoutFirst(p);
 				}
 				return res;
-			} catch (Exception ex) {
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalStateException(ex);
+			} catch (SecurityException ex) {
+				throw new IllegalStateException(ex);
+			} catch (InstantiationException ex) {
+				throw new IllegalStateException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalStateException(ex);
+			} catch (IllegalArgumentException ex) {
+				throw new IllegalStateException(ex);
+			} catch (InvocationTargetException ex) {
 				throw new IllegalStateException(ex);
 			}
 		}
@@ -170,7 +191,7 @@ public class JacksonTupleModule extends SimpleModule {
 			}
 		}
 
-		public static JsonNode valueToTree(ObjectCodec oc, Object fromValue) throws Exception {
+		public static JsonNode valueToTree(ObjectCodec oc, Object fromValue) throws JsonProcessingException, IOException {
 			if (fromValue == null) return null;
 			TokenBuffer buf = new TokenBuffer(oc);
 			oc.writeValue(buf, fromValue);
@@ -184,15 +205,11 @@ public class JacksonTupleModule extends SimpleModule {
 	public static class UObjectSerializer extends JsonSerializer<UObject> {		
 		
 		public void serialize(UObject value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-			try {
-				UObject obj = (UObject)value;
-				if (obj.isTokenStream()) {
-					obj.write(jgen);
-				} else {
-					jgen.getCodec().writeValue(jgen, obj.getUserObject());
-				}
-			} catch (Exception ex) {
-				throw new IllegalStateException(ex);
+			UObject obj = (UObject)value;
+			if (obj.isTokenStream()) {
+				obj.write(jgen);
+			} else {
+				jgen.getCodec().writeValue(jgen, obj.getUserObject());
 			}
 		}
 	}	
@@ -200,17 +217,13 @@ public class JacksonTupleModule extends SimpleModule {
 	public static class UObjectDeserializer extends JsonDeserializer<UObject> {
 
 		public UObject deserialize(JsonParser p, DeserializationContext ctx) throws IOException, JsonProcessingException {
-			try {
-				if (p instanceof JsonTokenStream) {
-					JsonTokenStream jts = (JsonTokenStream)p;
-					List<String> path = jts.getCurrentPath();
-					jts.skipChildren();
-					return new UObject(jts, path);
-				}
-				return new UObject(p.readValueAsTree());
-			} catch (Exception ex) {
-				throw new IllegalStateException(ex);
+			if (p instanceof JsonTokenStream) {
+				JsonTokenStream jts = (JsonTokenStream)p;
+				List<String> path = jts.getCurrentPath();
+				jts.skipChildren();
+				return new UObject(jts, path);
 			}
+			return new UObject(p.readValueAsTree());
 		}
 	}
 }

@@ -156,6 +156,7 @@ public class JsonClientCaller {
 					jp.nextToken();
 					retError = jp.getCodec().readValue(jp, new TypeReference<Map<String, String>>(){});
 				} else if (fieldName.equals("result")) {
+					checkFor500(code, wrapStream);
 					jp.nextToken();
 					res = jp.getCodec().readValue(jp, cls);
 				} else {
@@ -204,6 +205,7 @@ public class JsonClientCaller {
 							new Integer(retError.get("code")), retError.get("name"),
 							data);
 				} if (resp.containsKey("result")) {
+					checkFor500(code, wrapStream);
 					RET res = mapper.readValue(resp.get("result").getPlacedStream(), cls);
 					return res;
 				} else {
@@ -216,6 +218,17 @@ public class JsonClientCaller {
 						fos.close();
 					} catch (Exception ignore) {}
 			}
+		}
+	}
+
+	private static void checkFor500(int code, UnclosableInputStream wrapStream)
+			throws IOException, JsonClientException {
+		if (code == 500) {
+			String header = wrapStream.getHeadingBuffer();
+			if (header.length() > 300)
+				header = header.substring(0, 300) + "...";
+			throw new JsonClientException("Server response contains result but has error code 500, " +
+					"response header is:\n" + header);
 		}
 	}
 
