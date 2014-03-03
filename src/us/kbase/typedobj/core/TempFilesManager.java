@@ -1,15 +1,23 @@
 package us.kbase.typedobj.core;
 
 import java.io.File;
+import java.io.IOException;
 
+/**
+ * Manager of temporary files. Should delete all temporary files on start (TODO?).
+ * @author rsutormin
+ */
 public class TempFilesManager {
 	private File tempDir;
-	private long lastUsedSuffix = 0;
 	
 	public TempFilesManager(File tempDir) {
 		this.tempDir = tempDir;
-		if (!tempDir.exists())
+		if (tempDir.exists()) {
+			if (!tempDir.isDirectory())
+				throw new IllegalStateException("It should be directory: " + tempDir);
+		} else {
 			tempDir.mkdir();
+		}
 	}
 	
 	public File getTempDir() {
@@ -17,18 +25,11 @@ public class TempFilesManager {
 	}
 	
 	public synchronized File generateTempFile(String prefix, String extention) {
-		long suffix = System.currentTimeMillis();
-		if (suffix <= lastUsedSuffix)
-			suffix = lastUsedSuffix + 1;
-		File tempFile = null;
-		while (true) {
-			tempFile = new File(tempDir, prefix + suffix + "." + extention);
-			if (!tempFile.exists())
-				break;
-			suffix++;
+		try {
+			return File.createTempFile("ws." + prefix, "." + extention, tempDir);
+		} catch (IOException e) {
+			throw new IllegalStateException(e.getMessage(), e);
 		}
-		lastUsedSuffix = suffix;
-		return tempFile;
 	}
 	
 	public static TempFilesManager forTests() {
