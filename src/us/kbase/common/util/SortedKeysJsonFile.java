@@ -12,6 +12,18 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Class sorts map keys in JSON data stored in either in File or in byte array. 
+ * Result of sorting is written into external output stream without modification 
+ * of original data source. Code is optimized in the way of using as less memory 
+ * as possible. The only case of large memory requirement is map with large 
+ * count of keys is present in data. In order to sort keys of some map we need 
+ * to store all keys of this map in memory. For default settings keys are stored 
+ * in memory as byte arrays. So if the data contains few millions of keys in the
+ * same map we need to keep in memory all these key values bytes plus about 24
+ * bytes per key for mapping key to place of key-value data in data source.
+ * @author Roman Sutormin (rsutormin)
+ */
 public class SortedKeysJsonFile {
 	private final RandomAccessSource raf;
 	private PosBufInputStream mainIs;
@@ -23,50 +35,111 @@ public class SortedKeysJsonFile {
 	private static final ObjectMapper mapper = new ObjectMapper();
 	private static final Charset utf8 = Charset.forName("UTF-8");
 	
+	/**
+	 * Defines file as data source.
+	 * @param f file data source
+	 * @throws IOException
+	 */
 	public SortedKeysJsonFile(File f) throws IOException {
 		raf = new RandomAccessSource(f);
 	}
 
+	/**
+	 * Defines byte array as data source
+	 * @param byteSource byte array data source
+	 * @throws IOException
+	 */
 	public SortedKeysJsonFile(byte[] byteSource) throws IOException {
 		raf = new RandomAccessSource(byteSource);
 	}
 
+	/**
+	 * @return true if key duplication is skipped (ignored). false is default value.
+	 */
 	public boolean isSkipKeyDuplication() {
 		return skipKeyDuplication;
 	}
-	
+
+	/**
+	 * Defines if key duplication should be skipped (ignored) or not. false means
+	 * error is generated in case of duplication (default).
+	 * @param skipKeyDuplication value to set
+	 * @return this object for chaining
+	 */
 	public SortedKeysJsonFile setSkipKeyDuplication(boolean skipKeyDuplication) {
 		this.skipKeyDuplication = skipKeyDuplication;
 		return this;
 	}
 
+	/**
+	 * @return true if string type is used for keeping key values in memory. false 
+	 * is default value.
+	 */
 	public boolean isUseStringsForKeyStoring() {
 		return useStringsForKeyStoring;
 	}
 	
+	/**
+	 * Defines if string type should be used for keeping key values in memory. 
+	 * false means keys are kept as byte arrays (default).
+	 * @param useStringsForKeyStoring
+	 * @return this object for chaining
+	 */
 	public SortedKeysJsonFile setUseStringsForKeyStoring(boolean useStringsForKeyStoring) {
 		this.useStringsForKeyStoring = useStringsForKeyStoring;
 		return this;
 	}
 	
+	/**
+	 * @return size of memory buffer which is used for caching data fragments from 
+	 * data source. Default value is 10k. It seems to be optimal because less value
+	 * causes slower processing of unsortable data like lists, but greater value
+	 * causes slower processing of maps as longer time is spent for loading larger 
+	 * buffer from disk each time we jump between places of unsorted keys.
+	 */
 	public int getMaxBufferSize() {
 		return maxBufferSize;
 	}
 	
+	/**
+	 * Defines size of memory buffer which is used for caching data fragments from 
+	 * data source. Default value is 10k. It seems to be optimal because less value
+	 * causes slower processing of unsortable data like lists, but greater value
+	 * causes slower processing of maps as longer time is spent for loading larger 
+	 * buffer from disk each time we jump between places of unsorted keys.
+	 * @param maxBufferSize value to set
+	 * @return this object for chaining
+	 */
 	public SortedKeysJsonFile setMaxBufferSize(int maxBufferSize) {
 		this.maxBufferSize = maxBufferSize;
 		return this;
 	}
-	
+	/**
+	 * @return limit of memory used for keeping keys for sorting. Default value is 
+	 * -1 which means switching this limitation off.
+	 */
 	public long getMaxMemoryForKeyStoring() {
 		return maxMemoryForKeyStoring;
 	}
 	
+	/**
+	 * Defines the limit of memory used for keeping keys for sorting. Use -1 or 0 
+	 * for switching this limitation off.
+	 * @param maxMemoryForKeyStoring value to set
+	 * @return this object for chaining
+	 */
 	public SortedKeysJsonFile setMaxMemoryForKeyStoring(long maxMemoryForKeyStoring) {
 		this.maxMemoryForKeyStoring = maxMemoryForKeyStoring;
 		return this;
 	}
 	
+	/**
+	 * Method saves sorted data into output stream. It doesn't close internal input stream.
+	 * So please call close() after calling this method. 
+	 * @param os output stream for saving sorted result
+	 * @return this object for chaining
+	 * @throws IOException in case of problems with i/o or with JSON parsing
+	 */
 	public SortedKeysJsonFile writeIntoStream(OutputStream os) throws IOException {
 		UnthreadedBufferedOutputStream ubos = new UnthreadedBufferedOutputStream(os, 100000);
 		write(0, -1, maxMemoryForKeyStoring > 0 ? new long[] {0L} : null, ubos);
@@ -199,7 +272,7 @@ public class SortedKeysJsonFile {
 		return ret;
 	}
 
-	public void countKeysMemory(long[] keysByteSize, String currentKey) throws IOException {
+	private void countKeysMemory(long[] keysByteSize, String currentKey) throws IOException {
 		keysByteSize[0] += useStringsForKeyStoring ? (2 * currentKey.length() + 8 + 4 + 3 * 8) : (currentKey.length() + 3 * 8);
 		if (maxMemoryForKeyStoring > 0 && keysByteSize[0] > maxMemoryForKeyStoring)
 			throw new IOException("Memory for keys were exceeded");
@@ -249,6 +322,10 @@ public class SortedKeysJsonFile {
 		return null;
 	}
 	
+	/**
+	 * Closing inner input streams after writing.
+	 * @throws IOException
+	 */
 	public void close() throws IOException {
 		raf.close();
 	}
@@ -296,7 +373,7 @@ public class SortedKeysJsonFile {
 		}
 	}
 	
-	public static class PosBufInputStream {
+	private static class PosBufInputStream {
 		RandomAccessSource raf;
 		private byte[] buffer;
 		private long globalBufPos;
