@@ -17,6 +17,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Class provides ways to deal with unconstrained (untyped) data. In order to
+ * be able to work with very large amounts of data there is a way to store this
+ * data in file, wrap it by UObject (through JsonTokenStream) and process it as
+ * a stream of json tokens (like open/close of maps/arrays, map keys, long/
+ * double/text/boolean/null values).
+ * @author rsutormin
+ */
 public class UObject {
 	private Object userObj;
 	private List<String> tokenStreamRootPath = null;
@@ -45,11 +53,17 @@ public class UObject {
 		}
 	}
 
+	/**
+	 * Creates instance of UObject from JsonTokenStream with specified root path modifier.
+	 */
 	public UObject(JsonTokenStream jts, List<String> rootPath) {
 		this.userObj = jts;
 		this.tokenStreamRootPath = rootPath;
 	}
 
+	/**
+	 * Creates instance of UObject from another UObject with specified root path modifier.
+	 */
 	public UObject(UObject parent, String... relativePath) {
 		if (!parent.isTokenStream())
 			throw new IllegalStateException("Relative path is supported only for token streams");
@@ -67,25 +81,36 @@ public class UObject {
 	public static ObjectMapper getMapper() {
 		return mapper;
 	}
-	
+
+	/**
+	 * Setting up internal JsonTokenStream before usage.
+	 */
 	public JsonTokenStream getPlacedStream() throws IOException {
 		if (isTokenStream())
 			return ((JsonTokenStream)userObj).setRoot(tokenStreamRootPath);
 		return new JsonTokenStream(asJsonNode());
 	}
 	
+	/**
+	 * Root path specified in order to shift starting point of working subtree
+	 * inside actual data described by internal JsonTokenStream.
+	 * @return null in case of UObject created for not JsonTokenStream
+	 */
 	public List<String> getRootPath() {
 		return tokenStreamRootPath;
 	}
 	
 	/**
 	 * @return true in case UObject was created from Jackson tree rather 
-	 * than from plain maps, lists, scalars and POJOs 
+	 * than from plain maps, lists, scalars, POJOs or JsonTokenStream 
 	 */
 	public boolean isJsonNode() {
 		return userObj instanceof JsonNode;
 	}
 
+	/**
+	 * @return true in case UObject was created from JsonTokenStream 
+	 */
 	public boolean isTokenStream() {
 		return userObj instanceof JsonTokenStream;
 	}
@@ -119,7 +144,8 @@ public class UObject {
 	}
 	
 	/**
-	 * @return true in case this object is list of something
+	 * @return true in case this object is list of something,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isList() {
 		if (isJsonNode())
@@ -146,7 +172,8 @@ public class UObject {
 	}
 	
 	/**
-	 * @return true in case this object is mapping of something
+	 * @return true in case this object is mapping of something,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isMap() {
 		if (isJsonNode()) {
@@ -176,7 +203,8 @@ public class UObject {
 	}
 	
 	/**
-	 * @return true in case this object is integer
+	 * @return true in case this object is integer,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isInteger() {
 		if (isJsonNode())
@@ -185,7 +213,8 @@ public class UObject {
 	}
 
 	/**
-	 * @return true in case this object is long
+	 * @return true in case this object is long,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isLong() {
 		if (isJsonNode())
@@ -194,7 +223,8 @@ public class UObject {
 	}
 
 	/**
-	 * @return true in case this object is text
+	 * @return true in case this object is text,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isString() {
 		if (isJsonNode())
@@ -203,7 +233,8 @@ public class UObject {
 	}
 
 	/**
-	 * @return true in case this object is floating
+	 * @return true in case this object is floating,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isDouble() {
 		if (isJsonNode())
@@ -212,7 +243,8 @@ public class UObject {
 	}
 
 	/**
-	 * @return true in case this object is boolean
+	 * @return true in case this object is boolean,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isBoolean() {
 		if (isJsonNode())
@@ -221,7 +253,8 @@ public class UObject {
 	}
 
 	/**
-	 * @return true in case this object is null
+	 * @return true in case this object is null,
+	 * for JsonTokenStream it will always be false
 	 */
 	public boolean isNull() {
 		if (isJsonNode())
@@ -296,6 +329,10 @@ public class UObject {
 		return transformObjectToObject(userObj, retType);
 	}
 
+	/**
+	 * Writing inner data into output token stream (generator). Method closes 
+	 * inner JsonTokenStream if it's used. So you don't need to worry about it.
+	 */
 	public void write(JsonGenerator jgen) throws IOException {
 		if (isTokenStream()) {
 			getPlacedStream().writeTokens(jgen);
@@ -304,6 +341,10 @@ public class UObject {
 		}
 	}
 	
+	/**
+	 * Writing inner data into output stream. Method closes inner 
+	 * JsonTokenStream if it's used. So you don't need to worry about it.
+	 */
 	public void write(OutputStream os) throws IOException {
 		if (isTokenStream()) {
 			getPlacedStream().writeJson(os);
@@ -312,6 +353,10 @@ public class UObject {
 		}
 	}
 
+	/**
+	 * Writing inner data into writer. Method closes inner JsonTokenStream
+	 * if it's used. So you don't need to worry about it.
+	 */
 	public void write(Writer w) throws IOException {
 		if (isTokenStream()) {
 			getPlacedStream().writeJson(w);

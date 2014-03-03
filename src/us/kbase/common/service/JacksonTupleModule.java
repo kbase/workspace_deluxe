@@ -28,6 +28,11 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.module.SimpleSerializers;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
+/**
+ * This Jackon-lib module registers special behavior for [de]serialization of 
+ * tuples and UObjects.
+ * @author rsutormin
+ */
 @SuppressWarnings("serial")
 public class JacksonTupleModule extends SimpleModule {
 	public JacksonTupleModule() {

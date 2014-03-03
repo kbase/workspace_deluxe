@@ -20,6 +20,10 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Helper class used in client side of java generated code for JSON RPC calling.
+ * @author rsutormin
+ */
 public class JsonClientCaller {
 
 	public final URL serviceUrl;

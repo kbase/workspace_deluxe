@@ -10,13 +10,18 @@ import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
+/**
+ * Class helps to check long and double values and to simplify subtree extraction 
+ * during reading json tree object as stream of tokens.
+ * @author rsutormin
+ */
 public class JsonTreeTraversingParser extends TreeTraversingParser {
 	public JsonTreeTraversingParser(JsonNode tree, ObjectCodec oc) {
 		super(tree, oc);
 	}
 	
 	/**
-	 * This method helps to avoid copying of subtree during deserialization it into 
+	 * Method helps to avoid copying of subtree during deserialization it into 
 	 * UObject.
 	 */
     @SuppressWarnings("unchecked")
@@ -29,6 +34,9 @@ public class JsonTreeTraversingParser extends TreeTraversingParser {
     	return super.readValueAsTree();
     }
     
+    /**
+     * Checking of bounds of long values in json data.
+     */
 	@Override
 	public long getLongValue() throws IOException, JsonParseException {
 		JsonNode node = currentNumericNode();
@@ -50,7 +58,9 @@ public class JsonTreeTraversingParser extends TreeTraversingParser {
 		return node.longValue();
 	}
 	
-	@Override
+    /*
+     * Preventing to have Inf values in json data (probably it's not good idea).
+     *
 	public double getDoubleValue() throws IOException, JsonParseException {
 		double ret = super.getDoubleValue();
 		if (Double.isInfinite(ret)) {
@@ -59,5 +69,5 @@ public class JsonTreeTraversingParser extends TreeTraversingParser {
 					node.getClass().getSimpleName());
 		}
 		return ret;
-	}
+	}*/
 }

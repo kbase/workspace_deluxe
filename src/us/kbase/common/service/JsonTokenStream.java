@@ -487,6 +487,18 @@ public class JsonTokenStream extends JsonParser {
 	@Override
 	public long getLongValue() throws IOException, JsonParseException {
 		if (debug) debug();
+		Number ret = getInner().getNumberValue();
+		if (ret instanceof Double || ret instanceof BigDecimal)
+			throw new JsonParseException("Floating point value ("+getText()+") is not compatible " +
+					"with long type", getInner().getCurrentLocation());
+		if (ret instanceof BigInteger) {
+			BigInteger numberBigInt = (BigInteger)ret;
+			BigInteger BI_MIN_LONG = BigInteger.valueOf(Long.MIN_VALUE);
+			BigInteger BI_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
+			if (BI_MIN_LONG.compareTo(numberBigInt) > 0 || BI_MAX_LONG.compareTo(numberBigInt) < 0)
+				throw new JsonParseException("Numeric value ("+getText()+") out of range of long (" +
+					Long.MIN_VALUE + " - " + Long.MAX_VALUE + ")", getInner().getCurrentLocation());
+		}
 		return getInner().getLongValue();
 	}
 	

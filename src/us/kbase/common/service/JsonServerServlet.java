@@ -40,6 +40,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Helper class used as ancestor of generated server side servlets for JSON RPC calling.
+ * @author rsutormin
+ */
 public class JsonServerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final String APP_JSON = "application/json";
