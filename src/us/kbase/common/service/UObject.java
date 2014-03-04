@@ -390,6 +390,28 @@ public class UObject {
 	}
 	
 	/**
+	 * @return Real size of UObject as if it was stored in byte array.
+	 * @throws IOException
+	 */
+	public long getSizeInBytes() throws IOException {
+		final long[] size = {0L};
+		OutputStream sizeOs = new OutputStream() {
+			@Override
+			public void write(int b) throws IOException {
+				size[0]++;
+			}
+			@Override
+			public void write(byte[] b, int off, int len)
+					throws IOException {
+				size[0] += len;
+			}
+		};
+		write(sizeOs);
+		sizeOs.close();
+		return size[0];
+	}
+	
+	/**
 	 * Helper method for transformation POJO into POJO of another type.
 	 */
 	public static <T> T transformObjectToObject(Object obj, Class<T> retType) {

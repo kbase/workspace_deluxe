@@ -24,6 +24,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
  */
 public class ByteStorageWithFileCache {
 	private TempFilesManager tfm;
+	private long size = 0;
 	private File tempFile;
 	private JsonTokenStream jts;
 	
@@ -31,7 +32,6 @@ public class ByteStorageWithFileCache {
 		this.tfm = tfm;
 		byte[] buf = new byte[100000];
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
-		long size = 0;
 		while (size < maxInMemorySize) {
 			int count = input.read(buf, 0, Math.min(buf.length, maxInMemorySize - (int)size));
 			if (count < 0)
@@ -58,6 +58,10 @@ public class ByteStorageWithFileCache {
 			jts = new JsonTokenStream(bufOs.toByteArray());
 			bufOs = null;
 		}
+	}
+	
+	public long getSize() {
+		return size;
 	}
 	
 	public UObject getUObject() {
