@@ -139,11 +139,7 @@ public class JacksonTupleModule extends SimpleModule {
 						val = p.getCodec().readValue(new JsonTreeTraversingParser(tempNode, p.getCodec()), types.get(i));
 						p.nextToken();
 					} else {
-						try {
-							val = p.getCodec().readValue(p, types.get(i));
-						} catch (Exception ex) {
-							throw ex;
-						}
+						val = p.getCodec().readValue(p, types.get(i));
 					}
 					m.invoke(res, val);
 				}
