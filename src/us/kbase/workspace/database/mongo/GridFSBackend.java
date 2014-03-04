@@ -9,7 +9,6 @@ import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

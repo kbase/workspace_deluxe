@@ -1,6 +1,5 @@
 package us.kbase.workspace.lib;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -105,6 +104,18 @@ public class Workspace {
 		typedb = db.getTypeValidator().getDB();
 		this.refparse = refparse;
 		this.tfm = db.getTempFilesManager();
+	}
+	
+	public long getMaxObjectSize() {
+		return db.getMaxObjectSize();
+	}
+	
+	public void setMaxObjectSize(long maxObjectSize) {
+		if (maxObjectSize < 1) {
+			throw new IllegalArgumentException(
+					"Maximum object size must be at least 1");
+		}
+		db.setMaxObjectSize(maxObjectSize);
 	}
 	
 	private void comparePermission(final WorkspaceUser user,

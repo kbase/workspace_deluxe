@@ -199,4 +199,8 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException;
 	
 	public TempFilesManager getTempFilesManager();
+
+	public long getMaxObjectSize();
+
+	public void setMaxObjectSize(long maxObjectSize);
 }

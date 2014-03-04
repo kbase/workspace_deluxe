@@ -4,14 +4,8 @@ import java.util.List;
 
 import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 public class WorkspaceObjectData {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-
 	private final ByteStorageWithFileCache data;
 	private final ObjectInformation info;
 	private final Provenance prov;

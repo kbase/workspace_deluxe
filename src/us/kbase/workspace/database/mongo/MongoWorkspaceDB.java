@@ -114,13 +114,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	private static final long MAX_OBJECT_SIZE = 2000005000;
 	private static final int MAX_IN_MEMORY_SIZE = 16000000;
 //	private static final long MAX_OBJECTS_RET_SIZE = 200005000;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
 	
+	private long maxObjectSize = 2000005000;
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
@@ -395,6 +395,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		throw new RuntimeException("Something's real broke y'all");
 	}
 	
+	@Override
+	public long getMaxObjectSize() {
+		return maxObjectSize;
+	}
+	
+	@Override
+	public void setMaxObjectSize(long maxObjectSize) {
+		if (maxObjectSize < 1) {
+			throw new IllegalArgumentException(
+					"Maximum object size must be at least 1");
+		}
+		this.maxObjectSize = maxObjectSize;
+	}
+
 	@Override
 	public TypedObjectValidator getTypeValidator() {
 		return typeValidator;
@@ -1533,11 +1547,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().createJsonWritable(),
 					o.getRep().getValidationTypeDefId(), subdata);
-			if (pkg.td.getSize() > MAX_OBJECT_SIZE) {
+			if (pkg.td.getSize() > maxObjectSize) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						pkg.td.getSize(), MAX_OBJECT_SIZE));
+						pkg.td.getSize(), maxObjectSize));
 			}
 			ret.add(pkg);
 			objnum++;
