@@ -1130,17 +1130,31 @@ public class JsonTokenStream extends JsonParser {
 		} else if (t == JsonToken.FIELD_NAME) {
 			jgen.writeFieldName(getText());
 		} else if (t == JsonToken.VALUE_NUMBER_INT) {
-			jgen.writeNumber(getIntValue());
-		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
-			jgen.writeNumber(getDoubleValue());
-		} else if (t == JsonToken.VALUE_STRING) {
-			String text = getText();
-			if (largeStringPos.containsKey(text)) {
-				//System.out.println("Large string: " + text);
-				jgen.writeString(text);
+			Number value = getNumberValue();
+			if (value instanceof Short) {
+				jgen.writeNumber((Short)value);
+			} else if (value instanceof Integer) {
+				jgen.writeNumber((Integer)value);
+			} else if (value instanceof Long) {
+				jgen.writeNumber((Long)value);
+			} else if (value instanceof BigInteger) {
+				jgen.writeNumber((BigInteger)value);
 			} else {
-				jgen.writeString(text);
+				jgen.writeNumber(value.longValue());
 			}
+		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
+			Number value = getNumberValue();
+			if (value instanceof Float) {
+				jgen.writeNumber((Float)value);
+			} else if (value instanceof Double) {
+				jgen.writeNumber((Double)value);
+			} else if (value instanceof BigDecimal) {
+				jgen.writeNumber((BigDecimal)value);
+			} else {
+				jgen.writeNumber(value.doubleValue());
+			}
+		} else if (t == JsonToken.VALUE_STRING) {
+			jgen.writeString(getText());
 		} else if (t == JsonToken.VALUE_NULL) {
 			jgen.writeNull();
 		} else if (t == JsonToken.VALUE_FALSE) {

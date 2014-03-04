@@ -1,6 +1,8 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -57,9 +59,29 @@ public class JsonTokenStreamWriter {
 		} else if (t == JsonToken.FIELD_NAME) {
 			jgen.writeFieldName(src.getText());
 		} else if (t == JsonToken.VALUE_NUMBER_INT) {
-			jgen.writeNumber(src.getLongValue());
+			Number value = src.getNumberValue();
+			if (value instanceof Short) {
+				jgen.writeNumber((Short)value);
+			} else if (value instanceof Integer) {
+				jgen.writeNumber((Integer)value);
+			} else if (value instanceof Long) {
+				jgen.writeNumber((Long)value);
+			} else if (value instanceof BigInteger) {
+				jgen.writeNumber((BigInteger)value);
+			} else {
+				jgen.writeNumber(value.longValue());
+			}
 		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
-			jgen.writeNumber(src.getDoubleValue());
+			Number value = src.getNumberValue();
+			if (value instanceof Float) {
+				jgen.writeNumber((Float)value);
+			} else if (value instanceof Double) {
+				jgen.writeNumber((Double)value);
+			} else if (value instanceof BigDecimal) {
+				jgen.writeNumber((BigDecimal)value);
+			} else {
+				jgen.writeNumber(value.doubleValue());
+			}
 		} else if (t == JsonToken.VALUE_STRING) {
 			String text = src.getText();
 			jgen.writeString(text);
