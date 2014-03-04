@@ -4754,6 +4754,8 @@ public class TestWorkspace {
 		List<WorkspaceObjectData> got = ws.getObjectsSubSet(user, Arrays.asList(
 				new SubObjectIdentifier(oident1, new ObjectPaths(
 						Arrays.asList("/map/id3", "/map/id1"))),
+				new SubObjectIdentifier(oident1, new ObjectPaths(
+						Arrays.asList("/map/id2"))),
 				new SubObjectIdentifier(oident2, new ObjectPaths(
 						Arrays.asList("/array/2", "/array/0"))),
 				new SubObjectIdentifier(oident3, new ObjectPaths(
@@ -4767,6 +4769,12 @@ public class TestWorkspace {
 				"}"
 				);
 		Map<String, Object> expdata2 = createData(
+				"{\"map\": {\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> expdata3 = createData(
 				"{\"array\": [{\"id\": 1," +
 				"			   \"thing\": \"foo\"}," +
 				"			  {\"id\": 3," +
@@ -4774,7 +4782,7 @@ public class TestWorkspace {
 				"			  ]" +
 				"}"
 				);
-		Map<String, Object> expdata3 = createData(
+		Map<String, Object> expdata4 = createData(
 				"{\"array\": [{\"id\": 1," +
 				"			   \"thing\": \"foo\"}," +
 				"			   null," +
@@ -4784,8 +4792,9 @@ public class TestWorkspace {
 				"}"
 				);
 		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
-		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
-		compareObjectAndInfo(got.get(2), o3, p2, expdata3, refs2, refmap2);
+		compareObjectAndInfo(got.get(1), o1, p1, expdata2, refs1, refmap1);
+		compareObjectAndInfo(got.get(2), o2, p2, expdata3, refs2, refmap2);
+		compareObjectAndInfo(got.get(3), o3, p2, expdata4, refs2, refmap2);
 		
 		// new test for extractor that fails on an array OOB
 		failGetSubset(user, Arrays.asList(

@@ -750,13 +750,15 @@ public class Workspace {
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
+		//this is pretty gross, think about a better api here
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> data = 
 				db.getObjects(new HashSet<ObjectIDResolvedWS>(ws.values()));
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
 		
 		for (final ObjectIdentifier o: loi) {
-			ret.add(data.get(ws.get(o)));
+			ret.add(data.get(ws.get(o)).get(null));
 		}
 		return ret;
 	}
@@ -772,19 +774,26 @@ public class Workspace {
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, objs, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, ObjectPaths> objpaths =
-				new HashMap<ObjectIDResolvedWS, ObjectPaths>();
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objpaths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
 		for (final SubObjectIdentifier soi: loi) {
-			objpaths.put(ws.get(soi.getObjectIdentifer()), soi.getPaths());
+			final ObjectIDResolvedWS o = ws.get(soi.getObjectIdentifer());
+			if (!objpaths.containsKey(o)) {
+				objpaths.put(o, new HashSet<ObjectPaths>());
+			}
+			objpaths.get(o).add(soi.getPaths());
 		}
 		
-		final Map<ObjectIDResolvedWS, WorkspaceObjectData> data = 
+		//this is kind of disgusting, think about the api here
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> data = 
 				db.getObjects(objpaths);
 		
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
 		for (final SubObjectIdentifier soi: loi) {
-			ret.add(data.get(ws.get(soi.getObjectIdentifer())));
+			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
+					.get(soi.getPaths()));
 		}
 		return ret;
 	}
