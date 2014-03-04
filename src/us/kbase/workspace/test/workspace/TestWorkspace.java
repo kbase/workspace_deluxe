@@ -3288,9 +3288,9 @@ public class TestWorkspace {
 			List<String> refs, Map<String, String> refmap)
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
-		assertThat("returned data same", "" + got.getData(), is("" + data));
-		assertThat("returned data jsonnode same", "" + got.getDataAsTokens().getAsJsonNode(),
-				is("" + new ObjectMapper().valueToTree(data)));
+		assertThat("returned data same", got.getData(), is((Object)data));
+		assertThat("returned data jsonnode same", got.getDataAsTokens().getAsJsonNode(),
+				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
 		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
