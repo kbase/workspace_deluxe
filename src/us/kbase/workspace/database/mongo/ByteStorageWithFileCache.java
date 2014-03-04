@@ -27,7 +27,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 public class ByteStorageWithFileCache {
 	private TempFilesManager tfm;
 	private long size = 0;
-	private final File tempFile;
+	private File tempFile = null;
 	private final JsonTokenStream jts;
 	private ByteStorageWithFileCache parent = null;
 	
@@ -44,19 +44,27 @@ public class ByteStorageWithFileCache {
 		}
 		bufOs.close();
 		if (size >= maxInMemorySize) {
-			tempFile = tfm.generateTempFile("resp", "json");
-			OutputStream os = new BufferedOutputStream(new FileOutputStream(tempFile));
-			os.write(bufOs.toByteArray());
-			bufOs = null;
-			while (true) {
-				int count = input.read(buf, 0, buf.length);
-				if (count < 0)
-					break;
-				os.write(buf, 0, count);
-				size += count;
+			try {
+				tempFile = tfm.generateTempFile("resp", "json");
+				OutputStream os = new BufferedOutputStream(
+						new FileOutputStream(tempFile));
+				os.write(bufOs.toByteArray());
+				bufOs = null;
+				while (true) {
+					int count = input.read(buf, 0, buf.length);
+					if (count < 0)
+						break;
+					os.write(buf, 0, count);
+					size += count;
+				}
+				os.close();
+				jts = new JsonTokenStream(tempFile);
+			} catch (IOException e) {
+				if (tempFile != null) {
+					tempFile.delete();
+				}
+				throw e;
 			}
-			os.close();
-			jts = new JsonTokenStream(tempFile);
 		} else {
 			tempFile = null;
 			jts = new JsonTokenStream(bufOs.toByteArray());
@@ -64,7 +72,7 @@ public class ByteStorageWithFileCache {
 		}
 	}
 	
-	public ByteStorageWithFileCache(ByteStorageWithFileCache parent, File tempFile, JsonTokenStream jts) {
+	private ByteStorageWithFileCache(ByteStorageWithFileCache parent, File tempFile, JsonTokenStream jts) {
 		this.parent = parent;
 		this.tempFile = tempFile;
 		this.jts = jts;
@@ -106,10 +114,10 @@ public class ByteStorageWithFileCache {
 				return new ByteStorageWithFileCache(this, tempFile2, new JsonTokenStream(tempFile));
 			}
 		} catch (IOException ex) {
-			throw new TypedObjectExtractionException(ex.getMessage(), ex);
-		} finally {
-			if (tempFile2 != null)
+			if (tempFile2 != null && tempFile2.exists()) {
 				tempFile2.delete();
+			}
+			throw new TypedObjectExtractionException(ex.getMessage(), ex);
 		}
 	}
 	
@@ -124,6 +132,8 @@ public class ByteStorageWithFileCache {
 	
 	public void deleteTempFiles() {
 		for (File f : getTempFiles())
-			f.delete();
+			if (f.exists()) {
+				f.delete();
+			}
 	}
 }

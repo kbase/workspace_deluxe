@@ -2202,6 +2202,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<String, ByteStorageWithFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
+		//TODO try catch & delete all files
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2966,12 +2967,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 	}
-	
-//	private void getObjectsTotalSize(final Set<ResolvedMongoObjectID> objs) {
-		//TODO test with GC
-		//TODO add tests to check pulling many large objects failed
-		//TODO getObjectsTotalSize stub
-//	}
 
 	@Override
 	public void setObjectsHidden(final Set<ObjectIDResolvedWS> objectIDs,
