@@ -7,6 +7,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,8 +28,9 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 public class ByteStorageWithFileCache {
 	private TempFilesManager tfm;
 	private long size = 0;
-	private File tempFile;
-	private JsonTokenStream jts;
+	private final File tempFile;
+	private final JsonTokenStream jts;
+	private ByteStorageWithFileCache parent = null;
 	
 	public ByteStorageWithFileCache(InputStream input, int maxInMemorySize, TempFilesManager tfm) throws IOException {
 		this.tfm = tfm;
@@ -55,9 +59,16 @@ public class ByteStorageWithFileCache {
 			os.close();
 			jts = new JsonTokenStream(tempFile);
 		} else {
+			tempFile = null;
 			jts = new JsonTokenStream(bufOs.toByteArray());
 			bufOs = null;
 		}
+	}
+	
+	public ByteStorageWithFileCache(ByteStorageWithFileCache parent, File tempFile, JsonTokenStream jts) {
+		this.parent = parent;
+		this.tempFile = tempFile;
+		this.jts = jts;
 	}
 	
 	public long getSize() {
@@ -72,7 +83,7 @@ public class ByteStorageWithFileCache {
 		return UObject.transformObjectToJackson(getUObject());
 	}
 	
-	public void setSubdataExtraction(ObjectPaths paths) throws TypedObjectExtractionException {
+	public ByteStorageWithFileCache getSubdataExtraction(ObjectPaths paths) throws TypedObjectExtractionException {
 		OutputStream os = null;
 		File tempFile2 = null;
 		try {
@@ -90,12 +101,10 @@ public class ByteStorageWithFileCache {
 				jgen.close();
 			}
 			if (tempFile == null) {
-				jts = new JsonTokenStream(((ByteArrayOutputStream)os).toByteArray());
+				return new ByteStorageWithFileCache(this, null, 
+						new JsonTokenStream(((ByteArrayOutputStream)os).toByteArray()));
 			} else {
-				tempFile.delete();
-				tempFile = tempFile2;
-				tempFile2 = null;
-				jts = new JsonTokenStream(tempFile);
+				return new ByteStorageWithFileCache(this, tempFile2, new JsonTokenStream(tempFile));
 			}
 		} catch (IOException ex) {
 			throw new TypedObjectExtractionException(ex.getMessage(), ex);
@@ -105,12 +114,17 @@ public class ByteStorageWithFileCache {
 		}
 	}
 	
-	public File getTempFile() {
-		return tempFile;
+	public Set<File> getTempFiles() {
+		Set<File> ret = new HashSet<File>();
+		if (tempFile != null)
+			ret.add(tempFile);
+		if (parent != null)
+			ret.addAll(parent.getTempFiles());
+		return ret;
 	}
 	
-	public void deleteTempFile() {
-		if (tempFile != null)
-			tempFile.delete();
+	public void deleteTempFiles() {
+		for (File f : getTempFiles())
+			f.delete();
 	}
 }

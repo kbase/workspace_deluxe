@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -119,7 +120,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
-	private ThreadLocal<List<File>> resourcesToDelete = new ThreadLocal<List<File>>();
+	private ThreadLocal<Set<File>> resourcesToDelete = new ThreadLocal<Set<File>>();
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd, TempFilesManager tfm) {
@@ -588,8 +589,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
-		if (resource.getTempFile() != null)
-			resourcesToDelete.set(Arrays.asList(resource.getTempFile()));
+			resourcesToDelete.set(resource.getTempFiles());
         //END get_object
         return returnVal;
     }
@@ -607,7 +607,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		List<File> files = new ArrayList<File>();
+		Set<File> files = new HashSet<File>();
 		returnVal = au.translateObjectData(
 				ws.getObjects(getUser(authPart), loi), files);
 		if (!files.isEmpty())
@@ -641,7 +641,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_subset
 		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
-		List<File> files = new ArrayList<File>();
+		Set<File> files = new HashSet<File>();
 		returnVal = au.translateObjectData(
 				ws.getObjectsSubSet(getUser(authPart), loi), files);
 		if (!files.isEmpty())
@@ -758,7 +758,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
-		List<File> files = new ArrayList<File>();
+		Set<File> files = new HashSet<File>();
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains), files);
 		if (!files.isEmpty())

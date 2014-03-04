@@ -2096,7 +2096,7 @@ public class TestWorkspace {
 			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
 			jp.close();
 		} finally {
-			newdata.deleteTempFile();
+			newdata.deleteTempFiles();
 		}
 //		newdata = null;
 //		newsd = null;

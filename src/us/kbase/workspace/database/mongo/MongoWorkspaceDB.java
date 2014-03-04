@@ -2240,8 +2240,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}
-		data.setSubdataExtraction(paths);
-		return data;
+		return data.getSubdataExtraction(paths);
 	}
 
 	private static final Set<String> FLDS_GETOBJREF = newHashSet(

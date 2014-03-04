@@ -49,7 +49,7 @@ public class WorkspaceObjectData {
 			//this should never happen
 			throw new RuntimeException("something's dun broke", jpe);
 		} finally {
-			data.deleteTempFile();
+			data.deleteTempFiles();
 		}
 	}
 

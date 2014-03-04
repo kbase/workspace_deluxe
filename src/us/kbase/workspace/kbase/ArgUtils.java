@@ -304,7 +304,7 @@ public class ArgUtils {
 	}
 	
 	public List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
-			List<File> filesToDelete) {
+			Set<File> filesToDelete) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			ByteStorageWithFileCache resource = o.getDataAsTokens();
@@ -317,8 +317,7 @@ public class ArgUtils {
 					.withCreated(dateFormat.formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
-			if (resource.getTempFile() != null)
-				filesToDelete.add(resource.getTempFile());
+			filesToDelete.addAll(resource.getTempFiles());
 		}
 		return ret;
 	}
