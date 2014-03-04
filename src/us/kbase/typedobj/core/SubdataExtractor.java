@@ -1,6 +1,8 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -83,6 +85,10 @@ public class SubdataExtractor {
 				return jp.getDoubleValue();
 			}
 			@Override
+			public Number getNumberValue() throws IOException, JsonParseException {
+				return jp.getNumberValue();
+			}
+			@Override
 			public void close() throws IOException {
 				jp.close();
 			}
@@ -151,9 +157,29 @@ public class SubdataExtractor {
 		} else if (t == JsonToken.FIELD_NAME) {
 			jgen.writeFieldName(jts.getText());
 		} else if (t == JsonToken.VALUE_NUMBER_INT) {
-			jgen.writeNumber(jts.getLongValue());
+			Number value = jts.getNumberValue();
+			if (value instanceof Short) {
+				jgen.writeNumber((Short)value);
+			} else if (value instanceof Integer) {
+				jgen.writeNumber((Integer)value);
+			} else if (value instanceof Long) {
+				jgen.writeNumber((Long)value);
+			} else if (value instanceof BigInteger) {
+				jgen.writeNumber((BigInteger)value);
+			} else {
+				jgen.writeNumber(value.longValue());
+			}
 		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
-			jgen.writeNumber(jts.getDoubleValue());
+			Number value = jts.getNumberValue();
+			if (value instanceof Float) {
+				jgen.writeNumber((Float)value);
+			} else if (value instanceof Double) {
+				jgen.writeNumber((Double)value);
+			} else if (value instanceof BigDecimal) {
+				jgen.writeNumber((BigDecimal)value);
+			} else {
+				jgen.writeNumber(value.doubleValue());
+			}
 		} else if (t == JsonToken.VALUE_STRING) {
 			jgen.writeString(jts.getText());
 		} else if (t == JsonToken.VALUE_NULL) {

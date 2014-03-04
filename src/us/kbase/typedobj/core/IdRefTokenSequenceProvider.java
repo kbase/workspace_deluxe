@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 
 import us.kbase.common.service.JsonTokenStream;
-import us.kbase.typedobj.idref.IdReference;
 
 /**
  * This class lets you to substitute id references into text tokens (string 
@@ -96,6 +95,11 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		return jts.getDoubleValue();
 	}
 
+	@Override
+	public Number getNumberValue() throws IOException, JsonParseException {
+		return jts.getNumberValue();
+	}
+	
 	private void setCurrentLevel(Object value) {
 		path.set(path.size() - 1, value);
 		while (refPath.size() > path.size())

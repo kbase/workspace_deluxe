@@ -299,6 +299,10 @@ public class TypedObjectValidationReport {
 					return afterSort.getDoubleValue();
 				}
 				@Override
+				public Number getNumberValue() throws IOException, JsonParseException {
+					return afterSort.getNumberValue();
+				}
+				@Override
 				public void close() throws IOException {
 					afterSort.close();
 				}

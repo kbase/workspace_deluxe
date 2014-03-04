@@ -10,5 +10,6 @@ public interface TokenSequenceProvider {
 	public String getText() throws IOException, JsonParseException;
 	public long getLongValue() throws IOException, JsonParseException;
 	public double getDoubleValue() throws IOException, JsonParseException;
+	public Number getNumberValue() throws IOException, JsonParseException;
 	public void close() throws IOException;
 }
