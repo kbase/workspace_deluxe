@@ -40,6 +40,7 @@ import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
@@ -512,8 +513,7 @@ public class TimeReadWrite {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
-					"temp_shock_node_map", shockURL, token.getUserName(), password,
-					16000000, TempFilesManager.forTests());
+					"temp_shock_node_map", shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
@@ -525,7 +525,7 @@ public class TimeReadWrite {
 		@Override
 		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
-				sb.getBlob(md5);
+				sb.getBlob(md5, ByteArrayFileCacheManager.forTests());
 			}
 			return 0;
 		}
@@ -553,8 +553,7 @@ public class TimeReadWrite {
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
-					16000000, TempFilesManager.forTests());
+			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
@@ -566,7 +565,7 @@ public class TimeReadWrite {
 		@Override
 		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.getBlob(md5);
+				gfsb.getBlob(md5, ByteArrayFileCacheManager.forTests());
 			}
 			return 0;
 		}

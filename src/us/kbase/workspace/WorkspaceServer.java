@@ -47,6 +47,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.database.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -57,7 +58,6 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
-import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
@@ -585,7 +585,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		ByteStorageWithFileCache resource = ret.getDataAsTokens();
+		ByteArrayFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));

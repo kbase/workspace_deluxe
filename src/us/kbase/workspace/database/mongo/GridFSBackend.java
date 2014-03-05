@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.workspace.database.ByteArrayFileCache;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
@@ -21,13 +22,9 @@ import com.mongodb.gridfs.GridFSInputFile;
 public class GridFSBackend implements BlobStore {
 	
 	private final GridFS gfs;
-	private final int maxInMemorySize;
-	private final TempFilesManager tfm;
 	
-	public GridFSBackend(DB mongodb, int maxInMemorySize, TempFilesManager tfm) {
+	public GridFSBackend(DB mongodb) {
 		gfs = new GridFS(mongodb);
-		this.maxInMemorySize = maxInMemorySize;
-		this.tfm = tfm;
 	}
 
 	@Override
@@ -72,7 +69,7 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public ByteStorageWithFileCache getBlob(MD5 md5) throws NoSuchBlobException,
+	public ByteArrayFileCache getBlob(MD5 md5, final ByteArrayFileCacheManager bafcMan) throws NoSuchBlobException,
 			BlobStoreCommunicationException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
@@ -91,7 +88,7 @@ public class GridFSBackend implements BlobStore {
 		
 		final InputStream file = out.getInputStream();
 		try {
-			return new ByteStorageWithFileCache(file, maxInMemorySize, tfm);
+			return bafcMan.createBAFC(file);
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
 		} finally {

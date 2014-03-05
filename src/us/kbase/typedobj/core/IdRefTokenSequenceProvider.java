@@ -13,7 +13,8 @@ import us.kbase.common.service.JsonTokenStream;
 
 /**
  * This class lets you to substitute id references into text tokens (string 
- * keys and values) on the fly during json token stream reading.
+ * keys and values) on the fly during json token stream reading. It checks
+ * sorting order also.
  * @author rsutormin
  */
 public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
@@ -38,6 +39,8 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	
 	@Override
 	public JsonToken nextToken() throws IOException, JsonParseException {
+		// This is central method processing tokens one by one, substituting ids
+		// and tracking current json path and branch in id-ref tree.
 		wasField = false;
 		JsonToken t = jts.nextToken();
 		if (t == JsonToken.START_OBJECT) {
@@ -50,7 +53,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
 			while (refPath.size() > path.size())
 				refPath.remove(refPath.size() - 1);
-			path.remove(path.size() - 1);
+			path.remove(path.size() - 1);	// prev. level
 		} else if (t == JsonToken.FIELD_NAME) {
 			setCurrentLevel(jts.getText());
 			wasField = true;

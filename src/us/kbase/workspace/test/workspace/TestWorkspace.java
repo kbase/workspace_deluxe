@@ -54,6 +54,7 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ByteArrayFileCache;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
@@ -76,7 +77,6 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
-import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
@@ -235,8 +235,8 @@ public class TestWorkspace {
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		if ("shock".equals(type)) {
-			sbe = new ShockBackend(db, "shock_",
-					new URL(WorkspaceTestCommon.getShockUrl()), shockuser, shockpwd, 16000000, TempFilesManager.forTests());
+			sbe = new ShockBackend(db, "shock_", new URL(WorkspaceTestCommon.getShockUrl()), 
+					shockuser, shockpwd);
 		}
 		return work;
 	}
@@ -2081,7 +2081,7 @@ public class TestWorkspace {
 		
 		//printMem("*** released refs ***");
 		
-		ByteStorageWithFileCache newdata = ws.getObjects(userfoo, 
+		ByteArrayFileCache newdata = ws.getObjects(userfoo, 
 				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getDataAsTokens();
 //		printMem("*** retrieved object ***");
 //		System.gc();
