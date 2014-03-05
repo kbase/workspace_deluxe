@@ -1783,7 +1783,7 @@ public class TestWorkspace {
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: " +
-						"Duplicated key: " + reftypewsid + "/1/1"));
+						"Duplicated key '" + reftypewsid + "/1/1' was found at /refmap"));
 	}
 	
 	private void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 

@@ -114,8 +114,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static Map<String, String> wsConfig = null;
 	
 	private static int instanceCount = 0;
+	private static boolean wasTempFileCleaningDone = false;
 	
-	private final TempFilesManager tfm = new TempFilesManager(new File("temp_files"));
+	private final TempFilesManager tfm;
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
@@ -186,6 +187,11 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setMaxObjectSize(2050000000L);
+		tfm = new TempFilesManager(new File("temp_files"));
+		if (!wasTempFileCleaningDone) {
+			wasTempFileCleaningDone = true;
+			tfm.cleanup();
+		}
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.

@@ -15,7 +15,9 @@ import java.util.Map;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.KeyDuplicationException;
 import us.kbase.common.util.SortedKeysJsonFile;
+import us.kbase.common.util.TooManyKeysException;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
@@ -192,7 +194,8 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
-	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) throws RelabelIdReferenceException {
+	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) 
+			throws RelabelIdReferenceException {
 		try {
 			final long[] size = {0L};
 			OutputStream sizeOs = new OutputStream() {
@@ -239,8 +242,14 @@ public class TypedObjectValidationReport {
 					}
 				}
 			}
-		} catch (IOException ex) {
+		} catch (KeyDuplicationException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
+		} catch (TooManyKeysException ex) {
+			throw new IllegalStateException("Memory necessary for sorting map keys exceeds the limit " + 
+					ex.getMaxMem() + " bytes at " + ex.getPath() + ". To deal with data with so many " +
+							"keys you have to sort them on client side.", ex);
+		} catch (Exception ex) {
+			throw new IllegalStateException(ex.getMessage(), ex);
 		}
 	}
 	
