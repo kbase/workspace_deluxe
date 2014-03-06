@@ -152,7 +152,7 @@ public final class TypedObjectValidator {
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
 			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
-			schema.checkJsonData(obj.getPlacedStream(), null, new JsonTokenValidationListener() {
+			schema.checkJsonData(obj.getPlacedStream(), new JsonTokenValidationListener() {
 				int errorCount = 0;
 				@Override
 				public void addError(String message) throws JsonTokenValidationException {

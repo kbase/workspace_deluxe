@@ -24,24 +24,24 @@ public class IdReference {
 	private final String type;
 	private final String id;
 	private final boolean isFieldName;
-	private final int depth;
+	//private final int depth;
 	
-	protected final ArrayNode location;
-	protected final ObjectNode info;
+	//protected final ArrayNode location;
+	//protected final ObjectNode info;
 	
 	private String replacementId;
 	private boolean isReplacementIdSet;
 	
-	public IdReference(String type, String id, ArrayNode location, ObjectNode info, boolean isFieldName) {
+	public IdReference(String type, String id, boolean isFieldName) {
 		this.type = type;
 		this.id = id;
-		this.location = location;
+		//this.location = location;
 		//handleSlashes(this.location);
 		this.isFieldName = isFieldName;
-		this.depth = location.size()-1;
+		//this.depth = location.size()-1;
 		this.replacementId="";
 		this.isReplacementIdSet=false;
-		this.info = info;
+		//this.info = info;
 	}
 	
 	// getting the location of a ref replaces slashes in field names with a ~1 and replaces ~ with a 0
@@ -71,13 +71,12 @@ public class IdReference {
 		return id;
 	}
 	
-	/**
+	/*
 	 * return the location of the ID in the original instance data; location is given as a sequence of
 	 * either field names or array positions that will get you to the specified id field.
-	 */
 	public final ArrayNode getLocation() { 
 		return location;
-	}
+	}*/
 	
 	/**
 	 * true if id is a field name in the json document, false otherwise
@@ -86,12 +85,11 @@ public class IdReference {
 		return isFieldName;
 	}
 	
-	/**
+	/*
 	 * the depth of the id in the json instance
-	 */
 	public final int getDepth() {
 		return depth;
-	}
+	}*/
 	
 	
 	/**
@@ -103,9 +101,8 @@ public class IdReference {
 	}
 	
 	
-	/**
+	/*
 	 * relabel the id in the json instance to the replacement id
-	 */
 	public final void relabel(JsonNode instanceRoot) throws RelabelIdReferenceException {
 		if(!isReplacementIdSet) return;
 		//System.out.println("renaming: "+this);
@@ -170,7 +167,7 @@ public class IdReference {
 			}
 		}
 		
-	}
+	}*/
 	
 	protected boolean isReplacementIdSet() {
 		return isReplacementIdSet;
@@ -179,13 +176,13 @@ public class IdReference {
 		return replacementId;
 	}
 	
-	protected String locationAsString() {
+	/*protected String locationAsString() {
 		StringBuilder sb = new StringBuilder();
 		for(int d=0; d<location.size(); d++) {
 			sb.append("/\""+location.get(d).asText() + "\"");
 		}
 		return sb.toString();
-	}
+	}*/
 	
 	
 	@Override
@@ -195,7 +192,7 @@ public class IdReference {
 			s=replacementId;
 		else
 			s="-none-";
-		return "IdReference: [id:'"+id+"', type='"+type+"', loc="+location+", isField?="+isFieldName+", replacementId='"+s+"']";
+		return "IdReference: [id:'"+id+"', type='"+type+"', isField?="+isFieldName+", replacementId='"+s+"']";
 	}
 	
 }
