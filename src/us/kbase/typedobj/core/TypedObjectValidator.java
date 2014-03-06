@@ -151,7 +151,7 @@ public final class TypedObjectValidator {
 		IdRefNode idRefTree = new IdRefNode(null);
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
-			JsonTokenValidator schema = JsonTokenValidator.parseJsonSchema(schemaText);
+			JsonTokenValidationSchema schema = JsonTokenValidationSchema.parseJsonSchema(schemaText);
 			schema.checkJsonData(obj.getPlacedStream(), new JsonTokenValidationListener() {
 				int errorCount = 0;
 				@Override

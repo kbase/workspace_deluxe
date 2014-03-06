@@ -24,13 +24,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.cfg.ValidationConfiguration;
-import com.github.fge.jsonschema.main.JsonSchema;
-import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import com.github.fge.jsonschema.report.ListReportProvider;
-import com.github.fge.jsonschema.report.LogLevel;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -53,10 +47,10 @@ import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
 import us.kbase.kidl.tests.KidlTest;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.validatorconfig.ValidationConfigurationFactory;
 import us.kbase.typedobj.exceptions.*;
 
 /**
@@ -81,12 +75,6 @@ public class TypeDefinitionDB {
 		}
 	}
 
-	/**
-	 * This is the factory used to create a JsonSchema object from a Json Schema
-	 * document stored in the DB.
-	 */
-	protected JsonSchemaFactory jsonSchemaFactory; 
-	
 	/**
 	 * The Jackson ObjectMapper which can translate a raw Json Schema document to a JsonTree
 	 */
@@ -141,17 +129,6 @@ public class TypeDefinitionDB {
 	public TypeDefinitionDB(TypeStorage storage, File tempDir, 
 			String kbTopPath, String kidlSource, int cacheSize) throws TypeStorageException {
 		this.mapper = new ObjectMapper();
-		// Create the custom json schema factory for KBase typed objects and use this
-		// Note: we use a report provider that throws an exception when it hits an error.  This allows us
-		// to exit on the first error instead of attempting to add every error (which occurs during validation
-		// of arrays).  Code in TypedObjectValidator catches this exception and rewraps as a
-		// processing report, so this is transparent outside of the typed object validator code except that
-		// there is now a maximum of one error returned.
-		ValidationConfiguration kbcfg = ValidationConfigurationFactory.buildKBaseWorkspaceConfiguration();
-		this.jsonSchemaFactory = JsonSchemaFactory.newBuilder()
-									.setReportProvider(new ListReportProvider(LogLevel.INFO, LogLevel.ERROR))
-									.setValidationConfiguration(kbcfg)
-									.freeze();
 		this.storage = storage;
 		if (tempDir == null) {
 			this.parentTempDir = new File(".");
@@ -522,7 +499,7 @@ public class TypeDefinitionDB {
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
-	public JsonSchema getJsonSchema(TypeDefName typeDefName)
+	public JsonTokenValidationSchema getJsonSchema(TypeDefName typeDefName)
 			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
 		return getJsonSchema(new TypeDefId(typeDefName));
 	}
@@ -539,15 +516,14 @@ public class TypeDefinitionDB {
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
-	public JsonSchema getJsonSchema(final TypeDefId typeDefId)
+	public JsonTokenValidationSchema getJsonSchema(final TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
 		String moduleName = typeDefId.getType().getModule();
 		requestReadLock(moduleName);
 		try {
 			String jsonSchemaDocument = getJsonSchemaDocumentNL(typeDefId, null);
 			try {
-				JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
-				return jsonSchemaFactory.getJsonSchema(schemaRootNode);
+				return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
 			} catch (Exception e) {
 				throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
 						"was not a valid or readable JSON document",e);
@@ -564,11 +540,10 @@ public class TypeDefinitionDB {
 	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
-	protected JsonSchema jsonSchemaFromString(String jsonSchemaDocument)
+	protected JsonTokenValidationSchema jsonSchemaFromString(String jsonSchemaDocument)
 			throws BadJsonSchemaDocumentException, TypeStorageException {
 		try {
-			JsonNode schemaRootNode = mapper.readTree(jsonSchemaDocument);
-			return jsonSchemaFactory.getJsonSchema(schemaRootNode);
+			return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
 		} catch (Exception e) {
 			throw new BadJsonSchemaDocumentException("string was not a valid or readable JSON Schema document",e);
 		}
