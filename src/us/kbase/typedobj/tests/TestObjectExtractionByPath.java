@@ -34,7 +34,6 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.SubdataExtractor;
-import us.kbase.typedobj.core.TypedObjectExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 

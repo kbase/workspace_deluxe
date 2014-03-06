@@ -6,11 +6,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.exceptions.ProcessingException;
-import com.github.fge.jsonschema.report.ListReportProvider;
-import com.github.fge.jsonschema.report.LogLevel;
-import com.github.fge.jsonschema.report.ProcessingMessage;
-import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
