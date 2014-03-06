@@ -151,7 +151,7 @@ public final class TypedObjectValidator {
 		IdRefNode idRefTree = new IdRefNode(null);
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
-			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
+			JsonTokenValidator schema = JsonTokenValidator.parseJsonSchema(schemaText);
 			schema.checkJsonData(obj.getPlacedStream(), new JsonTokenValidationListener() {
 				int errorCount = 0;
 				@Override
@@ -212,14 +212,13 @@ public final class TypedObjectValidator {
 	}*/
 	
 	
-	/**
+	/*
 	 * If an exception is thrown during validation, we can catch that exception and instead of
 	 * throwing it back up, we package it into a new report, add the message
 	 * @param e
 	 * @param typeDefId
 	 * @return
 	 * @throws InstanceValidationException
-	 */
 	protected ProcessingReport repackageProcessingExceptionIntoReport(ProcessingException e, TypeDefId typeDefId) 
 			throws InstanceValidationException {
 		ProcessingMessage m = e.getProcessingMessage();
@@ -237,7 +236,7 @@ public final class TypedObjectValidator {
 				"instance is not a valid '" + typeDefId.getTypeString() + "'",e2);
 		}
 		return report;
-	}
+	}*/
 	
 	
 }

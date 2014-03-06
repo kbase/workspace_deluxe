@@ -38,7 +38,7 @@ public class SearchableWsSubsetExtractor {
 	 */
 	public static JsonNode extractFields(TokenSequenceProvider jts, 
 			ObjectNode keysOfSelection, ObjectNode fieldsSelection) throws IOException {
-		WsSubsetNode root = new WsSubsetNode();
+		SearchableWsSubsetNode root = new SearchableWsSubsetNode();
 		//if the selection is empty, we return without adding anything
 		if (keysOfSelection != null && keysOfSelection.size() > 0) 
 			prepareWsSubsetTree(keysOfSelection, true, root);
@@ -53,7 +53,7 @@ public class SearchableWsSubsetExtractor {
 		return jgen.getTree();
 	}
 	
-	private static void prepareWsSubsetTree(JsonNode selection, boolean keysOf, WsSubsetNode parent) {
+	private static void prepareWsSubsetTree(JsonNode selection, boolean keysOf, SearchableWsSubsetNode parent) {
 		if (selection.size() == 0) {
 			if (keysOf) {
 				parent.setNeedKeys(true);
@@ -64,9 +64,9 @@ public class SearchableWsSubsetExtractor {
 			Iterator<Map.Entry<String, JsonNode>> it = selection.fields();
 			while (it.hasNext()) {
 				Map.Entry<String, JsonNode> entry = it.next();
-				WsSubsetNode child = null;
+				SearchableWsSubsetNode child = null;
 				if (parent.getChildren() == null || !parent.getChildren().containsKey(entry.getKey())) {
-					child = new WsSubsetNode();
+					child = new SearchableWsSubsetNode();
 					parent.addChild(entry.getKey(), child);
 				} else {
 					child = parent.getChildren().get(entry.getKey());
@@ -174,14 +174,14 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 
-	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, WsSubsetNode selection, 
+	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, SearchableWsSubsetNode selection, 
 			JsonGenerator jgen) throws IOException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {
 			if (selection.hasChildren()) {
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
 				boolean all = false;
-				WsSubsetNode allChild = null;
+				SearchableWsSubsetNode allChild = null;
 				if (selectedFields.contains("*")) {
 					all = true;
 					selectedFields.remove("*");
@@ -228,7 +228,7 @@ public class SearchableWsSubsetExtractor {
 		} else if (t == JsonToken.START_ARRAY) {
 			if (selection.hasChildren()) {
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
-				WsSubsetNode allChild = null;
+				SearchableWsSubsetNode allChild = null;
 				if (!selectedFields.contains("[*]"))
 					throw new IllegalStateException("WS subset path doesn't contain [*] on array level: " + selectedFields);
 				selectedFields.remove("[*]");

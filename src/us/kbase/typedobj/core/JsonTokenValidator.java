@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * This is main validation algorithm.
  * @author rsutormin
  */
-public class NodeSchema {
+public class JsonTokenValidator {
 	enum Type {
 		object, array, string, integer, number
 	}
@@ -32,17 +32,17 @@ public class NodeSchema {
 	//private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
-	private Map<String, NodeSchema> objectProperties;	// For structures: properties
-	private NodeSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
+	private Map<String, JsonTokenValidator> objectProperties;	// For structures: properties
+	private JsonTokenValidator objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
 	private boolean objectAdditionalPropertiesBoolean;	// For structures: additionalProperties
 	private Map<String, Integer> objectRequired;		// For structures: required
-	private NodeSchema arrayItems;						// For list: items (one type for all items)
-	private List<NodeSchema> arrayItemList;				// For tuple: items (list of types)
+	private JsonTokenValidator arrayItems;						// For list: items (one type for all items)
+	private List<JsonTokenValidator> arrayItemList;				// For tuple: items (list of types)
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 
 	@SuppressWarnings("unchecked")
-	public static NodeSchema parseJsonSchema(String document) 
+	public static JsonTokenValidator parseJsonSchema(String document) 
 			throws JsonParseException, JsonMappingException, IOException {
 		Map<String, Object> data = new ObjectMapper().readValue(document, Map.class);
 		return parseJsonSchema(data);
@@ -53,8 +53,8 @@ public class NodeSchema {
 	 * containing everything necessary for validation of selected typed object.
 	 */
 	@SuppressWarnings("unchecked")
-	public static NodeSchema parseJsonSchema(Map<String, Object> data) {
-		NodeSchema ret = new NodeSchema();
+	public static JsonTokenValidator parseJsonSchema(Map<String, Object> data) {
+		JsonTokenValidator ret = new JsonTokenValidator();
 		ret.id = (String)data.get("id");
 		//ret.description = (String)data.get("description");
 		ret.type = Type.valueOf("" + data.get("type"));
@@ -74,7 +74,7 @@ public class NodeSchema {
 		if (ret.type == Type.object) {
 			if (data.containsKey("searchable-ws-subset"))
 				ret.searchableWsSubset = UObject.transformObjectToJackson(data.get("searchable-ws-subset"));
-			ret.objectProperties = new LinkedHashMap<String, NodeSchema>();
+			ret.objectProperties = new LinkedHashMap<String, JsonTokenValidator>();
 			Map<String, Object> props = (Map<String, Object>)data.get("properties");
 			if (props != null) {
 				for (Map.Entry<String, Object> entry : props.entrySet()) {
@@ -104,7 +104,7 @@ public class NodeSchema {
 				ret.arrayItems = parseJsonSchema((Map<String, Object>)items);
 			} else {
 				List<Map<String, Object>> itemList = (List<Map<String, Object>>)items;
-				ret.arrayItemList = new ArrayList<NodeSchema>();
+				ret.arrayItemList = new ArrayList<JsonTokenValidator>();
 				for (Map<String, Object> item : itemList)
 					ret.arrayItemList.add(parseJsonSchema(item));
 			}
@@ -192,7 +192,7 @@ public class NodeSchema {
 						reqPropUsage[objectRequired.get(fieldName)] = true;
 					}
 					// we need to find json-schema node describing value of this field
-					NodeSchema childType = objectProperties.get(fieldName);
+					JsonTokenValidator childType = objectProperties.get(fieldName);
 					if (childType == null) {
 						if (!objectAdditionalPropertiesBoolean) {
 							if (objectProperties.size() > 0)
@@ -267,7 +267,7 @@ public class NodeSchema {
 					// if we are here then we see in real data next item of this array (list)
 					// let's increment last path element according to position of this item in array
 					path.set(path.size() - 1, "" + itemPos);
-					NodeSchema childType = arrayItems;
+					JsonTokenValidator childType = arrayItems;
 					if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
 						childType = arrayItemList.get(itemPos);
 					if (skipAll || childType == null) {
@@ -435,11 +435,11 @@ public class NodeSchema {
 		return searchableWsSubset;
 	}
 	
-	public Map<String, NodeSchema> getObjectProperties() {
+	public Map<String, JsonTokenValidator> getObjectProperties() {
 		return objectProperties;
 	}
 	
-	public NodeSchema getObjectAdditionalPropertiesType() {
+	public JsonTokenValidator getObjectAdditionalPropertiesType() {
 		return objectAdditionalPropertiesType;
 	}
 	
@@ -451,11 +451,11 @@ public class NodeSchema {
 		return objectRequired;
 	}
 	
-	public NodeSchema getArrayItems() {
+	public JsonTokenValidator getArrayItems() {
 		return arrayItems;
 	}
 	
-	public List<NodeSchema> getArrayItemList() {
+	public List<JsonTokenValidator> getArrayItemList() {
 		return arrayItemList;
 	}
 	

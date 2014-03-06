@@ -8,21 +8,21 @@ import java.util.Map;
  * in order to construct ws-searchable subset.
  * @author rsutormin
  */
-public class WsSubsetNode {
+public class SearchableWsSubsetNode {
 	private boolean needKeys = false;
 	private boolean needAll = false;
-	private Map<String, WsSubsetNode> children = null;
+	private Map<String, SearchableWsSubsetNode> children = null;
 	
-	public WsSubsetNode() {
+	public SearchableWsSubsetNode() {
 	}
 	
-	public Map<String, WsSubsetNode> getChildren() {
+	public Map<String, SearchableWsSubsetNode> getChildren() {
 		return children;
 	}
 	
-	public void addChild(String key, WsSubsetNode child) {
+	public void addChild(String key, SearchableWsSubsetNode child) {
 		if (children == null) 
-			children = new LinkedHashMap<String, WsSubsetNode>();
+			children = new LinkedHashMap<String, SearchableWsSubsetNode>();
 		children.put(key, child);
 	}
 
