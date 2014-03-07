@@ -37,7 +37,7 @@ public class WorkspaceObjectData {
 		try {
 			//return MAPPER.treeToValue(data, Object.class);
 			return data.getUObject().asClassInstance(Object.class);
-		} catch (RuntimeException jpe) {
+		} catch (RuntimeException jpe) { //don't wrap RTEs in RTEs
 			throw jpe;
 		} catch (Exception jpe) {
 			//this should never happen
@@ -45,6 +45,10 @@ public class WorkspaceObjectData {
 		} finally {
 			data.deleteTempFiles();
 		}
+	}
+	
+	public ByteStorageWithFileCache getStorage() {
+		return data;
 	}
 
 	public ObjectInformation getObjectInfo() {

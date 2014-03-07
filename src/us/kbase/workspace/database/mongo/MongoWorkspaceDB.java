@@ -2202,10 +2202,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<String, ByteStorageWithFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
-		//TODO try catch & delete all files
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
+				cleanUpTempObjectFiles(chksumToData, ret);
 				throw new NoSuchObjectException(String.format(
 						"No object with id %s (name %s) and version %s exists "
 						+ "in workspace %s", roi.getId(), roi.getName(), 
@@ -2219,18 +2219,47 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
 			final MongoObjectInfo meta = generateObjectInfo(
 					roi, vers.get(roi));
-			if (paths.get(o) == null || paths.get(o).isEmpty()) {
-				buildReturnedObjectData(chksumToData, ret, o, prov, refs, meta,
-						null);
-			} else {
-				for (final ObjectPaths op: paths.get(o)) {
+			try {
+				if (paths.get(o) == null || paths.get(o).isEmpty()) {
 					buildReturnedObjectData(chksumToData, ret, o, prov, refs,
-							meta, op);
+							meta, null);
+				} else {
+					for (final ObjectPaths op: paths.get(o)) {
+						buildReturnedObjectData(chksumToData, ret, o, prov,
+								refs, meta, op);
+					}
 				}
+			} catch (TypedObjectExtractionException e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
+			} catch (WorkspaceCommunicationException e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
+			} catch (CorruptWorkspaceDBException e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
+			} catch (IllegalStateException e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
 			}
 		}
 		return ret;
 	}
+
+	private void cleanUpTempObjectFiles(
+			final Map<String, ByteStorageWithFileCache> chksumToData,
+			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret) {
+		for (final ByteStorageWithFileCache f: chksumToData.values()) {
+			f.deleteTempFiles();
+		}
+		for (final Map<ObjectPaths, WorkspaceObjectData> m:
+			ret.values()) {
+			for (final WorkspaceObjectData wod: m.values()) {
+				wod.getStorage().deleteTempFiles();
+			}
+		}
+	}
+	
 
 	//yuck. Think more about the interface here
 	private void buildReturnedObjectData(
@@ -2275,7 +2304,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private ByteStorageWithFileCache getDataSubSet(final ByteStorageWithFileCache data,
-			final ObjectPaths paths) throws TypedObjectExtractionException {
+			final ObjectPaths paths)
+			throws TypedObjectExtractionException {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}

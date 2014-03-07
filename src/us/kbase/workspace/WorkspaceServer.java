@@ -115,7 +115,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static int instanceCount = 0;
 	
-	private final TempFilesManager tfm = new TempFilesManager(new File("temp_files"));
+	private final TempFilesManager tfm = new TempFilesManager(
+			new File("temp_files"));
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
@@ -123,7 +124,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private ThreadLocal<Set<File>> resourcesToDelete = new ThreadLocal<Set<File>>();
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd, TempFilesManager tfm) {
+			final String secret, final String user, final String pwd,
+			final TempFilesManager tfm) {
 		try {
 			if (user != null) {
 				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm);
@@ -235,6 +237,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
+			//TODO set temp dir in config
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
