@@ -300,14 +300,6 @@ public class TypedObjectValidationReport {
 					return afterSort.getText();
 				}
 				@Override
-				public long getLongValue() throws IOException, JsonParseException {
-					return afterSort.getLongValue();
-				}
-				@Override
-				public double getDoubleValue() throws IOException, JsonParseException {
-					return afterSort.getDoubleValue();
-				}
-				@Override
 				public Number getNumberValue() throws IOException, JsonParseException {
 					return afterSort.getNumberValue();
 				}

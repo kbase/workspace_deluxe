@@ -241,6 +241,8 @@ public class SearchableWsSubsetExtractor {
 						// if we need all fields or the field is in list of necessary fields we process it and
 						// value following after that
 						writeCurrentToken(jts, t, jgen);
+						// read first token of value block in order to prepare state for recursive 
+						// extractFieldsWithOpenToken call
 						t = jts.nextToken();
 						// add field to the end of path branch
 						path.add(fieldName);
@@ -257,7 +259,8 @@ public class SearchableWsSubsetExtractor {
 						skipChildren(jts, t);
 					}
 				}
-				/* comment this check because fields can be optional
+				/* 
+				// TODO: we temporary comment this check because fields can be optional
 				if (!selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
 					throw new TypedObjectExtractionException("Malformed selection string, cannot get " +

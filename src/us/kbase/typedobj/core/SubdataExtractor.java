@@ -26,6 +26,11 @@ import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 public class SubdataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
+	/**
+	 * This method should be used in testing purposes because it processes json data 
+	 * stores in memory as a tree rather than as token stream that could be processed
+	 * directly from a file.
+	 */
 	public static JsonNode extract(ObjectPaths objpaths, JsonNode input) 
 			throws IOException, TypedObjectExtractionException {
 		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
@@ -66,6 +71,9 @@ public class SubdataExtractor {
 		extractFieldsWithOpenToken(jts, t, root, output, new ArrayList<String>());
 	}
 	
+	/*
+	 * TokenSequenceProvider wrapper around JsonParser.
+	 */
 	private static TokenSequenceProvider createTokenSequenceProvider(final JsonParser jp) {
 		return new TokenSequenceProvider() {
 			@Override
@@ -75,14 +83,6 @@ public class SubdataExtractor {
 			@Override
 			public String getText() throws IOException, JsonParseException {
 				return jp.getText();
-			}
-			@Override
-			public long getLongValue() throws IOException, JsonParseException {
-				return jp.getLongValue();
-			}
-			@Override
-			public double getDoubleValue() throws IOException, JsonParseException {
-				return jp.getDoubleValue();
 			}
 			@Override
 			public Number getNumberValue() throws IOException, JsonParseException {
@@ -116,6 +116,14 @@ public class SubdataExtractor {
 		return parsedPath;
 	}
 
+	
+	/*
+	 * This method is recursively processing block of json data (map, array of scalar) when
+	 * first token of this block was already taken and stored in current variable. This is
+	 * typical for processing array elements because we need to read first token in order to
+	 * know is it the end of array of not. For maps/objects there is such problem because
+	 * we read field token before processing value block.
+	 */
 	private static void writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
 			JsonGenerator jgen) throws IOException {
 		JsonToken t = current;
@@ -143,6 +151,9 @@ public class SubdataExtractor {
 		}
 	}
 
+	/*
+	 * Method processes (writes into output token stream - jgen) only one token.
+	 */
 	private static JsonToken writeCurrentToken(TokenSequenceProvider jts, JsonToken current, 
 			JsonGenerator jgen) throws IOException {
 		JsonToken t = current;
@@ -194,6 +205,9 @@ public class SubdataExtractor {
 		return t;
 	}
 
+	/*
+	 * If some part of real json data is not mention in subset schema tree we need to skip tokens of it
+	 */
 	private static void skipChildren(TokenSequenceProvider jts, JsonToken current) throws IOException, JsonParseException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {
@@ -214,12 +228,18 @@ public class SubdataExtractor {
 		}
 	}
 
+	/*
+	 * This is main recursive method for tracking current token place in subset schema tree
+	 * and making decisions whether or not we need to process this token or block of tokens or
+	 * just skip it.
+	 */
 	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, 
 			SubdataExtractionNode selection, JsonGenerator jgen, List<String> path) 
 					throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
-		if (t == JsonToken.START_OBJECT) {
-			if (selection.hasChildren()) {
+		if (t == JsonToken.START_OBJECT) {	// we observe open of mapping/object in real json data
+			if (selection.hasChildren()) {	// we have some restrictions for this object in selection
+				// we will remove visited keys from selectedFields and check emptiness at object end
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
 				boolean all = false;
 				SubdataExtractionNode allChild = null;
@@ -231,6 +251,7 @@ public class SubdataExtractor {
 						throw new TypedObjectExtractionException("Subdata extraction path with * " +
 								"contains other fields " + selectedFields + ", at: " + getPathText(path));
 				}
+				// process first token standing for start of object
 				writeCurrentToken(jts, t, jgen);
 				while (true) {
 					t = jts.nextToken();
@@ -243,18 +264,30 @@ public class SubdataExtractor {
 								t.asString() + ", at: " + getPathText(path));
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
+						// if we need all fields or the field is present in list of necessary fields 
+						// we process it and value following after that
 						if (!all)
 							selectedFields.remove(fieldName);
 						writeCurrentToken(jts, t, jgen);
+						// read first token of value block in order to prepare state for recursive 
+						// extractFieldsWithOpenToken call
 						t = jts.nextToken();
+						// add field to the tail of path branch
 						path.add(fieldName);
-						extractFieldsWithOpenToken(jts, t, all ? allChild : selection.getChildren().get(fieldName), jgen, path);
+						// process value corresponding to this field recursively
+						extractFieldsWithOpenToken(jts, t, all ? allChild : 
+							selection.getChildren().get(fieldName), jgen, path);
+						// remove field from tail of path branch
 						path.remove(path.size() - 1);
 					} else {
+						// otherwise we skip value following after field
 						t = jts.nextToken();
 						skipChildren(jts, t);
 					}
 				}
+				// let's check have we visited all selected fields in this map
+				// TODO: this check could be wrong because fields can be optional and in this case
+				// we will not visit them in real data and hence will not delete them from selection
 				if (!selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
 					throw new TypedObjectExtractionException("Malformed selection string, cannot get " +
@@ -263,10 +296,12 @@ public class SubdataExtractor {
 			} else {  // need all fields and values
 				writeTokensFromCurrent(jts, t, jgen);
 			}
-		} else if (t == JsonToken.START_ARRAY) {
-			if (selection.hasChildren()) {
+		} else if (t == JsonToken.START_ARRAY) {	// we observe open of array/list in real json data
+			if (selection.hasChildren()) {  // we have some restrictions for array item positions in selection
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
 				SubdataExtractionNode allChild = null;
+				// now we support only '[*]' which means all elements and set of numbers in case of 
+				// certain item positions are selected in array
 				if (!selectedFields.contains("[*]")) {
 					for (String item : selectedFields) {
 						try {
@@ -280,11 +315,12 @@ public class SubdataExtractor {
 				if (selectedFields.contains("[*]")) {
 					selectedFields.remove("[*]");
 					allChild = selection.getChildren().get("[*]");
+					// if there is [*] keyword selected there shouldn't be anything else in selection
 					if (selectedFields.size() > 0)
 						throw new TypedObjectExtractionException("Subdata extraction path with [*] " +
 								"contains other fields " + selectedFields + ", at: " + getPathText(path));
 				}
-				writeCurrentToken(jts, t, jgen);
+				writeCurrentToken(jts, t, jgen);  // write start of array into output
 				for (int pos = 0; ; pos++) {
 					t = jts.nextToken();
 					if (t == JsonToken.END_ARRAY) {
@@ -302,13 +338,18 @@ public class SubdataExtractor {
 						}
 					}
 					if (child == null) {
+						// this element of array is not selected, skip it
 						skipChildren(jts, t);
 					} else {
+						// add element position to the tail of path branch
 						path.add("" + pos);
+						// process value of this element recursively
 						extractFieldsWithOpenToken(jts, t, child, jgen, path);
+						// remove field from tail of path branch
 						path.remove(path.size() - 1);
 					}
 				}
+				// let's check have we visited all selected items in this array
 				if (!selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
 					throw new TypedObjectExtractionException("No element at position " +
@@ -318,7 +359,7 @@ public class SubdataExtractor {
 				// need all elements
 				writeTokensFromCurrent(jts, t, jgen);
 			}
-		} else {
+		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
 				throw new TypedObjectExtractionException("Subdata extraction path contains " +
 						"non-empty level for scalar value, at: " + getPathText(path));

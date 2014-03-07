@@ -111,16 +111,6 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	}
 
 	@Override
-	public long getLongValue() throws IOException, JsonParseException {
-		return jts.getLongValue();
-	}
-
-	@Override
-	public double getDoubleValue() throws IOException, JsonParseException {
-		return jts.getDoubleValue();
-	}
-
-	@Override
 	public Number getNumberValue() throws IOException, JsonParseException {
 		return jts.getNumberValue();
 	}
