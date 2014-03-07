@@ -6,6 +6,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +34,14 @@ public class FileTypeStorage implements TypeStorage {
 	private Set<RefInfo> funcRefs = null;
 	private List<OwnerInfo> requests = null;
 	private List<OwnerInfo> owners = null;
+	
+	private static final String TYPEREFS_ROOT_FILE = "typerefs.json";
+	private static final String FUNCREFS_ROOT_FILE = "funcrefs.json";
+	private static final String REQUESTS_ROOT_FILE = "requests.json";
+	private static final String OWNERS_ROOT_FILE = "owners.json";
+	private static final Set<String> rootFileNames = Collections.unmodifiableSet(
+			new HashSet<String>(Arrays.asList(TYPEREFS_ROOT_FILE, FUNCREFS_ROOT_FILE,
+					REQUESTS_ROOT_FILE, OWNERS_ROOT_FILE)));
 
 	/**
 	 * Set up a new DB pointing to the specified db folder.  The contents
@@ -55,11 +66,11 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	private File getRequestFile() {
-		return new File(dbFolder, "requests.json");
+		return new File(dbFolder, REQUESTS_ROOT_FILE);
 	}
 
 	private File getOwnersFile() {
-		return new File(dbFolder, "owners.json");
+		return new File(dbFolder, OWNERS_ROOT_FILE);
 	}
 
 	private List<OwnerInfo> loadOwnerInfos(File f) throws TypeStorageException {
@@ -186,11 +197,11 @@ public class FileTypeStorage implements TypeStorage {
 	}
 	
 	private File getTypeRefFile() {
-		return new File(dbFolder, "typerefs.json");
+		return new File(dbFolder, TYPEREFS_ROOT_FILE);
 	}
 
 	private File getFuncRefFile() {
-		return new File(dbFolder, "funcrefs.json");
+		return new File(dbFolder, FUNCREFS_ROOT_FILE);
 	}
 
 	private Set<RefInfo> loadRefs(File f) throws TypeStorageException {
@@ -690,10 +701,11 @@ public class FileTypeStorage implements TypeStorage {
 
 	@Override
 	public Map<String, Long> listObjects() throws TypeStorageException {
+		
 		Map<String, Long> ret = new TreeMap<String, Long>();
 		for (File f1 : dbFolder.listFiles()) {
 			if (f1.isFile()) {
-				if (!f1.getName().endsWith(".json"))
+				if (!rootFileNames.contains(f1.getName()))
 					continue;
 				try {
 					List<?> list = mapper.readValue(f1, List.class);

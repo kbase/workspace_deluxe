@@ -32,6 +32,13 @@ public class TempFilesManager {
 		}
 	}
 	
+	public synchronized void cleanup() {
+		for (File f : tempDir.listFiles()) {
+			if (f.getName().startsWith("ws."))
+				f.delete();
+		}
+	}
+	
 	public static TempFilesManager forTests() {
 		return new TempFilesManager(new File("temp_files"));
 	}

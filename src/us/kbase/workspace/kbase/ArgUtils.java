@@ -28,13 +28,13 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
+import us.kbase.workspace.database.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 
 /**
  * not thread safe
@@ -307,7 +307,7 @@ public class ArgUtils {
 			Set<File> filesToDelete) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
-			ByteStorageWithFileCache resource = o.getDataAsTokens();
+			ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))

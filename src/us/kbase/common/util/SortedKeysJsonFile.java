@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -139,15 +140,20 @@ public class SortedKeysJsonFile {
 	 * @param os output stream for saving sorted result
 	 * @return this object for chaining
 	 * @throws IOException in case of problems with i/o or with JSON parsing
+	 * @throws KeyDuplicationException in case of duplicated keys are found in the same map
+	 * @throws TooManyKeysException 
 	 */
-	public SortedKeysJsonFile writeIntoStream(OutputStream os) throws IOException {
+	public SortedKeysJsonFile writeIntoStream(OutputStream os) 
+			throws IOException, KeyDuplicationException, TooManyKeysException {
 		UnthreadedBufferedOutputStream ubos = new UnthreadedBufferedOutputStream(os, 100000);
-		write(0, -1, maxMemoryForKeyStoring > 0 ? new long[] {0L} : null, ubos);
+		write(0, -1, maxMemoryForKeyStoring > 0 ? new long[] {0L} : null, new ArrayList<Object>(), ubos);
 		ubos.flush();
 		return this;
 	}
 	
-	private void write(long globalStart, long globalStop, long[] keysByteSize, UnthreadedBufferedOutputStream os) throws IOException {
+	private void write(long globalStart, long globalStop, long[] keysByteSize, 
+			List<Object> path, UnthreadedBufferedOutputStream os) 
+					throws IOException, KeyDuplicationException, TooManyKeysException {
 		PosBufInputStream is = setPosition(globalStart);
 		while (true) {
 			if (globalStop >= 0 && is.getFilePointer() >= globalStop)
@@ -156,8 +162,9 @@ public class SortedKeysJsonFile {
 			if (b == -1)
 				break;
 			if (b == '{') {
+				path.add("{");
 				long[] keysByteSizeTemp = keysByteSize == null ? null : new long[] {keysByteSize[0]};
-				List<KeyValueLocation> fieldPosList = searchForMapCloseBracket(is, true, keysByteSizeTemp);
+				List<KeyValueLocation> fieldPosList = searchForMapCloseBracket(is, true, keysByteSizeTemp, path);
 				Collections.sort(fieldPosList);
 				long stop = is.getFilePointer();  // After close bracket
 				os.write(b);
@@ -168,16 +175,19 @@ public class SortedKeysJsonFile {
 						if (skipKeyDuplication) {
 							continue;
 						} else {
-							throw new IOException("Duplicated key: " + loc.getKey());
+							path.remove(path.size() - 1);
+							throw new KeyDuplicationException(getPathText(path), loc.getKey());
 						}
 					}
+					path.set(path.size() - 1, loc.getKey());
 					if (wasEntry)
 						os.write(',');
-					write(loc.keyStart, loc.stop, keysByteSizeTemp, os);
+					write(loc.keyStart, loc.stop, keysByteSizeTemp, path, os);
 					wasEntry = true;
 					prevLoc = loc;
 				}
 				os.write('}');
+				path.remove(path.size() - 1);
 				is.setGlobalPos(stop);
 			} else if (b == '"') {
 				os.write(b);
@@ -196,9 +206,35 @@ public class SortedKeysJsonFile {
 					}
 				}
 			} else {
+				if (b == '[') {
+					path.add(0);
+				} else if (b == ',') {
+					if (path.size() == 0)
+						throw new IOException("Comma found on top level of json data");
+					Object lastItem = path.get(path.size() - 1);
+					if (lastItem instanceof Integer) {
+						path.set(path.size() - 1, ((Integer)lastItem) + 1);
+					} else {
+						throw new IOException("Comma between map elements in wrong code block");
+					}
+				} else if (b == ']') {
+					path.remove(path.size() - 1);
+				}
 				os.write(b);
 			}
 		}
+	}
+	
+	private static String getPathText(List<Object> path) {
+		if (path.size() == 0)
+			return "/";
+		StringBuilder sb = new StringBuilder();
+		for (Object obj : path) {
+			String item = "" + obj;
+			item = item.replaceAll(Pattern.quote("/"), "\\\\/");
+			sb.append("/").append(item);
+		}
+		return sb.toString();
 	}
 	
 	private PosBufInputStream setPosition(long pos) throws IOException {
@@ -207,7 +243,8 @@ public class SortedKeysJsonFile {
 		return mainIs.setGlobalPos(pos);
 	}
 	
-	private List<KeyValueLocation> searchForMapCloseBracket(PosBufInputStream raf, boolean createMap, long[] keysByteSize) throws IOException {
+	private List<KeyValueLocation> searchForMapCloseBracket(PosBufInputStream raf, boolean createMap, 
+			long[] keysByteSize, List<Object> path) throws IOException, TooManyKeysException {
 		List<KeyValueLocation> ret = createMap ? new ArrayList<KeyValueLocation>() : null;
 		boolean isBeforeField = true;
 		String currentKey = null;
@@ -221,9 +258,10 @@ public class SortedKeysJsonFile {
 				if (currentKey != null && createMap) {
 					if (currentValueStart < 0 || currentKeyStart < 0)
 						throw new IOException("Value without key in mapping");
-					ret.add(new KeyValueLocation(currentKey,currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
-					if (keysByteSize != null)
-						countKeysMemory(keysByteSize, currentKey);
+					ret.add(new KeyValueLocation(currentKey,currentKeyStart, currentValueStart, 
+							raf.getFilePointer() - 1, useStringsForKeyStoring));
+					if (keysByteSize != null && path != null)
+						countKeysMemory(keysByteSize, currentKey, path);
 					currentKey = null;
 					currentKeyStart = -1;
 					currentValueStart = -1;
@@ -248,16 +286,17 @@ public class SortedKeysJsonFile {
 			} else if (b == '{') {
 				if (isBeforeField)
 					throw new IOException("Mapping opened before key text");
-				searchForMapCloseBracket(raf, false, null);
+				searchForMapCloseBracket(raf, false, null, null);
 			} else if (b == ',') {
 				if (createMap) {
 					if (currentKey == null)
 						throw new IOException("Comma in mapping without key-value pair before");
 					if (currentValueStart < 0 || currentKeyStart < 0)
 						throw new IOException("Value without key in mapping");
-					ret.add(new KeyValueLocation(currentKey, currentKeyStart, currentValueStart, raf.getFilePointer() - 1, useStringsForKeyStoring));
-					if (keysByteSize != null)
-						countKeysMemory(keysByteSize, currentKey);
+					ret.add(new KeyValueLocation(currentKey, currentKeyStart, currentValueStart, 
+							raf.getFilePointer() - 1, useStringsForKeyStoring));
+					if (keysByteSize != null && path != null)
+						countKeysMemory(keysByteSize, currentKey, path);
 					currentKey = null;
 					currentKeyStart = -1;
 					currentValueStart = -1;
@@ -272,13 +311,17 @@ public class SortedKeysJsonFile {
 		return ret;
 	}
 
-	private void countKeysMemory(long[] keysByteSize, String currentKey) throws IOException {
-		keysByteSize[0] += useStringsForKeyStoring ? (2 * currentKey.length() + 8 + 4 + 3 * 8) : (currentKey.length() + 3 * 8);
-		if (maxMemoryForKeyStoring > 0 && keysByteSize[0] > maxMemoryForKeyStoring)
-			throw new IOException("Memory for keys were exceeded");
+	private void countKeysMemory(long[] keysByteSize, String currentKey, List<Object> path) 
+			throws TooManyKeysException {
+		keysByteSize[0] += useStringsForKeyStoring ? (2 * currentKey.length() + 8 + 4 + 3 * 8) : 
+			(currentKey.length() + 3 * 8);
+		if (maxMemoryForKeyStoring > 0 && keysByteSize[0] > maxMemoryForKeyStoring) {
+			path.remove(path.size() - 1);
+			throw new TooManyKeysException(maxMemoryForKeyStoring, getPathText(path));
+		}
 	}
 
-	private void searchForArrayCloseBracket(PosBufInputStream raf) throws IOException {
+	private void searchForArrayCloseBracket(PosBufInputStream raf) throws IOException, TooManyKeysException {
 		while (true) {
 			int b = raf.read();
 			if (b == -1)
@@ -288,7 +331,7 @@ public class SortedKeysJsonFile {
 			} else if (b == '"') {
 				searchForEndQuot(raf, false);
 			} else if (b == '{') {
-				searchForMapCloseBracket(raf, false, null);
+				searchForMapCloseBracket(raf, false, null, null);
 			} else if (b == '[') {
 				searchForArrayCloseBracket(raf);
 			}

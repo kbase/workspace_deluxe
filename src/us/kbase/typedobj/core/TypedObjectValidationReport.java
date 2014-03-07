@@ -15,7 +15,9 @@ import java.util.Map;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.KeyDuplicationException;
 import us.kbase.common.util.SortedKeysJsonFile;
+import us.kbase.common.util.TooManyKeysException;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
@@ -192,7 +194,8 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
-	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) throws RelabelIdReferenceException {
+	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) 
+			throws RelabelIdReferenceException {
 		try {
 			final long[] size = {0L};
 			OutputStream sizeOs = new OutputStream() {
@@ -239,8 +242,14 @@ public class TypedObjectValidationReport {
 					}
 				}
 			}
-		} catch (IOException ex) {
+		} catch (KeyDuplicationException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
+		} catch (TooManyKeysException ex) {
+			throw new IllegalStateException("Memory necessary for sorting map keys exceeds the limit " + 
+					ex.getMaxMem() + " bytes at " + ex.getPath() + ". To deal with data with so many " +
+							"keys you have to sort them on client side.", ex);
+		} catch (Exception ex) {
+			throw new IllegalStateException(ex.getMessage(), ex);
 		}
 	}
 	
@@ -327,17 +336,6 @@ public class TypedObjectValidationReport {
 		// Identify what we need to extract
 		ObjectNode keys_of  = null;
 		ObjectNode fields   = null;
-		/*Iterator<ProcessingMessage> mssgs = processingReport.iterator();
-		while(mssgs.hasNext()) {
-			ProcessingMessage m = mssgs.next();
-			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
-				JsonNode searchData = m.asJson().get("search-data");
-				keys_of = (ObjectNode)searchData.get("keys");
-				fields = (ObjectNode)searchData.get("fields");
-				//there can only one per report, so we can break as soon as we got it!
-				break;
-			}
-		}*/
 		if (searchData != null) {
 			keys_of = (ObjectNode)searchData.get("keys");
 			fields = (ObjectNode)searchData.get("fields");
@@ -347,7 +345,9 @@ public class TypedObjectValidationReport {
 			JsonNode ret = SearchableWsSubsetExtractor.extractFields(tsp, keys_of, fields);
 			tsp.close();
 			return ret;
-		} catch (IOException ex) {
+		} catch (RuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
 			throw new IllegalStateException(ex);
 		}
 	}

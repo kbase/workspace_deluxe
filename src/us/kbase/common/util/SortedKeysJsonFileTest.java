@@ -51,12 +51,12 @@ public class SortedKeysJsonFileTest {
 	}
 
 	@Test
-	public void testDoubleKeysError() {
+	public void testDoubleKeysError() throws Exception {
 		try {
-			sort("{\"kkk\":1, \"kkk\":2}", false);
+			sort("{\"ro/ot\":[0,{\"kkk\":1, \"kkk\":2}]}", false);
 			Assert.fail("Should be exception");
-		} catch (IOException e) {
-			Assert.assertEquals("Duplicated key: kkk", e.getMessage());
+		} catch (KeyDuplicationException e) {
+			Assert.assertEquals("Duplicated key 'kkk' was found at /ro\\/ot/1", e.getMessage());
 		}
 	}
 
@@ -64,12 +64,12 @@ public class SortedKeysJsonFileTest {
 		try {
 			String actual = sort(before, true);
 			Assert.assertEquals(after, actual);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new IllegalStateException(e);
 		}
 	}
 	
-	private static String sort(String json, boolean skipDoubleKeys) throws IOException {
+	private static String sort(String json, boolean skipDoubleKeys) throws Exception {
 		Charset ch = Charset.forName("UTF-8");
 		byte[] data = json.getBytes(ch);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();

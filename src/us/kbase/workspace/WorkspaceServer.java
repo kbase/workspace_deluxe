@@ -47,6 +47,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.workspace.database.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -57,7 +58,6 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
-import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
@@ -114,9 +114,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static Map<String, String> wsConfig = null;
 	
 	private static int instanceCount = 0;
+	private static boolean wasTempFileCleaningDone = false;
 	
-	private final TempFilesManager tfm = new TempFilesManager(
-			new File("temp_files"));
+	private final TempFilesManager tfm;
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
@@ -188,6 +188,11 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setMaxObjectSize(2050000000L);
+		tfm = new TempFilesManager(new File("temp_files"));
+		if (!wasTempFileCleaningDone) {
+			wasTempFileCleaningDone = true;
+			tfm.cleanup();
+		}
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.
@@ -588,7 +593,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		ByteStorageWithFileCache resource = ret.getDataAsTokens();
+		ByteArrayFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));

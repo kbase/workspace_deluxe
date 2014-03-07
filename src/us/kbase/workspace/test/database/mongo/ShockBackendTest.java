@@ -22,9 +22,9 @@ import us.kbase.common.test.TestException;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -48,7 +48,7 @@ public class ShockBackendTest {
 		URL url = new URL(System.getProperty("test.shock.url"));
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
-			sb = new ShockBackend(mongo, "shock_", url, u1, p1, 16000000, TempFilesManager.forTests());
+			sb = new ShockBackend(mongo, "shock_", url, u1, p1);
 		} catch (BlobStoreAuthorizationException bsae) {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", bsae);
@@ -76,11 +76,12 @@ public class ShockBackendTest {
 		TypeData faketd = new TypeData(valueToTree(data), wt, subdata); //use same data to get same chksum
 		MD5 tdfakemd = new MD5(faketd.getChksum());
 		@SuppressWarnings("unchecked")
-		Map<String, Object> ret = MAPPER.treeToValue(sb.getBlob(tdfakemd).getAsJsonNode(), Map.class);
+		Map<String, Object> ret = MAPPER.treeToValue(sb.getBlob(tdfakemd, 
+				ByteArrayFileCacheManager.forTests()).getAsJsonNode(), Map.class);
 		assertThat("Shock data returned correctly", ret, is(data));
 		sb.removeBlob(tdfakemd);
 		try {
-			sb.getBlob(tdfakemd);
+			sb.getBlob(tdfakemd, ByteArrayFileCacheManager.forTests());
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),
@@ -90,7 +91,7 @@ public class ShockBackendTest {
 		data.put("keyfoo", "value");
 		TypeData badtd = new TypeData(valueToTree(baddata), wt, subdata);
 		try {
-			sb.getBlob(new MD5(badtd.getChksum()));
+			sb.getBlob(new MD5(badtd.getChksum()), ByteArrayFileCacheManager.forTests());
 			fail("Got non-existant blob");
 		} catch (NoSuchBlobException nb) {
 			assertThat("correct exception msg", nb.getLocalizedMessage(),

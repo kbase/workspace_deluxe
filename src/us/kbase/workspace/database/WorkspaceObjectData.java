@@ -2,16 +2,15 @@ package us.kbase.workspace.database;
 
 import java.util.List;
 
-import us.kbase.workspace.database.mongo.ByteStorageWithFileCache;
 
 public class WorkspaceObjectData {
 	
-	private final ByteStorageWithFileCache data;
+	private final ByteArrayFileCache data;
 	private final ObjectInformation info;
 	private final Provenance prov;
 	private final List<String> references;
 
-	public WorkspaceObjectData(final ByteStorageWithFileCache data,
+	public WorkspaceObjectData(final ByteArrayFileCache data,
 			final ObjectInformation info, final Provenance prov,
 			final List<String> references) {
 		if (data == null || info == null || prov == null ||
@@ -25,7 +24,7 @@ public class WorkspaceObjectData {
 		this.references = references;
 	}
 
-	public ByteStorageWithFileCache getDataAsTokens() {
+	public ByteArrayFileCache getDataAsTokens() {
 		return data;
 	}
 	
@@ -45,10 +44,6 @@ public class WorkspaceObjectData {
 		} finally {
 			data.deleteTempFiles();
 		}
-	}
-	
-	public ByteStorageWithFileCache getStorage() {
-		return data;
 	}
 
 	public ObjectInformation getObjectInfo() {

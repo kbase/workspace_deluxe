@@ -326,14 +326,14 @@ public class SubdataExtractor {
 		}
 	}
 
-	private static String getPathText(List<String> path, String add) {
+	public static String getPathText(List<String> path, String add) {
 		path.add(add);
 		String ret = getPathText(path);
 		path.remove(path.size() - 1);
 		return ret;
 	}
 	
-	private static String getPathText(List<String> path) {
+	public static String getPathText(List<String> path) {
 		StringBuilder ret = new StringBuilder();
 		for (String item : path)
 			ret.append("/").append(item);

@@ -6,11 +6,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.exceptions.ProcessingException;
-import com.github.fge.jsonschema.report.ListReportProvider;
-import com.github.fge.jsonschema.report.LogLevel;
-import com.github.fge.jsonschema.report.ProcessingMessage;
-import com.github.fge.jsonschema.report.ProcessingReport;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
@@ -125,7 +120,6 @@ public final class TypedObjectValidator {
 	 */
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
-		//JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
 		try {
 			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), null);
 			return validate(obj, typeDefId);
@@ -141,18 +135,12 @@ public final class TypedObjectValidator {
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
-		/*
-		System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
-		System.out.println("-------------------------------------------------------------");
-		System.out.println(schemaText);
-		System.out.println("--------------------------------------------------------------");
-		*/
 		final List<WsIdReference> oldRefIds = new ArrayList<WsIdReference>();
 		IdRefNode idRefTree = new IdRefNode(null);
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
-			NodeSchema schema = NodeSchema.parseJsonSchema(schemaText);
-			schema.checkJsonData(obj.getPlacedStream(), null, new JsonTokenValidationListener() {
+			JsonTokenValidationSchema schema = JsonTokenValidationSchema.parseJsonSchema(schemaText);
+			schema.checkJsonData(obj.getPlacedStream(), new JsonTokenValidationListener() {
 				int errorCount = 0;
 				@Override
 				public void addError(String message) throws JsonTokenValidationException {
@@ -212,14 +200,13 @@ public final class TypedObjectValidator {
 	}*/
 	
 	
-	/**
+	/*
 	 * If an exception is thrown during validation, we can catch that exception and instead of
 	 * throwing it back up, we package it into a new report, add the message
 	 * @param e
 	 * @param typeDefId
 	 * @return
 	 * @throws InstanceValidationException
-	 */
 	protected ProcessingReport repackageProcessingExceptionIntoReport(ProcessingException e, TypeDefId typeDefId) 
 			throws InstanceValidationException {
 		ProcessingMessage m = e.getProcessingMessage();
@@ -237,7 +224,7 @@ public final class TypedObjectValidator {
 				"instance is not a valid '" + typeDefId.getTypeString() + "'",e2);
 		}
 		return report;
-	}
+	}*/
 	
 	
 }

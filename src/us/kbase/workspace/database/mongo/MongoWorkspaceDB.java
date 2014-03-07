@@ -53,6 +53,8 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.tests.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ByteArrayFileCache;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CountingOutputStream;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -115,7 +117,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final User ALL_USERS = new AllUsers('*');
 	
 	private static final int MAX_IN_MEMORY_SIZE = 16000000;
-//	private static final long MAX_OBJECTS_RET_SIZE = 200005000;
+	private static final long MAX_OBJECTS_RET_SIZE = 10000000000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -363,7 +365,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String backendSecret) throws CorruptWorkspaceDBException,
 			DBAuthorizationException, WorkspaceDBInitializationException {
 		if (settings.isGridFSBackend()) {
-			return new GridFSBackend(wsmongo, MAX_IN_MEMORY_SIZE, tfm);
+			return new GridFSBackend(wsmongo);
 		}
 		if (settings.isShockBackend()) {
 			URL shockurl = null;
@@ -377,8 +379,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			BlobStore bs;
 			try {
 				bs = new ShockBackend(wsmongo, COL_SHOCK_PREFIX,
-						shockurl, settings.getShockUser(), backendSecret,
-						MAX_IN_MEMORY_SIZE, tfm);
+						shockurl, settings.getShockUser(), backendSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new DBAuthorizationException(
 						"Not authorized to access the blob store database: "
@@ -2198,10 +2199,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<String, ByteStorageWithFileCache> chksumToData =
-				new HashMap<String, ByteStorageWithFileCache>();
+		final Map<String, ByteArrayFileCache> chksumToData =
+				new HashMap<String, ByteArrayFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
+		ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(MAX_IN_MEMORY_SIZE, MAX_OBJECTS_RET_SIZE, tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2222,11 +2224,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			try {
 				if (paths.get(o) == null || paths.get(o).isEmpty()) {
 					buildReturnedObjectData(chksumToData, ret, o, prov, refs,
-							meta, null);
+							meta, null, bafcMan);
 				} else {
 					for (final ObjectPaths op: paths.get(o)) {
 						buildReturnedObjectData(chksumToData, ret, o, prov,
-								refs, meta, op);
+								refs, meta, op, bafcMan);
 					}
 				}
 			} catch (TypedObjectExtractionException e) {
@@ -2247,15 +2249,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private void cleanUpTempObjectFiles(
-			final Map<String, ByteStorageWithFileCache> chksumToData,
+			final Map<String, ByteArrayFileCache> chksumToData,
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret) {
-		for (final ByteStorageWithFileCache f: chksumToData.values()) {
+		for (final ByteArrayFileCache f: chksumToData.values()) {
 			f.deleteTempFiles();
 		}
 		for (final Map<ObjectPaths, WorkspaceObjectData> m:
 			ret.values()) {
 			for (final WorkspaceObjectData wod: m.values()) {
-				wod.getStorage().deleteTempFiles();
+				wod.getDataAsTokens().deleteTempFiles();
 			}
 		}
 	}
@@ -2263,11 +2265,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//yuck. Think more about the interface here
 	private void buildReturnedObjectData(
-			final Map<String, ByteStorageWithFileCache> chksumToData,
+			final Map<String, ByteArrayFileCache> chksumToData,
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret,
 			final ObjectIDResolvedWS o, final MongoProvenance prov,
 			final List<String> refs, final MongoObjectInfo meta,
-			final ObjectPaths op) throws TypedObjectExtractionException,
+			final ObjectPaths op, ByteArrayFileCacheManager bafcMan) throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
 			ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
@@ -2278,12 +2280,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			 * memoize the subset
 			 */
 			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					chksumToData.get(meta.getCheckSum()), op),
+					chksumToData.get(meta.getCheckSum()), op, bafcMan),
 					meta, prov, refs));
 		} else {
-			final ByteStorageWithFileCache data;
+			final ByteArrayFileCache data;
 			try {
-				data = blob.getBlob(new MD5(meta.getCheckSum()));
+				data = blob.getBlob(new MD5(meta.getCheckSum()), bafcMan);
 			} catch (BlobStoreCommunicationException e) {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
@@ -2299,17 +2301,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			chksumToData.put(meta.getCheckSum(), data);
 			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					data, op), meta, prov, refs));
+					data, op, bafcMan), meta, prov, refs));
 		}
 	}
 	
-	private ByteStorageWithFileCache getDataSubSet(final ByteStorageWithFileCache data,
-			final ObjectPaths paths)
+	private ByteArrayFileCache getDataSubSet(final ByteArrayFileCache data,
+			final ObjectPaths paths, final ByteArrayFileCacheManager bafcMan)
 			throws TypedObjectExtractionException {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}
-		return data.getSubdataExtraction(paths);
+		return bafcMan.getSubdataExtraction(data, paths);
 	}
 
 	private static final Set<String> FLDS_GETOBJREF = newHashSet(
