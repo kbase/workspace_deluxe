@@ -33,6 +33,7 @@ import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
@@ -2234,6 +2235,7 @@ public class JSONRPCLayerTest {
 				.withType(SAFE_TYPE).withName("myname"));
 		
 		CLIENT1.saveObjects(soc);
+		info = CLIENT1.getWorkspaceInfo(wsi); //saving changes the date
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> lockinfo =
 				CLIENT1.lockWorkspace(wsi);

@@ -243,6 +243,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
 			//TODO set temp dir in config
+			//TODO fix javadocs in build file
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
