@@ -3,12 +3,15 @@ package us.kbase.typedobj.core;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -19,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Extraction of ws-searchable subset based on json token stream.
+ * @author msneddon
  * @author rsutormin
  */
 public class SearchableWsSubsetExtractor {
@@ -37,7 +41,8 @@ public class SearchableWsSubsetExtractor {
 	 * a mapping or array.
 	 */
 	public static JsonNode extractFields(TokenSequenceProvider jts, 
-			ObjectNode keysOfSelection, ObjectNode fieldsSelection) throws IOException {
+			ObjectNode keysOfSelection, ObjectNode fieldsSelection) 
+					throws IOException, TypedObjectExtractionException {
 		SearchableWsSubsetNode root = new SearchableWsSubsetNode();
 		//if the selection is empty, we return without adding anything
 		if (keysOfSelection != null && keysOfSelection.size() > 0) 
@@ -48,12 +53,18 @@ public class SearchableWsSubsetExtractor {
 			return mapper.createObjectNode();
 		JsonToken t = jts.nextToken();
 		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(mapper);
-		extractFieldsWithOpenToken(jts, t, root, jgen);
+		extractFieldsWithOpenToken(jts, t, root, jgen, new ArrayList<String>());
 		jgen.close();
 		return jgen.getTree();
 	}
 	
-	private static void prepareWsSubsetTree(JsonNode selection, boolean keysOf, SearchableWsSubsetNode parent) {
+	/*
+	 * Method prepares parsing tree for set of key or field selections. The idea is to join two trees
+	 * for keys and for fields into common tree cause we have no chance to process json tokens of
+	 * real data twice.
+	 */
+	private static void prepareWsSubsetTree(JsonNode selection, boolean keysOf, 
+			SearchableWsSubsetNode parent) {
 		if (selection.size() == 0) {
 			if (keysOf) {
 				parent.setNeedKeys(true);
@@ -65,7 +76,8 @@ public class SearchableWsSubsetExtractor {
 			while (it.hasNext()) {
 				Map.Entry<String, JsonNode> entry = it.next();
 				SearchableWsSubsetNode child = null;
-				if (parent.getChildren() == null || !parent.getChildren().containsKey(entry.getKey())) {
+				if (parent.getChildren() == null || 
+						!parent.getChildren().containsKey(entry.getKey())) {
 					child = new SearchableWsSubsetNode();
 					parent.addChild(entry.getKey(), child);
 				} else {
@@ -76,8 +88,15 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 
+	/*
+	 * This method is recursively processing block of json data (map, array of scalar) when
+	 * first token of this block was already taken and stored in current variable. This is
+	 * typical for processing array elements because we need to read first token in order to
+	 * know is it the end of array of not. For maps/objects there is such problem because
+	 * we read field token before processing value block.
+	 */
 	private static void writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
-			JsonGenerator jgen) throws IOException {
+			JsonGenerator jgen) throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		writeCurrentToken(jts, t, jgen);
 		if (t == JsonToken.START_OBJECT) {
@@ -87,7 +106,7 @@ public class SearchableWsSubsetExtractor {
 				if (t == JsonToken.END_OBJECT)
 					break;
 				if (t != JsonToken.FIELD_NAME)
-					throw new IllegalStateException("Error parsing json format: " + t.asString());
+					throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 				t = jts.nextToken();
 				writeTokensFromCurrent(jts, t, jgen);
 			}
@@ -103,8 +122,11 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 
+	/*
+	 * Method processes (writes into output token stream - jgen) only one token.
+	 */
 	private static JsonToken writeCurrentToken(TokenSequenceProvider jts, JsonToken current, 
-			JsonGenerator jgen) throws IOException {
+			JsonGenerator jgen) throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		if (t == JsonToken.START_ARRAY) {
 			jgen.writeStartArray();
@@ -117,6 +139,7 @@ public class SearchableWsSubsetExtractor {
 		} else if (t == JsonToken.FIELD_NAME) {
 			jgen.writeFieldName(jts.getText());
 		} else if (t == JsonToken.VALUE_NUMBER_INT) {
+			// VALUE_NUMBER_INT type corresponds to set of integer types
 			Number value = jts.getNumberValue();
 			if (value instanceof Short) {
 				jgen.writeNumber((Short)value);
@@ -130,6 +153,7 @@ public class SearchableWsSubsetExtractor {
 				jgen.writeNumber(value.longValue());
 			}
 		} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
+			// VALUE_NUMBER_FLOAT type corresponds to set of floating point types
 			Number value = jts.getNumberValue();
 			if (value instanceof Float) {
 				jgen.writeNumber((Float)value);
@@ -149,12 +173,16 @@ public class SearchableWsSubsetExtractor {
 		} else if (t == JsonToken.VALUE_TRUE) {
 			jgen.writeBoolean(true);
 		} else {
-			throw new IOException("Unexpected token type: " + t);
+			throw new TypedObjectExtractionException("Unexpected token type: " + t);
 		}
 		return t;
 	}
 
-	private static void skipChildren(TokenSequenceProvider jts, JsonToken current) throws IOException, JsonParseException {
+	/*
+	 * If some part of real json data is not mention in searchable tree we need to skip tokens of it
+	 */
+	private static void skipChildren(TokenSequenceProvider jts, JsonToken current) 
+			throws IOException, JsonParseException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
@@ -174,12 +202,20 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 
-	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, SearchableWsSubsetNode selection, 
-			JsonGenerator jgen) throws IOException {
+	/*
+	 * This is main recursive method for tracking current token place in searchable schema tree
+	 * and making decisions whether or not we need to process this token or block of tokens or
+	 * just skip it.
+	 */
+	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, 
+			SearchableWsSubsetNode selection, JsonGenerator jgen, List<String> path) 
+					throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
-		if (t == JsonToken.START_OBJECT) {
-			if (selection.hasChildren()) {
-				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
+		if (t == JsonToken.START_OBJECT) {	// we observe open of mapping/object in real json data
+			if (selection.hasChildren()) {	// we have some restrictions for this object in selection
+				// we will remove visited keys from selectedFields and check emptiness at object end
+				Set<String> selectedFields = new LinkedHashSet<String>(
+						selection.getChildren().keySet());
 				boolean all = false;
 				SearchableWsSubsetNode allChild = null;
 				if (selectedFields.contains("*")) {
@@ -187,8 +223,10 @@ public class SearchableWsSubsetExtractor {
 					selectedFields.remove("*");
 					allChild = selection.getChildren().get("*");
 					if (selectedFields.size() > 0)
-						throw new IllegalStateException("WS subset path with * contains other fields: " + selectedFields);
+						throw new TypedObjectExtractionException("WS subset path with * contains other " +
+								"fields (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
 				}
+				// process first token standing for start of object
 				writeCurrentToken(jts, t, jgen);
 				while (true) {
 					t = jts.nextToken();
@@ -197,64 +235,93 @@ public class SearchableWsSubsetExtractor {
 						break;
 					}
 					if (t != JsonToken.FIELD_NAME)
-						throw new IllegalStateException("Error parsing json format: " + t.asString());
+						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
+						// if we need all fields or the field is in list of necessary fields we process it and
+						// value following after that
 						writeCurrentToken(jts, t, jgen);
 						t = jts.nextToken();
-						extractFieldsWithOpenToken(jts, t, all ? allChild : selection.getChildren().get(fieldName), jgen);
+						// add field to the end of path branch
+						path.add(fieldName);
+						// process value of this field recursively
+						extractFieldsWithOpenToken(jts, t, all ? allChild : 
+							selection.getChildren().get(fieldName), jgen, path);
+						// remove field from end of path branch
+						path.remove(path.size() - 1);
+						if (!all)
+							selectedFields.remove(fieldName);
 					} else {
+						// otherwise we skip value following after field
 						t = jts.nextToken();
 						skipChildren(jts, t);
 					}
 				}
-			} else if (selection.isNeedKeys()) {
-				jgen.writeStartArray();
+				/* comment this check because fields can be optional
+				if (!selectedFields.isEmpty()) {
+					String notFound = selectedFields.iterator().next();
+					throw new TypedObjectExtractionException("Malformed selection string, cannot get " +
+							"'" + notFound + "', at: " + SubdataExtractor.getPathText(path));
+				}*/
+			} else if (selection.isNeedKeys()) {  // we need only keys from this object as array
+				jgen.writeStartArray();  // write in output start of array instead of start of object
 				while (true) {
 					t = jts.nextToken();
 					if (t == JsonToken.END_OBJECT) {
-						jgen.writeEndArray();
+						jgen.writeEndArray();  // write in output end of array instead of end of object
 						break;
 					}
 					if (t != JsonToken.FIELD_NAME)
-						throw new IllegalStateException("Error parsing json format: " + t.asString());
-					jgen.writeString(jts.getText());
+						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
+					jgen.writeString(jts.getText());  // write in output field name
 					t = jts.nextToken();
-					skipChildren(jts, t);
+					skipChildren(jts, t);  // we don't need values so we skip them
 				}
 			} else {  // need all fields and values
 				writeTokensFromCurrent(jts, t, jgen);
 			}
-		} else if (t == JsonToken.START_ARRAY) {
-			if (selection.hasChildren()) {
-				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
+		} else if (t == JsonToken.START_ARRAY) {	// we observe open of array/list in real json data
+			if (selection.hasChildren()) {  // we have some restrictions for array item positions in selection
+				Set<String> selectedFields = new LinkedHashSet<String>(
+						selection.getChildren().keySet());
 				SearchableWsSubsetNode allChild = null;
+				// now we support only '[*]' keyword which means all elements
 				if (!selectedFields.contains("[*]"))
-					throw new IllegalStateException("WS subset path doesn't contain [*] on array level: " + selectedFields);
+					throw new TypedObjectExtractionException("WS subset path doesn't contain [*] on array " +
+							"level (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
 				selectedFields.remove("[*]");
 				allChild = selection.getChildren().get("[*]");
 				if (selectedFields.size() > 0)
-					throw new IllegalStateException("WS subset path with [*] contains other fields: " + selectedFields);
-				writeCurrentToken(jts, t, jgen);
-				while (true) {
+					throw new TypedObjectExtractionException("WS subset path with [*] contains other " +
+							"fields (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
+				writeCurrentToken(jts, t, jgen);  // write start of array into output
+				for (int pos = 0; ; pos++) {
 					t = jts.nextToken();
 					if (t == JsonToken.END_ARRAY) {
 						writeCurrentToken(jts, t, jgen);
 						break;
 					}
-					extractFieldsWithOpenToken(jts, t, allChild, jgen);
+					// add element position to the end of path branch
+					path.add("" + pos);
+					// process value of this element recursively
+					extractFieldsWithOpenToken(jts, t, allChild, jgen, path);
+					// remove field from end of path branch
+					path.remove(path.size() - 1);
 				}
-			} else {
+			} else {  // we need the whole array
 				if (selection.isNeedKeys())
-					throw new IllegalStateException("WS subset path contains keys-of level for array value");
+					throw new TypedObjectExtractionException("WS subset path contains keys-of level for array " +
+							"value at " + SubdataExtractor.getPathText(path));
 				// need all elements
 				writeTokensFromCurrent(jts, t, jgen);
 			}
-		} else {
+		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
-				throw new IllegalStateException("WS subset path contains non-empty level for scalar value");
+				throw new TypedObjectExtractionException("WS subset path contains non-empty level for scalar " +
+						"value at " + SubdataExtractor.getPathText(path));
 			if (selection.isNeedKeys())
-				throw new IllegalStateException("WS subset path contains keys-of level for scalar value");
+				throw new TypedObjectExtractionException("WS subset path contains keys-of level for scalar " +
+						"value at " + SubdataExtractor.getPathText(path));
 			writeCurrentToken(jts, t, jgen);
 		}
 	}

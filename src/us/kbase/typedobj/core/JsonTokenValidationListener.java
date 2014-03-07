@@ -4,6 +4,10 @@ import us.kbase.typedobj.idref.WsIdReference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * Json token validation callback.
+ * @author rsutormin
+ */
 public interface JsonTokenValidationListener {
 	/**
 	 * Method is for adding new error message.

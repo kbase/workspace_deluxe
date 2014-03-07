@@ -336,17 +336,6 @@ public class TypedObjectValidationReport {
 		// Identify what we need to extract
 		ObjectNode keys_of  = null;
 		ObjectNode fields   = null;
-		/*Iterator<ProcessingMessage> mssgs = processingReport.iterator();
-		while(mssgs.hasNext()) {
-			ProcessingMessage m = mssgs.next();
-			if( m.getMessage().compareTo("searchable-ws-subset") == 0 ) {
-				JsonNode searchData = m.asJson().get("search-data");
-				keys_of = (ObjectNode)searchData.get("keys");
-				fields = (ObjectNode)searchData.get("fields");
-				//there can only one per report, so we can break as soon as we got it!
-				break;
-			}
-		}*/
 		if (searchData != null) {
 			keys_of = (ObjectNode)searchData.get("keys");
 			fields = (ObjectNode)searchData.get("fields");
@@ -356,7 +345,9 @@ public class TypedObjectValidationReport {
 			JsonNode ret = SearchableWsSubsetExtractor.extractFields(tsp, keys_of, fields);
 			tsp.close();
 			return ret;
-		} catch (IOException ex) {
+		} catch (RuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
 			throw new IllegalStateException(ex);
 		}
 	}

@@ -120,7 +120,6 @@ public final class TypedObjectValidator {
 	 */
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
-		//JsonParser jp = new JsonTreeTraversingParser(instanceRootNode, new ObjectMapper());
 		try {
 			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), null);
 			return validate(obj, typeDefId);
@@ -136,12 +135,6 @@ public final class TypedObjectValidator {
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
-		/*
-		System.out.println(typeDefDB.getModuleSpecDocument(absoluteTypeDefDB.getType().getModule()));
-		System.out.println("-------------------------------------------------------------");
-		System.out.println(schemaText);
-		System.out.println("--------------------------------------------------------------");
-		*/
 		final List<WsIdReference> oldRefIds = new ArrayList<WsIdReference>();
 		IdRefNode idRefTree = new IdRefNode(null);
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
