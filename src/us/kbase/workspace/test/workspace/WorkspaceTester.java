@@ -65,7 +65,7 @@ import com.mongodb.DB;
 public class WorkspaceTester {
 	
 	//true if no net access since shock requires access to globus to work
-	private static final boolean SKIP_SHOCK = true;
+	private static final boolean SKIP_SHOCK = false;
 
 	protected static final ObjectMapper mapper = new ObjectMapper();
 	

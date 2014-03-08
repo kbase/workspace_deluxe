@@ -236,6 +236,7 @@
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
       <test name="us.kbase.workspace.test.database.mongo.TestMongoInternals"/>
       <test name="us.kbase.workspace.test.workspace.TestWorkspace"/>
+      <test name="us.kbase.workspace.test.workspace.TestWorkspaceLongTests"/>
       <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
