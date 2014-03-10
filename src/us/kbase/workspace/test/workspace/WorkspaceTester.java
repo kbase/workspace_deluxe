@@ -95,6 +95,7 @@ public class WorkspaceTester {
 	protected static final Map<String, String> MT_META = new HashMap<String, String>();
 	
 	private static ShockBackend sbe = null;
+	private static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	protected static final WorkspaceUser AUSER = new WorkspaceUser("a");
@@ -148,6 +149,8 @@ public class WorkspaceTester {
 			System.out.println("deleting all shock nodes");
 			sbe.removeAllBlobs();
 		}
+		System.out.println("deleting temporary files");
+		tfm.cleanup();
 		JsonTokenStreamOCStat.showStat();
 	}
 	
@@ -194,7 +197,7 @@ public class WorkspaceTester {
 		String db1 = WorkspaceTestCommon.getDB1();
 		final String kidlpath = new Util().getKIDLpath();
 		
-		TempFilesManager tfm = TempFilesManager.forTests();
+		tfm = TempFilesManager.forTests();
 		tfm.cleanup();
 		WorkspaceDatabase wsdb = null;
 		if (mUser != null) {

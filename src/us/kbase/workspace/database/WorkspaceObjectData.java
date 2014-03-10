@@ -41,8 +41,6 @@ public class WorkspaceObjectData {
 		} catch (Exception jpe) {
 			//this should never happen
 			throw new RuntimeException("something's dun broke", jpe);
-		} finally {
-			data.deleteTempFiles();
 		}
 	}
 
