@@ -128,6 +128,7 @@ public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
 		for (String s: newsd) {
 			assertThat("correct string in subdata", s, is(TEXT1000));
 		}*/
+		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -180,5 +181,6 @@ public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
 		assertThat("unicode key correct", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
 		assertThat("value correct", (String) data.get(test), is("foo"));
+		assertNoTempFilesExist();
 	}
 }

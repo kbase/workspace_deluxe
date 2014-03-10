@@ -40,6 +40,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.ListObjectsParams;
@@ -123,6 +124,9 @@ public class JSONRPCLayerTester {
 	
 	public static final Map<String, String> MT_META =
 			new HashMap<String, String>();
+	
+	private static List<TempFilesManager> tfms =
+			new LinkedList<TempFilesManager>();;
 	
 	private static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -296,6 +300,8 @@ public class JSONRPCLayerTester {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
+		server.setMaxMemUseForReturningObjects(24); //as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
+		tfms.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -317,6 +323,12 @@ public class JSONRPCLayerTester {
 			System.out.println("Done");
 		}
 		JsonTokenStreamOCStat.showStat();
+	}
+	
+	protected void assertNoTempFilesExist() throws Exception {
+		for (TempFilesManager tfm: tfms) {
+			assertThat("no tempfiles exist", tfm.isEmpty(), is(true));
+		}
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,

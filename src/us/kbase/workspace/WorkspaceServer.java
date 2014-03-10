@@ -97,7 +97,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 	
-	private static final String VER = "0.1.6";
+	private static final String VER = "0.2.0";
 
 	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
@@ -181,6 +181,15 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public TempFilesManager getTempFilesManager() {
 		return tfm;
+	}
+	
+	/* sets the maximum amount of memory to use to store objects when
+	 * retrieving from the blob store. After this point, objects are saved
+	 * to disk. This maximum is per method call and includes duplicates of
+	 * the object produced by subsetting.
+	 */
+	public void setMaxMemUseForReturningObjects(int mem) {
+		ws.setMaxObjectMemUsePerCall(mem);
 	}
     //END_CLASS_HEADER
 
