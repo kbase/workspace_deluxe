@@ -238,6 +238,7 @@
       <test name="us.kbase.workspace.test.workspace.TestWorkspace"/>
       <test name="us.kbase.workspace.test.workspace.TestWorkspaceLongTests"/>
       <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"/>
+      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTests"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
