@@ -116,7 +116,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	private static final int MAX_IN_MEMORY_SIZE = 16000000;
+	/* sets the maximum amount of memory to use to store objects when
+	 * retrieving from the blob store. After this point, objects are saved
+	 * to disk. This maximum is per method call and includes duplicates of
+	 * the object produced by subsetting.
+	 */
+	private int maxObjectMemUsePerCall = 16000000;
 	private static final long MAX_OBJECTS_RET_SIZE = 10000000000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
@@ -402,12 +407,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public void setMaxObjectSize(long maxObjectSize) {
+	public void setMaxObjectSize(final long maxObjectSize) {
 		if (maxObjectSize < 1) {
 			throw new IllegalArgumentException(
 					"Maximum object size must be at least 1");
 		}
 		this.maxObjectSize = maxObjectSize;
+	}
+
+	@Override
+	public int getMaxObjectMemUsePerCall() {
+		return maxObjectMemUsePerCall;
+	}
+
+	@Override
+	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
+		if (maxObjectMemUsePerCall < 1) {
+			throw new IllegalArgumentException(
+					"Maximum memory use per call must be at least 1");
+		}
+		this.maxObjectMemUsePerCall = maxObjectMemUsePerCall;
 	}
 
 	@Override
@@ -2203,7 +2222,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<String, ByteArrayFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
-		ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(MAX_IN_MEMORY_SIZE, MAX_OBJECTS_RET_SIZE, tfm);
+		ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(maxObjectMemUsePerCall, MAX_OBJECTS_RET_SIZE, tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {

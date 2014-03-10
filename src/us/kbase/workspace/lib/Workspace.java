@@ -118,6 +118,18 @@ public class Workspace {
 		db.setMaxObjectSize(maxObjectSize);
 	}
 	
+	public int getMaxObjectMemUsePerCall() {
+		return db.getMaxObjectMemUsePerCall();
+	}
+
+	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
+		if (maxObjectMemUsePerCall < 1) {
+			throw new IllegalArgumentException(
+					"Maximum memory use per call must be at least 1");
+		}
+		db.setMaxObjectMemUsePerCall(maxObjectMemUsePerCall);
+	}
+	
 	private void comparePermission(final WorkspaceUser user,
 			final Permission required, final Permission available,
 			final ObjectIdentifier oi, final String operation) throws

@@ -66,12 +66,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TestWorkspace extends WorkspaceTester {
-	
-	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
-	
-	public TestWorkspace(String config) throws Exception {
-		super(config);
+
+
+	public TestWorkspace(String config, String backend,
+			Integer maxMemoryUsePerCall) throws Exception {
+		super(config, backend, maxMemoryUsePerCall);
 	}
+
+	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
 	
 	@Test
 	public void testWorkspaceDescription() throws Exception {
@@ -4074,6 +4076,25 @@ public class TestWorkspace extends WorkspaceTester {
 						"Object #1 data size 21 exceeds limit of 20"));
 		ws.setMaxObjectSize(tempMOS);
 		assertThat("max obj size set correctly", ws.getMaxObjectSize(), is(tempMOS));
+	}
+	
+	@Test
+	public void maxMemoryUsePerCall() throws Exception {
+		//the effects of this are invisible to the user, since the difference
+		//is that data is saved in memory vs. files.
+		int tempMUPC = ws.getMaxObjectMemUsePerCall();
+		ws.setMaxObjectMemUsePerCall(30);
+		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
+				is(30));
+		try {
+			ws.setMaxObjectMemUsePerCall(0);
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Maximum memory use per call must be at least 1"));
+		}
 		
+		ws.setMaxObjectMemUsePerCall(tempMUPC);
+		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
+				is(tempMUPC));
 	}
 }

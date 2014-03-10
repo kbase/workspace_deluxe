@@ -128,12 +128,14 @@ public class WorkspaceTester {
 		if (SKIP_SHOCK) {
 			System.out.println("Skipping shock backend tests");
 			tests = Arrays.asList(new Object[][] {
-					{"mongo"}
+					{"mongo", "mongo", null},
+					{"mongoUseFile", "mongo", 1}
 			});
 		} else {
 			tests = Arrays.asList(new Object[][] {
-					{"mongo"},
-					{"shock"}
+					{"mongo", "mongo", null},
+					{"mongoUseFile", "mongo", 1},
+					{"shock", "shock", null}
 			});
 		}
 		printMem("*** startup complete ***");
@@ -153,31 +155,38 @@ public class WorkspaceTester {
 			new HashMap<String, Workspace>();
 	protected final Workspace ws;
 	
-	public WorkspaceTester(String config) throws Exception {
+	public WorkspaceTester(String config, String backend,
+			Integer maxMemoryUsePerCall)
+			throws Exception {
 		if (!configs.containsKey(config)) {
-			if ("shock".equals(config)) {
-				configs.put(config, setUpShock());
-			} else if("mongo".equals(config)) {
-				configs.put(config, setUpMongo());
+			System.out.println("Starting test suite with parameters:");
+			System.out.println(String.format(
+					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
+					config, backend, maxMemoryUsePerCall));
+			if ("shock".equals(backend)) {
+				configs.put(config, setUpShock(maxMemoryUsePerCall));
+			} else if("mongo".equals(backend)) {
+				configs.put(config, setUpMongo(maxMemoryUsePerCall));
 			} else {
-				throw new TestException("Unknown test config: " + config);
+				throw new TestException("Unknown backend: " + config);
 			}
 		}
 		ws = configs.get(config);
 	}
 	
-	private Workspace setUpMongo() throws Exception {
-		return setUpWorkspaces("gridFS", "foo", "foo");
+	private Workspace setUpMongo(Integer maxMemoryUsePerCall) throws Exception {
+		return setUpWorkspaces("gridFS", "foo", "foo", maxMemoryUsePerCall);
 	}
 	
-	private Workspace setUpShock() throws Exception {
+	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
-		return setUpWorkspaces("shock", shockuser, shockpwd);
+		return setUpWorkspaces("shock", shockuser, shockpwd,
+				maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpWorkspaces(String type, String shockuser,
-			String shockpwd) throws Exception {
+			String shockpwd, Integer maxMemoryUsePerCall) throws Exception {
 		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
@@ -196,6 +205,9 @@ public class WorkspaceTester {
 					kidlpath, null, tfm);
 		}
 		Workspace work = new Workspace(wsdb, new DefaultReferenceParser());
+		if (maxMemoryUsePerCall != null) {
+			work.setMaxObjectMemUsePerCall(maxMemoryUsePerCall);
+		}
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		if ("shock".equals(type)) {

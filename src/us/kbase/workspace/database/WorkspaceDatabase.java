@@ -203,4 +203,8 @@ public interface WorkspaceDatabase {
 	public long getMaxObjectSize();
 
 	public void setMaxObjectSize(long maxObjectSize);
+	
+	public int getMaxObjectMemUsePerCall();
+
+	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall);
 }

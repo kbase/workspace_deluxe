@@ -36,10 +36,11 @@ import com.fasterxml.jackson.core.JsonToken;
 
 public class TestWorkspaceLongTests extends WorkspaceTester {
 	
-	public TestWorkspaceLongTests(String config) throws Exception {
-		super(config);
+	public TestWorkspaceLongTests(String config, String backend,
+			Integer maxMemoryUsePerCall) throws Exception {
+		super(config, backend, maxMemoryUsePerCall);
 	}
-	
+
 	@Test
 	public void saveWithBigData() throws Exception {
 //		System.gc();
