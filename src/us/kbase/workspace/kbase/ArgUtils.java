@@ -28,7 +28,7 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
-import us.kbase.workspace.database.ByteArrayFileCache;
+import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;

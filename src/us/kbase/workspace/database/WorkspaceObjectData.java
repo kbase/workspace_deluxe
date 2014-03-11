@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import java.util.List;
+import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 
 public class WorkspaceObjectData {
