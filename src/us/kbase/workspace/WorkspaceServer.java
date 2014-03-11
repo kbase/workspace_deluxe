@@ -121,7 +121,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
-	private ThreadLocal<Set<File>> resourcesToDelete = new ThreadLocal<Set<File>>();
+	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
+			new ThreadLocal<Set<ByteArrayFileCache>>();
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd,
@@ -170,10 +171,11 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	@Override
 	protected void onRpcMethodDone() {
-		if (resourcesToDelete.get() != null) {
-			for (File f : resourcesToDelete.get())
+		if (resourcesToDelete.get() != null &&
+				!resourcesToDelete.get().isEmpty()) {
+			for (final ByteArrayFileCache f : resourcesToDelete.get())
 				try {
-					f.delete();
+					f.destroy();
 				} catch (Exception ignore) {}
 			resourcesToDelete.set(null);
 		}
@@ -603,11 +605,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		ByteArrayFileCache resource = ret.getDataAsTokens();
+		final ByteArrayFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
-			resourcesToDelete.set(resource.getTempFiles());
+			resourcesToDelete.set(new HashSet<ByteArrayFileCache>(
+					Arrays.asList(resource)));
         //END get_object
         return returnVal;
     }
@@ -625,11 +628,11 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		Set<File> files = new HashSet<File>();
+		final Set<ByteArrayFileCache> resources =
+				new HashSet<ByteArrayFileCache>();
 		returnVal = au.translateObjectData(
-				ws.getObjects(getUser(authPart), loi), files);
-		if (!files.isEmpty())
-			resourcesToDelete.set(files);
+				ws.getObjects(getUser(authPart), loi), resources);
+		resourcesToDelete.set(resources);
         //END get_objects
         return returnVal;
     }
@@ -659,11 +662,11 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_subset
 		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
-		Set<File> files = new HashSet<File>();
+		final Set<ByteArrayFileCache> resources =
+				new HashSet<ByteArrayFileCache>();
 		returnVal = au.translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi), files);
-		if (!files.isEmpty())
-			resourcesToDelete.set(files);
+				ws.getObjectsSubSet(getUser(authPart), loi), resources);
+		resourcesToDelete.set(resources);
         //END get_object_subset
         return returnVal;
     }
@@ -776,11 +779,11 @@ public class WorkspaceServer extends JsonServerServlet {
 			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
-		Set<File> files = new HashSet<File>();
+		final Set<ByteArrayFileCache> resources =
+				new HashSet<ByteArrayFileCache>();
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
-				getUser(authPart), chains), files);
-		if (!files.isEmpty())
-			resourcesToDelete.set(files);
+				getUser(authPart), chains), resources);
+		resourcesToDelete.set(resources);
         //END get_referenced_objects
         return returnVal;
     }

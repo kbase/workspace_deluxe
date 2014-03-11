@@ -7,8 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashSet;
-import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -147,8 +145,9 @@ public class ByteArrayFileCacheManager {
 	
 	public class ByteArrayFileCache {
 		private File tempFile = null;
-		private final JsonTokenStream jts;
+		private JsonTokenStream jts;
 		private ByteArrayFileCache parent = null;
+		private boolean destroyed = false;
 		
 		private ByteArrayFileCache(ByteArrayFileCache parent, File tempFile, JsonTokenStream jts) {
 			this.parent = parent;
@@ -157,14 +156,28 @@ public class ByteArrayFileCacheManager {
 		}
 		
 		public UObject getUObject() {
+			if (destroyed) {
+				throw new IllegalStateException(
+						"This ByteArrayFileCache is destroyed");
+			}
 			return new UObject(jts);
 		}
 		
 		public JsonNode getAsJsonNode() {
+			if (destroyed) {
+				throw new IllegalStateException(
+						"This ByteArrayFileCache is destroyed");
+			}
 			return UObject.transformObjectToJackson(getUObject());
 		}
 		
-		private void getSubdataExtractionAsStream(ObjectPaths paths, OutputStream os) throws TypedObjectExtractionException {
+		private void getSubdataExtractionAsStream(final ObjectPaths paths, 
+				final OutputStream os)
+				throws TypedObjectExtractionException {
+			if (destroyed) {
+				throw new IllegalStateException(
+						"This ByteArrayFileCache is destroyed");
+			}
 			try {
 				JsonGenerator jgen = UObject.getMapper().getFactory().createGenerator(os);
 				try {
@@ -178,20 +191,25 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
-		public Set<File> getTempFiles() {
-			Set<File> ret = new HashSet<File>();
-			if (tempFile != null)
-				ret.add(tempFile);
-			if (parent != null)
-				ret.addAll(parent.getTempFiles());
-			return ret;
-		}
-		
-		public void deleteTempFiles() {
-			for (File f : getTempFiles())
-				if (f.exists()) {
-					f.delete();
-				}
+		public void destroy() {
+			if (destroyed) {
+				return;
+			}
+			try {
+				jts.close();
+			} catch (IOException ioe) {
+				//nothing can be done
+			}
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+			}
+			if (parent != null) {
+				parent.destroy();
+			}
+			parent = null;
+			jts = null;
+			tempFile = null;
+			destroyed = true;
 		}
 	}
 }

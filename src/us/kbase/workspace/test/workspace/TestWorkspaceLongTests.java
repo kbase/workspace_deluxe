@@ -100,7 +100,7 @@ public class TestWorkspaceLongTests extends WorkspaceTester {
 			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
 			jp.close();
 		} finally {
-			newdata.deleteTempFiles();
+			newdata.destroy();
 		}
 //		newdata = null;
 //		newsd = null;

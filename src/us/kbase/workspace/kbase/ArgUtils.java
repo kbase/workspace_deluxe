@@ -5,7 +5,6 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -304,7 +303,7 @@ public class ArgUtils {
 	}
 	
 	public List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
-			Set<File> filesToDelete) {
+			Set<ByteArrayFileCache> resourcesToDestroy) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			ByteArrayFileCache resource = o.getDataAsTokens();
@@ -317,7 +316,7 @@ public class ArgUtils {
 					.withCreated(dateFormat.formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
-			filesToDelete.addAll(resource.getTempFiles());
+			resourcesToDestroy.add(resource);
 		}
 		return ret;
 	}
