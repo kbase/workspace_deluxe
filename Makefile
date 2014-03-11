@@ -46,6 +46,8 @@ deploy-cfg:
 
 ifeq ($(TOP_DIR_NAME), dev_container)
 include $(TOP_DIR)/tools/Makefile.common.rules
+else
+	$(warning Warning! Running outside the dev_container - scripts will not be deployed or tested.)
 endif
 
 init:
@@ -110,8 +112,13 @@ test-service:
 	test/cfg_to_runner.py $(TESTCFG)
 	test/run_tests.sh
 
+ifndef WRAP_PERL_SCRIPT
+test-scripts:
+	$(warning Warning! Scripts not tested because WRAP_PERL_SCRIPT makefile variable is not defined.)
+else
 test-scripts:
 	prove test/scripts/
+endif
 
 deploy: deploy-client deploy-service
 
@@ -134,8 +141,11 @@ deploy-scripts:
 	$(warning Warning! Scripts not deployed because WRAP_PERL_SCRIPT makefile variable is not defined.)
 else
 deploy-scripts: deploy-perl-scripts
+endif
 
-deploy-perl-scripts: undeploy-perl-scripts
+deploy-perl-scripts: deploy-perl-scripts-custom
+
+deploy-perl-scripts-custom: undeploy-perl-scripts
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
 	export KB_PERL_PATH=$(TARGET)/lib ; \
@@ -148,7 +158,6 @@ deploy-perl-scripts: undeploy-perl-scripts
 		echo install $$src kb$$base ; \
 		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/kb$$base ; \
 	done
-endif
 
 undeploy-perl-scripts:
 	rm -f $(TARGET)/plbin/ws-*.pl
