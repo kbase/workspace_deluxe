@@ -25,11 +25,15 @@ public class TempFilesManager {
 	};
 	
 	public TempFilesManager(final File tempDir) {
+		if (tempDir == null) {
+			throw new IllegalArgumentException("tempDir cannot be null");
+		}
 		this.tempDir = tempDir;
 		if (tempDir.exists()) {
 			if (!tempDir.isDirectory())
-				throw new IllegalStateException(
-						"It should be directory: " + tempDir);
+				throw new IllegalArgumentException(
+						"Temporary file storage location must be a directory: "
+						+ tempDir);
 		} else {
 			tempDir.mkdir();
 		}

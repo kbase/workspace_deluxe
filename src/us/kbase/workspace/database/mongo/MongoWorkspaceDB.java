@@ -122,7 +122,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 * the object produced by subsetting.
 	 */
 	private int maxObjectMemUsePerCall = 16000000;
-	private static final long MAX_OBJECTS_RET_SIZE = 10000000000L;
+	private static final long MAX_OBJECTS_RET_SIZE = 5000000000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;

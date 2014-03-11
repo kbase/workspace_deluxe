@@ -117,8 +117,6 @@ deploy: deploy-client deploy-service
 
 deploy-client: deploy-client-libs deploy-docs deploy-scripts
 
-deploy-scripts: deploy-perl-scripts
-
 deploy-client-libs:
 	mkdir -p $(TARGET)/lib/
 	cp dist/client/$(CLIENT_JAR) $(TARGET)/lib/
@@ -134,7 +132,7 @@ deploy-docs:
 ifndef WRAP_PERL_SCRIPT
 deploy-scripts:
 	$(warning Warning! Scripts not deployed because WRAP_PERL_SCRIPT makefile variable is not defined.)
-else ifneq ($(TOP_DIR_NAME), dev_container)
+else
 deploy-scripts: deploy-perl-scripts
 
 deploy-perl-scripts: undeploy-perl-scripts
@@ -157,22 +155,6 @@ undeploy-perl-scripts:
 	rm -f $(TARGET)/plbin/kbws-*.pl
 	rm -f $(TARGET)/bin/kbws-*
 	rm -f $(TARGET)/bin/ws-*
-
-deploy-perl-scripts: undeploy-perl-scripts
-	export KB_TOP=$(TARGET); \
-	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
-	export KB_PERL_PATH=$(TARGET)/lib ; \
-	for src in $(SRC_PERL) ; do \
-		basefile=`basename $$src`; \
-		base=`basename $$src .pl`; \
-		echo install $$src $$base ; \
-		cp $$src $(TARGET)/plbin ; \
-		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
-		echo install $$src kb$$base ; \
-		$(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/kb$$base ; \
-	done
-
-
 
 # use this target to deploy scripts and dependent libs; this target allows you
 # to deploy scripts and only the needed perl client and perl script helper lib

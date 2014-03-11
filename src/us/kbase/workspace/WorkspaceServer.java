@@ -110,6 +110,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	//auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
+	//directory for temp files
+	private static final String TEMP_DIR = "temp-dir";
 	
 	private static Map<String, String> wsConfig = null;
 	
@@ -152,6 +154,25 @@ public class WorkspaceServer extends JsonServerServlet {
 					tse.getLocalizedMessage());
 		}
 		return null;
+	}
+	
+	private TempFilesManager initTempFilesManager() {
+		if (!wsConfig.containsKey(TEMP_DIR)) {
+			fail("Must provide param " + TEMP_DIR + " in config file");
+			return null;
+		}
+		try {
+			final TempFilesManager tfm = new TempFilesManager(
+					new File(wsConfig.get(TEMP_DIR)));
+			if (!wasTempFileCleaningDone) {
+				wasTempFileCleaningDone = true;
+				tfm.cleanup();
+			}
+			return tfm;
+		} catch (Exception e) {
+			fail(e.getLocalizedMessage());
+			return null;
+		}
 	}
 	
 	private void fail(final String error) {
@@ -199,11 +220,6 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setMaxObjectSize(2050000000L);
-		tfm = new TempFilesManager(new File("temp_files"));
-		if (!wasTempFileCleaningDone) {
-			wasTempFileCleaningDone = true;
-			tfm.cleanup();
-		}
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.
@@ -211,7 +227,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			wsConfig = new HashMap<String, String>();
 			wsConfig.putAll(super.config);
 		}
-		boolean failed = false;
+		tfm = initTempFilesManager();
+		boolean failed = tfm == null;
 		if (!wsConfig.containsKey(HOST)) {
 			fail("Must provide param " + HOST + " in config file");
 			failed = true;
@@ -253,7 +270,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			//TODO set temp dir in config
 			//TODO fix javadocs in build file
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
@@ -783,7 +799,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				new HashSet<ByteArrayFileCache>();
 		returnVal = au.translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains), resources);
-		resourcesToDelete.set(resources);
+		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;
     }

@@ -290,6 +290,7 @@ public class JSONRPCLayerTester {
 		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
 		ws.add("backend-secret", "");
 		ws.add("ws-admin", USER2);
+		ws.add("temp-dir", "tempForJSONRPCLayerTester");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
