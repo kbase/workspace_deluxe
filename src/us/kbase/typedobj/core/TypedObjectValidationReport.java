@@ -196,6 +196,8 @@ public class TypedObjectValidationReport {
 	
 	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) 
 			throws RelabelIdReferenceException {
+		cacheForSorting = null;
+		fileForSorting = null;
 		try {
 			final long[] size = {0L};
 			OutputStream sizeOs = new OutputStream() {

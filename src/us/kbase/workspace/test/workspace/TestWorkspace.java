@@ -76,7 +76,7 @@ public class TestWorkspace extends WorkspaceTester {
 	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
 	
 	@Test
-	public void testWorkspaceDescription() throws Exception {
+	public void workspaceDescription() throws Exception {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
 		WorkspaceInformation ltpinfo = ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART, null);
 		WorkspaceInformation ltninfo = ws.createWorkspace(SOMEUSER, "ltn", false, null, null);
@@ -1216,7 +1216,7 @@ public class TestWorkspace extends WorkspaceTester {
 	}
 	
 	@Test
-	public void saveObjectWithTypeCheckingWrongRef() throws Exception {
+	public void referenceClash() throws Exception {
 		String mod = "TestTypeCheckingErr";
 		final String specTypeCheck1 =
 				"module " + mod + " {" +
