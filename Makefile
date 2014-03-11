@@ -1,13 +1,10 @@
-SERVICE_PORT = 7058
+#now set in deploy.cfg
+SERVICE_PORT =
 SERVICE = workspace
 SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 URL = https://kbase.us/services/ws/
-
-THREADPOOL_SIZE = 20
-MEMORY = 10000
-MAX_MEMORY = 15000
 
 #End of user defined variables
 
@@ -181,22 +178,9 @@ deploy-service-libs:
 	echo $(TAGS) >> $(SERVICE_DIR)/$(SERVICE).serverdist
 
 deploy-service-scripts:
-	cp server_scripts/* $(SERVICE_DIR)
-	echo "if [ -z \"\$$KB_DEPLOYMENT_CONFIG\" ]" > $(SERVICE_DIR)/start_service
-	echo "then" >> $(SERVICE_DIR)/start_service
-	echo "    export KB_DEPLOYMENT_CONFIG=$(TARGET)/deployment.cfg" >> $(SERVICE_DIR)/start_service
-	echo "fi" >> $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_administer_service.py --admin $(ASADMIN)\
-		--domain $(SERVICE_CAPS) --domain-dir $(SERVICE_DIR)/glassfish_domain\
-		--war $(SERVICE_DIR)/$(WAR) --port $(SERVICE_PORT)\
-		--threads $(THREADPOOL_SIZE) --Xms $(MEMORY) --Xmx $(MAX_MEMORY)\
-		--noparallelgc --properties KB_DEPLOYMENT_CONFIG=\$$KB_DEPLOYMENT_CONFIG"\
-		>> $(SERVICE_DIR)/start_service
-	chmod +x $(SERVICE_DIR)/start_service
-	echo "$(SERVICE_DIR)/glassfish_administer_service.py --admin $(ASADMIN)\
-		--domain $(SERVICE_CAPS) --domain-dir $(SERVICE_DIR)/glassfish_domain\
-		--port $(SERVICE_PORT)" > $(SERVICE_DIR)/stop_service
-	chmod +x $(SERVICE_DIR)/stop_service
+	cp server_scripts/glassfish_administer_service.py $(SERVICE_DIR)
+	server_scripts/build_server_control_scripts.py $(SERVICE_DIR) $(WAR)\
+		$(TARGET) deploy.cfg $(ASADMIN) $(SERVICE_CAPS) $(SERVICE_PORT)
 
 undeploy:
 	-rm -rf $(SERVICE_DIR)
