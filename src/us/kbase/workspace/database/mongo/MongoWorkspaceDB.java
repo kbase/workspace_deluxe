@@ -74,6 +74,8 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -123,7 +125,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 */
 	private int maxObjectMemUsePerCall = 16000000;
 	private long maxObjectSize = 2000005000;
-	private static final long MAX_OBJECTS_RET_SIZE = 5000000000L;
+	private static final long MAX_DISK_USE_PER_RETURN_CALL = 5000000000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -2222,7 +2224,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<String, ByteArrayFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
-		ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(maxObjectMemUsePerCall, MAX_OBJECTS_RET_SIZE, tfm);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(
+				maxObjectMemUsePerCall, MAX_DISK_USE_PER_RETURN_CALL, tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2288,7 +2291,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret,
 			final ObjectIDResolvedWS o, final MongoProvenance prov,
 			final List<String> refs, final MongoObjectInfo meta,
-			final ObjectPaths op, ByteArrayFileCacheManager bafcMan) throws TypedObjectExtractionException,
+			final ObjectPaths op, final ByteArrayFileCacheManager bafcMan)
+			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
 			ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
@@ -2305,6 +2309,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ByteArrayFileCache data;
 			try {
 				data = blob.getBlob(new MD5(meta.getCheckSum()), bafcMan);
+			} catch (FileCacheIOException e) {
+				throw new WorkspaceCommunicationException(
+						e.getLocalizedMessage(), e);
+			} catch (FileCacheLimitExceededException e) {
+				throw new IllegalArgumentException( //TODO 1 shouldn't happen if size was checked correctly beforehand
+						"Too much data requested from the workspace at once; " +
+						"data requested including subsets exceeds maximum of "
+						+ MAX_DISK_USE_PER_RETURN_CALL);
 			} catch (BlobStoreCommunicationException e) {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
@@ -2326,11 +2338,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private ByteArrayFileCache getDataSubSet(final ByteArrayFileCache data,
 			final ObjectPaths paths, final ByteArrayFileCacheManager bafcMan)
-			throws TypedObjectExtractionException {
+			throws TypedObjectExtractionException,
+			WorkspaceCommunicationException {
 		if (paths == null || paths.isEmpty()) {
 			return data;
 		}
-		return bafcMan.getSubdataExtraction(data, paths);
+		try {
+			return bafcMan.getSubdataExtraction(data, paths);
+		} catch (FileCacheIOException e) {
+			throw new WorkspaceCommunicationException(
+					e.getLocalizedMessage(), e);
+		} catch (FileCacheLimitExceededException e) {
+			throw new IllegalArgumentException( //TODO 1 shouldn't happen if size was checked correctly beforehand
+					"Too much data requested from the workspace at once; " +
+					"data requested including subsets exceeds maximum of "
+					+ MAX_DISK_USE_PER_RETURN_CALL);
+		}
 	}
 
 	private static final Set<String> FLDS_GETOBJREF = newHashSet(

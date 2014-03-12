@@ -19,6 +19,8 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
@@ -223,9 +225,11 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan) throws
-			BlobStoreAuthorizationException, BlobStoreCommunicationException,
-			NoSuchBlobException {
+	public ByteArrayFileCache getBlob(final MD5 md5,
+			final ByteArrayFileCacheManager bafcMan)
+			throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException, NoSuchBlobException,
+			FileCacheLimitExceededException, FileCacheIOException {
 		checkAuth();
 		final String node = getNode(md5);
 		
@@ -245,6 +249,12 @@ public class ShockBackend implements BlobStore {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
+			if (ioe.getCause() instanceof FileCacheLimitExceededException) {
+				throw (FileCacheLimitExceededException) ioe.getCause();
+			}
+			if (ioe.getCause() instanceof FileCacheIOException) {
+				throw (FileCacheIOException) ioe.getCause();
+			}
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);

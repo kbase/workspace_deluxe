@@ -4,6 +4,8 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -15,7 +17,8 @@ public interface BlobStore {
 	
 	public ByteArrayFileCache getBlob(MD5 md5, ByteArrayFileCacheManager bafcMan)
 			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException, NoSuchBlobException;
+			BlobStoreCommunicationException, NoSuchBlobException,
+			FileCacheLimitExceededException, FileCacheIOException;
 	
 	/**
 	 * Do not call removeBlob when saveBlob could be run by other threads or

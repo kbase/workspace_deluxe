@@ -7,6 +7,8 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
@@ -71,7 +73,8 @@ public class GridFSBackend implements BlobStore {
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5,
 			final ByteArrayFileCacheManager bafcMan)
-			throws NoSuchBlobException, BlobStoreCommunicationException {
+			throws NoSuchBlobException, BlobStoreCommunicationException,
+			FileCacheIOException, FileCacheLimitExceededException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.MONGO_ID, md5.getMD5());
 		final GridFSDBFile out;
@@ -90,8 +93,6 @@ public class GridFSBackend implements BlobStore {
 		final InputStream file = out.getInputStream();
 		try {
 			return bafcMan.createBAFC(file);
-		} catch (IOException ioe) {
-			throw new RuntimeException("Something is broken", ioe);
 		} finally {
 			try {
 				file.close();

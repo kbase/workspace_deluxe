@@ -5,7 +5,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 
 /**
- * Manager of temporary files. Should delete all temporary files on start (TODO?).
+ * Manager of temporary files.
  * @author rsutormin
  */
 public class TempFilesManager {

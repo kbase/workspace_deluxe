@@ -17,8 +17,13 @@ import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 
 public class ByteArrayFileCacheManager {
+	
+	//TODO unit tests
+	
 	private int sizeInMem = 0;
 	private final int maxSizeInMem;
 	private long sizeOnDisk = 0;
@@ -31,19 +36,30 @@ public class ByteArrayFileCacheManager {
 		this.tfm = tfm;
 	}
 	
-	public ByteArrayFileCache createBAFC(InputStream input) throws IOException {
+	public ByteArrayFileCache createBAFC(InputStream input)
+			throws FileCacheIOException, FileCacheLimitExceededException {
 		byte[] buf = new byte[100000];
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
 		int maxInMemorySize = maxSizeInMem - sizeInMem;
 		long size = 0;
 		while (size < maxInMemorySize) {
-			int count = input.read(buf, 0, Math.min(buf.length, maxInMemorySize - (int)size));
+			int count;
+			try {
+				count = input.read(buf, 0, Math.min(
+						buf.length, maxInMemorySize - (int)size));
+			} catch (IOException ioe) {
+				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
+			}
 			if (count < 0)
 				break;
 			bufOs.write(buf, 0, count);
 			size += count;
 		}
-		bufOs.close();
+		try {
+			bufOs.close();
+		} catch (IOException ioe) {
+			throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
+		}
 		if (size >= maxInMemorySize) {
 			File tempFile = null;
 			OutputStream os = null;
@@ -54,8 +70,12 @@ public class ByteArrayFileCacheManager {
 				os.write(bufOs.toByteArray());
 				bufOs = null;
 				while (true) {
-					if (sizeOnDisk + size > maxSizeOnDisk)
-						throw new IOException("Out of disk space limit");
+					if (sizeOnDisk + size > maxSizeOnDisk) {
+						cleanUp(tempFile, os);
+						throw new FileCacheLimitExceededException(
+								"Disk limit exceeded for file cache: " +
+								maxSizeOnDisk);
+					}
 					int count = input.read(buf, 0, buf.length);
 					if (count < 0)
 						break;
@@ -65,33 +85,45 @@ public class ByteArrayFileCacheManager {
 				os.close();
 				sizeOnDisk += size;
 				return new ByteArrayFileCache(null, tempFile, new JsonTokenStream(tempFile));
-			} catch (Throwable e) {
-				if (os != null)
-					try {
-						os.close();
-					} catch (Exception ignore) {}
-				if (tempFile != null)
-					tempFile.delete();
-				if (e instanceof IOException)
-					throw (IOException)e;
-				if (e instanceof RuntimeException)
-					throw (RuntimeException)e;
-				throw new IllegalStateException(e.getMessage(), e);
+			} catch (IOException ioe) {
+				cleanUp(tempFile, os);
+				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
+			} catch (RuntimeException re) {
+				cleanUp(tempFile, os);
+				throw re;
 			}
 		} else {
 			sizeInMem += (int)size;
-			return new ByteArrayFileCache(null, null, new JsonTokenStream(bufOs.toByteArray()));
+			try {
+				return new ByteArrayFileCache(null, null,
+						new JsonTokenStream(bufOs.toByteArray()));
+			} catch (IOException ioe) {
+				throw new FileCacheIOException(
+						ioe.getLocalizedMessage(), ioe);
+			}
 		}
 	}
 
-	public ByteArrayFileCache getSubdataExtraction(ByteArrayFileCache parent, ObjectPaths paths) throws TypedObjectExtractionException {
+	private void cleanUp(File tempFile, OutputStream os) {
+		if (os != null)
+			try {
+				os.close();
+			} catch (Exception ignore) {}
+		if (tempFile != null)
+			tempFile.delete();
+	}
+
+	public ByteArrayFileCache getSubdataExtraction(
+			final ByteArrayFileCache parent, final ObjectPaths paths)
+			throws TypedObjectExtractionException,
+			FileCacheLimitExceededException, FileCacheIOException {
 		final OutputStream[] origin = {new ByteArrayOutputStream()};
 		final File[] tempFile = {null};
 		final long[] size = {0L};
 		OutputStream os = new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
-				throw new IllegalStateException("Single byte writing is not supported");
+				throw new RuntimeException("Single byte writing is not supported");
 			}
 			@Override
 			public void write(byte[] b, int off, int len) throws IOException {
@@ -106,8 +138,12 @@ public class ByteArrayFileCacheManager {
 						origin[0].write(arr);
 					}
 				} else {
-					if (sizeOnDisk + size[0] > maxSizeOnDisk)
-						throw new IOException("Out of disk space limit");
+					if (sizeOnDisk + size[0] > maxSizeOnDisk) {
+						final String err = "Disk limit exceeded for file cache: " +
+								maxSizeOnDisk;
+						throw new IOException(err,
+								new FileCacheLimitExceededException(err));
+					}
 				}
 			}
 			@Override
@@ -129,13 +165,23 @@ public class ByteArrayFileCacheManager {
 			try {
 				os.close();
 			} catch (Exception ignore) {}
-			if (tempFile[0] != null)
+			if (tempFile[0] != null) {
 				tempFile[0].delete();
-			if (e instanceof TypedObjectExtractionException)
+			}
+			if (e instanceof TypedObjectExtractionException) {
 				throw (TypedObjectExtractionException)e;
-			if (e instanceof RuntimeException)
+			}
+			if (e instanceof RuntimeException) {
 				throw (RuntimeException)e;
-			throw new IllegalStateException(e.getMessage(), e);
+			}
+			if (e instanceof IOException) {
+				final IOException ioe = (IOException) e;
+				if (ioe.getCause() instanceof FileCacheLimitExceededException) {
+					throw (FileCacheLimitExceededException) ioe.getCause();
+				}
+				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
+			}
+			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
 	
@@ -157,7 +203,7 @@ public class ByteArrayFileCacheManager {
 		
 		public UObject getUObject() {
 			if (destroyed) {
-				throw new IllegalStateException(
+				throw new RuntimeException(
 						"This ByteArrayFileCache is destroyed");
 			}
 			return new UObject(jts);
@@ -165,7 +211,7 @@ public class ByteArrayFileCacheManager {
 		
 		public JsonNode getAsJsonNode() {
 			if (destroyed) {
-				throw new IllegalStateException(
+				throw new RuntimeException(
 						"This ByteArrayFileCache is destroyed");
 			}
 			return UObject.transformObjectToJackson(getUObject());
@@ -175,7 +221,7 @@ public class ByteArrayFileCacheManager {
 				final OutputStream os)
 				throws TypedObjectExtractionException {
 			if (destroyed) {
-				throw new IllegalStateException(
+				throw new RuntimeException(
 						"This ByteArrayFileCache is destroyed");
 			}
 			try {

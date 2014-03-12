@@ -220,6 +220,7 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setMaxObjectSize(2050000000L);
+		setMaxRpcMemoryCacheSize(16 * 1024 * 1024);
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.
@@ -270,7 +271,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			//TODO fix javadocs in build file
+			//TODO 3 fix javadocs in build file
+			//TODO 2 decouple UObject & WS code
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
