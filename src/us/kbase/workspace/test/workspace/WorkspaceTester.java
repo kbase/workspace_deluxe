@@ -333,9 +333,7 @@ public class WorkspaceTester {
 			ws.setWorkspaceDescription(user, wsi, description);
 			fail("set ws desc when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -396,9 +394,7 @@ public class WorkspaceTester {
 			ws.removeWorkspaceMetadata(user, wsi, key);
 			fail("expected remove ws meta to fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -408,10 +404,23 @@ public class WorkspaceTester {
 			ws.setWorkspaceMetadata(user, wsi, meta);
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
+	}
+	
+	protected void failSetMaxReturnSize(long max, Exception e) {
+		try {
+			ws.setMaxReturnSize(max);
+			fail("expected set max return size to fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+
+	private void assertExceptionCorrect(Exception got, Exception expected) {
+		assertThat("correct exception", got.getLocalizedMessage(),
+				is(expected.getLocalizedMessage()));
+		assertThat("correct exception type", got, is(expected.getClass()));
 	}
 	
 	protected void failCreateWorkspace(WorkspaceUser user, String name,
@@ -421,9 +430,7 @@ public class WorkspaceTester {
 			ws.createWorkspace(user, name, global, description, meta);
 			fail("created workspace w/ bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -433,9 +440,7 @@ public class WorkspaceTester {
 			ws.setPermissions(user, wsi, users, perm);
 			fail("set perms when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -521,37 +526,38 @@ public class WorkspaceTester {
 	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
 			Exception e) 
 			throws Exception {
+		failGetObjects(user, objs, e, false);
+	}
+	
+	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
+			Exception e, boolean getObjectsOnly) 
+			throws Exception {
 		try {
 			successGetObjects(user, objs);
 			fail("called get objects with bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 		try {
 			ws.getObjectsSubSet(user, objIDToSubObjID(objs));
 			fail("called get subobjects with bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
+		}
+		if (getObjectsOnly) {
+			return; //don't call the referencing methods
 		}
 		try {
 			ws.getReferencingObjects(user, objs);
 			fail("called get refing objects with bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 		try {
 			ws.getReferencingObjectCounts(user, objs);
 			fail("called get refing objects with bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -880,9 +886,7 @@ public class WorkspaceTester {
 			ws.copyObject(user, from, to);
 			fail("copied object sucessfully but expected fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -891,9 +895,7 @@ public class WorkspaceTester {
 			ws.revertObject(user, from);
 			fail("reverted object sucessfully but expected fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1000,9 +1002,7 @@ public class WorkspaceTester {
 			ws.cloneWorkspace(user, wsi, name, false, null, meta);
 			fail("expected clone to fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -1011,9 +1011,7 @@ public class WorkspaceTester {
 		try {
 			ws.renameObject(user, oi, newname);
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -1022,9 +1020,7 @@ public class WorkspaceTester {
 		try {
 			ws.renameWorkspace(user, wsi, newname);
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1034,9 +1030,7 @@ public class WorkspaceTester {
 			ws.getWorkspaceDescription(user, wsi);
 			fail("got ws desc when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1046,9 +1040,7 @@ public class WorkspaceTester {
 			ws.setGlobalPermission(user, wsi, perm);
 			fail("set global perms when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1058,9 +1050,7 @@ public class WorkspaceTester {
 			ws.setObjectsHidden(user, Arrays.asList(oi), hide);
 			fail("un/hid obj when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1135,9 +1125,7 @@ public class WorkspaceTester {
 			ws.getObjectHistory(user, oi);
 			fail("listed obj hist when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 
@@ -1168,9 +1156,7 @@ public class WorkspaceTester {
 					showAllVers, includeMetaData, false, -1, -1);
 			fail("listed obj when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1193,9 +1179,7 @@ public class WorkspaceTester {
 			ws.getObjectsSubSet(user, objs);
 			fail("got subobjs obj when should fail");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1205,9 +1189,7 @@ public class WorkspaceTester {
 			ws.getReferencedObjects(user, chains);
 			fail("called getReferencedObjects with bad args");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 	}
 	
@@ -1225,9 +1207,7 @@ public class WorkspaceTester {
 			new ObjectChain(oi, chain);
 			fail("bad args to object chain");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 		ObjectIDResolvedWS roi = oi == null ? null : oi.resolveWorkspace(new FakeResolvedWSID(1));
 		
@@ -1242,9 +1222,7 @@ public class WorkspaceTester {
 			new ObjectChainResolvedWS(roi, loi);
 			fail("bad args to resolved object chain");
 		} catch (Exception exp) {
-			assertThat("correct exception", exp.getLocalizedMessage(),
-					is(e.getLocalizedMessage()));
-			assertThat("correct exception type", exp, is(e.getClass()));
+			assertExceptionCorrect(exp, e);
 		}
 		
 		

@@ -130,6 +130,18 @@ public class Workspace {
 		db.setMaxObjectMemUsePerCall(maxObjectMemUsePerCall);
 	}
 	
+	public long getMaxReturnSize() {
+		return db.getMaxReturnSize();
+	}
+
+	public void setMaxReturnSize(long maxReturnSize) {
+		if (maxReturnSize < 1) {
+			throw new IllegalArgumentException(
+					"Maximum object(s) return size per call must be at least 1");
+		}
+		db.setMaxReturnSize(maxReturnSize);
+	}
+	
 	private void comparePermission(final WorkspaceUser user,
 			final Permission required, final Permission available,
 			final ObjectIdentifier oi, final String operation) throws

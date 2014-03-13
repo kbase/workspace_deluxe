@@ -125,7 +125,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 */
 	private int maxObjectMemUsePerCall = 16000000;
 	private long maxObjectSize = 2000005000;
-	private static final long MAX_DISK_USE_PER_RETURN_CALL = 5000000000L;
+	/* sets the maximum total size of objects that can be returned from the
+	 * workspace. This is equal to each object's size * min(1, # of paths).
+	 */
+	private long maxReturnSize = maxObjectSize * 2;
+	private static final long MAX_DISK_USE_PER_RETURN_CALL = 8000020000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -429,6 +433,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"Maximum memory use per call must be at least 1");
 		}
 		this.maxObjectMemUsePerCall = maxObjectMemUsePerCall;
+	}
+
+	@Override
+	public long getMaxReturnSize() {
+		return maxReturnSize;
+	}
+
+	@Override
+	public void setMaxReturnSize(long maxReturnSize) {
+		if (maxReturnSize < 1) {
+			throw new IllegalArgumentException(
+					"Maximum object(s) return size per call must be at least 1");
+		}
+		if (maxReturnSize * 2 > MAX_DISK_USE_PER_RETURN_CALL) {
+			throw new IllegalArgumentException(
+					"Maximum object(s) return size per call must be < 2x the max disk use " +
+					MAX_DISK_USE_PER_RETURN_CALL + "B");
+		}
+		this.maxReturnSize = maxReturnSize;
 	}
 
 	@Override
@@ -2219,6 +2242,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				query.queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT);
+		checkTotalFileSize(paths, resobjs, vers);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
 				new HashMap<String, ByteArrayFileCache>();
@@ -2270,6 +2294,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
+	private void checkTotalFileSize(
+			final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths,
+			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs,
+			final Map<ResolvedMongoObjectID, Map<String, Object>> vers) {
+		//could take into account that identical md5s won't incur a real
+		//size penalty, but meh
+		long size = 0;
+		for (final ObjectIDResolvedWS o: paths.keySet()) {
+			final Set<ObjectPaths> ops = paths.get(o);
+			final long mult = ops == null || ops.size() < 1 ? 1 : ops.size();
+			size += mult * (Long) vers.get(resobjs.get(o))
+					.get(Fields.VER_SIZE);
+		}
+		if (size > maxReturnSize) {
+			throw new IllegalArgumentException(String.format(
+					"Too much data requested from the workspace at once; " +
+					"data requested including potential subsets is %sB " + 
+					"which  exceeds maximum of %s.", size, maxReturnSize));
+		}
+	}
+
 	private void cleanUpTempObjectFiles(
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret) {
@@ -2313,7 +2358,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
 			} catch (FileCacheLimitExceededException e) {
-				throw new IllegalArgumentException( //TODO 1 shouldn't happen if size was checked correctly beforehand
+				throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 						"Too much data requested from the workspace at once; " +
 						"data requested including subsets exceeds maximum of "
 						+ MAX_DISK_USE_PER_RETURN_CALL);
@@ -2349,7 +2394,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					e.getLocalizedMessage(), e);
 		} catch (FileCacheLimitExceededException e) {
-			throw new IllegalArgumentException( //TODO 1 shouldn't happen if size was checked correctly beforehand
+			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 					"Too much data requested from the workspace at once; " +
 					"data requested including subsets exceeds maximum of "
 					+ MAX_DISK_USE_PER_RETURN_CALL);

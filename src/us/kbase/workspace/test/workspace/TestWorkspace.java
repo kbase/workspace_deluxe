@@ -4080,8 +4080,11 @@ public class TestWorkspace extends WorkspaceTester {
 	
 	@Test
 	public void maxMemoryUsePerCall() throws Exception {
-		//the effects of this are invisible to the user, since the difference
-		//is that data is saved in memory vs. files.
+		/* the effects of this are invisible to the user, since the difference
+		 * is that data is saved in memory vs. files.
+		 * The tester runs this suite with the max mem use set to 1 to force
+		 * tests using files.
+		 */
 		int tempMUPC = ws.getMaxObjectMemUsePerCall();
 		ws.setMaxObjectMemUsePerCall(30);
 		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
@@ -4096,5 +4099,86 @@ public class TestWorkspace extends WorkspaceTester {
 		ws.setMaxObjectMemUsePerCall(tempMUPC);
 		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
 				is(tempMUPC));
+	}
+	
+	@Test
+	public void maxReturnedObjectSize() throws Exception {
+		failSetMaxReturnSize(0, new IllegalArgumentException(
+				"Maximum object(s) return size per call must be at least 1"));
+		failSetMaxReturnSize(4000010001L, new IllegalArgumentException(
+				"Maximum object(s) return size per call must be < 2x the max disk use 8000020000B"));
+
+		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		WorkspaceUser user = new WorkspaceUser("MROSuser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("maxReturnedObjectSize");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("fo", "90");
+		data.put("ba", "3");
+		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo", new Provenance(user));
+		ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "foo", 1);
+		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo2", new Provenance(user));
+		ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "foo2", 1);
+		List<ObjectIdentifier> oi1l = Arrays.asList(oi1);
+		List<ObjectIdentifier> oi2l = Arrays.asList(oi2);
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("refs", Arrays.asList(wsi.getName() + "/foo/1"));
+		saveObject(user, wsi, null, refdata, reftype, "ref", new Provenance(user));
+		refdata.put("refs", Arrays.asList(wsi.getName() + "/foo2/1"));
+		saveObject(user, wsi, null, refdata, reftype, "ref2", new Provenance(user));
+		ObjectIdentifier ref = new ObjectIdentifier(wsi, "ref", 1);
+		ObjectIdentifier ref2 = new ObjectIdentifier(wsi, "ref2", 1);
+		List<ObjectChain> refchain = Arrays.asList(new ObjectChain(ref, oi1l));
+		List<ObjectChain> refchain2 = Arrays.asList(new ObjectChain(ref, oi1l),
+				new ObjectChain(ref2, oi2l));
+		
+		long tempMOS = ws.getMaxReturnSize();
+		ws.setMaxReturnSize(20);
+		List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
+				new ObjectPaths(Arrays.asList("/fo"))));
+		List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
+				new ObjectPaths(new ArrayList<String>())));
+		successGetObjects(user, oi1l);
+		ws.getObjectsSubSet(user, ois1l);
+		ws.getObjectsSubSet(user, ois1lmt);
+		ws.getReferencedObjects(user, refchain);
+		ws.setMaxReturnSize(19);
+		String errstr = "Too much data requested from the workspace at once; data requested " + 
+				"including potential subsets is %sB which  exceeds maximum of %s.";
+		IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
+		failGetObjects(user, oi1l, err, true);
+		failGetSubset(user, ois1l, err);
+		failGetSubset(user, ois1lmt, err);
+		failGetReferencedObjects(user, refchain, err);
+		
+		ws.setMaxReturnSize(40);
+		List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
+		List<SubObjectIdentifier> ois1l2 = Arrays.asList(
+				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
+				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/ba"))));
+		List<SubObjectIdentifier> bothoi = Arrays.asList(
+				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
+				new SubObjectIdentifier(oi2, new ObjectPaths(Arrays.asList("/ba"))));
+		successGetObjects(user, two);
+		ws.getObjectsSubSet(user, ois1l2);
+		ws.getObjectsSubSet(user, bothoi);
+		ws.getReferencedObjects(user, refchain2);
+		ws.setMaxReturnSize(39);
+		err = new IllegalArgumentException(String.format(errstr, 40, 39));
+		failGetObjects(user, two, err, true);
+		failGetSubset(user, ois1l2, err);
+		failGetSubset(user, bothoi, err);
+		failGetReferencedObjects(user, refchain2, err);
+		
+		List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
+		all.addAll(ois1l2);
+		all.addAll(bothoi);
+		ws.setMaxReturnSize(60);
+		ws.getObjectsSubSet(user, all);
+		ws.setMaxReturnSize(59);
+		err = new IllegalArgumentException(String.format(errstr, 60, 59));
+		failGetSubset(user, all, err);
+		
+		ws.setMaxReturnSize(tempMOS);
 	}
 }

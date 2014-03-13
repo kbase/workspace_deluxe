@@ -206,5 +206,9 @@ public interface WorkspaceDatabase {
 	
 	public int getMaxObjectMemUsePerCall();
 
-	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall);
+	public void setMaxObjectMemUsePerCall(int maxObjectMemUsePerCall);
+
+	public long getMaxReturnSize();
+
+	public void setMaxReturnSize(long maxReturnSize);
 }
