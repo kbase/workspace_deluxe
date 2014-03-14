@@ -32,14 +32,15 @@ def getConfig(param, cfg, cfile):
                  .format(param, cfile))
     return cfg[param]
 
-if len(sys.argv) < 7:
+if len(sys.argv) < 8:
     printerr("Missing arguments to build_server_control_scripts")
-if len(sys.argv) == 7:
-    _, serviceDir, war, target, deployCfg, asadmin, serviceDomain = sys.argv
+if len(sys.argv) == 8:
+    _, serviceDir, war, target, javaHome, deployCfg, asadmin, serviceDomain =\
+        sys.argv
     port = None
 else:
-    _, serviceDir, war, target, deployCfg, asadmin, serviceDomain, port =\
-       sys.argv
+    _, serviceDir, war, target, javaHome, deployCfg, asadmin, serviceDomain,\
+        port = sys.argv
 
 if not os.path.isfile(deployCfg):
     printerr('Configuration parameter is not a file: ' + deployCfg)
@@ -59,6 +60,9 @@ minmem = getConfig(MINMEM, wscfg, deployCfg)
 maxmem = getConfig(MAXMEM, wscfg, deployCfg)
 
 with open(os.path.join(serviceDir, 'start_service'), 'w') as ss:
+    ss.write('export JAVA_HOME={}\n'.format(javaHome))
+    ss.write('export PATH=$JAVA_HOME/bin:$PATH\n')
+    ss.write('export CLASSPATH=\n')
     ss.write('if [ -z "$KB_DEPLOYMENT_CONFIG" ]\n')
     ss.write('then\n')
     ss.write('    export KB_DEPLOYMENT_CONFIG={}/deployment.cfg\n'

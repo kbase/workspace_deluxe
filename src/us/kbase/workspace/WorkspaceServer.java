@@ -96,6 +96,7 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
+    //TODO test deployment on mag, start_service should run w/o user-env
 	
 	private static final String VER = "0.2.0";
 

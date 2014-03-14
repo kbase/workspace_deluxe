@@ -22,6 +22,7 @@ include $(TOP_DIR)/tools/Makefile.common
 endif
 
 DEPLOY_RUNTIME ?= /kb/runtime
+JAVA_HOME ?= $(DEPLOY_RUNTIME)/java
 TARGET ?= /kb/deployment
 SERVICE_DIR ?= $(TARGET)/services/$(SERVICE)
 GLASSFISH_HOME ?= $(DEPLOY_RUNTIME)/glassfish3
@@ -180,7 +181,8 @@ deploy-service-libs:
 deploy-service-scripts:
 	cp server_scripts/glassfish_administer_service.py $(SERVICE_DIR)
 	server_scripts/build_server_control_scripts.py $(SERVICE_DIR) $(WAR)\
-		$(TARGET) deploy.cfg $(ASADMIN) $(SERVICE_CAPS) $(SERVICE_PORT)
+		$(TARGET) $(JAVA_HOME) deploy.cfg $(ASADMIN) $(SERVICE_CAPS)\
+		$(SERVICE_PORT)
 
 undeploy:
 	-rm -rf $(SERVICE_DIR)
