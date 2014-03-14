@@ -62,7 +62,7 @@ import us.kbase.workspaceservice.WorkspaceServiceClient;
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
  */
-public class TimeReadWrite {
+public class ConfigurationsAndThreads {
 	
 	public static void main(String[] args) throws Exception {
 		int writes = Integer.valueOf(args[0]);
@@ -139,10 +139,10 @@ public class TimeReadWrite {
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
 		workspace0_0_5URL = new URL(workspace005URL);
-		data = IOUtils.toByteArray(TimeReadWrite.class.getResourceAsStream(FILE));
+		data = IOUtils.toByteArray(ConfigurationsAndThreads.class.getResourceAsStream(FILE));
 		jsonData = MAP.readTree(data);
 		mapData = MAP.treeToValue(jsonData, Map.class);
-		String spec = IOUtils.toString(TimeReadWrite.class.getResourceAsStream(SPEC_FILE));
+		String spec = IOUtils.toString(ConfigurationsAndThreads.class.getResourceAsStream(SPEC_FILE));
 		
 		System.out.println(String.format(
 				"Writing a file %s times, then reading it back %s times",
@@ -171,13 +171,13 @@ public class TimeReadWrite {
 		ws.releaseTypes(foo, SIMPLE_MODULE);
 		
 		Map<String, Map<Integer, Perf>> results =
-				new HashMap<String, Map<Integer, TimeReadWrite.Perf>>();
+				new HashMap<String, Map<Integer, ConfigurationsAndThreads.Perf>>();
 		
 		for (String config: configs) {
 			if (!configMap.containsKey(config)) {
 				throw new IllegalArgumentException("No test config " + config);
 			}
-			results.put(config, new HashMap<Integer, TimeReadWrite.Perf>());
+			results.put(config, new HashMap<Integer, ConfigurationsAndThreads.Perf>());
 			for (Integer threadCount: threadCounts) {
 				System.out.println("Measuring config " + config + " performance with "
 						+ threadCount + " threads");

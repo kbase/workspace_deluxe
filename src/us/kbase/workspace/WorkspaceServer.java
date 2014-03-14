@@ -271,8 +271,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
-			//TODO 3 fix javadocs in build file
-			//TODO 2 decouple UObject & WS code
+			//TODO fix javadocs in build file after us.kbase.common files removed
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
