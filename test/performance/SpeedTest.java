@@ -44,6 +44,7 @@ public class SpeedTest {
 	
 	public interface TestSetup {
 		
+		public String getTestName();
 		public int getWrites();
 		public String getType();
 		public Map<String, Object> getObject() throws Exception;
@@ -57,6 +58,7 @@ public class SpeedTest {
 		
 		private static final ObjectMapper MAP = new ObjectMapper(); 
 		
+		private final String testName;
 		private final File file;
 		private final String type;
 		private final File typespec;
@@ -64,13 +66,18 @@ public class SpeedTest {
 		private final int writes;
 		private long size = -1;
 		
-		public SpecAndObjectFromFile(int writes, File object, File typespec,
-				String module, String type) {
+		public SpecAndObjectFromFile(String testName, int writes, File object,
+				File typespec, String module, String type) {
+			this.testName = testName;
 			this.writes = writes;
 			this.file = object;
 			this.type = type;
 			this.typespec = typespec;
 			this.module = module;
+		}
+		
+		public String getTestName() {
+			return testName;
 		}
 		
 		public String getType() {
@@ -128,18 +135,100 @@ public class SpeedTest {
 		}
 	}
 	
+	public static class NoTypeChecking implements TestSetup {
+		
+		private static final ObjectMapper MAP = new ObjectMapper(); 
+		
+		private final String testName;
+		private final File file;
+		private final int writes;
+		private long size = -1;
+		
+		public NoTypeChecking(String testName, int writes, File object) {
+			this.testName = testName;
+			this.writes = writes;
+			this.file = object;
+		}
+		
+		public String getTestName() {
+			return testName;
+		}
+		
+		public String getType() {
+			return "TestNoTC";
+		}
+		
+		public String getModule() {
+			return "TestNoTypeChecking";
+		}
+		
+		public String getFullTypeName() {
+			return getModule() + "." + getType();
+		}
+		
+		public String getTypeSpec() throws IOException {
+			return 
+				"module TestNoTypeChecking {" +
+					"/* @optional optionalfield */" +
+					"typedef structure {" +
+						"string optionalfield;" +
+					"} TestNoTC;" +
+				"};";
+		}
+		
+		public Map<String, Object> getObject() throws Exception {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> o = MAP.readValue(file, Map.class);
+			if (size < 0) {
+				size = calcSize(o);
+			}
+			return o;
+		}
+
+		@Override
+		public int getWrites() {
+			return writes;
+		}
+
+		@Override
+		public long getObjectSize() throws Exception {
+			if (size > -1 ) {
+				return size;
+			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> o = MAP.readValue(file, Map.class);
+			size = calcSize(o);
+			return size;
+		}
+
+		private long calcSize(Map<String, Object> o) throws IOException,
+				JsonGenerationException, JsonMappingException {
+			CountingOutputStream cos = new CountingOutputStream();
+			MAP.writeValue(cos, o);
+			return cos.getSize();
+		}
+
+		@Override
+		public String toString() {
+			return "NoTypeChecking [testName=" + testName + ", writes="
+					+ writes + ", size=" + size + "]";
+		}
+	}
+	
 	public static void main(String[] args) throws Exception {
 		String user = args[0];
 		String pwd = args[1];
 		timeReadWrite(user, pwd, new URL("http://localhost:7058"),
-				new SpecAndObjectFromFile(100, new File("test/performance/83333.2.txt"), 
-						new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
+				Arrays.asList(
+						new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+								new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"),
+						new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt"))));
 	}
 
 	private static final String WORKSPACE_NAME = "testws123457891234567894";
 	
 	public static void timeReadWrite(String user, String pwd, URL wsURL,
-			TestSetup test)
+			List<TestSetup> tests)
 			throws Exception {
 		
 		System.out.println("logging in " + user);
@@ -148,21 +237,22 @@ public class SpeedTest {
 		ws.setAuthAllowedForHttp(true);
 
 		Date start = new Date();
-		
-		if (!ws.listModules(new ListModulesParams()).contains(test.getModule())) {
-			System.out.println("Registering spec " + test.getModule());
-			ws.requestModuleOwnership(test.getModule());
-			Map<String, String> cmd = new HashMap<String, String>();
-			cmd.put("command", "approveModRequest");
-			cmd.put("module", test.getModule());
-			ws.administer(new UObject(cmd));
-			ws.registerTypespec(new RegisterTypespecParams()
-					.withDryrun(0L)
-					.withSpec(test.getTypeSpec())
-					.withNewTypes(Arrays.asList(test.getType())));
-			ws.releaseModule(test.getModule());
-		} else {
-			System.out.println(test.getModule() + " already registered");
+		for (TestSetup test: tests) {
+			if (!ws.listModules(new ListModulesParams()).contains(test.getModule())) {
+				System.out.println("Registering spec " + test.getModule());
+				ws.requestModuleOwnership(test.getModule());
+				Map<String, String> cmd = new HashMap<String, String>();
+				cmd.put("command", "approveModRequest");
+				cmd.put("module", test.getModule());
+				ws.administer(new UObject(cmd));
+				ws.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withSpec(test.getTypeSpec())
+				.withNewTypes(Arrays.asList(test.getType())));
+				ws.releaseModule(test.getModule());
+			} else {
+				System.out.println(test.getModule() + " already registered");
+			}
 		}
 		
 		try {
@@ -189,13 +279,13 @@ public class SpeedTest {
 		List<PerformanceMeasurement> results =
 				new LinkedList<PerformanceMeasurement>();
 		
-		List<TestSetup> tests = Arrays.asList(test); //make ready for multiple setups
 		for (TestSetup ts: tests) {
 			results.add(measurePerformance(ws, ts));
 		}
 		
-		final int width = 7;
+		final int width = 8;
 		Table tbl = new Table(width);
+		tbl.addCell("Test");
 		tbl.addCell("Type");
 		tbl.addCell("Size (B)");
 		tbl.addCell("N");
@@ -206,6 +296,7 @@ public class SpeedTest {
 		for (int i = 0; i < tests.size(); i++) {
 			TestSetup ts = tests.get(i);
 			PerformanceMeasurement pm  = results.get(i);
+			tbl.addCell(ts.getTestName());
 			tbl.addCell(ts.getFullTypeName());
 			tbl.addCell("" + ts.getObjectSize());
 			tbl.addCell("" + ts.getWrites());
