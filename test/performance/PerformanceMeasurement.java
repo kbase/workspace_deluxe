@@ -26,9 +26,15 @@ public class PerformanceMeasurement {
 		this.wMean = mean(writes);
 		this.rMean = mean(reads);
 		this.wStd = stddev(wMean, writes, false);
-		this.rStd = stddev(rMean, writes, false);
+		this.rStd = stddev(rMean, reads, false);
 	}
 	
+	@Override
+	public String toString() {
+		return "PerformanceMeasurement [wMean=" + wMean + ", wStd=" + wStd
+				+ ", rMean=" + rMean + ", rStd=" + rStd + "]";
+	}
+
 	public double getAverageWritesInSec() {
 		return wMean / nanoToSec;
 	}
