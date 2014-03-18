@@ -168,14 +168,20 @@ public class ShockBackend implements BlobStore {
 					BlobStoreCommunicationException.class)) {
 				throw (BlobStoreCommunicationException) ioe.getCause();
 			}
-			throw new RuntimeException("IO Error during streaming of JsonNode: "
+			throw new RuntimeException("IO Error during streaming of data to Shock: "
 					+ ioe.getLocalizedMessage(), ioe);
 		} finally {
 			try {
 				osis.close();
 			} catch (IOException ioe) {
+				//no way to test this easily, manually tested for now.
+				//be sure to test manually if making changes
+				if (ioe.getCause().getClass().equals(
+						BlobStoreCommunicationException.class)) {
+					throw (BlobStoreCommunicationException) ioe.getCause();
+				}
 				throw new RuntimeException(
-						"Couldn't close JsonNode output stream: " +
+						"Couldn't close Shock output stream: " +
 								ioe.getLocalizedMessage(), ioe);
 			}
 		}
@@ -183,11 +189,11 @@ public class ShockBackend implements BlobStore {
 			sn = osis.getResult();
 		} catch (InterruptedException ie) {
 			throw new RuntimeException(
-					"Interrupt trying to retrieve JsonNode from EasyStream instance: "
+					"Interrupt trying to retrieve ShockNode from EasyStream instance: "
 					+ ie.getLocalizedMessage(), ie);
 		} catch (ExecutionException ee) {
 			throw new RuntimeException(
-					"Excecution error trying to retrieve JsonNode from EasyStream instance: "
+					"Excecution error trying to retrieve ShockNode from EasyStream instance: "
 					+ ee.getLocalizedMessage(), ee);
 		}
 		final DBObject dbo = new BasicDBObject();
