@@ -6,19 +6,23 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
+import us.kbase.common.service.UnauthorizedException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -46,11 +50,15 @@ public class SpeedTest {
 		String user = args[0];
 		String pwd = args[1];
 		List<TestSetup> tests = new LinkedList<SpeedTest.TestSetup>();
+		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
+		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")));
 		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
 				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
 		
-		timeReadWrite(user, pwd, new URL("http://localhost:7058"), tests);
+		timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7059"),
+				new URL("http://localhost:7058")), tests);
 	}
 	
 	public interface TestSetup {
@@ -228,62 +236,36 @@ public class SpeedTest {
 	
 	private static final String WORKSPACE_NAME = "testws123457891234567894";
 	
-	public static void timeReadWrite(String user, String pwd, URL wsURL,
+	public static void timeReadWrite(String user, String pwd, List<URL> wsURLs,
 			List<TestSetup> tests)
 			throws Exception {
 		
 		System.out.println("logging in " + user);
 		
-		WorkspaceClient ws = new WorkspaceClient(wsURL, user, pwd);
-		ws.setAuthAllowedForHttp(true);
+		LinkedHashMap<URL, WorkspaceClient> clients = setUpServers(user, pwd,
+				wsURLs, tests);
 
 		Date start = new Date();
-		for (TestSetup test: tests) {
-			if (!ws.listModules(new ListModulesParams()).contains(test.getModule())) {
-				System.out.println("Registering spec " + test.getModule());
-				ws.requestModuleOwnership(test.getModule());
-				Map<String, String> cmd = new HashMap<String, String>();
-				cmd.put("command", "approveModRequest");
-				cmd.put("module", test.getModule());
-				ws.administer(new UObject(cmd));
-				ws.registerTypespec(new RegisterTypespecParams()
-				.withDryrun(0L)
-				.withSpec(test.getTypeSpec())
-				.withNewTypes(Arrays.asList(test.getType())));
-				ws.releaseModule(test.getModule());
-			} else {
-				System.out.println(test.getModule() + " already registered");
-			}
-		}
-		
-		try {
-			ws.getWorkspaceInfo(new WorkspaceIdentity()
-					.withWorkspace(WORKSPACE_NAME));
-		} catch (ServerException se) {
-			try {
-				ws.createWorkspace(new CreateWorkspaceParams()
-						.withWorkspace(WORKSPACE_NAME));
-			} catch (ServerException se2) {
-				System.out.println("Couldn't access or create workspace " + WORKSPACE_NAME);
-				System.out.println("Access exception:");
-				System.out.println(se);
-				System.out.println("\nCreation exception:");
-				System.out.println(se2);
-			}
-		}
-
-		System.out.println(String.format(
-				"Timing read/write against the workspace service at %s, ver %s",
-				wsURL, ws.ver()));
 		System.out.println("started at " + start);
 		
 		List<PerformanceMeasurement> results =
 				new LinkedList<PerformanceMeasurement>();
-		
-		for (TestSetup ts: tests) {
-			results.add(measurePerformance(ws, ts));
+		for (URL u: wsURLs) {
+			WorkspaceClient ws = clients.get(u);
+			System.out.println(String.format(
+					"Timing read/write against the workspace service at %s, ver %s",
+					u, ws.ver()));
+			for (TestSetup ts: tests) {
+				results.add(measurePerformance(ws, ts));
+			}
 		}
-		
+		printResults(wsURLs, tests, clients, start, results);
+	}
+
+	private static void printResults(List<URL> wsURLs, List<TestSetup> tests,
+			LinkedHashMap<URL, WorkspaceClient> clients, Date start,
+			List<PerformanceMeasurement> results) throws IOException,
+			JsonClientException, Exception {
 		final int width = 8;
 		Table tbl = new Table(width);
 		tbl.addCell("Test");
@@ -294,28 +276,82 @@ public class SpeedTest {
 		tbl.addCell("write (MBps)");
 		tbl.addCell("read (s)");
 		tbl.addCell("read (MBps)");
-		for (int i = 0; i < tests.size(); i++) {
-			TestSetup ts = tests.get(i);
-			PerformanceMeasurement pm  = results.get(i);
-			tbl.addCell(ts.getTestName());
-			tbl.addCell(ts.getFullTypeName());
-			tbl.addCell("" + ts.getObjectSize());
-			tbl.addCell("" + ts.getWrites());
-			
-			double wmean = pm.getAverageWritesInSec();
-			double rmean = pm.getAverageReadsInSec();
-			double wmbps = ts.getObjectSize() / wmean / 1000000;
-			double rmbps = ts.getObjectSize() / rmean / 1000000;
-			
-			tbl.addCell(String.format("%,.4f +/- %,.4f", wmean, pm.getStdDevWritesInSec()));
-			tbl.addCell(String.format("%,.3f", wmbps));
-			tbl.addCell(String.format("%,.4f +/- %,.4f", rmean, pm.getStdDevReadsInSec()));
-			tbl.addCell(String.format("%,.3f", rmbps));
+		int i = 0;
+		for (URL u: wsURLs) {
+			tbl.addCell(u + ", " + clients.get(u).ver(),
+					new CellStyle(CellStyle.HorizontalAlign.center), width);
+			for (TestSetup ts: tests) {
+				PerformanceMeasurement pm  = results.get(i);
+				tbl.addCell(ts.getTestName());
+				tbl.addCell(ts.getFullTypeName());
+				tbl.addCell("" + ts.getObjectSize());
+				tbl.addCell("" + ts.getWrites());
+				
+				double wmean = pm.getAverageWritesInSec();
+				double rmean = pm.getAverageReadsInSec();
+				double wmbps = ts.getObjectSize() / wmean / 1000000;
+				double rmbps = ts.getObjectSize() / rmean / 1000000;
+				
+				tbl.addCell(String.format("%,.4f +/- %,.4f", wmean, pm.getStdDevWritesInSec()));
+				tbl.addCell(String.format("%,.3f", wmbps));
+				tbl.addCell(String.format("%,.4f +/- %,.4f", rmean, pm.getStdDevReadsInSec()));
+				tbl.addCell(String.format("%,.3f", rmbps));
+				i++;
+			}
 		}
 		System.out.println(tbl.render());
 		Date complete = new Date();
 		System.out.println("Completed: " + complete);
 		System.out.println("Elapsed: " + calculateElapsed(start, complete));
+	}
+
+	private static LinkedHashMap<URL, WorkspaceClient> setUpServers(
+			String user, String pwd, List<URL> wsURLs, List<TestSetup> tests)
+			throws UnauthorizedException, IOException, JsonClientException {
+		LinkedHashMap<URL, WorkspaceClient> clients =
+				new LinkedHashMap<URL, WorkspaceClient>(); 
+		
+		for (URL u: wsURLs) {
+			System.out.println("Setting up server at " + u);
+			WorkspaceClient ws = new WorkspaceClient(u, user, pwd);
+			clients.put(u, ws);
+			ws.setAuthAllowedForHttp(true);
+	
+			for (TestSetup test: tests) {
+				if (!ws.listModules(new ListModulesParams()).contains(test.getModule())) {
+					System.out.println("Registering spec " + test.getModule());
+					ws.requestModuleOwnership(test.getModule());
+					Map<String, String> cmd = new HashMap<String, String>();
+					cmd.put("command", "approveModRequest");
+					cmd.put("module", test.getModule());
+					ws.administer(new UObject(cmd));
+					ws.registerTypespec(new RegisterTypespecParams()
+					.withDryrun(0L)
+					.withSpec(test.getTypeSpec())
+					.withNewTypes(Arrays.asList(test.getType())));
+					ws.releaseModule(test.getModule());
+				} else {
+					System.out.println(test.getModule() + " already registered");
+				}
+			}
+			
+			try {
+				ws.getWorkspaceInfo(new WorkspaceIdentity()
+						.withWorkspace(WORKSPACE_NAME));
+			} catch (ServerException se) {
+				try {
+					ws.createWorkspace(new CreateWorkspaceParams()
+							.withWorkspace(WORKSPACE_NAME));
+				} catch (ServerException se2) {
+					System.out.println("Couldn't access or create workspace " + WORKSPACE_NAME);
+					System.out.println("Access exception:");
+					System.out.println(se);
+					System.out.println("\nCreation exception:");
+					System.out.println(se2);
+				}
+			}
+		}
+		return clients;
 	}
 	
 	private static PerformanceMeasurement measurePerformance(
