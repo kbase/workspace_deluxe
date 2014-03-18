@@ -42,6 +42,17 @@ import us.kbase.workspace.database.CountingOutputStream;
  */
 public class SpeedTest {
 	
+	public static void main(String[] args) throws Exception {
+		String user = args[0];
+		String pwd = args[1];
+		List<TestSetup> tests = new LinkedList<SpeedTest.TestSetup>();
+		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
+				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
+		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
+		
+		timeReadWrite(user, pwd, new URL("http://localhost:7058"), tests);
+	}
+	
 	public interface TestSetup {
 		
 		public String getTestName();
@@ -215,16 +226,6 @@ public class SpeedTest {
 		}
 	}
 	
-	public static void main(String[] args) throws Exception {
-		String user = args[0];
-		String pwd = args[1];
-		timeReadWrite(user, pwd, new URL("http://localhost:7058"),
-				Arrays.asList(
-						new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
-								new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"),
-						new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt"))));
-	}
-
 	private static final String WORKSPACE_NAME = "testws123457891234567894";
 	
 	public static void timeReadWrite(String user, String pwd, URL wsURL,
@@ -331,7 +332,7 @@ public class SpeedTest {
 		List<Long> reads = new LinkedList<Long>();
 		for (int i = 0; i < ts.getWrites(); i++) {
 			String name = "test-obj" + i;
-			obj.put("fakekeyaddededforperftesting", i); //ensures save to backend since MD5 will be different
+			obj.put("fakekeyaddededforperftesting", Math.random()); //ensures save to backend since MD5 will be different
 			osd.withName(name);
 			long start = System.nanoTime();
 			ws.saveObjects(new SaveObjectsParams().withWorkspace(WORKSPACE_NAME)
@@ -339,8 +340,10 @@ public class SpeedTest {
 			writes.add(System.nanoTime() - start);
 			
 			start = System.nanoTime();
-			ws.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(WORKSPACE_NAME)
-					.withName(name)));
+			@SuppressWarnings("unused")
+			Map<String, Object> o = ws.getObjects(Arrays.asList(
+					new ObjectIdentity().withWorkspace(WORKSPACE_NAME)
+					.withName(name))).get(0).getData().asInstance();
 			reads.add(System.nanoTime() - start);
 		}
 //		System.out.println("writes:");
