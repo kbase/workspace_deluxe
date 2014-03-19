@@ -48,12 +48,12 @@ import us.kbase.workspace.database.CountingOutputStream;
  * The user for these tests must have admin privs on the workspace.
  * 
  */
-public class SpeedTest {
+public class SaveGetObjServerSpeedTest {
 	
 	public static void main(String[] args) throws Exception {
 		String user = args[0];
 		String pwd = args[1];
-		List<TestSetup> tests = new LinkedList<SpeedTest.TestSetup>();
+		List<TestSetup> tests = new LinkedList<SaveGetObjServerSpeedTest.TestSetup>();
 //		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
