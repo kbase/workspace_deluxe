@@ -272,6 +272,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			System.out.println("Using connection parameters:\n" + params);
 			logInfo("Using connection parameters:\n" + params);
+			System.out.println("Temporary file location: "
+					+ tfm.getTempDir());
+			logInfo("Temporary file location: " + tfm.getTempDir());
 			//TODO fix javadocs in build file after us.kbase.common files removed
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {

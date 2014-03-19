@@ -2,6 +2,8 @@ package performance;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
@@ -19,6 +21,8 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
@@ -50,15 +54,22 @@ public class SpeedTest {
 		String user = args[0];
 		String pwd = args[1];
 		List<TestSetup> tests = new LinkedList<SpeedTest.TestSetup>();
+//		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
+//				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
 				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")));
-		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
-				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
-		
-		timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7059"),
-				new URL("http://localhost:7058")), tests);
+//		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
+//				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
+//		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
+		try {
+			timeReadWrite(user, pwd, Arrays.asList(//new URL("http://localhost:7059"),
+					new URL("http://localhost:7058")), tests);
+		} catch (ServerException e) {
+			System.out.println(e);
+			System.out.println(e.getCode());
+			System.out.println(e.getData());
+		}
 	}
 	
 	public interface TestSetup {
@@ -234,6 +245,8 @@ public class SpeedTest {
 		}
 	}
 	
+	private static AuthToken token;
+	
 	private static final String WORKSPACE_NAME = "testws123457891234567894";
 	
 	public static void timeReadWrite(String user, String pwd, List<URL> wsURLs,
@@ -241,6 +254,7 @@ public class SpeedTest {
 			throws Exception {
 		
 		System.out.println("logging in " + user);
+		token = AuthService.login(user, pwd).getToken();
 		
 		LinkedHashMap<URL, WorkspaceClient> clients = setUpServers(user, pwd,
 				wsURLs, tests);
@@ -256,7 +270,7 @@ public class SpeedTest {
 					"Timing read/write against the workspace service at %s, ver %s",
 					u, ws.ver()));
 			for (TestSetup ts: tests) {
-				results.add(measurePerformance(ws, ts));
+				results.add(measurePerformance(u, ws, ts));
 			}
 		}
 		printResults(wsURLs, tests, clients, start, results);
@@ -355,7 +369,7 @@ public class SpeedTest {
 	}
 	
 	private static PerformanceMeasurement measurePerformance(
-			WorkspaceClient ws, TestSetup ts) throws Exception {
+			URL url, WorkspaceClient ws, TestSetup ts) throws Exception {
 		Map<String, Object> obj = ts.getObject();
 		String type = ts.getFullTypeName();
 		ObjectSaveData osd = new ObjectSaveData().withData(new UObject(obj))
@@ -364,6 +378,7 @@ public class SpeedTest {
 		System.out.println(String.format("Reading and writing %s objects of type %s, size %s",
 				ts.getWrites(), ts.getFullTypeName(), ts.getObjectSize()));
 		
+		byte[] b = new byte[10000000];
 		List<Long> writes = new LinkedList<Long>();
 		List<Long> reads = new LinkedList<Long>();
 		for (int i = 0; i < ts.getWrites(); i++) {
@@ -375,12 +390,34 @@ public class SpeedTest {
 					.withObjects(Arrays.asList(osd)));
 			writes.add(System.nanoTime() - start);
 			
+			Map<String, Object> req = new HashMap<String, Object>();
+			req.put("params", Arrays.asList(Arrays.asList(new ObjectIdentity()
+					.withWorkspace(WORKSPACE_NAME).withName(name))));
+			req.put("method", "Workspace.get_objects");
+			req.put("version", "1.1");
+			req.put("id", ("" + Math.random()).substring(2));
+			
 			start = System.nanoTime();
-			@SuppressWarnings("unused")
-			Map<String, Object> o = ws.getObjects(Arrays.asList(
-					new ObjectIdentity().withWorkspace(WORKSPACE_NAME)
-					.withName(name))).get(0).getData().asInstance();
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setConnectTimeout(10000);
+			conn.setDoOutput(true);
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Authorization", token.toString());
+			new ObjectMapper().writeValue(conn.getOutputStream(), req);
+			conn.getResponseCode();
+			InputStream is = conn.getInputStream();
+			int read = 1;
+			while (read > -1) {
+				read = is.read(b);
+			}
+			is.close();
 			reads.add(System.nanoTime() - start);
+			
+//			start = System.nanoTime();
+//			ws.getObjects(Arrays.asList(
+//					new ObjectIdentity().withWorkspace(WORKSPACE_NAME)
+//					.withName(name)));
+//			reads.add(System.nanoTime() - start);
 		}
 //		System.out.println("writes:");
 //		for (Long l: writes) {
