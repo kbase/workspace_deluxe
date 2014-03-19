@@ -306,7 +306,7 @@ public class ArgUtils {
 			Set<ByteArrayFileCache> resourcesToDestroy) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
-			ByteArrayFileCache resource = o.getDataAsTokens();
+			final ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))

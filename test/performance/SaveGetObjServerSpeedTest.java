@@ -262,8 +262,8 @@ public class SaveGetObjServerSpeedTest {
 		Date start = new Date();
 		System.out.println("started at " + start);
 		
-		List<PerformanceMeasurement> results =
-				new LinkedList<PerformanceMeasurement>();
+		List<ReadWritePerformance> results =
+				new LinkedList<ReadWritePerformance>();
 		for (URL u: wsURLs) {
 			WorkspaceClient ws = clients.get(u);
 			System.out.println(String.format(
@@ -278,7 +278,7 @@ public class SaveGetObjServerSpeedTest {
 
 	private static void printResults(List<URL> wsURLs, List<TestSetup> tests,
 			LinkedHashMap<URL, WorkspaceClient> clients, Date start,
-			List<PerformanceMeasurement> results) throws IOException,
+			List<ReadWritePerformance> results) throws IOException,
 			JsonClientException, Exception {
 		final int width = 8;
 		Table tbl = new Table(width);
@@ -295,7 +295,7 @@ public class SaveGetObjServerSpeedTest {
 			tbl.addCell(u + ", " + clients.get(u).ver(),
 					new CellStyle(CellStyle.HorizontalAlign.center), width);
 			for (TestSetup ts: tests) {
-				PerformanceMeasurement pm  = results.get(i);
+				ReadWritePerformance pm  = results.get(i);
 				tbl.addCell(ts.getTestName());
 				tbl.addCell(ts.getFullTypeName());
 				tbl.addCell("" + ts.getObjectSize());
@@ -368,7 +368,7 @@ public class SaveGetObjServerSpeedTest {
 		return clients;
 	}
 	
-	private static PerformanceMeasurement measurePerformance(
+	private static ReadWritePerformance measurePerformance(
 			URL url, WorkspaceClient ws, TestSetup ts) throws Exception {
 		Map<String, Object> obj = ts.getObject();
 		String type = ts.getFullTypeName();
@@ -427,7 +427,7 @@ public class SaveGetObjServerSpeedTest {
 //		for (Long l: reads) {
 //			System.out.println(l);
 //		}
-		return new PerformanceMeasurement(writes, reads);
+		return new ReadWritePerformance(writes, reads);
 	}
 
 

@@ -7,7 +7,7 @@ import java.util.List;
  * @author gaprice@lbl.gov
  *
  */
-public class PerformanceMeasurement {
+public class ReadWritePerformance {
 	
 	private final static double nanoToSec = 1000000000.0;
 	
@@ -21,7 +21,7 @@ public class PerformanceMeasurement {
 	 * @param writes - a set of writes in ns.
 	 * @param reads - a set of reads in ns.
 	 */
-	public PerformanceMeasurement(final List<Long> writes,
+	public ReadWritePerformance(final List<Long> writes,
 			final List<Long> reads) {
 		this.wMean = mean(writes);
 		this.rMean = mean(reads);

@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -202,28 +203,31 @@ public class ByteArrayFileCacheManager {
 		}
 		
 		public UObject getUObject() {
-			if (destroyed) {
-				throw new RuntimeException(
-						"This ByteArrayFileCache is destroyed");
-			}
+			checkIfDestroyed();
 			return new UObject(jts);
 		}
 		
 		public JsonNode getAsJsonNode() {
+			checkIfDestroyed();
+			return UObject.transformObjectToJackson(getUObject());
+		}
+		
+		public Reader getBytes() throws IOException {
+			checkIfDestroyed();
+			return jts.createDataReader();
+		}
+
+		private void checkIfDestroyed() {
 			if (destroyed) {
 				throw new RuntimeException(
 						"This ByteArrayFileCache is destroyed");
 			}
-			return UObject.transformObjectToJackson(getUObject());
 		}
 		
 		private void getSubdataExtractionAsStream(final ObjectPaths paths, 
 				final OutputStream os)
 				throws TypedObjectExtractionException {
-			if (destroyed) {
-				throw new RuntimeException(
-						"This ByteArrayFileCache is destroyed");
-			}
+			checkIfDestroyed();
 			try {
 				JsonGenerator jgen = UObject.getMapper().getFactory().createGenerator(os);
 				try {
