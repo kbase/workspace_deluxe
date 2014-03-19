@@ -212,7 +212,7 @@ public class ByteArrayFileCacheManager {
 			return UObject.transformObjectToJackson(getUObject());
 		}
 		
-		public Reader getBytes() throws IOException {
+		public Reader getJSON() throws IOException {
 			checkIfDestroyed();
 			return jts.createDataReader();
 		}

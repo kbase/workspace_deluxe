@@ -9,13 +9,9 @@ import java.util.List;
  */
 public class ReadWritePerformance {
 	
-	private final static double nanoToSec = 1000000000.0;
 	
-	private final double wMean;
-	private final double wStd;
-	private final double rMean;
-	private final double rStd;
-	
+	private final PerformanceMeasurement write;
+	private final PerformanceMeasurement read;
 	
 	/** Constructor
 	 * @param writes - a set of writes in ns.
@@ -23,53 +19,28 @@ public class ReadWritePerformance {
 	 */
 	public ReadWritePerformance(final List<Long> writes,
 			final List<Long> reads) {
-		this.wMean = mean(writes);
-		this.rMean = mean(reads);
-		this.wStd = stddev(wMean, writes, false);
-		this.rStd = stddev(rMean, reads, false);
+		write = new PerformanceMeasurement(writes);
+		read = new PerformanceMeasurement(reads);
 	}
 	
 	@Override
 	public String toString() {
-		return "PerformanceMeasurement [wMean=" + wMean + ", wStd=" + wStd
-				+ ", rMean=" + rMean + ", rStd=" + rStd + "]";
+		return "ReadWritePerformance [write=" + write + ", read=" + read + "]";
 	}
 
 	public double getAverageWritesInSec() {
-		return wMean / nanoToSec;
+		return write.getAverageInSec();
 	}
 	
 	public double getAverageReadsInSec() {
-		return rMean / nanoToSec;
+		return read.getAverageInSec();
 	}
-	
-	public static double mean(final List<Long> nums) {
-		double sum = 0;
-		for (Long n: nums) {
-			sum += n;
-		}
-		return sum / nums.size();
-	}
-	
+
 	public double getStdDevWritesInSec() {
-		return wStd / nanoToSec;
+		return write.getStdDevInSec();
 	}
 	
 	public double getStdDevReadsInSec() {
-		return rStd / nanoToSec;
+		return read.getStdDevInSec();
 	}
-	
-	public static double stddev(final double mean, final List<Long> values,
-			final boolean population) {
-		if (values.size() < 2) {
-			return Double.NaN;
-		}
-		final double pop = population ? 0 : -1;
-		double accum = 0;
-		for (Long d: values) {
-			accum += Math.pow(new Double(d) - mean, 2);
-		}
-		return Math.sqrt(accum / (values.size() + pop));
-	}
-	
 }
