@@ -6,10 +6,13 @@ import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
 import org.nocrala.tools.texttablefmt.Table;
@@ -18,6 +21,7 @@ import org.nocrala.tools.texttablefmt.Table;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -37,9 +41,14 @@ public class GetObjectsLibSpeedTest {
 	
 	private static final ObjectMapper MAP = new ObjectMapper();
 	
+	private static enum Op {
+		XLATEOPS, PROFILE_JTS
+	};
+	
 	public static void main(String[] args) throws Exception {
 		String shockuser = args[0];
 		String shockpwd = args[1];
+		Op op = Op.XLATEOPS;
 		int reps = 500;
 		String mongohost = "localhost";
 		String shockurl = "http://localhost:7044";
@@ -77,6 +86,40 @@ public class GetObjectsLibSpeedTest {
 		
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
 		
+		List<PerformanceMeasurement> pms;
+		if (op == Op.XLATEOPS) {
+			pms = measureGetObjectsOptionsPerformance(
+					reps, ws, user, oi);
+			renderResults(pms);
+		} else if (op == Op.PROFILE_JTS) {
+			profileJTSwriteTokensPerformance(reps, objfile);
+		} else {
+			throw new IllegalArgumentException("No such operation" + op);
+		}
+		
+	}
+
+	private static void profileJTSwriteTokensPerformance(
+			int reps, String objfile) throws Exception {
+		
+		byte[] f = Files.readAllBytes(Paths.get(objfile));
+		JsonTokenStream jts = new JsonTokenStream(f, false);
+		
+		System.out.println("JsonTokenStream initialized. Start profiler, then hit enter to continue");
+		Scanner s = new Scanner(System.in);
+		s.nextLine();
+		
+		for (int i = 0; i < reps; i++) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream(30000000);
+			JsonGenerator jgen = MAP.getFactory().createGenerator(baos);
+			jts.setRoot(null);
+			jts.writeTokens(jgen);
+		}
+	}
+
+	private static List<PerformanceMeasurement> measureGetObjectsOptionsPerformance(
+			int reps, Workspace ws, WorkspaceUser user, ObjectIdentifier oi)
+			throws Exception {
 		List<Long> pull = new LinkedList<Long>();
 		List<Long> xlate = new LinkedList<Long>();
 		List<Long> jts = new LinkedList<Long>();
@@ -89,7 +132,8 @@ public class GetObjectsLibSpeedTest {
 			ByteArrayOutputStream baos3 = new ByteArrayOutputStream(30000000);
 
 			long start = System.nanoTime();
-			ByteArrayFileCache bafc = ws.getObjects(user, Arrays.asList(oi)).get(0).getDataAsTokens();
+			ByteArrayFileCache bafc = ws.getObjects(user, Arrays.asList(oi))
+					.get(0).getDataAsTokens();
 			long gotbytes = System.nanoTime();
 			
 			Reader r = bafc.getJSON();
@@ -127,8 +171,7 @@ public class GetObjectsLibSpeedTest {
 		pms.add(new PerformanceMeasurement(jts, "Translate data to JSON via BAFC.getUObject.write(OutputStream)"));
 		pms.add(new PerformanceMeasurement(jgenjts, "Translate data to JSON via BAFC.getUObject.write(JsonGenerator)"));
 		pms.add(new PerformanceMeasurement(jgenwriter, "Translate data to JSON via BAFC.getUObject.getPlacedStream().writeTokens(JsonGenerator)"));
-		
-		renderResults(pms);
+		return pms;
 	}
 
 	private static void renderResults(List<PerformanceMeasurement> pms) {
