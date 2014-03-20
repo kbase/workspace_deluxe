@@ -3,7 +3,9 @@ package performance;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,10 +81,12 @@ public class GetObjectsLibSpeedTest {
 		List<Long> xlate = new LinkedList<Long>();
 		List<Long> jts = new LinkedList<Long>();
 		List<Long> jgenjts = new LinkedList<Long>();
+		List<Long> jgenwriter = new LinkedList<Long>();
 		for (int i = 0; i < reps; i++) {
 			char[] c = new char[300000];
 			ByteArrayOutputStream baos = new ByteArrayOutputStream(30000000);
 			ByteArrayOutputStream baos2 = new ByteArrayOutputStream(30000000);
+			ByteArrayOutputStream baos3 = new ByteArrayOutputStream(30000000);
 
 			long start = System.nanoTime();
 			ByteArrayFileCache bafc = ws.getObjects(user, Arrays.asList(oi)).get(0).getDataAsTokens();
@@ -105,16 +109,24 @@ public class GetObjectsLibSpeedTest {
 			jgen.close();
 			long readJgenJTS = System.nanoTime();
 			
+			Writer w = new OutputStreamWriter(baos3);
+			JsonGenerator jgen2 = MAP.getFactory().createGenerator(w);
+			bafc.getUObject().getPlacedStream().writeTokens(jgen2);
+			jgen2.close();
+			long readJgenWriter = System.nanoTime();
+			
 			pull.add(gotbytes - start);
 			xlate.add(readchars - gotbytes);
 			jts.add(readJTS - readchars);
 			jgenjts.add(readJgenJTS - readJTS);
+			jgenwriter.add(readJgenWriter - readJgenJTS);
 		}
 		List<PerformanceMeasurement> pms = new LinkedList<PerformanceMeasurement>();
 		pms.add(new PerformanceMeasurement(pull, "Pull data from WS as BAFC"));
 		pms.add(new PerformanceMeasurement(xlate, "Translate data to JSON via BAFC.getJSON()"));
 		pms.add(new PerformanceMeasurement(jts, "Translate data to JSON via BAFC.getUObject.write(OutputStream)"));
 		pms.add(new PerformanceMeasurement(jgenjts, "Translate data to JSON via BAFC.getUObject.write(JsonGenerator)"));
+		pms.add(new PerformanceMeasurement(jgenwriter, "Translate data to JSON via BAFC.getUObject.getPlacedStream().writeTokens(JsonGenerator)"));
 		
 		renderResults(pms);
 	}
