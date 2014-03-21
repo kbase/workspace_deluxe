@@ -292,7 +292,7 @@ public class SaveGetObjServerSpeedTest {
 		tbl.addCell("read (MBps)");
 		int i = 0;
 		for (URL u: wsURLs) {
-			tbl.addCell(u + ", " + clients.get(u).ver(),
+			tbl.addCell(u + ", ver " + clients.get(u).ver(),
 					new CellStyle(CellStyle.HorizontalAlign.center), width);
 			for (TestSetup ts: tests) {
 				ReadWritePerformance pm  = results.get(i);

@@ -165,9 +165,9 @@ public class JsonClientCaller {
 					try {
 						res = jp.getCodec().readValue(jp, cls);
 					} catch (JsonParseException e) {
-						//TODO throw exception here with heading buffer
-						System.out.println(getClass().getName() + ": json-response=" + wrapStream.getHeadingBuffer());
-						throw e;
+						throw new JsonClientException(
+								"Parse error while parsing response in: " +
+								wrapStream.getHeadingBuffer(), e);
 					}
 				} else {
 					jp.nextToken();
