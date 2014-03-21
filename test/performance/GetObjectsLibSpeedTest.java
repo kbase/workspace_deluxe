@@ -17,7 +17,6 @@ import java.util.Scanner;
 import org.apache.commons.io.FileUtils;
 import org.nocrala.tools.texttablefmt.Table;
 
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

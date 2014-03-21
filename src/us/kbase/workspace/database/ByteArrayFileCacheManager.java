@@ -85,7 +85,8 @@ public class ByteArrayFileCacheManager {
 				}
 				os.close();
 				sizeOnDisk += size;
-				return new ByteArrayFileCache(null, tempFile, new JsonTokenStream(tempFile));
+				return new ByteArrayFileCache(null, tempFile,
+						new JsonTokenStream(tempFile).setTrustedWholeJson(true));
 			} catch (IOException ioe) {
 				cleanUp(tempFile, os);
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
@@ -97,7 +98,8 @@ public class ByteArrayFileCacheManager {
 			sizeInMem += (int)size;
 			try {
 				return new ByteArrayFileCache(null, null,
-						new JsonTokenStream(bufOs.toByteArray()));
+						new JsonTokenStream(bufOs.toByteArray())
+							.setTrustedWholeJson(true));
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(
 						ioe.getLocalizedMessage(), ioe);
@@ -156,11 +158,13 @@ public class ByteArrayFileCacheManager {
 			parent.getSubdataExtractionAsStream(paths, os);
 			if (tempFile[0] != null) {
 				sizeOnDisk += size[0];
-				return new ByteArrayFileCache(parent, tempFile[0], new JsonTokenStream(tempFile[0]));
+				return new ByteArrayFileCache(parent, tempFile[0], new JsonTokenStream(tempFile[0])
+						.setTrustedWholeJson(true));
 			} else {
 				sizeInMem += (int)size[0];
 				byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
-				return new ByteArrayFileCache(parent, null, new JsonTokenStream(arr));
+				return new ByteArrayFileCache(parent, null, new JsonTokenStream(arr)
+						.setTrustedWholeJson(true));
 			}
 		} catch (Throwable e) {
 			try {

@@ -162,7 +162,13 @@ public class JsonClientCaller {
 				} else if (fieldName.equals("result")) {
 					checkFor500(code, wrapStream);
 					jp.nextToken();
-					res = jp.getCodec().readValue(jp, cls);
+					try {
+						res = jp.getCodec().readValue(jp, cls);
+					} catch (JsonParseException e) {
+						//TODO throw exception here with heading buffer
+						System.out.println(getClass().getName() + ": json-response=" + wrapStream.getHeadingBuffer());
+						throw e;
+					}
 				} else {
 					jp.nextToken();
 					jp.getCodec().readValue(jp, Object.class);

@@ -63,7 +63,7 @@ public class SaveGetObjServerSpeedTest {
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 //		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
 		try {
-			timeReadWrite(user, pwd, Arrays.asList(//new URL("http://localhost:7059"),
+			timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7059"),
 					new URL("http://localhost:7058")), tests);
 		} catch (ServerException e) {
 			System.out.println(e);

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -78,11 +79,15 @@ public class JsonTokenStream extends JsonParser {
 	private final int stringBufferSize;
 	// reader for large string extraction, it should be positioned by calling getLargeStringReader
 	private final LargeStringSearchingReader largeStringReader = new LargeStringSearchingReader();
+	//optinally true if this JTS instance wraps a known good JSON object and the root is at /
+	//means that the object can simply be dumped into the JsonGenerator output stream
+	private boolean goodWholeJSON = false;
 	
 	private static final boolean debug = false;  //true;
 	private static final Charset utf8 = Charset.forName("UTF-8");
 	private static final String largeStringSubstPrefix = "^*->#";
 	private static DebugOpenCloseListener debugOpenCloseListener = null;
+	private static final int BYTE_BUFFER_SIZE = 100000;
 	
 	/**
 	 * Create token stream for data source of one of the following types: File, String, byte[], JsonNode.
@@ -113,18 +118,47 @@ public class JsonTokenStream extends JsonParser {
 	 * @throws IOException
 	 */
 	public JsonTokenStream(Object data, int largeStringbufferSize) throws JsonParseException, IOException {
+		final long len;
 		if (data instanceof String) {
 			sdata = (String)data;
+			len = sdata.length();
 		} else if (data instanceof File) {
 			fdata = (File)data;
+			len = fdata.length();
 		} else if (data instanceof JsonNode) {
 			JsonNode jdata = (JsonNode)data;
-			sdata = UObject.transformJacksonToString(jdata);
+			sdata = UObject.transformJacksonToString(jdata); //should this go to bytes instead?
+			len = sdata.length();
 		} else {
 			bdata = (byte[])data;
+			len = bdata.length;
+		}
+		if (len < 1) {
+			throw new IllegalArgumentException(
+					"Data must be at least 1 byte / char");
 		}
 		stringBufferSize = largeStringbufferSize;
 		init(null);
+	}
+	
+	
+	/** Specify that this JTS wraps data that is known good JSON. Cannot be
+	 * set as true if the root is not at /, and will be set to false if the
+	 * root is set to a location other than /. 
+	 * 
+	 * The effect of this parameter is that the wrapped data is written
+	 * directly to the output stream, bypassing parsing the JSON (and thus
+	 * checking correctness).
+	 * @param twj whether this object contains known good JSON.
+	 * @return this JTS
+	 */
+	public JsonTokenStream setTrustedWholeJson(final boolean twj) {
+		if (twj && fixedLevels > 0) {
+			throw new IllegalArgumentException(
+					"Root is inside contained object, cannot set trustedWholeJson to true");
+		}
+		goodWholeJSON = twj;
+		return this;
 	}
 
 	/**
@@ -194,6 +228,9 @@ public class JsonTokenStream extends JsonParser {
 			fixedLevels = root.size();
 			currentTokenIsNull = true;
 		}
+		if (fixedLevels > 0) {
+			goodWholeJSON = false;
+		}
 		if (debug)
 			System.out.println("end of init");
 	}
@@ -230,7 +267,7 @@ public class JsonTokenStream extends JsonParser {
 		if (sdata != null) {
 			r = new StringReader(sdata);
 		} else if (bdata != null) {
-			r = new InputStreamReader(new ByteArrayInputStream(bdata));
+			r = new InputStreamReader(new ByteArrayInputStream(bdata), utf8);
 		} else if (fdata != null) {
 			r = new InputStreamReader(new BufferedInputStream(new FileInputStream(fdata)), utf8);
 		} else {
@@ -932,11 +969,84 @@ public class JsonTokenStream extends JsonParser {
 	 * @throws IOException
 	 */
 	public void writeTokens(JsonGenerator jgen) throws IOException {
+		final Reader r = createDataReader();
+		final char[] first = new char[1];
 		try {
-			writeNextToken(jgen);
-			writeTokensWithoutFirst(jgen);
+			r.read(first);
 		} finally {
-			close();
+			r.close();
+		}
+		final Object os = jgen.getOutputTarget();
+		final boolean arrayOrObj = first[0] == '{' || first[0] == '[';
+		if (goodWholeJSON && os != null && arrayOrObj) {
+			if (first[0] == '{') {
+				jgen.writeStartObject();
+			} else {
+				jgen.writeStartArray();
+			}
+			writeObjectContents(jgen);
+			if (first[0] == '{') {
+				jgen.writeEndObject();
+			} else {
+				jgen.writeEndArray();
+			}
+		} else {
+			try {
+				writeNextToken(jgen);
+				writeTokensWithoutFirst(jgen);
+			} finally {
+				close();
+			}
+		}
+	}
+
+	//write the object, less enclosing {} or [], to jgen. Only works for arrays and objects.
+	private void writeObjectContents(JsonGenerator jgen) throws IOException {
+		if (sdata != null) {
+			jgen.writeRaw(sdata, 1, sdata.length() - 2);
+		} else {
+			final Object os = jgen.getOutputTarget();
+			final Writer w;
+			if (os instanceof Writer) {
+				w = ((Writer) os);
+			} else if (os instanceof OutputStream) {
+				//could be faster bypassing the writer if the OS is available
+				w = new OutputStreamWriter((OutputStream) os);
+			} else {
+				throw new IllegalStateException(
+						"Unsupported JsonGenerator target:" + os);
+			}
+			final long len;
+			final InputStream is;
+			if (bdata != null) {
+				len = bdata.length;
+				is = new ByteArrayInputStream(bdata);
+			} else if (fdata != null) {
+				len = fdata.length();
+				is = new BufferedInputStream(new FileInputStream(fdata));
+			} else {
+				throw new IOException("Data source was not set");
+			}
+			jgen.flush();
+			try {
+				is.read(new byte[1]); //discard { or [
+				long processed = 1;
+				byte[] buffer = new byte[BYTE_BUFFER_SIZE];
+				int read = is.read(buffer);
+				while (read > -1) {
+					processed += read;
+					//TODO - check for utf8 chars of > 1 byte and read entire character
+					if (processed == len) {
+						w.write(new String(buffer, 0, read - 1, utf8)); //discard } or ]
+					} else {
+						w.write(new String(buffer, 0, read, utf8));
+					}
+					read = is.read(buffer);
+				}
+				w.flush();
+			} finally {
+				is.close();
+			}
 		}
 	}
 
@@ -957,6 +1067,7 @@ public class JsonTokenStream extends JsonParser {
 	 * @throws IOException
 	 */
 	public void writeJson(OutputStream os) throws IOException {
+		//could be faster writing directly to the output stream when goodWholeJSON = true;
 		writeJson(new OutputStreamWriter(os, utf8));
 	}
 	
