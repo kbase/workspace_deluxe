@@ -166,8 +166,10 @@ public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
 		@SuppressWarnings("unchecked")
 		List<String> newsd = (List<String>) data.get("subset");
 		assertThat("correct subdata size", newsd.size(), is(count));
+		int i = 0;
 		for (String s: newsd) {
-			assertThat("correct string in subdata", s, is(test));
+			assertThat(String.format("correct string %s in subdata", i), s, is(test));
+			i++;
 		}
 		
 		data.clear();

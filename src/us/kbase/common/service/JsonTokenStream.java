@@ -23,6 +23,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.common.util.UTF8Utils;
+import us.kbase.common.util.UTF8Utils.UTF8CharLocation;
+
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.FormatSchema;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -87,7 +90,7 @@ public class JsonTokenStream extends JsonParser {
 	private static final Charset utf8 = Charset.forName("UTF-8");
 	private static final String largeStringSubstPrefix = "^*->#";
 	private static DebugOpenCloseListener debugOpenCloseListener = null;
-	private static final int BYTE_BUFFER_SIZE = 100000;
+	private int copyBufferSize = 100000;
 	
 	/**
 	 * Create token stream for data source of one of the following types: File, String, byte[], JsonNode.
@@ -147,8 +150,8 @@ public class JsonTokenStream extends JsonParser {
 	 * root is set to a location other than /. 
 	 * 
 	 * The effect of this parameter is that the wrapped data is written
-	 * directly to the output stream, bypassing parsing the JSON (and thus
-	 * checking correctness).
+	 * directly to the output stream or writer, bypassing parsing the JSON
+	 * (and thus checking correctness).
 	 * @param twj whether this object contains known good JSON.
 	 * @return this JTS
 	 */
@@ -159,6 +162,37 @@ public class JsonTokenStream extends JsonParser {
 		}
 		goodWholeJSON = twj;
 		return this;
+	}
+	
+	/** Returns true if this JTS has been marked as wrapping data that is known
+	 *  good JSON. See setTrustedWholeJson for more details. 
+	 * @return true if this JTS has been marked as wrapping data that is known
+	 *  good JSON.
+	 */
+	public boolean hasTrustedWholeJson() {
+		return goodWholeJSON;
+	}
+	
+	/** Sets the size of the byte buffer used when copying the data contained
+	 * in this JTS directly to an output stream or writer.
+	 * @param size the size of the buffer.
+	 * @return this JTS
+	 */
+	public JsonTokenStream setCopyBufferSize(final int size) {
+		if (size < 10) {
+			throw new IllegalArgumentException(
+					"Buffer size must be at least 10");
+		}
+		copyBufferSize = size;
+		return this;
+	}
+	
+	/** Gets the size of the byte buffer used when copying the data contained
+	 * in this JTS directly to an output stream or writer.
+	 * @return the size of the buffer.
+	 */
+	public int getCopyBufferSize() {
+		return copyBufferSize;
 	}
 
 	/**
@@ -1031,17 +1065,24 @@ public class JsonTokenStream extends JsonParser {
 			try {
 				is.read(new byte[1]); //discard { or [
 				long processed = 1;
-				byte[] buffer = new byte[BYTE_BUFFER_SIZE];
-				int read = is.read(buffer);
+				byte[] buffer = new byte[copyBufferSize + 3];
+				int read = is.read(buffer, 0, copyBufferSize);
 				while (read > -1) {
+					if (read == copyBufferSize) {
+						final UTF8CharLocation loc = UTF8Utils.getCharBounds(
+								buffer, copyBufferSize - 1);
+						if (loc.getLast() > copyBufferSize - 1) {
+							read += is.read(buffer, copyBufferSize,
+									loc.getLast() - copyBufferSize + 1);
+						}
+					}
 					processed += read;
-					//TODO 1 check for utf8 chars of > 1 byte and read entire character
 					if (processed == len) {
 						w.write(new String(buffer, 0, read - 1, utf8)); //discard } or ]
 					} else {
 						w.write(new String(buffer, 0, read, utf8));
 					}
-					read = is.read(buffer);
+					read = is.read(buffer, 0, copyBufferSize);
 				}
 				w.flush();
 			} finally {
