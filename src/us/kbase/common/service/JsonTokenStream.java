@@ -130,11 +130,15 @@ public class JsonTokenStream extends JsonParser {
 			len = fdata.length();
 		} else if (data instanceof JsonNode) {
 			JsonNode jdata = (JsonNode)data;
-			sdata = UObject.transformJacksonToString(jdata); //should this go to bytes instead?
+			sdata = UObject.transformJacksonToString(jdata); //TODO should this go to bytes instead?
 			len = sdata.length();
-		} else {
+		} else if (data instanceof byte[]){
 			bdata = (byte[])data;
 			len = bdata.length;
+		} else {
+			throw new IllegalArgumentException(
+					"Only String, File, JsonNode, and byte[]s are allowed as input");
+			//why not turn objects into bytes?
 		}
 		if (len < 1) {
 			throw new IllegalArgumentException(
@@ -1037,7 +1041,7 @@ public class JsonTokenStream extends JsonParser {
 	//write the object, less enclosing {} or [], to jgen. Only works for arrays and objects.
 	private void writeObjectContents(JsonGenerator jgen) throws IOException {
 		if (sdata != null) {
-			jgen.writeRaw(sdata, 1, sdata.length() - 2);
+			jgen.writeRaw(sdata, 1, sdata.length() - 2); 	//TODO stream strings
 		} else {
 			final Object os = jgen.getOutputTarget();
 			final Writer w;
