@@ -47,15 +47,13 @@ public class TestJsonTokenStream {
 		sb.appendCodePoint(0x10310); //4 byte
 		sb.appendCodePoint(0x4A);    //1 byte
 		sb.appendCodePoint(0x103B0); //4 byte
-		sb.appendCodePoint(0x120);   //2 byteX
+		sb.appendCodePoint(0x120);   //2 byte
 		sb.appendCodePoint(0x1D120); //4 byte
 		sb.appendCodePoint(0x0A90);  //3 byte
 		sb.appendCodePoint(0x6A);    //1 byte
 		sb.appendCodePoint(0x1D120); //4 byte
 		sb.append("\"]");
-		System.out.println(sb);
 		byte[] b = sb.toString().getBytes();
-		printBytes(b);
 		JsonTokenStream jts = new JsonTokenStream(b).setTrustedWholeJson(true)
 				.setCopyBufferSize(13);
 		ByteArrayOutputStream target = new ByteArrayOutputStream();
@@ -69,6 +67,7 @@ public class TestJsonTokenStream {
 		
 	}
 	
+	@SuppressWarnings("unused")
 	private void printBytes(byte[] b) {
 		for (int i = 0; i < b.length; i++) {
 			System.out.print(b[i] + " ");
