@@ -1,4 +1,4 @@
-package performance;
+package us.kbase.common.test.service;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
