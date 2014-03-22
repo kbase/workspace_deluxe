@@ -1035,7 +1035,7 @@ public class JsonTokenStream extends JsonParser {
 				int read = is.read(buffer);
 				while (read > -1) {
 					processed += read;
-					//TODO - check for utf8 chars of > 1 byte and read entire character
+					//TODO 1 check for utf8 chars of > 1 byte and read entire character
 					if (processed == len) {
 						w.write(new String(buffer, 0, read - 1, utf8)); //discard } or ]
 					} else {

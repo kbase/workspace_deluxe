@@ -135,7 +135,7 @@ public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
 	public void unicode() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
 		
-				Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> data = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		StringBuilder sb = new StringBuilder();
 		//19 ttl bytes in UTF-8
