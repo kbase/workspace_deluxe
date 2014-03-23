@@ -6,6 +6,11 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,6 +19,8 @@ import java.util.LinkedList;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
@@ -97,13 +104,40 @@ public class TestJsonTokenStream {
 	
 	@Test
 	public void streamingMiddleData() throws Exception {
-		//TODO test with file, jsonnode, string input & large input (set buffer size?)
-		//TODO test with arrays, strings, numbers, true, false, null
-		//TODO test with jgen wrapping Writer, and the writeJSON methods
-		byte[] data = new String("{this: [\"is\", \"a JSON object\"]}")
-				.getBytes(utf8);
+		streamDataMidObject("{\"this\":[\"is\",\"a JSON object\"]}");
+		streamDataMidObject("[\"this\",{\"is\":\"a\"},\"JSON object\"]");
+		streamDataMidObject("\"this is a JSON object\"");
+		streamDataMidObject("null");
+		streamDataMidObject("true");
+		streamDataMidObject("false");
+		streamDataMidObject("1");
+		streamDataMidObject("1.2");
+		streamDataMidObject("-1.4E10"); //should really allow e or E
+	}
+
+	private void streamDataMidObject(String sdata)
+			throws Exception, IOException, FileNotFoundException {
+		
+		checkStreamingMidObjCorrectness(sdata, sdata);
+		
+		byte[] bdata = sdata.getBytes(utf8);
+		checkStreamingMidObjCorrectness(sdata, bdata);
+		
+		File f = File.createTempFile("TestJsonTokenStream-", null);
+		f.deleteOnExit();
+		new FileOutputStream(f).write(bdata);
+		checkStreamingMidObjCorrectness(sdata, f);
+		
+		JsonNode jn = new ObjectMapper().readTree(sdata);
+		checkStreamingMidObjCorrectness(sdata, jn);
+	}
+
+	private void checkStreamingMidObjCorrectness(String expected, Object data)
+			throws Exception {
 		JsonTokenStream jts = new JsonTokenStream(data)
-				.setTrustedWholeJson(true);
+			.setTrustedWholeJson(true);
+		
+		//test w/ JsonGenerator
 		ByteArrayOutputStream target = new ByteArrayOutputStream();
 		JsonGenerator jgen = new ObjectMapper().getFactory()
 				.createGenerator(target);
@@ -113,36 +147,82 @@ public class TestJsonTokenStream {
 		jgen.writeEndObject();
 		jgen.flush();
 		String res = new String(target.toByteArray(), utf8);
-		assertThat("Correctly streamed in object", res,
-				is("{\"data\":{this: [\"is\", \"a JSON object\"]}}"));
+		assertThat("Correctly streamed in object via JsonGenerator as" +
+				data.getClass(), res,
+				is(String.format("{\"data\":%s}", expected)));
+		
+		//test w/ outputstream
+		jts.setRoot(null);
+		target = new ByteArrayOutputStream();
+		target.write("{\"data\":".getBytes());
+		jts.writeJson(target);
+		target.write("}".getBytes());
+		res = new String(target.toByteArray(), utf8);
+		assertThat("Correctly streamed in object via OutputStream as " +
+				data.getClass(), res,
+				is(String.format("{\"data\":%s}", expected)));
+		
+		//test w/ writer
+		jts.setRoot(null);
+		target = new ByteArrayOutputStream();
+		Writer w = new OutputStreamWriter(target);
+		w.write("{\"data\":");
+		jts.writeJson(w);
+		w.write("}");
+		w.flush();
+		res = new String(target.toByteArray(), utf8);
+		assertThat("Correctly streamed in object via Writer as " +
+				data.getClass(), res,
+				is(String.format("{\"data\":%s}", expected)));
 	}
-	
+
 	@Test
 	public void streamingDataWithUTF8LongChars() throws Exception {
 		StringBuilder sb = new StringBuilder();
-		//TODO test with file & String &Json Node
 		sb.append("[\"");
-		//23 ttl bytes in UTF-8
+		//28 ttl bytes in UTF-8
 		sb.appendCodePoint(0x10310); //4 byte
 		sb.appendCodePoint(0x4A);    //1 byte
 		sb.appendCodePoint(0x103B0); //4 byte
 		sb.appendCodePoint(0x120);   //2 byte
-		sb.appendCodePoint(0x1D120); //4 byte
+		sb.appendCodePoint(0x1D120); //4 byte <- starts @ 13th bit in UTF8
 		sb.appendCodePoint(0x0A90);  //3 byte
 		sb.appendCodePoint(0x6A);    //1 byte
+		sb.appendCodePoint(0x6A);    //1 byte
+		sb.appendCodePoint(0x1D120); //4 byte <- starts @ 13th char in java UTF16
 		sb.appendCodePoint(0x1D120); //4 byte
 		sb.append("\"]");
-		byte[] b = sb.toString().getBytes();
-		JsonTokenStream jts = new JsonTokenStream(b).setTrustedWholeJson(true)
-				.setCopyBufferSize(13);
+		
+		String exp = sb.toString();
+		for (int i = 10; i < 20; i++) {
+			checkStreamingWithUTF8(exp, i, exp);
+			
+			byte[] b = exp.getBytes();
+			checkStreamingWithUTF8(b, i, exp);
+			
+			File f = File.createTempFile("TestJsonTokenStream-", null);
+			f.deleteOnExit();
+			new FileOutputStream(f).write(b);
+			checkStreamingWithUTF8(f, i, exp);
+			
+			JsonNode jn = new ObjectMapper().readTree(exp);
+			checkStreamingWithUTF8(jn, i, exp);
+		}
+	}
+
+	//data needs to have long char spanning buffersize-th byte for this test
+	private void checkStreamingWithUTF8(Object data, int buffersize, String exp)
+			throws JsonParseException, IOException {
+		JsonTokenStream jts = new JsonTokenStream(data).setTrustedWholeJson(true)
+				.setCopyBufferSize(buffersize);
 		ByteArrayOutputStream target = new ByteArrayOutputStream();
 		JsonGenerator jgen = new ObjectMapper().getFactory()
 				.createGenerator(target);
 		jts.writeTokens(jgen);
 		jgen.flush();
 		String res = new String(target.toByteArray(), utf8);
-		assertThat("UTF8 long chars past buffer end processed correctly",
-				res, is(sb.toString()));
-		
+		assertThat("UTF8 long chars past buffer end processed correctly" +
+				String.format("with data %s and buffersize %s", data, buffersize),
+				res, is(exp));
 	}
 }

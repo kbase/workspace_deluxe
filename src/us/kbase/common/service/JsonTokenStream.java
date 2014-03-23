@@ -1040,20 +1040,26 @@ public class JsonTokenStream extends JsonParser {
 
 	//write the object, less enclosing {} or [], to jgen. Only works for arrays and objects.
 	private void writeObjectContents(JsonGenerator jgen) throws IOException {
-		if (sdata != null) {
-			jgen.writeRaw(sdata, 1, sdata.length() - 2); 	//TODO stream strings
+		final Object os = jgen.getOutputTarget();
+		final Writer w;
+		if (os instanceof Writer) {
+			w = ((Writer) os);
+		} else if (os instanceof OutputStream) {
+			//could be faster bypassing the writer if the OS is available
+			w = new OutputStreamWriter((OutputStream) os);
 		} else {
-			final Object os = jgen.getOutputTarget();
-			final Writer w;
-			if (os instanceof Writer) {
-				w = ((Writer) os);
-			} else if (os instanceof OutputStream) {
-				//could be faster bypassing the writer if the OS is available
-				w = new OutputStreamWriter((OutputStream) os);
-			} else {
-				throw new IllegalStateException(
-						"Unsupported JsonGenerator target:" + os);
+			throw new IllegalStateException(
+					"Unsupported JsonGenerator target:" + os);
+		}
+		jgen.flush();
+		if (sdata != null) {
+			final Reader r = createDataReader();
+			try {
+				writeObjectContents(r, w, sdata.length());
+			} finally {
+				r.close();
 			}
+		} else {
 			final long len;
 			final InputStream is;
 			if (bdata != null) {
@@ -1065,33 +1071,59 @@ public class JsonTokenStream extends JsonParser {
 			} else {
 				throw new IOException("Data source was not set");
 			}
-			jgen.flush();
 			try {
-				is.read(new byte[1]); //discard { or [
-				long processed = 1;
-				byte[] buffer = new byte[copyBufferSize + 3];
-				int read = is.read(buffer, 0, copyBufferSize);
-				while (read > -1) {
-					if (read == copyBufferSize) {
-						final UTF8CharLocation loc = UTF8Utils.getCharBounds(
-								buffer, copyBufferSize - 1);
-						if (loc.getLast() > copyBufferSize - 1) {
-							read += is.read(buffer, copyBufferSize,
-									loc.getLast() - copyBufferSize + 1);
-						}
-					}
-					processed += read;
-					if (processed == len) {
-						w.write(new String(buffer, 0, read - 1, utf8)); //discard } or ]
-					} else {
-						w.write(new String(buffer, 0, read, utf8));
-					}
-					read = is.read(buffer, 0, copyBufferSize);
-				}
-				w.flush();
+				writeObjectContents(is, w, len);
 			} finally {
 				is.close();
 			}
+		}
+		w.flush();
+	}
+
+	private void writeObjectContents(final InputStream is, final Writer w,
+			final long contentLength) throws IOException {
+		is.read(new byte[1]); //discard { or [
+		long processed = 1;
+		final byte[] buffer = new byte[copyBufferSize + 3];
+		int read = is.read(buffer, 0, copyBufferSize);
+		while (read > -1) {
+			if (read == copyBufferSize) {
+				final UTF8CharLocation loc = UTF8Utils.getCharBounds(
+						buffer, copyBufferSize - 1);
+				if (loc.getLast() > copyBufferSize - 1) {
+					read += is.read(buffer, copyBufferSize,
+							loc.getLast() - copyBufferSize + 1);
+				}
+			}
+			processed += read;
+			if (processed == contentLength) {
+				w.write(new String(buffer, 0, read - 1, utf8)); //discard } or ]
+			} else {
+				w.write(new String(buffer, 0, read, utf8));
+			}
+			read = is.read(buffer, 0, copyBufferSize);
+		}
+	}
+
+	private void writeObjectContents(final Reader r, final Writer w,
+			final long contentLength) throws IOException {
+		r.read(new char[1]); // discard { or [
+		long processed = 1;
+		final char[] buffer = new char[copyBufferSize + 1];
+		int read = r.read(buffer, 0, copyBufferSize);
+		while (read > -1) {
+			if (read == copyBufferSize) {
+				if (Character.isHighSurrogate(buffer[copyBufferSize - 1])) {
+					read += r.read(buffer, copyBufferSize, 1);
+				}
+			}
+			processed += read;
+			if (processed == contentLength) {
+				w.write(buffer, 0, read - 1); //discard } or ]
+			} else {
+				w.write(buffer, 0, read);
+			}
+			read = r.read(buffer, 0, copyBufferSize);
 		}
 	}
 
