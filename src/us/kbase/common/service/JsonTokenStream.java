@@ -1109,21 +1109,16 @@ public class JsonTokenStream extends JsonParser {
 			final long contentLength) throws IOException {
 		r.read(new char[1]); // discard { or [
 		long processed = 1;
-		final char[] buffer = new char[copyBufferSize + 1];
-		int read = r.read(buffer, 0, copyBufferSize);
+		final char[] buffer = new char[copyBufferSize];
+		int read = r.read(buffer);
 		while (read > -1) {
-			if (read == copyBufferSize) {
-				if (Character.isHighSurrogate(buffer[copyBufferSize - 1])) {
-					read += r.read(buffer, copyBufferSize, 1);
-				}
-			}
 			processed += read;
 			if (processed == contentLength) {
 				w.write(buffer, 0, read - 1); //discard } or ]
 			} else {
 				w.write(buffer, 0, read);
 			}
-			read = r.read(buffer, 0, copyBufferSize);
+			read = r.read(buffer);
 		}
 	}
 

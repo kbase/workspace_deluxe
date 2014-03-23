@@ -194,18 +194,15 @@ public class TestJsonTokenStream {
 		sb.append("\"]");
 		
 		String exp = sb.toString();
+		byte[] b = exp.getBytes();
+		File f = File.createTempFile("TestJsonTokenStream-", null);
+		f.deleteOnExit();
+		new FileOutputStream(f).write(b);
+		JsonNode jn = new ObjectMapper().readTree(exp);
 		for (int i = 10; i < 20; i++) {
 			checkStreamingWithUTF8(exp, i, exp);
-			
-			byte[] b = exp.getBytes();
 			checkStreamingWithUTF8(b, i, exp);
-			
-			File f = File.createTempFile("TestJsonTokenStream-", null);
-			f.deleteOnExit();
-			new FileOutputStream(f).write(b);
 			checkStreamingWithUTF8(f, i, exp);
-			
-			JsonNode jn = new ObjectMapper().readTree(exp);
 			checkStreamingWithUTF8(jn, i, exp);
 		}
 	}
