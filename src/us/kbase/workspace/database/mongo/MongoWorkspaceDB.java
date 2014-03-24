@@ -1577,12 +1577,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(
-								o.getRep().extractSearchableWsSubset(),
+								o.getRep().extractSearchableWsSubset(MAX_SUBDATA_SIZE),
 								Map.class);
 				subdata = subdata2;
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
+			} catch (IllegalArgumentException e) {
+				if (e.getMessage().contains("" + MAX_SUBDATA_SIZE))
+					throw new IllegalArgumentException(String.format(
+							"Object %s %s size exceeds limit of %s",
+							getObjectErrorId(o.getObjectIdentifier(), objnum),
+							"subdata", MAX_SUBDATA_SIZE));
+				throw e;
 			}
 			
 			escapeSubdata(subdata);

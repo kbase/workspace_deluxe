@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import us.kbase.workspace.database.CountingOutputStream;
+
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -35,24 +37,47 @@ import com.fasterxml.jackson.databind.node.TextNode;
  * they are not used by serializers so we don't need to worry about it. 
  * @author rsutormin
  */
-public class KBaseJsonTreeGenerator extends JsonGenerator {
+public class JsonTreeGenerator extends JsonGenerator {
 	private final ObjectCodec codec;
 	private final JsonNodeFactory nodeFactory;
 	private final boolean sortKeys;
 	private JsonNode root = null;
 	private List<NodeWrapper> branchStack = new ArrayList<NodeWrapper>();
 	private String currentFieldName = null;
+	private final CountingOutputStream cos = new CountingOutputStream();
+	private final JsonGenerator countingJG;
+	private long maxDataSize = -1;
 	
-	public KBaseJsonTreeGenerator(ObjectMapper codec) {
+	public JsonTreeGenerator(ObjectMapper codec) {
 		this(codec, codec.getSerializationConfig().isEnabled(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS));
 	}
 
-	public KBaseJsonTreeGenerator(ObjectMapper codec, boolean sortKeys) {
+	public JsonTreeGenerator(ObjectMapper codec, boolean sortKeys) {
 		this.codec = codec;
 		this.nodeFactory = codec.getNodeFactory();
 		this.sortKeys = sortKeys;
+		try {
+			this.countingJG = codec.getFactory().createGenerator(cos);
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);  // Unexpected because CountingOutputStream is in memory.
+		}
 	}
 
+	public long getMaxDataSize() {
+		return maxDataSize;
+	}
+	
+	public void setMaxDataSize(long maxDataSize) {
+		this.maxDataSize = maxDataSize;
+	}
+	
+	private void checkDataSize() {
+		if (maxDataSize <= 0)
+			return;
+		if (cos.getSize() > maxDataSize)
+			throw new IllegalArgumentException("Object subdata size exceeds limit of " + maxDataSize);
+	}
+	
 	public JsonNode getTree() {
 		checkFlushObject();
 		return root;
@@ -104,6 +129,8 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	
 	@Override
 	public void writeStartArray() throws IOException, JsonGenerationException {
+		countingJG.writeStartArray();
+		checkDataSize();
 		push(nodeFactory.arrayNode());
 	}
 	
@@ -134,11 +161,15 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	
 	@Override
 	public void writeStartObject() throws IOException, JsonGenerationException {
+		countingJG.writeStartObject();
+		checkDataSize();
 		push(nodeFactory.objectNode());
 	}
 	
 	@Override
 	public void writeNull() throws IOException, JsonGenerationException {
+		countingJG.writeNull();
+		checkDataSize();
 		push(nodeFactory.nullNode());
 	}
 	
@@ -200,11 +231,15 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	@Override
 	public void writeBoolean(boolean v) throws IOException,
 			JsonGenerationException {
+		countingJG.writeBoolean(v);
+		checkDataSize();
 		push(nodeFactory.booleanNode(v));
 	}
 	
 	@Override
 	public void writeEndArray() throws IOException, JsonGenerationException {
+		countingJG.writeEndArray();
+		checkDataSize();
 		branchStack.remove(branchStack.size() - 1);
 	}
 	
@@ -222,6 +257,8 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	
 	@Override
 	public void writeEndObject() throws IOException, JsonGenerationException {
+		countingJG.writeEndObject();
+		checkDataSize();
 		checkFlushObject();
 		branchStack.remove(branchStack.size() - 1);
 	}
@@ -229,46 +266,62 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	@Override
 	public void writeFieldName(SerializableString name) throws IOException,
 			JsonGenerationException {
+		countingJG.writeFieldName(name);
+		checkDataSize();
 		currentFieldName = name.getValue();
 	}
 	
 	@Override
 	public void writeFieldName(String name) throws IOException,
 			JsonGenerationException {
+		countingJG.writeFieldName(name);
+		checkDataSize();
 		currentFieldName = name;
 	}
 	
 	@Override
 	public void writeNumber(BigDecimal v) throws IOException,
 			JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
 	@Override
 	public void writeNumber(BigInteger v) throws IOException,
 			JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
 	@Override
 	public void writeNumber(double v) throws IOException,
 			JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
 	@Override
 	public void writeNumber(float v) throws IOException,
 			JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
 	@Override
 	public void writeNumber(int v) throws IOException, JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
 	@Override
 	public void writeNumber(long v) throws IOException, JsonGenerationException {
+		countingJG.writeNumber(v);
+		checkDataSize();
 		push(nodeFactory.numberNode(v));
 	}
 	
@@ -316,12 +369,16 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	@Override
 	public void writeString(SerializableString text) throws IOException,
 			JsonGenerationException {
+		countingJG.writeString(text);
+		checkDataSize();
 		push(new TextNode(text.getValue()));
 	}
 	
 	@Override
 	public void writeString(String text) throws IOException,
 			JsonGenerationException {
+		countingJG.writeString(text);
+		checkDataSize();
 		push(new TextNode(text));
 	}
 	
@@ -338,6 +395,8 @@ public class KBaseJsonTreeGenerator extends JsonGenerator {
 	
 	@Override
 	public void flush() throws IOException {
+		countingJG.flush();
+		checkDataSize();
 		checkFlushObject();
 	}
 	

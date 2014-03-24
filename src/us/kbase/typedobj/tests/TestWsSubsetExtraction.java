@@ -202,7 +202,7 @@ public class TestWsSubsetExtraction {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		
-		JsonNode actualSubset = report.extractSearchableWsSubset();
+		JsonNode actualSubset = report.extractSearchableWsSubset(-1);
 		// we can just check if they are equal like so:
 		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
 		//		actualSubset.equals(expectedSubset));

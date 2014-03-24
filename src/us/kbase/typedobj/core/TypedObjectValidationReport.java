@@ -14,7 +14,7 @@ import java.util.Map;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.JsonTreeGenerator;
 import us.kbase.common.util.KeyDuplicationException;
 import us.kbase.common.util.SortedKeysJsonFile;
 import us.kbase.common.util.TooManyKeysException;
@@ -182,7 +182,7 @@ public class TypedObjectValidationReport {
 	 * not necessarily be the name in the current version of the object.
 	 */
 	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws RelabelIdReferenceException {
-		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(UObject.getMapper());
+		JsonTreeGenerator jgen = new JsonTreeGenerator(UObject.getMapper());
 		try {
 			relabelWsIdReferencesIntoGenerator(jgen);
 		} catch (IOException ex) {
@@ -323,7 +323,7 @@ public class TypedObjectValidationReport {
 	 * deep copy of the original instance if you intend to modify it and subset data has already
 	 * been extracted.
 	 */
-	public JsonNode extractSearchableWsSubset() {
+	public JsonNode extractSearchableWsSubset(long maxSubdataSize) {
 		if(!isInstanceValid()) {
 			return mapper.createObjectNode();
 		}
@@ -334,15 +334,20 @@ public class TypedObjectValidationReport {
 			keys_of = (ObjectNode)searchData.get("keys");
 			fields = (ObjectNode)searchData.get("fields");
 		}
+		TokenSequenceProvider tsp = null;
 		try {
-			TokenSequenceProvider tsp = createTokenSequenceForWsSubset();
-			JsonNode ret = SearchableWsSubsetExtractor.extractFields(tsp, keys_of, fields);
+			tsp = createTokenSequenceForWsSubset();
+			JsonNode ret = SearchableWsSubsetExtractor.extractFields(
+					tsp, keys_of, fields, maxSubdataSize);
 			tsp.close();
 			return ret;
 		} catch (RuntimeException ex) {
 			throw ex;
 		} catch (Exception ex) {
 			throw new IllegalStateException(ex);
+		} finally {
+			if (tsp != null)
+				try { tsp.close(); } catch (Exception ignore) {}
 		}
 	}
 

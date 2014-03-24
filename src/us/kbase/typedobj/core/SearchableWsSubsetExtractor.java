@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.JsonTreeGenerator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -41,7 +41,7 @@ public class SearchableWsSubsetExtractor {
 	 * a mapping or array.
 	 */
 	public static JsonNode extractFields(TokenSequenceProvider jts, 
-			ObjectNode keysOfSelection, ObjectNode fieldsSelection) 
+			ObjectNode keysOfSelection, ObjectNode fieldsSelection, long maxSubdataSize) 
 					throws IOException, TypedObjectExtractionException {
 		SearchableWsSubsetNode root = new SearchableWsSubsetNode();
 		//if the selection is empty, we return without adding anything
@@ -52,7 +52,8 @@ public class SearchableWsSubsetExtractor {
 		if ((!root.isNeedAll()) && (!root.isNeedKeys()) && (!root.hasChildren()))
 			return mapper.createObjectNode();
 		JsonToken t = jts.nextToken();
-		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(mapper);
+		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
+		jgen.setMaxDataSize(maxSubdataSize);
 		extractFieldsWithOpenToken(jts, t, root, jgen, new ArrayList<String>());
 		jgen.close();
 		return jgen.getTree();

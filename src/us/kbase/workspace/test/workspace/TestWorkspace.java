@@ -1450,7 +1450,7 @@ public class TestWorkspace extends WorkspaceTester {
 			fail("saved too big subdata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 subdata size 15000880 exceeds limit of 15000000"));
+					is("Object #1 subdata size exceeds limit of 15000000"));
 		}
 	}
 	

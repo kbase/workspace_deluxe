@@ -8,7 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import us.kbase.common.util.KBaseJsonTreeGenerator;
+import us.kbase.common.util.JsonTreeGenerator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -34,7 +34,7 @@ public class SubdataExtractor {
 	public static JsonNode extract(ObjectPaths objpaths, JsonNode input) 
 			throws IOException, TypedObjectExtractionException {
 		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
-		KBaseJsonTreeGenerator jgen = new KBaseJsonTreeGenerator(mapper);
+		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
 		extractFields(objpaths, tsp, jgen);
 		tsp.close();
 		jgen.close();
