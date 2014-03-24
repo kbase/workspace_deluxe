@@ -1593,8 +1593,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			
 			escapeSubdata(subdata);
-			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
-					o.getObjectIdentifier(), objnum, "subdata");
+//			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
+//					o.getObjectIdentifier(), objnum, "subdata");
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().createJsonWritable(),
