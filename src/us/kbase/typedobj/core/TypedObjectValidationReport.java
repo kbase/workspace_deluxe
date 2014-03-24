@@ -14,10 +14,10 @@ import java.util.Map;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.common.util.JsonTreeGenerator;
-import us.kbase.common.util.KeyDuplicationException;
-import us.kbase.common.util.SortedKeysJsonFile;
-import us.kbase.common.util.TooManyKeysException;
+import us.kbase.common.utils.JsonTreeGenerator;
+import us.kbase.common.utils.sortjson.KeyDuplicationException;
+import us.kbase.common.utils.sortjson.SortedKeysJsonFile;
+import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;

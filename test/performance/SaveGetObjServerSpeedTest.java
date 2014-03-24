@@ -27,6 +27,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -35,7 +36,6 @@ import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.CountingOutputStream;
 
 /* Simple test that saves a specified object multiple times to the workspace,
  * reads it back, and prints a summary.
