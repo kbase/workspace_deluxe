@@ -54,16 +54,16 @@ public class SaveGetObjServerSpeedTest {
 		String user = args[0];
 		String pwd = args[1];
 		List<TestSetup> tests = new LinkedList<SaveGetObjServerSpeedTest.TestSetup>();
-//		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
-//				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
 				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")));
+//		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+//				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
+//		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")));
 //		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 //		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
 		try {
-			timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7059"),
+			timeReadWrite(user, pwd, Arrays.asList(//new URL("http://localhost:7059"),
 					new URL("http://localhost:7058")), tests);
 		} catch (ServerException e) {
 			System.out.println(e);
@@ -82,6 +82,7 @@ public class SaveGetObjServerSpeedTest {
 		public String getFullTypeName();
 		public String getTypeSpec() throws IOException;
 		public long getObjectSize() throws Exception;
+		public boolean getSkipReads();
 	}
 	
 	public static class SpecAndObjectFromFile implements TestSetup {
@@ -95,6 +96,7 @@ public class SaveGetObjServerSpeedTest {
 		private final String module;
 		private final int writes;
 		private long size = -1;
+		private boolean skipReads = false;
 		
 		public SpecAndObjectFromFile(String testName, int writes, File object,
 				File typespec, String module, String type) {
@@ -157,6 +159,15 @@ public class SaveGetObjServerSpeedTest {
 			MAP.writeValue(cos, o);
 			return cos.getSize();
 		}
+		
+		public SpecAndObjectFromFile setSkipReads(boolean skip) {
+			skipReads = skip;
+			return this;
+		}
+		
+		public boolean getSkipReads() {
+			return skipReads;
+		}
 
 		@Override
 		public String toString() {
@@ -173,6 +184,7 @@ public class SaveGetObjServerSpeedTest {
 		private final File file;
 		private final int writes;
 		private long size = -1;
+		private boolean skipReads = false;
 		
 		public NoTypeChecking(String testName, int writes, File object) {
 			this.testName = testName;
@@ -229,6 +241,15 @@ public class SaveGetObjServerSpeedTest {
 			Map<String, Object> o = MAP.readValue(file, Map.class);
 			size = calcSize(o);
 			return size;
+		}
+		
+		public NoTypeChecking setSkipReads(boolean skip) {
+			this.skipReads = skip;
+			return this;
+		}
+		
+		public boolean getSkipReads() {
+			return skipReads;
 		}
 
 		private long calcSize(Map<String, Object> o) throws IOException,
@@ -397,21 +418,23 @@ public class SaveGetObjServerSpeedTest {
 			req.put("version", "1.1");
 			req.put("id", ("" + Math.random()).substring(2));
 			
-			start = System.nanoTime();
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setConnectTimeout(10000);
-			conn.setDoOutput(true);
-			conn.setRequestMethod("POST");
-			conn.setRequestProperty("Authorization", token.toString());
-			new ObjectMapper().writeValue(conn.getOutputStream(), req);
-			conn.getResponseCode();
-			InputStream is = conn.getInputStream();
-			int read = 1;
-			while (read > -1) {
-				read = is.read(b);
+			if (ts.getSkipReads()) {
+				start = System.nanoTime();
+				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+				conn.setConnectTimeout(10000);
+				conn.setDoOutput(true);
+				conn.setRequestMethod("POST");
+				conn.setRequestProperty("Authorization", token.toString());
+				new ObjectMapper().writeValue(conn.getOutputStream(), req);
+				conn.getResponseCode();
+				InputStream is = conn.getInputStream();
+				int read = 1;
+				while (read > -1) {
+					read = is.read(b);
+				}
+				is.close();
+				reads.add(System.nanoTime() - start);
 			}
-			is.close();
-			reads.add(System.nanoTime() - start);
 			
 //			start = System.nanoTime();
 //			ws.getObjects(Arrays.asList(
