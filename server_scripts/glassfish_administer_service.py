@@ -168,6 +168,7 @@ class CommandGlassfishDomain(object):
         else:
             print('Unexpected response from server - the server did not ' +
                   'start up successfully. Please check the glassfish logs.')
+            return
         if '32603' in resp:
             print('The server failed to start up successfully and is ' +
                   'running in protected mode. Please check the system and ' +
