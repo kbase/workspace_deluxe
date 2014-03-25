@@ -102,7 +102,7 @@ public class GetObjectsLibSpeedTest {
 			int reps, String objfile) throws Exception {
 		
 		byte[] f = Files.readAllBytes(Paths.get(objfile));
-		JsonTokenStream jts = new JsonTokenStream(f, false);
+		JsonTokenStream jts = new JsonTokenStream(f);  //, false);
 		
 		System.out.println("JsonTokenStream initialized. Start profiler, then hit enter to continue");
 		Scanner s = new Scanner(System.in);
