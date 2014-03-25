@@ -62,7 +62,7 @@ public class JsonTokenValidatorTest {
 			}
 			jgen.close();
 			long time = System.currentTimeMillis();
-			JsonTokenStream jp = new JsonTokenStream(f, buffer);
+			JsonTokenStream jp = new JsonTokenStream(f);  //, buffer);
 			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)));
 			Assert.assertTrue(report.isInstanceValid());

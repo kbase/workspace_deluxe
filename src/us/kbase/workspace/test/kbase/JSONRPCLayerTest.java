@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -525,6 +526,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNoTempFilesExist();
 	}
 
+	@Test
+	public void saveObjectsWithLargeString() throws Exception {
+		String wsName = "largestring";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(wsName));
+		String largeString = generateLargeString(1234567);  // longer than 1 megabyte
+		Map<String, Object> data = new LinkedHashMap<String, Object>();
+		data.put("z", "1");
+		data.put("thing", largeString);  // data is not sorted
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(wsName)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withName("obj1").withType(SAFE_TYPE).withData(new UObject(data)),
+						new ObjectSaveData().withName("obj2").withType(SAFE_TYPE).withData(new UObject(data)))));
+		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
+				new ObjectIdentity().withRef(wsName + "/obj2"),
+				new ObjectIdentity().withRef(wsName + "/obj1")));
+		for (ObjectData obj : ret) {
+			String largeString2 = (String)obj.getData().asClassInstance(Map.class).get("thing");
+			if (!largeString2.equals(largeString))
+				Assert.fail("Observed large string is: " + largeString2);
+		}
+	}
+	
+	private static String generateLargeString(int length) {
+		char[] chars = new char[length];
+		for (int i = 0; i < length; i++)
+			chars[i] = (char)(32 + (i % (127 - 32)));
+		return new String(chars);
+	}
+	
 	@Test
 	public void saveAndGetObjects() throws Exception {
 		
