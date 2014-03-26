@@ -140,28 +140,35 @@ public final class TypedObjectValidator {
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
 			JsonTokenValidationSchema schema = JsonTokenValidationSchema.parseJsonSchema(schemaText);
-			schema.checkJsonData(obj.getPlacedStream(), new JsonTokenValidationListener() {
-				int errorCount = 0;
-				@Override
-				public void addError(String message) throws JsonTokenValidationException {
-					errorCount++;
-					if (errorCount < maxErrorCount) {
-						errors.add(message);
-					} else {
-						throw new JsonTokenValidationException(message);
+			if (!schema.getOriginalType().equals("kidl-structure"))
+				throw new IllegalStateException("Data of type other than structure couldn't be stored in workspace");
+			JsonTokenStream jts = obj.getPlacedStream();
+			try {
+				schema.checkJsonData(jts, new JsonTokenValidationListener() {
+					int errorCount = 0;
+					@Override
+					public void addError(String message) throws JsonTokenValidationException {
+						errorCount++;
+						if (errorCount < maxErrorCount) {
+							errors.add(message);
+						} else {
+							throw new JsonTokenValidationException(message);
+						}
 					}
-				}
-				
-				@Override
-				public void addIdRefMessage(WsIdReference ref) {
-					oldRefIds.add(ref);
-				}
-				
-				@Override
-				public void addSearchableWsSubsetMessage(JsonNode searchData) {
-					searchDataWrap[0] = searchData;
-				}
-			}, idRefTree);
+
+					@Override
+					public void addIdRefMessage(WsIdReference ref) {
+						oldRefIds.add(ref);
+					}
+
+					@Override
+					public void addSearchableWsSubsetMessage(JsonNode searchData) {
+						searchDataWrap[0] = searchData;
+					}
+				}, idRefTree);
+			} finally {
+				try { jts.close(); } catch (Exception ignore) {}
+			}
 		} catch (Exception ex) {
 			errors.add(ex.getMessage());
 		}

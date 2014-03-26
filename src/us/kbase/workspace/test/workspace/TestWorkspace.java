@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 
 import junit.framework.Assert;
 
@@ -797,6 +798,153 @@ public class TestWorkspace extends WorkspaceTester {
 		
 		ws.setWorkspaceDeleted(foo, read, false);
 		ws.setGlobalPermission(foo, read, Permission.NONE);
+	}
+
+	@Test
+	public void saveNonStructuralObjects() throws Exception {
+		String module = "TestNonStruct";
+		String spec =
+				"module " + module + " {" +
+					"typedef string type1;" +
+					"typedef list<string> type2;" +
+					"typedef mapping<string, string> type3;" +
+					"typedef tuple<string, string> type4;" +
+					"typedef structure { string val; } type5;" +
+				"};";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, module);
+		ws.resolveModuleRegistration(module, true);
+		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList(
+				"type1", "type2", "type3", "type4", "type5"), 
+				null, null, false, null);
+		TypeDefId abstype1 = new TypeDefId(new TypeDefName(module, "type1"), 0, 1);
+		TypeDefId abstype2 = new TypeDefId(new TypeDefName(module, "type2"), 0, 1);
+		TypeDefId abstype3 = new TypeDefId(new TypeDefName(module, "type3"), 0, 1);
+		TypeDefId abstype4 = new TypeDefId(new TypeDefName(module, "type4"), 0, 1);
+		TypeDefId abstype5 = new TypeDefId(new TypeDefName(module, "type5"), 0, 1);
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("nonstruct");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		Map<String, String> data3 = new HashMap<String, String>();
+		data3.put("val", "2");
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject("data1", abstype1, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+		}
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(Arrays.asList("data2"), 
+							abstype2, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+		}
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+		}
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(Arrays.asList("data4", "data4"), 
+							abstype4, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+		}
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data3, abstype5, null, emptyprov, false)));
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void saveNulls() throws Exception {
+		String module = "TestNull";
+		String spec =
+				"module " + module + " {" +
+					"typedef structure { " +
+					"  string val1; " +
+					"  int val2; " +
+					"  float val3; " +
+					"} type1; " +
+					"typedef structure { " +
+					"  list<string> val; " +
+					"} type2;" +
+					"typedef structure { " +
+					"  mapping<string,string> val; " +
+					"} type3;" +
+					"typedef structure { " +
+					"  tuple<string,string> val; " +
+					"} type4;" +
+				"};";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, module);
+		ws.resolveModuleRegistration(module, true);
+		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList("type1", "type2", "type3", "type4"), 
+				null, null, false, null);
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("nulls");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		TypeDefId abstype1 = new TypeDefId(new TypeDefName(module, "type1"), 0, 1);
+		TypeDefId abstype2 = new TypeDefId(new TypeDefName(module, "type2"), 0, 1);
+		TypeDefId abstype3 = new TypeDefId(new TypeDefName(module, "type3"), 0, 1);
+		TypeDefId abstype4 = new TypeDefId(new TypeDefName(module, "type4"), 0, 1);
+		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
+		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
+		data1.put("val3", null);
+		data1.put("val2", null);
+		data1.put("val1", null);
+		Assert.assertEquals(keys, new TreeSet<String>(data1.keySet()));
+		Assert.assertTrue(data1.containsKey("val1"));
+		Assert.assertNull(data1.get("val1"));
+		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false))).get(0).getObjectId();
+		Map<String, Object> data1copy = (Map<String, Object>)ws.getObjects(userfoo, Arrays.asList(
+				new ObjectIdentifier(wspace, data1id))).get(0).getData();
+		Assert.assertEquals(keys, new TreeSet<String>(data1copy.keySet()));
+		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
+		try {
+			data2.put("val", null);
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
+		}
+		data2.put("val", Arrays.asList((String)null));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)));
+		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
+		try {
+			data3.put("val", null);
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
+		}
+		Map<String, Object> innerMap = new LinkedHashMap<String, Object>();
+		innerMap.put("key", null);
+		data3.put("val", innerMap);
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)));
+		Map<String, Object> data4 = new LinkedHashMap<String, Object>();
+		try {
+			data4.put("val", null);
+			ws.saveObjects(userfoo, wspace, Arrays.asList(
+					new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)));
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
+		}
+		data4.put("val", Arrays.asList((String)null, (String)null));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)));
 	}
 
 	@Test

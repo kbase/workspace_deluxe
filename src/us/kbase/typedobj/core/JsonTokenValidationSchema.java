@@ -29,7 +29,7 @@ public class JsonTokenValidationSchema {
 	private String id;									// For all: id
 	//private String description;						// For all: description
 	private Type type;									// For all: type
-	//private String originalType;						// For all: original-type
+	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
@@ -58,7 +58,7 @@ public class JsonTokenValidationSchema {
 		ret.id = (String)data.get("id");
 		//ret.description = (String)data.get("description");
 		ret.type = Type.valueOf("" + data.get("type"));
-		//ret.originalType = (String)data.get("original-type");
+		ret.originalType = (String)data.get("original-type");
 		if (data.containsKey("id-reference")) {
 			Map<String, Object> idInfo = (Map<String, Object>)data.get("id-reference");
 			String idType = (String)idInfo.get("id-type");           // the id-type must be defined
@@ -164,7 +164,7 @@ public class JsonTokenValidationSchema {
 				JsonToken t = jp.getCurrentToken();
 				if (t == null || t != JsonToken.START_OBJECT) {
 					// we expect mapping (object) but in real data we observe token of different type 
-					throw new JsonTokenValidationException("Object start is expected but found " + t);
+					throw new JsonTokenValidationException(generateError(type, t, path));
 				}
 				// flags for usage (true) or not usage (false) of fields having positions in this 
 				// array coded in objectRequired map
@@ -293,8 +293,10 @@ public class JsonTokenValidationSchema {
 		} else if (type == Type.string) {
 			// string value is expecting
 			JsonToken t = jp.getCurrentToken();
-			if (t != JsonToken.VALUE_STRING)	// but found something else
-				lst.addError(generateError(type, t, path));
+			if (t != JsonToken.VALUE_STRING) {	// but found something else
+				if (t != JsonToken.VALUE_NULL || idReference != null)	// we allow nulls but not for references
+					lst.addError(generateError(type, t, path));
+			}
 			if (idReference != null) {
 				// we can add this string value as requiring id-reference relabeling in case 
 				// there was defined idReference property in json-schema node describing this 
@@ -310,12 +312,12 @@ public class JsonTokenValidationSchema {
 		} else if (type == Type.integer) {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
-			if (t != JsonToken.VALUE_NUMBER_INT)	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
 		} else if (type == Type.number) {
 			// floating point value is expected
 			JsonToken t = jp.getCurrentToken();
-			if (t != JsonToken.VALUE_NUMBER_FLOAT)	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
 		} else {
 			lst.addError("Unsupported node type: " + type);
@@ -421,6 +423,10 @@ public class JsonTokenValidationSchema {
 	
 	public Type getType() {
 		return type;
+	}
+	
+	public String getOriginalType() {
+		return originalType;
 	}
 	
 	public String getIdReferenceType() {
