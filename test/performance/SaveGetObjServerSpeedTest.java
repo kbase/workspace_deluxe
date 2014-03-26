@@ -54,17 +54,17 @@ public class SaveGetObjServerSpeedTest {
 		String user = args[0];
 		String pwd = args[1];
 		List<TestSetup> tests = new LinkedList<SaveGetObjServerSpeedTest.TestSetup>();
-		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
-				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-//		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+//		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-//		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")));
+		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")).setSkipWrites(true));
+		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome").setSkipWrites(true));
 //		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 //		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
 		try {
-			timeReadWrite(user, pwd, Arrays.asList(//new URL("http://localhost:7059"),
-					new URL("http://localhost:7058")), tests);
+			timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7058"),
+					new URL("http://localhost:7059")), tests);
 		} catch (ServerException e) {
 			System.out.println(e);
 			System.out.println(e.getCode());
@@ -83,6 +83,7 @@ public class SaveGetObjServerSpeedTest {
 		public String getTypeSpec() throws IOException;
 		public long getObjectSize() throws Exception;
 		public boolean getSkipReads();
+		public boolean getSkipWrites();
 	}
 	
 	public static class SpecAndObjectFromFile implements TestSetup {
@@ -97,6 +98,7 @@ public class SaveGetObjServerSpeedTest {
 		private final int writes;
 		private long size = -1;
 		private boolean skipReads = false;
+		private boolean skipWrites = false;
 		
 		public SpecAndObjectFromFile(String testName, int writes, File object,
 				File typespec, String module, String type) {
@@ -168,11 +170,23 @@ public class SaveGetObjServerSpeedTest {
 		public boolean getSkipReads() {
 			return skipReads;
 		}
+		
+		public SpecAndObjectFromFile setSkipWrites(boolean skip) {
+			skipWrites = skip;
+			return this;
+		}
+		
+		public boolean getSkipWrites() {
+			return skipWrites;
+		}
 
 		@Override
 		public String toString() {
-			return "SpecAndObjectFromFile [type=" + type + ", module=" + module
-					+ ", writes=" + writes + ", size=" + size + "]";
+			return "SpecAndObjectFromFile [testName=" + testName + ", file="
+					+ file + ", type=" + type + ", typespec=" + typespec
+					+ ", module=" + module + ", writes=" + writes + ", size="
+					+ size + ", skipReads=" + skipReads + ", skipWrites="
+					+ skipWrites + "]";
 		}
 	}
 	
@@ -185,6 +199,7 @@ public class SaveGetObjServerSpeedTest {
 		private final int writes;
 		private long size = -1;
 		private boolean skipReads = false;
+		private boolean skipWrites = false;
 		
 		public NoTypeChecking(String testName, int writes, File object) {
 			this.testName = testName;
@@ -251,6 +266,15 @@ public class SaveGetObjServerSpeedTest {
 		public boolean getSkipReads() {
 			return skipReads;
 		}
+		
+		public NoTypeChecking setSkipWrites(boolean skip) {
+			skipWrites = skip;
+			return this;
+		}
+		
+		public boolean getSkipWrites() {
+			return skipWrites;
+		}
 
 		private long calcSize(Map<String, Object> o) throws IOException,
 				JsonGenerationException, JsonMappingException {
@@ -261,8 +285,9 @@ public class SaveGetObjServerSpeedTest {
 
 		@Override
 		public String toString() {
-			return "NoTypeChecking [testName=" + testName + ", writes="
-					+ writes + ", size=" + size + "]";
+			return "NoTypeChecking [testName=" + testName + ", file=" + file
+					+ ", writes=" + writes + ", size=" + size + ", skipReads="
+					+ skipReads + ", skipWrites=" + skipWrites + "]";
 		}
 	}
 	
@@ -394,22 +419,30 @@ public class SaveGetObjServerSpeedTest {
 		Map<String, Object> obj = ts.getObject();
 		String type = ts.getFullTypeName();
 		ObjectSaveData osd = new ObjectSaveData().withData(new UObject(obj))
-				.withType(type);
+				.withType(type).withName("skipwrites");
 		
 		System.out.println(String.format("Reading and writing %s objects of type %s, size %s",
 				ts.getWrites(), ts.getFullTypeName(), ts.getObjectSize()));
-		
+		if (ts.getSkipWrites()) {
+			ws.saveObjects(new SaveObjectsParams().withWorkspace(WORKSPACE_NAME)
+					.withObjects(Arrays.asList(osd)));
+		}
 		byte[] b = new byte[10000000];
 		List<Long> writes = new LinkedList<Long>();
 		List<Long> reads = new LinkedList<Long>();
 		for (int i = 0; i < ts.getWrites(); i++) {
-			String name = "test-obj" + i;
-			obj.put("fakekeyaddededforperftesting", Math.random()); //ensures save to backend since MD5 will be different
-			osd.withName(name);
-			long start = System.nanoTime();
-			ws.saveObjects(new SaveObjectsParams().withWorkspace(WORKSPACE_NAME)
-					.withObjects(Arrays.asList(osd)));
-			writes.add(System.nanoTime() - start);
+			String name;
+			if (!ts.getSkipWrites()) {
+				name = "test-obj" + i;
+				obj.put("fakekeyaddededforperftesting", Math.random()); //ensures save to backend since MD5 will be different
+				osd.withName(name);
+				long start = System.nanoTime();
+				ws.saveObjects(new SaveObjectsParams().withWorkspace(WORKSPACE_NAME)
+						.withObjects(Arrays.asList(osd)));
+				writes.add(System.nanoTime() - start);
+			} else {
+				name = "skipwrites";
+			}
 			
 			Map<String, Object> req = new HashMap<String, Object>();
 			req.put("params", Arrays.asList(Arrays.asList(new ObjectIdentity()
@@ -418,8 +451,8 @@ public class SaveGetObjServerSpeedTest {
 			req.put("version", "1.1");
 			req.put("id", ("" + Math.random()).substring(2));
 			
-			if (ts.getSkipReads()) {
-				start = System.nanoTime();
+			if (!ts.getSkipReads()) {
+				long start = System.nanoTime();
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 				conn.setConnectTimeout(10000);
 				conn.setDoOutput(true);
