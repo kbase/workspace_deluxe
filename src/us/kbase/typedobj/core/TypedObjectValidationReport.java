@@ -212,7 +212,7 @@ public class TypedObjectValidationReport {
 				}
 			};
 			JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
-			boolean sorted = relabelWsIdReferencesIntoGenerator(jgen);
+			boolean sorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
 			jgen.close();
 			jgen = null;
 			if (!sorted) {
@@ -264,21 +264,47 @@ public class TypedObjectValidationReport {
 	}
 	
 	private void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
-		JsonGenerator jgen = new JsonFactory().createGenerator(os);
-		relabelWsIdReferencesIntoGenerator(jgen);
-		jgen.flush();
+		relabelWsIdReferencesIntoGenerator(new JsonFactory().createGenerator(os));
+	}
+
+	private void relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
+		TokenSequenceProvider tsp = createIdRefTokenSequenceProvider();
+		try {
+			new JsonTokenStreamWriter().writeTokens(tsp, jgen);
+			jgen.flush();
+		} finally {
+			tsp.close();
+		}
 	}
 	
-	private IdRefTokenSequenceProvider createIdRefTokenSequenceProvider() throws IOException {
-		final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+	private TokenSequenceProvider createIdRefTokenSequenceProvider() throws IOException {
+		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+		if (absoluteIdRefMapping.isEmpty())
+			return makeTSPfromJTS(jts);
 		return new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
 	}
 	
-	private boolean relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
-		IdRefTokenSequenceProvider idSubst = createIdRefTokenSequenceProvider();
-		new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
-		idSubst.close();
-		return idSubst.isSorted();
+	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(JsonGenerator jgen) throws IOException {
+		TokenSequenceProvider tsp = null;
+		try {
+			if (absoluteIdRefMapping.isEmpty()) {
+				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+				SortCheckingTokenSequenceProvider sortCheck = new SortCheckingTokenSequenceProvider(jts);
+				tsp = sortCheck;
+				new JsonTokenStreamWriter().writeTokens(sortCheck, jgen);
+				return sortCheck.isSorted();
+			} else {
+				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
+				tsp = idSubst;
+				new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
+				idSubst.close();
+				return idSubst.isSorted();
+			}
+		} finally {
+			if (tsp != null)
+				tsp.close();
+		}
 	}
 	
 	/*
@@ -292,27 +318,31 @@ public class TypedObjectValidationReport {
 		if (cacheForSorting != null || fileForSorting != null) {
 			final JsonTokenStream afterSort = new JsonTokenStream(
 					cacheForSorting != null ? cacheForSorting : fileForSorting);
-			return new TokenSequenceProvider() {
-				@Override
-				public JsonToken nextToken() throws IOException, JsonParseException {
-					return afterSort.nextToken();
-				}
-				@Override
-				public String getText() throws IOException, JsonParseException {
-					return afterSort.getText();
-				}
-				@Override
-				public Number getNumberValue() throws IOException, JsonParseException {
-					return afterSort.getNumberValue();
-				}
-				@Override
-				public void close() throws IOException {
-					afterSort.close();
-				}
-			};
+			return makeTSPfromJTS(afterSort);
 		} else {
 			return createIdRefTokenSequenceProvider();
 		}
+	}
+
+	private TokenSequenceProvider makeTSPfromJTS(final JsonTokenStream jts) {
+		return new TokenSequenceProvider() {
+			@Override
+			public JsonToken nextToken() throws IOException, JsonParseException {
+				return jts.nextToken();
+			}
+			@Override
+			public String getText() throws IOException, JsonParseException {
+				return jts.getText();
+			}
+			@Override
+			public Number getNumberValue() throws IOException, JsonParseException {
+				return jts.getNumberValue();
+			}
+			@Override
+			public void close() throws IOException {
+				jts.close();
+			}
+		};
 	}
 	
 	/**
