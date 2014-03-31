@@ -6258,6 +6258,94 @@ sub remove_module_ownership
 
 
 
+=head2 list_all_types
+
+  $return = $obj->list_all_types($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.ListAllTypesParams
+$return is a reference to a hash where the key is a string and the value is a reference to a hash where the key is a string and the value is a string
+ListAllTypesParams is a reference to a hash where the following keys are defined:
+	with_empty_modules has a value which is a Workspace.boolean
+boolean is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.ListAllTypesParams
+$return is a reference to a hash where the key is a string and the value is a reference to a hash where the key is a string and the value is a string
+ListAllTypesParams is a reference to a hash where the following keys are defined:
+	with_empty_modules has a value which is a Workspace.boolean
+boolean is an int
+
+
+=end text
+
+=item Description
+
+List all released types with released version from all modules. Return
+mapping from module name to mapping from type name to released type version.
+
+=back
+
+=cut
+
+sub list_all_types
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_all_types (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_all_types:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_all_types');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.list_all_types",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'list_all_types',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_all_types",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_all_types',
+				       );
+    }
+}
+
+
+
 =head2 administer
 
   $response = $obj->administer($command)
@@ -9420,6 +9508,44 @@ old_owner has a value which is a Workspace.username
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
 old_owner has a value which is a Workspace.username
+
+
+=end text
+
+=back
+
+
+
+=head2 ListAllTypesParams
+
+=over 4
+
+
+
+=item Description
+
+Parameters for list_all_types function.
+
+boolean with_empty_modules - include empty module names, optional flag, 
+        default value is false.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+with_empty_modules has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+with_empty_modules has a value which is a Workspace.boolean
 
 
 =end text

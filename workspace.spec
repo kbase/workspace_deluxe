@@ -1494,7 +1494,22 @@ module Workspace {
 	*/
 	funcdef remove_module_ownership(RemoveModuleOwnershipParams params) 
 		returns () authentication required;
+	
+	/* Parameters for list_all_types function.
 		
+		boolean with_empty_modules - include empty module names, optional flag, 
+			default value is false.
+	*/
+	typedef structure {
+		boolean with_empty_modules;
+	} ListAllTypesParams;
+	
+	/* List all released types with released version from all modules. Return
+		mapping from module name to mapping from type name to released type version.
+	*/
+	funcdef list_all_types(ListAllTypesParams params)
+		returns (mapping<string, mapping<string, string>>) authentication optional;
+	
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
 		returns(UnspecifiedObject response) authentication required;

@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -327,9 +328,19 @@ public class JSONRPCLayerTester {
 	}
 	
 	protected void assertNoTempFilesExist() throws Exception {
-		for (TempFilesManager tfm: tfms) {
-			assertThat("no tempfiles exist", tfm.isEmpty(), is(true));
+		try {
+			for (TempFilesManager tfm: tfms) {
+				assertThat("no tempfiles exist", tfm.isEmpty(), is(true));
+			}
+		} finally {
+			for (TempFilesManager tfm: tfms)
+				tfm.cleanup();
 		}
+	}
+	
+	@After
+	public void cleanupTempFilesAfterTest() throws Exception {
+		assertNoTempFilesExist();
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
