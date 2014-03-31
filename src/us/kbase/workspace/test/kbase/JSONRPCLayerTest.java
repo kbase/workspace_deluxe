@@ -36,6 +36,7 @@ import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ListObjectsParams;
@@ -2673,5 +2674,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			.withDryrun(0L)
 			.withSpec("module TestModule2{ typedef int IntegerType;};"));
 		assertNoTempFilesExist();
+	}
+	
+	@Test
+	public void testListAllTypes() throws Exception {
+		Assert.assertTrue(CLIENT1.listAllTypes(new ListAllTypesParams().withWithEmptyModules(1L)).containsKey("RefSpec"));
+		Map<String, Map<String, String>> types = CLIENT1.listAllTypes(new ListAllTypesParams());
+		Assert.assertFalse(types.containsKey("RefSpec"));
+		Assert.assertTrue(types.containsKey("SomeModule"));
+		Assert.assertEquals("1.0", types.get("SomeModule").get("AType"));
 	}
 }

@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -1217,6 +1218,20 @@ public class Workspace {
 	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user, 
 			boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
 		typedb.removeOwnerFromModule(getUser(user), moduleName, oldOwner, isAdmin);
+	}
+	
+	public Map<String, Map<String, String>> listAllTypes(boolean withEmptyModules) 
+			throws TypeStorageException, NoSuchModuleException {
+		Map<String, Map<String, String>> ret = new TreeMap<String, Map<String, String>>();
+		for (String moduleName : typedb.getAllRegisteredModules()) {
+			Map<String, String> typeMap = new TreeMap<String, String>();
+			for (String key : typedb.getModuleInfo(moduleName).getTypes().keySet())
+				typeMap.put(typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeName(), 
+						typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeVersion());
+			if (withEmptyModules || !typeMap.isEmpty())
+				ret.put(moduleName, typeMap);
+		}
+		return ret;
 	}
 	
 	/* these admin functions are provided as a convenience and have nothing

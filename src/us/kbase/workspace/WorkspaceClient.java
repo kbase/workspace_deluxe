@@ -78,9 +78,13 @@ public class WorkspaceClient {
         caller = new JsonClientCaller(DEFAULT_URL, user, password);
     }
 
-	public void setConnectionReadTimeOut(Integer milliseconds) {
-		this.caller.setConnectionReadTimeOut(milliseconds);
-	}
+    public URL getURL() {
+        return caller.getURL();
+    }
+
+    public void setConnectionReadTimeOut(Integer milliseconds) {
+        this.caller.setConnectionReadTimeOut(milliseconds);
+    }
 
     public boolean isAuthAllowedForHttp() {
         return caller.isAuthAllowedForHttp();
@@ -90,9 +94,13 @@ public class WorkspaceClient {
         caller.setAuthAllowedForHttp(isAuthAllowedForHttp);
     }
 
-	public void _setFileForNextRpcResponse(File f) {
-		caller.setFileForNextRpcResponse(f);
-	}
+    public AuthToken getToken() {
+        return caller.getToken();
+    }
+
+    public void _setFileForNextRpcResponse(File f) {
+        caller.setFileForNextRpcResponse(f);
+    }
 
     /**
      * <p>Original spec-file function name: ver</p>
@@ -1086,6 +1094,25 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: list_all_types</p>
+     * <pre>
+     * List all released types with released version from all modules. Return
+     * mapping from module name to mapping from type name to released type version.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListAllTypesParams ListAllTypesParams}
+     * @return   instance of mapping from String to mapping from String to String
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public Map<String,Map<String,String>> listAllTypes(ListAllTypesParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<Map<String,Map<String,String>>>> retType = new TypeReference<List<Map<String,Map<String,String>>>>() {};
+        List<Map<String,Map<String,String>>> res = caller.jsonrpcCall("Workspace.list_all_types", args, retType, true, false);
+        return res.get(0);
     }
 
     /**
