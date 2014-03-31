@@ -106,9 +106,9 @@ configure-scripts:
 
 # only deploy scripts to the dev_container bin if we are in dev_container
 ifeq ($(TOP_DIR_NAME), dev_container)
-scriptbin: $(BIN_PERL)
+scriptbin: $(BIN_PERL) configure-scripts
 else
-scriptbin:
+scriptbin: configure-scripts
 endif
 
 test: test-client test-service test-scripts
