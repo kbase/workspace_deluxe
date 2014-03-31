@@ -2,6 +2,7 @@ package Bio::KBase::workspace::ScriptHelpers;
 use strict;
 use warnings;
 use Bio::KBase::workspace::Client;
+use Bio::KBase::workspace::ScriptConfig;
 use Bio::KBase::Auth;
 use Exporter;
 use Config::Simple;
@@ -22,9 +23,11 @@ our @EXPORT_OK = qw(	loadTableFile
 			parseObjectInfo
 			printObjectInfo);
 
-our $defaultURL = "https://kbase.us/services/ws";
-our $localhostURL = "http://127.0.0.1:7058";
-our $devURL = "http://140.221.84.209:7058";
+## URLs are now set in Bio::KBase::workspace::ScriptUrl:ScriptConfig; this module
+## is generated and configurable from the makefile target "set-default-script-url"
+## our $defaultURL = "https://kbase.us/services/ws";
+##our $localhostURL = "http://127.0.0.1:7058";
+##our $devURL = "http://140.221.84.209:7058";
 
 
 sub get_ws_client {
@@ -65,7 +68,7 @@ sub getKBaseCfg {
 	my $kbConfPath = $Bio::KBase::Auth::ConfPath;
 	if (!-e $kbConfPath) {
 		my $newcfg = new Config::Simple(syntax=>'ini') or die Config::Simple->error();
-		$newcfg->param("workspace_deluxe.url",$defaultURL);
+		$newcfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptUrl::defaultURL);
 		$newcfg->write($kbConfPath);
 		$newcfg->close();
 	}
@@ -120,13 +123,13 @@ sub workspaceURL {
 	if (defined($newUrl)) {
 		
 		if ($newUrl eq "default") {
-			$newUrl = $defaultURL;
+			$newUrl = $Bio::KBase::workspace::ScriptConfig::defaultURL;
 		} elsif ($newUrl eq "prod") {
-			$newUrl = $defaultURL;
+			$newUrl = $Bio::KBase::workspace::ScriptConfig::defaultURL;
 		}elsif ($newUrl eq "localhost") {
-			$newUrl = $localhostURL;
+			$newUrl = $Bio::KBase::workspace::ScriptConfig::localhostURL;
 		} elsif ($newUrl eq "dev") {
-			$newUrl = $devURL;
+			$newUrl = $Bio::KBase::workspace::ScriptConfig::devURL;
 		}
 		
 		$currentURL = $newUrl;
@@ -143,9 +146,9 @@ sub workspaceURL {
 			my $cfg = getKBaseCfg();
 			$currentURL = $cfg->param("workspace_deluxe.url");
 			if (!defined($currentURL)) {
-				$cfg->param("workspace_deluxe.url",$defaultURL);
+				$cfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptUrl::defaultURL);
 				$cfg->save();
-				$currentURL=$defaultURL;
+				$currentURL=$Bio::KBase::workspace::ScriptUrl::defaultURL;
 			}
 			$cfg->close();
 		} else { #elsif (defined($ENV{KB_WORKSPACEURL})) {
@@ -312,39 +315,6 @@ sub printWorkspaceMeta {
 	print "User permission: ".$obj->{user_permission}."\n";
 	print "Global permission:".$obj->{global_permission}."\n";
 }
-
-#
-# Job monitering does not happen in WS anymore, so this is not needed....
-#sub printJobData {
-#	my $job = shift;
-#	print "Job ID: ".$job->{id}."\n";
-#	print "Job Type: ".$job->{type}."\n";
-#	print "Job Owner: ".$job->{owner}."\n";
-#	print "Command: ".$job->{queuecommand}."\n";
-#	print "Queue time: ".$job->{queuetime}."\n";
-#	if (defined($job->{starttime})) {
-#		print "Start time: ".$job->{starttime}."\n";
-#	}
-#	if (defined($job->{completetime})) {
-#		print "Complete time: ".$job->{completetime}."\n";
-#	}
-#	print "Job Status: ".$job->{status}."\n";
-#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{model_workspace})) {
-#		print "Model: ".$job->{jobdata}->{postprocess_args}->[0]->{model_workspace}."/".$job->{jobdata}->{postprocess_args}->[0]->{model}."\n";
-#	}
-#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media})) {
-#		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{formulation}->{media}."\n";
-#	}
-#	if (defined($job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media})) {
-#		print "Media: ".$job->{jobdata}->{postprocess_args}->[0]->{formulation}->{media}."\n";
-#	}
-#	if (defined($job->{jobdata}->{qsubid})) {
-#		print "Qsub ID: ".$job->{jobdata}->{qsubid}."\n";
-#	}
-#	if (defined($job->{jobdata}->{error})) {
-#		print "Error: ".$job->{jobdata}->{error}."\n";
-#	}
-#}
 
 sub loadTableFile {
 	my ($filename) = @_;
