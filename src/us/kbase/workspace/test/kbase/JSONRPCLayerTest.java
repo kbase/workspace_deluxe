@@ -91,7 +91,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						.withWorkspace("foo"));
 		checkWS(info, info.getE1(), info.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", meta);
 		checkWS(infoget, info.getE1(), info.getE4(), "foo", USER1, 0, "a", "r", "unlocked", "boogabooga", meta);
-		assertNoTempFilesExist();
 	}
 		
 	@Test
@@ -115,7 +114,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("wsdesc").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -157,7 +155,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("gl1").withNewPermission("n"));
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("gl2").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -169,7 +166,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("RPC method requires authentication but neither user nor token was set"));
 		}
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -218,7 +214,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 		.withWorkspace("badperms").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -304,7 +299,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("permspriv").withNewPermission("n"));
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("permsglob").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -316,7 +310,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Must provide one and only one of workspace name (was: null) or id (was: null)"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -385,8 +378,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace(ws).withNewPermission("n"));
-
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -452,7 +443,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("savebadpkg").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -524,7 +514,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("provenance").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -765,7 +754,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		//clean up
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("saveget").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -917,7 +905,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
 				.withWorkspace("depsave").withAuth(badFormatToken),
 				badFormatTokenExp);
-		assertNoTempFilesExist();
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -1208,8 +1195,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception", se.getLocalizedMessage(),
 					is("Metadata size of 16119 is > 16000 bytes"));
 		}
-		assertNoTempFilesExist();
-		
 	}
 
 	@Test
@@ -1273,7 +1258,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("correct ref parse/rewrite", refs.get("ref4"), is(wsid + "/2/1"));
 		assertThat("correct refs returned", new HashSet<String>(od.getRefs()),
 				is(expectedRefs));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1322,7 +1306,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 		CLIENT1.saveObjects(soc);
 		checkData(loi, data);
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1369,7 +1352,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("Unexpected arguments in CopyObjectParams: foo"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1433,7 +1415,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1476,7 +1457,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("r"));
 		checkWS(CLIENT1.getWorkspaceInfo(wsi), wsid, info.getE4(), "lock",
 				USER1, 1, "a", "r", "published", null, meta);
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1502,7 +1482,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failObjRename(new RenameObjectParams().withNewName("foo")
 				.withObj(new ObjectIdentity().withName("foo")),
 				"Must provide one and only one of workspace name (was: null) or id (was: null)");
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -1527,7 +1506,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failWSRename(rwp, "Unexpected arguments in RenameWorkspaceParams: foo");
 		failWSRename(new RenameWorkspaceParams().withWsi(new WorkspaceIdentity()
 				.withWorkspace("newrenameWS")), "Workspace name cannot be null or the empty string");
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -1564,8 +1542,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failSetGlobalPerm(sgppgen.withNewPermission("r").withId(wsinfo.getE1()),
 				"Must provide one and only one of workspace name (was: setglobal) or id (was: " +
 				wsinfo.getE1() + ")");
-		assertNoTempFilesExist();
-	
 	}
 
 	@Test
@@ -1605,8 +1581,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Error on ObjectIdentity #1: Must provide one and only one of object name (was: null) or id (was: null)");
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj").withName("wootwoot"),
 				"No object with name wootwoot exists in workspace " + wsid);
-		assertNoTempFilesExist();
-		
 	}
 
 	@Test
@@ -1726,7 +1700,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is("Unexpected arguments in ListWorkspaceInfoParams: booga"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1764,7 +1737,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(w2), Arrays.asList(w1, w3), true);
 		
 		failListWorkspaceByDate("crappy date", "Unparseable date: \"crappy date\"");
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1962,7 +1934,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -1992,7 +1963,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				0L, 0L, 4000000000L, 1L, "Skip can be no greater than 2147483647");
 		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
 				0L, 0L, 1L, 4000000000L, "Limit can be no greater than 2147483647");
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2033,7 +2003,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
 		
 		failListObjectsByDate("crappy obj date", "Unparseable date: \"crappy obj date\"");
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2100,7 +2069,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("subdata").withNewPermission("n"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2133,7 +2101,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
 		List<Long> refcnts = CLIENT1.listReferencingObjectCounts(loi);
 		assertThat("got correct refcounts", refcnts, is(Arrays.asList(2L)));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2213,8 +2180,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
 				"Object ref cannot be accessed: Workspace referenced is deleted");
-		assertNoTempFilesExist();
-	
 	}
 
 	@Test
@@ -2251,7 +2216,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"removeAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2296,7 +2260,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					JUnitMatchers.containsString("Module SomeMod2 was not initialized"));
 		}
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -2428,7 +2391,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		((SetPermissionsParams) adminParams.get("params")).setNewPermission("a");
 		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may only reduce their permission level on workspace " + wsstr);
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
-		assertNoTempFilesExist();
 	}
 
 	@Test
@@ -2458,8 +2420,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, Object> got = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
 				.withWorkspace("float").withName("f"))).get(0).getData().asInstance();
 		assertThat("got correct float back", got, is(data));
-		assertNoTempFilesExist();
-		
 	}
 	
 	@Test
@@ -2519,7 +2479,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		AlterWorkspaceMetadataParams p = new AlterWorkspaceMetadataParams();
 		p.setAdditionalProperties("foo", "bar");
 		failAlterWSMeta(CLIENT1, p, "Unexpected arguments in AlterWorkspaceMetadataParams: foo");
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2531,7 +2490,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
 		Assert.assertEquals(1, md52semantic.size());
 		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2567,7 +2525,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (Exception ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2595,7 +2552,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"DepModule")).getTypes().containsKey("DepModule.BType-1.0"));
 			}
 		}
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2642,7 +2598,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		// make sure we can get func info
 		Assert.assertEquals("TestModule.getFeature-1.0",CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef());
-		assertNoTempFilesExist();
 	}
 	
 	@Test
@@ -2673,7 +2628,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module TestModule2{ typedef int IntegerType;};"));
-		assertNoTempFilesExist();
 	}
 	
 	@Test
