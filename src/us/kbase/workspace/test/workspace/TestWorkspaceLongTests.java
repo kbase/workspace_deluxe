@@ -51,7 +51,7 @@ public class TestWorkspaceLongTests extends WorkspaceTester {
 		ws.createWorkspace(userfoo, bigdataws.getName(), false, null, null);
 		File tempFile = ws.getTempFilesManager().generateTempFile("clreq", "json");
 		try {
-			JsonGenerator jgen = mapper.getFactory().createGenerator(tempFile, JsonEncoding.UTF8);
+			JsonGenerator jgen = MAPPER.getFactory().createGenerator(tempFile, JsonEncoding.UTF8);
 			jgen.writeStartObject();
 			jgen.writeFieldName("subset");
 			jgen.writeStartArray();

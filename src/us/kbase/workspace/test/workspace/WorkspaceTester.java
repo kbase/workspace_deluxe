@@ -67,7 +67,7 @@ public class WorkspaceTester {
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
-	protected static final ObjectMapper mapper = new ObjectMapper();
+	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	protected static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
 	protected static String LONG_TEXT = "";

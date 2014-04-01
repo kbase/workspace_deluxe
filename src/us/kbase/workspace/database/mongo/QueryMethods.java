@@ -496,7 +496,7 @@ public class QueryMethods {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		
+		//TODO need to wrap the catch block around all DBCursor ops, globally
 		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
 		final Map<Long, List<DBObject>> noWS =

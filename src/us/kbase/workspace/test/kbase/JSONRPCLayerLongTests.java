@@ -3,9 +3,7 @@ package us.kbase.workspace.test.kbase;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,7 +21,6 @@ import junit.framework.Assert;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
-import us.kbase.common.utils.sortjson.SortedKeysJsonFile;
 import us.kbase.kidl.KbList;
 import us.kbase.kidl.KbMapping;
 import us.kbase.kidl.KbScalar;
