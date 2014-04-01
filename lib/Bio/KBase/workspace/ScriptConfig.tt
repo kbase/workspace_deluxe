@@ -1,0 +1,12 @@
+# The ScriptConfig module is automatically generated from a template file
+# in the Workspace makefile target configure-scripts
+package Bio::KBase::workspace::ScriptConfig;
+
+use strict;
+use warnings;
+
+our $defaultURL   = '[% defaultURL %]';
+our $localhostURL = '[% localhostURL %]';
+our $devURL       = '[% devURL %]';
+
+1;

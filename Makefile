@@ -1,10 +1,12 @@
-#now set in deploy.cfg
-SERVICE_PORT =
+#port is now set in deploy.cfg
+SERVICE_PORT = $(shell perl server_scripts/get_deploy_cfg.pm Workspace.port)
 SERVICE = workspace
 SERVICE_CAPS = Workspace
 CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 URL = https://kbase.us/services/ws/
+DEFAULT_SCRIPT_URL = $(URL)
+DEV_SCRIPT_URL = http://140.221.84.209:$(SERVICE_PORT)
 
 #End of user defined variables
 
@@ -94,11 +96,19 @@ compile-typespec:
 	-rm lib/$(SERVICE_CAPS)Server.p?
 	-rm lib/$(SERVICE_CAPS)Impl.p?
 
+# configure endpoints used by scripts, and possibly other script runtime options in the future
+configure-scripts:
+	$(DEPLOY_RUNTIME)/bin/tpage \
+		--define defaultURL=$(DEFAULT_SCRIPT_URL) \
+		--define localhostURL=http://127.0.0.1:$(SERVICE_PORT) \
+		--define devURL=$(DEV_SCRIPT_URL) \
+		lib/Bio/KBase/$(SERVICE)/ScriptConfig.tt > lib/Bio/KBase/$(SERVICE)/ScriptConfig.pm
+
 # only deploy scripts to the dev_container bin if we are in dev_container
 ifeq ($(TOP_DIR_NAME), dev_container)
-scriptbin: $(BIN_PERL)
+scriptbin: $(BIN_PERL) configure-scripts
 else
-scriptbin:
+scriptbin: configure-scripts
 endif
 
 test: test-client test-service test-scripts
@@ -143,7 +153,7 @@ endif
 
 deploy-perl-scripts: deploy-perl-scripts-custom
 
-deploy-perl-scripts-custom: undeploy-perl-scripts
+deploy-perl-scripts-custom:
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
 	export KB_PERL_PATH=$(TARGET)/lib ; \
