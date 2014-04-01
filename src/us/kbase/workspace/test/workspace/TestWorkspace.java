@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,6 +28,7 @@ import junit.framework.Assert;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
 
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
@@ -590,9 +592,9 @@ public class TestWorkspace extends WorkspaceTester {
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		JsonNode savedata = mapper.valueToTree(data);
+		JsonNode savedata = MAPPER.valueToTree(data);
 		data2.put("fubar2", moredata);
-		JsonNode savedata2 = mapper.valueToTree(data2);
+		JsonNode savedata2 = MAPPER.valueToTree(data2);
 		meta.put("metastuff", "meta");
 		Map<String, String> meta2 = new HashMap<String, String>();
 		meta2.put("meta2", "my hovercraft is full of eels");
@@ -798,6 +800,56 @@ public class TestWorkspace extends WorkspaceTester {
 		
 		ws.setWorkspaceDeleted(foo, read, false);
 		ws.setGlobalPermission(foo, read, Permission.NONE);
+	}
+	
+	@Test
+	public void encodings() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("encodings");
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("encodings");
+		ws.createWorkspace(user, wspace.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(user);
+		
+		StringBuffer sb = new StringBuffer();
+		sb.appendCodePoint(0x1F082);
+		sb.append("a");
+		sb.appendCodePoint(0x1F0C6);
+		sb.append("b");
+		sb.appendCodePoint(0x23824);
+		sb.append("c");
+		sb.appendCodePoint(0x1685);
+		sb.append("d");
+		sb.appendCodePoint(0x13B2);
+		sb.append("e");
+		sb.appendCodePoint(0x06E9);
+		
+		String s = sb.toString() + sb.toString();
+		Map<String, Object> craycraymap = new HashMap<String, Object>();
+		craycraymap.put(s + "42", Arrays.asList(s, s + "woot", s));
+		craycraymap.put(s + "6", s);
+		craycraymap.put(s + "3012", 1);
+		String jsondata = MAPPER.writeValueAsString(craycraymap);
+		
+		List<Charset> csets = Arrays.asList(Charset.forName("UTF-8"),
+				Charset.forName("UTF-16LE"), Charset.forName("UTF-16BE"),
+				Charset.forName("UTF-32LE"), Charset.forName("UTF-32BE"));
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		for (Charset cs: csets) {
+			objs.add(new WorkspaceSaveObject(new JsonTokenStream(jsondata.getBytes(cs)),
+					SAFE_TYPE1, null, emptyprov, false));
+		}
+		
+		ws.saveObjects(user, wspace, objs);
+		List<WorkspaceObjectData> ret = ws.getObjects(user, Arrays.asList(
+				new ObjectIdentifier(wspace, 1),
+				new ObjectIdentifier(wspace, 2),
+				new ObjectIdentifier(wspace, 3),
+				new ObjectIdentifier(wspace, 4),
+				new ObjectIdentifier(wspace, 5)));
+		
+		for (WorkspaceObjectData wod: ret) {
+			assertThat("got correct object input in various encodings",
+					wod.getData(), is((Object) craycraymap));
+		}
 	}
 
 	@Test
@@ -1612,7 +1664,7 @@ public class TestWorkspace extends WorkspaceTester {
 		smallmeta.put("foo", "bar");
 		Map<String, String> meta = new HashMap<String, String>();
 		data.put("fubar", "bar");
-		JsonNode savedata = mapper.valueToTree(data);
+		JsonNode savedata = MAPPER.valueToTree(data);
 		for (int i = 0; i < 18; i++) {
 			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
 		}
@@ -1642,7 +1694,7 @@ public class TestWorkspace extends WorkspaceTester {
 		WorkspaceIdentifier read = new WorkspaceIdentifier("wrongobjid");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
-		JsonNode savedata = mapper.valueToTree(data);
+		JsonNode savedata = MAPPER.valueToTree(data);
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE1, null,
@@ -1682,7 +1734,7 @@ public class TestWorkspace extends WorkspaceTester {
 		long readid = ws.getWorkspaceInformation(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
-		JsonNode savedata = mapper.valueToTree(data);
+		JsonNode savedata = MAPPER.valueToTree(data);
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("myname"),
 				savedata, SAFE_TYPE1, null, new Provenance(foo), false));
@@ -4187,7 +4239,7 @@ public class TestWorkspace extends WorkspaceTester {
 		String md5 = DigestUtils.md5Hex(expected);
 		assertThat("md5 correct", md5, is("f906e268b16cbfa1c302c6bb51a6b784"));
 		
-		JsonNode savedata = mapper.valueToTree(data);
+		JsonNode savedata = MAPPER.valueToTree(data);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
 		List<WorkspaceSaveObject> objects = Arrays.asList(
 				new WorkspaceSaveObject(savedata, SAFE_TYPE1, null, p, false));
