@@ -57,3 +57,8 @@ if __name__ == '__main__':
                 run.write(' -D' + o + '=' + testcfg[o])
         run.write('\n')
     os.chmod(out, 0755)
+    
+    #create a copy of the cfg file in the test/scripts/files dir for script tests -mike
+    with open(os.path.join(d,'scripts','files','test.cfg.copy'), 'w') as copyfile:
+        cfg.write(copyfile)
+

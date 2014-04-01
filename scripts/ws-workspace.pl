@@ -15,6 +15,7 @@ my $primaryArgs = ["Workspace Name"];
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-workspace <'.join("> <",@{$primaryArgs}).'> %o',
+    [ 'no-check|n', 'Do not check that the workspace exists' ],
     [ 'help|h|?', 'Print this usage information' ],
 );
 $usage = "\nNAME\n  ws-workspace -- view/set the default workspace used by WS commands\n\nSYNOPSIS\n  ".$usage;
@@ -25,7 +26,7 @@ $usage .= "    setting a \"--workspace\" flag.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
-    exit;
+	exit;
 }
 if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
 	print STDERR "Too many input arguments given.  Run with -h or --help for usage information.\n";
@@ -35,32 +36,34 @@ if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
 my $workspace = workspace($ARGV[0]);
 
 print "Current workspace set to:\n".$workspace."\n";
-
 # check that the workspace actually exists
-my $serv = get_ws_client();
-
-my $wsinfo;
-eval {
-	if ($workspace =~ /^\d+$/ ) { #is ID
-		$wsinfo = $serv->get_workspace_info({id=>$workspace});
-	} else { #is name
-		$wsinfo = $serv->get_workspace_info({workspace=>$workspace});
+if (!defined($opt->{no_check})) {
+	my $serv = get_ws_client();
+	my $wsinfo;
+	eval {
+		if ($workspace =~ /^\d+$/ ) { #is ID
+			$wsinfo = $serv->get_workspace_info({id=>$workspace});
+		} else { #is name
+			$wsinfo = $serv->get_workspace_info({workspace=>$workspace});
+		}
+	};
+	if($@) {
+		print STDERR "Cannot confirm that the workspace exists!\n";
+		print STDERR $@->{message}."\n";
+		if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
+		print STDERR "\n";
+		exit 1;
 	}
-};
-if($@) {
-	print "Cannot confirm that the workspace exists!\n";
-	print STDERR $@->{message}."\n";
-	if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
-	print STDERR "\n";
-	exit 1;
+	
+	my $table = Text::Table->new(
+	    'Id', 'Name', 'Owner', 'Last_Modified', 'Size', 'Permission', 'GlobalAccess'
+	    );
+	my @infoList; push @infoList, $wsinfo;
+	$table->load(@infoList);
+	print $table;
 }
 
-my $table = Text::Table->new(
-    'Id', 'Name', 'Owner', 'Last_Modified', 'Size', 'Permission', 'GlobalAccess'
-    );
-my @infoList; push @infoList, $wsinfo;
-$table->load(@infoList);
-print $table;
+
 
 
 exit 0;
