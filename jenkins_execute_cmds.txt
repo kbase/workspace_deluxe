@@ -1,0 +1,29 @@
+#!/bin/bash
+# Add '/kb/runtime/bin/mongod --dbpath /mnt/db &' at the beginning of shock_service/start_service
+# Add shock_service into linux init.d
+projdir=$(pwd)
+cd /kb/dev_container
+source user-env.sh
+cd modules/jars
+git pull
+export JENKINS_JARS_MODULE_PATH=/kb/dev_container/modules/jars
+export JENKINS_JAVA_COMMON_JARFILE=java_commons_jenkins.jar
+cd "$projdir"
+$ cat > test/test.cfg.jenkins << EOF
+[Workspacetest]
+test.shock.url = http://localhost:8285
+test.mongo.host = localhost
+test.mongo.db1 = wsdb1
+test.mongo.db2 = wsdb2
+test.mongo.db.types1 = typedb1
+test.mongo.db.types2 = typedb2
+test.mongo.user = localtester
+test.mongo.pwd = open
+test.user1 = wstester1
+test.pwd1 = open1111
+test.user2 = wstester4
+test.pwd2 = Open4444
+test.user3 = wstester3
+test.pwd3 = open3333
+EOF
+make test TESTCFG=test.cfg.jenkins
