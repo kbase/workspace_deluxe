@@ -5,7 +5,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -754,6 +757,76 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		//clean up
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("saveget").withNewPermission("n"));
+	}
+	
+	@Test
+	public void encodings() throws Exception {
+		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("encodings")).getE1();
+		
+		StringBuffer sb = new StringBuffer();
+		sb.appendCodePoint(0x1F082);
+		sb.append("a");
+		sb.appendCodePoint(0x1F0C6);
+		sb.append("b");
+		sb.appendCodePoint(0x23824);
+		sb.append("c");
+		sb.appendCodePoint(0x1685);
+		sb.append("d");
+		sb.appendCodePoint(0x13B2);
+		sb.append("e");
+		sb.appendCodePoint(0x06E9);
+		
+		String s = sb.toString() + sb.toString();
+		
+		String data = "{\"" + s + "42\":[\"" + s + "\",\"" + s + "woot\",\"" +
+																s + "\"]," +
+					   "\"" + s + "6\":\"" + s + "\"," +
+					   "\"" + s + "3012\":1}";
+		@SuppressWarnings("unchecked")
+		Map<String, Object> mapdata = MAPPER.readValue(data, Map.class);
+		
+		String req = "{\"method\":\"Workspace.save_objects\"," +
+					  "\"version\":\"1.1\"," +
+					  "\"id\":\"" + ("" + Math.random()).substring(2) + "\"," +
+					  "\"params\":[{\"id\":" + wsid + "," +
+								   "\"objects\": [{\"data\":" + data + "," +
+												  "\"type\":\"" + SAFE_TYPE + "\"" +
+												  "}" +
+												 "]" +
+								   "}" +
+								  "]" +
+					  "}";
+		
+		List<Charset> csets = Arrays.asList(Charset.forName("UTF-8"),
+				Charset.forName("UTF-16LE"), Charset.forName("UTF-16BE"),
+				Charset.forName("UTF-32LE"), Charset.forName("UTF-32BE"));
+		
+		for (Charset cs: csets) {
+			byte [] breq = req.getBytes(cs);
+
+			HttpURLConnection conn = (HttpURLConnection) CLIENT1.getURL()
+					.openConnection();
+			conn.setConnectTimeout(10000);
+			conn.setDoOutput(true);
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
+			conn.getOutputStream().write(breq);
+			conn.getResponseCode();
+			InputStream is = conn.getInputStream();
+			int read = 1;
+			while (read > -1) {
+				read = is.read(breq);
+			}
+			is.close();
+		}
+		for (long i = 1; i < 6; i++) {
+			Map<String, Object> ret = CLIENT1.getObjects(
+					Arrays.asList(new ObjectIdentity().withWsid(wsid)
+							.withObjid(i))).get(0).getData().asInstance();
+			assertThat("Got correct object back with sending various byte encodings to server",
+					ret, is(mapdata));
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
