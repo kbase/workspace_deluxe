@@ -1100,10 +1100,11 @@ public class WorkspaceClient {
      * <p>Original spec-file function name: list_all_types</p>
      * <pre>
      * List all released types with released version from all modules. Return
-     * mapping from module name to mapping from type name to released type version.
+     * mapping from module name to mapping from type name to released type
+     * version.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListAllTypesParams ListAllTypesParams}
-     * @return   instance of mapping from String to mapping from String to String
+     * @return   instance of mapping from original type "modulename" (A module name defined in a KIDL typespec.) to mapping from original type "typename" (A type definition name in a KIDL typespec.) to original type "typever" (A version of a type. Specifies the version of the type  in a single string in the format [major].[minor]: major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions.)
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */

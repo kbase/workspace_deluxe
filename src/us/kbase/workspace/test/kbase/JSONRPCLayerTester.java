@@ -92,6 +92,8 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT_FOR_SRV2 = null;  // This client connects to SERVER2
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
 	
+	protected static ObjectMapper MAPPER = new ObjectMapper();
+	
 	protected static SimpleDateFormat DATE_FORMAT =
 			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 	static {

@@ -23,7 +23,7 @@ VERSION: 0.2.0 (Released TBD)
 --------------------------------------
 
 NEW FEATURES:
-- N/A
+- list_all_types returns all the types in the workspace.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where get_object_subdata would return the same subdata if two

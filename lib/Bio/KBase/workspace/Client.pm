@@ -6270,10 +6270,13 @@ sub remove_module_ownership
 
 <pre>
 $params is a Workspace.ListAllTypesParams
-$return is a reference to a hash where the key is a string and the value is a reference to a hash where the key is a string and the value is a string
+$return is a reference to a hash where the key is a Workspace.modulename and the value is a reference to a hash where the key is a Workspace.typename and the value is a Workspace.typever
 ListAllTypesParams is a reference to a hash where the following keys are defined:
 	with_empty_modules has a value which is a Workspace.boolean
 boolean is an int
+modulename is a string
+typename is a string
+typever is a string
 
 </pre>
 
@@ -6282,10 +6285,13 @@ boolean is an int
 =begin text
 
 $params is a Workspace.ListAllTypesParams
-$return is a reference to a hash where the key is a string and the value is a reference to a hash where the key is a string and the value is a string
+$return is a reference to a hash where the key is a Workspace.modulename and the value is a reference to a hash where the key is a Workspace.typename and the value is a Workspace.typever
 ListAllTypesParams is a reference to a hash where the following keys are defined:
 	with_empty_modules has a value which is a Workspace.boolean
 boolean is an int
+modulename is a string
+typename is a string
+typever is a string
 
 
 =end text
@@ -6293,7 +6299,8 @@ boolean is an int
 =item Description
 
 List all released types with released version from all modules. Return
-mapping from module name to mapping from type name to released type version.
+mapping from module name to mapping from type name to released type
+version.
 
 =back
 
@@ -8849,6 +8856,46 @@ a string
 
 
 
+=head2 typever
+
+=over 4
+
+
+
+=item Description
+
+A version of a type. 
+Specifies the version of the type  in a single string in the format
+[major].[minor]:
+
+major - an integer. The major version of the type. A change in the
+        major version implies the type has changed in a non-backwards
+        compatible way.
+minor - an integer. The minor version of the type. A change in the
+        minor version implies that the type has changed in a way that is
+        backwards compatible with previous type definitions.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 func_string
 
 =over 4
@@ -9526,7 +9573,8 @@ old_owner has a value which is a Workspace.username
 
 Parameters for list_all_types function.
 
-boolean with_empty_modules - include empty module names, optional flag, 
+Optional arguments:
+boolean with_empty_modules - include empty module names, optional flag,
         default value is false.
 
 
