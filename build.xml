@@ -10,6 +10,8 @@
   <property name="lib" location="lib"/>
   <property name="dist" location="dist"/>
   <property name="test" location="test"/>
+  <property name="doc" location="docs/javadoc"/>
+  <property name="tempunpack" location="unpackedjars"/>
   <property name="classes" location="classes"/>
   <property name="client_classes" location="client_classes"/>
   <property name="jar.file" value="WorkspaceService.jar"/>
@@ -41,6 +43,10 @@
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
 
   <property name="junitreports" location="${env.JENKINS_REPORT_DIR}"/>
+
+  <fileset dir="${jardir}" id="sourceslib">
+    <include name="kbase/kbase-common-temp-sources.jar"/>
+  </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
     <include name="ini4j/ini4j-0.5.2.jar"/>
@@ -109,14 +115,21 @@
   </union>
 
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
-      <include name="workspace/*.java"/>
-      <exclude name="workspace/WorkspaceServer.java"/>
-      <include name="common/service/*.java"/>
-      <exclude name="common/service/JsonServer*"/>
-      <exclude name="common/service/JacksonTupleModule.java"/>
-      <exclude name="common/service/JsonClientCaller.java"/>
-      <exclude name="common/service/JsonTreeTraversingParser.java"/>
-      <exclude name="common/service/KBaseJsonParser.java"/>
+    <include name="workspace/*.java"/>
+    <exclude name="workspace/WorkspaceServer.java"/>
+    <include name="common/service/*.java"/>
+    <exclude name="common/service/JsonServer*"/>
+    <exclude name="common/service/JacksonTupleModule.java"/>
+    <exclude name="common/service/JsonClientCaller.java"/>
+    <exclude name="common/service/JsonTreeTraversingParser.java"/>
+    <exclude name="common/service/KBaseJsonParser.java"/>
+  </fileset>
+	
+  <fileset id="sources-jdoc-files" dir="${tempunpack}/us/kbase/common/service"
+    defaultexcludes="yes">
+    <include name="UObject.java"/>
+    <include name="JsonTokenStream.java"/>
+    <include name="*Exception.java"/>
   </fileset>
 
   <fileset id="client-class-files" dir="${classes}" defaultexcludes="yes">
@@ -152,7 +165,6 @@
     <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
-      <exclude name="us/kbase/common/service/JsonServer*"/>
       <exclude name="us/kbase/typedobj/**"/>
       <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
       <exclude name="us/kbase/workspace/database/**"/>
@@ -204,15 +216,20 @@
   </target>
 
   <target name="javadoc" description="build javadocs">
+    <unzip dest="${tempunpack}">
+      <fileset refid="sourceslib"/>
+    </unzip>
     <javadoc access="protected" author="false" classpathref="compile.classpath"
-      destdir="docs/javadoc" nodeprecated="false" nodeprecatedlist="false"
+      destdir="${doc}" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
       source="1.7" splitindex="true" use="true" version="true">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
       <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/"/>
       <fileset refid="client-jdoc-files"/>
+      <fileset refid="sources-jdoc-files"/>
     </javadoc>
+    <delete dir="${tempunpack}"/>
   </target>
 
   <target name="preparejunitreportdir" if="env.JENKINS_REPORT_DIR">

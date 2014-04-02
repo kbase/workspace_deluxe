@@ -68,7 +68,6 @@ build-libs:
 build-docs: build-libs
 	-rm -r docs 
 	$(ANT) javadoc
-	@echo "**Expect two warnings for javadoc build, that's normal**"
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
 	rm -f pod2htm?.tmp
 	cp $(SERVICE).spec docs/.

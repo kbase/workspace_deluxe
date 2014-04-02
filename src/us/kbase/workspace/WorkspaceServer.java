@@ -96,7 +96,6 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
-    //TODO 1 test deployment on mag, start_service should run w/o user-env
 	
 	private static final String VER = "0.2.0";
 
@@ -275,7 +274,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println("Temporary file location: "
 					+ tfm.getTempDir());
 			logInfo("Temporary file location: " + tfm.getTempDir());
-			//TODO 1 fix javadocs in build file after us.kbase.common files removed
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
