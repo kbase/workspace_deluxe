@@ -162,34 +162,58 @@ public class ScriptTestRunner {
 	}
 	
 	@Test
-	public void test() {
+	public void runTests() {
+		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-server-up.t "+getTestURL()});
+		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-basic-responses.t"});
+		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-script-client-config.t "+getTestURL()});
+	}
+
+	private static String getTestURL() {
 		int testport = SERVER1.getServerPort();
-		String testurl = "http://localhost:"+testport;
-		
+		return "http://localhost:"+testport;
+	}
+	
+	private void runCommandAndCheckForSuccess(String [] command) {
+		System.out.println("==============");
+		System.out.println("Executing test: '" + concatCmdArray(command) + "'");
 		StringBuffer stderr = new StringBuffer();
 		StringBuffer stdout = new StringBuffer();
-
+		int exitValue = 1;
 		Process p;
 		try {
-			p = Runtime.getRuntime().exec(new String[]{"bash","-c","perl test/scripts/test-server-up.t "+testurl});
+			p = Runtime.getRuntime().exec(command);
 			p.waitFor();
-			int retValue = p.exitValue();
-			System.out.println("ret value:" + retValue);
+			exitValue = p.exitValue();
 			BufferedReader out_reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			BufferedReader err_reader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 
 			String line = "";
-			while ((line = out_reader.readLine())!= null) { stderr.append(line + "\n"); }
-			while ((line = err_reader.readLine())!= null) { stdout.append(line + "\n"); }
+			while ((line = out_reader.readLine())!= null) { stderr.append("  STDERR: "+line + "\n"); }
+			while ((line = err_reader.readLine())!= null) { stdout.append("  STDOUT: "+line + "\n"); }
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		System.out.println("stdout:"+stdout.toString());
-		System.out.println("stderr:"+stderr.toString());
+		
+		if(exitValue==0) {
+			System.out.println("   ...pass...");
+		} else {
+			System.out.println("   ...fail... (error code: "+exitValue+")");
+			System.out.println(stdout);
+			System.out.println(stderr);
+		}
+		
+		assertTrue("Running test: "+concatCmdArray(command)+" returned error code "+exitValue, exitValue==0);
 	}
-
+	
+	private static String concatCmdArray(String [] command) {
+		StringBuilder concatCmd = new StringBuilder();
+		for(int k=0; k<command.length; k++) {
+			if(k!=0) { concatCmd.append(" "); }
+			concatCmd.append(command[k]);
+		}
+		return concatCmd.toString();
+	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
