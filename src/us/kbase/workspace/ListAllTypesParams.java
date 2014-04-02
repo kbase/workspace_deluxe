@@ -15,7 +15,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListAllTypesParams</p>
  * <pre>
  * Parameters for list_all_types function.
- * boolean with_empty_modules - include empty module names, optional flag, 
+ * Optional arguments:
+ * boolean with_empty_modules - include empty module names, optional flag,
  *         default value is false.
  * </pre>
  * 

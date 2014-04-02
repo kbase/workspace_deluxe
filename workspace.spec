@@ -1182,6 +1182,19 @@ module Workspace {
 	
 	/* A type definition name in a KIDL typespec. */
 	typedef string typename;
+	
+	/* A version of a type. 
+		Specifies the version of the type  in a single string in the format
+		[major].[minor]:
+		
+		major - an integer. The major version of the type. A change in the
+			major version implies the type has changed in a non-backwards
+			compatible way.
+		minor - an integer. The minor version of the type. A change in the
+			minor version implies that the type has changed in a way that is
+			backwards compatible with previous type definitions.
+	*/
+	typedef string typever;
 
 	/* A function string for referencing a funcdef.
 		Specifies the function and its version in a single string in the format
@@ -1497,7 +1510,8 @@ module Workspace {
 	
 	/* Parameters for list_all_types function.
 		
-		boolean with_empty_modules - include empty module names, optional flag, 
+		Optional arguments:
+		boolean with_empty_modules - include empty module names, optional flag,
 			default value is false.
 	*/
 	typedef structure {
@@ -1505,10 +1519,12 @@ module Workspace {
 	} ListAllTypesParams;
 	
 	/* List all released types with released version from all modules. Return
-		mapping from module name to mapping from type name to released type version.
+		mapping from module name to mapping from type name to released type
+		version.
 	*/
 	funcdef list_all_types(ListAllTypesParams params)
-		returns (mapping<string, mapping<string, string>>) authentication optional;
+		returns (mapping<modulename, mapping<typename, typever>>)
+		authentication optional;
 	
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
