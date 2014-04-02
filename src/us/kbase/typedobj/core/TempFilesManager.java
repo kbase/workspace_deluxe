@@ -3,6 +3,8 @@ package us.kbase.typedobj.core;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Manager of temporary files.
@@ -66,5 +68,12 @@ public class TempFilesManager {
 			return false;
 		}
 		return true;
+	}
+	
+	public List<String> getTempFileList() {
+		List<String> ret = new ArrayList<String>();
+		for (File f : tempDir.listFiles(ff))
+			ret.add(f.getName());
+		return ret;
 	}
 }
