@@ -1,7 +1,12 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
+#
 # Test the workspace scripts that handle setting the client config
 # in other words, we are testing ws-workspace, ws-url, kbase-login
 # kbase-logout, and kbase-whoami
+#
+# This method accepts one optional argument, and that is the endpoint
+# URL to test. If not provided, it reverts to the WsTestConfig module
+# method getLocalTestURL...
 #
 #  author:  msneddon
 #  created: april 2014
@@ -35,7 +40,14 @@ my $user1 = $cfg->param("Workspacetest.test.user1");
 my $pwd1  = $cfg->param("Workspacetest.test.pwd1");
 my $user2 = $cfg->param("Workspacetest.test.user2");
 my $pwd2  = $cfg->param("Workspacetest.test.pwd2");
+
+# if a URL is passed in, use it in testing
 my $testurl = getLocalTestURL();
+if(scalar(@ARGV)==1) {
+    $testurl = $ARGV[0];
+} elsif(scalar(@ARGV)>1) {
+    die "Too many input arguments given.  Test accepts one optional argument, the endpoint url to test.";
+}
 my $defaulturl = getDefaultURL();
 
 # attempt to login
