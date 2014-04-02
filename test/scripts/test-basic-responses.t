@@ -24,6 +24,7 @@ my $commandNames = [
     "ws-deletews",
     "ws-get",
     "ws-getsubset",
+    "ws-hide",
     "ws-history",
     "ws-list",
     "ws-listobj",
