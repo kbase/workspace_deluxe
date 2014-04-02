@@ -212,7 +212,7 @@ public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
 		Random r = new Random(1234567890L);
 		Set<String> registeredTypeNames = new TreeSet<String>();
 		int maxSize = 0;
-		for (int i = 0; i < 500; i++) 
+		for (int i = 0; i < 150; i++) 
 			try {
 				int size = registerRandomSpecAndSaveData(r, wsName, moduleName, 3, 
 						registeredTypeNames);
