@@ -6,9 +6,10 @@ cd /kb/dev_container
 source user-env.sh
 cd modules/jars
 git pull
+cd "$projdir"
 export JENKINS_JARS_MODULE_PATH=/kb/dev_container/modules/jars
 export JENKINS_JAVA_COMMON_JARFILE=java_commons_jenkins.jar
-cd "$projdir"
+export JENKINS_REPORT_DIR=junitreports
 $ cat > test/test.cfg.jenkins << EOF
 [Workspacetest]
 test.shock.url = http://localhost:8285

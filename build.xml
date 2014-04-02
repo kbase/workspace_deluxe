@@ -39,7 +39,8 @@
   </condition>
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
-  <echo message="${commonjar}"/>
+
+  <property name="junitreports" location="${env.JENKINS_REPORT_DIR}"/>
 
   <fileset dir="${jardir}" id="serverlib">
     <include name="ini4j/ini4j-0.5.2.jar"/>
@@ -214,7 +215,12 @@
     </javadoc>
   </target>
 
-  <target name="test" depends="compile" description="run tests">
+  <target name="preparejunitreportdir" if="env.JENKINS_REPORT_DIR">
+    <delete dir="${junitreports}"/>
+    <mkdir dir="${junitreports}"/>
+  </target>
+
+  <target name="test" depends="compile, preparejunitreportdir" description="run tests">
     <fail unless="test.shock.url" message="property test.shock.url not set."/>
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
     <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
@@ -236,6 +242,7 @@
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
+      <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
@@ -249,19 +256,19 @@
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
-      <test name="us.kbase.typedobj.tests.TypeDefs"/>
-      <test name="us.kbase.typedobj.tests.TestBasicValidation"/>
-      <test name="us.kbase.typedobj.tests.TestIdProcessing"/>
-      <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"/>
-      <test name="us.kbase.typedobj.tests.TestObjectExtractionByPath"/>
-      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"/>
-      <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"/>
-      <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"/>
-      <test name="us.kbase.workspace.test.database.mongo.TestMongoInternals"/>
-      <test name="us.kbase.workspace.test.workspace.TestWorkspace"/>
-      <test name="us.kbase.workspace.test.workspace.TestWorkspaceLongTests"/>
-      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"/>
-      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTests"/>
+      <test name="us.kbase.typedobj.tests.TypeDefs"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.tests.TestBasicValidation"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.tests.TestIdProcessing"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.tests.TestObjectExtractionByPath"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.database.mongo.TestMongoInternals"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.workspace.TestWorkspace"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.workspace.TestWorkspaceLongTests"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTests"  todir="${junitreports}"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
