@@ -360,24 +360,21 @@ public class QueryMethods {
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> im;
+		final List<Map<String, Object>> result =
+				new ArrayList<Map<String,Object>>();
 		try {
 			@SuppressWarnings({ "rawtypes" })
 			final Iterable<Map> res = wsjongo.getCollection(collection)
 					.find(query).projection(projection.toString())
 					.as(Map.class);
-			im = res;
+			for (@SuppressWarnings("rawtypes") Map m: res) {
+				@SuppressWarnings("unchecked")
+				final Map<String, Object> castmap = (Map<String, Object>) m; 
+				result.add(castmap);
+			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		final List<Map<String, Object>> result =
-				new ArrayList<Map<String,Object>>();
-		for (@SuppressWarnings("rawtypes") Map m: im) {
-			@SuppressWarnings("unchecked")
-			final Map<String, Object> castmap = (Map<String, Object>) m; 
-			result.add(castmap);
 		}
 		return result;
 	}
@@ -396,23 +393,23 @@ public class QueryMethods {
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
-		final DBCursor im;
+		final List<Map<String, Object>> result =
+				new ArrayList<Map<String,Object>>();
 		try {
-			im = wsmongo.getCollection(collection).find(query, projection);
+			final DBCursor im = wsmongo.getCollection(collection)
+					.find(query, projection);
+			if (skip > -1) {
+				im.skip(skip);
+			}
+			if (limit > 0) {
+				im.limit(limit);
+			}
+			for (final DBObject o: im) {
+				result.add(dbObjectToMap(o));
+			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		if (skip > -1) {
-			im.skip(skip);
-		}
-		if (limit > 0) {
-			im.limit(limit);
-		}
-		final List<Map<String, Object>> result =
-				new ArrayList<Map<String,Object>>();
-		for (final DBObject o: im) {
-			result.add(dbObjectToMap(o));
 		}
 		return result;
 	}
@@ -488,30 +485,28 @@ public class QueryMethods {
 		proj.put(Fields.ACL_PERM, 1);
 		proj.put(Fields.ACL_WSID, 1);
 		
-		final DBCursor res;
-		try {
-			res = wsmongo.getCollection(workspaceACLCollection)
-					.find(query, proj);
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
-		//TODO need to wrap the catch block around all DBCursor ops, globally
 		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
 		final Map<Long, List<DBObject>> noWS =
 				new HashMap<Long, List<DBObject>>();
-		for (final DBObject m: res) {
-			final Long id = (Long) m.get(Fields.ACL_WSID);
-			if (!idToWS.containsKey(id)) {
-				if (!noWS.containsKey(id)) {
-					noWS.put(id, new LinkedList<DBObject>());
+		try {
+			final DBCursor res = wsmongo.getCollection(workspaceACLCollection)
+					.find(query, proj);
+			for (final DBObject m: res) {
+				final Long id = (Long) m.get(Fields.ACL_WSID);
+				if (!idToWS.containsKey(id)) {
+					if (!noWS.containsKey(id)) {
+						noWS.put(id, new LinkedList<DBObject>());
+					}
+					noWS.get(id).add(m);
+				} else {
+					final ResolvedMongoWSID wsid = idToWS.get(id);
+					addPerm(wsidToPerms, m, wsid);
 				}
-				noWS.get(id).add(m);
-			} else {
-				final ResolvedMongoWSID wsid = idToWS.get(id);
-				addPerm(wsidToPerms, m, wsid);
 			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
 		}
 		if (rwsis != null) {
 			for (ResolvedMongoWSID rwsi: rwsis) {
