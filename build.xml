@@ -279,11 +279,12 @@
       <src path="${test}"/>
       <exclude name="performance/**"/>
     </javac>
-    <junit>
+    <junit failureproperty="test.failed">
       <classpath refid="test.client.import.classpath"/>
       <formatter type="plain" usefile="false" />
       <test name="TestClientImport"/>
     </junit>
+    <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
 
   <target name="clean" description="clean up" >
