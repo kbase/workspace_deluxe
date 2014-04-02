@@ -777,8 +777,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		sb.append("e");
 		sb.appendCodePoint(0x06E9);
 		
-		String s = sb.toString() + sb.toString();
 		
+		//13 bytes in utf-8, 22 in 16, 40 in 32, byte -> file cutoff is 24
+		String smallData = "{\"f\":\"" + sb.toString().substring(0, 3) + "\"}";
+		@SuppressWarnings("unchecked")
+		Map<String, Object> smallmapdata = MAPPER.readValue(smallData, Map.class);
+		
+		String s = sb.toString() + sb.toString();
 		String data = "{\"" + s + "42\":[\"" + s + "\",\"" + s + "woot\",\"" +
 																s + "\"]," +
 					   "\"" + s + "6\":\"" + s + "\"," +
@@ -790,7 +795,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					  "\"version\":\"1.1\"," +
 					  "\"id\":\"" + ("" + Math.random()).substring(2) + "\"," +
 					  "\"params\":[{\"id\":" + wsid + "," +
-								   "\"objects\": [{\"data\":" + data + "," +
+								   "\"objects\": [{\"data\":%s," +
 												  "\"type\":\"" + SAFE_TYPE + "\"" +
 												  "}" +
 												 "]" +
@@ -802,30 +807,38 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Charset.forName("UTF-16LE"), Charset.forName("UTF-16BE"),
 				Charset.forName("UTF-32LE"), Charset.forName("UTF-32BE"));
 		
-		for (Charset cs: csets) {
-			byte [] breq = req.getBytes(cs);
+		for (String d: Arrays.asList(data, smallData)) {
+			for (Charset cs: csets) {
+				byte[] breq = String.format(req, d).getBytes(cs);
 
-			HttpURLConnection conn = (HttpURLConnection) CLIENT1.getURL()
-					.openConnection();
-			conn.setConnectTimeout(10000);
-			conn.setDoOutput(true);
-			conn.setRequestMethod("POST");
-			conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
-			conn.getOutputStream().write(breq);
-			conn.getResponseCode();
-			InputStream is = conn.getInputStream();
-			int read = 1;
-			while (read > -1) {
-				read = is.read(breq);
+				HttpURLConnection conn = (HttpURLConnection) CLIENT1.getURL()
+						.openConnection();
+				conn.setConnectTimeout(10000);
+				conn.setDoOutput(true);
+				conn.setRequestMethod("POST");
+				conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
+				conn.getOutputStream().write(breq);
+				conn.getResponseCode();
+				InputStream is = conn.getInputStream();
+				int read = 1;
+				while (read > -1) {
+					read = is.read(breq);
+				}
+				is.close();
 			}
-			is.close();
 		}
-		for (long i = 1; i < 6; i++) {
+		for (long i = 1; i < 11; i++) {
+			Map<String, Object> exp;
+			if (i < 6) {
+				exp = mapdata;
+			} else {
+				exp = smallmapdata;
+			}
 			Map<String, Object> ret = CLIENT1.getObjects(
 					Arrays.asList(new ObjectIdentity().withWsid(wsid)
 							.withObjid(i))).get(0).getData().asInstance();
 			assertThat("Got correct object back with sending various byte encodings to server",
-					ret, is(mapdata));
+					ret, is(exp));
 		}
 	}
 	
