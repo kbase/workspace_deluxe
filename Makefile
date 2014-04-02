@@ -125,7 +125,10 @@ test-scripts:
 	$(warning Warning! Scripts not tested because WRAP_PERL_SCRIPT makefile variable is not defined.)
 else
 test-scripts:
-	prove test/scripts/
+	test/cfg_to_runner.py $(TESTCFG)
+	#perl test/scripts/test-server-up.t
+	perl test/scripts/test-basic-responses.t
+	#perl test/scripts/test-script-client-config.t
 endif
 
 deploy: deploy-client deploy-service

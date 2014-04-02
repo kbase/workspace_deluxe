@@ -15,6 +15,7 @@ my $primaryArgs = ["New server URL"];
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-url <'.join("> <",@{$primaryArgs}).'> %o',
+    [ 'no-check|n', 'Do not check that the URL is valid' ],
     [ 'help|h|?', 'Print this usage information' ],
 );
 $usage = "\nNAME\n  ws-url -- view/set the URL of the workspace service used by WS commands\n\nSYNOPSIS\n  ".$usage;
@@ -35,16 +36,17 @@ if (scalar(@ARGV) > scalar(@{$primaryArgs})) {
 my $wsurl = workspaceURL($ARGV[0]);
 print "Current URL is: \n".$wsurl."\n";
 
-my $ws = get_ws_client();
-my $ver = '';
-eval { $ver = $ws->ver(); };
-if($@) {
-	print "Unable to get a valid response from that endpoint.\n";
-	print STDERR $@->{message}."\n";
-	if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
-	print STDERR "\n";
-	exit 1;
+if (!defined($opt->{no_check})) {
+	my $ws = get_ws_client();
+	my $ver = '';
+	eval { $ver = $ws->ver(); };
+	if($@) {
+		print STDERR "Unable to get a valid response from that endpoint.\n";
+		print STDERR $@->{message}."\n";
+		if(defined($@->{status_line})) {print STDERR $@->{status_line}."\n" };
+		print STDERR "\n";
+		exit 1;
+	}
+	print "URL is valid and running Workspace v$ver.\n";
 }
-
-print "URL is valid and running Workspace v$ver.\n";
 exit 0;

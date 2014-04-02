@@ -10,7 +10,6 @@
   <property name="lib" location="lib"/>
   <property name="dist" location="dist"/>
   <property name="test" location="test"/>
-  <property name="jardir" location="../jars/lib/jars/"/>
   <property name="classes" location="classes"/>
   <property name="client_classes" location="client_classes"/>
   <property name="jar.file" value="WorkspaceService.jar"/>
@@ -18,13 +17,37 @@
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
 
+  <property environment="env"/>
+  <condition property="jardir" value="../jars/lib/jars/">
+    <or>
+      <equals arg1="${env.JENKINS_JARS_MODULE_PATH}" arg2=""/>
+      <not>
+        <isset property="env.JENKINS_JARS_MODULE_PATH"/>
+      </not>
+    </or>
+  </condition>
+  <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
+  <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
+
+  <condition property="commonjar" value="kbase/kbase-common-temp.jar">
+    <or>
+      <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
+      <not>
+        <isset property="env.JENKINS_JAVA_COMMON_JARFILE"/>
+      </not>
+    </or>
+  </condition>
+  <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
+  <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
+  <echo message="${commonjar}"/>
+
   <fileset dir="${jardir}" id="serverlib">
     <include name="ini4j/ini4j-0.5.2.jar"/>
     <include name="jetty/jetty-all-7.0.0.jar"/>
     <include name="jna/jna-3.4.0.jar"/>
     <include name="servlet/servlet-api-2.5.jar"/>
     <include name="syslog4j/syslog4j-0.9.46.jar"/>
-    <include name="kbase/kbase-common-temp.jar"/>
+    <include name="${commonjar}"/>
   </fileset>
 
   <fileset dir="${jardir}" id="clientserverlib">
