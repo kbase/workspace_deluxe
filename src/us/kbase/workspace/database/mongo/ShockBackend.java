@@ -246,7 +246,7 @@ public class ShockBackend implements BlobStore {
 					
 			@Override
 			protected ByteArrayFileCache doRead(InputStream is) throws Exception {
-				return bafcMan.createBAFC(is);
+				return bafcMan.createBAFC(is, true);
 			}
 		};
 		try {

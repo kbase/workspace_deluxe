@@ -39,6 +39,11 @@ public class ByteArrayFileCacheManager {
 	
 	public ByteArrayFileCache createBAFC(InputStream input)
 			throws FileCacheIOException, FileCacheLimitExceededException {
+		return createBAFC(input);
+	}
+	
+	public ByteArrayFileCache createBAFC(InputStream input, boolean trustedJson)
+			throws FileCacheIOException, FileCacheLimitExceededException {
 		byte[] buf = new byte[100000];
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
 		int maxInMemorySize = maxSizeInMem - sizeInMem;
@@ -86,7 +91,8 @@ public class ByteArrayFileCacheManager {
 				os.close();
 				sizeOnDisk += size;
 				return new ByteArrayFileCache(null, tempFile,
-						new JsonTokenStream(tempFile).setTrustedWholeJson(true));
+						new JsonTokenStream(tempFile)
+							.setTrustedWholeJson(trustedJson));
 			} catch (IOException ioe) {
 				cleanUp(tempFile, os);
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
@@ -99,7 +105,7 @@ public class ByteArrayFileCacheManager {
 			try {
 				return new ByteArrayFileCache(null, null,
 						new JsonTokenStream(bufOs.toByteArray())
-							.setTrustedWholeJson(true));
+							.setTrustedWholeJson(trustedJson));
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(
 						ioe.getLocalizedMessage(), ioe);
@@ -159,12 +165,12 @@ public class ByteArrayFileCacheManager {
 			if (tempFile[0] != null) {
 				sizeOnDisk += size[0];
 				return new ByteArrayFileCache(parent, tempFile[0], new JsonTokenStream(tempFile[0])
-						.setTrustedWholeJson(true));
+						.setTrustedWholeJson(parent.containsTrustedJson()));
 			} else {
 				sizeInMem += (int)size[0];
 				byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
 				return new ByteArrayFileCache(parent, null, new JsonTokenStream(arr)
-						.setTrustedWholeJson(true));
+						.setTrustedWholeJson(parent.containsTrustedJson()));
 			}
 		} catch (Throwable e) {
 			try {
@@ -219,6 +225,15 @@ public class ByteArrayFileCacheManager {
 		public Reader getJSON() throws IOException {
 			checkIfDestroyed();
 			return jts.createDataReader();
+		}
+		
+		/** True if this BAFC was marked as containing known good JSON.
+		 * @return true if the this BAFC was marked as contains known good
+		 * JSON, false otherwise.
+		 */
+		public boolean containsTrustedJson() {
+			checkIfDestroyed();
+			return jts.hasTrustedWholeJson();
 		}
 
 		private void checkIfDestroyed() {

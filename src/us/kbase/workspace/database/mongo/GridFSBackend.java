@@ -92,7 +92,7 @@ public class GridFSBackend implements BlobStore {
 		
 		final InputStream file = out.getInputStream();
 		try {
-			return bafcMan.createBAFC(file);
+			return bafcMan.createBAFC(file, true);
 		} finally {
 			try {
 				file.close();
