@@ -246,7 +246,7 @@ public class ShockBackend implements BlobStore {
 					
 			@Override
 			protected ByteArrayFileCache doRead(InputStream is) throws Exception {
-				return bafcMan.createBAFC(is);
+				return bafcMan.createBAFC(is, true);
 			}
 		};
 		try {
@@ -322,14 +322,13 @@ public class ShockBackend implements BlobStore {
 		final DBCursor ret;
 		try {
 			ret = mongoCol.find();
+			for (final DBObject o: ret) {
+				removeBlob(new MD5((String) o.get(Fields.SHOCK_CHKSUM)));
+			}
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
 					"Could not read from the mongo database", me);
 		}
-		for (final DBObject o: ret) {
-			removeBlob(new MD5((String) o.get(Fields.SHOCK_CHKSUM)));
-		}
-		
 	}
 
 	@Override

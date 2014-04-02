@@ -1420,33 +1420,33 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final long objectid) throws WorkspaceCommunicationException {
 		final String prefix = "auto" + objectid;
 		@SuppressWarnings("rawtypes")
-		Iterable<Map> ids;
+		final Iterable<Map> ids;
+		boolean exact = false;
+		final Set<Long> suffixes = new HashSet<Long>();
 		try {
 			ids = wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.find(M_UNIQ_NAME_QRY, wsid.getID(), prefix)
 					.projection(M_UNIQ_NAME_PROJ).as(Map.class);
+			for (@SuppressWarnings("rawtypes") Map m: ids) {
+				final String[] id = ((String) m.get(Fields.OBJ_NAME))
+						.split("-");
+				if (id.length == 2) {
+					try {
+						suffixes.add(Long.parseLong(id[1]));
+					} catch (NumberFormatException e) {
+						// do nothing
+					}
+				} else if (id.length == 1) {
+					try {
+						exact = exact || prefix.equals(id[0]);
+					} catch (NumberFormatException e) {
+						// do nothing
+					}
+				}
+			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		boolean exact = false;
-		final Set<Long> suffixes = new HashSet<Long>();
-		for (@SuppressWarnings("rawtypes") Map m: ids) {
-			
-			final String[] id = ((String) m.get(Fields.OBJ_NAME)).split("-");
-			if (id.length == 2) {
-				try {
-					suffixes.add(Long.parseLong(id[1]));
-				} catch (NumberFormatException e) {
-					// do nothing
-				}
-			} else if (id.length == 1) {
-				try {
-					exact = exact || prefix.equals(id[0]);
-				} catch (NumberFormatException e) {
-					// do nothing
-				}
-			}
 		}
 		if (!exact) {
 			return prefix;
@@ -2080,16 +2080,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							chksum.keySet())));
 			final DBObject proj = new BasicDBObject(Fields.TYPE_CHKSUM, 1);
 			proj.put(Fields.MONGO_ID, 0);
-			DBCursor res;
+			final Set<String> existChksum = new HashSet<String>();
 			try {
-				res = wsmongo.getCollection(col).find(query, proj);
+				final DBCursor res = wsmongo.getCollection(col)
+						.find(query, proj);
+				for (DBObject dbo: res) {
+					existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
+				}
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
-			}
-			final Set<String> existChksum = new HashSet<String>();
-			for (DBObject dbo: res) {
-				existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
+						"There was a problem communicating with the database",
+						me);
 			}
 			
 			final List<TypeData> newdata = new ArrayList<TypeData>();
@@ -2169,24 +2170,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<String,Object>>();
 		for (final TypeDefId type: toGet.keySet()) {
-			@SuppressWarnings("rawtypes")
-			final Iterable<Map> subdata;
 			try {
-				subdata = wsjongo.getCollection(TypeData.getTypeCollection(type))
+				@SuppressWarnings("rawtypes")
+				final Iterable<Map> subdata = wsjongo.getCollection(
+						TypeData.getTypeCollection(type))
 						.find(M_GETOBJSUB_QRY, toGet.get(type).keySet())
 						.projection(M_GETOBJSUB_PROJ).as(Map.class);
+				for (@SuppressWarnings("rawtypes") final Map m: subdata) {
+					final String md5 = (String) m.get(Fields.TYPE_CHKSUM);
+					@SuppressWarnings("unchecked")
+					final Map<String, Object> sd =
+							(Map<String, Object>) m.get(Fields.TYPE_SUBDATA);
+					for (final ObjectIDResolvedWS o: toGet.get(type).get(md5)) {
+						ret.put(o, sd);
+					}
+				}
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
-			}
-			for (@SuppressWarnings("rawtypes") final Map m: subdata) {
-				final String md5 = (String) m.get(Fields.TYPE_CHKSUM);
-				@SuppressWarnings("unchecked")
-				final Map<String, Object> sd =
-						(Map<String, Object>) m.get(Fields.TYPE_SUBDATA);
-				for (final ObjectIDResolvedWS o: toGet.get(type).get(md5)) {
-					ret.put(o, sd);
-				}
+						"There was a problem communicating with the database",
+						me);
 			}
 		}
 		return ret;
@@ -2601,23 +2603,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV),
 					vers.get(id));
 		}
-		final Iterable<MongoProvenance> provs;
+		final Map<ObjectId, MongoProvenance> ret =
+				new HashMap<ObjectId, MongoProvenance>();
 		try {
-			provs = wsjongo.getCollection(COL_PROVENANCE)
+			final Iterable<MongoProvenance> provs =
+					wsjongo.getCollection(COL_PROVENANCE)
 					.find("{_id: {$in: #}}", provIDs.keySet())
 					.as(MongoProvenance.class);
+			for (MongoProvenance p: provs) {
+				@SuppressWarnings("unchecked")
+				final List<String> resolvedRefs = (List<String>) provIDs
+				.get(p.getMongoId()).get(Fields.VER_PROVREF);
+				ret.put(p.getMongoId(), p);
+				p.resolveReferences(resolvedRefs); //this is a gross hack. I'm rather proud of it actually
+			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
-		}
-		final Map<ObjectId, MongoProvenance> ret =
-				new HashMap<ObjectId, MongoProvenance>();
-		for (MongoProvenance p: provs) {
-			@SuppressWarnings("unchecked")
-			final List<String> resolvedRefs = (List<String>) provIDs
-					.get(p.getMongoId()).get(Fields.VER_PROVREF);
-			ret.put(p.getMongoId(), p);
-			p.resolveReferences(resolvedRefs); //this is a gross hack. I'm rather proud of it actually
 		}
 		return ret;
 	}

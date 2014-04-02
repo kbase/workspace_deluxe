@@ -80,25 +80,25 @@ public class GridFSBackend implements BlobStore {
 		final GridFSDBFile out;
 		try {
 			out = gfs.findOne(query);
+			if (out == null) {
+				throw new NoSuchBlobException(
+						"Attempt to retrieve non-existant blob with chksum " + 
+								md5.getMD5());
+			}
+		
+			final InputStream file = out.getInputStream();
+			try {
+				return bafcMan.createBAFC(file, true);
+			} finally {
+				try {
+					file.close();
+				} catch (IOException ioe) {
+					throw new RuntimeException("Something is broken", ioe);
+				}
+			}	
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
-					"Could not write to the mongo database", me);
-		}
-		if (out == null) {
-			throw new NoSuchBlobException(
-					"Attempt to retrieve non-existant blob with chksum " + 
-							md5.getMD5());
-		}
-		
-		final InputStream file = out.getInputStream();
-		try {
-			return bafcMan.createBAFC(file);
-		} finally {
-			try {
-				file.close();
-			} catch (IOException ioe) {
-				throw new RuntimeException("Something is broken", ioe);
-			}
+					"Could not read from the mongo database", me);
 		}
 	}
 
