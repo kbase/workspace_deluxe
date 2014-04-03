@@ -71,6 +71,7 @@ public class ByteArrayFileCacheManager {
 			OutputStream os = null;
 			try {
 				tempFile = tfm.generateTempFile("resp", "json");
+				System.out.println("ByteArrayFileCacheManager(" + this + "): tempFile creation for " + tempFile);
 				os = new BufferedOutputStream(
 						new FileOutputStream(tempFile));
 				os.write(bufOs.toByteArray());
@@ -261,6 +262,7 @@ public class ByteArrayFileCacheManager {
 		}
 		
 		public void destroy() {
+			System.out.println("ByteArrayFileCacheManager(" + this + "): before destroy method");
 			if (destroyed) {
 				return;
 			}
@@ -270,6 +272,7 @@ public class ByteArrayFileCacheManager {
 				//nothing can be done
 			}
 			if (tempFile != null && tempFile.exists()) {
+				System.out.println("ByteArrayFileCacheManager(" + this + "): tempFile deletion for " + tempFile);
 				tempFile.delete();
 			}
 			if (parent != null) {
