@@ -30,7 +30,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where get_object_subdata would return the same subdata if two
   different paths through the same object were specified.
 - Command-line interface default URLs are configurable via the makefile.
-- ws-workspace and ws-url now work against the User and Job Service when in IRIS 
+- ws-workspace and ws-url now work against the User and Job Service when in
+  IRIS.
+- The characters . and - are now allowed in workspace names.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage
