@@ -19,12 +19,12 @@ test.mongo.db2 = wsdb2
 test.mongo.db.types1 = typedb1
 test.mongo.db.types2 = typedb2
 test.mongo.user = localtester
-test.mongo.pwd = open
+test.mongo.pwd = xxxxx
 test.user1 = wstester1
-test.pwd1 = open1111
+test.pwd1 = xxxxx
 test.user2 = wstester4
-test.pwd2 = Open4444
+test.pwd2 = xxxxx
 test.user3 = wstester3
-test.pwd3 = open3333
+test.pwd3 = xxxxx
 EOF
 make test TESTCFG=test.cfg.jenkins
