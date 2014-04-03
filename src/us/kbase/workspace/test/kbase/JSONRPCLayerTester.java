@@ -330,8 +330,17 @@ public class JSONRPCLayerTester {
 	}
 	
 	protected void assertNoTempFilesExist() throws Exception {
+		int i = 0;
 		try {
 			for (TempFilesManager tfm: tfms) {
+				if (!tfm.isEmpty()) {
+					// Let server side <=10 seconds to finish all activities
+					for (; i < 100; i++) {
+						Thread.sleep(100);
+						if (tfm.isEmpty())
+							break;
+					}
+				}
 				assertThat("There are tempfiles: " + tfm.getTempFileList(), tfm.isEmpty(), is(true));
 			}
 		} finally {

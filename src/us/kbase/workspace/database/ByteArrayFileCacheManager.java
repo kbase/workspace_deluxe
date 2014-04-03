@@ -71,25 +71,27 @@ public class ByteArrayFileCacheManager {
 			OutputStream os = null;
 			try {
 				tempFile = tfm.generateTempFile("resp", "json");
-				System.out.println("ByteArrayFileCacheManager(" + this + "): tempFile creation for " + tempFile);
 				os = new BufferedOutputStream(
 						new FileOutputStream(tempFile));
-				os.write(bufOs.toByteArray());
-				bufOs = null;
-				while (true) {
-					if (sizeOnDisk + size > maxSizeOnDisk) {
-						cleanUp(tempFile, os);
-						throw new FileCacheLimitExceededException(
-								"Disk limit exceeded for file cache: " +
-								maxSizeOnDisk);
+				try {
+					os.write(bufOs.toByteArray());
+					bufOs = null;
+					while (true) {
+						if (sizeOnDisk + size > maxSizeOnDisk) {
+							cleanUp(tempFile, os);
+							throw new FileCacheLimitExceededException(
+									"Disk limit exceeded for file cache: " +
+											maxSizeOnDisk);
+						}
+						int count = input.read(buf, 0, buf.length);
+						if (count < 0)
+							break;
+						os.write(buf, 0, count);
+						size += count;
 					}
-					int count = input.read(buf, 0, buf.length);
-					if (count < 0)
-						break;
-					os.write(buf, 0, count);
-					size += count;
+				} finally {
+					try { os.close(); } catch (Exception ignore) {}
 				}
-				os.close();
 				sizeOnDisk += size;
 				return new ByteArrayFileCache(null, tempFile,
 						new JsonTokenStream(tempFile)
@@ -262,7 +264,6 @@ public class ByteArrayFileCacheManager {
 		}
 		
 		public void destroy() {
-			System.out.println("ByteArrayFileCacheManager(" + this + "): before destroy method");
 			if (destroyed) {
 				return;
 			}
@@ -272,7 +273,6 @@ public class ByteArrayFileCacheManager {
 				//nothing can be done
 			}
 			if (tempFile != null && tempFile.exists()) {
-				System.out.println("ByteArrayFileCacheManager(" + this + "): tempFile deletion for " + tempFile);
 				tempFile.delete();
 			}
 			if (parent != null) {
