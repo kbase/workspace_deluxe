@@ -12,7 +12,7 @@ public class WorkspaceIdentifier {
 	
 	private final static String WS_NAME_DELIMITER = ":";
 	private final static Pattern INVALID_WS_NAMES = 
-			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "]");
+			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "._-]");
 	public final static int MAX_NAME_LENGTH = 255;
 
 	private final Long id;

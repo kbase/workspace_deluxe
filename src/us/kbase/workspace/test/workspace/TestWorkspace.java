@@ -150,15 +150,16 @@ public class TestWorkspace extends WorkspaceTester {
 	
 	@Test
 	public void createWorkspaceAndGetInfo() throws Exception {
-		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen", null);
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked", MT_META);
+		String wsname = "foo_.-bar";
+		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, wsname, false, "eeswaffertheen", null);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, "unlocked", MT_META);
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
-		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(wsname));
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
 		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
@@ -327,8 +328,8 @@ public class TestWorkspace extends WorkspaceTester {
 		//test a few funny chars in the ws name
 		userWS.add(new TestRig(crap, "afe_aff*afea",
 				"Illegal character in workspace name afe_aff*afea: *"));
-		userWS.add(new TestRig(crap, "afe_aff-afea",
-				"Illegal character in workspace name afe_aff-afea: -"));
+		userWS.add(new TestRig(crap, "afe_aff%afea",
+				"Illegal character in workspace name afe_aff%afea: %"));
 		userWS.add(new TestRig(crap, "afeaff/af*ea",
 				"Illegal character in workspace name afeaff/af*ea: /"));
 		userWS.add(new TestRig(crap, "af?eaff*afea",

@@ -1922,7 +1922,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(std1, std2, hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, null, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
-		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()),null,  null, null, null, 1L, 1L, 1L, 1L, 1L, 0L,
+		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 1L, 1L, 1L, 0L,
 				Arrays.asList(deleted), false);
 		checkListObjects(Arrays.asList("listObjs1"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2), false);
