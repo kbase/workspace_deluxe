@@ -83,35 +83,16 @@
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
     <include name="easystream/easystream-1.2.13.jar"/>
     <include name="slf4j/slf4j-api-1.6.1.jar"/>
+    <include name="google/guava-14.0.1.jar"/>
+    <include name="fge/json-patch-1.3.jar"/>
+    <include name="joda/joda-time-2.2.jar"/>
   </fileset>
 
-  <fileset dir="${jardir}" id="validatorlib">
-    <include name="activation/activation-1.1.jar"/>
-    <include name="aopalliance/aopalliance-1.0.jar"/>
-    <include name="fge/btf-1.0.jar"/>
-    <include name="fge/jackson-coreutils-1.4.jar"/>
-    <include name="fge/json-schema-core-1.1.8.jar"/>
-    <include name="fge/json-schema-validator-2.1.7.jar"/>
-    <include name="fge/json-patch-1.3.jar"/>
-    <include name="fge/msg-simple-0.9.jar"/>
-    <include name="fge/uri-template-0.7.jar"/>
-    <include name="google/guava-14.0.1.jar"/>
-    <include name="google/guice-3.0.jar"/>
-    <include name="google/jsr305-2.0.1.jar"/>
-    <include name="google/libphonenumber-5.6.jar"/>
-    <include name="inject/javax.inject-1.jar"/>
-    <include name="joda/joda-time-2.2.jar"/>
-    <include name="mailapi/mailapi-1.4.3.jar"/>
-    <include name="mozilla/rhino-1.7R.jar"/>
-    <include name="testng/testng-6.8.5.jar"/>
-  </fileset>
-	
   <union id="serverside">
     <fileset refid="serverlib"/>
     <fileset refid="clientserverlib"/>
     <fileset refid="shocklib"/>
     <fileset refid="applicationlib"/>
-    <fileset refid="validatorlib"/>
   </union>
 
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
