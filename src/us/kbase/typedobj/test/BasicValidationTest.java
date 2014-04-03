@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import static org.junit.Assert.*;
 
@@ -61,7 +61,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  *
  */
 @RunWith(value = Parameterized.class)
-public class TestBasicValidation {
+public class BasicValidationTest {
 
 	/**
 	 * location to stash the temporary database for testing
@@ -104,7 +104,7 @@ public class TestBasicValidation {
 	private int instanceNumber;
 	private boolean isValidInstance;
 	
-	public TestBasicValidation(Integer instanceNumber, Boolean isValidInstance) {
+	public BasicValidationTest(Integer instanceNumber, Boolean isValidInstance) {
 		this.instanceNumber = instanceNumber.intValue();
 		this.isValidInstance = isValidInstance.booleanValue();
 	}
@@ -276,7 +276,7 @@ public class TestBasicValidation {
 	private static String loadResourceFile(String resourceName) throws Exception {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		InputStream is = TestBasicValidation.class.getResourceAsStream(resourceName);
+		InputStream is = BasicValidationTest.class.getResourceAsStream(resourceName);
 		if (is == null)
 			throw new IllegalStateException("Resource not found: " + resourceName);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -307,7 +307,7 @@ public class TestBasicValidation {
 	 * @throws IOException 
 	 */
 	private static String[] getResourceListing(String path) throws URISyntaxException, IOException {
-		URL dirURL = TestBasicValidation.class.getResource(path);
+		URL dirURL = BasicValidationTest.class.getResource(path);
 		if (dirURL != null && dirURL.getProtocol().equals("file")) {
 			/* A file path: easy enough */
 			return new File(dirURL.toURI()).list();
@@ -316,8 +316,8 @@ public class TestBasicValidation {
 		if (dirURL == null) {
 			// In case of a jar file, we can't actually find a directory.
 			// Have to assume the same jar as the class.
-			String me = TestBasicValidation.class.getName().replace(".", "/")+".class";
-			dirURL = TestBasicValidation.class.getResource(me);
+			String me = BasicValidationTest.class.getName().replace(".", "/")+".class";
+			dirURL = BasicValidationTest.class.getResource(me);
 		}
 
 		if (dirURL.getProtocol().equals("jar")) {
@@ -329,7 +329,7 @@ public class TestBasicValidation {
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
 				// construct internal jar path relative to the class
-				String fullPath = TestBasicValidation.class.getPackage().getName().replace(".","/") + "/" + path;
+				String fullPath = BasicValidationTest.class.getPackage().getName().replace(".","/") + "/" + path;
 				if (name.startsWith(fullPath)) { //filter according to the path
 					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");

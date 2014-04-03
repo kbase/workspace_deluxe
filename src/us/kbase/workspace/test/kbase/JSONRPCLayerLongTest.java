@@ -52,7 +52,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * that only one backend (the simplest gridFS backend) is tested here, while TestWorkspaces
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
-public class JSONRPCLayerLongTests extends JSONRPCLayerTester {
+public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 	
 	private static boolean printMemUsage = false;
 	

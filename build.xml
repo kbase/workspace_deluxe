@@ -253,19 +253,19 @@
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
-      <test name="us.kbase.typedobj.tests.TypeDefs"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.tests.TestBasicValidation"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.tests.TestIdProcessing"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.tests.TestWsSubsetExtraction"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.tests.TestObjectExtractionByPath"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.test.TypeDefsTest"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.test.BasicValidationTest"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.test.IdProcessingTest"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.test.WsSubsetExtractionTest"  todir="${junitreports}"/>
+      <test name="us.kbase.typedobj.test.ObjectExtractionByPathTest"  todir="${junitreports}"/>
       <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"  todir="${junitreports}"/>
       <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"  todir="${junitreports}"/>
       <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.database.mongo.TestMongoInternals"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.workspace.TestWorkspace"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.workspace.TestWorkspaceLongTests"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.database.mongo.MongoInternalsTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.workspace.WorkspaceTest"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.workspace.WorkspaceLongTest"  todir="${junitreports}"/>
       <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTests"  todir="${junitreports}"/>
+      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTest"  todir="${junitreports}"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>

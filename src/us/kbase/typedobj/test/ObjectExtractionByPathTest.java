@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import static org.junit.Assert.*;
 
@@ -40,7 +40,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
  *
  */
 @RunWith(value = Parameterized.class)
-public class TestObjectExtractionByPath {
+public class ObjectExtractionByPathTest {
 
 	private final static String TEST_RESOURCE_LOCATION = "files/t5/";
 	
@@ -64,7 +64,7 @@ public class TestObjectExtractionByPath {
 	 */
 	private int instanceNumber;
 	
-	public TestObjectExtractionByPath(Integer instanceNumber) {
+	public ObjectExtractionByPathTest(Integer instanceNumber) {
 		this.instanceNumber = instanceNumber.intValue();
 	}
 	
@@ -148,7 +148,7 @@ public class TestObjectExtractionByPath {
 	private static String loadResourceFile(String resourceName) throws Exception {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		InputStream is = TestObjectExtractionByPath.class.getResourceAsStream(resourceName);
+		InputStream is = ObjectExtractionByPathTest.class.getResourceAsStream(resourceName);
 		if (is == null)
 			throw new IllegalStateException("Resource not found: " + resourceName);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -179,7 +179,7 @@ public class TestObjectExtractionByPath {
 	 * @throws IOException 
 	 */
 	private static String[] getResourceListing(String path) throws URISyntaxException, IOException {
-		URL dirURL = TestObjectExtractionByPath.class.getResource(path);
+		URL dirURL = ObjectExtractionByPathTest.class.getResource(path);
 		if (dirURL != null && dirURL.getProtocol().equals("file")) {
 			/* A file path: easy enough */
 			return new File(dirURL.toURI()).list();
@@ -188,8 +188,8 @@ public class TestObjectExtractionByPath {
 		if (dirURL == null) {
 			// In case of a jar file, we can't actually find a directory.
 			// Have to assume the same jar as the class.
-			String me = TestObjectExtractionByPath.class.getName().replace(".", "/")+".class";
-			dirURL = TestObjectExtractionByPath.class.getResource(me);
+			String me = ObjectExtractionByPathTest.class.getName().replace(".", "/")+".class";
+			dirURL = ObjectExtractionByPathTest.class.getResource(me);
 		}
 
 		if (dirURL.getProtocol().equals("jar")) {
@@ -201,7 +201,7 @@ public class TestObjectExtractionByPath {
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
 				// construct internal jar path relative to the class
-				String fullPath = TestObjectExtractionByPath.class.getPackage().getName().replace(".","/") + "/" + path;
+				String fullPath = ObjectExtractionByPathTest.class.getPackage().getName().replace(".","/") + "/" + path;
 				if (name.startsWith(fullPath)) { //filter according to the path
 					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");

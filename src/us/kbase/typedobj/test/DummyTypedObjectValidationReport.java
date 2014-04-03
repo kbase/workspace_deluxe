@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import java.util.ArrayList;
 import java.util.Collections;

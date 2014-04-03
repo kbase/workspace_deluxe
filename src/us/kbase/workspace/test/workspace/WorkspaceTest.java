@@ -68,10 +68,10 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class TestWorkspace extends WorkspaceTester {
+public class WorkspaceTest extends WorkspaceTester {
 
 
-	public TestWorkspace(String config, String backend,
+	public WorkspaceTest(String config, String backend,
 			Integer maxMemoryUsePerCall) throws Exception {
 		super(config, backend, maxMemoryUsePerCall);
 	}

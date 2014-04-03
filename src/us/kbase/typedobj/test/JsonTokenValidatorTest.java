@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import java.io.File;
 import java.io.FileReader;

@@ -34,9 +34,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
-public class TestWorkspaceLongTests extends WorkspaceTester {
+public class WorkspaceLongTest extends WorkspaceTester {
 	
-	public TestWorkspaceLongTests(String config, String backend,
+	public WorkspaceLongTest(String config, String backend,
 			Integer maxMemoryUsePerCall) throws Exception {
 		super(config, backend, maxMemoryUsePerCall);
 	}

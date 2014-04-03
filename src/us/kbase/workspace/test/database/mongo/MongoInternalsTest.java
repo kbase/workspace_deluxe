@@ -37,7 +37,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.mongodb.DB;
 
-public class TestMongoInternals {
+public class MongoInternalsTest {
 	
 	private static DB db;
 	private static Jongo jdb;

@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -17,7 +17,7 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 
-public class TypeDefs {
+public class TypeDefsTest {
 	
 	@Test
 	public void type() throws Exception {

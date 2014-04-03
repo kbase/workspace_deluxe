@@ -1,4 +1,4 @@
-package us.kbase.typedobj.tests;
+package us.kbase.typedobj.test;
 
 import static org.junit.Assert.*;
 
@@ -16,11 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -42,44 +39,36 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
+
 /**
- * Tests that ensure IDs are properly extracted from typed object instances, and that IDs
- * can be relabeled properly.  Test files which specify test cases are specified
- * in us.kbase.typedobj.tests.files.t2.  Temporary test files are stored in 
- * test/typedobj_temp_test_files.  Running this test will blow away any files you have
- * saved to 
- * 
+ * Tests that ensure the proper subset is extracted from a typed object instance
+ *
  * To add new tests of the ID processing machinery, add files named in the format:
  *   [ModuleName].[TypeName].instance.[label] 
  *        - json encoding of a valid type instance
- *   [ModuleName].[TypeName].instance.[label].ids
- *        - json formatted file listing IDs that must be found in the instance, and
- *          new names for each of the IDs as needed.  Tests will check the the specified
- *          ids are all found in the instance, and that the instance contains no extra
- *          ids.  If the same ID is used multiple times in an instance, then it must
- *          by listed multiple times in this structure!  See existing files for an
- *          example of the json structure you need to use.
+ *   [ModuleName].[TypeName].instance.[label].subset
+ *        - json encoding of the expected '\@searchable ws_subset' output
  *
  * @author msneddon
  */
 @RunWith(value = Parameterized.class)
-public class TestIdProcessing {
+public class WsSubsetExtractionTest {
 
 	/**
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t2";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t3";
 	
 	/**
 	 * relative location to find the input files
 	 */
-	private final static String TEST_RESOURCE_LOCATION = "files/t2/";
+	private final static String TEST_RESOURCE_LOCATION = "files/t3/";
 	
+	private final static boolean VERBOSE = true;
 
 	private static TypeDefinitionDB db;
 	private static TypedObjectValidator validator;
@@ -100,14 +89,12 @@ public class TestIdProcessing {
 		public String typeName;
 	}
 	
-	
-	
 	/**
 	 * As each test instance object is created, this sets which instance to actually test
 	 */
 	private TestInstanceInfo instance;
 	
-	public TestIdProcessing(TestInstanceInfo tii) {
+	public WsSubsetExtractionTest(TestInstanceInfo tii) {
 		this.instance = tii;
 	}
 
@@ -126,13 +113,6 @@ public class TestIdProcessing {
 		
 		return Arrays.asList(instanceInfo);
 	}
-
-	
-	
-	
-	
-	
-	
 	
 	
 	/**
@@ -153,36 +133,28 @@ public class TestIdProcessing {
 			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
 		}
 		
-		System.out.println("setting up the typed obj database");
+		if(VERBOSE) System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
 		File tempdir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir,
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, 
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
 	
-		
-		System.out.println("loading db with types");
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","FeatureMap","DeepFeatureMap");
+		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
 		db.releaseModule("KB", username, false);
 		
-		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");
-		List<String> fba_types =  Arrays.asList("FBAModel","FBAResult","fba_model_id");
-		db.requestModuleRegistration("FBA", username);
-		db.approveModuleRegistrationRequest(username, "FBA", true);
-		db.registerModule(fbaSpec ,fba_types, username);
-		db.releaseModule("FBA", username, false);
-		
-		System.out.println("finding test instances");
+		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
@@ -191,6 +163,7 @@ public class TestIdProcessing {
 				instanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
 			}
 		}
+		if(VERBOSE) System.out.println(" " + instanceResources.size() + " found");
 	}
 	
 	
@@ -198,7 +171,7 @@ public class TestIdProcessing {
 	public static void removeDb() throws IOException {
 		File dir = new File(TEST_DB_LOCATION);
 		FileUtils.deleteDirectory(dir);
-		System.out.println("deleting typed obj database");
+		if(VERBOSE) System.out.println("deleting typed obj database");
 	}
 	
 	@Test
@@ -207,104 +180,55 @@ public class TestIdProcessing {
 		ObjectMapper mapper = new ObjectMapper();
 		
 		//read the instance data
-		System.out.println("  -("+instance.resourceName+")");
+		if(VERBOSE) System.out.println("  -("+instance.resourceName+")");
 		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 		JsonNode instanceRootNode = mapper.readTree(instanceJson);
 		
 		// read the ids file, which provides the list of ids we expect to extract from the instance
-		String idsJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".ids");
-		JsonNode idsRootNode = mapper.readTree(idsJson);
-		JsonNode expectedIds = idsRootNode.get("ids-expected");
-		Iterator <JsonNode> it = expectedIds.iterator();
-		Map <String,Integer> expectedIdList = new HashMap<String,Integer>();
-		while(it.hasNext()) {
-			String id = it.next().asText();
-			if(expectedIdList.containsKey(id)) {
-				int count = expectedIdList.get(id).intValue() + 1;
-				expectedIdList.put(id, new Integer(count));
-			} else { expectedIdList.put(id,new Integer(1)); }
-		}
+		String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
+		JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
 		
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
 			validator.validate(
-					instanceRootNode,
-					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+				instanceRootNode,
+				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 				);
 		List <String> mssgs = report.getErrorMessagesAsList();
 		for(int i=0; i<mssgs.size(); i++) {
 			System.out.println("    ["+i+"]:"+mssgs.get(i));
 		}
-		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
+		assertTrue("  -("+instance.resourceName+") does not validate, but should",
+				report.isInstanceValid());
 		
-		// check that all expected Ids are in fact found
-		List<IdReference> fullIdList = report.getAllIdReferences();
-		//System.out.println("fullIdList: " + fullIdList.size());
-		for(IdReference ref: fullIdList) {
-			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
-					expectedIdList.containsKey(ref.getId()));
-			int n_refs = expectedIdList.get(ref.getId()).intValue();
-			assertFalse("  -("+instance.resourceName+") extracted id "+ref.getId()+" too many times",
-					n_refs==0);
-			expectedIdList.put(ref.getId(), new Integer(n_refs-1));
-		}
-		Iterator<Map.Entry<String,Integer>> mapIter = expectedIdList.entrySet().iterator();
-		while(mapIter.hasNext()) {
-			Map.Entry<String, Integer> pair = mapIter.next();
-			int n_refs_remaining = pair.getValue().intValue();
-			assertTrue("  -("+instance.resourceName+") needed to extract id '"+pair.getKey()+"' "+n_refs_remaining+" more times",
-					n_refs_remaining == 0);
-		}
-		
-		
-		// now we relabel the ids
-		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
-		JsonNode newIds = idsRootNode.get("ids-relabel");
-		Iterator<String> fieldNames = newIds.fieldNames();
-		while(fieldNames.hasNext()) {
-			String originalId = fieldNames.next();
-			String absoluteId = newIds.get(originalId).asText();
-			absoluteIdMapping.put(originalId, absoluteId);
-		}
-		report.setAbsoluteIdRefMapping(absoluteIdMapping);
-		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
-		
-		// now we revalidate the instance, and ensure that the labels have been renamed
-		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
-		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
-		
-		List<String> relabeledIds = report2.getAllIds();
-		
-		//there should be the same number as before, of course!
-		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), fullIdList.size());
-		
-		// make sure that the relabeled object matches what we expect
-		JsonNode expectedRelabeled = idsRootNode.get("renamed-expected");
-		compare(expectedRelabeled, relabeledInstance, instance.resourceName);
-		System.out.println("      PASS.");
+		JsonNode actualSubset = report.extractSearchableWsSubset(-1);
+		// we can just check if they are equal like so:
+		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+		//		actualSubset.equals(expectedSubset));
+		// this method generates a patch, so that if they differ you can see what's up
+		compare(expectedSubset, actualSubset, instance.resourceName);
 	}
-	
-	private static void compare(JsonNode expectedRelabeled, JsonNode relabeledInstance, String resourceName) throws IOException {
-		assertEquals("  -(" + resourceName + ") extracted object does not match expected extract",
-				sort(expectedRelabeled), sort(relabeledInstance));
+
+	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
+		assertEquals("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+				sortJson(expectedSubset), sortJson(actualSubset));
 	}
-	
-	private static String sort(JsonNode tree) throws IOException {
+
+	private static JsonNode sortJson(JsonNode tree) throws IOException {
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-		//TreeNode schemaTree = mapper.readTree(tree);
-		Object obj = mapper.treeToValue(tree, Object.class);
-		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-		return mapper.writeValueAsString(obj);
+		Object map = mapper.treeToValue(tree, Object.class);
+		String text = mapper.writeValueAsString(map);
+		return mapper.readTree(text);
 	}
-	
+
 	/**
 	 * helper method to load test files, mostly copied from TypeRegistering test
 	 */
 	private static String loadResourceFile(String resourceName) throws Exception {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		InputStream is = TestIdProcessing.class.getResourceAsStream(resourceName);
+		InputStream is = WsSubsetExtractionTest.class.getResourceAsStream(resourceName);
 		if (is == null)
 			throw new IllegalStateException("Resource not found: " + resourceName);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -335,7 +259,7 @@ public class TestIdProcessing {
 	 * @throws IOException 
 	 */
 	private static String[] getResourceListing(String path) throws URISyntaxException, IOException {
-		URL dirURL = TestIdProcessing.class.getResource(path);
+		URL dirURL = WsSubsetExtractionTest.class.getResource(path);
 		if (dirURL != null && dirURL.getProtocol().equals("file")) {
 			/* A file path: easy enough */
 			return new File(dirURL.toURI()).list();
@@ -344,8 +268,8 @@ public class TestIdProcessing {
 		if (dirURL == null) {
 			// In case of a jar file, we can't actually find a directory.
 			// Have to assume the same jar as the class.
-			String me = TestIdProcessing.class.getName().replace(".", "/")+".class";
-			dirURL = TestIdProcessing.class.getResource(me);
+			String me = WsSubsetExtractionTest.class.getName().replace(".", "/")+".class";
+			dirURL = WsSubsetExtractionTest.class.getResource(me);
 		}
 
 		if (dirURL.getProtocol().equals("jar")) {
@@ -357,7 +281,7 @@ public class TestIdProcessing {
 			while(entries.hasMoreElements()) {
 				String name = entries.nextElement().getName();
 				// construct internal jar path relative to the class
-				String fullPath = TestIdProcessing.class.getPackage().getName().replace(".","/") + "/" + path;
+				String fullPath = WsSubsetExtractionTest.class.getPackage().getName().replace(".","/") + "/" + path;
 				if (name.startsWith(fullPath)) { //filter according to the path
 					String entry = name.substring(fullPath.length());
 					int checkSubdir = entry.indexOf("/");
