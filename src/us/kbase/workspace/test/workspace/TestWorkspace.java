@@ -1720,9 +1720,9 @@ public class TestWorkspace extends WorkspaceTester {
 					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE1, meta,
 					new Provenance(foo), false)));
 			fail("saved unserializable object");
-		} catch (TypedObjectValidationException iae) {
+		} catch (IllegalArgumentException iae) {
 			assertTrue("Actual exception: " + iae.getMessage(), 
-					iae.getMessage().contains("No serializer found for class java.io.StringReader"));
+					iae.getMessage().contains("UObject can not serialize object of this type: java.io.StringReader"));
 		}
 	}
 	
