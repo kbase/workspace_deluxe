@@ -6,7 +6,6 @@ import us.kbase.typedobj.db.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.report.ProcessingReport;
 
 
 
