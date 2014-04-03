@@ -32,7 +32,6 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -207,21 +206,12 @@ public class TestWsSubsetExtraction {
 		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
 		//		actualSubset.equals(expectedSubset));
 		// this method generates a patch, so that if they differ you can see what's up
-		JsonNode diff = compare(expectedSubset, actualSubset);
-		if(VERBOSE) if(diff.size()!=0) {
-			System.out.println("      expected:  " + expectedSubset);
-			System.out.println("      actual:    " + actualSubset);
-			System.out.println("      FAIL: diff:"+diff);
-		}
-		assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset; diff="+diff,
-						diff.size()==0);
-		
+		compare(expectedSubset, actualSubset, instance.resourceName);
 	}
 
-	public JsonNode compare(JsonNode expectedSubset, JsonNode actualSubset) throws IOException {
-		expectedSubset = sortJson(expectedSubset);
-		actualSubset = sortJson(actualSubset);
-		return JsonDiff.asJson(actualSubset,expectedSubset);
+	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
+		assertEquals("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+				sortJson(expectedSubset), sortJson(actualSubset));
 	}
 
 	private static JsonNode sortJson(JsonNode tree) throws IOException {
