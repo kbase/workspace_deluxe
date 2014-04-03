@@ -2,7 +2,9 @@ package us.kbase.typedobj.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +51,14 @@ import us.kbase.typedobj.idref.WsIdReference;
  * @author rsutormin
  */
 public final class TypedObjectValidator {
+	
+	private static final Map<String, String> ERROR_MAP =
+			new HashMap<String, String>();
+	static {
+		final String nullErr = "Keys in maps/structures may not be null";
+		ERROR_MAP.put("Null key for a Map not allowed in JSON (use a converting NullKeySerializer?)",
+				nullErr); //when Map w/ null keys converted to JsonNode
+	}
 	
 	private static final int maxErrorCount = 10;
 	
@@ -150,7 +160,8 @@ public final class TypedObjectValidator {
 					public void addError(String message) throws JsonTokenValidationException {
 						errorCount++;
 						if (errorCount < maxErrorCount) {
-							errors.add(message);
+							mapErrors(errors, message);
+//							errors.add(message);
 						} else {
 							throw new JsonTokenValidationException(message);
 						}
@@ -170,9 +181,18 @@ public final class TypedObjectValidator {
 				try { jts.close(); } catch (Exception ignore) {}
 			}
 		} catch (Exception ex) {
-			errors.add(ex.getMessage());
+			mapErrors(errors, ex.getMessage());
+//			errors.add(ex.getMessage());
 		}
 		return new TypedObjectValidationReport(errors, searchDataWrap[0], absoluteTypeDefDB, obj, idRefTree, oldRefIds);
+	}
+	
+	private void mapErrors(final List<String> errors, final String err) {
+		if (ERROR_MAP.containsKey(err)) {
+			errors.add(ERROR_MAP.get(err));
+		} else {
+			errors.add(err);
+		}
 	}
 
 	/*

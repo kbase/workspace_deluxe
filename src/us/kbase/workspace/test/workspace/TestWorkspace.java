@@ -150,15 +150,16 @@ public class TestWorkspace extends WorkspaceTester {
 	
 	@Test
 	public void createWorkspaceAndGetInfo() throws Exception {
-		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, "foo", false, "eeswaffertheen", null);
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, "unlocked", MT_META);
+		String wsname = "foo_.-bar";
+		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, wsname, false, "eeswaffertheen", null);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, "unlocked", MT_META);
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
-		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("foo"));
-		checkWSInfo(info, SOMEUSER, "foo", 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(wsname));
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
 		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
@@ -327,8 +328,8 @@ public class TestWorkspace extends WorkspaceTester {
 		//test a few funny chars in the ws name
 		userWS.add(new TestRig(crap, "afe_aff*afea",
 				"Illegal character in workspace name afe_aff*afea: *"));
-		userWS.add(new TestRig(crap, "afe_aff-afea",
-				"Illegal character in workspace name afe_aff-afea: -"));
+		userWS.add(new TestRig(crap, "afe_aff%afea",
+				"Illegal character in workspace name afe_aff%afea: %"));
 		userWS.add(new TestRig(crap, "afeaff/af*ea",
 				"Illegal character in workspace name afeaff/af*ea: /"));
 		userWS.add(new TestRig(crap, "af?eaff*afea",
@@ -933,11 +934,18 @@ public class TestWorkspace extends WorkspaceTester {
 					"typedef structure { " +
 					"  tuple<string,string> val; " +
 					"} type4;" +
+					"typedef structure { " +
+					"  list<int> val; " +
+					"} type5;" +
+					"typedef structure { " +
+					"  list<float> val; " +
+					"} type6;" +
 				"};";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(userfoo, module);
 		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList("type1", "type2", "type3", "type4"), 
+		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList(
+				"type1", "type2", "type3", "type4", "type5", "type6"), 
 				null, null, false, null);
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("nulls");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
@@ -946,7 +954,10 @@ public class TestWorkspace extends WorkspaceTester {
 		TypeDefId abstype2 = new TypeDefId(new TypeDefName(module, "type2"), 0, 1);
 		TypeDefId abstype3 = new TypeDefId(new TypeDefName(module, "type3"), 0, 1);
 		TypeDefId abstype4 = new TypeDefId(new TypeDefName(module, "type4"), 0, 1);
+		TypeDefId abstype5 = new TypeDefId(new TypeDefName(module, "type5"), 0, 1);
+		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
+		
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -959,44 +970,53 @@ public class TestWorkspace extends WorkspaceTester {
 		Map<String, Object> data1copy = (Map<String, Object>)ws.getObjects(userfoo, Arrays.asList(
 				new ObjectIdentifier(wspace, data1id))).get(0).getData();
 		Assert.assertEquals(keys, new TreeSet<String>(data1copy.keySet()));
+		
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
-		try {
-			data2.put("val", null);
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)));
-			Assert.fail("Method works but shouldn't");
-		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
-		}
+		data2.put("val", null);
+		failSave(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)), 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"array\"]), at /val"));
 		data2.put("val", Arrays.asList((String)null));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)));
+		
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
-		try {
-			data3.put("val", null);
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)));
-			Assert.fail("Method works but shouldn't");
-		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
-		}
+		data3.put("val", null);
+		failSave(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"object\"]), at /val/{"));
 		Map<String, Object> innerMap = new LinkedHashMap<String, Object>();
 		innerMap.put("key", null);
 		data3.put("val", innerMap);
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)));
+		innerMap.put(null, "foo");
+		failSave(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\nKeys in maps/structures may not be null"));
+		
 		Map<String, Object> data4 = new LinkedHashMap<String, Object>();
-		try {
-			data4.put("val", null);
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)));
-			Assert.fail("Method works but shouldn't");
-		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("(null)"));
-		}
+		data4.put("val", null);
+		failSave(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)), 
+				new TypedObjectValidationException(
+						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"array\"]), at /val"));
 		data4.put("val", Arrays.asList((String)null, (String)null));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)));
+		
+		Map<String, Object> data5 = new LinkedHashMap<String, Object>();
+		data5.put("val", Arrays.asList(2, (Integer)null, 1));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data5, abstype5, null, emptyprov, false)));
+		
+		Map<String, Object> data6 = new LinkedHashMap<String, Object>();
+		data6.put("val", Arrays.asList(1.2, (Float)null, 3.6));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data6, abstype6, null, emptyprov, false)));
 	}
 
 	@Test
@@ -1721,8 +1741,8 @@ public class TestWorkspace extends WorkspaceTester {
 					new Provenance(foo), false)));
 			fail("saved unserializable object");
 		} catch (IllegalArgumentException iae) {
-			assertTrue("Actual exception: " + iae.getMessage(), 
-					iae.getMessage().contains("UObject can not serialize object of this type: java.io.StringReader"));
+			assertThat("Actual exception: " + iae.getMessage(), iae.getMessage(), 
+					is("UObject can not serialize object of this type: java.io.StringReader"));
 		}
 	}
 	

@@ -126,9 +126,6 @@ else
 test-scripts:
 	test/cfg_to_runner.py $(TESTCFG)
 	test/run_script_tests.sh
-	#perl test/scripts/test-server-up.t
-	#perl test/scripts/test-basic-responses.t
-	#perl test/scripts/test-script-client-config.t
 endif
 
 deploy: deploy-client deploy-service
