@@ -59,20 +59,6 @@ public class WorkspaceSaveObject {
 	private UObject transformData(final Object data) {
 		return data instanceof UObject ? (UObject)data : new UObject(data);
 	}
-
-	/*private JsonNode transformData(final Object data) {
-		final JsonNode retdata;
-		if (!(data instanceof JsonNode)) {
-			try {
-				retdata = MAPPER.valueToTree(data);
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException("Cannot serialize data", iae);
-			}
-		} else {
-			retdata = (JsonNode) data;
-		}
-		return retdata;
-	}*/
 	
 	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;

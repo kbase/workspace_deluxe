@@ -26,9 +26,10 @@ NEW FEATURES:
 - list_all_types returns all the types in the workspace.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+- Nulls will now pass type checking where an int, float, or string is expected.
 - Fixed a bug where get_object_subdata would return the same subdata if two
   different paths through the same object were specified.
-- Command-line interface default URLs are configurable via the makefile
+- Command-line interface default URLs are configurable via the makefile.
 - ws-workspace and ws-url now work against the User and Job Service when in IRIS 
 
 ANTICIPATED FUTURE DEVELOPMENTS:
