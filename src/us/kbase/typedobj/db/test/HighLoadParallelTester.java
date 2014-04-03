@@ -25,7 +25,7 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 
-public class HighLoadParallelTest {
+public class HighLoadParallelTester {
 	private static TypeStorage storage = null;
 	private static TypeDefinitionDB db = null;
 	private static boolean useMongo = true;

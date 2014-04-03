@@ -25,7 +25,7 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.workspace.kbase.Util;
 
-public class JsonTokenValidatorTest {
+public class JsonTokenValidatorTester {
 	private static final long seed = 1234567890L;
 	private static final Random rnd = new Random(seed);
 

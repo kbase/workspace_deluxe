@@ -42,8 +42,6 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
 
-  <property name="junitreports" location="${env.JENKINS_REPORT_DIR}"/>
-
   <fileset dir="${jardir}" id="sourceslib">
     <include name="kbase/kbase-common-temp-sources.jar"/>
   </fileset>
@@ -213,8 +211,8 @@
   </target>
 
   <target name="preparejunitreportdir" if="env.JENKINS_REPORT_DIR">
-    <delete dir="${junitreports}"/>
-    <mkdir dir="${junitreports}"/>
+    <delete dir="${env.JENKINS_REPORT_DIR}"/>
+    <mkdir dir="${env.JENKINS_REPORT_DIR}"/>
   </target>
 
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
@@ -253,19 +251,11 @@
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
-      <test name="us.kbase.typedobj.test.TypeDefsTest"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.test.BasicValidationTest"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.test.IdProcessingTest"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.test.WsSubsetExtractionTest"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.test.ObjectExtractionByPathTest"  todir="${junitreports}"/>
-      <test name="us.kbase.typedobj.db.test.TypeRegisteringTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.database.mongo.ShockBackendTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.database.mongo.GridFSBackendTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.database.mongo.MongoInternalsTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.workspace.WorkspaceTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.workspace.WorkspaceLongTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerTest"  todir="${junitreports}"/>
-      <test name="us.kbase.workspace.test.kbase.JSONRPCLayerLongTest"  todir="${junitreports}"/>
+      <batchtest todir="${env.JENKINS_REPORT_DIR}">
+        <fileset dir="${src}">
+          <include name="**/test/**/**Test.java"/>
+        </fileset>
+      </batchtest>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
