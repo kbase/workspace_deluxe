@@ -30,12 +30,10 @@ import org.junit.runners.Parameterized.Parameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.github.fge.jsonpatch.diff.JsonDiff;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
-
 
 /**
  * @author msneddon
@@ -123,10 +121,7 @@ public class TestObjectExtractionByPath {
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			
-			JsonNode diff = compare(extract,expectedExtract);
-			if(VERBOSE) if(diff.size()!=0) System.out.println("      FAIL: diff:"+diff);
-			assertTrue("  -("+instance.resourceName+") extracted object does not match expected extract; diff="+diff,
-							diff.size()==0);
+			compare(extract,expectedExtract, instance.resourceName);
 			
 		} catch(TypedObjectExtractionException e) {
 			assertTrue("  -("+instance.resourceName+") error message should be '"+expectedErrorMessage+"', but was: '"+e.getMessage()+"'",
@@ -135,18 +130,16 @@ public class TestObjectExtractionByPath {
 		if(VERBOSE) System.out.println("      PASS.");
 	}
 	
-	public JsonNode compare(JsonNode expectedSubset, JsonNode actualSubset) throws IOException {
-		expectedSubset = sortJson(expectedSubset);
-		actualSubset = sortJson(actualSubset);
-		return JsonDiff.asJson(actualSubset,expectedSubset);
+	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
+		assertEquals("  -(" + resourceName + ") extracted object does not match expected extract",
+				sortJson(expectedSubset), sortJson(actualSubset));
 	}
 
-	private static JsonNode sortJson(JsonNode tree) throws IOException {
+	private static String sortJson(JsonNode tree) throws IOException {
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 		Object map = mapper.treeToValue(tree, Object.class);
-		String text = mapper.writeValueAsString(map);
-		return mapper.readTree(text);
+		return mapper.writeValueAsString(map);
 	}
 	
 	/**
