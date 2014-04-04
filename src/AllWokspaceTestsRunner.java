@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 
 @RunWith(AllTests.class)
-public class AllTestsRunner {
+public class AllWokspaceTestsRunner {
 	private static boolean skipLongTests = false;
 	
 	public static TestSuite suite() throws Exception {
@@ -38,7 +38,9 @@ public class AllTestsRunner {
 				String nameWithoutExt = f.getName().substring(0, f.getName().length() - 5);
 				String className = addSuffixFromFile(packagePrefix, nameWithoutExt);
 				Class<?> classObj = Class.forName(className);
-				if (isTestPackage(packagePrefix) && isJUnitTestClass(classObj)) {
+				if (isTestPackage(packagePrefix)) {
+					if (!isJUnitTestClass(classObj))
+						continue;
 					if (nameWithoutExt.endsWith("Test")) {
 						if (skipLongTests && nameWithoutExt.endsWith("LongTest"))
 							continue;
