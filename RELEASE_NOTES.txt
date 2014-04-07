@@ -34,6 +34,13 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   IRIS.
 - The characters . and - are now allowed in workspace names.
 
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
+
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Rewrite type checker / data extractor for speed and memory usage
 - Garbage collection
