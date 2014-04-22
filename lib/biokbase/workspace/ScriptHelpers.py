@@ -20,23 +20,46 @@ def user_workspace(newWs = None):
         currentWs = newWs
         if 'KB_RUNNING_IN_IRIS' not in os.environ:
             cfg = getKBaseCfg()
-            cfg.set('workspace_deluxe', 'workspace', currentWs)
+            try:
+                userId = cfg.get('authentication','user_id')
+            except:
+                userId = 'public'
+            cfg.set('workspace_deluxe', userId+'-current-workspace', currentWs)
             with open(kb_config, 'w') as configfile:
                 cfg.write(configfile)
-        else:
-            os.environ['KB_WORKSPACE'] = currentWs
+        #else:
+        #  perl logic:
+        #    my $ujs = Bio::KBase::userandjobstate::Client->new();
+        #    $ujs->set_state("Workspace","current-workspace",$currentWs);
     else:
         if 'KB_RUNNING_IN_IRIS' not in os.environ:
             cfg = getKBaseCfg()
             try:
-                currentWs = cfg.get('workspace_deluxe', 'workspace')
+                userId = cfg.get('authentication','user_id')
             except:
-                currentWs='no_workspace_set'
-                cfg.set('workspace_deluxe', 'workspace', currentWs)
-                with open(kb_config, 'w') as configfile:
-                    cfg.write(configfile)
-        else:
-            currentWs = os.environ['KB_WORKSPACE']
+                userId = 'public'
+            try:
+                currentWs = cfg.get('workspace_deluxe', userId+'-current-workspace')
+            except:
+                # for compatibility, look for the old style workspace config variable 
+                try:
+                    currentWs = cfg.get('workspace_deluxe', 'workspace')
+                    cfg.set('workspace_deluxe',userId+'-current-workspace')
+                    cfg.remove_option('workspace_deluxe','workspace')
+                    with open(kb_config, 'w') as configfile:
+                        cfg.write(configfile)
+                except:
+                    # optionally, we can try here to retrieve from the User and Job State service first before we abort
+                    raise "Default workspace not set.  Run ws-workspace to set your default workspace"
+        #else:
+        #  perl logic:
+        #    currentWs = os.environ['KB_WORKSPACE']
+        #    my $ujs = Bio::KBase::userandjobstate::Client->new();
+        #    eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
+        #    if($@ || !defined($currentWs)) {
+        #	print STDERR "\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
+        #	exit 1;
+        #    }
     return currentWs
 
 def parseObjectMeta(metaTuple):
