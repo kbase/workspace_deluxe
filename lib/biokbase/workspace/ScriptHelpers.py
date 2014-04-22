@@ -50,7 +50,7 @@ def user_workspace(newWs = None):
                         cfg.write(configfile)
                 except:
                     # optionally, we can try here to retrieve from the User and Job State service first before we abort
-                    raise "Default workspace not set.  Run ws-workspace to set your default workspace"
+                    raise Exception("Default workspace not set.  Run ws-workspace to set your default workspace")
         #else:
         #  perl logic:
         #    currentWs = os.environ['KB_WORKSPACE']
