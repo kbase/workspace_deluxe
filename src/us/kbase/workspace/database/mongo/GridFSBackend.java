@@ -35,6 +35,7 @@ public class GridFSBackend implements BlobStore {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
+		//TODO 1 check if MD5 already exists, if so abort
 		final OutputStreamToInputStream<String> osis =
 				new OutputStreamToInputStream<String>() {
 					
