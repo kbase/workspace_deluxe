@@ -1,6 +1,8 @@
 import os
+import sys
 from ConfigParser import ConfigParser
 from biokbase.auth import kb_config
+from biokbase.userandjobstate.client import UserAndJobState
 
 def getKBaseCfg():
     cfg = ConfigParser()
@@ -27,10 +29,9 @@ def user_workspace(newWs = None):
             cfg.set('workspace_deluxe', userId+'-current-workspace', currentWs)
             with open(kb_config, 'w') as configfile:
                 cfg.write(configfile)
-        #else:
-        #  perl logic:
-        #    my $ujs = Bio::KBase::userandjobstate::Client->new();
-        #    $ujs->set_state("Workspace","current-workspace",$currentWs);
+        else:
+            ujs = UserAndJobState()
+            ujs.set_state('Workspace', 'current-workspace', currentWs)
     else:
         if 'KB_RUNNING_IN_IRIS' not in os.environ:
             cfg = getKBaseCfg()
@@ -44,22 +45,21 @@ def user_workspace(newWs = None):
                 # for compatibility, look for the old style workspace config variable 
                 try:
                     currentWs = cfg.get('workspace_deluxe', 'workspace')
-                    cfg.set('workspace_deluxe',userId+'-current-workspace')
+                    cfg.set('workspace_deluxe',userId+'-current-workspace', currentWs)
                     cfg.remove_option('workspace_deluxe','workspace')
                     with open(kb_config, 'w') as configfile:
                         cfg.write(configfile)
                 except:
                     # optionally, we can try here to retrieve from the User and Job State service first before we abort
                     raise Exception("Default workspace not set.  Run ws-workspace to set your default workspace")
-        #else:
-        #  perl logic:
-        #    currentWs = os.environ['KB_WORKSPACE']
-        #    my $ujs = Bio::KBase::userandjobstate::Client->new();
-        #    eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
-        #    if($@ || !defined($currentWs)) {
-        #	print STDERR "\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
-        #	exit 1;
-        #    }
+        else:
+            currentWs = os.environ['KB_WORKSPACE'] # Not sure why this is needed
+            ujs = UserAndJobState()
+            try:
+                currentWs = ujs.get_state('Workspace', 'current-workspace', 0)
+            except: # Could be explicit about the exception to catch
+                sys.stderr.write('\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n')
+                return None
     return currentWs
 
 def parseObjectMeta(metaTuple):
