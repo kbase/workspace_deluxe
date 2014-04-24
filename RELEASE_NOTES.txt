@@ -24,6 +24,7 @@ VERSION: 0.2.0 (Released TBD)
 
 NEW FEATURES:
 - list_all_types returns all the types in the workspace.
+- ScriptHelpers workspace library ported to python (from perl) by Mike Mundy
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Nulls will now pass type checking where an int, float, or string is expected.
