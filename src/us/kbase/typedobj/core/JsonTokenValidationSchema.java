@@ -326,7 +326,7 @@ public class JsonTokenValidationSchema {
 		} else if (type == Type.number) {
 			// floating point value is expected
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NULL))	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
 			if(numberRange!=null)
 				numberRange.checkValue(jp, lst, path);
@@ -534,29 +534,29 @@ public class JsonTokenValidationSchema {
 
 		@Override
 		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
-			System.out.println("checking value"+this);
+			System.out.println("checking float value: "+this);
 			try {
 				// first attempt to check range assuming it is a double value
 				double value = jp.getDoubleValue();
 				if(minValueDefined) {
 					if(exclusiveMin) {
-						if(value<=minValue) {
-							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", "+" exclusive) at "+getPathText(path));
+						if( !(value>minValue) ) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", exclusive) at "+getPathText(path));
 						}
 					} else {
-						if(value<=minValue) {
-							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						if( !(value>=minValue) ) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
 				if(maxValueDefined) {
 					if(exclusiveMin) {
-						if(value>=maxValue) {
-							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" exclusive) at "+getPathText(path));
+						if( !(value<maxValue)) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+getPathText(path));
 						}
 					} else {
-						if(value<=minValue) {
-							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						if( !(value<=maxValue) ) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
@@ -607,29 +607,29 @@ public class JsonTokenValidationSchema {
 
 		@Override
 		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
-			System.out.println("checking value"+this);
+			System.out.println("checking int value: "+this);
 			try {
 				// first attempt to check range assuming it is a double value
 				double value = jp.getLongValue();
 				if(minValueDefined) {
 					if(exclusiveMin) {
-						if(value<=minValue) {
-							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+minValue+", "+" exclusive) at "+getPathText(path));
+						if( !(value>minValue) ) {
+							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+minValue+", exclusive) at "+getPathText(path));
 						}
 					} else {
-						if(value<=minValue) {
-							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						if( !(value>=minValue) ) {
+							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
 				if(maxValueDefined) {
 					if(exclusiveMin) {
-						if(value>=maxValue) {
-							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" exclusive) at "+getPathText(path));
+						if( !(value<maxValue) ) {
+							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+getPathText(path));
 						}
 					} else {
-						if(value<=minValue) {
-							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						if( !(value<=maxValue) ) {
+							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
@@ -638,5 +638,21 @@ public class JsonTokenValidationSchema {
 				//jp.getDecimalValue();
 			}
 		}
+		
+		@Override
+		public String toString() {
+			String s = "";
+			if(minValueDefined) {
+				if(exclusiveMin) s+="("; else s+="[";
+				s+=minValue+",";
+			} else s+= "inf,";
+			if(maxValueDefined) {
+				s+=maxValue;
+				if(exclusiveMax) s+=")"; else s+="]";
+			} else s+= "inf";
+			return s;
+		}
 	}
+	
+	
 }
