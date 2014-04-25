@@ -40,6 +40,9 @@ public class JsonTokenValidationSchema {
 	private List<JsonTokenValidationSchema> arrayItemList;				// For tuple: items (list of types)
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
+	
+	private NumberRange numberRange;
+	private IntRange intRange;
 
 	@SuppressWarnings("unchecked")
 	public static JsonTokenValidationSchema parseJsonSchema(String document) 
@@ -112,6 +115,10 @@ public class JsonTokenValidationSchema {
 				ret.arrayMinItems = Integer.parseInt("" + data.get("minItems"));
 			if (data.get("maxItems") != null)
 				ret.arrayMaxItems = Integer.parseInt("" + data.get("maxItems"));
+		} else if (ret.type == Type.number) {
+			ret.numberRange = new NumberRange(data);
+		} else if (ret.type == Type.integer) {
+			ret.intRange = new IntRange(data);
 		}
 		return ret;
 	}
@@ -314,11 +321,15 @@ public class JsonTokenValidationSchema {
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
+			if(intRange!=null)
+				intRange.checkValue(jp, lst, path);
 		} else if (type == Type.number) {
 			// floating point value is expected
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
+			if(numberRange!=null)
+				numberRange.checkValue(jp, lst, path);
 		} else {
 			lst.addError("Unsupported node type: " + type);
 		}
@@ -479,6 +490,153 @@ public class JsonTokenValidationSchema {
 		public IdRefDescr(String idType, String[] validTypeDefNames) {
 			this.idType = idType;
 			this.validTypeDefNames = validTypeDefNames;
+		}
+	}
+	
+	
+	private static abstract class Range {
+		protected boolean minValueDefined;
+		protected boolean maxValueDefined;
+		protected boolean exclusiveMin;
+		protected boolean exclusiveMax;
+		protected Range() {
+			minValueDefined=false;
+			maxValueDefined=false;
+			exclusiveMin = false;
+			exclusiveMax = false;
+		}
+		abstract void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException;
+	}
+	
+	private static class NumberRange extends Range {
+		double minValue;
+		double maxValue;
+		
+		public NumberRange(Map<String, Object> data) {
+			minValue=0; maxValue=0; 
+			if(data.get("minimum") != null) {
+				minValueDefined = true;
+				minValue = Double.parseDouble("" + data.get("minimum"));
+				if(data.get("exclusiveMinimum") != null)
+					exclusiveMin = true;
+				else
+					exclusiveMin = false;
+			}
+			if(data.get("maximum") != null) {
+				maxValueDefined = true;
+				maxValue = Double.parseDouble("" + data.get("maximum"));
+				if(data.get("exclusiveMaximum") != null)
+					exclusiveMax = true;
+				else
+					exclusiveMax = false;
+			}
+		}
+
+		@Override
+		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
+			System.out.println("checking value"+this);
+			try {
+				// first attempt to check range assuming it is a double value
+				double value = jp.getDoubleValue();
+				if(minValueDefined) {
+					if(exclusiveMin) {
+						if(value<=minValue) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", "+" exclusive) at "+getPathText(path));
+						}
+					} else {
+						if(value<=minValue) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						}
+					}
+				}
+				if(maxValueDefined) {
+					if(exclusiveMin) {
+						if(value>=maxValue) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" exclusive) at "+getPathText(path));
+						}
+					} else {
+						if(value<=minValue) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						}
+					}
+				}
+			} catch (IOException e) {
+				// if we encountered an exception, then there was probably a buffer overflow
+				//jp.getDecimalValue();
+			}
+		}
+		
+		@Override
+		public String toString() {
+			String s = "";
+			if(minValueDefined) {
+				if(exclusiveMin) s+="("; else s+="[";
+				s+=minValue+",";
+			} else s+= "inf,";
+			if(maxValueDefined) {
+				s+=maxValue;
+				if(exclusiveMax) s+=")"; else s+="]";
+			} else s+= "inf";
+			return s;
+		}
+	}
+	
+	private static class IntRange extends Range {
+		long minValue;
+		long maxValue;
+
+		public IntRange(Map<String, Object> data) {
+			minValue=0; maxValue=0; 
+			if(data.get("minimum") != null) {
+				minValueDefined = true;
+				minValue = Long.parseLong("" + data.get("minimum"));
+				if(data.get("exclusiveMinimum") != null)
+					exclusiveMin = true;
+				else
+					exclusiveMin = false;
+			}
+			if(data.get("maximum") != null) {
+				maxValueDefined = true;
+				maxValue = Long.parseLong("" + data.get("maximum"));
+				if(data.get("exclusiveMaximum") != null)
+					exclusiveMax = true;
+				else
+					exclusiveMax = false;
+			}
+		}
+
+		@Override
+		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
+			System.out.println("checking value"+this);
+			try {
+				// first attempt to check range assuming it is a double value
+				double value = jp.getLongValue();
+				if(minValueDefined) {
+					if(exclusiveMin) {
+						if(value<=minValue) {
+							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+minValue+", "+" exclusive) at "+getPathText(path));
+						}
+					} else {
+						if(value<=minValue) {
+							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						}
+					}
+				}
+				if(maxValueDefined) {
+					if(exclusiveMin) {
+						if(value>=maxValue) {
+							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" exclusive) at "+getPathText(path));
+						}
+					} else {
+						if(value<=minValue) {
+							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", "+" inclusive) at "+getPathText(path));
+						}
+					}
+				}
+			} catch (IOException e) {
+				// if we encountered an exception, then there was probably a buffer overflow
+				//jp.getDecimalValue();
+			}
 		}
 	}
 }

@@ -52,6 +52,30 @@ module KB {
 	} RandomObject;
 
 
+	/* @range [-12.5,30.3] */
+	typedef float f1;
+	/* @range [0,30) */
+	typedef float f2;
+
+	/* @range [5,] */
+	typedef int i1;
+	/* @range [,0) */
+	typedef int i2;
+	/* @range (0,10] */
+	typedef int i3;
+	/* @range 0,1 */
+	typedef int i4;
+	
+	/* @optional f1 f2 i1 i2 i3 i4 */
+	typedef structure {
+		f1 f1;
+		f2 f2;
+		i1 i1;
+		i2 i2;
+		i3 i3;
+		i4 i4;
+	} NumberObj;
+
 };
 
 
