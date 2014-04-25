@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 
 @RunWith(AllTests.class)
-public class AllWokspaceTestsRunner {
+public class AllWorkspaceTestsRunner {
 	private static boolean skipLongTests = false;
 	
 	public static TestSuite suite() throws Exception {
