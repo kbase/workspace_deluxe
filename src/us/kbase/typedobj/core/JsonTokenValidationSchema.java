@@ -324,7 +324,7 @@ public class JsonTokenValidationSchema {
 			if(intRange!=null)
 				intRange.checkValue(jp, lst, path);
 		} else if (type == Type.number) {
-			// floating point value is expected
+			// floating point value is expected, but we accept numbers that appear as integers as well
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
