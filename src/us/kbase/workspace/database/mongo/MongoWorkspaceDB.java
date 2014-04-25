@@ -2112,15 +2112,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							e);
 				}
 			}
-			try {
-				wsjongo.getCollection(col).insert((Object[]) newdata.toArray(
-						new TypeData[newdata.size()]));
-			} catch (MongoException.DuplicateKey dk) {
-				//At least one of the data objects was just inserted by another
-				//thread, which is fine - do nothing
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
+			for (final TypeData td: newdata) {
+				try {
+					wsjongo.getCollection(col).insert(td);
+				} catch (MongoException.DuplicateKey dk) {
+					// Was just inserted by another
+					// thread, which is fine - do nothing
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(
+							"There was a problem communicating with the database", me);
+				}
 			}
 		}
 	}

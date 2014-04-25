@@ -99,7 +99,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	//TODO 1 ensure build fails with missing jars
     //TODO 1 get rid of commons sources jar, just explode the std jar
-    //TODO 1 Do inserts into mongo one by one in saveData, inserts don't continue on DK error
 	
 	private static final String VER = "0.2.0";
 
