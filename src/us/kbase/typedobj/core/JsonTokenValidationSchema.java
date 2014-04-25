@@ -1,6 +1,7 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -534,7 +535,10 @@ public class JsonTokenValidationSchema {
 
 		@Override
 		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
-			System.out.println("checking float value: "+this);
+			// do not validate range for null values
+			if(jp.getCurrentToken() == JsonToken.VALUE_NULL) return;
+			// do not validate range if no range was defined
+			if(!minValueDefined && !maxValueDefined) return;
 			try {
 				// first attempt to check range assuming it is a double value
 				double value = jp.getDoubleValue();
@@ -545,12 +549,12 @@ public class JsonTokenValidationSchema {
 						}
 					} else {
 						if( !(value>=minValue) ) {
-							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
 				if(maxValueDefined) {
-					if(exclusiveMin) {
+					if(exclusiveMax) {
 						if( !(value<maxValue)) {
 							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+getPathText(path));
 						}
@@ -561,7 +565,8 @@ public class JsonTokenValidationSchema {
 					}
 				}
 			} catch (IOException e) {
-				// if we encountered an exception, then there was probably a buffer overflow
+				System.out.println("ERROR !! buffer overflow: " + e.getMessage());
+				// if we encountered an exception, then there was probably a buffer overflow, so attempt to use a DecimalValue ??
 				//jp.getDecimalValue();
 			}
 		}
@@ -607,7 +612,10 @@ public class JsonTokenValidationSchema {
 
 		@Override
 		void checkValue(JsonParser jp, JsonTokenValidationListener lst, List<String> path) throws JsonTokenValidationException {
-			System.out.println("checking int value: "+this);
+			// do not validate range for null values
+			if(jp.getCurrentToken() == JsonToken.VALUE_NULL) return;
+			// do not validate range if no range was defined
+			if(!minValueDefined && !maxValueDefined) return;
 			try {
 				// first attempt to check range assuming it is a double value
 				double value = jp.getLongValue();
@@ -618,12 +626,12 @@ public class JsonTokenValidationSchema {
 						}
 					} else {
 						if( !(value>=minValue) ) {
-							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
+							lst.addError("Integer value given ("+value+") was less than minimum value accepted ("+minValue+", inclusive) at "+getPathText(path));
 						}
 					}
 				}
 				if(maxValueDefined) {
-					if(exclusiveMin) {
+					if(exclusiveMax) {
 						if( !(value<maxValue) ) {
 							lst.addError("Integer value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+getPathText(path));
 						}
@@ -634,8 +642,34 @@ public class JsonTokenValidationSchema {
 					}
 				}
 			} catch (IOException e) {
-				// if we encountered an exception, then there was probably a buffer overflow
-				//jp.getDecimalValue();
+				// if we encountered an exception, then there was probably a buffer overflow, so attempt to use a BigInt
+				try {
+					BigInteger value = jp.getBigIntegerValue();
+					if(minValueDefined) {
+						if(exclusiveMin) {
+							if( !(value.compareTo(BigInteger.valueOf(minValue)) > 0) ) {
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", exclusive) at "+getPathText(path));
+							}
+						} else {
+							if( !(value.compareTo(BigInteger.valueOf(minValue)) >= 0) ) {
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
+							}
+						}
+					}
+					if(maxValueDefined) {
+						if(exclusiveMax) {
+							if( !(value.compareTo(BigInteger.valueOf(maxValue)) < 0)) {
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+getPathText(path));
+							}
+						} else {
+							if( !(value.compareTo(BigInteger.valueOf(maxValue)) <= 0) ) {
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", inclusive) at "+getPathText(path));
+							}
+						}
+					}
+				} catch (IOException e1) {
+					// TODO should we throw an error if we were unable to get the proper BigInt value?
+				}
 			}
 		}
 		
