@@ -6,6 +6,8 @@ Created on Apr 27, 2014
 from __future__ import print_function
 from configobj import ConfigObj
 from pymongo import MongoClient
+import time
+from collections import defaultdict
 
 # where to get credentials (don't check these into git, idiot)
 CREDS_FILE = 'ws_mongo_creds'
@@ -19,6 +21,13 @@ WS_MONGO_DB = 'workspace'
 #collection names
 COL_WS = 'workspaces'
 COL_ACLS = 'workspaceACLs'
+COL_OBJ = 'workspaceObjects'
+COL_VERS = 'workspaceObjVersions'
+
+PUBLIC = 'pub'
+PRIVATE = 'priv'
+
+LIMIT = 10000
 
 if __name__ == '__main__':
     cfg = ConfigObj(CREDS_FILE)
@@ -31,9 +40,66 @@ if __name__ == '__main__':
     # < 2000 workspaces
     mongo_workspaces = db[COL_WS].find({'del': False}, ['ws'])
     pub_read = db[COL_ACLS].find({'user': '*'}, ['id', 'perm'])
-    workspaces = {}
+    pub_ws = {}
     for ws in mongo_workspaces:
-        workspaces[ws['ws']] = False
+        pub_ws[ws['ws']] = False
     for pr in pub_read:
-        workspaces[pr['id']] = True
-    print(workspaces)
+        pub_ws[pr['id']] = True
+    print("Total objects: " + str(db[COL_OBJ].count()))
+    types = {}
+    skip = 0
+    no_record = False
+    while(not no_record):
+        no_record = True
+        objtime = time.time()
+        objs = db[COL_OBJ].find({'del': False}, ['ws', 'id', 'numver'],
+                                 skip=skip, limit=LIMIT)
+        obj_sum = defaultdict(list)
+        for o in objs:
+            obj_sum[o['ws']].append({'id': o['id'], 'ver': o['numver']})
+        print('Skip: {} obj proc time: {}'.format(skip, time.time() - objtime))
+
+        ttlstart = time.time()
+        for ws in obj_sum:
+            start = time.time()
+            print('ws: {} count:{} time: '.format(ws, len(obj_sum[ws])),
+                   end='')
+            #could try batching all but nested ors tend to suck
+            vers = db[COL_VERS].find({'ws': ws, '$or': obj_sum[ws]},
+                                     ['type', 'ws'])
+            for v in vers:
+                no_record = False
+#                v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
+#                                       'ver': o['numver']}, ['type', 'ws'])
+                tname, ver = v['type'].split('-')
+                if tname not in types:
+                    types[tname] = {}
+                if ver not in types[tname]:
+                    types[tname][ver] = {}
+                    types[tname][ver][PUBLIC] = 0
+                    types[tname][ver][PRIVATE] = 0
+                p = PUBLIC if pub_ws[v['ws']] else PRIVATE
+                types[tname][ver][p] += 1
+            print(time.time() - start)
+        print('total time: ' + str(time.time() - ttlstart))
+        skip += LIMIT
+        if skip > 25000:
+            no_record = True
+
+    print('\t'.join(['Type', 'Version', 'Private', 'Public', 'TTL']))
+    pub_tot = 0
+    priv_tot = 0
+    for t in types:
+        pub_type_tot = 0
+        priv_type_tot = 0
+        for v in types[t]:
+            print('\t'.join([t, v, str(types[t][v][PUBLIC]),
+                             str(types[t][v][PRIVATE]),
+                             str(types[t][v][PUBLIC] + types[t][v][PRIVATE])]))
+            pub_type_tot += types[t][v][PUBLIC]
+            priv_type_tot += types[t][v][PRIVATE]
+        print('\t'.join([t, 'TTL', str(pub_type_tot), str(priv_type_tot),
+                         str(pub_type_tot + priv_type_tot)]))
+        pub_tot += pub_type_tot
+        priv_tot += priv_type_tot
+    print('\t'.join(['TTL', '-', str(pub_tot), str(priv_tot)]))
