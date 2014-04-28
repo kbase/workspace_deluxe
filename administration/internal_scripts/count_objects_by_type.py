@@ -7,6 +7,7 @@ from __future__ import print_function
 from configobj import ConfigObj
 from pymongo import MongoClient
 import time
+import sys
 
 # where to get credentials (don't check these into git, idiot)
 CREDS_FILE = 'ws_mongo_creds'
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     no_record = False
     while(not no_record):
         print('Skip: {}'.format(skip))
+        sys.stdout.flush()
         no_record = True
         objtime = time.time()
         objs = db[COL_OBJ].find({'del': False}, ['ws', 'id', 'numver'],
@@ -69,6 +71,7 @@ if __name__ == '__main__':
             p = PUBLIC if pub_ws[v['ws']] else PRIVATE
             types[tname][ver][p] += 1
         print('total ver query time: ' + str(time.time() - ttlstart))
+        sys.stdout.flush()
         skip += LIMIT
 
     print()
