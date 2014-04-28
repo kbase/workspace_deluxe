@@ -59,6 +59,9 @@ if __name__ == '__main__':
         ttlstart = time.time()
         for o in objs:
             no_record = False
+            #this is faster than $or queries - although it might be faster
+            # to do $or if the # of items is < 100 say. > 1000 was about 10x
+            # slower
             v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
                                    'ver': o['numver']}, ['type', 'ws'])
             tname, ver = v['type'].split('-')
@@ -75,7 +78,7 @@ if __name__ == '__main__':
         skip += LIMIT
 
     print()
-    print('\t'.join(['Type', 'Version', 'Private', 'Public', 'TTL']))
+    print('\t'.join(['Type', 'Version', 'Public', 'Private', 'TTL']))
     pub_tot = 0
     priv_tot = 0
     for t in types:
