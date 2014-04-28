@@ -7,7 +7,6 @@ from __future__ import print_function
 from configobj import ConfigObj
 from pymongo import MongoClient
 import time
-from collections import defaultdict
 
 # where to get credentials (don't check these into git, idiot)
 CREDS_FILE = 'ws_mongo_creds'
@@ -71,9 +70,8 @@ if __name__ == '__main__':
             types[tname][ver][p] += 1
         print('total ver query time: ' + str(time.time() - ttlstart))
         skip += LIMIT
-        if skip > 25000:
-            no_record = True
 
+    print()
     print('\t'.join(['Type', 'Version', 'Private', 'Public', 'TTL']))
     pub_tot = 0
     priv_tot = 0
