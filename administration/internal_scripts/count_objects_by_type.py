@@ -50,38 +50,26 @@ if __name__ == '__main__':
     skip = 0
     no_record = False
     while(not no_record):
+        print('Skip: {}'.format(skip))
         no_record = True
         objtime = time.time()
         objs = db[COL_OBJ].find({'del': False}, ['ws', 'id', 'numver'],
                                  skip=skip, limit=LIMIT)
-        obj_sum = defaultdict(list)
-        for o in objs:
-            obj_sum[o['ws']].append({'id': o['id'], 'ver': o['numver']})
-        print('Skip: {} obj proc time: {}'.format(skip, time.time() - objtime))
-
         ttlstart = time.time()
-        for ws in obj_sum:
-            start = time.time()
-            print('ws: {} count:{} time: '.format(ws, len(obj_sum[ws])),
-                   end='')
-            #could try batching all but nested ors tend to suck
-            vers = db[COL_VERS].find({'ws': ws, '$or': obj_sum[ws]},
-                                     ['type', 'ws'])
-            for v in vers:
-                no_record = False
-#                v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
-#                                       'ver': o['numver']}, ['type', 'ws'])
-                tname, ver = v['type'].split('-')
-                if tname not in types:
-                    types[tname] = {}
-                if ver not in types[tname]:
-                    types[tname][ver] = {}
-                    types[tname][ver][PUBLIC] = 0
-                    types[tname][ver][PRIVATE] = 0
-                p = PUBLIC if pub_ws[v['ws']] else PRIVATE
-                types[tname][ver][p] += 1
-            print(time.time() - start)
-        print('total time: ' + str(time.time() - ttlstart))
+        for o in objs:
+            no_record = False
+            v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
+                                   'ver': o['numver']}, ['type', 'ws'])
+            tname, ver = v['type'].split('-')
+            if tname not in types:
+                types[tname] = {}
+            if ver not in types[tname]:
+                types[tname][ver] = {}
+                types[tname][ver][PUBLIC] = 0
+                types[tname][ver][PRIVATE] = 0
+            p = PUBLIC if pub_ws[v['ws']] else PRIVATE
+            types[tname][ver][p] += 1
+        print('total ver query time: ' + str(time.time() - ttlstart))
         skip += LIMIT
         if skip > 25000:
             no_record = True
