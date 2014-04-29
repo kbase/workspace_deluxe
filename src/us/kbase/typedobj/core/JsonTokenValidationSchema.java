@@ -3,9 +3,11 @@ package us.kbase.typedobj.core;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.idref.WsIdReference;
@@ -62,12 +64,14 @@ public class JsonTokenValidationSchema {
 		if (data.containsKey("id-reference")) {
 			Map<String, Object> idInfo = (Map<String, Object>)data.get("id-reference");
 			String idType = (String)idInfo.get("id-type");           // the id-type must be defined
-			String[] validTypeDefNames = null;
+			Set<TypeDefName> validTypeDefNames = new HashSet<TypeDefName>();
 			if (idType.equals(WsIdReference.typestring)) {
 				List<String> validNames = (List<String>)idInfo.get("valid-typedef-names");
 				if (validNames == null) 
 					throw new RuntimeException("cannot create WsIdReference; invalid IdReference info; 'valid-typedef-names' field is required");
-				validTypeDefNames = validNames.toArray(new String[validNames.size()]);
+				for (final String n: validNames) {
+					validTypeDefNames.add(new TypeDefName(n));
+				}
 			}
 			ret.idReference = new IdRefDescr(idType, validTypeDefNames);
 		}
@@ -219,7 +223,7 @@ public class JsonTokenValidationSchema {
 							lst.addIdRefMessage(ref);
 							// this line adds id-reference into tree structure that will be used for actual 
 							// relabeling in object tokens based on list of resolved values constructed by workspace
-							getIdRefNode(path, refPath).setParentKeyRef(fieldName);
+							getIdRefNode(path, refPath).setLocationIsID();
 						}
 					}
 				}
@@ -306,7 +310,7 @@ public class JsonTokenValidationSchema {
 					// this line adds id-reference into flat list which will be used to extract resolved 
 					// values from workspace db
 					lst.addIdRefMessage(ref);
-					getIdRefNode(path, refPath).setScalarValueRef(jp.getText());
+					getIdRefNode(path, refPath).setIDAtValue(jp.getText());
 				}
 			}
 		} else if (type == Type.integer) {
@@ -370,7 +374,7 @@ public class JsonTokenValidationSchema {
 	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {
 		if (refPath.size() == 0 || refPath.size() > path.size() + 1)
 			throw new IllegalStateException("Reference branch path has wrong length: " + refPath.size());
-		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getLastPathLocation().equals(path.get(refPath.size() - 2))) {
+		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getRelativeLocation().equals(path.get(refPath.size() - 2))) {
 			refPath.remove(refPath.size() - 1);
 		}
 		while (refPath.size() <= path.size()) {
@@ -378,7 +382,7 @@ public class JsonTokenValidationSchema {
 			IdRefNode parent = refPath.get(pos);
 			String key = path.get(pos);
 			IdRefNode child = new IdRefNode(key);
-			parent.addChild(key, child);
+			parent.addChild(child);
 			refPath.add(child);
 		}
 		return refPath.get(path.size());
@@ -433,7 +437,7 @@ public class JsonTokenValidationSchema {
 		return idReference == null ? null : idReference.idType;
 	}
 
-	public String[] getIdReferenceValidTypeDefNames() {
+	public Set<TypeDefName> getIdReferenceValidTypeDefNames() {
 		return idReference == null ? null : idReference.validTypeDefNames;
 	}
 
@@ -475,10 +479,15 @@ public class JsonTokenValidationSchema {
 	
 	private static class IdRefDescr {
 		String idType;
-		String[] validTypeDefNames;
-		public IdRefDescr(String idType, String[] validTypeDefNames) {
+		Set<TypeDefName> validTypeDefNames;
+		public IdRefDescr(String idType, Set<TypeDefName> validTypeDefNames) {
 			this.idType = idType;
 			this.validTypeDefNames = validTypeDefNames;
+		}
+		@Override
+		public String toString() {
+			return "IdRefDescr [idType=" + idType + ", validTypeDefNames="
+					+ validTypeDefNames + "]";
 		}
 	}
 }

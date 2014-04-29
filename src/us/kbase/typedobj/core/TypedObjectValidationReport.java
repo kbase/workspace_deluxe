@@ -301,12 +301,19 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	public void setAbsoluteIdRefMapping(Map<String, String> absoluteIdRefMapping) {
+	/** Sets the mapping from temporary ID -> permanent ID. Calls
+	 * getRelabledSize() after setting the map and returns the result.
+	 * @param absoluteIdRefMapping the mapping from temporary ID -> permanent
+	 * ID.
+	 * @return the size of the object with remapped IDs.
+	 * @throws IOException if an IO exception occurs.
+	 */
+	public long setAbsoluteIdRefMapping(
+			final Map<String, String> absoluteIdRefMapping) throws IOException {
 		this.absoluteIdRefMapping = absoluteIdRefMapping;
-		this.sorted = false;
-		this.size = -1;
 		this.cacheForSorting = null;
 		nullifySortCacheFile();
+		return getRelabeledSize();
 	}
 
 	private void nullifySortCacheFile() {

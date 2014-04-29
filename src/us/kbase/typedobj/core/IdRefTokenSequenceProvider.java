@@ -95,7 +95,16 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		String ret = jts.getText();
 		if (refPath.size() == path.size() + 1) {
 			IdRefNode node = refPath.get(path.size());
-			String ref = wasField ? node.getParentKeyRef() : node.getScalarValueRef();
+			final String ref;
+			if (wasField) {
+				if (node.locationIsID()) {
+					ref = node.getRelativeLocation();
+				} else {
+					ref = null;
+				}
+			} else {
+				ref = node.getValueID();
+			}
 			if (ref != null) {
 				String subst = absoluteIdRefMapping.get(ret);
 				if (ref.equals(ret)) {
@@ -126,7 +135,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			refPath.remove(refPath.size() - 1);
 		if (refPath.size() == path.size()) {
 			IdRefNode refNode = refPath.get(refPath.size() - 1);
-			if (refNode.getChildren() != null) {
+			if (refNode.hasChildren()) {
 				String text = "" + value;
 				IdRefNode child = refNode.getChildren().get(text);
 				if (child != null)

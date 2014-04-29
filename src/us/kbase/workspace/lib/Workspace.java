@@ -642,8 +642,7 @@ public class Workspace {
 					provrefs.add(newrefs.get(ref));
 				}
 			}
-			rep.setAbsoluteIdRefMapping(replacerefs);
-			ttlObjSize += rep.getRelabeledSize();
+			ttlObjSize += rep.setAbsoluteIdRefMapping(replacerefs);
 			saveobjs.add(wo.resolve(rep, refs, provrefs));
 		}
 		objects = null; // don't screw with the input, but release to gc
