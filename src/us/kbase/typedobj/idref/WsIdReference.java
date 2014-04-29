@@ -36,15 +36,10 @@ public class WsIdReference extends IdReference {
 	public boolean isValidInstanceType(TypeDefId typeDefId) {
 		return isValidInstanceType(typeDefId.getType());
 	}
-	
+
 	@Override
 	public String toString() {
-		String s;
-		if(isReplacementIdSet())
-			s=getReplacementId();
-		else
-			s="-none-";
-		return "WsIdReference [id:'"+getId()+"', isField?="+isFieldName()+", replacement='"+s+"']";
+		return "WsIdReference [id=" + getId() + " isFieldName=" + isFieldName()
+				+ "validTypeDefNames=" + validTypeDefNames + "]";
 	}
-	
 }
