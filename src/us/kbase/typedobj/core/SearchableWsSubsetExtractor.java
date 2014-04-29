@@ -40,8 +40,12 @@ public class SearchableWsSubsetExtractor {
 	 * if we get true on extractKeysOf, it really is a mapping, and if we get a '*' or '[*]', it really is
 	 * a mapping or array.
 	 */
-	public static JsonNode extractFields(TokenSequenceProvider jts, 
-			ObjectNode keysOfSelection, ObjectNode fieldsSelection, long maxSubdataSize) 
+	public static JsonNode extractFields(
+			TokenSequenceProvider jts, 
+			ObjectNode keysOfSelection,
+			ObjectNode fieldsSelection,
+			long maxSubdataSize,
+			MetadataExtractionHandler metadataExtractionHandler) 
 					throws IOException, TypedObjectExtractionException {
 		SearchableWsSubsetNode root = new SearchableWsSubsetNode();
 		//if the selection is empty, we return without adding anything
@@ -49,6 +53,9 @@ public class SearchableWsSubsetExtractor {
 			prepareWsSubsetTree(keysOfSelection, true, root);
 		if (fieldsSelection != null && fieldsSelection.size() > 0)
 			prepareWsSubsetTree(fieldsSelection, false, root);
+		//if (metadataExtractionInfo != null)
+		//	prepareWsSubsetTree(fieldsSelection, false, root);
+		prepareMetadataSelectionTree(root);
 		if ((!root.isNeedAll()) && (!root.isNeedKeys()) && (!root.hasChildren()))
 			return mapper.createObjectNode();
 		JsonToken t = jts.nextToken();
@@ -87,6 +94,14 @@ public class SearchableWsSubsetExtractor {
 				prepareWsSubsetTree(entry.getValue(), keysOf, child);
 			}
 		}
+	}
+	
+	private static void prepareMetadataSelectionTree(SearchableWsSubsetNode parent) {
+
+		SearchableWsSubsetNode child = new SearchableWsSubsetNode();
+		child.setNeedValueForMetadata("MyFirstMetadata");
+		child.setNeedValueForMetadata("MySecondMetadata");
+		parent.addChild("name", child);
 	}
 
 	/*
@@ -213,6 +228,10 @@ public class SearchableWsSubsetExtractor {
 					throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {	// we observe open of mapping/object in real json data
+			
+			if(selection.getNeedLengthForMetadata().size()>0) { // we check if metadata is required for t
+				
+			}
 			if (selection.hasChildren()) {	// we have some restrictions for this object in selection
 				// we will remove visited keys from selectedFields and check emptiness at object end
 				Set<String> selectedFields = new LinkedHashSet<String>(
@@ -326,7 +345,16 @@ public class SearchableWsSubsetExtractor {
 			if (selection.isNeedKeys())
 				throw new TypedObjectExtractionException("WS subset path contains keys-of level for scalar " +
 						"value at " + SubdataExtractor.getPathText(path));
-			writeCurrentToken(jts, t, jgen);
+			if (selection.isNeedAll())
+				writeCurrentToken(jts, t, jgen);
+			if (!selection.getNeedLengthForMetadata().isEmpty())
+				throw new TypedObjectExtractionException("WS metadata path contains length() method called on a scalar " +
+						"value at " + SubdataExtractor.getPathText(path));
+			List<String> metadataNames = selection.getNeedValueForMetadata();
+			for(String name:metadataNames) {
+				System.out.println("medatadata extracted! :\""+name+"\":\""+jts.getText()+"\"");
+			}
+			
 		}
 	}
 }

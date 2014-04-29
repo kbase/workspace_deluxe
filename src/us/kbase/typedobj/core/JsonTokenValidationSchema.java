@@ -42,8 +42,8 @@ public class JsonTokenValidationSchema {
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 	
-	private NumberRange numberRange;
-	private IntRange intRange;
+	private NumberRange numberRange;					// For number: minimum, maximum, exclusiveMinimum, exclusiveMaximum
+	private IntRange intRange;							// For integer: minimum, maximum, exclusiveMinimum, exclusiveMaximum
 
 	@SuppressWarnings("unchecked")
 	public static JsonTokenValidationSchema parseJsonSchema(String document) 
@@ -687,6 +687,11 @@ public class JsonTokenValidationSchema {
 			return s;
 		}
 	}
+	
+	
+	
+	
+	
 	
 	
 }
