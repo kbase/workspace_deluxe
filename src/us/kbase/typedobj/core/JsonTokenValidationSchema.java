@@ -219,7 +219,7 @@ public class JsonTokenValidationSchema {
 							lst.addIdRefMessage(ref);
 							// this line adds id-reference into tree structure that will be used for actual 
 							// relabeling in object tokens based on list of resolved values constructed by workspace
-							getIdRefNode(path, refPath).setParentKeyRef(fieldName);
+							getIdRefNode(path, refPath).setLocationIsID();
 						}
 					}
 				}
@@ -306,7 +306,7 @@ public class JsonTokenValidationSchema {
 					// this line adds id-reference into flat list which will be used to extract resolved 
 					// values from workspace db
 					lst.addIdRefMessage(ref);
-					getIdRefNode(path, refPath).setScalarValueRef(jp.getText());
+					getIdRefNode(path, refPath).setIDAtValue(jp.getText());
 				}
 			}
 		} else if (type == Type.integer) {
@@ -370,7 +370,7 @@ public class JsonTokenValidationSchema {
 	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {
 		if (refPath.size() == 0 || refPath.size() > path.size() + 1)
 			throw new IllegalStateException("Reference branch path has wrong length: " + refPath.size());
-		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getLastPathLocation().equals(path.get(refPath.size() - 2))) {
+		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getRelativeLocation().equals(path.get(refPath.size() - 2))) {
 			refPath.remove(refPath.size() - 1);
 		}
 		while (refPath.size() <= path.size()) {
@@ -378,7 +378,7 @@ public class JsonTokenValidationSchema {
 			IdRefNode parent = refPath.get(pos);
 			String key = path.get(pos);
 			IdRefNode child = new IdRefNode(key);
-			parent.addChild(key, child);
+			parent.addChild(child);
 			refPath.add(child);
 		}
 		return refPath.get(path.size());
