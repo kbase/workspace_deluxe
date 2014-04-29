@@ -160,7 +160,6 @@ public class ShockBackend implements BlobStore {
 		try {
 			//writes in UTF8
 			data.write(osis);
-			data.releaseResources();
 		} catch (IOException ioe) {
 			//no way to test this easily, manually tested for now.
 			//be sure to test manually if making changes

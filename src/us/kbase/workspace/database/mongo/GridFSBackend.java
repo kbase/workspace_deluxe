@@ -59,7 +59,6 @@ public class GridFSBackend implements BlobStore {
 		try {
 			//writes in UTF8
 			data.write(osis);
-			data.releaseResources();
 		} catch (IOException ioe) {
 			throw new RuntimeException("Something is broken", ioe);
 		} finally {

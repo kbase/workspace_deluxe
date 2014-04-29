@@ -12,6 +12,16 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public interface BlobStore {
 	
+	
+	/** Save a blob to the Blob Store. Note that the blob store is not
+	 * guaranteed to call releaseResources() on the Writer.
+	 * @param md5 the md5 of the blob.
+	 * @param data the blob.
+	 * @throws BlobStoreAuthorizationException if the blobstore is not
+	 * authorized to write to the blob store backend. 
+	 * @throws BlobStoreCommunicationException if a communication error with
+	 * the blob store backend occurs.
+	 */
 	public void saveBlob(MD5 md5, Writable data) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	

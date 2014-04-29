@@ -2114,7 +2114,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		} finally {
 			for (ObjectSavePackage wo: data) {
-				releaseTypeDataResources(wo.td);
+				try {
+					wo.td.getData().releaseResources();
+				} catch (IOException ioe) {
+					//ok, we just possibly left a temp file on disk,
+					//but it's not worth interrupting the entire call for
+				}
 			}
 		}
 	}
@@ -2141,15 +2146,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return existChksum;
 	}
 
-	private void releaseTypeDataResources(final TypeData td) {
-		try {
-			td.getData().releaseResources();
-		} catch (IOException ioe) {
-			//ok, we just possibly left a temp file on disk,
-			//but it's not worth interrupting the entire call for
-		}
-	}
-	
 	private static final Set<String> FLDS_VER_GET_OBJECT_SUBDATA = newHashSet(
 			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_CHKSUM);
 	
