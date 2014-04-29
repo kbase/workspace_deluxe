@@ -115,4 +115,11 @@ public class IdRefNode {
 		}
 		this.valueID = valueID;
 	}
+
+	@Override
+	public String toString() {
+		return "IdRefNode [location=" + location + ", locationIsID="
+				+ locationIsID + ", valueID=" + valueID + ", children="
+				+ children + "]";
+	}
 }

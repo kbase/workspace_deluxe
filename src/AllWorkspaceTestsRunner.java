@@ -13,7 +13,7 @@ import org.junit.runners.AllTests;
 
 @RunWith(AllTests.class)
 public class AllWorkspaceTestsRunner {
-	private static boolean skipLongTests = false;
+	private static boolean SKIP_LONG_TESTS = false;
 	
 	public static TestSuite suite() throws Exception {
 		TestSuite suite = new TestSuite();
@@ -42,7 +42,7 @@ public class AllWorkspaceTestsRunner {
 					if (!isJUnitTestClass(classObj))
 						continue;
 					if (nameWithoutExt.endsWith("Test")) {
-						if (skipLongTests && nameWithoutExt.endsWith("LongTest"))
+						if (SKIP_LONG_TESTS && nameWithoutExt.endsWith("LongTest"))
 							continue;
 						ret.add(classObj);
 					}

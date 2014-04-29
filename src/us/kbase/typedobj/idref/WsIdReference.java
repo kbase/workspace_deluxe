@@ -1,5 +1,8 @@
 package us.kbase.typedobj.idref;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 
@@ -8,26 +11,22 @@ public class WsIdReference extends IdReference {
 	public static final String typestring = "ws";
 	
 	/** storage of valid typedefnames; we expect this list to be small, but if it is large a Map might be more efficient */
-	private String[] validTypeDefNames;
+	private Set<TypeDefName> validTypeDefNames;
 	
 	
-	public WsIdReference(String id, String[] validTypeDefNames, boolean isFieldName) {
+	public WsIdReference(String id, Set<TypeDefName> validTypeDefNames, boolean isFieldName) {
 		super(typestring, id, isFieldName);
-		this.validTypeDefNames = validTypeDefNames;
+		this.validTypeDefNames = new HashSet<TypeDefName>();
+		if (validTypeDefNames != null) {
+			this.validTypeDefNames.addAll(validTypeDefNames);
+		}
 	}
 	
 	/**
 	 * return true if the given TypeDefName is on the list of valid TypeDefNames specified for this WsIdReference
 	 */
-	public boolean isValidInstanceType(TypeDefName typeDefName) {
-		// if nothing is on the list, then everything is valid
-		if(validTypeDefNames.length==0) return true;
-		// if something is on the list, then we better find it
-		for(int i=0; i<validTypeDefNames.length; i++) {
-			if( validTypeDefNames[i].equals(typeDefName.getTypeString()) )
-				return true;
-		}
-		return false;
+	public boolean isValidInstanceType(TypeDefName type) {
+		return validTypeDefNames.isEmpty() || validTypeDefNames.contains(type);
 	}
 	
 	/**
