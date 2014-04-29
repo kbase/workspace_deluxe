@@ -1,5 +1,6 @@
 package us.kbase.workspace.lib;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -476,7 +477,7 @@ public class Workspace {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
-			TypeStorageException,
+			TypeStorageException, IOException,
 			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
 		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
@@ -613,9 +614,9 @@ public class Workspace {
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
+		long ttlObjSize = 0;
 		for (WorkspaceSaveObject wo: objects) {
 			final TypedObjectValidationReport rep = reports.get(wo).rep;
-			final int objnum = reports.get(wo).order;
 			final Map<String, String> replacerefs =
 					new HashMap<String, String>();
 			final Set<Reference> refs = new HashSet<Reference>();
@@ -626,7 +627,8 @@ public class Workspace {
 							"Object %s: The type %s of reference %s " + 
 							"contained in this object is not " +
 							"allowed for this object's type, %s",
-							getObjectErrorId(wo.getObjectIdentifier(), objnum),
+							getObjectErrorId(wo.getObjectIdentifier(),
+									reports.get(wo).order),
 							reftypes.get(r.getId()).getTypeString(),
 							r.getId(),
 							rep.getValidationTypeDefId().getTypeString()));
@@ -640,25 +642,33 @@ public class Workspace {
 					provrefs.add(newrefs.get(ref));
 				}
 			}
-			try {
-				//modifies data in place
-				rep.setAbsoluteIdRefMapping(replacerefs);
-				rep.checkRelabelingAndSorting(getTempFilesManager(), getMaxInMemorySortSize());
-			} catch (RelabelIdReferenceException ref) {
-				/* this occurs when two references in the same hash resolve
-				 * to the same reference, so one value would be lost
-				 */
-				throw new TypedObjectValidationException(String.format(
-						"Object %s: Two references in a single hash are identical when resolved, resulting in a loss of data: ",
-						getObjectErrorId(wo.getObjectIdentifier(), objnum))
-						+ ref.getLocalizedMessage(), ref);
-			}
+			rep.setAbsoluteIdRefMapping(replacerefs);
+			ttlObjSize += rep.getRelabeledSize();
 			saveobjs.add(wo.resolve(rep, refs, provrefs));
 		}
 		objects = null; // don't screw with the input, but release to gc
 		reports.clear();
 		reftypes.clear();
 		newrefs.clear();
+		
+		objcount = 1;
+		boolean forceCacheToDisk = ttlObjSize > getMaxObjectMemUsePerCall();
+		for (ResolvedSaveObject ro: saveobjs) {
+			try {
+				//modifies object in place
+				ro.getRep().sort(getTempFilesManager(), getMaxInMemorySortSize(),
+						forceCacheToDisk);
+			} catch (RelabelIdReferenceException ref) {
+				/* this occurs when two references in the same hash resolve
+				 * to the same reference, so one value would be lost
+				 */
+				throw new TypedObjectValidationException(String.format(
+						"Object %s: Two references in a single hash are identical when resolved, resulting in a loss of data: ",
+						getObjectErrorId(ro.getObjectIdentifier(), objcount))
+						+ ref.getLocalizedMessage(), ref);
+			}
+			objcount++;
+		}
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 

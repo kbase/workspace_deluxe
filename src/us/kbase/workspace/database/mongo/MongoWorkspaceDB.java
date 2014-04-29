@@ -2064,65 +2064,89 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<TypeDefId, List<ObjectSavePackage>>();
 		for (final ObjectSavePackage p: data) {
 			if (pkgByType.get(p.td.getType()) == null) {
-				pkgByType.put(p.td.getType(), new ArrayList<ObjectSavePackage>());
+				pkgByType.put(p.td.getType(),
+						new ArrayList<ObjectSavePackage>());
 			}
 			pkgByType.get(p.td.getType()).add(p);
 		}
-		for (final TypeDefId type: pkgByType.keySet()) {
-			ensureTypeIndex(type);
-			final String col = TypeData.getTypeCollection(type);
-			final Map<String, TypeData> chksum = new HashMap<String, TypeData>();
-			for (ObjectSavePackage p: pkgByType.get(type)) {
-				chksum.put(p.td.getChksum(), p.td);
-			}
-			final DBObject query = new BasicDBObject(Fields.TYPE_CHKSUM,
-					new BasicDBObject("$in", new ArrayList<String>(
-							chksum.keySet())));
-			final DBObject proj = new BasicDBObject(Fields.TYPE_CHKSUM, 1);
-			proj.put(Fields.MONGO_ID, 0);
-			final Set<String> existChksum = new HashSet<String>();
-			try {
-				final DBCursor res = wsmongo.getCollection(col)
-						.find(query, proj);
-				for (DBObject dbo: res) {
-					existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
+		try {
+			for (final TypeDefId type: pkgByType.keySet()) {
+				ensureTypeIndex(type);
+				final String col = TypeData.getTypeCollection(type);
+				final Map<String, TypeData> chksum =
+						new HashMap<String, TypeData>();
+				for (ObjectSavePackage p: pkgByType.get(type)) {
+					chksum.put(p.td.getChksum(), p.td);
 				}
-			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database",
-						me);
-			}
-			
-			final List<TypeData> newdata = new ArrayList<TypeData>();
-			for (String md5: chksum.keySet()) {
-				if (existChksum.contains(md5)) {
-					continue;
+				final Set<String> existChksum = getExistingMD5sInCollection(
+						col, chksum.keySet());
+				final List<TypeData> newdata = new ArrayList<TypeData>();
+				for (String md5: chksum.keySet()) { //better set operators in java would be nice
+					if (existChksum.contains(md5)) {
+						continue;
+					}
+					newdata.add(chksum.get(md5));
+					try {
+						//this is kind of stupid, but no matter how you slice
+						//it you have to calc md5s before you save the data
+						blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
+					} catch (BlobStoreCommunicationException e) {
+						throw new WorkspaceCommunicationException(
+								e.getLocalizedMessage(), e);
+					} catch (BlobStoreAuthorizationException e) {
+						throw new WorkspaceCommunicationException(
+								"Authorization error communicating with the backend storage system",
+								e);
+					}
 				}
-				newdata.add(chksum.get(md5));
-				try {
-					//this is kind of stupid, but no matter how you slice it you have
-					//to calc md5s before you save the data
-					blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
-				} catch (BlobStoreCommunicationException e) {
-					throw new WorkspaceCommunicationException(
-							e.getLocalizedMessage(), e);
-				} catch (BlobStoreAuthorizationException e) {
-					throw new WorkspaceCommunicationException(
-							"Authorization error communicating with the backend storage system",
-							e);
-				}
-			}
-			for (final TypeData td: newdata) {
-				try {
-					wsjongo.getCollection(col).insert(td);
-				} catch (MongoException.DuplicateKey dk) {
-					// Was just inserted by another
-					// thread, which is fine - do nothing
-				} catch (MongoException me) {
-					throw new WorkspaceCommunicationException(
-							"There was a problem communicating with the database", me);
+				for (final TypeData td: newdata) {
+					try {
+						wsjongo.getCollection(col).insert(td);
+					} catch (MongoException.DuplicateKey dk) {
+						// Was just inserted by another
+						// thread, which is fine - do nothing
+					} catch (MongoException me) {
+						throw new WorkspaceCommunicationException(
+								"There was a problem communicating with the database",
+								me);
+					}
 				}
 			}
+		} finally {
+			for (ObjectSavePackage wo: data) {
+				releaseTypeDataResources(wo.td);
+			}
+		}
+	}
+
+	private Set<String> getExistingMD5sInCollection(final String col,
+			Set<String> md5s) throws WorkspaceCommunicationException {
+		final DBObject query = new BasicDBObject(Fields.TYPE_CHKSUM,
+				new BasicDBObject("$in", new ArrayList<String>(
+						md5s)));
+		final DBObject proj = new BasicDBObject(Fields.TYPE_CHKSUM, 1);
+		proj.put(Fields.MONGO_ID, 0);
+		final Set<String> existChksum = new HashSet<String>();
+		try {
+			final DBCursor res = wsmongo.getCollection(col)
+					.find(query, proj);
+			for (DBObject dbo: res) {
+				existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database",
+					me);
+		}
+		return existChksum;
+	}
+
+	private void releaseTypeDataResources(final TypeData td) {
+		try {
+			td.getData().releaseResources();
+		} catch (IOException ioe) {
+			//ok, we just possibly left a temp file on disk,
+			//but it's not worth interrupting the entire call for
 		}
 	}
 	
