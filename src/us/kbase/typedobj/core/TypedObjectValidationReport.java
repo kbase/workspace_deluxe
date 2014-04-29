@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *
  * @author msneddon
  * @author rsutormin
+ * @author gaprice@lbl.gov
  */
 public class TypedObjectValidationReport {
 
@@ -74,9 +75,14 @@ public class TypedObjectValidationReport {
 	 */
 	private final UObject tokenStreamProvider;
 	
-	private byte[] cacheForSorting;
+	// the size of the object after relabeling. -1 if not yet calculated.
+	private long size = -1;
+	// whether the object is naturally sorted after relabeling. Only set to true after relabeling.
+	private boolean sorted = false;
 	
-	private File fileForSorting;
+	private byte[] cacheForSorting = null;
+	
+	private File fileForSorting = null;
 	
 	private final IdRefNode idRefTree;
 	
@@ -154,6 +160,12 @@ public class TypedObjectValidationReport {
 	}
 	
 	public Writable createJsonWritable() {
+		if (sorted == false && cacheForSorting == null &&
+				fileForSorting == null) {
+			//TODO be smarter about this later
+			throw new IllegalStateException(
+					"You must call sort() prior to creating a Writeable.");
+		}
 		return new Writable() {
 			@Override
 			public void write(OutputStream os) throws IOException {
@@ -177,8 +189,7 @@ public class TypedObjectValidationReport {
 			
 			@Override
 			public void releaseResources() throws IOException {
-				if (fileForSorting != null)
-					fileForSorting.delete();
+				nullifySortCacheFile();
 			}
 		};
 	}
@@ -206,47 +217,82 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
-	public void checkRelabelingAndSorting(TempFilesManager tfm, long maxInMemorySortSize) 
-			throws RelabelIdReferenceException {
+	//TODO 1 tests for changes since b448a17
+	/** Calculate the size of the object, in bytes, when ids have been
+	 * remapped.
+	 * @return the size of the object after id remapping.
+	 * @throws IOException
+	 */
+	public long getRelabeledSize() throws IOException {
+		final long[] size = {0L};
+		final OutputStream sizeOs = new OutputStream() {
+			@Override
+			public void write(int b) throws IOException {
+				size[0]++;
+			}
+			@Override
+			public void write(byte[] b, int off, int len)
+					throws IOException {
+				size[0] += len;
+			}
+		};
+		final JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
+		sorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
+		jgen.close();
+		this.size = size[0];
+		return this.size;
+	}
+	
+	
+	/** Relabel ids, sort the object if necessary and keep a copy.
+	 * You must call this method prior to calling createJsonWritable().
+	 * @param tfm the temporary file manager to use for managing temporary
+	 * files.
+	 * @param maxInMemorySortSize if the size of the object is larger than
+	 * this value, the sorted data will be saved to a temporary file rather
+	 * than in memory.
+	 * @param forceCacheToFile force saving the sorted data to file.
+	 * @throws RelabelIdReferenceException if there are duplicate keys after
+	 * relabeling the ids or if sorting the map keys takes too much memory.
+	 * @throws IOException if an IO exception occurs.
+	 */
+	public void sort(final TempFilesManager tfm, final long maxInMemorySortSize,
+			boolean forceCacheToFile) throws RelabelIdReferenceException,
+			IOException {
+		if (size < 0) {
+			getRelabeledSize();
+		}
+		nullifySortCacheFile();
 		cacheForSorting = null;
-		fileForSorting = null;
 		try {
-			final long[] size = {0L};
-			OutputStream sizeOs = new OutputStream() {
-				@Override
-				public void write(int b) throws IOException {
-					size[0]++;
-				}
-				@Override
-				public void write(byte[] b, int off, int len)
-						throws IOException {
-					size[0] += len;
-				}
-			};
-			JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
-			boolean sorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
-			jgen.close();
-			jgen = null;
 			if (!sorted) {
-				if (maxInMemorySortSize <= 0 || size[0] <= maxInMemorySortSize || tfm == null) {
+				if (tfm == null || (!forceCacheToFile &&
+						(maxInMemorySortSize <= 0 
+						|| size <= maxInMemorySortSize))) {
 					ByteArrayOutputStream os = new ByteArrayOutputStream();
-					jgen = mapper.getFactory().createGenerator(os);
+					final JsonGenerator jgen = mapper.getFactory()
+							.createGenerator(os);
 					relabelWsIdReferencesIntoGenerator(jgen);
 					jgen.close();
 					cacheForSorting = os.toByteArray();
 					os = new ByteArrayOutputStream();
-					new SortedKeysJsonFile(cacheForSorting).writeIntoStream(os).close();
+					new SortedKeysJsonFile(cacheForSorting)
+							.writeIntoStream(os).close();
 					os.close();
 					cacheForSorting = os.toByteArray();
 				} else {
-					File f1 = tfm.generateTempFile("sortinp", "json");
+					final File f1 = tfm.generateTempFile("sortinp", "json");
+					JsonGenerator jgen = null;
 					try {
-						jgen = mapper.getFactory().createGenerator(f1, JsonEncoding.UTF8);
+						jgen = mapper.getFactory()
+								.createGenerator(f1, JsonEncoding.UTF8);
 						relabelWsIdReferencesIntoGenerator(jgen);
 						jgen.close();
 						jgen = null;
-						fileForSorting = tfm.generateTempFile("sortout", "json");
-						FileOutputStream os = new FileOutputStream(fileForSorting);
+						fileForSorting = tfm.generateTempFile(
+								"sortout", "json");
+						final FileOutputStream os = new FileOutputStream(
+								fileForSorting);
 						new SortedKeysJsonFile(f1).writeIntoStream(os).close();
 						os.close();
 					} finally {
@@ -259,16 +305,34 @@ public class TypedObjectValidationReport {
 		} catch (KeyDuplicationException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
 		} catch (TooManyKeysException ex) {
-			throw new IllegalStateException("Memory necessary for sorting map keys exceeds the limit " + 
-					ex.getMaxMem() + " bytes at " + ex.getPath() + ". To deal with data with so many " +
+			throw new RelabelIdReferenceException(
+					"Memory necessary for sorting map keys exceeds the limit " +
+					ex.getMaxMem() + " bytes at " + ex.getPath() +
+					". To deal with data with so many " +
 							"keys you have to sort them on client side.", ex);
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex.getMessage(), ex);
 		}
 	}
 	
-	public void setAbsoluteIdRefMapping(Map<String, String> absoluteIdRefMapping) {
+	/** Sets the mapping from temporary ID -> permanent ID. Calls
+	 * getRelabledSize() after setting the map and returns the result.
+	 * @param absoluteIdRefMapping the mapping from temporary ID -> permanent
+	 * ID.
+	 * @return the size of the object with remapped IDs.
+	 * @throws IOException if an IO exception occurs.
+	 */
+	public long setAbsoluteIdRefMapping(
+			final Map<String, String> absoluteIdRefMapping) throws IOException {
 		this.absoluteIdRefMapping = absoluteIdRefMapping;
+		this.cacheForSorting = null;
+		nullifySortCacheFile();
+		return getRelabeledSize();
+	}
+
+	private void nullifySortCacheFile() {
+		if (this.fileForSorting != null) {
+			this.fileForSorting.delete();
+			this.fileForSorting = null;
+		}
 	}
 	
 	public Map<String, String> getAbsoluteIdRefMapping() {
@@ -459,6 +523,4 @@ public class TypedObjectValidationReport {
 		}
 		return mssg.toString();
 	}
-	
-	
 }

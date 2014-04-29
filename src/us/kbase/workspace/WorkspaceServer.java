@@ -97,9 +97,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 	
-	//TODO 1 ensure build fails with missing jars
-    //TODO 1 get rid of commons sources jar, just explode the std jar
-	
 	private static final String VER = "0.2.0";
 
 	private ArgUtils au = new ArgUtils();

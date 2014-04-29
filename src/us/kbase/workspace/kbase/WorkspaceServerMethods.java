@@ -116,7 +116,8 @@ public class WorkspaceServerMethods {
 			WorkspaceAuthorizationException, NoSuchObjectException,
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			TypedObjectValidationException, TypeStorageException,
-			BadJsonSchemaDocumentException, InstanceValidationException {
+			BadJsonSchemaDocumentException, InstanceValidationException,
+			IOException {
 
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(

@@ -71,8 +71,8 @@ public class ShockBackend implements BlobStore {
 					"The shock url " + url + " is invalid", isue);
 		} catch (ShockHttpException she) {
 			throw new BlobStoreException(
-					"Shock appears to be misconfigured - the client could not initialize",
-					she);
+					"Shock appears to be misconfigured - the client could not initialize. Shock said: "
+					+ she.getLocalizedMessage(), she);
 		} catch (TokenExpiredException ete) {
 			throw new BlobStoreException( //uh... this should never happen
 					"The token retrieved from the auth service is already " +
@@ -160,7 +160,6 @@ public class ShockBackend implements BlobStore {
 		try {
 			//writes in UTF8
 			data.write(osis);
-			data.releaseResources();
 		} catch (IOException ioe) {
 			//no way to test this easily, manually tested for now.
 			//be sure to test manually if making changes
