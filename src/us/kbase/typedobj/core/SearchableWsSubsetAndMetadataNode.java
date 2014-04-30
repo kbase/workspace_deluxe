@@ -10,25 +10,25 @@ import java.util.Map;
  * in order to construct ws-searchable subset.
  * @author rsutormin
  */
-public class SearchableWsSubsetNode {
+public class SearchableWsSubsetAndMetadataNode {
 	private boolean needKeys = false;
 	private boolean needAll = false;
 	private List<String> needValueForMetadata;  // if this is non-empty, then we need the value at this node for metadata
 	private List<String> needLengthForMetadata; // if this is non-empty, then we need the length of this node for metadata
-	private Map<String, SearchableWsSubsetNode> children = null;
+	private Map<String, SearchableWsSubsetAndMetadataNode> children = null;
 	
-	public SearchableWsSubsetNode() {
+	public SearchableWsSubsetAndMetadataNode() {
 		needValueForMetadata  = new ArrayList<String>();
 		needLengthForMetadata = new ArrayList<String>();
 	}
 	
-	public Map<String, SearchableWsSubsetNode> getChildren() {
+	public Map<String, SearchableWsSubsetAndMetadataNode> getChildren() {
 		return children;
 	}
 	
-	public void addChild(String key, SearchableWsSubsetNode child) {
+	public void addChild(String key, SearchableWsSubsetAndMetadataNode child) {
 		if (children == null) 
-			children = new LinkedHashMap<String, SearchableWsSubsetNode>();
+			children = new LinkedHashMap<String, SearchableWsSubsetAndMetadataNode>();
 		children.put(key, child);
 	}
 
@@ -41,7 +41,7 @@ public class SearchableWsSubsetNode {
 		return children.containsKey(name);
 	}
 	
-	public SearchableWsSubsetNode getChild(String name) {
+	public SearchableWsSubsetAndMetadataNode getChild(String name) {
 		if(children == null) return null;
 		return children.get(name);
 	}

@@ -424,13 +424,13 @@ public class TypedObjectValidationReport {
 	 * been extracted.
 	 * @deprecated
 	 */
-	public JsonNode extractSearchableWsSubset(long maxSubdataSize) {
-		JsonNode extraction = extractSearchableWsSubsetAndMetadata(maxSubdataSize);
+	public JsonNode extractSearchableWsSubset(long maxSubsetSize) {
+		JsonNode extraction = extractSearchableWsSubsetAndMetadata(maxSubsetSize);
 		return extraction.get("subset");
 	}
 
 	
-	public JsonNode extractSearchableWsSubsetAndMetadata(long maxSubdataSize) {
+	public JsonNode extractSearchableWsSubsetAndMetadata(long maxSubsetSize) {
 		ObjectNode returnData = mapper.createObjectNode();
 		
 		if(!isInstanceValid()) {
@@ -451,12 +451,14 @@ public class TypedObjectValidationReport {
 			tsp = createTokenSequenceForWsSubset();
 			JsonNode ret = SearchableWsSubsetExtractor.extractFields(
 															tsp, 
-															keys_of, fields, maxSubdataSize,
+															keys_of, fields, maxSubsetSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
 			System.out.println("Subdata:\n"+ret);
 			System.out.println("Metadata:\n"+wsMetadataExtractionHandler+"\n");
-			return ret;
+			returnData.set("subset", ret);
+			returnData.set("metadata", wsMetadataExtractionHandler.getSavedMetadata());
+			return returnData;
 		} catch (RuntimeException ex) {
 			throw ex;
 		} catch (Exception ex) {
