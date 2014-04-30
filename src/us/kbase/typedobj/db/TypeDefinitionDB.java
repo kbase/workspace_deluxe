@@ -24,12 +24,15 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 import us.kbase.jkidl.StaticIncludeProvider;
+import us.kbase.kidl.KbAnnotationId;
+import us.kbase.kidl.KbAnnotationSearch;
 import us.kbase.kidl.KbFuncdef;
 import us.kbase.kidl.KbList;
 import us.kbase.kidl.KbMapping;
@@ -1155,15 +1158,6 @@ public class TypeDefinitionDB {
 	}
 	
 	private ModuleInfo copyOf(ModuleInfo input) throws TypeStorageException {
-		/*String infoText;
-		try {
-			infoText = mapper.writeValueAsString(input);
-			return mapper.readValue(infoText, ModuleInfo.class);
-		} catch (JsonProcessingException e) {
-			throw new TypeStorageException(e);
-		} catch (IOException e) {
-			throw new TypeStorageException(e);
-		}*/
 		ModuleInfo ret = new ModuleInfo();
 		ret.setDescription(input.getDescription());
 		for (Map.Entry<String, FuncInfo> entry : input.getFuncs().entrySet()) {
@@ -1211,7 +1205,6 @@ public class TypeDefinitionDB {
 			}
 		}
 		return copyOf(ret);
-		//return getModuleInfoNL(moduleName, storage.getLastReleasedModuleVersion(moduleName));
 	}
 	
 	public ModuleInfo getModuleInfo(String moduleName) 
@@ -2189,12 +2182,23 @@ public class TypeDefinitionDB {
 	}
 	
 	private Change findTypeChange(ModuleInfo info, KbTypedef newType) 
-			throws SpecParseException, NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+			throws SpecParseException, NoSuchTypeException, NoSuchModuleException, TypeStorageException, JsonProcessingException {
 		if (!info.getTypes().containsKey(newType.getName()))
 			return Change.notCompatible;
 		TypeInfo ti = info.getTypes().get(newType.getName());
 		KbTypedef oldType = getTypeParsingDocumentNL(new TypeDefId(info.getModuleName() + "." + ti.getTypeName(), 
 				ti.getTypeVersion()), false);
+		KbAnnotationSearch oldAnnSWS = oldType.getAnnotations() == null ? null : 
+			oldType.getAnnotations().getSearchable();
+		String oldAnnSWSSchema = oldAnnSWS == null ? "" : mapper.writeValueAsString(oldAnnSWS.toJson());
+		KbAnnotationSearch newAnnSWS = newType.getAnnotations() == null ? null : 
+			newType.getAnnotations().getSearchable();
+		String newAnnSWSSchema = newAnnSWS == null ? "" : mapper.writeValueAsString(newAnnSWS.toJson());
+		if (!oldAnnSWSSchema.equals(newAnnSWSSchema)) {
+			//System.out.println("TypeDefinitionDB: oldSWS: " + oldAnnSWSSchema);
+			//System.out.println("TypeDefinitionDB: newSWS: " + newAnnSWSSchema);
+			return Change.notCompatible;
+		}
 		return findChange(oldType, newType);
 	}
 	
@@ -2206,7 +2210,26 @@ public class TypeDefinitionDB {
 			KbTypedef newIType = (KbTypedef)newType;
 			if (!newIType.getName().equals(oldIType.getName()))
 				return Change.notCompatible;
-			return findChange(oldIType.getAliasType(), newIType.getAliasType());
+			KbType oldAliasType = oldIType.getAliasType();
+			KbType newAliasType = newIType.getAliasType();
+			if (oldAliasType instanceof KbScalar && newAliasType instanceof KbScalar &&
+					((KbScalar)oldAliasType).getScalarType() == KbScalar.Type.stringType &&
+					((KbScalar)newAliasType).getScalarType() == KbScalar.Type.stringType) {
+				KbAnnotationId oldAnnId = oldIType.getAnnotations() == null ? null : 
+					oldIType.getAnnotations().getIdReference();
+				String oldAnnIdSchema = oldAnnId == null ? "" : (oldAnnId.getType() + ", " + 
+					oldAnnId.getValidTypedefNamesForWs() + ", " + oldAnnId.getSourcesForExternal());
+				KbAnnotationId newAnnId = newIType.getAnnotations() == null ? null : 
+					newIType.getAnnotations().getIdReference();
+				String newAnnIdSchema = newAnnId == null ? "" : (newAnnId.getType() + ", " + 
+						newAnnId.getValidTypedefNamesForWs() + ", " + newAnnId.getSourcesForExternal());
+				if (!oldAnnIdSchema.equals(newAnnIdSchema)) {
+					//System.out.println("TypeDefinitionDB: oldref: " + oldAnnIdSchema);
+					//System.out.println("TypeDefinitionDB: newref: " + newAnnIdSchema);
+					return Change.notCompatible;
+				}
+			}
+			return findChange(oldAliasType, newAliasType);
 		} else if (newType instanceof KbList) {
 			KbList oldIType = (KbList)oldType;
 			KbList newIType = (KbList)newType;
@@ -2235,9 +2258,7 @@ public class TypeDefinitionDB {
 			KbScalar newIType = (KbScalar)newType;
 			if (oldIType.getScalarType() != newIType.getScalarType())
 				return Change.notCompatible;
-			String oldIdRefText = "" + oldIType.getIdReference();
-			String newIdRefText = "" + newIType.getIdReference();
-			return oldIdRefText.equals(newIdRefText) ? Change.noChange : Change.notCompatible;
+			return Change.noChange;
 		} else if (newType instanceof KbStruct) {
 			KbStruct oldIType = (KbStruct)oldType;
 			KbStruct newIType = (KbStruct)newType;

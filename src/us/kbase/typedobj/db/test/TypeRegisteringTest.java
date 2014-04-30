@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import junit.framework.Assert;
 
@@ -286,6 +287,30 @@ public class TypeRegisteringTest {
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
 		Assert.assertEquals(4, db.getAllModuleVersions("Regulation").size());
+		// Annotations
+		String annMod = "Annotations";
+		initModule(annMod, adminUser);
+		db.registerModule(loadSpec("backward", annMod), Arrays.asList("type1", "type2", "type3"), adminUser);
+		db.releaseModule(annMod, adminUser, false);
+		db.registerModule(loadSpec("backward", annMod, "2"), Collections.<String>emptyList(), adminUser);
+		Map<String, String> map2 = asMap(db.releaseModule(annMod, adminUser, false));
+		Assert.assertEquals("2.0", map2.get("Annotations.type2"));
+		Assert.assertEquals("2.0", map2.get("Annotations.type3"));
+		db.registerModule(loadSpec("backward", annMod, "3"), Collections.<String>emptyList(), adminUser);
+		Map<String, String> map3 = asMap(db.releaseModule(annMod, adminUser, false));
+		Assert.assertEquals("3.0", map3.get("Annotations.type2"));
+		Assert.assertEquals("2.0", map3.get("Annotations.type3"));
+		db.registerModule(loadSpec("backward", annMod, "4"), Collections.<String>emptyList(), adminUser);
+		Map<String, String> map4 = asMap(db.releaseModule(annMod, adminUser, false));
+		Assert.assertEquals("4.0", map4.get("Annotations.type2"));
+		Assert.assertEquals("3.0", map4.get("Annotations.type3"));
+	}
+	
+	private static Map<String, String> asMap(List<AbsoluteTypeDefId> list) {
+		Map<String, String> ret = new TreeMap<String, String>();
+		for (AbsoluteTypeDefId item : list)
+			ret.put(item.getType().getTypeString(), item.getVerString());
+		return ret;
 	}
 	
 	@Test
