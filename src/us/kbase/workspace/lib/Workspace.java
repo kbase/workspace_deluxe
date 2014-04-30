@@ -519,7 +519,7 @@ public class Workspace {
 						+ nsme.getLocalizedMessage(), nsme);
 			}
 			if (!rep.isInstanceValid()) {
-				final String[] e = rep.getErrorMessages();
+				final List<String> e = rep.getErrorMessages();
 				final String err = StringUtils.join(e, "\n");
 				throw new TypedObjectValidationException(String.format(
 						"Object %s failed type checking:\n", objerrid) + err);

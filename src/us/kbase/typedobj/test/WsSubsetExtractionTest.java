@@ -194,7 +194,7 @@ public class WsSubsetExtractionTest {
 				instanceRootNode,
 				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
 				);
-		List <String> mssgs = report.getErrorMessagesAsList();
+		List <String> mssgs = report.getErrorMessages();
 		for(int i=0; i<mssgs.size(); i++) {
 			System.out.println("    ["+i+"]:"+mssgs.get(i));
 		}

@@ -76,7 +76,7 @@ public class TempFilesManager {
 	 * @param extension the extension of the temporary file.
 	 * @return a temporary file.
 	 */
-	public synchronized File generateTempFile(String prefix, String extension) {
+	public File generateTempFile(String prefix, String extension) {
 		if (failOnFileReq) {
 			throw new IllegalStateException(
 					"The temp files manager was instructed to fail on request of a temp file. " +

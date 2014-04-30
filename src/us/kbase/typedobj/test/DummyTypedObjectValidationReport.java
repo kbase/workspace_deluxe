@@ -35,7 +35,7 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public List <String> getErrorMessagesAsList() {
+	public List <String> getErrorMessages() {
 		return new ArrayList<String>();
 	}
 	

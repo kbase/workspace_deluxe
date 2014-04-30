@@ -228,7 +228,7 @@ public class BasicValidationTest {
 						);
 				
 				// print errors, if any before the assert to aid in testing
-				List <String> mssgs = report.getErrorMessagesAsList();
+				List <String> mssgs = report.getErrorMessages();
 				for(int i=0; i<mssgs.size(); i++) {
 					if(VERBOSE) System.out.println("    ["+i+"]:"+mssgs.get(i));
 				}

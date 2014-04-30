@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -92,7 +93,7 @@ public class TypedObjectValidationReport {
 	 */
 	public TypedObjectValidationReport(List<String> errors, JsonNode searchData, AbsoluteTypeDefId validationTypeDefId, 
 			UObject tokenStreamProvider, IdRefNode idRefTree, List<WsIdReference> oldIdRefs) {
-		this.errors = errors;
+		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.searchData = searchData;
 		this.validationTypeDefId=validationTypeDefId;
 		this.oldIdRefs = oldIdRefs;
@@ -117,15 +118,10 @@ public class TypedObjectValidationReport {
 	
 	/**
 	 * Iterate over all items in the report and return the error messages.
-	 * @return n_errors
+	 * @return errors
 	 */
-	public List<String> getErrorMessagesAsList() {
+	public List<String> getErrorMessages() {
 		return errors;
-	}
-	
-	public String[] getErrorMessages() {
-		List <String> errMssgs = getErrorMessagesAsList();
-		return errMssgs.toArray(new String [errMssgs.size()]);
 	}
 	
 	public List<WsIdReference> getWsIdReferences() {
@@ -179,7 +175,7 @@ public class TypedObjectValidationReport {
 				nullifySortCacheFile();
 			}
 		};
-	}
+	}	
 	
 	/**
 	 * Relabel the WS IDs in the original Json document based on the specified set of
@@ -300,6 +296,7 @@ public class TypedObjectValidationReport {
 		} catch (KeyDuplicationException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
 		} catch (TooManyKeysException ex) {
+			//TODO test this when key mem size settable
 			throw new RelabelIdReferenceException(
 					"Memory necessary for sorting map keys exceeds the limit " +
 					ex.getMaxMem() + " bytes at " + ex.getPath() +
@@ -467,7 +464,7 @@ public class TypedObjectValidationReport {
 			mssg.append(" -ws id refs extracted: "+getWsIdReferences().size());
 		}
 		else {
-			List<String> errs = getErrorMessagesAsList();
+			List<String> errs = getErrorMessages();
 			mssg.append("fail ("+errs.size()+" error(s))\n");
 			for(int k=0; k<errs.size(); k++) {
 				mssg.append(" -["+(k+1)+"]:"+errs.get(k)+"\n");

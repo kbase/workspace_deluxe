@@ -193,7 +193,7 @@ public class ProfileBasicValidation {
 						);
 				
 				// print errors, if any before the assert to aid in testing
-				report.getErrorMessagesAsList();
+				report.getErrorMessages();
 				assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 				//System.out.println("  *("+instance.resourceName+")");
 				//System.out.println(report.toString());
