@@ -202,7 +202,6 @@ public class TypedObjectValidationReport {
 		return originalInstance;
 	}
 	
-	//TODO 1 tests for changes since b448a17
 	/** Calculate the size of the object, in bytes, when ids have been
 	 * remapped.
 	 * @return the size of the object after id remapping.
