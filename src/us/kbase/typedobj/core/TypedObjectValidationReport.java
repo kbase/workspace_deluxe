@@ -449,7 +449,7 @@ public class TypedObjectValidationReport {
 		TokenSequenceProvider tsp = null;
 		try {
 			tsp = createTokenSequenceForWsSubset();
-			JsonNode ret = SearchableWsSubsetExtractor.extractFields(
+			JsonNode ret = SearchableWsSubsetAndMetadataExtractor.extractFields(
 															tsp, 
 															keys_of, fields, maxSubsetSize,
 															wsMetadataExtractionHandler);

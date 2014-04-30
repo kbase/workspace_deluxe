@@ -55,7 +55,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  * If the spec files are updated or new ones added, you need to modify the db
  * setup method to add the new typed obj defs.
  * 
- * Note: we could/should migrate this to JUnit parameterized tests in the future...
  * 
  * @author msneddon
  *

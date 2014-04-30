@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
@@ -26,7 +27,7 @@ public class DummyTypedObjectValidationReport extends
 	
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
 			final UObject data) {
-		super(Collections.<String>emptyList(), null, type, data, null, Collections.<WsIdReference>emptyList());
+		super(data, type, Collections.<String>emptyList(), null, null, null, Collections.<WsIdReference>emptyList());
 	}
 	
 	@Override

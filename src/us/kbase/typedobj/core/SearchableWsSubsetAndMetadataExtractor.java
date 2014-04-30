@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author msneddon
  * @author rsutormin
  */
-public class SearchableWsSubsetExtractor {
+public class SearchableWsSubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
 	/**
