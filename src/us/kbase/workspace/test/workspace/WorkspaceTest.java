@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import junit.framework.Assert;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
@@ -4462,5 +4463,25 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("created temp files on save", filesCreated[0], is(4));
 		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
 		ws.getTempFilesManager().removeListener(listener);
+	}
+	
+	@Test
+	public void storedDataIsSorted() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("dataIsSorted");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("dataissorted");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
+		data1.put("z", 1);
+		data1.put("y", 2);
+		String expected = "{\"y\":2,\"z\":1}";
+		
+		Provenance p = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
+		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		ws.saveObjects(user, wsi, objs);
+		WorkspaceObjectData o = ws.getObjects(
+				user, Arrays.asList(new ObjectIdentifier(wsi, 1))).get(0);
+		String data = IOUtils.toString(o.getDataAsTokens().getJSON());
+		assertThat("data is sorted", data, is(expected));
 	}
 }
