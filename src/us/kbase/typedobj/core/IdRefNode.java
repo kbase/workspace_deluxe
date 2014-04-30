@@ -1,5 +1,6 @@
 package us.kbase.typedobj.core;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -43,15 +44,12 @@ public class IdRefNode {
 	
 	/** Get the children of this node.
 	 * 
-	 * Note that the altering the returned map will alter this node's internal
-	 * state.
-	 * 
 	 * @return the set of children of this node, mapped by their location -
 	 * either a map key or an array index. Returns null if this node has no
 	 * children.
 	 */
 	public Map<String, IdRefNode> getChildren() {
-		return children;
+		return Collections.unmodifiableMap(children);
 	}
 	
 	/** Returns true if the node has child nodes.

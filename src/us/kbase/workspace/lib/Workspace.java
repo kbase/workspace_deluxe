@@ -651,12 +651,16 @@ public class Workspace {
 		newrefs.clear();
 		
 		objcount = 1;
-		boolean forceCacheToDisk = ttlObjSize > getMaxObjectMemUsePerCall();
+		final TempFilesManager tempTFM;
+		if (ttlObjSize > getMaxObjectMemUsePerCall()) {
+			tempTFM = getTempFilesManager();
+		} else {
+			tempTFM = null;
+		}
 		for (ResolvedSaveObject ro: saveobjs) {
 			try {
 				//modifies object in place
-				ro.getRep().sort(getTempFilesManager(), getMaxInMemorySortSize(),
-						forceCacheToDisk);
+				ro.getRep().sort(tempTFM);
 			} catch (RelabelIdReferenceException ref) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost

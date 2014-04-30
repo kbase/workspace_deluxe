@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -212,6 +213,9 @@ public class TypedObjectValidationReport {
 	 * @throws IOException
 	 */
 	public long getRelabeledSize() throws IOException {
+		if (size > -1) {
+			return size;
+		}
 		final long[] size = {0L};
 		final OutputStream sizeOs = new OutputStream() {
 			@Override
@@ -231,22 +235,27 @@ public class TypedObjectValidationReport {
 		return this.size;
 	}
 	
-	
 	/** Relabel ids, sort the object if necessary and keep a copy.
 	 * You must call this method prior to calling createJsonWritable().
-	 * @param tfm the temporary file manager to use for managing temporary
-	 * files.
-	 * @param maxInMemorySortSize if the size of the object is larger than
-	 * this value, the sorted data will be saved to a temporary file rather
-	 * than in memory.
-	 * @param forceCacheToFile force saving the sorted data to file.
+	 * Equivalent of sort(null). All data is kept in memory.
 	 * @throws RelabelIdReferenceException if there are duplicate keys after
 	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
 	 */
-	public void sort(final TempFilesManager tfm, final long maxInMemorySortSize,
-			boolean forceCacheToFile) throws RelabelIdReferenceException,
-			IOException {
+	public void sort() throws RelabelIdReferenceException, IOException {
+		sort(null);
+	}
+	
+	/** Relabel ids, sort the object if necessary and keep a copy.
+	 * You must call this method prior to calling createJsonWritable().
+	 * @param tfm the temporary file manager to use for managing temporary
+	 * files. All data is kept in memory if tfm is null.
+	 * @throws RelabelIdReferenceException if there are duplicate keys after
+	 * relabeling the ids or if sorting the map keys takes too much memory.
+	 * @throws IOException if an IO exception occurs.
+	 */
+	public void sort(final TempFilesManager tfm)
+			throws RelabelIdReferenceException, IOException {
 		if (size < 0) {
 			getRelabeledSize();
 		}
@@ -254,9 +263,7 @@ public class TypedObjectValidationReport {
 		cacheForSorting = null;
 		try {
 			if (!sorted) {
-				if (tfm == null || (!forceCacheToFile &&
-						(maxInMemorySortSize <= 0 
-						|| size <= maxInMemorySortSize))) {
+				if (tfm == null) {
 					ByteArrayOutputStream os = new ByteArrayOutputStream();
 					final JsonGenerator jgen = mapper.getFactory()
 							.createGenerator(os);
@@ -310,9 +317,12 @@ public class TypedObjectValidationReport {
 	 */
 	public long setAbsoluteIdRefMapping(
 			final Map<String, String> absoluteIdRefMapping) throws IOException {
-		this.absoluteIdRefMapping = absoluteIdRefMapping;
+		final HashMap<String, String> copy = new HashMap<String, String>();
+		copy.putAll(absoluteIdRefMapping);
+		this.absoluteIdRefMapping = Collections.unmodifiableMap(copy);
 		this.cacheForSorting = null;
 		nullifySortCacheFile();
+		size = -1; //force recalculation of size
 		return getRelabeledSize();
 	}
 
