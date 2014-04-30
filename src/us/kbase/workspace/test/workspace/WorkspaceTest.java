@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFileListener;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -64,6 +66,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.lib.ModuleInfo;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
+import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -4400,5 +4403,64 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetSubset(user, all, err);
 		
 		ws.setMaxReturnSize(tempMOS);
+	}
+	
+	@Test
+	public void useFileVsMemoryForData() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("sortfilemem");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("sortFileMem");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
+		data1.put("z", 1);
+		data1.put("y", 2);
+		
+		Provenance p = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
+		
+		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		
+		final int[] filesCreated = {0};
+		TempFileListener listener = new TempFileListener() {
+			
+			@Override
+			public void createdTempFile(File f) {
+				filesCreated[0]++;
+				
+			}
+		};
+		ws.getTempFilesManager().addListener(listener);
+		ws.getTempFilesManager().cleanup(); //these tests don't clean up after each test
+		
+		ws.setMaxObjectMemUsePerCall(13);
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created no temp files on save", filesCreated[0], is(0));
+		
+		ws.setMaxObjectMemUsePerCall(12);
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created temp files on save", filesCreated[0], is(2));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
+		data2.put("w", 1);
+		data2.put("f", 2);
+		//already sorted so no temp files will be created
+		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
+		data3.put("x", 1);
+		data3.put("z", 2);
+		objs.add(new WorkspaceSaveObject(data2, SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(data3, SAFE_TYPE1, null, p, false));
+
+		filesCreated[0] = 0;
+		ws.setMaxObjectMemUsePerCall(39);
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created no temp files on save", filesCreated[0], is(0));
+		
+		ws.setMaxObjectMemUsePerCall(38);
+		filesCreated[0] = 0;
+		ws.saveObjects(user, wsi, objs);
+		//two files per data - 1 for relabeling, 1 for sort
+		assertThat("created temp files on save", filesCreated[0], is(4));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		ws.getTempFilesManager().removeListener(listener);
 	}
 }

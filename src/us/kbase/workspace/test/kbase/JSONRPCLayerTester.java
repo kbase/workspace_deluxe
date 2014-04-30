@@ -329,12 +329,19 @@ public class JSONRPCLayerTester {
 		JsonTokenStreamOCStat.showStat();
 	}
 	
-	protected void assertNoTempFilesExist() throws Exception {
+	public static void assertNoTempFilesExist(TempFilesManager tfm)
+			throws Exception {
+		assertNoTempFilesExist(Arrays.asList(tfm));
+	}
+	
+	
+	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
+			throws Exception {
 		int i = 0;
 		try {
 			for (TempFilesManager tfm: tfms) {
 				if (!tfm.isEmpty()) {
-					// Let server side <=10 seconds to finish all activities
+					// Allow <=10 seconds to finish all activities
 					for (; i < 100; i++) {
 						Thread.sleep(100);
 						if (tfm.isEmpty())
@@ -351,7 +358,7 @@ public class JSONRPCLayerTester {
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist();
+		assertNoTempFilesExist(tfms);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,

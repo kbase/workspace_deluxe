@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Manager of temporary files for the workspace. All temporary files are
@@ -13,9 +15,11 @@ import java.util.List;
  */
 public class TempFilesManager {
 	
+	
 	private static final String WS_PREFIX = "ws.";
 	private File tempDir;
-	private boolean failOnFileReq = false;
+	private final Set<TempFileListener> listeners =
+			new HashSet<TempFileListener>();
 	
 	private static final FileFilter ff = new FileFilter() {
 		
@@ -53,40 +57,36 @@ public class TempFilesManager {
 		return tempDir;
 	}
 	
-	/** Instruct the TFM whether to fail when a temporary file is requested.
-	 * Primarily used for testing.
-	 * @param fail if true, when generateTempFile is called an
-	 * IllegalStateException will be thrown.
-	 */
-	public void setFailOnFileRequest(boolean fail) {
-		failOnFileReq = fail;
-	}
-	
-	/** Get the fail on request state.
-	 * @return if true, when generateTempFile is called an
-	 * IllegalStateException will be thrown.
-	 */
-	public boolean getFailOnFileRequest() {
-		return failOnFileReq;
-	}
-	
-	//TODO does this need to be sync'd?
 	/** Create a temporary file.
 	 * @param prefix the prefix of the temporary file.
 	 * @param extension the extension of the temporary file.
 	 * @return a temporary file.
 	 */
 	public File generateTempFile(String prefix, String extension) {
-		if (failOnFileReq) {
-			throw new IllegalStateException(
-					"The temp files manager was instructed to fail on request of a temp file. " +
-					String.format("Prefix: %s, ext: %s", prefix, extension));
-		}
 		try {
-			return File.createTempFile(WS_PREFIX + prefix, "." + extension, tempDir);
+			final File t = File.createTempFile(
+					WS_PREFIX + prefix, "." + extension, tempDir);
+			for (TempFileListener l: listeners) {
+				l.createdTempFile(t);
+			}
+			return t;
 		} catch (IOException e) {
 			throw new IllegalStateException(e.getMessage(), e);
 		}
+	}
+	
+	/** Add a listener that is notifed whenever a temp file is created.
+	 * @param listener the listener.
+	 */
+	public void addListener(final TempFileListener listener) {
+		listeners.add(listener);
+	}
+	
+	/** Remove a listener.
+	 * @param listener the listener.
+	 */
+	public void removeListener(final TempFileListener listener) {
+		listeners.remove(listener);
 	}
 	
 	/** Delete all the temporary files.
