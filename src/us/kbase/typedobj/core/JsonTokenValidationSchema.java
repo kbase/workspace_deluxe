@@ -33,6 +33,7 @@ public class JsonTokenValidationSchema {
 	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
+	private JsonNode metadataWs;						// For structures: metadata-ws
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
 	private JsonTokenValidationSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
 	private boolean objectAdditionalPropertiesBoolean;	// For structures: additionalProperties
@@ -78,6 +79,9 @@ public class JsonTokenValidationSchema {
 		if (ret.type == Type.object) {
 			if (data.containsKey("searchable-ws-subset"))
 				ret.searchableWsSubset = UObject.transformObjectToJackson(data.get("searchable-ws-subset"));
+			if (data.containsKey("metadata-ws"))
+				ret.metadataWs = UObject.transformObjectToJackson(data.get("metadata-ws"));
+			
 			ret.objectProperties = new LinkedHashMap<String, JsonTokenValidationSchema>();
 			Map<String, Object> props = (Map<String, Object>)data.get("properties");
 			if (props != null) {
@@ -164,6 +168,11 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
+			if (metadataWs != null) {
+				// metadata ws description is defined for this object/mapping
+				lst.addMetadataWsMessage(metadataWs);
+			}
+			
 			// add new level to json path we are visiting now, every field of this object will
 			// change this '{' value into name of this field, so exact character ('{') is not 
 			// important, we just shift depth of path into deeper level

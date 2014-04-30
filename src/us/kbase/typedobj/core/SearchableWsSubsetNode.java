@@ -36,6 +36,16 @@ public class SearchableWsSubsetNode {
 		return children != null && children.size() > 0;
 	}
 	
+	public boolean hasChildByName(String name) {
+		if(children == null) return false;
+		return children.containsKey(name);
+	}
+	
+	public SearchableWsSubsetNode getChild(String name) {
+		if(children == null) return null;
+		return children.get(name);
+	}
+	
 	public boolean isNeedKeys() {
 		return needKeys;
 	}
@@ -52,7 +62,7 @@ public class SearchableWsSubsetNode {
 		this.needAll = needAll;
 	}
 	
-	public void setNeedValueForMetadata(String metadataName) {
+	public void addNeedValueForMetadata(String metadataName) {
 		this.needValueForMetadata.add(metadataName);
 	}
 	

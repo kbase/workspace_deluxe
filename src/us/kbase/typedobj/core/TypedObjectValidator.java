@@ -147,7 +147,10 @@ public final class TypedObjectValidator {
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
 		final List<WsIdReference> oldRefIds = new ArrayList<WsIdReference>();
 		IdRefNode idRefTree = new IdRefNode(null);
-		final JsonNode[] searchDataWrap = new JsonNode[] {null};
+		
+		// these must be arrays to get the inner class def override to work
+		final JsonNode [] wsSubsetSelection = new JsonNode[] {null}; // was renamed from searchDataWrap
+		final JsonNode [] metadataSelection = new JsonNode[] {null};
 		try {
 			JsonTokenValidationSchema schema = JsonTokenValidationSchema.parseJsonSchema(schemaText);
 			if (!schema.getOriginalType().equals("kidl-structure"))
@@ -172,9 +175,15 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addSearchableWsSubsetMessage(JsonNode searchData) {
-						searchDataWrap[0] = searchData;
+					public void addSearchableWsSubsetMessage(JsonNode selection) {
+						wsSubsetSelection[0] = selection;
 					}
+
+					@Override
+					public void addMetadataWsMessage(JsonNode selection) {
+						metadataSelection[0] = selection;
+					}
+					
 				}, idRefTree);
 			} finally {
 				try { jts.close(); } catch (Exception ignore) {}
@@ -187,8 +196,8 @@ public final class TypedObjectValidator {
 									obj,
 									absoluteTypeDefId,
 									errors, 
-									searchDataWrap[0], 
-									null,
+									wsSubsetSelection[0], 
+									metadataSelection[0],
 									idRefTree,
 									oldRefIds);
 	}

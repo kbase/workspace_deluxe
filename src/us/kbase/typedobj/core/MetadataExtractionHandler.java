@@ -1,37 +1,36 @@
 package us.kbase.typedobj.core;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Iterator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
+ * A small class used to stash metadata extraction selection, and the metadata that
+ * is eventually extracted.
  * @author msneddon
  */
 public class MetadataExtractionHandler {
 
-	/** Place to build up the extracted metadata, maps metadata name to metadata value **/
-	protected Map <String,String> extracted;
+	/** Place to build up the extracted metadata, maps metadata name to metadata value (string to string) **/
+	protected ObjectNode extracted;
 	
 	/** 
-	 * Place to store info on what should be extracted, maps a metadata field to an expression
+	 * Place to store info on what should be extracted, maps a metadata name to an expression
 	 * used for extraction of the metadata value.
 	 */
-	protected Map <String, String> expressionToMetadataName;
+	protected ObjectNode selection;
 	
-	public MetadataExtractionHandler() {
-		extracted = new HashMap<String,String>();
-		expressionToMetadataName = new HashMap<String,String>();
+	static protected ObjectMapper mapper; 
+	static {
+		mapper = new ObjectMapper();
 	}
 	
 	public MetadataExtractionHandler(JsonNode selection) {
-		extracted = new HashMap<String,String>();
-		expressionToMetadataName = new HashMap<String,String>();
+		this.selection = mapper.createObjectNode();
+		extracted      = mapper.createObjectNode();
 		addMetadataToExtract(selection);
 	}
 	
@@ -46,26 +45,28 @@ public class MetadataExtractionHandler {
 			while(fields.hasNext()) {
 				Entry<String,JsonNode> info = fields.next();
 				if(info.getValue().isTextual()) {
-					String metadataName = info.getKey();
-					String metadataSelection = info.getValue().asText();
-					expressionToMetadataName.put(metadataName,metadataSelection);
+					this.selection.put(info.getKey(), info.getValue().asText());
 				}
 			}
 		}
+	}
+	
+	public JsonNode getMetadataSelection() {
+		return selection;
 	}
 	
 	public void saveMetadata(String name, String value) {
 		extracted.put(name, value);
 	}
 	
-	public Map<String,String> getSavedMetadata() {
+	public JsonNode getSavedMetadata() {
 		return extracted;
 	}
 	
-	public JsonNode getSavedMetadataAsJsonNode() {
-		return null;
+
+	@Override
+	public String toString() {
+		return "MetadataExtractionHandler [extracted=" + extracted
+				+ ", selection=" + selection + "]";
 	}
-	
-	
-	
 }

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.utils.JsonTreeGenerator;
+import us.kbase.kidl.KidlParseException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -53,16 +54,21 @@ public class SearchableWsSubsetExtractor {
 			prepareWsSubsetTree(keysOfSelection, true, root);
 		if (fieldsSelection != null && fieldsSelection.size() > 0)
 			prepareWsSubsetTree(fieldsSelection, false, root);
-		//if (metadataExtractionInfo != null)
-		//	prepareWsSubsetTree(fieldsSelection, false, root);
-		prepareMetadataSelectionTree(root);
-		if ((!root.isNeedAll()) && (!root.isNeedKeys()) && (!root.hasChildren()))
+		if (metadataExtractionHandler != null)
+			prepareMetadataSelectionTree(metadataExtractionHandler, root);
+		
+		if ((!root.isNeedAll()) && (!root.isNeedKeys())
+				&& (root.getNeedValueForMetadata().isEmpty()) && (root.getNeedLengthForMetadata().isEmpty())
+				&& (!root.hasChildren())) {
 			return mapper.createObjectNode();
+		}
+		
 		JsonToken t = jts.nextToken();
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
 		jgen.setMaxDataSize(maxSubdataSize);
-		extractFieldsWithOpenToken(jts, t, root, jgen, new ArrayList<String>());
+		extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
 		jgen.close();
+		System.out.println("gots here");
 		return jgen.getTree();
 	}
 	
@@ -96,12 +102,36 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 	
-	private static void prepareMetadataSelectionTree(SearchableWsSubsetNode parent) {
-
-		SearchableWsSubsetNode child = new SearchableWsSubsetNode();
-		child.setNeedValueForMetadata("MyFirstMetadata");
-		child.setNeedValueForMetadata("MySecondMetadata");
-		parent.addChild("name", child);
+	private static void prepareMetadataSelectionTree(MetadataExtractionHandler metadataExtractionHandler, SearchableWsSubsetNode parent) {
+		// currently, we can only extract fields from the top level
+		JsonNode selection = metadataExtractionHandler.getMetadataSelection();
+		Iterator<Map.Entry<String, JsonNode>> it = selection.fields();
+		while (it.hasNext()) {
+			Map.Entry<String, JsonNode> entry = it.next();
+			String metadataName = entry.getKey();
+			String expression = entry.getValue().asText().trim();
+			
+			// evaluate the metadata selection expression (right now we only support top-level field names, and the length(f) function)
+			if(expression.startsWith("length(")) {
+				if(expression.endsWith(")")) {
+					expression = expression.substring(7);
+					expression = expression.substring(0, expression.length()-1);
+					SearchableWsSubsetNode selectionNode = parent.getChild(expression);
+					if(selectionNode==null) {
+						selectionNode = new SearchableWsSubsetNode();
+						parent.addChild(expression, selectionNode);
+					}
+					selectionNode.addNeedLengthForMetadata(metadataName);
+				}
+			} else {
+				SearchableWsSubsetNode selectionNode = parent.getChild(expression);
+				if(selectionNode==null) {
+					selectionNode = new SearchableWsSubsetNode();
+					parent.addChild(expression, selectionNode);
+				}
+				selectionNode.addNeedValueForMetadata(metadataName);
+			}
+		}
 	}
 
 	/*
@@ -110,11 +140,14 @@ public class SearchableWsSubsetExtractor {
 	 * typical for processing array elements because we need to read first token in order to
 	 * know is it the end of array of not. For maps/objects there is such problem because
 	 * we read field token before processing value block.
+	 * 
+	 * returns the number of (top-level) elements in the object or list
 	 */
-	private static void writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
+	private static long writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
 			JsonGenerator jgen) throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		writeCurrentToken(jts, t, jgen);
+		long n_elements = 0;
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
 				t = jts.nextToken();
@@ -124,6 +157,7 @@ public class SearchableWsSubsetExtractor {
 				if (t != JsonToken.FIELD_NAME)
 					throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 				t = jts.nextToken();
+				n_elements++;
 				writeTokensFromCurrent(jts, t, jgen);
 			}
 		} else if (t == JsonToken.START_ARRAY) {
@@ -133,11 +167,43 @@ public class SearchableWsSubsetExtractor {
 					writeCurrentToken(jts, t, jgen);
 					break;
 				}
+				n_elements++;
 				writeTokensFromCurrent(jts, t, jgen);
 			}
 		}
+		return n_elements;
 	}
 
+	
+	private static long countElementsInCurrent(TokenSequenceProvider jts, JsonToken current, 
+			JsonGenerator jgen) throws IOException, TypedObjectExtractionException {
+		JsonToken t = current;
+		long n_elements = 0;
+		if (t == JsonToken.START_OBJECT) {
+			while (true) {
+				t = jts.nextToken();
+				if (t == JsonToken.END_OBJECT)
+					break;
+				if (t != JsonToken.FIELD_NAME)
+					throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
+				t = jts.nextToken();
+				n_elements++;
+				countElementsInCurrent(jts, t, jgen);
+			}
+		} else if (t == JsonToken.START_ARRAY) {
+			while (true) {
+				t = jts.nextToken();
+				if (t == JsonToken.END_ARRAY) {
+					break;
+				}
+				n_elements++;
+				countElementsInCurrent(jts, t, jgen);
+			}
+		}
+		return n_elements;
+	}
+	
+	
 	/*
 	 * Method processes (writes into output token stream - jgen) only one token.
 	 */
@@ -218,22 +284,33 @@ public class SearchableWsSubsetExtractor {
 		}
 	}
 
+	
+	
+	private static void addLengthMetadata(long length, SearchableWsSubsetNode selection, MetadataExtractionHandler metadataHandler) {
+		List<String> metadataNames = selection.getNeedLengthForMetadata();
+		for(String name:metadataNames) {
+			metadataHandler.saveMetadata(name,Long.toString(length));
+		}
+	}
+	
 	/*
 	 * This is main recursive method for tracking current token place in searchable schema tree
 	 * and making decisions whether or not we need to process this token or block of tokens or
 	 * just skip it.
 	 */
-	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, 
-			SearchableWsSubsetNode selection, JsonGenerator jgen, List<String> path) 
+	private static void extractFieldsWithOpenToken(
+			TokenSequenceProvider jts,
+			JsonToken current, 
+			SearchableWsSubsetNode selection,
+			MetadataExtractionHandler metadataHandler,
+			JsonGenerator jgen,
+			List<String> path) 
 					throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {	// we observe open of mapping/object in real json data
-			
-			if(selection.getNeedLengthForMetadata().size()>0) { // we check if metadata is required for t
-				
-			}
 			if (selection.hasChildren()) {	// we have some restrictions for this object in selection
 				// we will remove visited keys from selectedFields and check emptiness at object end
+				long n_elements = 0;
 				Set<String> selectedFields = new LinkedHashSet<String>(
 						selection.getChildren().keySet());
 				boolean all = false;
@@ -268,7 +345,7 @@ public class SearchableWsSubsetExtractor {
 						path.add(fieldName);
 						// process value of this field recursively
 						extractFieldsWithOpenToken(jts, t, all ? allChild : 
-							selection.getChildren().get(fieldName), jgen, path);
+							selection.getChildren().get(fieldName), metadataHandler, jgen, path);
 						// remove field from end of path branch
 						path.remove(path.size() - 1);
 						if (!all)
@@ -288,6 +365,7 @@ public class SearchableWsSubsetExtractor {
 				}*/
 			} else if (selection.isNeedKeys()) {  // we need only keys from this object as array
 				jgen.writeStartArray();  // write in output start of array instead of start of object
+				long n_elements = 0;
 				while (true) {
 					t = jts.nextToken();
 					if (t == JsonToken.END_OBJECT) {
@@ -298,10 +376,20 @@ public class SearchableWsSubsetExtractor {
 						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 					jgen.writeString(jts.getText());  // write in output field name
 					t = jts.nextToken();
+					n_elements++;
 					skipChildren(jts, t);  // we don't need values so we skip them
 				}
+				addLengthMetadata(n_elements, selection, metadataHandler);
 			} else {  // need all fields and values
-				writeTokensFromCurrent(jts, t, jgen);
+				if(selection.isNeedAll()) {
+					// need all elements
+					long n_elements = writeTokensFromCurrent(jts, t, jgen);
+					addLengthMetadata(n_elements, selection, metadataHandler);
+				} else {
+					// only need the length of the object
+					long n_elements = countElementsInCurrent(jts,t,jgen);
+					addLengthMetadata(n_elements, selection, metadataHandler);
+				}
 			}
 		} else if (t == JsonToken.START_ARRAY) {	// we observe open of array/list in real json data
 			if (selection.hasChildren()) {  // we have some restrictions for array item positions in selection
@@ -327,7 +415,7 @@ public class SearchableWsSubsetExtractor {
 					// add element position to the end of path branch
 					path.add("" + pos);
 					// process value of this element recursively
-					extractFieldsWithOpenToken(jts, t, allChild, jgen, path);
+					extractFieldsWithOpenToken(jts, t, allChild, metadataHandler, jgen, path);
 					// remove field from end of path branch
 					path.remove(path.size() - 1);
 				}
@@ -336,7 +424,15 @@ public class SearchableWsSubsetExtractor {
 					throw new TypedObjectExtractionException("WS subset path contains keys-of level for array " +
 							"value at " + SubdataExtractor.getPathText(path));
 				// need all elements
-				writeTokensFromCurrent(jts, t, jgen);
+				if(selection.isNeedAll()) {
+					// need all elements
+					long n_elements = writeTokensFromCurrent(jts, t, jgen);
+					addLengthMetadata(n_elements, selection, metadataHandler);
+				} else {
+					// only need the length of the object
+					long n_elements = countElementsInCurrent(jts,t,jgen);
+					addLengthMetadata(n_elements, selection, metadataHandler);
+				}
 			}
 		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
@@ -347,12 +443,16 @@ public class SearchableWsSubsetExtractor {
 						"value at " + SubdataExtractor.getPathText(path));
 			if (selection.isNeedAll())
 				writeCurrentToken(jts, t, jgen);
-			if (!selection.getNeedLengthForMetadata().isEmpty())
-				throw new TypedObjectExtractionException("WS metadata path contains length() method called on a scalar " +
-						"value at " + SubdataExtractor.getPathText(path));
+			if(t==JsonToken.VALUE_STRING) {
+				addLengthMetadata(jts.getText().length(), selection, metadataHandler);
+			} else if(t!=JsonToken.VALUE_NULL) {
+				if (!selection.getNeedLengthForMetadata().isEmpty())
+					throw new TypedObjectExtractionException("WS metadata path contains length() method called on a scalar " +
+							"value at " + SubdataExtractor.getPathText(path));
+			}
 			List<String> metadataNames = selection.getNeedValueForMetadata();
 			for(String name:metadataNames) {
-				System.out.println("medatadata extracted! :\""+name+"\":\""+jts.getText()+"\"");
+				metadataHandler.saveMetadata(name,jts.getText());
 			}
 			
 		}

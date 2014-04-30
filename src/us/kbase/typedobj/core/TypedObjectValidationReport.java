@@ -422,33 +422,11 @@ public class TypedObjectValidationReport {
 	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
 	 * deep copy of the original instance if you intend to modify it and subset data has already
 	 * been extracted.
+	 * @deprecated
 	 */
 	public JsonNode extractSearchableWsSubset(long maxSubdataSize) {
-		if(!isInstanceValid()) {
-			return mapper.createObjectNode();
-		}
-		// Identify what we need to extract
-		ObjectNode keys_of  = null;
-		ObjectNode fields   = null;
-		if (wsSubsetSelection != null) {
-			keys_of = (ObjectNode)wsSubsetSelection.get("keys");
-			fields = (ObjectNode)wsSubsetSelection.get("fields");
-		}
-		TokenSequenceProvider tsp = null;
-		try {
-			tsp = createTokenSequenceForWsSubset();
-			JsonNode ret = SearchableWsSubsetExtractor.extractFields(
-					tsp, keys_of, fields, maxSubdataSize,null);
-			tsp.close();
-			return ret;
-		} catch (RuntimeException ex) {
-			throw ex;
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex);
-		} finally {
-			if (tsp != null)
-				try { tsp.close(); } catch (Exception ignore) {}
-		}
+		JsonNode extraction = extractSearchableWsSubsetAndMetadata(maxSubdataSize);
+		return extraction.get("subset");
 	}
 
 	
@@ -476,6 +454,8 @@ public class TypedObjectValidationReport {
 															keys_of, fields, maxSubdataSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
+			System.out.println("Subdata:\n"+ret);
+			System.out.println("Metadata:\n"+wsMetadataExtractionHandler+"\n");
 			return ret;
 		} catch (RuntimeException ex) {
 			throw ex;
@@ -487,21 +467,6 @@ public class TypedObjectValidationReport {
 		}
 		
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	@Override
 	public String toString() {
