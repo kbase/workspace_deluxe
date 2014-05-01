@@ -44,7 +44,11 @@ public class GridFSBackendTest {
 		data.put("key", "value");
 		TypeData td = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmd = new MD5(td.getChksum());
-		gfsb.saveBlob(tdmd, td.getData());
+		assertThat("saved blob to backend", gfsb.saveBlob(tdmd, td.getData()),
+				is(true));
+		assertThat("skipped saving blob to backend",
+				gfsb.saveBlob(tdmd, td.getData()),
+				is(false));
 		//have to use the same data to get same md5
 		wt = new AbsoluteTypeDefId(new TypeDefName("foo1", "foo1"), 2, 1);
 		TypeData tdr = new TypeData(valueToTree(data), wt, subdata);

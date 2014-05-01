@@ -113,7 +113,7 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Writable data)
+	public boolean saveBlob(final MD5 md5, final Writable data)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		if (data == null) {
@@ -121,7 +121,7 @@ public class ShockBackend implements BlobStore {
 		}
 		try {
 			getNode(md5);
-			return; //already saved
+			return false; //already saved
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
@@ -142,7 +142,7 @@ public class ShockBackend implements BlobStore {
 							+ ete.getLocalizedMessage(), ete);
 				} catch (JsonProcessingException jpe) {
 					//this should be impossible
-					throw new RuntimeException("JsonNode serialization failed: "
+					throw new RuntimeException("Attribute serialization failed: "
 							+ jpe.getLocalizedMessage(), jpe);
 				} catch (IOException ioe) {
 					throw new BlobStoreCommunicationException(
@@ -167,7 +167,8 @@ public class ShockBackend implements BlobStore {
 					BlobStoreCommunicationException.class)) {
 				throw (BlobStoreCommunicationException) ioe.getCause();
 			}
-			throw new RuntimeException("IO Error during streaming of data to Shock: "
+			throw new RuntimeException(
+					"IO Error during streaming of data to Shock: "
 					+ ioe.getLocalizedMessage(), ioe);
 		} finally {
 			try {
@@ -209,6 +210,7 @@ public class ShockBackend implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
 		}
+		return true;
 	}
 	
 	private String getNode(final MD5 md5) throws

@@ -30,13 +30,13 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Writable data)
+	public boolean saveBlob(final MD5 md5, final Writable data)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
 			throw new IllegalArgumentException("Arguments cannot be null");
 		}
 		if (getFile(md5) != null) {
-			return; //already exists
+			return false; //already exists
 		}
 		final OutputStreamToInputStream<String> osis =
 				new OutputStreamToInputStream<String>() {
@@ -70,6 +70,7 @@ public class GridFSBackend implements BlobStore {
 				throw new RuntimeException("Something is broken", ioe);
 			}
 		}
+		return true;
 	}
 
 	@Override

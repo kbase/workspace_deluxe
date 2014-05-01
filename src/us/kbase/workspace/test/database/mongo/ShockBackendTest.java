@@ -67,7 +67,10 @@ public class ShockBackendTest {
 		data.put("key", "value");
 		TypeData td = new TypeData(valueToTree(data), wt, subdata);
 		MD5 tdmd = new MD5(td.getChksum());
-		sb.saveBlob(tdmd, td.getData());
+		assertThat("saved data to backend", sb.saveBlob(tdmd, td.getData()),
+				is(true));
+		assertThat("skipped saving data to backend",
+				sb.saveBlob(tdmd, td.getData()), is(false));
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(tdmd));
 		assertTrue("Got a valid shock id",
 				UUID.matcher(id.getId()).matches());
