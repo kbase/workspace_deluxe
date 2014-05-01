@@ -1,8 +1,8 @@
 package us.kbase.typedobj.drivers;
 
 
-import us.kbase.typedobj.core.*;
-import us.kbase.typedobj.db.*;
+//import us.kbase.typedobj.core.*;
+//import us.kbase.typedobj.db.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,12 +17,12 @@ public class SimpleTest1 {
 	public static void main(String[] args) throws Exception {
 		
 		// Create a simple db
-		TypeDefinitionDB db= new TypeDefinitionDB(
-				new FileTypeStorage("kb-typed-obj-lib/test_schemas/test_db_1"));
+//		TypeDefinitionDB db= new TypeDefinitionDB(
+//				new FileTypeStorage("kb-typed-obj-lib/test_schemas/test_db_1"));
 		
 		// Create a simple validator that finds objects using the db
-		TypedObjectValidator validator = new TypedObjectValidator(db);
-		TypeDefId t = new TypeDefId(new TypeDefName("ID", "Feature"));
+//		TypedObjectValidator validator = new TypedObjectValidator(db);
+//		TypeDefId t = new TypeDefId(new TypeDefName("ID", "Feature"));
 		
 		// Validate something directly from JSON
 		String instance1 = "{\"id\":\"f1\",\"name\":\"cheA\",\"start\":131,\"end\":582,\"other_ids\":[\"f8\",\"f99\"]," +

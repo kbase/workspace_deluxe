@@ -1,6 +1,8 @@
 package us.kbase.typedobj.core;
 
 public class JsonTokenValidationException extends Exception {
+	private static final long serialVersionUID = 1L;
+
 	public JsonTokenValidationException() {
 	}
 
