@@ -724,7 +724,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
-			Fields.VER_COPIED, Fields.VER_META);
+			Fields.VER_COPIED, Fields.VER_META, Fields.VER_SORTED);
 	
 	@Override
 	public ObjectInformation copyObject(final WorkspaceUser user,
@@ -1288,7 +1288,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// save object in preexisting object container
 	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
 			final ResolvedMongoWSID wsid, final long objectid,
-			final ObjectSavePackage pkg)
+			final ObjectSavePackage pkg, final boolean sorted)
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
@@ -1303,6 +1303,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_SIZE, pkg.td.getSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
+		version.put(Fields.VER_SORTED, sorted);
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
@@ -1786,7 +1787,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
-		saveData(wsidmongo, packages);
+		final Map<TypeDefId, Set<String>> sorted =
+				saveData(wsidmongo, packages);
 		saveProvenance(packages);
 		updateReferenceCounts(packages);
 		long newid = incrementWorkspaceCounter(wsidmongo, newobjects);
@@ -1809,25 +1811,39 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<ObjectInformation> ret = new ArrayList<ObjectInformation>();
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
+			final TypeDefId type = p.td.getType();
+			final boolean objsorted;
+			if (sorted.containsKey(type) &&
+					sorted.get(type).contains(p.td.getChksum())) {
+				objsorted = true;
+			} else {
+				objsorted = false;
+			}
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
 			if (oi == null) { //no name given, need to generate one
 				final IDName obj = saveWorkspaceObject(wsidmongo, newid++,
 						null);
 				p.name = obj.name;
-				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
+				ret.add(saveObjectVersion(
+						user, wsidmongo, obj.id, p, objsorted));
 			} else if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
+				ret.add(saveObjectVersion(
+						user, wsidmongo, oi.getId(), p, objsorted));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).getId(), p));
+				ret.add(saveObjectVersion(
+						user, wsidmongo, objIDs.get(oi).getId(), p, objsorted));
 			} else if (seenNames.containsKey(oi.getName())) {
 				//we've already generated an id for this name
-				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectVersion(
+						user, wsidmongo, seenNames.get(oi.getName()), p,
+						objsorted));
 			} else {//new name, need to generate new id
 				final IDName obj = saveWorkspaceObject(wsidmongo, newid++,
 						oi.getName());
 				p.name = obj.name;
 				seenNames.put(obj.name, obj.id);
-				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
+				ret.add(saveObjectVersion(
+						user, wsidmongo, obj.id, p, objsorted));
 			}
 		}
 		updateWorkspaceModifiedDate(wsidmongo);
@@ -2057,9 +2073,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private void saveData(final ResolvedMongoWSID workspaceid,
-			final List<ObjectSavePackage> data) throws
-			WorkspaceCommunicationException {
+	private Map<TypeDefId, Set<String>> saveData(
+			final ResolvedMongoWSID workspaceid,
+			final List<ObjectSavePackage> data)
+			throws WorkspaceCommunicationException {
 		final Map<TypeDefId, List<ObjectSavePackage>> pkgByType =
 				new HashMap<TypeDefId, List<ObjectSavePackage>>();
 		for (final ObjectSavePackage p: data) {
@@ -2069,8 +2086,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			pkgByType.get(p.td.getType()).add(p);
 		}
+		final Map<TypeDefId, Set<String>> sorted =
+				new HashMap<TypeDefId, Set<String>>();
 		try {
 			for (final TypeDefId type: pkgByType.keySet()) {
+				sorted.put(type, new HashSet<String>());
 				ensureTypeIndex(type);
 				final String col = TypeData.getTypeCollection(type);
 				final Map<String, TypeData> chksum =
@@ -2078,18 +2098,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				for (ObjectSavePackage p: pkgByType.get(type)) {
 					chksum.put(p.td.getChksum(), p.td);
 				}
-				final Set<String> existChksum = getExistingMD5sInCollection(
-						col, chksum.keySet());
+				final Map<String, Boolean> existChksum =
+						getExistingMD5sInCollection(col, chksum.keySet());
 				final List<TypeData> newdata = new ArrayList<TypeData>();
+				//this is guaranteed to run through every md5 in existChksum
 				for (String md5: chksum.keySet()) { //better set operators in java would be nice
-					if (existChksum.contains(md5)) {
+					if (existChksum.keySet().contains(md5)) {
+						if (existChksum.get(md5)) {
+							sorted.get(type).add(md5);
+						}
 						continue;
 					}
-					newdata.add(chksum.get(md5));
 					try {
 						//this is kind of stupid, but no matter how you slice
 						//it you have to calc md5s before you save the data
-						blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
+						final boolean saved = blob.saveBlob(new MD5(md5),
+								chksum.get(md5).getData());
+						if (saved) {
+							sorted.get(type).add(md5);
+							newdata.add(chksum.get(md5));
+						}
 					} catch (BlobStoreCommunicationException e) {
 						throw new WorkspaceCommunicationException(
 								e.getLocalizedMessage(), e);
@@ -2122,21 +2150,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			}
 		}
+		return sorted;
 	}
 
-	private Set<String> getExistingMD5sInCollection(final String col,
+	private Map<String, Boolean> getExistingMD5sInCollection(final String col,
 			Set<String> md5s) throws WorkspaceCommunicationException {
 		final DBObject query = new BasicDBObject(Fields.TYPE_CHKSUM,
 				new BasicDBObject("$in", new ArrayList<String>(
 						md5s)));
 		final DBObject proj = new BasicDBObject(Fields.TYPE_CHKSUM, 1);
+		proj.put(Fields.TYPE_SORTED, 1);
 		proj.put(Fields.MONGO_ID, 0);
-		final Set<String> existChksum = new HashSet<String>();
+		final Map<String, Boolean> existChksum = new HashMap<String, Boolean>();
 		try {
 			final DBCursor res = wsmongo.getCollection(col)
 					.find(query, proj);
 			for (DBObject dbo: res) {
-				existChksum.add((String)dbo.get(Fields.TYPE_CHKSUM));
+				existChksum.put((String)dbo.get(Fields.TYPE_CHKSUM),
+						(Boolean)dbo.get(Fields.TYPE_SORTED));
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -3348,7 +3379,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			IDName r = testdb.saveWorkspaceObject(rwsi, 3, "testobj");
 			pkg.name = r.name;
 			testdb.saveProvenance(Arrays.asList(pkg));
-			ObjectInformation md = testdb.saveObjectVersion(new WorkspaceUser("u"), rwsi, r.id, pkg);
+			ObjectInformation md = testdb.saveObjectVersion(
+					new WorkspaceUser("u"), rwsi, r.id, pkg, true);
 			assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 		}
 	}
