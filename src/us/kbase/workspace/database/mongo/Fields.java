@@ -59,8 +59,6 @@ public class Fields {
 	public static final String VER_RVRT = "revert";
 	public static final String VER_META = "meta";
 	public static final String VER_COPIED = "copied";
-	//added in 0.2.0+
-	public static final String VER_SORTED = "sorted";
 	
 	// meta document key & value
 	public static final String META_KEY = "k";
@@ -71,8 +69,6 @@ public class Fields {
 	public static final String TYPE_SIZE = "size";
 	public static final String TYPE_SUBDATA = "subdata";
 	public static final String TYPE_TYPE = "type";
-	//true for 0.2.0+, non-existent in earlier WS versions
-	public static final String TYPE_SORTED = "sorted"; 
 
 	// shock fields
 	public static final String SHOCK_CHKSUM = "chksum";

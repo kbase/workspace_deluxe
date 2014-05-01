@@ -35,8 +35,6 @@ public class TypeData {
 	@JsonInclude(value=JsonInclude.Include.ALWAYS)
 	private Map<String, Object> subdata;
 	private long size;
-	@SuppressWarnings("unused")
-	private boolean sorted = true;
 	
 	public TypeData(final Writable data, final AbsoluteTypeDefId type,
 			final Map<String,Object> subdata)  {
