@@ -28,12 +28,9 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -162,12 +159,11 @@ public class ShockBackendTest {
 		failGetBlob(new MD5(A32));
 	}
 
-	private void failGetBlob(MD5 md5) throws FileCacheLimitExceededException,
-			FileCacheIOException {
+	private void failGetBlob(MD5 md5) throws Exception {
 		try {
 			sb.getBlob(md5, ByteArrayFileCacheManager.forTests());
 			fail("getblob should throw exception");
-		} catch (BlobStoreException wbe) {
+		} catch (NoSuchBlobException wbe) {
 			assertThat("wrong exception message from failed getblob",
 					wbe.getLocalizedMessage(), is("No blob saved with chksum "
 					+ md5.getMD5()));
