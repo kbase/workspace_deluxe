@@ -2057,6 +2057,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
+	//this whole method needs a rethink now we're dealing with Writeables
+	//could have the blob store calc & return the size & MD5
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
@@ -2089,7 +2091,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					try {
 						//this is kind of stupid, but no matter how you slice
 						//it you have to calc md5s before you save the data
-						blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
+						blob.saveBlob(new MD5(md5), chksum.get(md5).getData(),
+								true); //always sorted in 0.2.0+
 					} catch (BlobStoreCommunicationException e) {
 						throw new WorkspaceCommunicationException(
 								e.getLocalizedMessage(), e);

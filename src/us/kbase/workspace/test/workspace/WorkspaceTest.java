@@ -4483,5 +4483,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				user, Arrays.asList(new ObjectIdentifier(wsi, 1))).get(0);
 		String data = IOUtils.toString(o.getDataAsTokens().getJSON());
 		assertThat("data is sorted", data, is(expected));
+		assertThat("data marked as sorted", o.getDataAsTokens().isSorted(),
+				is(true));
 	}
 }

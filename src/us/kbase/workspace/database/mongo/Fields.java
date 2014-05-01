@@ -74,6 +74,13 @@ public class Fields {
 	public static final String SHOCK_CHKSUM = "chksum";
 	public static final String SHOCK_NODE = "node";
 	public static final String SHOCK_VER = "ver";
+	// since 0.2.0, if missing assume false
+	public static final String SHOCK_SORTED = "sorted";
+	
+	// GridFS fields
+	// since 0.2.0, if missing assume false
+	public static final String GFS_SORTED = "sorted";
+		
 	
 	// admin fields
 	public static final String ADMIN_NAME = "user";

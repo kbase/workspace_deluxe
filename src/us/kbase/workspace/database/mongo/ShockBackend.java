@@ -39,7 +39,7 @@ import com.mongodb.MongoException;
 
 public class ShockBackend implements BlobStore {
 	
-	private static final String nodeMap = "nodeMap";
+	public static final String COLLECTION_SUFFIX = "nodeMap";
 	
 	private String user;
 	private String password;
@@ -52,11 +52,13 @@ public class ShockBackend implements BlobStore {
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
 			BlobStoreException {
-		if (collectionPrefix == null || mongoDB == null) {
-			throw new IllegalArgumentException(
-					"mongoDB and collectionPrefix cannot be null");
+		if (collectionPrefix == null || mongoDB == null || url == null
+				|| user == null || password == null) {
+			throw new NullPointerException(
+					"Arguments cannot be null");
 		}
-		this.mongoCol = mongoDB.getCollection(collectionPrefix + nodeMap);
+		this.mongoCol = mongoDB.getCollection(collectionPrefix +
+				COLLECTION_SUFFIX);
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();
@@ -113,15 +115,16 @@ public class ShockBackend implements BlobStore {
 	}
 
 	@Override
-	public boolean saveBlob(final MD5 md5, final Writable data)
+	public void saveBlob(final MD5 md5, final Writable data,
+			final boolean sorted)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		if (data == null) {
-			throw new IllegalArgumentException("data cannot be null");
+		if (md5 == null || data == null) {
+			throw new NullPointerException("Arguments cannot be null");
 		}
 		try {
 			getNode(md5);
-			return false; //already saved
+			return; //already saved
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
@@ -200,6 +203,7 @@ public class ShockBackend implements BlobStore {
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		dbo.put(Fields.SHOCK_NODE, sn.getId().getId());
 		dbo.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
+		dbo.put(Fields.SHOCK_SORTED, sorted);
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		try {
@@ -210,11 +214,15 @@ public class ShockBackend implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
 		}
-		return true;
 	}
 	
 	private String getNode(final MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
+		return (String) getBlobEntry(md5).get(Fields.SHOCK_NODE);
+	}
+
+	private DBObject getBlobEntry(final MD5 md5)
+			throws BlobStoreCommunicationException, NoSuchBlobException {
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		final DBObject ret;
@@ -228,7 +236,7 @@ public class ShockBackend implements BlobStore {
 			throw new NoSuchBlobException("No blob saved with chksum "
 					+ md5.getMD5());
 		}
-		return (String) ret.get(Fields.SHOCK_NODE);
+		return ret;
 	}
 
 	@Override
@@ -238,7 +246,14 @@ public class ShockBackend implements BlobStore {
 			BlobStoreCommunicationException, NoSuchBlobException,
 			FileCacheLimitExceededException, FileCacheIOException {
 		checkAuth();
-		final String node = getNode(md5);
+		final DBObject entry = getBlobEntry(md5);
+		final String node = (String)entry.get(Fields.SHOCK_NODE);
+		final boolean sorted;
+		if (!entry.containsField(Fields.SHOCK_SORTED)) {
+			sorted = false;
+		} else {
+			sorted = (Boolean)entry.get(Fields.SHOCK_SORTED);
+		}
 		
 		final OutputStreamToInputStream<ByteArrayFileCache> osis =
 				new OutputStreamToInputStream<ByteArrayFileCache>(true,
@@ -247,7 +262,7 @@ public class ShockBackend implements BlobStore {
 					
 			@Override
 			protected ByteArrayFileCache doRead(InputStream is) throws Exception {
-				return bafcMan.createBAFC(is, true);
+				return bafcMan.createBAFC(is, true, sorted);
 			}
 		};
 		try {

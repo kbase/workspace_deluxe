@@ -17,14 +17,13 @@ public interface BlobStore {
 	 * guaranteed to call releaseResources() on the Writer.
 	 * @param md5 the md5 of the blob.
 	 * @param data the blob.
-	 * @return true if the blob was saved to the blob store backend, false if
-	 * the blob already existed and saving the duplicate data was skipped.
+	 * @param sorted true if the data is sorted, false otherwise.
 	 * @throws BlobStoreAuthorizationException if the blobstore is not
 	 * authorized to write to the blob store backend. 
 	 * @throws BlobStoreCommunicationException if a communication error with
 	 * the blob store backend occurs.
 	 */
-	public boolean saveBlob(MD5 md5, Writable data)
+	public void saveBlob(MD5 md5, Writable data, boolean sorted)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException;
 	

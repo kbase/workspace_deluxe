@@ -533,7 +533,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				sb.saveBlob(md5, treeToWritable(jsonData));
+				sb.saveBlob(md5, treeToWritable(jsonData), true);
 			}
 			return 0;
 		}
@@ -573,7 +573,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.saveBlob(md5, treeToWritable(jsonData));
+				gfsb.saveBlob(md5, treeToWritable(jsonData), true);
 			}
 			return 0;
 		}

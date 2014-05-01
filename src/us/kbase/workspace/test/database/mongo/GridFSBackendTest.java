@@ -7,90 +7,126 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
+import com.mongodb.gridfs.GridFS;
+import com.mongodb.gridfs.GridFSInputFile;
 
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.GridFSBackend;
-import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class GridFSBackendTest {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
 	private static GridFSBackend gfsb;
+	private static GridFS gfs;
+	private static DB db;
+	
+	private static final String a32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		gfsb = new GridFSBackend(WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null));
+		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
+		gfs = new GridFS(db);
+		gfsb = new GridFSBackend(db);
+	}
+	
+	@Test
+	public void storetype() throws Exception {
+		assertThat("correct store type", gfsb.getStoreType(), is("GridFS"));
+	}
+	
+	@Test
+	public void badInput() throws Exception {
+		try {
+			gfsb.saveBlob(new MD5(a32), null, true);
+		} catch (NullPointerException npe) {
+			assertThat("correct excepction message", npe.getLocalizedMessage(),
+					is("Arguments cannot be null"));
+		}
+		
+		try {
+			gfsb.saveBlob(null, stringToWriteable("foo"), true);
+		} catch (NullPointerException npe) {
+			assertThat("correct excepction message", npe.getLocalizedMessage(),
+					is("Arguments cannot be null"));
+		}
+	}
+	
+	@Test
+	public void dataWithoutSortMarker() throws Exception {
+		String s = "pootypoot";
+		final GridFSInputFile gif = gfs.createFile(s.getBytes("UTF-8"));
+		MD5 md5 = new MD5(a32);
+		gif.setId(md5.getMD5());
+		gif.setFilename(md5.getMD5());
+		gif.save();
+		
+		ByteArrayFileCache d = gfsb.getBlob(md5, 
+				ByteArrayFileCacheManager.forTests());
+		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
+		String returned = IOUtils.toString(d.getJSON());
+		assertThat("Didn't get same data back from store", returned, is(s));
+		gfsb.removeBlob(md5);
 	}
 	
 	@Test
 	public void saveAndGetBlob() throws Exception {
-		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName("foo", "foo"), 1, 0);
-		Map<String, Object> subdata = new HashMap<String, Object>(); //subdata not used here
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("key", "value");
-		TypeData td = new TypeData(valueToTree(data), wt, subdata);
-		MD5 tdmd = new MD5(td.getChksum());
-		assertThat("saved blob to backend", gfsb.saveBlob(tdmd, td.getData()),
-				is(true));
-		assertThat("skipped saving blob to backend",
-				gfsb.saveBlob(tdmd, td.getData()),
-				is(false));
-		//have to use the same data to get same md5
-		wt = new AbsoluteTypeDefId(new TypeDefName("foo1", "foo1"), 2, 1);
-		TypeData tdr = new TypeData(valueToTree(data), wt, subdata);
-		MD5 tdmdr = new MD5(tdr.getChksum());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> returned = MAPPER.treeToValue(gfsb.getBlob(tdmdr, 
-				ByteArrayFileCacheManager.forTests()).getAsJsonNode(), Map.class);
+		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		String data = "this is a blob yo";
+		gfsb.saveBlob(md1, stringToWriteable(data), true);
+		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		ByteArrayFileCache d = gfsb.getBlob(md1copy, 
+				ByteArrayFileCacheManager.forTests());
+		assertThat("data returned marked as sorted", d.isSorted(), is(true));
+		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
-		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(tdmdr) == null);
-		gfsb.saveBlob(tdmd, td.getData()); //should be able to save the same thing twice with no error
-		gfsb.removeBlob(tdmdr);
+		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(md1copy) == null);
+		gfsb.saveBlob(md1, stringToWriteable(data), true); //should be able to save the same thing twice with no error
+		
+		gfsb.saveBlob(md1, stringToWriteable(data), false); //this should do nothing
+		assertThat("sorted still true", gfsb.getBlob(md1copy,
+				ByteArrayFileCacheManager.forTests()).isSorted(), is(true));
+		
+		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
+		String data2 = "this is also a blob yo";
+		gfsb.saveBlob(md2, stringToWriteable(data2), false);
+		d = gfsb.getBlob(md2, ByteArrayFileCacheManager.forTests());
+		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
+		
+		gfsb.removeBlob(md1);
+		gfsb.removeBlob(md2);
 	}
 	
 	@Test
 	public void getNonExistantBlob() throws Exception {
-		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName("foo", "foo"), 1, 0);
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("no such", "data");
-		TypeData td = new TypeData(valueToTree(data), wt, new HashMap<String, Object>());
 		try {
-			gfsb.getBlob(new MD5(td.getChksum()), ByteArrayFileCacheManager.forTests());
+			gfsb.getBlob(new MD5(a32), ByteArrayFileCacheManager.forTests());
 			fail("getblob should throw exception");
 		} catch (BlobStoreException wbe) {
 			assertThat("wrong exception message from failed getblob",
-					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with chksum 0c961a58424b67d6f1814ee334886e83"));
+					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with chksum " + a32));
 		}
 	}
 	
 	@Test
 	public void removeNonExistantBlob() throws Exception {
-		AbsoluteTypeDefId wt = new AbsoluteTypeDefId(new TypeDefName("foo", "foo"), 1, 0);
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("no such", "data");
-		TypeData td = new TypeData(valueToTree(data), wt, new HashMap<String, Object>());
-		gfsb.removeBlob(new MD5(td.getChksum())); //should silently not remove anything
+		gfsb.removeBlob(new MD5(a32)); //should silently not remove anything
 	}
 	
-	private static Writable valueToTree(final Object value) {
+	private static Writable stringToWriteable(final String s) {
 		return new Writable() {
 			@Override
 			public void write(OutputStream w) throws IOException {
-				MAPPER.writeValue(w, value);
+				w.write(s.getBytes("UTF-8"));
 			}
 			@Override
 			public void releaseResources() throws IOException {

@@ -30,13 +30,14 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public boolean saveBlob(final MD5 md5, final Writable data)
+	public void saveBlob(final MD5 md5, final Writable data,
+			final boolean sorted)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
-			throw new IllegalArgumentException("Arguments cannot be null");
+			throw new NullPointerException("Arguments cannot be null");
 		}
 		if (getFile(md5) != null) {
-			return false; //already exists
+			return; //already exists
 		}
 		final OutputStreamToInputStream<String> osis =
 				new OutputStreamToInputStream<String>() {
@@ -46,6 +47,7 @@ public class GridFSBackend implements BlobStore {
 				final GridFSInputFile gif = gfs.createFile(is, true);
 				gif.setId(md5.getMD5());
 				gif.setFilename(md5.getMD5());
+				gif.put(Fields.GFS_SORTED, sorted);
 				try {
 					gif.save();
 				} catch (MongoException.DuplicateKey dk) {
@@ -70,7 +72,6 @@ public class GridFSBackend implements BlobStore {
 				throw new RuntimeException("Something is broken", ioe);
 			}
 		}
-		return true;
 	}
 
 	@Override
@@ -86,10 +87,15 @@ public class GridFSBackend implements BlobStore {
 						"Attempt to retrieve non-existant blob with chksum " + 
 								md5.getMD5());
 			}
-		
+			final boolean sorted;
+			if (!out.containsField(Fields.GFS_SORTED)) {
+				sorted = false;
+			} else {
+				sorted = (Boolean)out.get(Fields.GFS_SORTED);
+			}
 			final InputStream file = out.getInputStream();
 			try {
-				return bafcMan.createBAFC(file, true);
+				return bafcMan.createBAFC(file, true, sorted);
 			} finally {
 				try {
 					file.close();
