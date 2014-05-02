@@ -46,7 +46,7 @@ def _parseArgs():
     parser.add_argument('-r', '--properties', nargs='*',
                          help='JVM system properties to add to the server.')
     parser.add_argument('-g', '--noparallelgc', action='store_true',
-                         help='permanently turn off the parallel garbage ' +
+                         help='turn off the parallel garbage ' +
                          ' collector and use the standard gc.')
     return parser.parse_args()
 
@@ -226,12 +226,21 @@ class CommandGlassfishDomain(object):
         if changed or changed2:
             self.restart_domain()
 
-    def stop_parallel_gc(self):
+    def reenable_parallel_gc(self):
+        if self.parallel_gc_is_disabled():
+            self.delete_jvm_option(_PARALLEL_GC_ESC)
+            self.restart_domain()
+
+    def parallel_gc_is_disabled(self):
         for o in self._run_remote_command('list-jvm-options').split('\n'):
             if o == _PARALLEL_GC:
-                return
-        self.create_jvm_option(_PARALLEL_GC_ESC)
-        self.restart_domain()
+                return True
+        return False
+
+    def stop_parallel_gc(self):
+        if not self.parallel_gc_is_disabled():
+            self.create_jvm_option(_PARALLEL_GC_ESC)
+            self.restart_domain()
 
     def create_property(self, prop):
         print('Creating property ' + prop)
@@ -242,6 +251,10 @@ class CommandGlassfishDomain(object):
         print('Creating jvm property ' + prop)
         print(self._run_remote_command('create-jvm-options', prop)
               .rstrip())
+
+    def delete_jvm_option(self, prop):
+        print('Removing jvm property ' + prop)
+        print(self._run_remote_command('delete-jvm-options', prop).rstrip())
 
     def _set_memory(self, memstr, memlist):
         if (memstr is not None and [memstr] != memlist):
@@ -290,6 +303,8 @@ if __name__ == '__main__':
     else:
         if (args.noparallelgc):
             gf.stop_parallel_gc()
+        else:
+            gf.reenable_parallel_gc()
         gf.set_min_max_memory(args.Xms, args.Xmx)
         for p in args.properties:
             gf.create_property(p)
