@@ -31,6 +31,7 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -65,7 +66,7 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, shockuser);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, TempFilesManager.forTests()),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, module);

@@ -69,6 +69,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 
 public class Workspace {
 	
@@ -92,10 +93,10 @@ public class Workspace {
 	private final TypeDefinitionDB typedb;
 	private final ReferenceParser refparse;
 	private final TempFilesManager tfm;
-	private long maxInMemorySortSize = 16 * 1024 * 1024;
+	private ResourceUsageConfiguration rescfg;
 	
 	public Workspace(final WorkspaceDatabase db,
-			final ReferenceParser refparse) {
+			final ReferenceParser refparse, ResourceUsageConfiguration cfg) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");
 		}
@@ -105,7 +106,21 @@ public class Workspace {
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
 		this.refparse = refparse;
-		this.tfm = db.getTempFilesManager();
+		tfm = db.getTempFilesManager();
+		rescfg = cfg;
+	}
+	
+	public ResourceUsageConfiguration getResourceConfig() {
+		return rescfg;
+	}
+	
+	public void setResourceConfig(ResourceUsageConfiguration rescfg) {
+		this.rescfg = rescfg;
+//		db.setResourceUsageConfiguration(rescfg); //TODO 1
+	}
+	
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
 	}
 	
 	public long getMaxObjectSize() {
@@ -1268,17 +1283,5 @@ public class Workspace {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		db.addAdmin(user);
-	}
-
-	public TempFilesManager getTempFilesManager() {
-		return tfm;
-	}
-
-	public long getMaxInMemorySortSize() {
-		return maxInMemorySortSize;
-	}
-	
-	public void setMaxInMemorySortSize(long maxInMemorySortSize) {
-		this.maxInMemorySortSize = maxInMemorySortSize;
 	}
 }

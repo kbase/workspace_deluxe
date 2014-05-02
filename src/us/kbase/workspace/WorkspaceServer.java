@@ -63,6 +63,7 @@ import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.lib.Workspace;
 //END_HEADER
 
@@ -288,7 +289,8 @@ public class WorkspaceServer extends JsonServerServlet {
 						db.getBackendType()));
 				logInfo(String.format("Initialized %s backend",
 						db.getBackendType()));
-				ws = new Workspace(db, new KBaseReferenceParser());
+				ws = new Workspace(db, new KBaseReferenceParser(),
+						new ResourceUsageConfigurationBuilder().build());
 				wsmeth = new WorkspaceServerMethods(ws);
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));

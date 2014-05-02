@@ -51,6 +51,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
@@ -207,7 +208,8 @@ public class WorkspaceTester {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null, tfm);
 		}
-		Workspace work = new Workspace(wsdb, new DefaultReferenceParser());
+		Workspace work = new Workspace(wsdb, new DefaultReferenceParser(),
+				new ResourceUsageConfigurationBuilder().build());
 		if (maxMemoryUsePerCall != null) {
 			work.setMaxObjectMemUsePerCall(maxMemoryUsePerCall);
 		}

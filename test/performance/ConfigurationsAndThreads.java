@@ -49,6 +49,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -157,7 +158,7 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
@@ -459,7 +460,7 @@ public class ConfigurationsAndThreads {
 		public WorkspaceLibShock() throws Exception {
 			super();
 			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
-					new DefaultReferenceParser());
+					new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);
