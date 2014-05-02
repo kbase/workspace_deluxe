@@ -6,13 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class describes schema of filtering user-defined data
- * in order to construct ws-searchable subset.
+ * This class describes nodes in the tree representing the structure of the objects that need
+ * to be extracted as part of the WS searchable subdata or metadata.
  * @author rsutormin
  */
 public class SearchableWsSubsetAndMetadataNode {
 	private boolean needKeys = false;
 	private boolean needAll = false;
+	private boolean needSubsetInChildren = false;
 	private List<String> needValueForMetadata;  // if this is non-empty, then we need the value at this node for metadata
 	private List<String> needLengthForMetadata; // if this is non-empty, then we need the length of this node for metadata
 	private Map<String, SearchableWsSubsetAndMetadataNode> children = null;
@@ -46,12 +47,12 @@ public class SearchableWsSubsetAndMetadataNode {
 		return children.get(name);
 	}
 	
-	public boolean isNeedKeys() {
-		return needKeys;
+	public boolean isNeedSubsetInChildren() {
+		return needSubsetInChildren;
 	}
 	
-	public void setNeedKeys(boolean needKeys) {
-		this.needKeys = needKeys;
+	public void setNeedSubsetInChildren(boolean needSubsetInChildren) {
+		this.needSubsetInChildren = needSubsetInChildren;
 	}
 	
 	public boolean isNeedAll() {
@@ -60,6 +61,14 @@ public class SearchableWsSubsetAndMetadataNode {
 	
 	public void setNeedAll(boolean needAll) {
 		this.needAll = needAll;
+	}
+	
+	public boolean isNeedKeys() {
+		return needKeys;
+	}
+	
+	public void setNeedKeys(boolean needKeys) {
+		this.needKeys = needKeys;
 	}
 	
 	public void addNeedValueForMetadata(String metadataName) {
@@ -76,6 +85,24 @@ public class SearchableWsSubsetAndMetadataNode {
 	
 	public List<String> getNeedLengthForMetadata() {
 		return needLengthForMetadata;
+	}
+	
+	public boolean needMetadata() {
+		if(needLengthForMetadata.size()>0 || needValueForMetadata.size()>0) {
+			return true;
+		}
+		return false;
+	}
+	
+	public void printTree(String offset) {
+		System.out.println(offset+"needKeys="+needKeys+";needAll="+needAll+";mdvalues:"+needValueForMetadata.size()+";mdlenghts:"+needLengthForMetadata.size() +
+				";needBelow="+needSubsetInChildren);
+		if(children!=null) {
+			for (Map.Entry<String, SearchableWsSubsetAndMetadataNode> entry : children.entrySet()) {
+				System.out.println(offset+"==="+entry.getKey());
+				entry.getValue().printTree(offset+"   ");
+			}
+		}
 	}
 	
 }

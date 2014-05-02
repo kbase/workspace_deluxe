@@ -454,8 +454,6 @@ public class TypedObjectValidationReport {
 															keys_of, fields, maxSubsetSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
-			System.out.println("Subdata:\n"+ret);
-			System.out.println("Metadata:\n"+wsMetadataExtractionHandler+"\n");
 			returnData.set("subset", ret);
 			returnData.set("metadata", wsMetadataExtractionHandler.getSavedMetadata());
 			return returnData;
