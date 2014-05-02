@@ -1,4 +1,4 @@
-package us.kbase.workspace.lib;
+package us.kbase.workspace.database;
 
 /** Builder for the set of resource usage parameters for the workspace.
  * @author gaprice@lbl.gov
