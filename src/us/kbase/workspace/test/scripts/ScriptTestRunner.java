@@ -212,7 +212,6 @@ public class ScriptTestRunner {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		server.setMaxMemUseForReturningObjects(24); //as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
 		tfms.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");

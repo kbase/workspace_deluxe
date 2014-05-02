@@ -90,6 +90,8 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.ResolvedSaveObject;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -118,12 +120,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	/* sets the maximum amount of memory to use to store objects when
-	 * retrieving from the blob store. After this point, objects are saved
-	 * to disk. This maximum is per method call and includes duplicates of
-	 * the object produced by subsetting.
-	 */
-	private int maxObjectMemUsePerCall = 16000000;
+	
+	private ResourceUsageConfiguration rescfg;
+
 	private long maxObjectSize = 2000005000;
 	/* sets the maximum total size of objects that can be returned from the
 	 * workspace. This is equal to each object's size * min(1, # of paths).
@@ -217,6 +216,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String backendSecret, TempFilesManager tfm)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
@@ -240,6 +240,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
 			MongoAuthException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
@@ -265,6 +266,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
@@ -281,6 +283,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								typeDBdir == null ? null : new File(typeDBdir), kidlpath, "both"));
 		ensureIndexes();
 		ensureTypeIndexes();
+	}
+	
+	@Override
+	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg) {
+		this.rescfg = rescfg;
 	}
 	
 	@Override
@@ -419,20 +426,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"Maximum object size must be at least 1");
 		}
 		this.maxObjectSize = maxObjectSize;
-	}
-
-	@Override
-	public int getMaxObjectMemUsePerCall() {
-		return maxObjectMemUsePerCall;
-	}
-
-	@Override
-	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
-		if (maxObjectMemUsePerCall < 1) {
-			throw new IllegalArgumentException(
-					"Maximum memory use per call must be at least 1");
-		}
-		this.maxObjectMemUsePerCall = maxObjectMemUsePerCall;
 	}
 
 	@Override
@@ -2282,7 +2275,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(
-				maxObjectMemUsePerCall, MAX_DISK_USE_PER_RETURN_CALL, tfm);
+				rescfg.getMaxReturnedDataMemoryUsage(),
+				MAX_DISK_USE_PER_RETURN_CALL, tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {

@@ -64,6 +64,7 @@ import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.lib.Workspace;
 //END_HEADER
 
@@ -210,14 +211,15 @@ public class WorkspaceServer extends JsonServerServlet {
 		return tfm;
 	}
 	
-	/* sets the maximum amount of memory to use to store objects when
-	 * retrieving from the blob store. After this point, objects are saved
-	 * to disk. This maximum is per method call and includes duplicates of
-	 * the object produced by subsetting.
-	 */
-	public void setMaxMemUseForReturningObjects(int mem) {
-		ws.setMaxObjectMemUsePerCall(mem);
+	public ResourceUsageConfiguration getWorkspaceResourceUsageConfig() {
+		return ws.getResourceConfig();
 	}
+	
+	public void setResourceUsageConfiguration(
+			final ResourceUsageConfiguration cfg) {
+		ws.setResourceConfig(cfg);
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {

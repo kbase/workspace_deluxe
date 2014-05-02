@@ -65,11 +65,11 @@ public class ByteArrayFileCacheManager {
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
 		int maxInMemorySize = maxSizeInMem - sizeInMem;
 		long size = 0;
-		while (size < maxInMemorySize) {
+		while (size < maxInMemorySize + 1) {
 			int count;
 			try {
 				count = input.read(buf, 0, Math.min(
-						buf.length, maxInMemorySize - (int)size));
+						buf.length, maxInMemorySize + 1 - (int)size));
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
 			}
@@ -83,7 +83,7 @@ public class ByteArrayFileCacheManager {
 		} catch (IOException ioe) {
 			throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
 		}
-		if (size >= maxInMemorySize) {
+		if (size > maxInMemorySize) {
 			File tempFile = null;
 			OutputStream os = null;
 			try {
@@ -220,6 +220,13 @@ public class ByteArrayFileCacheManager {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return "ByteArrayFileCacheManager [sizeInMem=" + sizeInMem
+				+ ", maxSizeInMem=" + maxSizeInMem + ", sizeOnDisk="
+				+ sizeOnDisk + ", maxSizeOnDisk=" + maxSizeOnDisk + "]";
+	}
+
 	public static ByteArrayFileCacheManager forTests() {
 		return new ByteArrayFileCacheManager(16000000, 2000000000L, TempFilesManager.forTests());
 	}

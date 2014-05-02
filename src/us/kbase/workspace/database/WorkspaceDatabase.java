@@ -17,6 +17,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.lib.ResolvedSaveObject;
+import us.kbase.workspace.lib.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 
 public interface WorkspaceDatabase {
 	
@@ -204,11 +205,9 @@ public interface WorkspaceDatabase {
 
 	public void setMaxObjectSize(long maxObjectSize);
 	
-	public int getMaxObjectMemUsePerCall();
-
-	public void setMaxObjectMemUsePerCall(int maxObjectMemUsePerCall);
-
 	public long getMaxReturnSize();
 
 	public void setMaxReturnSize(long maxReturnSize);
+
+	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
 }

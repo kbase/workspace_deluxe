@@ -211,7 +211,10 @@ public class WorkspaceTester {
 		Workspace work = new Workspace(wsdb, new DefaultReferenceParser(),
 				new ResourceUsageConfigurationBuilder().build());
 		if (maxMemoryUsePerCall != null) {
-			work.setMaxObjectMemUsePerCall(maxMemoryUsePerCall);
+			final ResourceUsageConfigurationBuilder build =
+					new ResourceUsageConfigurationBuilder(work.getResourceConfig());
+			work.setResourceConfig(build.withMaxIncomingDataMemoryUsage(maxMemoryUsePerCall)
+					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);

@@ -108,6 +108,7 @@ public class Workspace {
 		this.refparse = refparse;
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;
+		db.setResourceUsageConfiguration(rescfg);
 	}
 	
 	public ResourceUsageConfiguration getResourceConfig() {
@@ -116,7 +117,7 @@ public class Workspace {
 	
 	public void setResourceConfig(ResourceUsageConfiguration rescfg) {
 		this.rescfg = rescfg;
-//		db.setResourceUsageConfiguration(rescfg); //TODO 1
+		db.setResourceUsageConfiguration(rescfg);
 	}
 	
 	public TempFilesManager getTempFilesManager() {
@@ -133,18 +134,6 @@ public class Workspace {
 					"Maximum object size must be at least 1");
 		}
 		db.setMaxObjectSize(maxObjectSize);
-	}
-	
-	public int getMaxObjectMemUsePerCall() {
-		return db.getMaxObjectMemUsePerCall();
-	}
-
-	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
-		if (maxObjectMemUsePerCall < 1) {
-			throw new IllegalArgumentException(
-					"Maximum memory use per call must be at least 1");
-		}
-		db.setMaxObjectMemUsePerCall(maxObjectMemUsePerCall);
 	}
 	
 	public long getMaxReturnSize() {
@@ -667,7 +656,7 @@ public class Workspace {
 		
 		objcount = 1;
 		final TempFilesManager tempTFM;
-		if (ttlObjSize > getMaxObjectMemUsePerCall()) {
+		if (ttlObjSize > rescfg.getMaxIncomingDataMemoryUsage()) {
 			tempTFM = getTempFilesManager();
 		} else {
 			tempTFM = null;

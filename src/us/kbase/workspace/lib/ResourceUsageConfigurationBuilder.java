@@ -1,5 +1,9 @@
 package us.kbase.workspace.lib;
 
+/** Builder for the set of resource usage parameters for the workspace.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ResourceUsageConfigurationBuilder {
 	
 	//TODO unit tests
@@ -8,7 +12,7 @@ public class ResourceUsageConfigurationBuilder {
 	final public static int DEFAULT_MAX_INCOMING_DATA_MEMORY_USAGE = 100000000;
 	final public static int DEFAULT_MAX_RELABEL_AND_SORT_MEMORY_USAGE =
 			200000000; // must be at least 1x max data
-	final public static int DEFAULT_MAX_RETURNED_DATA_MEMORY_USAGE = 100000000;
+	final public static int DEFAULT_MAX_RETURNED_DATA_MEMORY_USAGE = 300000000;
 	final public static long DEFAULT_MAX_RETURNED_DATA_SIZE = 1005000000;
 	final public static long DEFAULT_MAX_RETURNED_DATA_DISK_USAGE = 
 			2 * DEFAULT_MAX_RETURNED_DATA_SIZE; // must be at least 2x max returned data size
@@ -95,6 +99,13 @@ public class ResourceUsageConfigurationBuilder {
 				final int maxReturnedDataMemoryUsage,
 				final long maxReturnedDataSize,
 				final long maxReturnedDataDiskUsage) {
+			checkGTZero(maxObjectSize, "Maximum object size");
+			checkGTZero(maxIncomingDataMemoryUsage, "Maximum incoming data memory usage ");
+			checkGTZero(maxRelabelAndSortMemoryUsage, "Relabel and sort memory usage");
+			checkGTZero(maxReturnedDataMemoryUsage, "Returned data memory usage");
+			checkGTZero(maxReturnedDataSize, "Returned data size");
+			checkGTZero(maxReturnedDataDiskUsage, "Returned data disk usage");
+			
 			this.maxObjectSize = maxObjectSize;
 			this.maxIncomingDataMemoryUsage = maxIncomingDataMemoryUsage;
 			if (maxRelabelAndSortMemoryUsage <= maxIncomingDataMemoryUsage) {
@@ -115,10 +126,28 @@ public class ResourceUsageConfigurationBuilder {
 			this.maxReturnedDataDiskUsage = maxReturnedDataDiskUsage;
 		}
 
+		private void checkGTZero(long maxReturnedDataDiskUsage, String name) {
+			if (maxReturnedDataDiskUsage < 1) {
+				throw new IllegalArgumentException(name + " must be greater than zero");
+			}
+			
+		}
+
 		public int getMaxObjectSize() {
 			return maxObjectSize;
 		}
 
+		/** The maximum memory to use for typed objects when saving data per
+		 * method call, excluding relabeling and sorting.
+		 * This does not account for any
+		 * memory use prior to calling the saveObjects method, nor for
+		 * anything except for typed object data (e.g. provenance, metadata,
+		 * etc are not included). If the total size of the typed objects in one
+		 * saveObjects call is greater than this amount, the data will be saved
+		 * to disk for processing rather than kept in memory, which could
+		 * significantly slow down operations.
+		 * @return the maximum memory allowed for incoming typed objects.
+		 */
 		public int getMaxIncomingDataMemoryUsage() {
 			return maxIncomingDataMemoryUsage;
 		}
@@ -127,6 +156,16 @@ public class ResourceUsageConfigurationBuilder {
 			return maxRelabelAndSortMemoryUsage;
 		}
 
+		/** The maximum memory to use for typed objects when returning data per
+		 * method call.
+		 * This does not account for any memory use prior to calling methods
+		 * that return typed objects, nor for anything except for typed object
+		 * data (e.g. provenance, metadata, etc are not included). Typed
+		 * objects will be kept in memory for processing until this limit is
+		 * reached, and afterwards will be stored on disk, which could
+		 * significantly slow down operations.
+		 * @return the maximum memory allowed for outgoing typed objects.
+		 */
 		public int getMaxReturnedDataMemoryUsage() {
 			return maxReturnedDataMemoryUsage;
 		}
