@@ -107,11 +107,14 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String WSADMIN = "ws-admin";
 	//required backend param:
 	private static final String BACKEND_SECRET = "backend-secret"; 
-	//auth params:
+	//mongo db auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
+	
+	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
+	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
 	
 	private static Map<String, String> wsConfig = null;
 	
@@ -219,8 +222,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
-		setMaxObjectSize(2050000000L);
-		setMaxRpcMemoryCacheSize(16 * 1024 * 1024);
+		setMaxObjectSize(MAX_RPC_PACKAGE_SIZE);
+		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
 		//E.g. first thread's config applies to all threads.

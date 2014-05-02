@@ -42,6 +42,22 @@ public class ByteArrayFileCacheManager {
 		return createBAFC(input);
 	}
 	
+	public int getSizeInMem() {
+		return sizeInMem;
+	}
+
+	public int getMaxSizeInMem() {
+		return maxSizeInMem;
+	}
+
+	public long getSizeOnDisk() {
+		return sizeOnDisk;
+	}
+
+	public long getMaxSizeOnDisk() {
+		return maxSizeOnDisk;
+	}
+
 	public ByteArrayFileCache createBAFC(final InputStream input,
 			final boolean trustedJson, final boolean sorted)
 			throws FileCacheIOException, FileCacheLimitExceededException {

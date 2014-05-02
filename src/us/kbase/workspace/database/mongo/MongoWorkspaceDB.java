@@ -2394,7 +2394,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 						"Too much data requested from the workspace at once; " +
 						"data requested including subsets exceeds maximum of "
-						+ MAX_DISK_USE_PER_RETURN_CALL);
+						+ bafcMan.getMaxSizeOnDisk());
 			} catch (BlobStoreCommunicationException e) {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
@@ -2430,7 +2430,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 					"Too much data requested from the workspace at once; " +
 					"data requested including subsets exceeds maximum of "
-					+ MAX_DISK_USE_PER_RETURN_CALL);
+					+ bafcMan.getMaxSizeOnDisk());
 		}
 	}
 
