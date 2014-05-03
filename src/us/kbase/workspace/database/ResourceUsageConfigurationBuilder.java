@@ -14,15 +14,12 @@ public class ResourceUsageConfigurationBuilder {
 			200000000; // must be at least 1x max data
 	final public static int DEFAULT_MAX_RETURNED_DATA_MEMORY_USAGE = 300000000;
 	final public static long DEFAULT_MAX_RETURNED_DATA_SIZE = 1000000000L;
-	final public static long DEFAULT_MAX_RETURNED_DATA_DISK_USAGE = 
-			2 * DEFAULT_MAX_RETURNED_DATA_SIZE; // must be at least 2x max returned data size
 	
 	private int maxObjectSize;
 	private int maxIncomingDataMemoryUsage;
 	private int maxRelabelAndSortMemoryUsage;
 	private int maxReturnedDataMemoryUsage;
 	private long maxReturnedDataSize;
-	private long maxReturnedDataDiskUsage;
 	
 	public ResourceUsageConfigurationBuilder() {
 		maxObjectSize = DEFAULT_MAX_OBJECT_SIZE;
@@ -30,7 +27,6 @@ public class ResourceUsageConfigurationBuilder {
 		maxRelabelAndSortMemoryUsage = DEFAULT_MAX_RELABEL_AND_SORT_MEMORY_USAGE;
 		maxReturnedDataMemoryUsage = DEFAULT_MAX_RETURNED_DATA_MEMORY_USAGE;
 		maxReturnedDataSize = DEFAULT_MAX_RETURNED_DATA_SIZE;
-		maxReturnedDataDiskUsage = DEFAULT_MAX_RETURNED_DATA_DISK_USAGE;
 	}
 	
 	public ResourceUsageConfigurationBuilder(ResourceUsageConfiguration cfg) {
@@ -39,7 +35,6 @@ public class ResourceUsageConfigurationBuilder {
 		maxRelabelAndSortMemoryUsage = cfg.getMaxRelabelAndSortMemoryUsage();
 		maxReturnedDataMemoryUsage = cfg.getMaxReturnedDataMemoryUsage();
 		maxReturnedDataSize = cfg.getMaxReturnedDataSize();
-		maxReturnedDataDiskUsage = cfg.getMaxReturnedDataDiskUsage();
 	}
 	
 	public ResourceUsageConfigurationBuilder withMaxObjectSize(int maxObjectSize) {
@@ -71,17 +66,10 @@ public class ResourceUsageConfigurationBuilder {
 		return this;
 	}
 
-	public ResourceUsageConfigurationBuilder withMaxReturnedDataDiskUsage(
-			long maxReturnedDataDiskUsage) {
-		this.maxReturnedDataDiskUsage = maxReturnedDataDiskUsage;
-		return this;
-	}
-	
 	public ResourceUsageConfiguration build() {
 		return new ResourceUsageConfiguration(maxObjectSize, 
 				maxIncomingDataMemoryUsage, maxRelabelAndSortMemoryUsage,
-				maxReturnedDataMemoryUsage, maxReturnedDataSize,
-				maxReturnedDataDiskUsage);
+				maxReturnedDataMemoryUsage, maxReturnedDataSize);
 	}
 
 	public class ResourceUsageConfiguration {
@@ -91,20 +79,17 @@ public class ResourceUsageConfigurationBuilder {
 		final private int maxRelabelAndSortMemoryUsage;
 		final private int maxReturnedDataMemoryUsage;
 		final private long maxReturnedDataSize;
-		final private long maxReturnedDataDiskUsage;
 
 		private ResourceUsageConfiguration(final int maxObjectSize,
 				final int maxIncomingDataMemoryUsage,
 				final int maxRelabelAndSortMemoryUsage,
 				final int maxReturnedDataMemoryUsage,
-				final long maxReturnedDataSize,
-				final long maxReturnedDataDiskUsage) {
+				final long maxReturnedDataSize) {
 			checkGTZero(maxObjectSize, "Maximum object size");
 			checkGTZero(maxIncomingDataMemoryUsage, "Maximum incoming data memory usage ");
 			checkGTZero(maxRelabelAndSortMemoryUsage, "Relabel and sort memory usage");
 			checkGTZero(maxReturnedDataMemoryUsage, "Returned data memory usage");
 			checkGTZero(maxReturnedDataSize, "Returned data size");
-			checkGTZero(maxReturnedDataDiskUsage, "Returned data disk usage");
 			
 			this.maxObjectSize = maxObjectSize;
 			this.maxIncomingDataMemoryUsage = maxIncomingDataMemoryUsage;
@@ -119,18 +104,12 @@ public class ResourceUsageConfigurationBuilder {
 						"Max returned data size must be greater than the max object size");
 			}
 			this.maxReturnedDataSize = maxReturnedDataSize;
-			if (maxReturnedDataDiskUsage < 2 * maxReturnedDataSize) {
-				throw new IllegalArgumentException(
-						"Max returned disk usage must be at least 2x greater than the max returned data size");
-			}
-			this.maxReturnedDataDiskUsage = maxReturnedDataDiskUsage;
 		}
 
 		private void checkGTZero(long maxReturnedDataDiskUsage, String name) {
 			if (maxReturnedDataDiskUsage < 1) {
 				throw new IllegalArgumentException(name + " must be greater than zero");
 			}
-			
 		}
 
 		/** The maximum object size allowed. Typed objects greater than this
@@ -173,13 +152,14 @@ public class ResourceUsageConfigurationBuilder {
 		public int getMaxReturnedDataMemoryUsage() {
 			return maxReturnedDataMemoryUsage;
 		}
-
+		
+		/** The maximum amount of typed object (and only counting typed
+		 * objects - not including provenance, metadata, etc.) to return per
+		 * call. The maximum disk usage per call is 2x this amount.
+		 * @return the maximum amount of typed object data to return per call.
+		 */
 		public long getMaxReturnedDataSize() {
 			return maxReturnedDataSize;
-		}
-
-		public long getMaxReturnedDataDiskUsage() {
-			return maxReturnedDataDiskUsage;
 		}
 	}
 

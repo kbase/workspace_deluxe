@@ -4299,10 +4299,6 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
-		failSetMaxReturnSize(0, new IllegalArgumentException(
-				"Maximum object(s) return size per call must be at least 1"));
-		failSetMaxReturnSize(4000010001L, new IllegalArgumentException(
-				"Maximum object(s) return size per call must be < 2x the max disk use 8000020000B"));
 
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		WorkspaceUser user = new WorkspaceUser("MROSuser");
@@ -4328,8 +4324,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<ObjectChain> refchain2 = Arrays.asList(new ObjectChain(ref, oi1l),
 				new ObjectChain(ref2, oi2l));
 		
-		long tempMOS = ws.getMaxReturnSize();
-		ws.setMaxReturnSize(20);
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(
+						oldcfg).withMaxObjectSize(1);
+		
+		ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
 		List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
 				new ObjectPaths(Arrays.asList("/fo"))));
 		List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
@@ -4338,7 +4338,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjectsSubSet(user, ois1l);
 		ws.getObjectsSubSet(user, ois1lmt);
 		ws.getReferencedObjects(user, refchain);
-		ws.setMaxReturnSize(19);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
 		String errstr = "Too much data requested from the workspace at once; data requested " + 
 				"including potential subsets is %sB which  exceeds maximum of %s.";
 		IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
@@ -4347,7 +4347,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetSubset(user, ois1lmt, err);
 		failGetReferencedObjects(user, refchain, err);
 		
-		ws.setMaxReturnSize(40);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 		List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
 		List<SubObjectIdentifier> ois1l2 = Arrays.asList(
 				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
@@ -4359,7 +4359,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjectsSubSet(user, ois1l2);
 		ws.getObjectsSubSet(user, bothoi);
 		ws.getReferencedObjects(user, refchain2);
-		ws.setMaxReturnSize(39);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 		err = new IllegalArgumentException(String.format(errstr, 40, 39));
 		failGetObjects(user, two, err, true);
 		failGetSubset(user, ois1l2, err);
@@ -4369,13 +4369,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
 		all.addAll(ois1l2);
 		all.addAll(bothoi);
-		ws.setMaxReturnSize(60);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
 		ws.getObjectsSubSet(user, all);
-		ws.setMaxReturnSize(59);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
 		err = new IllegalArgumentException(String.format(errstr, 60, 59));
 		failGetSubset(user, all, err);
 		
-		ws.setMaxReturnSize(tempMOS);
+		ws.setResourceConfig(oldcfg);
 	}
 	
 	@Test

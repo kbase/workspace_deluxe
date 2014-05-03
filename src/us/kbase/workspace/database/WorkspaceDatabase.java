@@ -201,9 +201,5 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public long getMaxReturnSize();
-
-	public void setMaxReturnSize(long maxReturnSize);
-
 	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
 }

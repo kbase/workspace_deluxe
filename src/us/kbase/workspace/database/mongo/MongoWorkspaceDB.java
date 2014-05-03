@@ -123,11 +123,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private ResourceUsageConfiguration rescfg;
 
-	/* sets the maximum total size of objects that can be returned from the
-	 * workspace. This is equal to each object's size * min(1, # of paths).
-	 */
-	private long maxReturnSize = 2000005000L * 2;
-	private static final long MAX_DISK_USE_PER_RETURN_CALL = 8000020000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -413,25 +408,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		throw new RuntimeException("Something's real broke y'all");
 	}
 	
-	@Override
-	public long getMaxReturnSize() {
-		return maxReturnSize;
-	}
-
-	@Override
-	public void setMaxReturnSize(long maxReturnSize) {
-		if (maxReturnSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object(s) return size per call must be at least 1");
-		}
-		if (maxReturnSize * 2 > MAX_DISK_USE_PER_RETURN_CALL) {
-			throw new IllegalArgumentException(
-					"Maximum object(s) return size per call must be < 2x the max disk use " +
-					MAX_DISK_USE_PER_RETURN_CALL + "B");
-		}
-		this.maxReturnSize = maxReturnSize;
-	}
-
 	@Override
 	public TypedObjectValidator getTypeValidator() {
 		return typeValidator;
@@ -2261,7 +2237,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(
 				rescfg.getMaxReturnedDataMemoryUsage(),
-				MAX_DISK_USE_PER_RETURN_CALL, tfm);
+				//maximum possible disk usage is when subsetting a objects
+				//summing to 1G to 1G objects, since the 1G originals will be discarded
+				rescfg.getMaxReturnedDataSize() * 2L,
+				tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2319,11 +2298,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			size += mult * (Long) vers.get(resobjs.get(o))
 					.get(Fields.VER_SIZE);
 		}
-		if (size > maxReturnSize) {
+		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
 					"data requested including potential subsets is %sB " + 
-					"which  exceeds maximum of %s.", size, maxReturnSize));
+					"which  exceeds maximum of %s.", size,
+					rescfg.getMaxReturnedDataSize()));
 		}
 	}
 

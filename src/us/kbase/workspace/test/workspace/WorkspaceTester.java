@@ -413,15 +413,6 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failSetMaxReturnSize(long max, Exception e) {
-		try {
-			ws.setMaxReturnSize(max);
-			fail("expected set max return size to fail");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-	}
-
 	private void assertExceptionCorrect(Exception got, Exception expected) {
 		assertThat("correct exception", got.getLocalizedMessage(),
 				is(expected.getLocalizedMessage()));
