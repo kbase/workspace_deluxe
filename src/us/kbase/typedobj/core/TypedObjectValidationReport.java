@@ -18,7 +18,7 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
-import us.kbase.common.utils.sortjson.SortedKeysJsonFile;
+import us.kbase.common.utils.sortjson.LowMemoryUTF8JsonSorter;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
@@ -266,7 +266,7 @@ public class TypedObjectValidationReport {
 					jgen.close();
 					cacheForSorting = os.toByteArray();
 					os = new ByteArrayOutputStream();
-					new SortedKeysJsonFile(cacheForSorting)
+					new LowMemoryUTF8JsonSorter(cacheForSorting)
 							.writeIntoStream(os).close();
 					os.close();
 					cacheForSorting = os.toByteArray();
@@ -283,7 +283,7 @@ public class TypedObjectValidationReport {
 								"sortout", "json");
 						final FileOutputStream os = new FileOutputStream(
 								fileForSorting);
-						new SortedKeysJsonFile(f1).writeIntoStream(os).close();
+						new LowMemoryUTF8JsonSorter(f1).writeIntoStream(os).close();
 						os.close();
 					} finally {
 						f1.delete();
