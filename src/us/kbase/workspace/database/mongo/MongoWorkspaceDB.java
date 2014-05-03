@@ -123,11 +123,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private ResourceUsageConfiguration rescfg;
 
-	private long maxObjectSize = 2000005000;
 	/* sets the maximum total size of objects that can be returned from the
 	 * workspace. This is equal to each object's size * min(1, # of paths).
 	 */
-	private long maxReturnSize = maxObjectSize * 2;
+	private long maxReturnSize = 2000005000L * 2;
 	private static final long MAX_DISK_USE_PER_RETURN_CALL = 8000020000L;
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
@@ -414,20 +413,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		throw new RuntimeException("Something's real broke y'all");
 	}
 	
-	@Override
-	public long getMaxObjectSize() {
-		return maxObjectSize;
-	}
-	
-	@Override
-	public void setMaxObjectSize(final long maxObjectSize) {
-		if (maxObjectSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object size must be at least 1");
-		}
-		this.maxObjectSize = maxObjectSize;
-	}
-
 	@Override
 	public long getMaxReturnSize() {
 		return maxReturnSize;
@@ -1592,11 +1577,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().createJsonWritable(),
 					o.getRep().getValidationTypeDefId(), subdata);
-			if (pkg.td.getSize() > maxObjectSize) {
+			if (pkg.td.getSize() > rescfg.getMaxObjectSize()) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						pkg.td.getSize(), maxObjectSize));
+						pkg.td.getSize(), rescfg.getMaxObjectSize()));
 			}
 			ret.add(pkg);
 			objnum++;

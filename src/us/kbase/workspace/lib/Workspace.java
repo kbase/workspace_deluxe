@@ -124,18 +124,6 @@ public class Workspace {
 		return tfm;
 	}
 	
-	public long getMaxObjectSize() {
-		return db.getMaxObjectSize();
-	}
-	
-	public void setMaxObjectSize(long maxObjectSize) {
-		if (maxObjectSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object size must be at least 1");
-		}
-		db.setMaxObjectSize(maxObjectSize);
-	}
-	
 	public long getMaxReturnSize() {
 		return db.getMaxReturnSize();
 	}

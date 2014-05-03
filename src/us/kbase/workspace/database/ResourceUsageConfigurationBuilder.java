@@ -8,12 +8,12 @@ public class ResourceUsageConfigurationBuilder {
 	
 	//TODO unit tests
 	
-	final public static int DEFAULT_MAX_OBJECT_SIZE = 1005000000;
+	final public static int DEFAULT_MAX_OBJECT_SIZE = 1000000000;
 	final public static int DEFAULT_MAX_INCOMING_DATA_MEMORY_USAGE = 100000000;
 	final public static int DEFAULT_MAX_RELABEL_AND_SORT_MEMORY_USAGE =
 			200000000; // must be at least 1x max data
 	final public static int DEFAULT_MAX_RETURNED_DATA_MEMORY_USAGE = 300000000;
-	final public static long DEFAULT_MAX_RETURNED_DATA_SIZE = 1005000000;
+	final public static long DEFAULT_MAX_RETURNED_DATA_SIZE = 1000000000L;
 	final public static long DEFAULT_MAX_RETURNED_DATA_DISK_USAGE = 
 			2 * DEFAULT_MAX_RETURNED_DATA_SIZE; // must be at least 2x max returned data size
 	
@@ -133,6 +133,10 @@ public class ResourceUsageConfigurationBuilder {
 			
 		}
 
+		/** The maximum object size allowed. Typed objects greater than this
+		 * size will cause an error to be thrown.
+		 * @return the maximum allowed object size.
+		 */
 		public int getMaxObjectSize() {
 			return maxObjectSize;
 		}

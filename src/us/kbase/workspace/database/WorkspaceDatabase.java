@@ -201,10 +201,6 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public long getMaxObjectSize();
-
-	public void setMaxObjectSize(long maxObjectSize);
-	
 	public long getMaxReturnSize();
 
 	public void setMaxReturnSize(long maxReturnSize);

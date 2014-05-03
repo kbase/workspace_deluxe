@@ -4284,24 +4284,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "9012345678");
-		long tempMOS = ws.getMaxObjectSize();
-		ws.setMaxObjectSize(20);
-		assertThat("max obj size set correctly", ws.getMaxObjectSize(), is(20L));
-		try {
-			ws.setMaxObjectSize(0);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Maximum object size must be at least 1"));
-		}
-		
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		ws.setResourceConfig(build.withMaxObjectSize(20).build());
 		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo", new Provenance(user)); //should work
 		data.put("foo", "90123456789");
 		failSave(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null,
 				new Provenance(user), false)), new IllegalArgumentException(
 						"Object #1 data size 21 exceeds limit of 20"));
-		ws.setMaxObjectSize(tempMOS);
-		assertThat("max obj size set correctly", ws.getMaxObjectSize(), is(tempMOS));
+		ws.setResourceConfig(oldcfg);
 	}
 	
 	@Test
