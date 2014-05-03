@@ -267,7 +267,7 @@ public class TypedObjectValidationReport {
 					cacheForSorting = os.toByteArray();
 					os = new ByteArrayOutputStream();
 					new LowMemoryUTF8JsonSorter(cacheForSorting)
-							.writeIntoStream(os).close();
+							.writeIntoStream(os);
 					os.close();
 					cacheForSorting = os.toByteArray();
 				} else {
@@ -283,7 +283,7 @@ public class TypedObjectValidationReport {
 								"sortout", "json");
 						final FileOutputStream os = new FileOutputStream(
 								fileForSorting);
-						new LowMemoryUTF8JsonSorter(f1).writeIntoStream(os).close();
+						new LowMemoryUTF8JsonSorter(f1).writeIntoStream(os);
 						os.close();
 					} finally {
 						f1.delete();
