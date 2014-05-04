@@ -135,6 +135,9 @@ public class ResourceUsageConfigurationBuilder {
 			return maxIncomingDataMemoryUsage;
 		}
 
+		/** The maximum approximate memory to use when sorting data.
+		 * @return the maximum approximate memory to use when sorting data.
+		 */
 		public int getMaxRelabelAndSortMemoryUsage() {
 			return maxRelabelAndSortMemoryUsage;
 		}
