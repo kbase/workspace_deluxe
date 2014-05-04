@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -25,6 +26,9 @@ import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 public class TypedObjectValidationReportTest {
 	
 	// needs more tests, just adding tests for new functionality
+	
+	private static final UTF8JsonSorterFactory SORT_FAC =
+			new UTF8JsonSorterFactory(10000);
 	
 	@Test
 	public void errors() throws Exception {
@@ -56,6 +60,31 @@ public class TypedObjectValidationReportTest {
 	}
 	
 	@Test
+	public void noSortFac() throws Exception {
+		String json = "{\"z\": \"a\", \"b\": \"d\"}";
+
+		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
+				null, null, null, new UObject(new JsonTokenStream(json)),
+				null, null);
+		try {
+			tovr.sort(null);
+			fail("sorted with no factory");
+		} catch (NullPointerException npe) {
+			assertThat("correct expt msg", npe.getLocalizedMessage(),
+					is("Sorter factory cannot be null"));
+		}
+		TempFilesManager tfm = TempFilesManager.forTests();
+		try {
+			tovr.sort(null, tfm);
+			fail("sorted with no factory");
+		} catch (NullPointerException npe) {
+			assertThat("correct expt msg", npe.getLocalizedMessage(),
+					is("Sorter factory cannot be null"));
+		}
+		tfm.cleanup();
+	}
+	
+	@Test
 	public void writeWithoutSort() throws Exception {
 		String json = "{\"c\": 1, \"z\": \"d\"}";
 		String expectedJson = "{\"c\":1,\"y\":\"whoop\"}";
@@ -82,7 +111,7 @@ public class TypedObjectValidationReportTest {
 				null, null, null, new UObject(new JsonTokenStream(json)),
 				root, null);
 		tovr.setAbsoluteIdRefMapping(refmap);
-		tovr.sort();
+		tovr.sort(SORT_FAC);
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
@@ -96,7 +125,7 @@ public class TypedObjectValidationReportTest {
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
 				null, null, null, new UObject(new JsonTokenStream(json)),
 				null, null);
-		tovr.sort();
+		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
@@ -153,7 +182,7 @@ public class TypedObjectValidationReportTest {
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
 		try {
-			tovr.sort();
+			tovr.sort(SORT_FAC);
 			fail("sorting didn't detect duplicate keys");
 		} catch (RelabelIdReferenceException r){
 			assertThat("correct exception message", r.getLocalizedMessage(),
@@ -184,7 +213,7 @@ public class TypedObjectValidationReportTest {
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
 		assertThat("correct object size", tovr.getRelabeledSize(), is(21L));
-		tovr.sort();
+		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
@@ -195,7 +224,7 @@ public class TypedObjectValidationReportTest {
 				root, null);
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
-		tovr.sort(null);
+		tovr.sort(SORT_FAC, null);
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
@@ -209,7 +238,7 @@ public class TypedObjectValidationReportTest {
 		TempFilesManager tfm = TempFilesManager.forTests();
 		tfm.cleanup();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
-		tovr.sort(tfm);
+		tovr.sort(SORT_FAC, tfm);
 		assertThat("TFM is no longer empty", tfm.isEmpty(), is(false));
 		assertThat("TFM has one file", tfm.getTempFileList().size(), is(1));
 		o = new ByteArrayOutputStream();

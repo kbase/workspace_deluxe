@@ -18,8 +18,8 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
-import us.kbase.common.utils.sortjson.LowMemoryUTF8JsonSorter;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
@@ -233,24 +233,31 @@ public class TypedObjectValidationReport {
 	/** Relabel ids, sort the object if necessary and keep a copy.
 	 * You must call this method prior to calling createJsonWritable().
 	 * Equivalent of sort(null). All data is kept in memory.
+	 * @param fac the sorter factory to use when generating a sorter.
 	 * @throws RelabelIdReferenceException if there are duplicate keys after
 	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
 	 */
-	public void sort() throws RelabelIdReferenceException, IOException {
-		sort(null);
+	public void sort(final UTF8JsonSorterFactory fac)
+			throws RelabelIdReferenceException, IOException {
+		sort(fac, null);
 	}
 	
 	/** Relabel ids, sort the object if necessary and keep a copy.
 	 * You must call this method prior to calling createJsonWritable().
+	 * @param fac the sorter factory to use when generating a sorter.
 	 * @param tfm the temporary file manager to use for managing temporary
 	 * files. All data is kept in memory if tfm is null.
 	 * @throws RelabelIdReferenceException if there are duplicate keys after
 	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
 	 */
-	public void sort(final TempFilesManager tfm)
+	public void sort(final UTF8JsonSorterFactory fac,
+			final TempFilesManager tfm)
 			throws RelabelIdReferenceException, IOException {
+		if (fac == null) {
+			throw new NullPointerException("Sorter factory cannot be null");
+		}
 		if (size < 0) {
 			getRelabeledSize();
 		}
@@ -266,8 +273,7 @@ public class TypedObjectValidationReport {
 					jgen.close();
 					cacheForSorting = os.toByteArray();
 					os = new ByteArrayOutputStream();
-					new LowMemoryUTF8JsonSorter(cacheForSorting)
-							.writeIntoStream(os);
+					fac.getSorter(cacheForSorting).writeIntoStream(os);
 					os.close();
 					cacheForSorting = os.toByteArray();
 				} else {
@@ -283,7 +289,7 @@ public class TypedObjectValidationReport {
 								"sortout", "json");
 						final FileOutputStream os = new FileOutputStream(
 								fileForSorting);
-						new LowMemoryUTF8JsonSorter(f1).writeIntoStream(os);
+						fac.getSorter(f1).writeIntoStream(os);
 						os.close();
 					} finally {
 						f1.delete();

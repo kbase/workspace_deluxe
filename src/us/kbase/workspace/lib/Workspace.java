@@ -15,6 +15,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -637,10 +638,12 @@ public class Workspace {
 		} else {
 			tempTFM = null;
 		}
+		final UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(
+				rescfg.getMaxRelabelAndSortMemoryUsage());
 		for (ResolvedSaveObject ro: saveobjs) {
 			try {
 				//modifies object in place
-				ro.getRep().sort(tempTFM);
+				ro.getRep().sort(fac, tempTFM);
 			} catch (RelabelIdReferenceException ref) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost
