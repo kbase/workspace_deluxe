@@ -225,7 +225,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
-		setMaxObjectSize(MAX_RPC_PACKAGE_SIZE);
+		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
 		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
 		//assign config once per jvm, otherwise you could wind up with
 		//different threads talking to different mongo instances
