@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.utils.JsonTreeGenerator;
-import us.kbase.kidl.KidlParseException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;

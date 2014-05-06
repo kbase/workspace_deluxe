@@ -96,18 +96,6 @@ public class TypedObjectValidationReport {
 	private Map<String,String> absoluteIdRefMapping = Collections.emptyMap();
 	
 	
-	@Deprecated
-	public TypedObjectValidationReport(List<String> errors, JsonNode searchData, AbsoluteTypeDefId validationTypeDefId, 
-			UObject tokenStreamProvider, IdRefNode idRefTree, List<WsIdReference> oldIdRefs) {
-		this.errors = errors == null ? new LinkedList<String>() : errors;
-		this.wsSubsetSelection = searchData;
-		this.validationTypeDefId=validationTypeDefId;
-		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(null);
-		this.oldIdRefs = oldIdRefs;
-		this.tokenStreamProvider = tokenStreamProvider;
-		this.idRefTree = idRefTree;
-	}
-	
 	/**
 	 * After validation, assemble the validation result into a report for later use. The report contains
 	 * information on validation errors (if any), the IDs found in the object, and information about the
@@ -122,7 +110,7 @@ public class TypedObjectValidationReport {
 			JsonNode wsMetadataSelection,
 			IdRefNode idRefTree,
 			List<WsIdReference> oldIdRefs) {
-		this.errors = errors;
+		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
 		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);
 		this.validationTypeDefId=validationTypeDefId;

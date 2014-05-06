@@ -134,9 +134,9 @@ public class TypedObjExample1 {
 			s.reset();
 			
 			// extract just the subset
-			JsonNode indexableSubset = report.extractSearchableWsSubset(-1); //.extractWsSearchableSubset(instance1RootNode, report);
+			JsonNode indexableSubset = report.extractSearchableWsSubsetAndMetadata(-1); //.extractWsSearchableSubset(instance1RootNode, report);
 			System.out.println("subset:");
-			writer.writeValue(s, indexableSubset);
+			writer.writeValue(s, indexableSubset.get("subset"));
 			System.out.println(s.toString());
 			s.close();
 			

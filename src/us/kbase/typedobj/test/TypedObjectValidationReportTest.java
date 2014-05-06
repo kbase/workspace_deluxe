@@ -35,16 +35,16 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		
 		List<String> errors = Arrays.asList("foo", "bar", "baz");
-
+		
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				errors, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, errors, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
 		tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(),
 				is((List<String>) new LinkedList<String>()));
 		assertThat("errors empty", tovr.isInstanceValid(), is(true));
@@ -52,8 +52,8 @@ public class TypedObjectValidationReportTest {
 		errors = Collections.emptyList();
 
 		tovr = new TypedObjectValidationReport(
-				errors, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, errors, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(true));
 		
@@ -64,8 +64,8 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		try {
 			tovr.sort(null);
 			fail("sorted with no factory");
@@ -98,8 +98,8 @@ public class TypedObjectValidationReportTest {
 		root.addChild(z);
 
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		tovr.setAbsoluteIdRefMapping(refmap);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
@@ -108,8 +108,8 @@ public class TypedObjectValidationReportTest {
 		
 		//sort unnecessarily
 		tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		tovr.setAbsoluteIdRefMapping(refmap);
 		tovr.sort(SORT_FAC);
 		o = new ByteArrayOutputStream();
@@ -123,8 +123,8 @@ public class TypedObjectValidationReportTest {
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
@@ -149,8 +149,8 @@ public class TypedObjectValidationReportTest {
 		
 		//sort via sort() method in memory
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		tovr.setAbsoluteIdRefMapping(refmap);
 		try {
 			tovr.createJsonWritable();
@@ -177,8 +177,8 @@ public class TypedObjectValidationReportTest {
 		root.addChild(b);
 		
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
 		try {
@@ -207,8 +207,8 @@ public class TypedObjectValidationReportTest {
 		
 		//sort via sort() method in memory
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		assertThat("correct object size", tovr.getRelabeledSize(), is(17L));
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
@@ -220,8 +220,8 @@ public class TypedObjectValidationReportTest {
 		
 		//sort via sort(TFM) method with null TFM, again in memory
 		tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 		
 		tovr.setAbsoluteIdRefMapping(refmap);
 		tovr.sort(SORT_FAC, null);
@@ -231,8 +231,8 @@ public class TypedObjectValidationReportTest {
 		
 		//sort via sort(TFM) method with data stored in file
 		tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				root, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, root, null);
 
 		tovr.setAbsoluteIdRefMapping(refmap);
 		TempFilesManager tfm = TempFilesManager.forTests();
