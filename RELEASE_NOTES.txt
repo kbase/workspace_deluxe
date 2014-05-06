@@ -45,6 +45,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   IRIS.
 - The characters . and - are now allowed in workspace names.
 - Parallel GC has been re-enabled.
+- Updating a searchable ws or id annotation in a type definition now results
+  in a major version increment instead of a minor version increment.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
