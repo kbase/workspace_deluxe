@@ -7,6 +7,10 @@ module KB {
 	  @searchable ws_subset name,alias
 	  @searchable ws_subset size
 	  @searchable ws_subset width
+	  @metadata ws name AS My Name
+	  @metadata ws size AS Size
+	  @metadata ws width as width
+	  @metadata ws length(name) as name length
 	*/
 	typedef structure {
 		string name;
@@ -21,6 +25,7 @@ module KB {
 	/*
 	  @searchable ws_subset numbers
 	  @searchable ws_subset floaters.*
+	  @metadata ws length(numbers) as n numbers
 	*/
 	typedef structure {
 		mapping<string,int> numbers;
@@ -70,15 +75,51 @@ module KB {
 		mapping<string,Subdata> dm;
 		mapping<string,list<Subdata>> dml;
 	} NestedData;
+	
+	/*
+	searchable ws_subset s i
+	@metadata ws s As String Data
+	@metadata ws i As Integer
+	@metadata ws	f	as floater
+	*/
+	typedef structure {
+		string s;
+		int i;
+		float f;
+	} MetaDataT1;
 
-
+	
+	/*
+	@metadata ws length(s) As StringLength
+	*/
+	typedef structure {
+		string s;
+	} MetaDataT2;
 	
 	
+	typedef string otherstring;
+	/*
+	@metadata ws length(s) As StringLength
+	*/
+	typedef structure {
+		otherstring s;
+	} MetaDataT3;
 	
+	/*
+	@optional l m lm mm t
+	@metadata ws length(l) As ListLength
+	@metadata ws length(m) As MapLength
+	@metadata ws length(lm) As ListOfMapLength
+	@metadata ws length(mm) As MapOfMapLength
+	@metadata ws length(t) As TupleLength
+	*/
+	typedef structure {
+		list<string> l;
+		mapping<string,int> m;
+		list<mapping<string,int>> lm;
+		mapping<string,mapping<string,int>> mm;
+		tuple<string,mapping<string,int>,int> t;
+	} MetaDataT4;
 	
-	
-	
-
 };
-
 

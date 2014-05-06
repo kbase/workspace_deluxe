@@ -148,7 +148,7 @@ public class WsSubsetExtractionTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData");
+		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData", "MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
@@ -184,10 +184,6 @@ public class WsSubsetExtractionTest {
 		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 		JsonNode instanceRootNode = mapper.readTree(instanceJson);
 		
-		// read the ids file, which provides the list of ids we expect to extract from the instance
-		String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
-		JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
-		
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
 			validator.validate(
@@ -201,16 +197,35 @@ public class WsSubsetExtractionTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		
-		JsonNode actualSubset = report.extractSearchableWsSubset(-1);
+		JsonNode extraction = report.extractSearchableWsSubsetAndMetadata(-1);
+		JsonNode actualSubset = extraction.get("subset");
+		JsonNode actualMetadata = extraction.get("metadata");
 		// we can just check if they are equal like so:
 		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
 		//		actualSubset.equals(expectedSubset));
 		// this method generates a patch, so that if they differ you can see what's up
-		compare(expectedSubset, actualSubset, instance.resourceName);
+		
+
+		// read the ids file, which provides the list of ids we expect to extract from the instance
+		try {
+			String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
+			JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
+			System.out.println("got subdata: "+sortJson(actualSubset));
+			System.out.println("exp subdata: "+sortJson(expectedSubset));
+			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
+		} catch (IllegalStateException e) {}
+		try {
+			String expectedMetadataString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".metadata");
+			JsonNode expectedMetadata = mapper.readTree(expectedMetadataString);
+			System.out.println("got metadata: "+sortJson(actualMetadata));
+			System.out.println("exp metadata: "+sortJson(expectedMetadata));
+			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		} catch (IllegalStateException e) {}
+		System.out.println("       PASS");
 	}
 
 	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
-		assertEquals("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+		assertEquals("  -("+resourceName+") extracted subset/metadata does not match expected extracted subset/metadata",
 				sortJson(expectedSubset), sortJson(actualSubset));
 	}
 

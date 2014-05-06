@@ -445,7 +445,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 			}
 
 			// we have children, and these children have restrictions in subdata, so we go down the tree
-			if (selection.hasChildren()) {
+			else if (selection.hasChildren()) {
 				System.out.println("we need nothing here, but there are children");
 				
 				// we will remove visited keys from selectedFields and check emptiness at object end
@@ -475,7 +475,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 						}
 						break;
 					}
-					if(t==null) System.out.println("t is null");
+					if(t==null)  System.out.println("t is null"); //break; } if(true) {continue; }
 					if (t != JsonToken.FIELD_NAME)
 						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 					String fieldName = jts.getText();
@@ -506,6 +506,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 					} else {
 						// otherwise we skip value following after field
 						t = jts.nextToken();
+						System.out.println("skipping" + t);
 						skipChildren(jts, t);
 					}
 				}
