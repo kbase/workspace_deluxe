@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -26,11 +27,13 @@ import java.util.TreeSet;
 import junit.framework.Assert;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.TempFileListener;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FuncDetailedInfo;
@@ -49,7 +52,9 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -64,6 +69,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.lib.ModuleInfo;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
+import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -4278,55 +4284,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "9012345678");
-		long tempMOS = ws.getMaxObjectSize();
-		ws.setMaxObjectSize(20);
-		assertThat("max obj size set correctly", ws.getMaxObjectSize(), is(20L));
-		try {
-			ws.setMaxObjectSize(0);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Maximum object size must be at least 1"));
-		}
-		
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		ws.setResourceConfig(build.withMaxObjectSize(20).build());
 		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo", new Provenance(user)); //should work
 		data.put("foo", "90123456789");
 		failSave(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null,
 				new Provenance(user), false)), new IllegalArgumentException(
 						"Object #1 data size 21 exceeds limit of 20"));
-		ws.setMaxObjectSize(tempMOS);
-		assertThat("max obj size set correctly", ws.getMaxObjectSize(), is(tempMOS));
-	}
-	
-	@Test
-	public void maxMemoryUsePerCall() throws Exception {
-		/* the effects of this are invisible to the user, since the difference
-		 * is that data is saved in memory vs. files.
-		 * The tester runs this suite with the max mem use set to 1 to force
-		 * tests using files.
-		 */
-		int tempMUPC = ws.getMaxObjectMemUsePerCall();
-		ws.setMaxObjectMemUsePerCall(30);
-		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
-				is(30));
-		try {
-			ws.setMaxObjectMemUsePerCall(0);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Maximum memory use per call must be at least 1"));
-		}
-		
-		ws.setMaxObjectMemUsePerCall(tempMUPC);
-		assertThat("max obj size set correctly", ws.getMaxObjectMemUsePerCall(),
-				is(tempMUPC));
+		ws.setResourceConfig(oldcfg);
 	}
 	
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
-		failSetMaxReturnSize(0, new IllegalArgumentException(
-				"Maximum object(s) return size per call must be at least 1"));
-		failSetMaxReturnSize(4000010001L, new IllegalArgumentException(
-				"Maximum object(s) return size per call must be < 2x the max disk use 8000020000B"));
 
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		WorkspaceUser user = new WorkspaceUser("MROSuser");
@@ -4352,8 +4324,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<ObjectChain> refchain2 = Arrays.asList(new ObjectChain(ref, oi1l),
 				new ObjectChain(ref2, oi2l));
 		
-		long tempMOS = ws.getMaxReturnSize();
-		ws.setMaxReturnSize(20);
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(
+						oldcfg).withMaxObjectSize(1);
+		
+		ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
 		List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
 				new ObjectPaths(Arrays.asList("/fo"))));
 		List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
@@ -4362,7 +4338,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjectsSubSet(user, ois1l);
 		ws.getObjectsSubSet(user, ois1lmt);
 		ws.getReferencedObjects(user, refchain);
-		ws.setMaxReturnSize(19);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
 		String errstr = "Too much data requested from the workspace at once; data requested " + 
 				"including potential subsets is %sB which  exceeds maximum of %s.";
 		IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
@@ -4371,7 +4347,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetSubset(user, ois1lmt, err);
 		failGetReferencedObjects(user, refchain, err);
 		
-		ws.setMaxReturnSize(40);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 		List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
 		List<SubObjectIdentifier> ois1l2 = Arrays.asList(
 				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
@@ -4383,7 +4359,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjectsSubSet(user, ois1l2);
 		ws.getObjectsSubSet(user, bothoi);
 		ws.getReferencedObjects(user, refchain2);
-		ws.setMaxReturnSize(39);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 		err = new IllegalArgumentException(String.format(errstr, 40, 39));
 		failGetObjects(user, two, err, true);
 		failGetSubset(user, ois1l2, err);
@@ -4393,12 +4369,156 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
 		all.addAll(ois1l2);
 		all.addAll(bothoi);
-		ws.setMaxReturnSize(60);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
 		ws.getObjectsSubSet(user, all);
-		ws.setMaxReturnSize(59);
+		ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
 		err = new IllegalArgumentException(String.format(errstr, 60, 59));
 		failGetSubset(user, all, err);
 		
-		ws.setMaxReturnSize(tempMOS);
+		ws.setResourceConfig(oldcfg);
+	}
+	
+	@Test
+	public void useFileVsMemoryForData() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("sortfilemem");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("sortFileMem");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
+		data1.put("z", 1);
+		data1.put("y", 2);
+		
+		Provenance p = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
+		
+		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		
+		final int[] filesCreated = {0};
+		TempFileListener listener = new TempFileListener() {
+			
+			@Override
+			public void createdTempFile(File f) {
+				filesCreated[0]++;
+				
+			}
+		};
+		ws.getTempFilesManager().addListener(listener);
+		ws.getTempFilesManager().cleanup(); //these tests don't clean up after each test
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		
+		//single file stays in memory
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(13).build());
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created no temp files on save", filesCreated[0], is(0));
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(13).build());
+		ObjectIdentifier oi = new ObjectIdentifier(wsi, 1);
+		ws.getObjects(user, Arrays.asList(oi));
+		assertThat("created no temp files on get", filesCreated[0], is(0));
+		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
+				new ObjectPaths(Arrays.asList("z"))))).get(0).getDataAsTokens().destroy();
+		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		//files go to disk except for small subdata
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(12).build());
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created temp files on save", filesCreated[0], is(2));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
+		oi = new ObjectIdentifier(wsi, 2);
+		ws.getObjects(user, Arrays.asList(oi)).get(0).getDataAsTokens().destroy();
+		assertThat("created 1 temp files on get", filesCreated[0], is(1));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
+				new ObjectPaths(Arrays.asList("z"))))).get(0).getDataAsTokens().destroy();
+		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
+				new ObjectPaths(Arrays.asList("z", "y"))))).get(0).getDataAsTokens().destroy();
+		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		// test with multiple objects
+		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
+		data2.put("w", 1);
+		data2.put("f", 2);
+		//already sorted so no temp files will be created
+		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
+		data3.put("x", 1);
+		data3.put("z", 2);
+		objs.add(new WorkspaceSaveObject(data2, SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(data3, SAFE_TYPE1, null, p, false));
+
+		//multiple objects in memory
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(39).build());
+		ws.saveObjects(user, wsi, objs);
+		assertThat("created no temp files on save", filesCreated[0], is(0));
+		
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(39).build());
+		List<ObjectIdentifier> ois = Arrays.asList(new ObjectIdentifier(wsi, 3),
+				new ObjectIdentifier(wsi, 4), new ObjectIdentifier(wsi, 5));
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getDataAsTokens().destroy();
+		}
+		assertThat("created no temp files on get", filesCreated[0], is(0));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		//multiple objects to file
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
+		filesCreated[0] = 0;
+		ws.saveObjects(user, wsi, objs);
+		//two files per data - 1 for relabeling, 1 for sort
+		assertThat("created temp files on save", filesCreated[0], is(4));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getDataAsTokens().destroy();
+		}
+		assertThat("created 1 temp files on get", filesCreated[0], is(1));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getDataAsTokens().destroy();
+		}
+		assertThat("created 2 temp files on get", filesCreated[0], is(2));
+		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		ws.getTempFilesManager().removeListener(listener);
+		ws.setResourceConfig(oldcfg);
+	}
+	
+	@Test
+	public void storedDataIsSorted() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("dataIsSorted");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("dataissorted");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
+		data1.put("z", 1);
+		data1.put("y", 2);
+		String expected = "{\"y\":2,\"z\":1}";
+		
+		Provenance p = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
+		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		ws.saveObjects(user, wsi, objs);
+		WorkspaceObjectData o = ws.getObjects(
+				user, Arrays.asList(new ObjectIdentifier(wsi, 1))).get(0);
+		String data = IOUtils.toString(o.getDataAsTokens().getJSON());
+		assertThat("data is sorted", data, is(expected));
+		assertThat("data marked as sorted", o.getDataAsTokens().isSorted(),
+				is(true));
 	}
 }

@@ -40,6 +40,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -207,9 +208,13 @@ public class WorkspaceTester {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null, tfm);
 		}
-		Workspace work = new Workspace(wsdb, new DefaultReferenceParser());
+		Workspace work = new Workspace(wsdb, new DefaultReferenceParser(),
+				new ResourceUsageConfigurationBuilder().build());
 		if (maxMemoryUsePerCall != null) {
-			work.setMaxObjectMemUsePerCall(maxMemoryUsePerCall);
+			final ResourceUsageConfigurationBuilder build =
+					new ResourceUsageConfigurationBuilder(work.getResourceConfig());
+			work.setResourceConfig(build.withMaxIncomingDataMemoryUsage(maxMemoryUsePerCall)
+					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
@@ -408,15 +413,6 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failSetMaxReturnSize(long max, Exception e) {
-		try {
-			ws.setMaxReturnSize(max);
-			fail("expected set max return size to fail");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-	}
-
 	private void assertExceptionCorrect(Exception got, Exception expected) {
 		assertThat("correct exception", got.getLocalizedMessage(),
 				is(expected.getLocalizedMessage()));

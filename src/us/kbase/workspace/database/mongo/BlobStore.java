@@ -17,13 +17,15 @@ public interface BlobStore {
 	 * guaranteed to call releaseResources() on the Writer.
 	 * @param md5 the md5 of the blob.
 	 * @param data the blob.
+	 * @param sorted true if the data is sorted, false otherwise.
 	 * @throws BlobStoreAuthorizationException if the blobstore is not
 	 * authorized to write to the blob store backend. 
 	 * @throws BlobStoreCommunicationException if a communication error with
 	 * the blob store backend occurs.
 	 */
-	public void saveBlob(MD5 md5, Writable data) throws BlobStoreAuthorizationException,
-		BlobStoreCommunicationException;
+	public void saveBlob(MD5 md5, Writable data, boolean sorted)
+			throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException;
 	
 	public ByteArrayFileCache getBlob(MD5 md5, ByteArrayFileCacheManager bafcMan)
 			throws BlobStoreAuthorizationException,

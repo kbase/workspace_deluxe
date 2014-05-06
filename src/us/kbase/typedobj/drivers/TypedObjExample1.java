@@ -92,7 +92,7 @@ public class TypedObjExample1 {
 			
 			TypedObjectValidationReport report = validator.validate(instance1RootNode, new TypeDefId(new TypeDefName("KB", "Genome")));
 			System.out.println("Validation errors:" );
-			for(String err : report.getErrorMessagesAsList()) {
+			for(String err : report.getErrorMessages()) {
 				System.out.println("  Error: "+err);
 			}
 			
@@ -123,7 +123,7 @@ public class TypedObjExample1 {
 			
 			// relabel, take a look at the results
 			report.setAbsoluteIdRefMapping(absoluteIdRefMapping);
-			JsonNode relabeled = report.getInstanceAfterIdRefRelabelingForTests();
+//			JsonNode relabeled = report.getInstanceAfterIdRefRelabelingForTests();
 			
 			//JsonNode relabeled = report.getJsonInstance();
 			//validator.relableToAbsoluteIds(instance1RootNode, report);

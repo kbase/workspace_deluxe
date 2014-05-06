@@ -10,6 +10,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -200,15 +201,5 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public long getMaxObjectSize();
-
-	public void setMaxObjectSize(long maxObjectSize);
-	
-	public int getMaxObjectMemUsePerCall();
-
-	public void setMaxObjectMemUsePerCall(int maxObjectMemUsePerCall);
-
-	public long getMaxReturnSize();
-
-	public void setMaxReturnSize(long maxReturnSize);
+	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
 }

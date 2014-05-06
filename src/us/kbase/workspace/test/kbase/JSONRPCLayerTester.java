@@ -60,6 +60,7 @@ import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -304,7 +305,12 @@ public class JSONRPCLayerTester {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		server.setMaxMemUseForReturningObjects(24); //as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
+		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
+		server.setResourceUsageConfiguration(
+				new ResourceUsageConfigurationBuilder(
+						server.getWorkspaceResourceUsageConfig())
+				.withMaxIncomingDataMemoryUsage(24)
+				.withMaxReturnedDataMemoryUsage(24).build());
 		tfms.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
@@ -329,12 +335,19 @@ public class JSONRPCLayerTester {
 		JsonTokenStreamOCStat.showStat();
 	}
 	
-	protected void assertNoTempFilesExist() throws Exception {
+	public static void assertNoTempFilesExist(TempFilesManager tfm)
+			throws Exception {
+		assertNoTempFilesExist(Arrays.asList(tfm));
+	}
+	
+	
+	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
+			throws Exception {
 		int i = 0;
 		try {
 			for (TempFilesManager tfm: tfms) {
 				if (!tfm.isEmpty()) {
-					// Let server side <=10 seconds to finish all activities
+					// Allow <=10 seconds to finish all activities
 					for (; i < 100; i++) {
 						Thread.sleep(100);
 						if (tfm.isEmpty())
@@ -351,7 +364,7 @@ public class JSONRPCLayerTester {
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist();
+		assertNoTempFilesExist(tfms);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,

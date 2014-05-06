@@ -15,6 +15,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -61,6 +62,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -92,10 +94,10 @@ public class Workspace {
 	private final TypeDefinitionDB typedb;
 	private final ReferenceParser refparse;
 	private final TempFilesManager tfm;
-	private long maxInMemorySortSize = 16 * 1024 * 1024;
+	private ResourceUsageConfiguration rescfg;
 	
 	public Workspace(final WorkspaceDatabase db,
-			final ReferenceParser refparse) {
+			final ReferenceParser refparse, ResourceUsageConfiguration cfg) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");
 		}
@@ -105,43 +107,22 @@ public class Workspace {
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
 		this.refparse = refparse;
-		this.tfm = db.getTempFilesManager();
+		tfm = db.getTempFilesManager();
+		rescfg = cfg;
+		db.setResourceUsageConfiguration(rescfg);
 	}
 	
-	public long getMaxObjectSize() {
-		return db.getMaxObjectSize();
+	public ResourceUsageConfiguration getResourceConfig() {
+		return rescfg;
 	}
 	
-	public void setMaxObjectSize(long maxObjectSize) {
-		if (maxObjectSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object size must be at least 1");
-		}
-		db.setMaxObjectSize(maxObjectSize);
+	public void setResourceConfig(ResourceUsageConfiguration rescfg) {
+		this.rescfg = rescfg;
+		db.setResourceUsageConfiguration(rescfg);
 	}
 	
-	public int getMaxObjectMemUsePerCall() {
-		return db.getMaxObjectMemUsePerCall();
-	}
-
-	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
-		if (maxObjectMemUsePerCall < 1) {
-			throw new IllegalArgumentException(
-					"Maximum memory use per call must be at least 1");
-		}
-		db.setMaxObjectMemUsePerCall(maxObjectMemUsePerCall);
-	}
-	
-	public long getMaxReturnSize() {
-		return db.getMaxReturnSize();
-	}
-
-	public void setMaxReturnSize(long maxReturnSize) {
-		if (maxReturnSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object(s) return size per call must be at least 1");
-		}
-		db.setMaxReturnSize(maxReturnSize);
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -519,7 +500,7 @@ public class Workspace {
 						+ nsme.getLocalizedMessage(), nsme);
 			}
 			if (!rep.isInstanceValid()) {
-				final String[] e = rep.getErrorMessages();
+				final List<String> e = rep.getErrorMessages();
 				final String err = StringUtils.join(e, "\n");
 				throw new TypedObjectValidationException(String.format(
 						"Object %s failed type checking:\n", objerrid) + err);
@@ -651,12 +632,18 @@ public class Workspace {
 		newrefs.clear();
 		
 		objcount = 1;
-		boolean forceCacheToDisk = ttlObjSize > getMaxObjectMemUsePerCall();
+		final TempFilesManager tempTFM;
+		if (ttlObjSize > rescfg.getMaxIncomingDataMemoryUsage()) {
+			tempTFM = getTempFilesManager();
+		} else {
+			tempTFM = null;
+		}
+		final UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(
+				rescfg.getMaxRelabelAndSortMemoryUsage());
 		for (ResolvedSaveObject ro: saveobjs) {
 			try {
 				//modifies object in place
-				ro.getRep().sort(getTempFilesManager(), getMaxInMemorySortSize(),
-						forceCacheToDisk);
+				ro.getRep().sort(fac, tempTFM);
 			} catch (RelabelIdReferenceException ref) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost
@@ -1264,17 +1251,5 @@ public class Workspace {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		db.addAdmin(user);
-	}
-
-	public TempFilesManager getTempFilesManager() {
-		return tfm;
-	}
-
-	public long getMaxInMemorySortSize() {
-		return maxInMemorySortSize;
-	}
-	
-	public void setMaxInMemorySortSize(long maxInMemorySortSize) {
-		this.maxInMemorySortSize = maxInMemorySortSize;
 	}
 }

@@ -55,6 +55,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -65,6 +66,7 @@ import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -118,18 +120,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String COL_SHOCK_PREFIX = "shock_";
 	private static final User ALL_USERS = new AllUsers('*');
 	
-	/* sets the maximum amount of memory to use to store objects when
-	 * retrieving from the blob store. After this point, objects are saved
-	 * to disk. This maximum is per method call and includes duplicates of
-	 * the object produced by subsetting.
-	 */
-	private int maxObjectMemUsePerCall = 16000000;
-	private long maxObjectSize = 2000005000;
-	/* sets the maximum total size of objects that can be returned from the
-	 * workspace. This is equal to each object's size * min(1, # of paths).
-	 */
-	private long maxReturnSize = maxObjectSize * 2;
-	private static final long MAX_DISK_USE_PER_RETURN_CALL = 8000020000L;
+	private ResourceUsageConfiguration rescfg;
+
 	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
@@ -217,6 +209,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String backendSecret, TempFilesManager tfm)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database);
 		wsjongo = new Jongo(wsmongo);
@@ -240,6 +233,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
 			MongoAuthException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
@@ -265,6 +259,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException {
+		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
 		wsjongo = new Jongo(wsmongo);
@@ -281,6 +276,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 								typeDBdir == null ? null : new File(typeDBdir), kidlpath, "both"));
 		ensureIndexes();
 		ensureTypeIndexes();
+	}
+	
+	@Override
+	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg) {
+		this.rescfg = rescfg;
 	}
 	
 	@Override
@@ -407,53 +407,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		throw new RuntimeException("Something's real broke y'all");
 	}
 	
-	@Override
-	public long getMaxObjectSize() {
-		return maxObjectSize;
-	}
-	
-	@Override
-	public void setMaxObjectSize(final long maxObjectSize) {
-		if (maxObjectSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object size must be at least 1");
-		}
-		this.maxObjectSize = maxObjectSize;
-	}
-
-	@Override
-	public int getMaxObjectMemUsePerCall() {
-		return maxObjectMemUsePerCall;
-	}
-
-	@Override
-	public void setMaxObjectMemUsePerCall(final int maxObjectMemUsePerCall) {
-		if (maxObjectMemUsePerCall < 1) {
-			throw new IllegalArgumentException(
-					"Maximum memory use per call must be at least 1");
-		}
-		this.maxObjectMemUsePerCall = maxObjectMemUsePerCall;
-	}
-
-	@Override
-	public long getMaxReturnSize() {
-		return maxReturnSize;
-	}
-
-	@Override
-	public void setMaxReturnSize(long maxReturnSize) {
-		if (maxReturnSize < 1) {
-			throw new IllegalArgumentException(
-					"Maximum object(s) return size per call must be at least 1");
-		}
-		if (maxReturnSize * 2 > MAX_DISK_USE_PER_RETURN_CALL) {
-			throw new IllegalArgumentException(
-					"Maximum object(s) return size per call must be < 2x the max disk use " +
-					MAX_DISK_USE_PER_RETURN_CALL + "B");
-		}
-		this.maxReturnSize = maxReturnSize;
-	}
-
 	@Override
 	public TypedObjectValidator getTypeValidator() {
 		return typeValidator;
@@ -1599,11 +1552,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().createJsonWritable(),
 					o.getRep().getValidationTypeDefId(), subdata);
-			if (pkg.td.getSize() > maxObjectSize) {
+			if (pkg.td.getSize() > rescfg.getMaxObjectSize()) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						pkg.td.getSize(), maxObjectSize));
+						pkg.td.getSize(), rescfg.getMaxObjectSize()));
 			}
 			ret.add(pkg);
 			objnum++;
@@ -2057,6 +2010,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
+	//this whole method needs a rethink now we're dealing with Writeables
+	//could have the blob store calc & return the size & MD5
 	private void saveData(final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data) throws
 			WorkspaceCommunicationException {
@@ -2089,7 +2044,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					try {
 						//this is kind of stupid, but no matter how you slice
 						//it you have to calc md5s before you save the data
-						blob.saveBlob(new MD5(md5), chksum.get(md5).getData());
+						blob.saveBlob(new MD5(md5), chksum.get(md5).getData(),
+								true); //always sorted in 0.2.0+
 					} catch (BlobStoreCommunicationException e) {
 						throw new WorkspaceCommunicationException(
 								e.getLocalizedMessage(), e);
@@ -2279,7 +2235,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(
-				maxObjectMemUsePerCall, MAX_DISK_USE_PER_RETURN_CALL, tfm);
+				rescfg.getMaxReturnedDataMemoryUsage(),
+				//maximum possible disk usage is when subsetting a objects
+				//summing to 1G to 1G objects, since the 1G originals will be discarded
+				rescfg.getMaxReturnedDataSize() * 2L,
+				tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2337,11 +2297,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			size += mult * (Long) vers.get(resobjs.get(o))
 					.get(Fields.VER_SIZE);
 		}
-		if (size > maxReturnSize) {
+		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
 					"data requested including potential subsets is %sB " + 
-					"which  exceeds maximum of %s.", size, maxReturnSize));
+					"which  exceeds maximum of %s.", size,
+					rescfg.getMaxReturnedDataSize()));
 		}
 	}
 
@@ -2391,7 +2352,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 						"Too much data requested from the workspace at once; " +
 						"data requested including subsets exceeds maximum of "
-						+ MAX_DISK_USE_PER_RETURN_CALL);
+						+ bafcMan.getMaxSizeOnDisk());
 			} catch (BlobStoreCommunicationException e) {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
@@ -2427,7 +2388,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 					"Too much data requested from the workspace at once; " +
 					"data requested including subsets exceeds maximum of "
-					+ MAX_DISK_USE_PER_RETURN_CALL);
+					+ bafcMan.getMaxSizeOnDisk());
 		}
 	}
 

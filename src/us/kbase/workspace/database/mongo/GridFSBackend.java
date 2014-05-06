@@ -30,12 +30,15 @@ public class GridFSBackend implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Writable data)
+	public void saveBlob(final MD5 md5, final Writable data,
+			final boolean sorted)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
-			throw new IllegalArgumentException("Arguments cannot be null");
+			throw new NullPointerException("Arguments cannot be null");
 		}
-		//TODO 1 check if MD5 already exists, if so abort
+		if (getFile(md5) != null) {
+			return; //already exists
+		}
 		final OutputStreamToInputStream<String> osis =
 				new OutputStreamToInputStream<String>() {
 					
@@ -44,6 +47,7 @@ public class GridFSBackend implements BlobStore {
 				final GridFSInputFile gif = gfs.createFile(is, true);
 				gif.setId(md5.getMD5());
 				gif.setFilename(md5.getMD5());
+				gif.put(Fields.GFS_SORTED, sorted);
 				try {
 					gif.save();
 				} catch (MongoException.DuplicateKey dk) {
@@ -75,20 +79,23 @@ public class GridFSBackend implements BlobStore {
 			final ByteArrayFileCacheManager bafcMan)
 			throws NoSuchBlobException, BlobStoreCommunicationException,
 			FileCacheIOException, FileCacheLimitExceededException {
-		final DBObject query = new BasicDBObject();
-		query.put(Fields.MONGO_ID, md5.getMD5());
 		final GridFSDBFile out;
 		try {
-			out = gfs.findOne(query);
+			out = getFile(md5);
 			if (out == null) {
 				throw new NoSuchBlobException(
 						"Attempt to retrieve non-existant blob with chksum " + 
 								md5.getMD5());
 			}
-		
+			final boolean sorted;
+			if (!out.containsField(Fields.GFS_SORTED)) {
+				sorted = false;
+			} else {
+				sorted = (Boolean)out.get(Fields.GFS_SORTED);
+			}
 			final InputStream file = out.getInputStream();
 			try {
-				return bafcMan.createBAFC(file, true);
+				return bafcMan.createBAFC(file, true, sorted);
 			} finally {
 				try {
 					file.close();
@@ -100,6 +107,14 @@ public class GridFSBackend implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not read from the mongo database", me);
 		}
+	}
+
+	private GridFSDBFile getFile(final MD5 md5) {
+		final GridFSDBFile out;
+		final DBObject query = new BasicDBObject();
+		query.put(Fields.MONGO_ID, md5.getMD5());
+		out = gfs.findOne(query);
+		return out;
 	}
 
 	@Override

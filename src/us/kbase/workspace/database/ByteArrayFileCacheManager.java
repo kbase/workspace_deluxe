@@ -42,17 +42,34 @@ public class ByteArrayFileCacheManager {
 		return createBAFC(input);
 	}
 	
-	public ByteArrayFileCache createBAFC(InputStream input, boolean trustedJson)
+	public int getSizeInMem() {
+		return sizeInMem;
+	}
+
+	public int getMaxSizeInMem() {
+		return maxSizeInMem;
+	}
+
+	public long getSizeOnDisk() {
+		return sizeOnDisk;
+	}
+
+	public long getMaxSizeOnDisk() {
+		return maxSizeOnDisk;
+	}
+
+	public ByteArrayFileCache createBAFC(final InputStream input,
+			final boolean trustedJson, final boolean sorted)
 			throws FileCacheIOException, FileCacheLimitExceededException {
 		byte[] buf = new byte[100000];
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
 		int maxInMemorySize = maxSizeInMem - sizeInMem;
 		long size = 0;
-		while (size < maxInMemorySize) {
+		while (size < maxInMemorySize + 1) {
 			int count;
 			try {
 				count = input.read(buf, 0, Math.min(
-						buf.length, maxInMemorySize - (int)size));
+						buf.length, maxInMemorySize + 1 - (int)size));
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
 			}
@@ -66,7 +83,7 @@ public class ByteArrayFileCacheManager {
 		} catch (IOException ioe) {
 			throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
 		}
-		if (size >= maxInMemorySize) {
+		if (size > maxInMemorySize) {
 			File tempFile = null;
 			OutputStream os = null;
 			try {
@@ -95,7 +112,7 @@ public class ByteArrayFileCacheManager {
 				sizeOnDisk += size;
 				return new ByteArrayFileCache(null, tempFile,
 						new JsonTokenStream(tempFile)
-							.setTrustedWholeJson(trustedJson));
+							.setTrustedWholeJson(trustedJson), sorted);
 			} catch (IOException ioe) {
 				cleanUp(tempFile, os);
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
@@ -108,7 +125,7 @@ public class ByteArrayFileCacheManager {
 			try {
 				return new ByteArrayFileCache(null, null,
 						new JsonTokenStream(bufOs.toByteArray())
-							.setTrustedWholeJson(trustedJson));
+							.setTrustedWholeJson(trustedJson), sorted);
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(
 						ioe.getLocalizedMessage(), ioe);
@@ -167,13 +184,17 @@ public class ByteArrayFileCacheManager {
 			parent.getSubdataExtractionAsStream(paths, os);
 			if (tempFile[0] != null) {
 				sizeOnDisk += size[0];
-				return new ByteArrayFileCache(parent, tempFile[0], new JsonTokenStream(tempFile[0])
-						.setTrustedWholeJson(parent.containsTrustedJson()));
+				return new ByteArrayFileCache(parent, tempFile[0],
+						new JsonTokenStream(tempFile[0])
+						.setTrustedWholeJson(parent.containsTrustedJson()),
+						parent.isSorted()); 
 			} else {
 				sizeInMem += (int)size[0];
 				byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
-				return new ByteArrayFileCache(parent, null, new JsonTokenStream(arr)
-						.setTrustedWholeJson(parent.containsTrustedJson()));
+				return new ByteArrayFileCache(parent, null,
+						new JsonTokenStream(arr)
+						.setTrustedWholeJson(parent.containsTrustedJson()),
+						parent.isSorted());
 			}
 		} catch (Throwable e) {
 			try {
@@ -199,6 +220,13 @@ public class ByteArrayFileCacheManager {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return "ByteArrayFileCacheManager [sizeInMem=" + sizeInMem
+				+ ", maxSizeInMem=" + maxSizeInMem + ", sizeOnDisk="
+				+ sizeOnDisk + ", maxSizeOnDisk=" + maxSizeOnDisk + "]";
+	}
+
 	public static ByteArrayFileCacheManager forTests() {
 		return new ByteArrayFileCacheManager(16000000, 2000000000L, TempFilesManager.forTests());
 	}
@@ -208,11 +236,24 @@ public class ByteArrayFileCacheManager {
 		private JsonTokenStream jts;
 		private ByteArrayFileCache parent = null;
 		private boolean destroyed = false;
+		private final boolean sorted;
 		
-		private ByteArrayFileCache(ByteArrayFileCache parent, File tempFile, JsonTokenStream jts) {
+		// sorted is ignored if a parent is present
+		private ByteArrayFileCache(final ByteArrayFileCache parent,
+				final File tempFile, final JsonTokenStream jts,
+				final boolean sorted) {
 			this.parent = parent;
 			this.tempFile = tempFile;
 			this.jts = jts;
+			if (parent != null) {
+				this.sorted = parent.isSorted();
+			} else {
+				this.sorted = sorted;
+			}
+		}
+		
+		public boolean isSorted() {
+			return sorted;
 		}
 		
 		public UObject getUObject() {

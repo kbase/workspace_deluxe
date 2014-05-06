@@ -191,6 +191,8 @@ if __name__ == '__main__':
                 print('Discarding current local configuration.')
             else:
                 print('Keeping current local configuration.')
+    else:
+        printerr('Cannot find configfile: ' + cfgfile)
     wscfg = cfg[CONFIGHEADER]
     getparams(REQPARAMS, wscfg, dropconfig)
     authrqd = getinput('Does mongodb require authentication?', ('y', 'yes'),

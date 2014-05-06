@@ -44,6 +44,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBackend;
@@ -157,7 +158,7 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
@@ -459,7 +460,7 @@ public class ConfigurationsAndThreads {
 		public WorkspaceLibShock() throws Exception {
 			super();
 			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
-					new DefaultReferenceParser());
+					new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);
@@ -533,7 +534,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				sb.saveBlob(md5, treeToWritable(jsonData));
+				sb.saveBlob(md5, treeToWritable(jsonData), true);
 			}
 			return 0;
 		}
@@ -573,7 +574,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.saveBlob(md5, treeToWritable(jsonData));
+				gfsb.saveBlob(md5, treeToWritable(jsonData), true);
 			}
 			return 0;
 		}

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.nocrala.tools.texttablefmt.CellStyle;
@@ -28,12 +29,15 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.utils.CountingOutputStream;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 
@@ -45,7 +49,9 @@ import us.kbase.workspace.WorkspaceIdentity;
  * Eventually you'll need to drop the shock and ws databases, as they'll
  * fill up.
  * 
- * The user for these tests must have admin privs on the workspace.
+ * The user for these tests must have admin privs on the workspace and must
+ * own the modules tested if the types haven't already been registered and
+ * released. Probably still buggy - better to run on a clean type database.
  * 
  */
 public class SaveGetObjServerSpeedTest {
@@ -56,16 +62,39 @@ public class SaveGetObjServerSpeedTest {
 		List<TestSetup> tests = new LinkedList<SaveGetObjServerSpeedTest.TestSetup>();
 //		tests.add(new SpecAndObjectFromFile("Genome", 5, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
-		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")).setSkipWrites(true));
-		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
-				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome").setSkipWrites(true));
+//		tests.add(new NoTypeChecking("Genome no TC", 100, new File("test/performance/83333.2.txt")).setSkipWrites(true));
+//		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("test/performance/83333.2.txt"), 
+//				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome").setSkipWrites(true));
 //		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 //		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
+		
+		tests.add(new SpecAndObjectFromFile("Narrative", 100, new File("../../wsTimingData/800_1_47.json"),
+				new File("../../wsTimingData/KBaseNarrative.spec"), "KBaseNarrative", "Narrative"));
+		tests.add(new SpecAndObjectFromFile("Contig", 100, new File("../../wsTimingData/188_8_1.json"),
+				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "ContigSet"));
+		tests.add(new SpecAndObjectFromFile("Genome", 10, new File("../../wsTimingData/970_2_1.json"),
+				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "Genome"));
+		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("../../wsTimingData/103_2_1.json"),
+				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "Genome"));
+		tests.add(new SpecAndObjectFromFile("Phenotype", 10, new File("../../wsTimingData/172_88_8.json"),
+				new File("../../wsTimingData/KBasePhenotypes.spec"), "KBasePhenotypes", "PhenotypeSet"));
+		tests.add(new SpecAndObjectFromFile("FBAModel", 100, new File("../../wsTimingData/436_22_1.json"),
+				new File("../../wsTimingData/KBaseFBA.spec"), "KBaseFBA", "FBAModel"));
+		tests.add(new SpecAndObjectFromFile("ProbAnno", 100, new File("../../wsTimingData/1267_1_1.json"),
+				new File("../../wsTimingData/ProbabilisticAnnotation.spec"), "ProbabilisticAnnotation", "ProbAnno"));
+		
+//		tests.add(new SpecAndObjectFromFile("Network", 10, new File("../../wsTimingData/networknowhitespace.json"),
+//				new File("../../wsTimingData/KBaseNetworks.spec"), "KBaseNetworks", "Network"));
 		try {
-			timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7058"),
-					new URL("http://localhost:7059")), tests);
+			timeReadWrite(user, pwd, Arrays.asList(
+//					new URL("http://localhost:7058")),
+					new URL("http://localhost:7059")),
+					tests);
 		} catch (ServerException e) {
+			e.printStackTrace();
+			Thread.sleep(100);
+			System.out.println("--");
 			System.out.println(e);
 			System.out.println(e.getCode());
 			System.out.println(e.getData());
@@ -391,10 +420,29 @@ public class SaveGetObjServerSpeedTest {
 					.withNewTypes(Arrays.asList(test.getType())));
 					ws.releaseModule(test.getModule());
 				} else {
-					System.out.println(test.getModule() + " already registered");
+					Set<String> types = ws.getModuleInfo(new GetModuleInfoParams()
+							.withMod(test.getModule())).getTypes().keySet();
+					boolean hasType = false;
+					for (String type: types) {
+						TypeDefId td = TypeDefId.fromTypeString(type);
+						if (td.getType().getName().equals(test.getType())) {
+							hasType = true;
+							break;
+						}
+					}
+					if (!hasType) {
+						ws.registerTypespec(new RegisterTypespecParams()
+								.withDryrun(0L)
+								.withMod(test.getModule())
+								.withNewTypes(Arrays.asList(test.getType())));
+						ws.releaseModule(test.getModule());
+					} else {
+						System.out.println(test.getModule() + "." + test.getType() +
+								" already registered");
+					}
 				}
 			}
-			
+
 			try {
 				ws.getWorkspaceInfo(new WorkspaceIdentity()
 						.withWorkspace(WORKSPACE_NAME));
@@ -418,6 +466,10 @@ public class SaveGetObjServerSpeedTest {
 			URL url, WorkspaceClient ws, TestSetup ts) throws Exception {
 		Map<String, Object> obj = ts.getObject();
 		String type = ts.getFullTypeName();
+		//0.1.6 has a bug where saving objects doesn't work without the full type
+		TypeInfo tinfo = ws.getTypeInfo(type);
+		type = tinfo.getTypeDef();
+		
 		ObjectSaveData osd = new ObjectSaveData().withData(new UObject(obj))
 				.withType(type).withName("skipwrites");
 		

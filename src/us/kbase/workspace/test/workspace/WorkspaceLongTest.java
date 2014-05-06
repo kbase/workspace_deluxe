@@ -109,7 +109,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 //		printMem("*** ran gc, exiting saveWithBigMeta ***");
 	}
 	
-	@Test(timeout=60000)
+	@Test(timeout=120000)
 	public void tenKrefs() throws Exception {
 		final String specRef =
 				"module Test10KRefs {\n" +

@@ -27,6 +27,7 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -64,7 +65,8 @@ public class MongoInternalsTest {
 			mwdb = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
 					kidlpath, null, TempFilesManager.forTests());
 		}
-		ws = new Workspace(mwdb, new DefaultReferenceParser());
+		ws = new Workspace(mwdb, new DefaultReferenceParser(),
+				new ResourceUsageConfigurationBuilder().build());
 		assertTrue("GridFS backend setup failed", ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use

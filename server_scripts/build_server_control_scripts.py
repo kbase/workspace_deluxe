@@ -70,7 +70,7 @@ with open(os.path.join(serviceDir, 'start_service'), 'w') as ss:
     ss.write('fi\n')
     ss.write(('{}/glassfish_administer_service.py --admin {} ' +
         '--domain {} --domain-dir {}/glassfish_domain ' +
-        '--war {} --port {} --threads {} --Xms {} --Xmx {} --noparallelgc ' +
+        '--war {} --port {} --threads {} --Xms {} --Xmx {} ' +
         '--properties KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG\n')
         .format(serviceDir, asadmin, serviceDomain, serviceDir,
                 os.path.join(serviceDir, war), port, threads, minmem, maxmem))
