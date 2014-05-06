@@ -56,9 +56,9 @@ public class SearchableWsSubsetAndMetadataExtractor {
 			MetadataExtractionHandler metadataExtractionHandler) 
 					throws IOException, TypedObjectExtractionException {
 
-		System.out.println(keysOfSelection);
-		System.out.println(fieldsSelection);
-		System.out.println(metadataExtractionHandler);
+		//System.out.println(keysOfSelection);
+		//System.out.println(fieldsSelection);
+		//System.out.println(metadataExtractionHandler);
 
 		SearchableWsSubsetAndMetadataNode root = new SearchableWsSubsetAndMetadataNode();
 		//if the selection is empty, we return without adding anything
@@ -69,7 +69,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 		if (metadataExtractionHandler != null)
 			prepareMetadataSelectionTree(metadataExtractionHandler, root);
 
-		root.printTree("TREE  ");
+		//root.printTree("TREE  ");
 		JsonNode subset = null;
 
 		// if there is nothing to extract as subdata, then we create an empty node because the
@@ -204,13 +204,11 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	private static long writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
 			JsonGenerator jgen) throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
-		System.out.println("in dump, writing token "+t);
 		writeCurrentToken(jts, t, jgen);
 		long n_elements = 0;
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
 				t = jts.nextToken();
-				System.out.println("in dump, writing token "+t);
 				writeCurrentToken(jts, t, jgen);
 				if (t == JsonToken.END_OBJECT)
 					break;
@@ -387,24 +385,18 @@ public class SearchableWsSubsetAndMetadataExtractor {
 
 		// We observe the opening of a mapping/object in the JSON data
 		if (t == JsonToken.START_OBJECT) {
-			System.out.println("starting to read an object");
 			// we need everything at this node and below
 			if (selection.isNeedAll()) {
-				System.out.println("we need everything");
 				if(selection.hasChildren()) {  // if it has children, then we must need some metadata below
 					// TODO: right now this is not possible because metadata is always at the top level
 				} else { // if it does not have children, then we just extract everything
-
-					System.out.println("now at token "+t);
 					long n_elements = writeTokensFromCurrent(jts, t, jgen);
 					addLengthMetadata(n_elements, selection, metadataHandler);
 				}
-				System.out.println("we got everything");
 			}
 
 			// we need only keys of this node
 			else if (selection.isNeedKeys()) {
-				System.out.println("we need keys only");
 				Set<String> selectedFields = null;
 				if(selection.hasChildren()) { // if it has children, then we must need some metadata value below
 					selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
@@ -446,7 +438,6 @@ public class SearchableWsSubsetAndMetadataExtractor {
 
 			// we have children, and these children have restrictions in subdata, so we go down the tree
 			else if (selection.hasChildren()) {
-				System.out.println("we need nothing here, but there are children");
 				
 				// we will remove visited keys from selectedFields and check emptiness at object end
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
@@ -467,7 +458,6 @@ public class SearchableWsSubsetAndMetadataExtractor {
 				long n_elements = 0;
 				while (true) {
 					t = jts.nextToken();
-					System.out.println("t: "+t);
 					n_elements++;
 					if (t == JsonToken.END_OBJECT) {
 						if(selection.isNeedSubsetInChildren()) {
@@ -475,13 +465,11 @@ public class SearchableWsSubsetAndMetadataExtractor {
 						}
 						break;
 					}
-					if(t==null)  System.out.println("t is null"); //break; } if(true) {continue; }
 					if (t != JsonToken.FIELD_NAME)
 						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
 						SearchableWsSubsetAndMetadataNode child = selection.getChild(fieldName);
-						System.out.println("Looking at field "+fieldName);
 						// if we need all fields or the field is in list of necessary fields we process it and the value following after that
 						// We have to check if we need to write out this node!!!  only works because metadata can only
 						// be defined on fields at the top level!  
@@ -491,14 +479,11 @@ public class SearchableWsSubsetAndMetadataExtractor {
 						// read first token of value block in order to prepare state for recursive 
 						// extractFieldsWithOpenToken call
 						t = jts.nextToken();
-						System.out.println("at token "+t);
 						// add field to the end of path branch
 						path.add(fieldName);
 						// we cannot have 'all' and select metadata below, because we cannot enter a mapping and
 						// all (ie the * notation) can only be used in the case of mappings to select all keys
-						System.out.println("starting sub extraction");
 						extractFieldsWithOpenToken(jts, t, all ? allChild : child, metadataHandler, jgen, path);
-						System.out.println("ended sub extraction");
 						// remove field from end of path branch
 						path.remove(path.size() - 1);
 						if (!all)
@@ -506,7 +491,6 @@ public class SearchableWsSubsetAndMetadataExtractor {
 					} else {
 						// otherwise we skip value following after field
 						t = jts.nextToken();
-						System.out.println("skipping" + t);
 						skipChildren(jts, t);
 					}
 				}
