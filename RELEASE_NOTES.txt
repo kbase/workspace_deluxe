@@ -15,18 +15,28 @@ Interface Description Language (KIDL). It has the following primary features:
 - Serverside extraction of portions of an object
 
 Size limits:
-TOs are limited to 0.2GB
+TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.2.0 (Released TBD)
+VERSION: 0.2.0 (Released 5/6/14)
 --------------------------------------
+PREAMBLE:
+v0.2.0 is a complete rewrite of the data path through the workspace, including
+type checking, sorting, data extraction, and object retrieval, for the
+purpose of controlling memory usage.
+
+BACKWARDS INCOMPATIBLITIES:
+- deploy.cfg has several new parameters, most of which have acceptable
+  defaults. However temp-dir needs to be set before starting the new version.
 
 NEW FEATURES:
-- list_all_types returns all the types in the workspace.
-- ScriptHelpers workspace library ported to python (from perl) by Mike Mundy
+- a new function, list_all_types, returns all the types in the workspace.
+- ScriptHelpers workspace library ported to python (from perl) by Mike Mundy.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+- The max object size has been returned to 1GB.
+- start_service no longer requires user-env.sh to be sourced.
 - Nulls will now pass type checking where an int, float, or string is expected.
 - Fixed a bug where get_object_subdata would return the same subdata if two
   different paths through the same object were specified.
@@ -34,6 +44,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - ws-workspace and ws-url now work against the User and Job Service when in
   IRIS.
 - The characters . and - are now allowed in workspace names.
+- Parallel GC has been re-enabled.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
@@ -43,7 +54,7 @@ KNOWN BUGS:
   returned.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
-- Rewrite type checker / data extractor for speed and memory usage
+- Automatically populated metadata
 - Garbage collection
 - Unified WS / Shock ACLs
 - Pointers to shock data too large to fit in the workspace

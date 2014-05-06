@@ -68,15 +68,29 @@ public class SaveGetObjServerSpeedTest {
 //		tests.add(new SpecAndObjectFromFile("Genome", 500, new File("test/performance/83333.2.txt"), 
 //				new File("test/performance/SupahFakeKBGA.spec"), "SupahFakeKBGA", "Genome"));
 //		tests.add(new NoTypeChecking("Genome no TC", 500, new File("test/performance/83333.2.txt")));
-//		tests.add(new SpecAndObjectFromFile("Narrative", 500, new File("../../wsTimingData/800_1_47.json"),
-//				new File("../../wsTimingData/KBaseNarrative.spec"), "KBaseNarrative", "Narrative"));
+		
+		tests.add(new SpecAndObjectFromFile("Narrative", 100, new File("../../wsTimingData/800_1_47.json"),
+				new File("../../wsTimingData/KBaseNarrative.spec"), "KBaseNarrative", "Narrative"));
 		tests.add(new SpecAndObjectFromFile("Contig", 100, new File("../../wsTimingData/188_8_1.json"),
 				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "ContigSet"));
 		tests.add(new SpecAndObjectFromFile("Genome", 10, new File("../../wsTimingData/970_2_1.json"),
 				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "Genome"));
+		tests.add(new SpecAndObjectFromFile("Genome", 100, new File("../../wsTimingData/103_2_1.json"),
+				new File("../../wsTimingData/KBaseGenomes.spec"), "KBaseGenomes", "Genome"));
+		tests.add(new SpecAndObjectFromFile("Phenotype", 10, new File("../../wsTimingData/172_88_8.json"),
+				new File("../../wsTimingData/KBasePhenotypes.spec"), "KBasePhenotypes", "PhenotypeSet"));
+		tests.add(new SpecAndObjectFromFile("FBAModel", 100, new File("../../wsTimingData/436_22_1.json"),
+				new File("../../wsTimingData/KBaseFBA.spec"), "KBaseFBA", "FBAModel"));
+		tests.add(new SpecAndObjectFromFile("ProbAnno", 100, new File("../../wsTimingData/1267_1_1.json"),
+				new File("../../wsTimingData/ProbabilisticAnnotation.spec"), "ProbabilisticAnnotation", "ProbAnno"));
+		
+//		tests.add(new SpecAndObjectFromFile("Network", 10, new File("../../wsTimingData/networknowhitespace.json"),
+//				new File("../../wsTimingData/KBaseNetworks.spec"), "KBaseNetworks", "Network"));
 		try {
-			timeReadWrite(user, pwd, Arrays.asList(new URL("http://localhost:7058"),
-					new URL("http://localhost:7059")), tests);
+			timeReadWrite(user, pwd, Arrays.asList(
+//					new URL("http://localhost:7058")),
+					new URL("http://localhost:7059")),
+					tests);
 		} catch (ServerException e) {
 			e.printStackTrace();
 			Thread.sleep(100);
