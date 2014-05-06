@@ -210,15 +210,15 @@ public class WsSubsetExtractionTest {
 		try {
 			String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
 			JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
-			System.out.println("got subdata: "+sortJson(actualSubset));
-			System.out.println("exp subdata: "+sortJson(expectedSubset));
+			//System.out.println("got subdata: "+sortJson(actualSubset));
+			//System.out.println("exp subdata: "+sortJson(expectedSubset));
 			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
 		} catch (IllegalStateException e) {}
 		try {
 			String expectedMetadataString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".metadata");
 			JsonNode expectedMetadata = mapper.readTree(expectedMetadataString);
-			System.out.println("got metadata: "+sortJson(actualMetadata));
-			System.out.println("exp metadata: "+sortJson(expectedMetadata));
+			//System.out.println("got metadata: "+sortJson(actualMetadata));
+			//System.out.println("exp metadata: "+sortJson(expectedMetadata));
 			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
 		} catch (IllegalStateException e) {}
 		System.out.println("       PASS");
