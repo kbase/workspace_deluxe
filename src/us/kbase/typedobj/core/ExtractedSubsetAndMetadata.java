@@ -19,7 +19,7 @@ public class ExtractedSubsetAndMetadata {
 
 	private JsonNode wsSearchableSubset;
 	private JsonNode metadata;
-	
+	private static final ObjectMapper mapper = new ObjectMapper();
 	/**
 	 * The metadata JsonNode must be an object node with String type values for all
 	 * fields.  We assume that this has already been validated earlier.
@@ -28,12 +28,12 @@ public class ExtractedSubsetAndMetadata {
 	 */
 	public ExtractedSubsetAndMetadata(JsonNode wsSearchableSubset, JsonNode metadata) {
 		if(wsSearchableSubset == null) {
-			this.wsSearchableSubset = new ObjectMapper().createObjectNode();
+			this.wsSearchableSubset = mapper.createObjectNode();
 		} else {
 			this.wsSearchableSubset = wsSearchableSubset;
 		}
 		if(metadata == null) {
-			this.metadata = new ObjectMapper().createObjectNode();
+			this.metadata = mapper.createObjectNode();
 		} else {
 			this.metadata = metadata;
 		}

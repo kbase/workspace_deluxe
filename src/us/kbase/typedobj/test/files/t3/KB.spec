@@ -99,7 +99,7 @@ module KB {
 	
 	typedef string otherstring;
 	/*
-	@metadata ws length(s) As StringLength
+	@metadata ws length(s)
 	*/
 	typedef structure {
 		otherstring s;
