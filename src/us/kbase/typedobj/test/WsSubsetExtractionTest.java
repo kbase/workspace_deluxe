@@ -62,12 +62,12 @@ public class WsSubsetExtractionTest {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t3";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/SubsetAndMetadataExtraction";
 	
 	/**
 	 * relative location to find the input files
 	 */
-	private final static String TEST_RESOURCE_LOCATION = "files/t3/";
+	private final static String TEST_RESOURCE_LOCATION = "files/SubsetAndMetadataExtraction/";
 	
 	private final static boolean VERBOSE = true;
 
@@ -157,6 +157,7 @@ public class WsSubsetExtractionTest {
 		
 		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
+		Arrays.sort(resources);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
 			if(tokens.length!=4) { continue; }
