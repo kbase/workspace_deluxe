@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -247,5 +248,46 @@ public class TypedObjectValidationReportTest {
 		assertThat("Relabel and in file correctly", o.toString("UTF-8"), is(expectedJson));
 		w.releaseResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
+	}
+	
+	@Test
+	public void keySize() throws Exception {
+		String json = "{\"z\":\"a\",\"b\":\"d\"}";
+		int maxmem = 1 + 44 + 1 + 44;
+		TempFilesManager tfm = TempFilesManager.forTests();
+		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
+		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
+				null, null, null, new UObject(new JsonTokenStream(json)),
+				null, null);
+		
+		//test with json stored in file
+		tovr.sort(fac, tfm); //should work
+		maxmem--;
+		fac = new UTF8JsonSorterFactory(maxmem);
+		try {
+			tovr.sort(fac, tfm);
+			fail("sorted with too little memory");
+		} catch (RelabelIdReferenceException r) {
+			assertThat("cause was too many keys", r.getCause(),
+					is(TooManyKeysException.class));
+			assertThat("correct exception message", r.getLocalizedMessage(),
+					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+		}
+		
+		//test with json stored in memory
+		maxmem += json.getBytes("UTF-8").length + 1;
+		fac = new UTF8JsonSorterFactory(maxmem);
+		tovr.sort(fac); //should work
+		maxmem--;
+		fac = new UTF8JsonSorterFactory(maxmem);
+		try {
+			tovr.sort(fac);
+			fail("sorted with too little memory");
+		} catch (RelabelIdReferenceException r) {
+			assertThat("cause was too many keys", r.getCause(),
+					is(TooManyKeysException.class));
+			assertThat("correct exception message", r.getLocalizedMessage(),
+					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+		}
 	}
 }
