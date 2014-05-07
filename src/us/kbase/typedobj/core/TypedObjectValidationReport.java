@@ -438,19 +438,15 @@ public class TypedObjectValidationReport {
 	 * @deprecated
 	 */
 	public JsonNode extractSearchableWsSubset(long maxSubsetSize) {
-		JsonNode extraction = extractSearchableWsSubsetAndMetadata(maxSubsetSize);
-		return extraction.get("subset");
+		ExtractedSubsetAndMetadata extraction = extractSearchableWsSubsetAndMetadata(maxSubsetSize);
+		return extraction.getWsSearchableSubset();
 	}
 
 	
-	public JsonNode extractSearchableWsSubsetAndMetadata(long maxSubsetSize) {
-		ObjectNode returnData = mapper.createObjectNode();
+	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize) {
 		
-		if(!isInstanceValid()) {
-			returnData.set("subset", mapper.createObjectNode());
-			returnData.set("metadata", mapper.createObjectNode());
-			return mapper.createObjectNode();
-		}
+		// return nothing if instance does not validate
+		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
 		
 		// Identify what we need to extract
 		ObjectNode keys_of  = null;
@@ -462,14 +458,12 @@ public class TypedObjectValidationReport {
 		TokenSequenceProvider tsp = null;
 		try {
 			tsp = createTokenSequenceForWsSubset();
-			JsonNode ret = SearchableWsSubsetAndMetadataExtractor.extractFields(
+			ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor.extractFields(
 															tsp, 
 															keys_of, fields, maxSubsetSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
-			returnData.set("subset", ret);
-			returnData.set("metadata", wsMetadataExtractionHandler.getSavedMetadata());
-			return returnData;
+			return esam;
 		} catch (RuntimeException ex) {
 			throw ex;
 		} catch (Exception ex) {

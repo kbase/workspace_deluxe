@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.typedobj.core.ExtractedSubsetAndMetadata;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -197,16 +198,10 @@ public class WsSubsetExtractionTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		
-		JsonNode extraction = report.extractSearchableWsSubsetAndMetadata(-1);
-		JsonNode actualSubset = extraction.get("subset");
-		JsonNode actualMetadata = extraction.get("metadata");
-		// we can just check if they are equal like so:
-		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
-		//		actualSubset.equals(expectedSubset));
-		// this method generates a patch, so that if they differ you can see what's up
+		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1);
+		JsonNode actualSubset = extraction.getWsSearchableSubset();
+		JsonNode actualMetadata = extraction.getMetadata();
 		
-
-		// read the ids file, which provides the list of ids we expect to extract from the instance
 		try {
 			String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
 			JsonNode expectedSubset = mapper.readTree(expectedSubsetString);

@@ -10,26 +10,26 @@ import java.util.Map;
  * to be extracted as part of the WS searchable subdata or metadata.
  * @author rsutormin
  */
-public class SearchableWsSubsetAndMetadataNode {
+public class SubsetAndMetadataNode {
 	private boolean needKeys = false;
 	private boolean needAll = false;
 	private boolean needSubsetInChildren = false;
 	private List<String> needValueForMetadata;  // if this is non-empty, then we need the value at this node for metadata
 	private List<String> needLengthForMetadata; // if this is non-empty, then we need the length of this node for metadata
-	private Map<String, SearchableWsSubsetAndMetadataNode> children = null;
+	private Map<String, SubsetAndMetadataNode> children = null;
 	
-	public SearchableWsSubsetAndMetadataNode() {
+	public SubsetAndMetadataNode() {
 		needValueForMetadata  = new ArrayList<String>();
 		needLengthForMetadata = new ArrayList<String>();
 	}
 	
-	public Map<String, SearchableWsSubsetAndMetadataNode> getChildren() {
+	public Map<String, SubsetAndMetadataNode> getChildren() {
 		return children;
 	}
 	
-	public void addChild(String key, SearchableWsSubsetAndMetadataNode child) {
+	public void addChild(String key, SubsetAndMetadataNode child) {
 		if (children == null) 
-			children = new LinkedHashMap<String, SearchableWsSubsetAndMetadataNode>();
+			children = new LinkedHashMap<String, SubsetAndMetadataNode>();
 		children.put(key, child);
 	}
 
@@ -42,7 +42,7 @@ public class SearchableWsSubsetAndMetadataNode {
 		return children.containsKey(name);
 	}
 	
-	public SearchableWsSubsetAndMetadataNode getChild(String name) {
+	public SubsetAndMetadataNode getChild(String name) {
 		if(children == null) return null;
 		return children.get(name);
 	}
@@ -98,7 +98,7 @@ public class SearchableWsSubsetAndMetadataNode {
 		System.out.println(offset+"needKeys="+needKeys+";needAll="+needAll+";mdvalues:"+needValueForMetadata.size()+";mdlenghts:"+needLengthForMetadata.size() +
 				";needBelow="+needSubsetInChildren);
 		if(children!=null) {
-			for (Map.Entry<String, SearchableWsSubsetAndMetadataNode> entry : children.entrySet()) {
+			for (Map.Entry<String, SubsetAndMetadataNode> entry : children.entrySet()) {
 				System.out.println(offset+"==="+entry.getKey());
 				entry.getValue().printTree(offset+"   ");
 			}

@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author msneddon
  * @author rsutormin
  */
-public class SearchableWsSubsetAndMetadataExtractor {
+public class SubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 
 	/**
@@ -47,7 +47,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	 * handler to get the metadata found.
 	 * 
 	 */
-	public static JsonNode extractFields(
+	public static ExtractedSubsetAndMetadata extractFields(
 			TokenSequenceProvider jts, 
 			ObjectNode keysOfSelection,
 			ObjectNode fieldsSelection,
@@ -59,7 +59,8 @@ public class SearchableWsSubsetAndMetadataExtractor {
 		//System.out.println(fieldsSelection);
 		//System.out.println(metadataExtractionHandler);
 
-		SearchableWsSubsetAndMetadataNode root = new SearchableWsSubsetAndMetadataNode();
+		SubsetAndMetadataNode root = new SubsetAndMetadataNode();
+		
 		//if the selection is empty, we return without adding anything
 		if (keysOfSelection != null && keysOfSelection.size() > 0) 
 			prepareWsSubsetTree(keysOfSelection, true, root);
@@ -68,48 +69,20 @@ public class SearchableWsSubsetAndMetadataExtractor {
 		if (metadataExtractionHandler != null)
 			prepareMetadataSelectionTree(metadataExtractionHandler, root);
 
-		//root.printTree("TREE  ");
-		JsonNode subset = null;
-
 		// if there is nothing to extract as subdata, then we create an empty node because the
 		// extractFieldsWithOpenToken method will not add anything to the stream unless something
 		// needs to be extracted as subdata
 		if ( !root.isNeedSubsetInChildren() ) {
-			subset = mapper.createObjectNode();
 			if(root.getNeedValueForMetadata().isEmpty() && root.getNeedLengthForMetadata().isEmpty() && !(root.hasChildren())) {
-				// no subset, no metadata, no children.  Tree is empty, so we just return
-				return subset;
+				// no subset, no metadata, no children.  Tree is empty, so we just return an empty extraction
+				return new ExtractedSubsetAndMetadata(null,null);
 			} else {
 				// no subset, but we need metadata so run the extraction, but without the json tree generator
 				JsonToken t = jts.nextToken();
 				extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
-				return subset;
+				return new ExtractedSubsetAndMetadata(null,metadataExtractionHandler.getSavedMetadata());
 			}
 		}
-//		
-
-//		START_OBJECT
-//		FIELD_NAME
-//		START_OBJECT
-//		FIELD_NAME
-//		VALUE_NUMBER_INT
-//		FIELD_NAME
-//		VALUE_NUMBER_INT
-//		FIELD_NAME
-//		VALUE_NUMBER_INT
-//		END_OBJECT
-//		FIELD_NAME
-//		START_OBJECT
-//		FIELD_NAME
-//		VALUE_NUMBER_FLOAT
-//		FIELD_NAME
-//		VALUE_NUMBER_FLOAT
-//		FIELD_NAME
-//		VALUE_NUMBER_FLOAT
-//		END_OBJECT
-//		FIELD_NAME
-//		VALUE_STRING
-//		END_OBJECT
 
 		// we need subdata, so run the full method
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
@@ -117,7 +90,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 		JsonToken t = jts.nextToken();
 		extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
 		jgen.close();
-		return jgen.getTree();
+		return new ExtractedSubsetAndMetadata(jgen.getTree(),metadataExtractionHandler.getSavedMetadata());
 	}
 
 	/**
@@ -126,7 +99,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	 * real data twice.
 	 */
 	private static void prepareWsSubsetTree(JsonNode selection, boolean keysOf, 
-			SearchableWsSubsetAndMetadataNode parent) {
+			SubsetAndMetadataNode parent) {
 		if (selection.size() == 0) {
 			if (keysOf) {
 				parent.setNeedKeys(true);
@@ -137,10 +110,10 @@ public class SearchableWsSubsetAndMetadataExtractor {
 			Iterator<Map.Entry<String, JsonNode>> it = selection.fields();
 			while (it.hasNext()) {
 				Map.Entry<String, JsonNode> entry = it.next();
-				SearchableWsSubsetAndMetadataNode child = null;
+				SubsetAndMetadataNode child = null;
 				if (parent.getChildren() == null || 
 						!parent.getChildren().containsKey(entry.getKey())) {
-					child = new SearchableWsSubsetAndMetadataNode();
+					child = new SubsetAndMetadataNode();
 					parent.addChild(entry.getKey(), child);
 					parent.setNeedSubsetInChildren(true);
 				} else {
@@ -158,7 +131,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	 * behavior will not be correct if there is a metadata selection at a lower level, and a subdata extraction at a higher level.
 	 * 
 	 */
-	private static void prepareMetadataSelectionTree(MetadataExtractionHandler metadataExtractionHandler, SearchableWsSubsetAndMetadataNode parent) {
+	private static void prepareMetadataSelectionTree(MetadataExtractionHandler metadataExtractionHandler, SubsetAndMetadataNode parent) {
 		// currently, we can only extract fields from the top level
 		JsonNode selection = metadataExtractionHandler.getMetadataSelection();
 		Iterator<Map.Entry<String, JsonNode>> it = selection.fields();
@@ -172,17 +145,17 @@ public class SearchableWsSubsetAndMetadataExtractor {
 				if(expression.endsWith(")")) {
 					expression = expression.substring(7);
 					expression = expression.substring(0, expression.length()-1);
-					SearchableWsSubsetAndMetadataNode selectionNode = parent.getChild(expression);
+					SubsetAndMetadataNode selectionNode = parent.getChild(expression);
 					if(selectionNode==null) {
-						selectionNode = new SearchableWsSubsetAndMetadataNode();
+						selectionNode = new SubsetAndMetadataNode();
 						parent.addChild(expression, selectionNode);
 					}
 					selectionNode.addNeedLengthForMetadata(metadataName);
 				}
 			} else {
-				SearchableWsSubsetAndMetadataNode selectionNode = parent.getChild(expression);
+				SubsetAndMetadataNode selectionNode = parent.getChild(expression);
 				if(selectionNode==null) {
-					selectionNode = new SearchableWsSubsetAndMetadataNode();
+					selectionNode = new SubsetAndMetadataNode();
 					parent.addChild(expression, selectionNode);
 				}
 				selectionNode.addNeedValueForMetadata(metadataName);
@@ -349,7 +322,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the length of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addLengthMetadata(long length, SearchableWsSubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addLengthMetadata(long length, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
 		List<String> metadataNames = selection.getNeedLengthForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,Long.toString(length));
@@ -359,7 +332,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the value of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addValueMetadata(String value, SearchableWsSubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addValueMetadata(String value, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
 		List<String> metadataNames = selection.getNeedValueForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,value);
@@ -374,7 +347,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 	private static void extractFieldsWithOpenToken(
 			TokenSequenceProvider jts,
 			JsonToken current, 
-			SearchableWsSubsetAndMetadataNode selection,
+			SubsetAndMetadataNode selection,
 			MetadataExtractionHandler metadataHandler,
 			JsonGenerator jgen,
 			List<String> path) 
@@ -419,7 +392,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 
 					if (selectedFields.contains(fieldName)) {
 						// then we have to traverse down the tree
-						SearchableWsSubsetAndMetadataNode child = selection.getChild(fieldName);
+						SubsetAndMetadataNode child = selection.getChild(fieldName);
 						// add field to the end of path branch
 						path.add(fieldName);
 						// process value of this field recursively
@@ -441,7 +414,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 				// we will remove visited keys from selectedFields and check emptiness at object end
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
 				boolean all = false;
-				SearchableWsSubsetAndMetadataNode allChild = null;
+				SubsetAndMetadataNode allChild = null;
 
 				if (selectedFields.contains("*")) {
 					all = true;
@@ -468,7 +441,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 						throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
-						SearchableWsSubsetAndMetadataNode child = selection.getChild(fieldName);
+						SubsetAndMetadataNode child = selection.getChild(fieldName);
 						// if we need all fields or the field is in list of necessary fields we process it and the value following after that
 						// We have to check if we need to write out this node!!!  only works because metadata can only
 						// be defined on fields at the top level!  
@@ -520,7 +493,7 @@ public class SearchableWsSubsetAndMetadataExtractor {
 			if (selection.hasChildren()) {  // we have some restrictions for array item positions in selection
 				Set<String> selectedFields = new LinkedHashSet<String>(
 						selection.getChildren().keySet());
-				SearchableWsSubsetAndMetadataNode allChild = null;
+				SubsetAndMetadataNode allChild = null;
 				// now we support only '[*]' keyword which means all elements
 				if (!selectedFields.contains("[*]"))
 					throw new TypedObjectExtractionException("WS subset path doesn't contain [*] on array " +
