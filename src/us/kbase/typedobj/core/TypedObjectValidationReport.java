@@ -301,7 +301,6 @@ public class TypedObjectValidationReport {
 		} catch (KeyDuplicationException ex) {
 			throw new RelabelIdReferenceException(ex.getMessage(), ex);
 		} catch (TooManyKeysException ex) {
-			//TODO test this when key mem size settable
 			throw new RelabelIdReferenceException(
 					"Memory necessary for sorting map keys exceeds the limit " +
 					ex.getMaxMem() + " bytes at " + ex.getPath() +
