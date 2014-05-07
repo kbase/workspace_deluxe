@@ -257,8 +257,8 @@ public class TypedObjectValidationReportTest {
 		TempFilesManager tfm = TempFilesManager.forTests();
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)),null, null, null, 
+				null, null, null);
 		
 		//test with json stored in file
 		tovr.sort(fac, tfm); //should work
