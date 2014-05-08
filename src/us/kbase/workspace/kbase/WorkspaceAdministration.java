@@ -108,7 +108,7 @@ public class WorkspaceAdministration {
 			}
 			if ("setPermissions".equals(fn)) {
 				final SetPermissionsParams params = getParams(c, SetPermissionsParams.class);
-				wsmeth.setPermissions(params, getUser(c, token), token);
+				wsmeth.setPermissions(params, null, token, true);
 				return null;
 			}
 			if ("getPermissions".equals(fn)) {
@@ -143,7 +143,10 @@ public class WorkspaceAdministration {
 			final AuthToken token)
 			throws IOException, AuthException {
 		final String user = (String) input.get("user");
-		if (user == null || !AuthService.isValidUserName(Arrays.asList(user),
+		if (user == null) {
+			throw new NullPointerException("User may not be null");
+		}
+		if (!AuthService.isValidUserName(Arrays.asList(user),
 				token).get(user)) {
 			throw new IllegalArgumentException(user +
 					" is not a valid KBase user");
@@ -152,6 +155,11 @@ public class WorkspaceAdministration {
 	}
 
 	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
+		final Object p = input.get("params");
+		if (p == null) {
+			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
+					+ " may not be null");
+		}
 		return UObject.transformObjectToObject(input.get("params"), clazz);
 	}
 	

@@ -356,7 +356,17 @@ public class Workspace {
 
 	public void setPermissions(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
-			final Permission permission) throws CorruptWorkspaceDBException,
+			final Permission permission)
+			throws CorruptWorkspaceDBException,
+			NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			WorkspaceCommunicationException {
+		setPermissions(user, wsi, users, permission, false);
+	}
+	
+	public void setPermissions(final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
+			final Permission permission, final boolean asAdmin)
+			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
 		if (users == null || users.isEmpty()) {
@@ -367,8 +377,8 @@ public class Workspace {
 			throw new IllegalArgumentException("Cannot set owner permission");
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-		final Permission currentPerm = db.getPermissions(user, wsid)
-				.getUserPermission(wsid, true);
+		final Permission currentPerm = asAdmin ? Permission.ADMIN :
+				db.getPermissions(user, wsid).getUserPermission(wsid, true);
 		if (currentPerm.equals(Permission.NONE)) {
 			//always throw exception here
 			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");

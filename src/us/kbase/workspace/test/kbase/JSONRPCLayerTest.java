@@ -2372,7 +2372,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
-				"			   \"description\": \"mydesc\"}}", "null is not a valid KBase user");
+				"			   \"description\": \"mydesc\"}}",
+				"User may not be null");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}",
+				"User may not be null");
+		
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"thisisnotarealuserihopeorthistestwillfail\"," +
@@ -2382,7 +2389,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
-				" \"params\": null}", null); //should probably be a better exception
+				" \"params\": null}", "Method parameters CreateWorkspaceParams may not be null");
 		
 		@SuppressWarnings("unchecked")
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> objinfo =
@@ -2409,7 +2416,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
 						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
-				"null is not a valid KBase user");
+				 "User may not be null");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
@@ -2420,7 +2427,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"saveObjects\"," +
 						" \"user\": \"" + USER1 + "\"," +
 				" \"params\": null}",
-				null);
+				"Method parameters SaveObjectsParams may not be null");
 		
 		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
@@ -2465,18 +2472,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set global permission on workspace " + wsstr);
 		
 		adminParams.put("command", "setPermissions");
-		adminParams.put("user", USER1);
 		adminParams.put("params", new SetPermissionsParams().withWorkspace(wsstr)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put(USER2, "w");
 		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
 				is(expected));
-		
-		adminParams.put("user", USER2);
-		((SetPermissionsParams) adminParams.get("params")).setNewPermission("a");
-		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may only reduce their permission level on workspace " + wsstr);
-		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 	}
 
 	@Test

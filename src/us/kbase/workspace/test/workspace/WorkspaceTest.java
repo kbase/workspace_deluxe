@@ -528,6 +528,28 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceAuthorizationException(
 						"User b may only reduce their permission level on workspace perms_noglobal"));
 		
+		//asAdmin testing
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(BUSER, Permission.ADMIN);
+		expect.put(CUSER, Permission.READ);
+		assertThat("asAdmin boolean works", ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		expect.clear();
+		expect.put(BUSER, Permission.READ);
+		assertThat("reduce own permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(null, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(BUSER, Permission.ADMIN);
+		expect.put(CUSER, Permission.READ);
+		assertThat("asAdmin boolean works with null user",
+				ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		expect.clear();
+		expect.put(BUSER, Permission.READ);
+		assertThat("reduced permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		
+		
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ); //should have no effect
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);

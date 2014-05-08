@@ -73,6 +73,14 @@ public class WorkspaceServerMethods {
 			throws IOException, AuthException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
+		setPermissions(params, user, token, false);
+	}
+	
+	public void setPermissions(final SetPermissionsParams params,
+			final WorkspaceUser user, final AuthToken token, boolean asAdmin)
+			throws IOException, AuthException, CorruptWorkspaceDBException,
+			NoSuchWorkspaceException, WorkspaceAuthorizationException,
+			WorkspaceCommunicationException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
@@ -82,7 +90,7 @@ public class WorkspaceServerMethods {
 		}
 		final List<WorkspaceUser> users = ArgUtils.validateUsers(
 				params.getUsers(), token);
-		ws.setPermissions(user, wsi, users, p);
+		ws.setPermissions(user, wsi, users, p, asAdmin);
 	}
 
 	public void setGlobalPermission(final SetGlobalPermissionsParams params,
