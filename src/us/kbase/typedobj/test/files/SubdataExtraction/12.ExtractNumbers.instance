@@ -1,0 +1,16 @@
+{
+	"paths":["bool1","bool2","null"],
+	"data": {
+		"bool1":true,
+		"bool2":false,
+		"extrastuff":{
+			"thing":[{"t":0,"x":0},{"t":1,"x":0},{"t":2,"x":0},{"t":3,"x":0},{"t":4,"x":0},{"t":5,"x":0}]
+		},
+		"null":null
+	},
+	"extract": {
+		"bool1":true,
+		"bool2":false,
+		"null":null
+	}
+}
