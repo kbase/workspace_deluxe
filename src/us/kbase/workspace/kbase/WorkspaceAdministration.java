@@ -2,8 +2,10 @@ package us.kbase.workspace.kbase;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -84,9 +86,7 @@ public class WorkspaceAdministration {
 			}
 			if ("listAdmins".equals(fn)) {
 				final Set<String> strAdm = new HashSet<String>();
-				for (final WorkspaceUser u: ws.getAdmins()) {
-					strAdm.add(u.getUser());
-				}
+				strAdm.addAll(usersToStrings(ws.getAdmins()));
 				strAdm.addAll(internaladmins);
 				return strAdm;
 			}
@@ -129,6 +129,9 @@ public class WorkspaceAdministration {
 				final ListWorkspaceInfoParams params = getParams(c, ListWorkspaceInfoParams.class);
 				return wsmeth.listWorkspaceInfo(params, getUser(c, token));
 			}
+			if ("listWorkspaceOwners".equals(fn)) {
+				return usersToStrings(ws.getAllWorkspaceOwners());
+			}
 			if ("grantModuleOwnership".equals(fn)) {
 				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);
 				wsmeth.grantModuleOwnership(params, null, true);
@@ -142,6 +145,14 @@ public class WorkspaceAdministration {
 		}
 		throw new IllegalArgumentException(
 				"I don't know how to process the command:\n" + cmd);
+	}
+
+	private List<String> usersToStrings(final Set<WorkspaceUser> users) {
+		final List<String> ret = new ArrayList<String>();
+		for (final WorkspaceUser u: users) {
+			ret.add(u.getUser());
+		}
+		return ret;
 	}
 
 	private WorkspaceUser getUser(final Map<String, Object> input,

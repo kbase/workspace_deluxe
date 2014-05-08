@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
 import us.kbase.auth.AuthUser;
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
@@ -2501,6 +2502,20 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		expected.put(USER2, "w");
 		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
 				is(expected));
+	}
+	
+	@Test
+	public void getAllWorkspaceOwners() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners2"));
+		String cmd = "{\"command\":\"listWorkspaceOwners\"}";
+		List<String> owners = CLIENT2.administer(new UObject(
+				new JsonTokenStream(cmd))).asInstance();
+		Set<String> expected = new HashSet<String>(Arrays.asList(USER1, USER2));
+		assertThat("returned expected users", new HashSet<String>(owners),
+				is(expected));
+		
+		failAdmin(CLIENT1, cmd, "User " + USER1 + " is not an admin");
 	}
 
 	@Test
