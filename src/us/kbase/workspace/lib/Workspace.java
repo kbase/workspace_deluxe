@@ -15,6 +15,8 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.common.utils.sortjson.KeyDuplicationException;
+import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
@@ -36,7 +38,6 @@ import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -369,6 +370,7 @@ public class Workspace {
 		final Permission currentPerm = db.getPermissions(user, wsid)
 				.getUserPermission(wsid, true);
 		if (currentPerm.equals(Permission.NONE)) {
+			//always throw exception here
 			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
 		}
 		if (Permission.ADMIN.compareTo(currentPerm) > 0) {
@@ -644,14 +646,19 @@ public class Workspace {
 			try {
 				//modifies object in place
 				ro.getRep().sort(fac, tempTFM);
-			} catch (RelabelIdReferenceException ref) {
+			} catch (KeyDuplicationException kde) {
 				/* this occurs when two references in the same hash resolve
 				 * to the same reference, so one value would be lost
 				 */
 				throw new TypedObjectValidationException(String.format(
 						"Object %s: Two references in a single hash are identical when resolved, resulting in a loss of data: ",
 						getObjectErrorId(ro.getObjectIdentifier(), objcount))
-						+ ref.getLocalizedMessage(), ref);
+						+ kde.getLocalizedMessage(), kde);
+			} catch (TooManyKeysException tmke) {
+				throw new TypedObjectValidationException(String.format(
+						"Object %s: ",
+						getObjectErrorId(ro.getObjectIdentifier(), objcount))
+						+ tmke.getLocalizedMessage(), tmke);
 			}
 			objcount++;
 		}

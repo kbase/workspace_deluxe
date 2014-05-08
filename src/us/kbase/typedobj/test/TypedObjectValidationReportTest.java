@@ -16,13 +16,13 @@ import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.Writable;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 
 public class TypedObjectValidationReportTest {
 	
@@ -185,8 +185,8 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(SORT_FAC);
 			fail("sorting didn't detect duplicate keys");
-		} catch (RelabelIdReferenceException r){
-			assertThat("correct exception message", r.getLocalizedMessage(),
+		} catch (KeyDuplicationException kde){
+			assertThat("correct exception message", kde.getLocalizedMessage(),
 					is("Duplicated key 'b' was found at /"));
 		}
 	}
@@ -253,7 +253,7 @@ public class TypedObjectValidationReportTest {
 	@Test
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
-		int maxmem = 1 + 44 + 1 + 44;
+		int maxmem = 8 + 64 + 8 + 64;
 		TempFilesManager tfm = TempFilesManager.forTests();
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
@@ -267,15 +267,15 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(fac, tfm);
 			fail("sorted with too little memory");
-		} catch (RelabelIdReferenceException r) {
-			assertThat("cause was too many keys", r.getCause(),
-					is(TooManyKeysException.class));
-			assertThat("correct exception message", r.getLocalizedMessage(),
-					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+		} catch (TooManyKeysException tmke) {
+			assertThat("correct exception message", tmke.getLocalizedMessage(),
+					is("Memory necessary for sorting map keys exceeds the limit " +
+					maxmem + " bytes at /"));
 		}
 		
 		//test with json stored in memory
-		maxmem += json.getBytes("UTF-8").length + 1;
+		int filelength = json.getBytes("UTF-8").length;
+		maxmem += filelength + 1;
 		fac = new UTF8JsonSorterFactory(maxmem);
 		tovr.sort(fac); //should work
 		maxmem--;
@@ -283,11 +283,10 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(fac);
 			fail("sorted with too little memory");
-		} catch (RelabelIdReferenceException r) {
-			assertThat("cause was too many keys", r.getCause(),
-					is(TooManyKeysException.class));
-			assertThat("correct exception message", r.getLocalizedMessage(),
-					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+		} catch (TooManyKeysException tmke) {
+			assertThat("correct exception message", tmke.getLocalizedMessage(),
+					is("Memory necessary for sorting map keys exceeds the limit " +
+					(maxmem - filelength) + " bytes at /"));
 		}
 	}
 }
