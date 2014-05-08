@@ -4271,6 +4271,22 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void getAllWorkspaceOwners() throws Exception {
+		Set<WorkspaceUser> startusers = ws.getAllWorkspaceOwners();
+		String userprefix = "getAllWorkspaceOwners";
+		Set<WorkspaceUser> users = new HashSet<WorkspaceUser>();
+		for (int i = 0; i < 4; i++) {
+			String u = userprefix + i;
+			users.add(new WorkspaceUser(u));
+			ws.createWorkspace(new WorkspaceUser(u), u + ":" + userprefix,
+					false, null, null);
+		}
+		Set<WorkspaceUser> newusers = ws.getAllWorkspaceOwners();
+		newusers.removeAll(startusers);
+		assertThat("got correct list of workspace users", newusers, is(users));
+	}
+	
+	@Test
 	public void sortForMD5() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("md5user");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("sorting");

@@ -1247,6 +1247,13 @@ public class Workspace {
 		return ret;
 	}
 	
+	/* admin method only, should not be exposed in public API
+	 */
+	public Set<WorkspaceUser> getAllWorkspaceOwners()
+			throws WorkspaceCommunicationException {
+		return db.getAllWorkspaceOwners();
+	}
+	
 	/* these admin functions are provided as a convenience and have nothing
 	 * to do with the rest of the DB, really. 
 	 */

@@ -3194,6 +3194,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		setObjectsDeleted(mrwsi, new ArrayList<Long>(), delete);
 	}
 	
+	@Override
+	public Set<WorkspaceUser> getAllWorkspaceOwners()
+			throws WorkspaceCommunicationException {
+		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
+		try {
+			@SuppressWarnings("unchecked")
+			final List<String> users = wsmongo.getCollection(COL_WORKSPACES)
+					.distinct(Fields.WS_OWNER);
+			for (final String u: users) {
+				ret.add(new WorkspaceUser(u));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		return ret;
+	}
 
 	private static final String M_ADMIN_QRY = String.format(
 			"{%s: #}", Fields.ADMIN_NAME);
@@ -3209,6 +3226,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"There was a problem communicating with the database", me);
 		}
 	}
+	
 
 	@Override
 	public Set<WorkspaceUser> getAdmins()
