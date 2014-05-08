@@ -4521,4 +4521,37 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("data marked as sorted", o.getDataAsTokens().isSorted(),
 				is(true));
 	}
+	
+	@Test
+	public void exceedSortMemory() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("exceedSortMem");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("exceedsortmem");
+		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		Provenance p = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
+		
+		String safejson = "{\"z\":\"a\"}";
+		String json = "{\"z\":\"a\",\"b\":\"d\"}";
+		objs.add(new WorkspaceSaveObject(new JsonTokenStream(safejson), SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(new JsonTokenStream(json), SAFE_TYPE1, null, p, false));
+		
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg)
+				.withMaxIncomingDataMemoryUsage(1);
+		int maxmem = 8 + 64 + 8 + 64;
+		ws.setResourceConfig(build.withMaxRelabelAndSortMemoryUsage(maxmem).build());
+		ws.saveObjects(user, wsi, objs);
+		
+		ws.setResourceConfig(build.withMaxRelabelAndSortMemoryUsage(maxmem - 1).build());
+		try {
+			ws.saveObjects(user, wsi, objs);
+			fail("sorted w/ too little mem");
+		} catch (TypedObjectValidationException tove) {
+			assertThat("got correct exception", tove.getMessage(),
+					is("Object #2: Memory necessary for sorting map keys exceeds the limit " + 
+							(maxmem - 1) + " bytes at /"));
+		}
+		ws.setResourceConfig(oldcfg);
+	}
 }

@@ -16,13 +16,13 @@ import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.Writable;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 
 public class TypedObjectValidationReportTest {
 	
@@ -185,8 +185,8 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(SORT_FAC);
 			fail("sorting didn't detect duplicate keys");
-		} catch (RelabelIdReferenceException r){
-			assertThat("correct exception message", r.getLocalizedMessage(),
+		} catch (KeyDuplicationException kde){
+			assertThat("correct exception message", kde.getLocalizedMessage(),
 					is("Duplicated key 'b' was found at /"));
 		}
 	}
@@ -267,12 +267,10 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(fac, tfm);
 			fail("sorted with too little memory");
-		} catch (RelabelIdReferenceException r) {
-			assertThat("cause was too many keys", r.getCause(),
-					is(TooManyKeysException.class));
-			assertThat("correct exception message", r.getLocalizedMessage(),
+		} catch (TooManyKeysException tmke) {
+			assertThat("correct exception message", tmke.getLocalizedMessage(),
 					is("Memory necessary for sorting map keys exceeds the limit " +
-					maxmem + " bytes at /. To deal with data with so many keys you have to sort them on client side."));
+					maxmem + " bytes at /"));
 		}
 		
 		//test with json stored in memory
@@ -285,13 +283,10 @@ public class TypedObjectValidationReportTest {
 		try {
 			tovr.sort(fac);
 			fail("sorted with too little memory");
-		} catch (RelabelIdReferenceException r) {
-			assertThat("cause was too many keys", r.getCause(),
-					is(TooManyKeysException.class));
-			assertThat("correct exception message", r.getLocalizedMessage(),
+		} catch (TooManyKeysException tmke) {
+			assertThat("correct exception message", tmke.getLocalizedMessage(),
 					is("Memory necessary for sorting map keys exceeds the limit " +
-							(maxmem - filelength) + 
-							" bytes at /. To deal with data with so many keys you have to sort them on client side."));
+					(maxmem - filelength) + " bytes at /"));
 		}
 	}
 }

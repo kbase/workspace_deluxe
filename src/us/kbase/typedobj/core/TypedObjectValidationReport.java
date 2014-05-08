@@ -20,7 +20,6 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
 
@@ -189,13 +188,9 @@ public class TypedObjectValidationReport {
 	 * to rename the ids a second time, you must still refer to the id as its original name,
 	 * not necessarily be the name in the current version of the object.
 	 */
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws RelabelIdReferenceException {
+	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
 		JsonTreeGenerator jgen = new JsonTreeGenerator(UObject.getMapper());
-		try {
-			relabelWsIdReferencesIntoGenerator(jgen);
-		} catch (IOException ex) {
-			throw new RelabelIdReferenceException(ex.getMessage(), ex);
-		}
+		relabelWsIdReferencesIntoGenerator(jgen);
 		JsonNode originalInstance = jgen.getTree();
 		//idRefManager.setWsReplacementNames(absoluteIdRefMapping);
 		//idRefManager.relabelWsIds(originalInstance);
@@ -237,9 +232,13 @@ public class TypedObjectValidationReport {
 	 * @throws RelabelIdReferenceException if there are duplicate keys after
 	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
+	 * @throws TooManyKeysException if the memory required to sort the map is
+	 * too high.
+	 * @throws KeyDuplicationException if there are duplicate keys present
+	 * in a map after relabeling.
 	 */
 	public void sort(final UTF8JsonSorterFactory fac)
-			throws RelabelIdReferenceException, IOException {
+			throws IOException, KeyDuplicationException, TooManyKeysException {
 		sort(fac, null);
 	}
 	
@@ -248,13 +247,15 @@ public class TypedObjectValidationReport {
 	 * @param fac the sorter factory to use when generating a sorter.
 	 * @param tfm the temporary file manager to use for managing temporary
 	 * files. All data is kept in memory if tfm is null.
-	 * @throws RelabelIdReferenceException if there are duplicate keys after
-	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
+	 * @throws TooManyKeysException if the memory required to sort the map is
+	 * too high.
+	 * @throws KeyDuplicationException if there are duplicate keys present
+	 * in a map after relabeling.
 	 */
 	public void sort(final UTF8JsonSorterFactory fac,
 			final TempFilesManager tfm)
-			throws RelabelIdReferenceException, IOException {
+			throws IOException, KeyDuplicationException, TooManyKeysException {
 		if (fac == null) {
 			throw new NullPointerException("Sorter factory cannot be null");
 		}
@@ -263,49 +264,39 @@ public class TypedObjectValidationReport {
 		}
 		nullifySortCacheFile();
 		cacheForSorting = null;
-		try {
-			if (!sorted) {
-				if (tfm == null) {
-					ByteArrayOutputStream os = new ByteArrayOutputStream();
-					final JsonGenerator jgen = mapper.getFactory()
-							.createGenerator(os);
+		if (!sorted) {
+			if (tfm == null) {
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				final JsonGenerator jgen = mapper.getFactory()
+						.createGenerator(os);
+				relabelWsIdReferencesIntoGenerator(jgen);
+				jgen.close();
+				cacheForSorting = os.toByteArray();
+				os = new ByteArrayOutputStream();
+				fac.getSorter(cacheForSorting).writeIntoStream(os);
+				os.close();
+				cacheForSorting = os.toByteArray();
+			} else {
+				final File f1 = tfm.generateTempFile("sortinp", "json");
+				JsonGenerator jgen = null;
+				try {
+					jgen = mapper.getFactory()
+							.createGenerator(f1, JsonEncoding.UTF8);
 					relabelWsIdReferencesIntoGenerator(jgen);
 					jgen.close();
-					cacheForSorting = os.toByteArray();
-					os = new ByteArrayOutputStream();
-					fac.getSorter(cacheForSorting).writeIntoStream(os);
+					jgen = null;
+					fileForSorting = tfm.generateTempFile(
+							"sortout", "json");
+					final FileOutputStream os = new FileOutputStream(
+							fileForSorting);
+					fac.getSorter(f1).writeIntoStream(os);
 					os.close();
-					cacheForSorting = os.toByteArray();
-				} else {
-					final File f1 = tfm.generateTempFile("sortinp", "json");
-					JsonGenerator jgen = null;
-					try {
-						jgen = mapper.getFactory()
-								.createGenerator(f1, JsonEncoding.UTF8);
-						relabelWsIdReferencesIntoGenerator(jgen);
+				} finally {
+					f1.delete();
+					if (jgen != null)
 						jgen.close();
-						jgen = null;
-						fileForSorting = tfm.generateTempFile(
-								"sortout", "json");
-						final FileOutputStream os = new FileOutputStream(
-								fileForSorting);
-						fac.getSorter(f1).writeIntoStream(os);
-						os.close();
-					} finally {
-						f1.delete();
-						if (jgen != null)
-							jgen.close();
-					}
 				}
 			}
-		} catch (KeyDuplicationException ex) {
-			throw new RelabelIdReferenceException(ex.getMessage(), ex);
-		} catch (TooManyKeysException ex) {
-			throw new RelabelIdReferenceException(
-					"Memory necessary for sorting map keys exceeds the limit " +
-					ex.getMaxMem() + " bytes at " + ex.getPath() +
-					". To deal with data with so many " +
-							"keys you have to sort them on client side.", ex);
 		}
 	}
 	

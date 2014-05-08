@@ -1,5 +1,6 @@
 package us.kbase.typedobj.test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
-import us.kbase.typedobj.exceptions.RelabelIdReferenceException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.WsIdReference;
 
@@ -53,7 +53,7 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws RelabelIdReferenceException {
+	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.createObjectNode();
 	}
