@@ -187,6 +187,9 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS objectIDResolvedWS)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 
+	public Set<WorkspaceUser> getAllWorkspaceOwners()
+			throws WorkspaceCommunicationException;
+	
 	public boolean isAdmin(WorkspaceUser putativeAdmin)
 			throws WorkspaceCommunicationException;
 
@@ -202,4 +205,5 @@ public interface WorkspaceDatabase {
 	public TempFilesManager getTempFilesManager();
 
 	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
+
 }

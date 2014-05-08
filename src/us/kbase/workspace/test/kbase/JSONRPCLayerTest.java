@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
 
 import us.kbase.auth.AuthUser;
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
@@ -61,6 +62,7 @@ import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -2350,15 +2352,37 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@Test
 	public void adminUserFacade() throws Exception {
-		@SuppressWarnings("unchecked")
+		TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> typeref
+				= new TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>() {};
+		TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>> listtyperef
+				= new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>>() {};
+				
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
-				list2WSTuple9((List<Object>) CLIENT2.administer(new UObject(createData(
+				CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
-				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
-				"			   \"description\": \"mydesc\"}}"))).asInstance());
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
+				"			   \"description\": \"mydesc\"}}")))
+				.asClassInstance(typeref);
 		
-		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> mt =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		notexpected.add(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(USER1 + ":admintest")));
+		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()), mt, notexpected);
+		
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got = 
+				CLIENT2.administer(new UObject(createData(
+						"{\"command\": \"listWorkspaces\"," +
+						" \"user\": \"" + USER1 + "\"," +
+						" \"params\": {}}"))).asClassInstance(listtyperef);
+		checkWSInfoList(got, notexpected, mt);
+		
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "n", "unlocked", "mydesc", MT_META);
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace(USER1 + ":admintest")
+				.withNewPermission("r"));
+		
 		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
 				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
 		try {
@@ -2372,7 +2396,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
-				"			   \"description\": \"mydesc\"}}", "null is not a valid KBase user");
+				"			   \"description\": \"mydesc\"}}",
+				"User may not be null");
+		failAdmin(CLIENT2, 
+				"{\"command\": \"createWorkspace\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
+				"			   \"description\": \"mydesc\"}}",
+				"User may not be null");
+		
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"thisisnotarealuserihopeorthistestwillfail\"," +
@@ -2382,7 +2413,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
-				" \"params\": null}", null); //should probably be a better exception
+				" \"params\": null}", "Method parameters CreateWorkspaceParams may not be null");
 		
 		@SuppressWarnings("unchecked")
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> objinfo =
@@ -2409,7 +2440,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": null," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
 						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
-				"null is not a valid KBase user");
+				 "User may not be null");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
@@ -2420,7 +2451,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"saveObjects\"," +
 						" \"user\": \"" + USER1 + "\"," +
 				" \"params\": null}",
-				null);
+				"Method parameters SaveObjectsParams may not be null");
 		
 		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
@@ -2465,18 +2496,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may not set global permission on workspace " + wsstr);
 		
 		adminParams.put("command", "setPermissions");
-		adminParams.put("user", USER1);
 		adminParams.put("params", new SetPermissionsParams().withWorkspace(wsstr)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put(USER2, "w");
 		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
 				is(expected));
+	}
+	
+	@Test
+	public void getAllWorkspaceOwners() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners2"));
+		String cmd = "{\"command\":\"listWorkspaceOwners\"}";
+		List<String> owners = CLIENT2.administer(new UObject(
+				new JsonTokenStream(cmd))).asInstance();
+		Set<String> expected = new HashSet<String>(Arrays.asList(USER1, USER2));
+		assertThat("returned expected users", new HashSet<String>(owners),
+				is(expected));
 		
-		adminParams.put("user", USER2);
-		((SetPermissionsParams) adminParams.get("params")).setNewPermission("a");
-		failAdmin(CLIENT2, adminParams, "User " + USER2 + " may only reduce their permission level on workspace " + wsstr);
-		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
+		failAdmin(CLIENT1, cmd, "User " + USER1 + " is not an admin");
 	}
 
 	@Test

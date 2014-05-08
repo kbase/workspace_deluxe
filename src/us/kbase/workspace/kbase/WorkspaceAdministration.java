@@ -2,8 +2,10 @@ package us.kbase.workspace.kbase;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +22,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
@@ -83,9 +86,7 @@ public class WorkspaceAdministration {
 			}
 			if ("listAdmins".equals(fn)) {
 				final Set<String> strAdm = new HashSet<String>();
-				for (final WorkspaceUser u: ws.getAdmins()) {
-					strAdm.add(u.getUser());
-				}
+				strAdm.addAll(usersToStrings(ws.getAdmins()));
 				strAdm.addAll(internaladmins);
 				return strAdm;
 			}
@@ -108,7 +109,7 @@ public class WorkspaceAdministration {
 			}
 			if ("setPermissions".equals(fn)) {
 				final SetPermissionsParams params = getParams(c, SetPermissionsParams.class);
-				wsmeth.setPermissions(params, getUser(c, token), token);
+				wsmeth.setPermissions(params, null, token, true);
 				return null;
 			}
 			if ("getPermissions".equals(fn)) {
@@ -123,6 +124,13 @@ public class WorkspaceAdministration {
 			if ("saveObjects".equals(fn)) {
 				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
 				return wsmeth.saveObjects(params, getUser(c, token));
+			}
+			if ("listWorkspaces".equals(fn)) {
+				final ListWorkspaceInfoParams params = getParams(c, ListWorkspaceInfoParams.class);
+				return wsmeth.listWorkspaceInfo(params, getUser(c, token));
+			}
+			if ("listWorkspaceOwners".equals(fn)) {
+				return usersToStrings(ws.getAllWorkspaceOwners());
 			}
 			if ("grantModuleOwnership".equals(fn)) {
 				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);
@@ -139,11 +147,22 @@ public class WorkspaceAdministration {
 				"I don't know how to process the command:\n" + cmd);
 	}
 
+	private List<String> usersToStrings(final Set<WorkspaceUser> users) {
+		final List<String> ret = new ArrayList<String>();
+		for (final WorkspaceUser u: users) {
+			ret.add(u.getUser());
+		}
+		return ret;
+	}
+
 	private WorkspaceUser getUser(final Map<String, Object> input,
 			final AuthToken token)
 			throws IOException, AuthException {
 		final String user = (String) input.get("user");
-		if (user == null || !AuthService.isValidUserName(Arrays.asList(user),
+		if (user == null) {
+			throw new NullPointerException("User may not be null");
+		}
+		if (!AuthService.isValidUserName(Arrays.asList(user),
 				token).get(user)) {
 			throw new IllegalArgumentException(user +
 					" is not a valid KBase user");
@@ -152,6 +171,11 @@ public class WorkspaceAdministration {
 	}
 
 	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
+		final Object p = input.get("params");
+		if (p == null) {
+			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
+					+ " may not be null");
+		}
 		return UObject.transformObjectToObject(input.get("params"), clazz);
 	}
 	

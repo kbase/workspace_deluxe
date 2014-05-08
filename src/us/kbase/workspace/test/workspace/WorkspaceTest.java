@@ -528,6 +528,28 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceAuthorizationException(
 						"User b may only reduce their permission level on workspace perms_noglobal"));
 		
+		//asAdmin testing
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(BUSER, Permission.ADMIN);
+		expect.put(CUSER, Permission.READ);
+		assertThat("asAdmin boolean works", ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		expect.clear();
+		expect.put(BUSER, Permission.READ);
+		assertThat("reduce own permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(null, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		expect.put(AUSER, Permission.OWNER);
+		expect.put(BUSER, Permission.ADMIN);
+		expect.put(CUSER, Permission.READ);
+		assertThat("asAdmin boolean works with null user",
+				ws.getPermissions(BUSER, wsiNG), is(expect));
+		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		expect.clear();
+		expect.put(BUSER, Permission.READ);
+		assertThat("reduced permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		
+		
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ); //should have no effect
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -4331,6 +4353,22 @@ public class WorkspaceTest extends WorkspaceTester {
 				ws.isAdmin(new WorkspaceUser("adminguy2")));
 		assertFalse("correctly detected as not an admin",
 				ws.isAdmin(new WorkspaceUser("adminguy3")));
+	}
+	
+	@Test
+	public void getAllWorkspaceOwners() throws Exception {
+		Set<WorkspaceUser> startusers = ws.getAllWorkspaceOwners();
+		String userprefix = "getAllWorkspaceOwners";
+		Set<WorkspaceUser> users = new HashSet<WorkspaceUser>();
+		for (int i = 0; i < 4; i++) {
+			String u = userprefix + i;
+			users.add(new WorkspaceUser(u));
+			ws.createWorkspace(new WorkspaceUser(u), u + ":" + userprefix,
+					false, null, null);
+		}
+		Set<WorkspaceUser> newusers = ws.getAllWorkspaceOwners();
+		newusers.removeAll(startusers);
+		assertThat("got correct list of workspace users", newusers, is(users));
 	}
 	
 	@Test
