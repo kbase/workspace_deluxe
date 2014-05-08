@@ -56,6 +56,14 @@ module KB {
 	typedef float f1;
 	/* @range [0,30) */
 	typedef float f2;
+	/* @range (0,30] */
+	typedef float f3;
+	/* @range ,30] */
+	typedef float f4;
+	/* @range 0, */
+	typedef float f5;
+	/* @range 1, */
+	typedef float f5;
 
 	/* @range [5,] */
 	typedef int i1;
@@ -65,17 +73,31 @@ module KB {
 	typedef int i3;
 	/* @range 0,1 */
 	typedef int i4;
+	/* @range (0, */
+	typedef int i6;
 	
-	/* @optional f1 f2 i1 i2 i3 i4 */
+	/* 
+	  @metadata ws f1
+	  @optional f1 f2 f3 f4 f5 i1 i2 i3 i4 i5 i6
+	*/
 	typedef structure {
 		f1 f1;
 		f2 f2;
+		f3 f3;
+		f4 f4;
+		f5 f5;
 		i1 i1;
 		i2 i2;
 		i3 i3;
 		i4 i4;
+		int i5;
+		i6 i6;
 	} NumberObj;
 
+
+	typedef structure {
+		tuple <string,int,mapping<string,int>,float> t;
+	} TupleObject;
 };
 
 
