@@ -61,6 +61,7 @@ import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -2350,15 +2351,37 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@Test
 	public void adminUserFacade() throws Exception {
-		@SuppressWarnings("unchecked")
+		TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> typeref
+				= new TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>() {};
+		TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>> listtyperef
+				= new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>>() {};
+				
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo =
-				list2WSTuple9((List<Object>) CLIENT2.administer(new UObject(createData(
+				CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
-				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
-				"			   \"description\": \"mydesc\"}}"))).asInstance());
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
+				"			   \"description\": \"mydesc\"}}")))
+				.asClassInstance(typeref);
 		
-		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> mt =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected =
+				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
+		notexpected.add(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(USER1 + ":admintest")));
+		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()), mt, notexpected);
+		
+		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got = 
+				CLIENT2.administer(new UObject(createData(
+						"{\"command\": \"listWorkspaces\"," +
+						" \"user\": \"" + USER1 + "\"," +
+						" \"params\": {}}"))).asClassInstance(listtyperef);
+		checkWSInfoList(got, notexpected, mt);
+		
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "n", "unlocked", "mydesc", MT_META);
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace(USER1 + ":admintest")
+				.withNewPermission("r"));
+		
 		checkWS(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withId(wsinfo.getE1())),
 				wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "r", "unlocked", "mydesc", MT_META);
 		try {

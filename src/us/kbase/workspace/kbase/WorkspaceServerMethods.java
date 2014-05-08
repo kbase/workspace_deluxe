@@ -23,6 +23,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
@@ -201,4 +202,19 @@ public class WorkspaceServerMethods {
 				user, asAdmin);
 	}
 
+	public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>
+			listWorkspaceInfo(final ListWorkspaceInfoParams params,
+			final WorkspaceUser user)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException, ParseException {
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final Permission p = params.getPerm() == null ? null :
+				translatePermission(params.getPerm());
+		return au.wsInfoToTuple(ws.listWorkspaces(user,
+				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
+				au.parseDate(params.getAfter()),
+				au.parseDate(params.getBefore()),
+				au.longToBoolean(params.getExcludeGlobal()),
+				au.longToBoolean(params.getShowDeleted()),
+				au.longToBoolean(params.getShowOnlyDeleted())));
+	}
 }

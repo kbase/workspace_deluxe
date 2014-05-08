@@ -20,6 +20,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
@@ -123,6 +124,10 @@ public class WorkspaceAdministration {
 			if ("saveObjects".equals(fn)) {
 				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
 				return wsmeth.saveObjects(params, getUser(c, token));
+			}
+			if ("listWorkspaces".equals(fn)) {
+				final ListWorkspaceInfoParams params = getParams(c, ListWorkspaceInfoParams.class);
+				return wsmeth.listWorkspaceInfo(params, getUser(c, token));
 			}
 			if ("grantModuleOwnership".equals(fn)) {
 				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);

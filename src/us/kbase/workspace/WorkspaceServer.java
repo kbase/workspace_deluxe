@@ -848,16 +848,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> listWorkspaceInfo(ListWorkspaceInfoParams params, AuthToken authPart) throws Exception {
         List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> returnVal = null;
         //BEGIN list_workspace_info
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final Permission p = params.getPerm() == null ? null :
-				translatePermission(params.getPerm());
-		returnVal =  au.wsInfoToTuple(ws.listWorkspaces(getUser(authPart),
-				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
-				au.parseDate(params.getAfter()),
-				au.parseDate(params.getBefore()),
-				au.longToBoolean(params.getExcludeGlobal()),
-				au.longToBoolean(params.getShowDeleted()),
-				au.longToBoolean(params.getShowOnlyDeleted())));
+		returnVal = wsmeth.listWorkspaceInfo(params, getUser(authPart));
         //END list_workspace_info
         return returnVal;
     }
