@@ -48,7 +48,6 @@ import us.kbase.kidl.KbType;
 import us.kbase.kidl.KbTypedef;
 import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KidlParser;
-import us.kbase.kidl.tests.KidlTest;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.MD5;
@@ -1964,8 +1963,8 @@ public class TypeDefinitionDB {
 					System.out.println("Warning: internal parser didn't throw an exception");
 					throw extErr;
 				}
-				boolean ok = KidlTest.compareJson(parseMapExt, parseMapInt, "Parsing schema");
-				ok = ok & KidlTest.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas");
+				boolean ok = KidlUtil.compareJson(parseMapExt, parseMapInt, "Parsing schema");
+				ok = ok & KidlUtil.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas");
 				if (!ok)
 					throw new SpecParseException("Output of KIDL parsers is different");
 				services = KidlParser.parseSpec(parseMapExt);
@@ -1991,7 +1990,7 @@ public class TypeDefinitionDB {
 				deleteTempDir(tempDir);
 		}
 	}
-	
+
 	private Map<TypeDefName, TypeChange> saveModule(String specDocument, 
 			Set<String> addedTypes, Set<String> unregisteredTypes, String userId, 
 			boolean dryMode, Map<String, Long> moduleVersionRestrictions, Long prevModuleVersion,
