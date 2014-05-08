@@ -1,0 +1,17 @@
+{
+	"paths":["stuff/thing/4","stuff/thing/0/t"],
+	"data": {
+		"name":"something",
+		"id":"madeup",
+		"stuff":{
+			"thing":[{"t":0,"x":0},{"t":1,"x":0},{"t":2,"x":0},{"t":3,"x":0},{"t":4,"x":0},{"t":5,"x":0}]
+		},
+		"otherstuff":[22],
+		"things":{}
+	},
+	"extract": {
+		"stuff":{
+				"thing":[{"t":0},{"t":4,"x":0}]
+			}
+	}
+}
