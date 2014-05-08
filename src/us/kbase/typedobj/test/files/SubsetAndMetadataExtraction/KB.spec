@@ -1,7 +1,13 @@
 
 module KB {
 
-
+	/*
+	*/
+	typedef structure {
+		string data;
+		int stuff;
+	} NoExtractionData;
+	
 	/*
 	  @optional size
 	  @searchable ws_subset name,alias
@@ -51,6 +57,19 @@ module KB {
 	typedef structure {
 		mapping<string,mapping<string,mapping<string,int>>> crazydata;
 	} DeepMaps;
+	
+	/*
+	  @searchable ws_subset keys_of(d1) keys_of(d2) keys_of(d3)
+	  @searchable ws_subset keys_of(d4) keys_of(d5) keys_of(d6)
+	*/
+	typedef structure {
+		mapping<string,mapping<string,int>> d1;
+		mapping<string,list<float>> d2;
+		mapping<string,tuple<int,int>> d3;
+		mapping<string,string> d4;
+		mapping<string,int> d5;
+		mapping<string,float> d6;
+	} KeysTest;
 
 
 	/*

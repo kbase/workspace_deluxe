@@ -149,7 +149,9 @@ public class WsSubsetExtractionTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData", "MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
+		List<String> kb_types =  Arrays.asList(
+				"NoExtractionData","SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData","KeysTest",
+				"MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);

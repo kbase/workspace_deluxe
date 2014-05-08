@@ -141,17 +141,15 @@ public class SubsetAndMetadataExtractor {
 			String expression = entry.getValue().asText().trim();
 
 			// evaluate the metadata selection expression (right now we only support top-level field names, and the length(f) function)
-			if(expression.startsWith("length(")) {
-				if(expression.endsWith(")")) {
-					expression = expression.substring(7);
-					expression = expression.substring(0, expression.length()-1);
-					SubsetAndMetadataNode selectionNode = parent.getChild(expression);
-					if(selectionNode==null) {
-						selectionNode = new SubsetAndMetadataNode();
-						parent.addChild(expression, selectionNode);
-					}
-					selectionNode.addNeedLengthForMetadata(metadataName);
+			if(expression.startsWith("length(") && expression.endsWith(")")) {
+				expression = expression.substring(7);
+				expression = expression.substring(0, expression.length()-1);
+				SubsetAndMetadataNode selectionNode = parent.getChild(expression);
+				if(selectionNode==null) {
+					selectionNode = new SubsetAndMetadataNode();
+					parent.addChild(expression, selectionNode);
 				}
+				selectionNode.addNeedLengthForMetadata(metadataName);
 			} else {
 				SubsetAndMetadataNode selectionNode = parent.getChild(expression);
 				if(selectionNode==null) {
@@ -360,7 +358,8 @@ public class SubsetAndMetadataExtractor {
 			// we need everything at this node and below
 			if (selection.isNeedAll()) {
 				if(selection.hasChildren()) {  // if it has children, then we must need some metadata below
-					// TODO: right now this is not possible because metadata is always at the top level
+					// TODO: handle this case, but not needed right now because this is not 
+					// possible because metadata is always at the top level
 				} else { // if it does not have children, then we just extract everything
 					long n_elements = writeTokensFromCurrent(jts, t, jgen);
 					addLengthMetadata(n_elements, selection, metadataHandler);
@@ -369,12 +368,14 @@ public class SubsetAndMetadataExtractor {
 
 			// we need only keys of this node
 			else if (selection.isNeedKeys()) {
-				Set<String> selectedFields = null;
-				if(selection.hasChildren()) { // if it has children, then we must need some metadata value below
-					selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
-				} else {
-					selectedFields = new LinkedHashSet<String> ();
-				}
+				//Set<String> selectedFields = null;
+				//if(selection.hasChildren()) { // if it has children, then we must need some metadata value below
+				//	selectedFields = new LinkedHashSet<String>();
+					// TODO: handle this case, but not needed right now because this is not 
+					// possible because metadata is always at the top level
+				//} else {
+				//	selectedFields = new LinkedHashSet<String> ();
+				//}
 				jgen.writeStartArray();  // write in output start of array instead of start of object
 				long n_elements = 0;
 				while (true) {
@@ -390,19 +391,20 @@ public class SubsetAndMetadataExtractor {
 					t = jts.nextToken();
 					n_elements++;
 
-					if (selectedFields.contains(fieldName)) {
-						// then we have to traverse down the tree
+					// it is impossible for now to have the selectedFields contain children, because
+					// we do not allow subset below a 'keys_of' selection, and we only allow top-level metadata
+					// instead for now, we just skip the children
+					/* if (selectedFields.contains(fieldName)) {
+						// then we have to traverse down the tree, add the field to the path,
+						// and process the field recursively
 						SubsetAndMetadataNode child = selection.getChild(fieldName);
-						// add field to the end of path branch
 						path.add(fieldName);
-						// process value of this field recursively
 						extractFieldsWithOpenToken(jts, t, child, metadataHandler, jgen, path);
-						// remove field from end of path branch
 						path.remove(path.size() - 1);
 					} else {
-						// we can safely skip the children
+						// we can safely skip the children */
 						skipChildren(jts, t);
-					}
+					/*}*/
 				}
 				addLengthMetadata(n_elements, selection, metadataHandler);
 
@@ -476,7 +478,6 @@ public class SubsetAndMetadataExtractor {
 							}*/
 				
 			} 
-
 
 			// need (at most) just the length metadata field
 			else {
