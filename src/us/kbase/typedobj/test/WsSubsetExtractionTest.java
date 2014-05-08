@@ -183,8 +183,11 @@ public class WsSubsetExtractionTest {
 		
 		//read the instance data
 		if(VERBOSE) System.out.println("  -("+instance.resourceName+")");
-		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
-		JsonNode instanceRootNode = mapper.readTree(instanceJson);
+		String testdata = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
+		JsonNode testdataJson = mapper.readTree(testdata);
+		JsonNode instanceRootNode = testdataJson.get("instance");
+		JsonNode expectedSubset = testdataJson.get("subset");
+		JsonNode expectedMetadata = testdataJson.get("metadata");
 		
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
@@ -203,20 +206,8 @@ public class WsSubsetExtractionTest {
 		JsonNode actualSubset = extraction.getWsSearchableSubset();
 		JsonNode actualMetadata = extraction.getMetadata();
 		
-		try {
-			String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
-			JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
-			//System.out.println("got subdata: "+sortJson(actualSubset));
-			//System.out.println("exp subdata: "+sortJson(expectedSubset));
-			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
-		} catch (IllegalStateException e) {}
-		try {
-			String expectedMetadataString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".metadata");
-			JsonNode expectedMetadata = mapper.readTree(expectedMetadataString);
-			//System.out.println("got metadata: "+sortJson(actualMetadata));
-			//System.out.println("exp metadata: "+sortJson(expectedMetadata));
-			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
-		} catch (IllegalStateException e) {}
+		compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
+		compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
 		System.out.println("       PASS");
 	}
 
