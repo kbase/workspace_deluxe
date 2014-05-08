@@ -253,7 +253,7 @@ public class TypedObjectValidationReportTest {
 	@Test
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
-		int maxmem = 1 + 44 + 1 + 44;
+		int maxmem = 8 + 64 + 8 + 64;
 		TempFilesManager tfm = TempFilesManager.forTests();
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
@@ -271,11 +271,13 @@ public class TypedObjectValidationReportTest {
 			assertThat("cause was too many keys", r.getCause(),
 					is(TooManyKeysException.class));
 			assertThat("correct exception message", r.getLocalizedMessage(),
-					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+					is("Memory necessary for sorting map keys exceeds the limit " +
+					maxmem + " bytes at /. To deal with data with so many keys you have to sort them on client side."));
 		}
 		
 		//test with json stored in memory
-		maxmem += json.getBytes("UTF-8").length + 1;
+		int filelength = json.getBytes("UTF-8").length;
+		maxmem += filelength + 1;
 		fac = new UTF8JsonSorterFactory(maxmem);
 		tovr.sort(fac); //should work
 		maxmem--;
@@ -287,7 +289,9 @@ public class TypedObjectValidationReportTest {
 			assertThat("cause was too many keys", r.getCause(),
 					is(TooManyKeysException.class));
 			assertThat("correct exception message", r.getLocalizedMessage(),
-					is("Memory necessary for sorting map keys exceeds the limit 89 bytes at /. To deal with data with so many keys you have to sort them on client side."));
+					is("Memory necessary for sorting map keys exceeds the limit " +
+							(maxmem - filelength) + 
+							" bytes at /. To deal with data with so many keys you have to sort them on client side."));
 		}
 	}
 }
