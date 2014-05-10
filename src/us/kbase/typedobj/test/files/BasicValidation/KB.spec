@@ -94,6 +94,31 @@ module KB {
 		i6 i6;
 	} NumberObj;
 
+	/* @range [-98765432101234567890,98765432101234567890] */
+	typedef int bi1;
+	/* @range (-98765432101234567890,98765432101234567890) */
+	typedef int bi2;
+	/* @range (-98765432101234567890, */
+	typedef int bi3;
+	/* @range ,98765432101234567890) */
+	typedef int bi4;
+	/* @range [-98765432101234567890, */
+	typedef int bi5;
+	/* @range ,98765432101234567890] */
+	typedef int bi6;
+	
+	/*@range [0,1.0e99]*/
+	typedef float bf1;
+	
+	/* @optional i1 i2 i3 i4 i5 i6 */
+	typedef structure {
+		bi1 i1;
+		bi2 i2;
+		bi3 i3;
+		bi4 i4;
+		bi5 i5;
+		bi6 i6;
+	} BigNumberObj;
 
 	typedef structure {
 		tuple <string,int,mapping<string,int>,float> t;
