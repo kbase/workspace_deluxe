@@ -535,7 +535,6 @@ public class JsonTokenValidationSchema {
 			minValue=0; maxValue=0; 
 			if(data.get("minimum") != null) {
 				minValueDefined = true;
-				System.out.println("got min:" + data.get("minimum") + " isa "+data.get("minimum").getClass());
 				minValue = Double.parseDouble("" + data.get("minimum"));
 				if(data.get("exclusiveMinimum") != null)
 					exclusiveMin = true;
@@ -544,7 +543,6 @@ public class JsonTokenValidationSchema {
 			}
 			if(data.get("maximum") != null) {
 				maxValueDefined = true;
-				System.out.println("got max:" + data.get("maximum") + " isa "+data.get("maximum").getClass());
 				maxValue = Double.parseDouble("" + data.get("maximum"));
 				if(data.get("exclusiveMaximum") != null)
 					exclusiveMax = true;
@@ -617,7 +615,6 @@ public class JsonTokenValidationSchema {
 			minValue=0; maxValue=0; 
 			if(data.get("minimum") != null) {
 				minValueDefined = true;
-				System.out.println("got int min:" + data.get("minimum") + " isa "+data.get("minimum").getClass());
 				try {
 					minValue = Long.parseLong("" + data.get("minimum"));
 				} catch (NumberFormatException e) {
@@ -630,7 +627,6 @@ public class JsonTokenValidationSchema {
 			}
 			if(data.get("maximum") != null) {
 				maxValueDefined = true;
-				System.out.println("got int max:" + data.get("maximum") + " isa "+data.get("maximum").getClass());
 				try {
 					maxValue = Long.parseLong("" + data.get("maximum"));
 				} catch (NumberFormatException e) {
