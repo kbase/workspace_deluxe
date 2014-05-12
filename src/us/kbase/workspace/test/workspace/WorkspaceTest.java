@@ -3796,13 +3796,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("refs", Arrays.asList("refstarget1/deletedref"));
 		ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delrefptr"),
-						mtdata, SAFE_TYPE1, null, p1, false)));
+						refdata, reftype, null, p1, false)));
 		ws.setObjectsDeleted(user1, Arrays.asList(
 				new ObjectIdentifier(wsisrc1, "delrefptr")), true);
 		refdata.put("refs", Arrays.asList("refstarget1/unreadableref"));
 		ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadrefptr"),
-						mtdata, SAFE_TYPE1, null, p1, false)));
+						refdata, reftype, null, p1, false)));
 		
 		ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedprovrefptr"),
