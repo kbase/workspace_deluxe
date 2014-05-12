@@ -2756,6 +2756,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean includeHidden, final boolean includeDeleted,
 			final boolean onlyIncludeDeleted, final boolean includeAllVers)
 			throws WorkspaceCommunicationException {
+		final Map<Map<String, Object>, ObjectInformation> ret =
+				new HashMap<Map<String, Object>, ObjectInformation>();
+		if (verobjs.isEmpty()) {
+			return ret;
+		}
 		final Map<Long, ResolvedWorkspaceID> ids =
 				new HashMap<Long, ResolvedWorkspaceID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
@@ -2777,8 +2782,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<Long, Map<Long, Map<String, Object>>> objdata =
 				organizeObjData(query.queryCollection(
 						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
-		final Map<Map<String, Object>, ObjectInformation> ret =
-				new HashMap<Map<String, Object>, ObjectInformation>();
 		for (final Map<String, Object> vo: verobjs) {
 			final long wsid = (Long) vo.get(Fields.VER_WS_ID);
 			final long id = (Long) vo.get(Fields.VER_ID);
