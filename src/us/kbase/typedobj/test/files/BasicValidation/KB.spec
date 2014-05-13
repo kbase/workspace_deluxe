@@ -62,8 +62,6 @@ module KB {
 	typedef float f4;
 	/* @range 0, */
 	typedef float f5;
-	/* @range 1, */
-	typedef float f5;
 
 	/* @range [5,] */
 	typedef int i1;
@@ -119,7 +117,7 @@ module KB {
 		bi5 i5;
 		bi6 i6;
 	} BigNumberObj;
-
+	
 	typedef structure {
 		tuple <string,int,mapping<string,int>,float> t;
 	} TupleObject;

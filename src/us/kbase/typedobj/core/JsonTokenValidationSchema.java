@@ -1,7 +1,9 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -618,7 +620,17 @@ public class JsonTokenValidationSchema {
 				try {
 					minValue = Long.parseLong("" + data.get("minimum"));
 				} catch (NumberFormatException e) {
-					bigMin = new BigInteger(data.get("minimum").toString());
+					try {
+						bigMin = new BigInteger(data.get("minimum").toString());
+					} catch (NumberFormatException e2) {
+						BigDecimal d = new BigDecimal(data.get("minimum").toString());
+						BigDecimal d2 = d.setScale(0, RoundingMode.CEILING);
+						if(d2.compareTo(d)!=0) {
+							// we cannot be exclusive if we had to round...
+							data.put("exclusiveMinimum",null);
+						}
+						bigMin = d2.toBigInteger();
+					}
 				}
 				if(data.get("exclusiveMinimum") != null)
 					exclusiveMin = true;
@@ -630,7 +642,18 @@ public class JsonTokenValidationSchema {
 				try {
 					maxValue = Long.parseLong("" + data.get("maximum"));
 				} catch (NumberFormatException e) {
-					bigMax = new BigInteger(data.get("maximum").toString());
+					try {
+						bigMax = new BigInteger(data.get("maximum").toString());
+					} catch (NumberFormatException e2) {
+						BigDecimal d = new BigDecimal(data.get("maximum").toString());
+						BigDecimal d2 = d.setScale(0, RoundingMode.FLOOR);
+						if(d2.compareTo(d)!=0) {
+							// we cannot be exclusive if we had to round...
+							data.put("exclusiveMaximum",null);
+						}
+						bigMax = d2.toBigInteger();
+					}
+					
 				}
 				if(data.get("exclusiveMaximum") != null)
 					exclusiveMax = true;
