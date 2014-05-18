@@ -6562,9 +6562,10 @@ an int
 =item Description
 
 A string used as a name for a workspace.
-Any string consisting of alphanumeric characters and "_" that is not an
-integer is acceptable. The name may optionally be prefixed with the
-workspace owner's user name and a colon, e.g. kbasetest:my_workspace.
+Any string consisting of alphanumeric characters and "_", ".", or "-"
+that is not an integer is acceptable. The name may optionally be
+prefixed with the workspace owner's user name and a colon, e.g.
+kbasetest:my_workspace.
 
 
 =item Definition
