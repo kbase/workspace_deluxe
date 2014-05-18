@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.2.0 (Released 5/12/14)
+VERSION: 0.2.0 (Released 5/18/14)
 --------------------------------------
 PREAMBLE:
 v0.2.0 is a complete rewrite of the data path through the workspace, including
