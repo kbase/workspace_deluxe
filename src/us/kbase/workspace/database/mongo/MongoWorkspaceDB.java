@@ -208,7 +208,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, TempFilesManager tfm)
 			throws UnknownHostException, IOException, InvalidHostException,
-			WorkspaceDBException, TypeStorageException {
+			WorkspaceDBException, TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database);
@@ -232,7 +232,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String password, TempFilesManager tfm)
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
-			MongoAuthException {
+			MongoAuthException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);
@@ -258,7 +258,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String typeDBdir, TempFilesManager tfm)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
-			TypeStorageException {
+			TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = GetMongoDB.getDB(host, database, user, password);

@@ -32,6 +32,13 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.AppenderBase;
+
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.auth.AuthException;
@@ -157,6 +164,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (TypeStorageException tse) {
 			fail("There was a problem setting up the type storage system: " +
 					tse.getLocalizedMessage());
+		} catch (InterruptedException ie) {
+			fail("Connection to MongoDB was interrupted. This should never " +
+					"happen and indicates a programming problem. Error: " +
+					ie.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -220,6 +231,36 @@ public class WorkspaceServer extends JsonServerServlet {
 		ws.setResourceConfig(cfg);
 	}
 	
+	public void setUpLogger() {
+		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
+				.setLevel(Level.OFF);
+		final Logger kbaseRootLogger = (Logger) LoggerFactory.getLogger(
+				"us.kbase");
+		//would be better to also set the level here on calls to the server
+		//setLogLevel, but meh for now
+		kbaseRootLogger.setLevel(Level.ALL);
+		final AppenderBase<ILoggingEvent> kbaseAppender =
+				new AppenderBase<ILoggingEvent>() {
+
+			@Override
+			protected void append(final ILoggingEvent event) {
+				//for now only INFO is tested; test others as they're needed
+				Level l = event.getLevel();
+				if (l.equals(Level.TRACE)) {
+					logDebug(event.getFormattedMessage(), 3);
+				} else if (l.equals(Level.DEBUG)) {
+					logDebug(event.getFormattedMessage());
+				} else if (l.equals(Level.INFO) || l.equals(Level.WARN)) {
+					logInfo(event.getFormattedMessage());
+				} else if (l.equals(Level.ERROR)) {
+					logErr(event.getFormattedMessage());
+				}
+			}
+		};
+		kbaseAppender.start();
+		kbaseRootLogger.addAppender(kbaseAppender);
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -275,11 +316,13 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (pwd != null) {
 				params += PWD + "=[redacted for your safety and comfort]\n";
 			}
-			System.out.println("Using connection parameters:\n" + params);
-			logInfo("Using connection parameters:\n" + params);
+			System.out.println("Starting server using connection parameters:\n"
+					+ params);
+			logInfo("Starting server using connection parameters:\n" + params);
 			System.out.println("Temporary file location: "
 					+ tfm.getTempDir());
 			logInfo("Temporary file location: " + tfm.getTempDir());
+			setUpLogger();
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
