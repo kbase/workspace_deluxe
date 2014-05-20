@@ -206,12 +206,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, TempFilesManager tfm)
+			final String backendSecret, final TempFilesManager tfm, 
+			final int mongoRetryCount)
 			throws UnknownHostException, IOException, InvalidHostException,
 			WorkspaceDBException, TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database);
+		wsmongo = GetMongoDB.getDB(host, database, mongoRetryCount, 10);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -229,13 +230,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
-			final String password, TempFilesManager tfm)
+			final String password, final TempFilesManager tfm,
+			final int mongoRetryCount)
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
 			MongoAuthException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database, user, password);
+		wsmongo = GetMongoDB.getDB(host, database, user, password,
+				mongoRetryCount, 10);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -255,13 +258,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
 			final String password, final String kidlpath,
-			final String typeDBdir, TempFilesManager tfm)
+			final String typeDBdir, final TempFilesManager tfm)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
 			TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database, user, password);
+		wsmongo = GetMongoDB.getDB(host, database, user, password, 0, 0);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);

@@ -119,8 +119,12 @@ public class WorkspaceServer extends JsonServerServlet {
 	//mongo db auth params:
 	private static final String USER = "mongodb-user";
 	private static final String PWD = "mongodb-pwd";
+	//mongo connection attempt limit
+	private static final String MONGO_RECONNECT = "mongodb-retry";
+	
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
+	
 	
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
@@ -140,12 +144,14 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd,
-			final TempFilesManager tfm) {
+			final TempFilesManager tfm, final int mongoReconnectRetry) {
 		try {
 			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm);
+				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm,
+						mongoReconnectRetry);
 			} else {
-				return new MongoWorkspaceDB(host, dbs, secret, tfm);
+				return new MongoWorkspaceDB(host, dbs, secret, tfm,
+						mongoReconnectRetry);
 			}
 		} catch (UnknownHostException uhe) {
 			fail("Couldn't find mongo host " + host + ": " +
@@ -261,6 +267,27 @@ public class WorkspaceServer extends JsonServerServlet {
 		kbaseRootLogger.addAppender(kbaseAppender);
 	}
 	
+	private int getReconnectCount() {
+		final String rec = wsConfig.get(MONGO_RECONNECT);
+		Integer recint = null;
+		try {
+			recint = Integer.parseInt(rec); 
+		} catch (NumberFormatException nfe) {
+			//do nothing
+		}
+		if (recint == null) {
+			logInfo("Couldn't parse MongoDB reconnect value to an integer: " +
+					rec + ", using 0");
+			recint = 0;
+		} else if (recint < 0) {
+			logInfo("MongoDB reconnect value is < 0 (" + recint + "), using 0");
+			recint = 0;
+		} else {
+			logInfo("MongoDB reconnect value is " + recint);
+		}
+		return recint;
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -323,7 +350,9 @@ public class WorkspaceServer extends JsonServerServlet {
 					+ tfm.getTempDir());
 			logInfo("Temporary file location: " + tfm.getTempDir());
 			setUpLogger();
-			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd, tfm);
+			final int mongoConnectRetry = getReconnectCount();
+			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd,
+					tfm, mongoConnectRetry);
 			if (db == null) {
 				fail("Server startup failed - all calls will error out.");
 				ws = null;
