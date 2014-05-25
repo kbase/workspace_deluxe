@@ -251,7 +251,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			@Override
 			protected void append(final ILoggingEvent event) {
 				//for now only INFO is tested; test others as they're needed
-				Level l = event.getLevel();
+				final Level l = event.getLevel();
 				if (l.equals(Level.TRACE)) {
 					logDebug(event.getFormattedMessage(), 3);
 				} else if (l.equals(Level.DEBUG)) {

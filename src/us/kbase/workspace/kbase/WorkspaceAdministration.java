@@ -176,6 +176,7 @@ public class WorkspaceAdministration {
 			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
 					+ " may not be null");
 		}
+		//TODO 1 check with Roman that this won't instantiate UObjects. Pretty sure that's the case.
 		return UObject.transformObjectToObject(input.get("params"), clazz);
 	}
 	

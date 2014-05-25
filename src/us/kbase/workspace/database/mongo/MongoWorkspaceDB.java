@@ -1826,7 +1826,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private class VerCount {
+	private static class VerCount {
 		final public int ver;
 		final public int count;
 
@@ -1844,38 +1844,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result + count;
 			result = prime * result + ver;
 			return result;
 		}
-		
+
 		@Override
 		public boolean equals(Object obj) {
-			if (this == obj) {
+			if (this == obj)
 				return true;
-			}
-			if (obj == null) {
+			if (obj == null)
 				return false;
-			}
-			if (!(obj instanceof VerCount)) {
+			if (getClass() != obj.getClass())
 				return false;
-			}
 			VerCount other = (VerCount) obj;
-			if (!getOuterType().equals(other.getOuterType())) {
+			if (count != other.count)
 				return false;
-			}
-			if (count != other.count) {
+			if (ver != other.ver)
 				return false;
-			}
-			if (ver != other.ver) {
-				return false;
-			}
 			return true;
-		}
-
-		private MongoWorkspaceDB getOuterType() {
-			return MongoWorkspaceDB.this;
 		}
 	}
 	
