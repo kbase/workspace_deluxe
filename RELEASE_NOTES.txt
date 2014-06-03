@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.2.0 (Released 5/6/14)
+VERSION: 0.2.0 (Released 5/18/14)
 --------------------------------------
 PREAMBLE:
 v0.2.0 is a complete rewrite of the data path through the workspace, including
@@ -41,12 +41,14 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where get_object_subdata would return the same subdata if two
   different paths through the same object were specified.
 - Command-line interface default URLs are configurable via the makefile.
-- ws-workspace and ws-url now work against the User and Job Service when in
-  IRIS.
+- ws-workspace and ws-url now work against the User and Job State Service when
+  in IRIS.
 - The characters . and - are now allowed in workspace names.
 - Parallel GC has been re-enabled.
 - Updating a searchable ws or id annotation in a type definition now results
   in a major version increment instead of a minor version increment.
+- Fixed a bug where get_referencing_objects would throw an error if an object
+  has no references.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of

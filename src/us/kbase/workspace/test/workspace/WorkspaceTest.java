@@ -3861,23 +3861,73 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 
 		Map<String, Object> mtdata = new HashMap<String, Object>();
+		Provenance p1 = new Provenance(user1);
 		
+		//test objects with no references or no accessible references
 		ws.saveObjects(user1, wsitar1, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
-						meta1, new Provenance(user1), false),
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
-						meta2, new Provenance(user1), false),
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single"), mtdata, SAFE_TYPE1,
-						meta1, new Provenance(user1), false)));
-		ws.saveObjects(user2, wsitar2, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
-						meta1, new Provenance(user1), false),
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
-						meta2, new Provenance(user1), false),
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single2"), mtdata, SAFE_TYPE1,
-						meta1, new Provenance(user1), false)));
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("norefs"), mtdata,
+						SAFE_TYPE1, null, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedref"),
+						mtdata, SAFE_TYPE1, null, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadableref"),
+						mtdata, SAFE_TYPE1, null, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedprovref"),
+						mtdata, SAFE_TYPE1, null, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadableprovref"),
+						mtdata, SAFE_TYPE1, null, p1, false)));
 		
 		Map<String, Object> refdata = new HashMap<String, Object>();
+		
+		refdata.put("refs", Arrays.asList("refstarget1/deletedref"));
+		ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delrefptr"),
+						refdata, reftype, null, p1, false)));
+		ws.setObjectsDeleted(user1, Arrays.asList(
+				new ObjectIdentifier(wsisrc1, "delrefptr")), true);
+		refdata.put("refs", Arrays.asList("refstarget1/unreadableref"));
+		ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadrefptr"),
+						refdata, reftype, null, p1, false)));
+		
+		ws.saveObjects(user1, wsisrc1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedprovrefptr"),
+						mtdata, SAFE_TYPE1, null,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/deletedprovref"))),
+						false)));
+		ws.setObjectsDeleted(user1, Arrays.asList(
+				new ObjectIdentifier(wsisrc1, "deletedprovrefptr")), true);
+		ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadableprovrefptr"),
+						mtdata, SAFE_TYPE1, null,
+						new Provenance(user1).addAction(new ProvenanceAction()
+						.withWorkspaceObjects(Arrays.asList("refstarget1/unreadableprovref"))),
+						false)));
+		
+		List<Set<ObjectInformation>> mtrefs = new ArrayList<Set<ObjectInformation>>();
+		mtrefs.add(new HashSet<ObjectInformation>());
+		for (String name: Arrays.asList("norefs", "deletedref", "unreadableref",
+				"deletedprovref", "unreadableprovref")) {
+			assertThat("ref lists empty", ws.getReferencingObjects(user1,
+					Arrays.asList(new ObjectIdentifier(wsitar1, name))),
+					is(mtrefs));
+		}
+				
+		ws.saveObjects(user1, wsitar1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
+						meta1, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
+						meta2, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single"), mtdata, SAFE_TYPE1,
+						meta1, p1, false)));
+		ws.saveObjects(user2, wsitar2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
+						meta1, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
+						meta2, p1, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single2"), mtdata, SAFE_TYPE1,
+						meta1, p1, false)));
+		
 		refdata.put("refs", Arrays.asList("refstarget1/stk/1"));
 		ObjectInformation stdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,

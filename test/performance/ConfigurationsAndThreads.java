@@ -157,7 +157,8 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
-		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
+		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
+				password, TempFilesManager.forTests(), 0),
 				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
@@ -459,7 +460,7 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests()),
+			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests(), 0),
 					new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
@@ -513,7 +514,7 @@ public class ConfigurationsAndThreads {
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB),
+			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0),
 					"temp_shock_node_map", shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit

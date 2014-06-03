@@ -207,12 +207,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	public MongoWorkspaceDB(final String host, final String database,
-			final String backendSecret, TempFilesManager tfm)
+			final String backendSecret, final TempFilesManager tfm, 
+			final int mongoRetryCount)
 			throws UnknownHostException, IOException, InvalidHostException,
-			WorkspaceDBException, TypeStorageException {
+			WorkspaceDBException, TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database);
+		wsmongo = GetMongoDB.getDB(host, database, mongoRetryCount, 10);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -230,13 +231,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
-			final String password, TempFilesManager tfm)
+			final String password, final TempFilesManager tfm,
+			final int mongoRetryCount)
 			throws UnknownHostException, WorkspaceDBException,
 			TypeStorageException, IOException, InvalidHostException,
-			MongoAuthException {
+			MongoAuthException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database, user, password);
+		wsmongo = GetMongoDB.getDB(host, database, user, password,
+				mongoRetryCount, 10);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -256,13 +259,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public MongoWorkspaceDB(final String host, final String database,
 			final String backendSecret, final String user,
 			final String password, final String kidlpath,
-			final String typeDBdir, TempFilesManager tfm)
+			final String typeDBdir, final TempFilesManager tfm)
 			throws UnknownHostException, IOException,
 			WorkspaceDBException, InvalidHostException, MongoAuthException,
-			TypeStorageException {
+			TypeStorageException, InterruptedException {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
-		wsmongo = GetMongoDB.getDB(host, database, user, password);
+		wsmongo = GetMongoDB.getDB(host, database, user, password, 0, 0);
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -1827,7 +1830,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private class VerCount {
+	private static class VerCount {
 		final public int ver;
 		final public int count;
 
@@ -1845,38 +1848,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result + count;
 			result = prime * result + ver;
 			return result;
 		}
-		
+
 		@Override
 		public boolean equals(Object obj) {
-			if (this == obj) {
+			if (this == obj)
 				return true;
-			}
-			if (obj == null) {
+			if (obj == null)
 				return false;
-			}
-			if (!(obj instanceof VerCount)) {
+			if (getClass() != obj.getClass())
 				return false;
-			}
 			VerCount other = (VerCount) obj;
-			if (!getOuterType().equals(other.getOuterType())) {
+			if (count != other.count)
 				return false;
-			}
-			if (count != other.count) {
+			if (ver != other.ver)
 				return false;
-			}
-			if (ver != other.ver) {
-				return false;
-			}
 			return true;
-		}
-
-		private MongoWorkspaceDB getOuterType() {
-			return MongoWorkspaceDB.this;
 		}
 	}
 	
@@ -2760,6 +2750,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean includeHidden, final boolean includeDeleted,
 			final boolean onlyIncludeDeleted, final boolean includeAllVers)
 			throws WorkspaceCommunicationException {
+		final Map<Map<String, Object>, ObjectInformation> ret =
+				new HashMap<Map<String, Object>, ObjectInformation>();
+		if (verobjs.isEmpty()) {
+			return ret;
+		}
 		final Map<Long, ResolvedWorkspaceID> ids =
 				new HashMap<Long, ResolvedWorkspaceID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
@@ -2781,8 +2776,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<Long, Map<Long, Map<String, Object>>> objdata =
 				organizeObjData(query.queryCollection(
 						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
-		final Map<Map<String, Object>, ObjectInformation> ret =
-				new HashMap<Map<String, Object>, ObjectInformation>();
 		for (final Map<String, Object> vo: verobjs) {
 			final long wsid = (Long) vo.get(Fields.VER_WS_ID);
 			final long id = (Long) vo.get(Fields.VER_ID);

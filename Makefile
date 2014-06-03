@@ -194,6 +194,20 @@ deploy-service-scripts:
 		$(TARGET) $(JAVA_HOME) deploy.cfg $(ASADMIN) $(SERVICE_CAPS)\
 		$(SERVICE_PORT)
 
+deploy-upstart:
+	echo "# $(SERVICE) service" > /etc/init/$(SERVICE).conf
+	echo "# NOTE: stop $(SERVICE) does not work" >> /etc/init/$(SERVICE).conf
+	echo "# Use the standard stop_service script as the kbase user" >> /etc/init/$(SERVICE).conf
+	echo "#" >> /etc/init/$(SERVICE).conf
+	echo "# Make sure to set up the kbase user account" >> /etc/init/$(SERVICE).conf
+	echo "# shell> groupadd kbase" >> /etc/init/$(SERVICE).conf
+	echo "# shell> useradd -r -g kbase kbase" >> /etc/init/$(SERVICE).conf
+	echo "#" >> /etc/init/$(SERVICE).conf
+	echo "start on runlevel [23] and started shock" >> /etc/init/$(SERVICE).conf 
+	echo "stop on runlevel [!23]" >> /etc/init/$(SERVICE).conf 
+	echo "pre-start exec chown -R kbase $(TARGET)/services/$(SERVICE)" >> /etc/init/$(SERVICE).conf 
+	echo "exec su kbase -c '$(TARGET)/services/$(SERVICE)/start_service'" >> /etc/init/$(SERVICE).conf 
+
 undeploy:
 	-rm -rf $(SERVICE_DIR)
 	-rm -rfv $(TARGET)/lib/Bio/KBase/$(SERVICE)
