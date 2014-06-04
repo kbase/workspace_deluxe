@@ -106,6 +106,13 @@ module KB {
 	typedef int bi6;
 	
 	/*@range [0,1.0e99]*/
+	/*
+	note: this fails test only because perl encodes internally as 1.0e99 and java as 1.0E+99, which
+	are equivalent.  So the test check needs fixing, not the range handling.
+	typedef float bf1;
+	*/
+	
+	/*@range [0,1.0E+99]*/
 	typedef float bf1;
 	
 	/* @optional i1 i2 i3 i4 i5 i6 */
