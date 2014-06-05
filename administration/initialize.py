@@ -126,10 +126,16 @@ def _get_token(user_id, password,
     return tok['access_token']
 
 
-def configDB(wscfg):
+def configDB(wscfg, db):
     settings = {SHOCKURL: None, SHOCKUSER: None, BACKEND: None}
-    settings[TYPE_DB] = input(
-        'Please enter the name of the mongodb type database: ')
+    typedb = None
+    while not typedb:
+        typedb = input('Please enter the name of the mongodb type database: ')
+        if typedb == wscfg[MODB]:
+            print('The type database name cannot be the same as the ' +
+                  'workspace database name: ' + wscfg[MODB])
+            typedb = None
+    settings[TYPE_DB] = typedb
     backend = getinput('Choose a backend: ', ('s', SHOCK), {'g': GFS})
     if backend == 's':
         settings[BACKEND] = SHOCK
@@ -163,7 +169,7 @@ def configDB(wscfg):
     print()
 
 
-if __name__ == '__main__':
+def main():
     d, program = os.path.split(os.path.abspath(__file__))
     wd, setup = os.path.split(d)
     if os.path.basename(wd) != MODULEDIR or setup != SETUPDIR:
@@ -243,10 +249,13 @@ mad.''')
                 break
             if n == len(prompts) - 1:
                 print('Ok, on your head be it.')
-                configDB(wscfg)
+                configDB(wscfg, db)
     else:
-        configDB(wscfg)
+        configDB(wscfg, db)
     print('Saving local configuration file:')
     printcfg(cfg, CONFIGHEADER)
     cfg.write()
     print('\nConfiguration saved.')
+
+if __name__ == '__main__':
+    main()
