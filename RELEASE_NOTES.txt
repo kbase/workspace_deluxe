@@ -27,7 +27,8 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - the initialization script will no longer allow setting the mongo typedb
-  name to the workspace type db name
+  name to the workspace type db name, and the server will refuse to start up
+  if such is the case.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of

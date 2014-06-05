@@ -372,6 +372,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			throw (CorruptWorkspaceDBException) ex;
 		}
+		if (wsmongo.getName().equals(wsSettings.getTypeDatabase())) {
+			throw new CorruptWorkspaceDBException(
+					"The type database name is the same as the workspace database name: "
+					+ wsmongo.getName());
+		}
 		return wsSettings;
 	}
 
