@@ -1,6 +1,7 @@
 package us.kbase.workspace.kbase;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -162,8 +163,17 @@ public class WorkspaceAdministration {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
-		if (!AuthService.isValidUserName(Arrays.asList(user),
-				token).get(user)) {
+		final boolean validUser;
+		try {
+			validUser = AuthService.isValidUserName(Arrays.asList(user),
+					token).get(user);
+		} catch (UnknownHostException uhe) {
+			//message from UHE is only the host name
+			throw new AuthException(
+					"Could not contact Authorization Service host to validate user name: "
+							+ uhe.getMessage(), uhe);
+		}
+		if (!validUser) {
 			throw new IllegalArgumentException(user +
 					" is not a valid KBase user");
 		}
