@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         modulename mod - the name of the module.
  *         list<spec_version> - a set or subset of versions associated with the
  *                 module.
+ *         list<spec_version> - a set or subset of released versions associated 
+ *                 with the module.
  * </pre>
  * 
  */
@@ -26,7 +28,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "mod",
-    "vers"
+    "vers",
+    "released_vers"
 })
 public class ModuleVersions {
 
@@ -34,6 +37,8 @@ public class ModuleVersions {
     private String mod;
     @JsonProperty("vers")
     private List<Long> vers;
+    @JsonProperty("released_vers")
+    private List<Long> releasedVers;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("mod")
@@ -66,6 +71,21 @@ public class ModuleVersions {
         return this;
     }
 
+    @JsonProperty("released_vers")
+    public List<Long> getReleasedVers() {
+        return releasedVers;
+    }
+
+    @JsonProperty("released_vers")
+    public void setReleasedVers(List<Long> releasedVers) {
+        this.releasedVers = releasedVers;
+    }
+
+    public ModuleVersions withReleasedVers(List<Long> releasedVers) {
+        this.releasedVers = releasedVers;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -78,7 +98,7 @@ public class ModuleVersions {
 
     @Override
     public String toString() {
-        return ((((((("ModuleVersions"+" [mod=")+ mod)+", vers=")+ vers)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("ModuleVersions"+" [mod=")+ mod)+", vers=")+ vers)+", releasedVers=")+ releasedVers)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

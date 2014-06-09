@@ -1352,10 +1352,13 @@ module Workspace {
 		modulename mod - the name of the module.
 		list<spec_version> - a set or subset of versions associated with the
 			module.
+		list<spec_version> - a set or subset of released versions associated 
+			with the module.
 	*/
 	typedef structure {
 		modulename mod;
 		list<spec_version> vers;
+		list<spec_version> released_vers;
 	} ModuleVersions;
 	
 	/* List typespec module versions. */
@@ -1424,7 +1427,11 @@ module Workspace {
 		string spec_def - reconstruction of type definition from spec file.
 		list<spec_version> module_vers - versions of spec-files containing
 			given type version.
+		list<spec_version> released_module_vers - versions of released spec-files 
+			containing given type version.
 		list<type_string> type_vers - all versions of type with given type name.
+		list<type_string> released_type_vers - all released versions of type with 
+			given type name.
 		list<func_string> using_func_defs - list of functions (with versions)
 			referring to this type version.
 		list<type_string> using_type_defs - list of types (with versions)
@@ -1437,7 +1444,9 @@ module Workspace {
 		string description;
 		string spec_def;
 		list<spec_version> module_vers;
+		list<spec_version> released_module_vers;
 		list<type_string> type_vers;
+		list<type_string> released_type_vers;
 		list<func_string> using_func_defs;
 		list<type_string> using_type_defs;
 		list<type_string> used_type_defs;
@@ -1452,8 +1461,12 @@ module Workspace {
 		string spec_def - reconstruction of function definition from spec file.
 		list<spec_version> module_vers - versions of spec files containing
 			given func version.
+		list<spec_version> released_module_vers - released versions of spec files 
+			containing given func version.
 		list<func_string> func_vers - all versions of function with given type
 			name.
+		list<func_string> released_func_vers - all released versions of function 
+			with given type name.
 		list<type_string> used_type_defs - list of types (with versions) 
 			referred to from this function version.
 	*/
@@ -1462,7 +1475,9 @@ module Workspace {
 		string description;
 		string spec_def;
 		list<spec_version> module_vers;
+		list<spec_version> released_module_vers;
 		list<func_string> func_vers;
+		list<func_string> released_func_vers;
 		list<type_string> used_type_defs;
 	} FuncInfo;
 	

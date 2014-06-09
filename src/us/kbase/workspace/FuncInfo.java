@@ -21,8 +21,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         string spec_def - reconstruction of function definition from spec file.
  *         list<spec_version> module_vers - versions of spec files containing
  *                 given func version.
+ *         list<spec_version> released_module_vers - released versions of spec files 
+ *                 containing given func version.
  *         list<func_string> func_vers - all versions of function with given type
  *                 name.
+ *         list<func_string> released_func_vers - all released versions of function 
+ *                 with given type name.
  *         list<type_string> used_type_defs - list of types (with versions) 
  *                 referred to from this function version.
  * </pre>
@@ -35,7 +39,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "spec_def",
     "module_vers",
+    "released_module_vers",
     "func_vers",
+    "released_func_vers",
     "used_type_defs"
 })
 public class FuncInfo {
@@ -48,8 +54,12 @@ public class FuncInfo {
     private java.lang.String specDef;
     @JsonProperty("module_vers")
     private List<Long> moduleVers;
+    @JsonProperty("released_module_vers")
+    private List<Long> releasedModuleVers;
     @JsonProperty("func_vers")
     private List<String> funcVers;
+    @JsonProperty("released_func_vers")
+    private List<String> releasedFuncVers;
     @JsonProperty("used_type_defs")
     private List<String> usedTypeDefs;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -114,6 +124,21 @@ public class FuncInfo {
         return this;
     }
 
+    @JsonProperty("released_module_vers")
+    public List<Long> getReleasedModuleVers() {
+        return releasedModuleVers;
+    }
+
+    @JsonProperty("released_module_vers")
+    public void setReleasedModuleVers(List<Long> releasedModuleVers) {
+        this.releasedModuleVers = releasedModuleVers;
+    }
+
+    public FuncInfo withReleasedModuleVers(List<Long> releasedModuleVers) {
+        this.releasedModuleVers = releasedModuleVers;
+        return this;
+    }
+
     @JsonProperty("func_vers")
     public List<String> getFuncVers() {
         return funcVers;
@@ -126,6 +151,21 @@ public class FuncInfo {
 
     public FuncInfo withFuncVers(List<String> funcVers) {
         this.funcVers = funcVers;
+        return this;
+    }
+
+    @JsonProperty("released_func_vers")
+    public List<String> getReleasedFuncVers() {
+        return releasedFuncVers;
+    }
+
+    @JsonProperty("released_func_vers")
+    public void setReleasedFuncVers(List<String> releasedFuncVers) {
+        this.releasedFuncVers = releasedFuncVers;
+    }
+
+    public FuncInfo withReleasedFuncVers(List<String> releasedFuncVers) {
+        this.releasedFuncVers = releasedFuncVers;
         return this;
     }
 
@@ -156,7 +196,7 @@ public class FuncInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((("FuncInfo"+" [funcDef=")+ funcDef)+", description=")+ description)+", specDef=")+ specDef)+", moduleVers=")+ moduleVers)+", funcVers=")+ funcVers)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((("FuncInfo"+" [funcDef=")+ funcDef)+", description=")+ description)+", specDef=")+ specDef)+", moduleVers=")+ moduleVers)+", releasedModuleVers=")+ releasedModuleVers)+", funcVers=")+ funcVers)+", releasedFuncVers=")+ releasedFuncVers)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

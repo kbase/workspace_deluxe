@@ -7,20 +7,25 @@ public class TypeDetailedInfo {
 	private String description;
 	private String specDef;
 	private List<Long> moduleVersions;
+	private List<Long> releasedModuleVersions;
 	private List<String> typeVersions;
+	private List<String> releasedTypeVersions;
 	private List<String> usingFuncDefIds;
 	private List<String> usingTypeDefIds;
 	private List<String> usedTypeDefIds;
 	
 	public TypeDetailedInfo(String typeDefId, String description, String specDef, 
-			List<Long> moduleVersions, List<String> typeVersions, 
+			List<Long> moduleVersions, List<Long> releasedModuleVersions, 
+			List<String> typeVersions, List<String> releasedTypeVersions, 
 			List<String> usingFuncDefIds, List<String> usingTypeDefIds, 
 			List<String> usedTypeDefIds) {
 		this.typeDefId = typeDefId;
 		this.description = description;
 		this.specDef = specDef;
 		this.moduleVersions = moduleVersions;
+		this.releasedModuleVersions = releasedModuleVersions;
 		this.typeVersions = typeVersions;
+		this.releasedTypeVersions = releasedTypeVersions;
 		this.usingFuncDefIds = usingFuncDefIds;
 		this.usingTypeDefIds = usingTypeDefIds;
 		this.usedTypeDefIds = usedTypeDefIds;
@@ -42,8 +47,16 @@ public class TypeDetailedInfo {
 		return moduleVersions;
 	}
 	
+	public List<Long> getReleasedModuleVersions() {
+		return releasedModuleVersions;
+	}
+	
 	public List<String> getTypeVersions() {
 		return typeVersions;
+	}
+	
+	public List<String> getReleasedTypeVersions() {
+		return releasedTypeVersions;
 	}
 	
 	public List<String> getUsingFuncDefIds() {

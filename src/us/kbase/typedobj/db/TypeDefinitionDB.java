@@ -2503,18 +2503,22 @@ public class TypeDefinitionDB {
 		String moduleName = typeDef.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			return findModuleVersionsByTypeVersionNL(typeDef, isOwnerOfModule(moduleName, userId));
+			Map<Long, Boolean> verReleased = findModuleVersionsByTypeVersionNL(typeDef, isOwnerOfModule(moduleName, userId));
+			List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+			for (long moduleVersion : verReleased.keySet()) 
+				ret.add(new ModuleDefId(moduleName, moduleVersion));
+			return ret;
 		} finally {
 			releaseReadLock(moduleName);
 		}
 	}
 	
-	public List<ModuleDefId> findModuleVersionsByTypeVersionNL(TypeDefId typeDef, boolean isOwner) 
+	public Map<Long, Boolean> findModuleVersionsByTypeVersionNL(TypeDefId typeDef, boolean isOwner) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		String moduleName = typeDef.getType().getModule();
 		boolean withUnreleased = typeDef.isAbsolute() || isOwner;
 		typeDef = resolveTypeDefIdNL(typeDef, isOwner);
-		List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+		Map<Long, Boolean> ret = new TreeMap<Long, Boolean>();
 		Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForTypeVersion(moduleName, 
 				typeDef.getType().getName(), typeDef.getVerString());
 		if (withUnreleased && !isOwner) {
@@ -2524,13 +2528,15 @@ public class TypeDefinitionDB {
 					break;
 				}
 		}
-		for (long moduleVersion : moduleVersions.keySet()) 
-			if (withUnreleased || moduleVersions.get(moduleVersion))
-				ret.add(new ModuleDefId(moduleName, moduleVersion));
+		for (long moduleVersion : moduleVersions.keySet()) {
+			boolean isReleased = moduleVersions.get(moduleVersion);
+			if (withUnreleased || isReleased)
+				ret.put(moduleVersion, isReleased);
+		}
 		return ret;
 	}
 
-	private List<ModuleDefId> findModuleVersionsByFuncVersionNL(String moduleName, 
+	private Map<Long, Boolean> findModuleVersionsByFuncVersionNL(String moduleName, 
 			String funcName, String version) 
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		boolean withUnreleased = version != null;
@@ -2540,7 +2546,7 @@ public class TypeDefinitionDB {
 				throwNoSuchFuncException(moduleName, funcName, null);
 			version = sv.toString();
 		}
-		List<ModuleDefId> ret = new ArrayList<ModuleDefId>();
+		Map<Long, Boolean> ret = new TreeMap<Long, Boolean>();
 		Map<Long, Boolean> moduleVersions = storage.getModuleVersionsForFuncVersion(
 				moduleName, funcName, version);
 		if (withUnreleased) {
@@ -2550,9 +2556,11 @@ public class TypeDefinitionDB {
 					break;
 				}
 		}
-		for (long moduleVersion : moduleVersions.keySet()) 
-			if (withUnreleased || moduleVersions.get(moduleVersion))
-				ret.add(new ModuleDefId(moduleName, moduleVersion));
+		for (long moduleVersion : moduleVersions.keySet()) {
+			boolean isReleased = moduleVersions.get(moduleVersion);
+			if (withUnreleased || isReleased)
+				ret.put(moduleVersion, isReleased);
+		}
 		return ret;
 	}
 
@@ -2620,22 +2628,29 @@ public class TypeDefinitionDB {
 			KbTypedef parsing = getTypeParsingDocumentNL(typeDef, isOwner);
 			String description = parsing.getComment();
 			String typeName = typeDef.getType().getName();
-			List<ModuleDefId> moduleDefIds = findModuleVersionsByTypeVersionNL(typeDef, isOwner);
-			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(moduleDefIds.get(0).getModuleName(),
-					moduleDefIds.get(0).getVersion());
+			Map<Long, Boolean> moduleVerRelease = findModuleVersionsByTypeVersionNL(typeDef, isOwner);
+			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(typeDef.getType().getModule(),
+					moduleVerRelease.keySet().iterator().next());
 			Map<String, String> localUnregTypeToSpec = new LinkedHashMap<String, String>();
 			String specDef = "typedef " + getTypeSpecText(moduleName, parsing.getAliasType(), infoMap, 
 					localUnregTypeToSpec, markLinksInSpec) + " " + typeName + ";";
 			specDef = combineLocalUnregParts(description, specDef, localUnregTypeToSpec);
-			List<Long> moduleVersions = new ArrayList<Long>();
-			for (ModuleDefId moduleDef : moduleDefIds)
-				moduleVersions.add(moduleDef.getVersion());
+			List<Long> moduleVersions = new ArrayList<Long>(moduleVerRelease.keySet());
+			List<Long> releasedModuleVersions = new ArrayList<Long>();
+			for (long moduleVer : moduleVerRelease.keySet())
+				if (moduleVerRelease.get(moduleVer))
+					releasedModuleVersions.add(moduleVer);
 			Map<String, Boolean> semanticToReleased = 
 					storage.getAllTypeVersions(moduleName, typeName);
 			List<String> typeVersions = new ArrayList<String>();
-			for (String semantic : semanticToReleased.keySet())
+			List<String> releasedTypeVersions = new ArrayList<String>();
+			for (String semantic : semanticToReleased.keySet()) {
+				String typeVer = new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString();
 				if (semanticToReleased.get(semantic) || isOwner)
-					typeVersions.add(new TypeDefId(typeDef.getType().getTypeString(), semantic).getTypeString());
+					typeVersions.add(typeVer);
+				if (semanticToReleased.get(semantic))
+					releasedTypeVersions.add(typeVer);
+			}
 			String typeVer = typeDef.getVerString();
 			Set<RefInfo> funcRefs = getFuncRefsByRefNL(moduleName, typeName, typeVer, userId);
 			List<String> usingFuncDefIds = new ArrayList<String>();
@@ -2649,8 +2664,9 @@ public class TypeDefinitionDB {
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
-			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, 
-					moduleVersions, typeVersions, usingFuncDefIds, usingTypeDefIds, usedTypeDefIds);
+			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, moduleVersions, 
+					releasedModuleVersions, typeVersions, releasedTypeVersions, usingFuncDefIds, 
+					usingTypeDefIds, usedTypeDefIds);
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -2671,12 +2687,12 @@ public class TypeDefinitionDB {
 				}
 				version = sv.toString();
 			}
-			List<ModuleDefId> moduleDefIds = findModuleVersionsByFuncVersionNL(moduleName, funcName, version);
+			Map<Long, Boolean> moduleVerRelease = findModuleVersionsByFuncVersionNL(moduleName, funcName, version);
 			KbFuncdef parsing = getFuncParsingDocumentNL(moduleName, funcName, version);
 			String description = parsing.getComment();
 			parsing.getParameters();
 			Map<String, ModuleInfo> infoMap = getModuleInfoWithIncluded(
-					moduleDefIds.get(0).getModuleName(), moduleDefIds.get(0).getVersion());
+					moduleName, moduleVerRelease.keySet().iterator().next());
 			Map<String, String> localUnregTypeToSpec = new LinkedHashMap<String, String>();
 			String specDef = "funcdef " + funcName + "(" + getParamsSpecText(moduleName, 
 					parsing.getParameters(), infoMap, localUnregTypeToSpec, markLinksInSpec) + ") " +
@@ -2684,21 +2700,28 @@ public class TypeDefinitionDB {
 							infoMap, localUnregTypeToSpec, markLinksInSpec) + ") " +
 					"authentication " + parsing.getAuthentication() + ";";
 			specDef = combineLocalUnregParts(description, specDef, localUnregTypeToSpec);
-			List<Long> moduleVersions = new ArrayList<Long>();
-			for (ModuleDefId moduleDef : moduleDefIds)
-				moduleVersions.add(moduleDef.getVersion());
+			List<Long> moduleVersions = new ArrayList<Long>(moduleVerRelease.keySet());
+			List<Long> releasedModuleVersions = new ArrayList<Long>();
+			for (long moduleVer : moduleVerRelease.keySet())
+				if (moduleVerRelease.get(moduleVer))
+				releasedModuleVersions.add(moduleVer);
 			Map<String, Boolean> semanticToReleased = 
 					storage.getAllFuncVersions(moduleName, funcName);
 			List<String> funcVersions = new ArrayList<String>();
-			for (String semantic : semanticToReleased.keySet())
+			List<String> releasedFuncVersions = new ArrayList<String>();
+			for (String semantic : semanticToReleased.keySet()) {
 				if (semanticToReleased.get(semantic) || isOwner)
 					funcVersions.add(moduleName + "." + funcName + "-" + semantic);
+				if (semanticToReleased.get(semantic))
+					releasedFuncVersions.add(moduleName + "." + funcName + "-" + semantic);
+			}
 			Set<RefInfo> usedRefs = getFuncRefsByDepNL(moduleName, funcName, version, isOwner);
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
 			return new FuncDetailedInfo(moduleName + "." + funcName + "-" + version, 
-					description, specDef, moduleVersions, funcVersions, usedTypeDefIds);
+					description, specDef, moduleVersions, releasedModuleVersions, funcVersions, 
+					releasedFuncVersions, usedTypeDefIds);
 		} finally {
 			releaseReadLock(moduleName);
 		}

@@ -5416,6 +5416,7 @@ type_string is a string
 ModuleVersions is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
 	vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 spec_version is an int
 
 </pre>
@@ -5434,6 +5435,7 @@ type_string is a string
 ModuleVersions is a reference to a hash where the following keys are defined:
 	mod has a value which is a Workspace.modulename
 	vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 spec_version is an int
 
 
@@ -5887,7 +5889,9 @@ TypeInfo is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 	spec_def has a value which is a string
 	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 	type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+	released_type_vers has a value which is a reference to a list where each element is a Workspace.type_string
 	using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
 	using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
@@ -5908,7 +5912,9 @@ TypeInfo is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 	spec_def has a value which is a string
 	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 	type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+	released_type_vers has a value which is a reference to a list where each element is a Workspace.type_string
 	using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
 	using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
@@ -5992,7 +5998,9 @@ FuncInfo is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 	spec_def has a value which is a string
 	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 	func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+	released_func_vers has a value which is a reference to a list where each element is a Workspace.func_string
 	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 spec_version is an int
 type_string is a string
@@ -6011,7 +6019,9 @@ FuncInfo is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 	spec_def has a value which is a string
 	module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+	released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 	func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+	released_func_vers has a value which is a reference to a list where each element is a Workspace.func_string
 	used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 spec_version is an int
 type_string is a string
@@ -9221,6 +9231,8 @@ A set of versions from a module.
         modulename mod - the name of the module.
         list<spec_version> - a set or subset of versions associated with the
                 module.
+        list<spec_version> - a set or subset of released versions associated 
+                with the module.
 
 
 =item Definition
@@ -9231,6 +9243,7 @@ A set of versions from a module.
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
 vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 
 </pre>
 
@@ -9241,6 +9254,7 @@ vers has a value which is a reference to a list where each element is a Workspac
 a reference to a hash where the following keys are defined:
 mod has a value which is a Workspace.modulename
 vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 
 
 =end text
@@ -9372,7 +9386,11 @@ Information about a type
         string spec_def - reconstruction of type definition from spec file.
         list<spec_version> module_vers - versions of spec-files containing
                 given type version.
+        list<spec_version> released_module_vers - versions of released spec-files 
+                containing given type version.
         list<type_string> type_vers - all versions of type with given type name.
+        list<type_string> released_type_vers - all released versions of type with 
+                given type name.
         list<func_string> using_func_defs - list of functions (with versions)
                 referring to this type version.
         list<type_string> using_type_defs - list of types (with versions)
@@ -9391,7 +9409,9 @@ type_def has a value which is a Workspace.type_string
 description has a value which is a string
 spec_def has a value which is a string
 module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+released_type_vers has a value which is a reference to a list where each element is a Workspace.type_string
 using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
 using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
@@ -9407,7 +9427,9 @@ type_def has a value which is a Workspace.type_string
 description has a value which is a string
 spec_def has a value which is a string
 module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 type_vers has a value which is a reference to a list where each element is a Workspace.type_string
+released_type_vers has a value which is a reference to a list where each element is a Workspace.type_string
 using_func_defs has a value which is a reference to a list where each element is a Workspace.func_string
 using_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
@@ -9434,8 +9456,12 @@ Information about a function
         string spec_def - reconstruction of function definition from spec file.
         list<spec_version> module_vers - versions of spec files containing
                 given func version.
+        list<spec_version> released_module_vers - released versions of spec files 
+                containing given func version.
         list<func_string> func_vers - all versions of function with given type
                 name.
+        list<func_string> released_func_vers - all released versions of function 
+                with given type name.
         list<type_string> used_type_defs - list of types (with versions) 
                 referred to from this function version.
 
@@ -9450,7 +9476,9 @@ func_def has a value which is a Workspace.func_string
 description has a value which is a string
 spec_def has a value which is a string
 module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+released_func_vers has a value which is a reference to a list where each element is a Workspace.func_string
 used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 
 </pre>
@@ -9464,7 +9492,9 @@ func_def has a value which is a Workspace.func_string
 description has a value which is a string
 spec_def has a value which is a string
 module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
+released_module_vers has a value which is a reference to a list where each element is a Workspace.spec_version
 func_vers has a value which is a reference to a list where each element is a Workspace.func_string
+released_func_vers has a value which is a reference to a list where each element is a Workspace.func_string
 used_type_defs has a value which is a reference to a list where each element is a Workspace.type_string
 
 

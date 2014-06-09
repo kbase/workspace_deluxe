@@ -2123,9 +2123,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		TypeDetailedInfo info = ws.getTypeInfo("TestModule.Genome", false, null);
 		Assert.assertEquals("TestModule.Genome-2.0",info.getTypeDefId());
+		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
+		Assert.assertEquals(2, info.getReleasedTypeVersions().size());
 		info = ws.getTypeInfo("TestModule.Feature", false, null);
 		Assert.assertEquals("TestModule.Feature-1.0",info.getTypeDefId());
-		Assert.assertEquals(1, ws.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo")).getUsingFuncDefIds().size());
+		Assert.assertEquals(2, info.getReleasedModuleVersions().size());
+		Assert.assertEquals(1, info.getReleasedTypeVersions().size());
+		TypeDetailedInfo info2 = ws.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo"));
+		Assert.assertEquals(1, info2.getUsingFuncDefIds().size());
+		Assert.assertEquals(1, info2.getModuleVersions().size());
+		Assert.assertEquals(1, info2.getTypeVersions().size());
+		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
+		Assert.assertEquals(0, info2.getReleasedTypeVersions().size());
 	}
 	
 	@Test
@@ -2141,9 +2150,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		} catch (NoSuchFuncException e) {}
 		FuncDetailedInfo info = ws.getFuncInfo("TestModule.getFeature", false, null);
 		Assert.assertEquals("TestModule.getFeature-2.0",info.getFuncDefId());
+		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
+		Assert.assertEquals(2, info.getReleasedFuncVersions().size());
 		info = ws.getFuncInfo("TestModule.getGenome-1.0", false, null);
 		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
-		Assert.assertEquals(1, ws.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo")).getUsedTypeDefIds().size());
+		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
+		Assert.assertEquals(1, info.getReleasedFuncVersions().size());
+		FuncDetailedInfo info2 = ws.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo"));
+		Assert.assertEquals(1, info2.getUsedTypeDefIds().size());
+		Assert.assertEquals(1, info2.getModuleVersions().size());
+		Assert.assertEquals(1, info2.getFuncVersions().size());
+		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
+		Assert.assertEquals(0, info2.getReleasedFuncVersions().size());
 	}
 	
 	private void setUpCopyWorkspaces(WorkspaceUser user1, WorkspaceUser user2,

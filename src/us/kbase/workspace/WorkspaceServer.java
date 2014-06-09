@@ -1576,7 +1576,9 @@ public class WorkspaceServer extends JsonServerServlet {
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
         		.withModuleVers(tdi.getModuleVersions())
+        		.withReleasedModuleVers(tdi.getReleasedModuleVersions())
         		.withTypeVers(tdi.getTypeVersions())
+        		.withReleasedTypeVers(tdi.getReleasedTypeVersions())
         		.withUsingFuncDefs(tdi.getUsingFuncDefIds())
         		.withUsingTypeDefs(tdi.getUsingTypeDefIds())
         		.withUsedTypeDefs(tdi.getUsedTypeDefIds());
@@ -1600,7 +1602,9 @@ public class WorkspaceServer extends JsonServerServlet {
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
         		.withModuleVers(fdi.getModuleVersions())
+        		.withReleasedModuleVers(fdi.getReleasedModuleVersions())
         		.withFuncVers(fdi.getFuncVersions())
+        		.withReleasedFuncVers(fdi.getReleasedFuncVersions())
         		.withUsedTypeDefs(fdi.getUsedTypeDefIds());
         //END get_func_info
         return returnVal;
