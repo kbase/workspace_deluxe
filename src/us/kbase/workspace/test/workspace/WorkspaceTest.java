@@ -2135,6 +2135,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Assert.assertEquals(1, info2.getTypeVersions().size());
 		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
 		Assert.assertEquals(0, info2.getReleasedTypeVersions().size());
+		Assert.assertTrue(info2.getJsonSchema().contains("kidl-structure"));
+		Assert.assertTrue(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Typedef"));
 	}
 	
 	@Test
@@ -2162,6 +2164,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Assert.assertEquals(1, info2.getFuncVersions().size());
 		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
 		Assert.assertEquals(0, info2.getReleasedFuncVersions().size());
+		Assert.assertTrue(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Funcdef"));
 	}
 	
 	private void setUpCopyWorkspaces(WorkspaceUser user1, WorkspaceUser user2,

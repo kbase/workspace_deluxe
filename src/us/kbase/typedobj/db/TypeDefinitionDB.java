@@ -2664,9 +2664,13 @@ public class TypeDefinitionDB {
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
-			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, moduleVersions, 
-					releasedModuleVersions, typeVersions, releasedTypeVersions, usingFuncDefIds, 
-					usingTypeDefIds, usedTypeDefIds);
+			String jsonSchema = getJsonSchemaDocumentNL(typeDef, userId);
+			String parsingStructure = mapper.writeValueAsString(parsing.toJson());
+			return new TypeDetailedInfo(typeDef.getTypeString(), description, specDef, jsonSchema, 
+					parsingStructure, moduleVersions, releasedModuleVersions, typeVersions, 
+					releasedTypeVersions, usingFuncDefIds, usingTypeDefIds, usedTypeDefIds);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Unxpected error", e);
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -2719,9 +2723,12 @@ public class TypeDefinitionDB {
 			List<String> usedTypeDefIds = new ArrayList<String>();
 			for (RefInfo ref : usedRefs)
 				usedTypeDefIds.add(ref.getRefModule() + "." + ref.getRefName() + "-" + ref.getRefVersion());
+			String parsingStructure = mapper.writeValueAsString(parsing.toJson());
 			return new FuncDetailedInfo(moduleName + "." + funcName + "-" + version, 
-					description, specDef, moduleVersions, releasedModuleVersions, funcVersions, 
-					releasedFuncVersions, usedTypeDefIds);
+					description, specDef, parsingStructure, moduleVersions, releasedModuleVersions, 
+					funcVersions, releasedFuncVersions, usedTypeDefIds);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Unxpected error", e);
 		} finally {
 			releaseReadLock(moduleName);
 		}

@@ -1046,6 +1046,23 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_all_type_info</p>
+     * <pre>
+     * </pre>
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
+     * @return   instance of list of type {@link us.kbase.workspace.TypeInfo TypeInfo}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<TypeInfo> getAllTypeInfo(String mod) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(mod);
+        TypeReference<List<List<TypeInfo>>> retType = new TypeReference<List<List<TypeInfo>>>() {};
+        List<List<TypeInfo>> res = caller.jsonrpcCall("Workspace.get_all_type_info", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_func_info</p>
      * <pre>
      * </pre>
@@ -1059,6 +1076,23 @@ public class WorkspaceClient {
         args.add(func);
         TypeReference<List<FuncInfo>> retType = new TypeReference<List<FuncInfo>>() {};
         List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_all_func_info</p>
+     * <pre>
+     * </pre>
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
+     * @return   parameter "info" of list of type {@link us.kbase.workspace.FuncInfo FuncInfo}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<FuncInfo> getAllFuncInfo(String mod) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(mod);
+        TypeReference<List<List<FuncInfo>>> retType = new TypeReference<List<List<FuncInfo>>>() {};
+        List<List<FuncInfo>> res = caller.jsonrpcCall("Workspace.get_all_func_info", args, retType, true, false);
         return res.get(0);
     }
 

@@ -1575,6 +1575,8 @@ public class WorkspaceServer extends JsonServerServlet {
         returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
+        		.withJsonSchema(tdi.getJsonSchema())
+        		.withParsingStructure(tdi.getParsingStructure())
         		.withModuleVers(tdi.getModuleVersions())
         		.withReleasedModuleVers(tdi.getReleasedModuleVersions())
         		.withTypeVers(tdi.getTypeVersions())
@@ -1583,6 +1585,25 @@ public class WorkspaceServer extends JsonServerServlet {
         		.withUsingTypeDefs(tdi.getUsingTypeDefIds())
         		.withUsedTypeDefs(tdi.getUsedTypeDefIds());
         //END get_type_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_all_type_info</p>
+     * <pre>
+     * </pre>
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
+     * @return   instance of list of type {@link us.kbase.workspace.TypeInfo TypeInfo}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_all_type_info", authOptional=true)
+    public List<TypeInfo> getAllTypeInfo(String mod, AuthToken authPart) throws Exception {
+        List<TypeInfo> returnVal = null;
+        //BEGIN get_all_type_info
+        returnVal = new ArrayList<TypeInfo>();
+        ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), authPart);
+        for (String typeDef : mi.getTypes().keySet())
+        	returnVal.add(getTypeInfo(typeDef, authPart));
+        //END get_all_type_info
         return returnVal;
     }
 
@@ -1601,12 +1622,32 @@ public class WorkspaceServer extends JsonServerServlet {
         returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
+        		.withParsingStructure(fdi.getParsingStructure())
         		.withModuleVers(fdi.getModuleVersions())
         		.withReleasedModuleVers(fdi.getReleasedModuleVersions())
         		.withFuncVers(fdi.getFuncVersions())
         		.withReleasedFuncVers(fdi.getReleasedFuncVersions())
         		.withUsedTypeDefs(fdi.getUsedTypeDefIds());
         //END get_func_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_all_func_info</p>
+     * <pre>
+     * </pre>
+     * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
+     * @return   parameter "info" of list of type {@link us.kbase.workspace.FuncInfo FuncInfo}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_all_func_info", authOptional=true)
+    public List<FuncInfo> getAllFuncInfo(String mod, AuthToken authPart) throws Exception {
+        List<FuncInfo> returnVal = null;
+        //BEGIN get_all_func_info
+        returnVal = new ArrayList<FuncInfo>();
+        ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), authPart);
+        for (String funcDef : mi.getFunctions())
+        	returnVal.add(getFuncInfo(funcDef, authPart));
+        //END get_all_func_info
         return returnVal;
     }
 

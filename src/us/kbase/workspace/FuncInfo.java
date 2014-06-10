@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         func_string func_def - resolved func definition id.
  *         string description - the description of the function from spec file.
  *         string spec_def - reconstruction of function definition from spec file.
+ *         string parsing_structure - json document describing parsing structure of function 
+ *                 in spec file including types of arguments.
  *         list<spec_version> module_vers - versions of spec files containing
  *                 given func version.
  *         list<spec_version> released_module_vers - released versions of spec files 
@@ -38,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "func_def",
     "description",
     "spec_def",
+    "parsing_structure",
     "module_vers",
     "released_module_vers",
     "func_vers",
@@ -52,6 +55,8 @@ public class FuncInfo {
     private java.lang.String description;
     @JsonProperty("spec_def")
     private java.lang.String specDef;
+    @JsonProperty("parsing_structure")
+    private java.lang.String parsingStructure;
     @JsonProperty("module_vers")
     private List<Long> moduleVers;
     @JsonProperty("released_module_vers")
@@ -106,6 +111,21 @@ public class FuncInfo {
 
     public FuncInfo withSpecDef(java.lang.String specDef) {
         this.specDef = specDef;
+        return this;
+    }
+
+    @JsonProperty("parsing_structure")
+    public java.lang.String getParsingStructure() {
+        return parsingStructure;
+    }
+
+    @JsonProperty("parsing_structure")
+    public void setParsingStructure(java.lang.String parsingStructure) {
+        this.parsingStructure = parsingStructure;
+    }
+
+    public FuncInfo withParsingStructure(java.lang.String parsingStructure) {
+        this.parsingStructure = parsingStructure;
         return this;
     }
 
@@ -196,7 +216,7 @@ public class FuncInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("FuncInfo"+" [funcDef=")+ funcDef)+", description=")+ description)+", specDef=")+ specDef)+", moduleVers=")+ moduleVers)+", releasedModuleVers=")+ releasedModuleVers)+", funcVers=")+ funcVers)+", releasedFuncVers=")+ releasedFuncVers)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("FuncInfo"+" [funcDef=")+ funcDef)+", description=")+ description)+", specDef=")+ specDef)+", parsingStructure=")+ parsingStructure)+", moduleVers=")+ moduleVers)+", releasedModuleVers=")+ releasedModuleVers)+", funcVers=")+ funcVers)+", releasedFuncVers=")+ releasedFuncVers)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

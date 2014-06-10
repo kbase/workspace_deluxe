@@ -6,19 +6,22 @@ public class FuncDetailedInfo {
 	private String funcDefId;
 	private String description;
 	private String specDef;
+	private String parsingStructure;
 	private List<Long> moduleVersions;
 	private List<Long> releasedModuleVersions;
 	private List<String> funcVersions;
 	private List<String> releasedFuncVersions;
 	private List<String> usedTypeDefIds;
 	
-	public FuncDetailedInfo(String funcDefId, String description, String specDef, 
+	public FuncDetailedInfo(String funcDefId, String description, 
+			String specDef, String parsingStructure,
 			List<Long> moduleVersions, List<Long> releasedModuleVersions, 
 			List<String> funcVersions, List<String> releasedFuncVersions,
 			List<String> usedTypeDefIds) {
 		this.funcDefId = funcDefId;
 		this.description = description;
 		this.specDef = specDef;
+		this.parsingStructure = parsingStructure;
 		this.moduleVersions = moduleVersions;
 		this.releasedModuleVersions = releasedModuleVersions;
 		this.funcVersions = funcVersions;
@@ -36,6 +39,10 @@ public class FuncDetailedInfo {
 	
 	public String getSpecDef() {
 		return specDef;
+	}
+	
+	public String getParsingStructure() {
+		return parsingStructure;
 	}
 	
 	public List<Long> getModuleVersions() {

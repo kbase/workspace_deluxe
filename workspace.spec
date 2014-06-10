@@ -1425,6 +1425,9 @@ module Workspace {
 		type_string type_def - resolved type definition id.
 		string description - the description of the type from spec file.
 		string spec_def - reconstruction of type definition from spec file.
+		jsonschema json_schema - JSON schema of this type.
+		string parsing_structure - json document describing parsing structure of type 
+			in spec file including involved sub-types.
 		list<spec_version> module_vers - versions of spec-files containing
 			given type version.
 		list<spec_version> released_module_vers - versions of released spec-files 
@@ -1443,6 +1446,8 @@ module Workspace {
 		type_string type_def;
 		string description;
 		string spec_def;
+		jsonschema json_schema;
+		string parsing_structure;
 		list<spec_version> module_vers;
 		list<spec_version> released_module_vers;
 		list<type_string> type_vers;
@@ -1454,11 +1459,15 @@ module Workspace {
 	
 	funcdef get_type_info(type_string type) returns (TypeInfo info) authentication optional;
 	
+	funcdef get_all_type_info(modulename mod) returns (list<TypeInfo>) authentication optional;
+	
 	/* Information about a function
 	
 		func_string func_def - resolved func definition id.
 		string description - the description of the function from spec file.
 		string spec_def - reconstruction of function definition from spec file.
+		string parsing_structure - json document describing parsing structure of function 
+			in spec file including types of arguments.
 		list<spec_version> module_vers - versions of spec files containing
 			given func version.
 		list<spec_version> released_module_vers - released versions of spec files 
@@ -1474,6 +1483,7 @@ module Workspace {
 		func_string func_def;
 		string description;
 		string spec_def;
+		string parsing_structure;
 		list<spec_version> module_vers;
 		list<spec_version> released_module_vers;
 		list<func_string> func_vers;
@@ -1482,6 +1492,8 @@ module Workspace {
 	} FuncInfo;
 	
 	funcdef get_func_info(func_string func) returns (FuncInfo info) authentication optional;
+	
+	funcdef get_all_func_info(modulename mod) returns (list<FuncInfo> info) authentication optional;
 	
 	/* Parameters for the grant_module_ownership function.
 		

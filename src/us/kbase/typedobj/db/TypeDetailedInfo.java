@@ -6,6 +6,8 @@ public class TypeDetailedInfo {
 	private String typeDefId;
 	private String description;
 	private String specDef;
+	private String jsonSchema;
+	private String parsingStructure;
 	private List<Long> moduleVersions;
 	private List<Long> releasedModuleVersions;
 	private List<String> typeVersions;
@@ -14,7 +16,8 @@ public class TypeDetailedInfo {
 	private List<String> usingTypeDefIds;
 	private List<String> usedTypeDefIds;
 	
-	public TypeDetailedInfo(String typeDefId, String description, String specDef, 
+	public TypeDetailedInfo(String typeDefId, String description, String specDef,
+			String jsonSchema, String parsingStructure,
 			List<Long> moduleVersions, List<Long> releasedModuleVersions, 
 			List<String> typeVersions, List<String> releasedTypeVersions, 
 			List<String> usingFuncDefIds, List<String> usingTypeDefIds, 
@@ -22,6 +25,8 @@ public class TypeDetailedInfo {
 		this.typeDefId = typeDefId;
 		this.description = description;
 		this.specDef = specDef;
+		this.jsonSchema = jsonSchema;
+		this.parsingStructure = parsingStructure;
 		this.moduleVersions = moduleVersions;
 		this.releasedModuleVersions = releasedModuleVersions;
 		this.typeVersions = typeVersions;
@@ -41,6 +46,14 @@ public class TypeDetailedInfo {
 	
 	public String getSpecDef() {
 		return specDef;
+	}
+	
+	public String getJsonSchema() {
+		return jsonSchema;
+	}
+	
+	public String getParsingStructure() {
+		return parsingStructure;
 	}
 	
 	public List<Long> getModuleVersions() {

@@ -19,6 +19,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         type_string type_def - resolved type definition id.
  *         string description - the description of the type from spec file.
  *         string spec_def - reconstruction of type definition from spec file.
+ *         jsonschema json_schema - JSON schema of this type.
+ *         string parsing_structure - json document describing parsing structure of type 
+ *                 in spec file including involved sub-types.
  *         list<spec_version> module_vers - versions of spec-files containing
  *                 given type version.
  *         list<spec_version> released_module_vers - versions of released spec-files 
@@ -41,6 +44,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "type_def",
     "description",
     "spec_def",
+    "json_schema",
+    "parsing_structure",
     "module_vers",
     "released_module_vers",
     "type_vers",
@@ -57,6 +62,10 @@ public class TypeInfo {
     private java.lang.String description;
     @JsonProperty("spec_def")
     private java.lang.String specDef;
+    @JsonProperty("json_schema")
+    private java.lang.String jsonSchema;
+    @JsonProperty("parsing_structure")
+    private java.lang.String parsingStructure;
     @JsonProperty("module_vers")
     private List<Long> moduleVers;
     @JsonProperty("released_module_vers")
@@ -115,6 +124,36 @@ public class TypeInfo {
 
     public TypeInfo withSpecDef(java.lang.String specDef) {
         this.specDef = specDef;
+        return this;
+    }
+
+    @JsonProperty("json_schema")
+    public java.lang.String getJsonSchema() {
+        return jsonSchema;
+    }
+
+    @JsonProperty("json_schema")
+    public void setJsonSchema(java.lang.String jsonSchema) {
+        this.jsonSchema = jsonSchema;
+    }
+
+    public TypeInfo withJsonSchema(java.lang.String jsonSchema) {
+        this.jsonSchema = jsonSchema;
+        return this;
+    }
+
+    @JsonProperty("parsing_structure")
+    public java.lang.String getParsingStructure() {
+        return parsingStructure;
+    }
+
+    @JsonProperty("parsing_structure")
+    public void setParsingStructure(java.lang.String parsingStructure) {
+        this.parsingStructure = parsingStructure;
+    }
+
+    public TypeInfo withParsingStructure(java.lang.String parsingStructure) {
+        this.parsingStructure = parsingStructure;
         return this;
     }
 
@@ -235,7 +274,7 @@ public class TypeInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((("TypeInfo"+" [typeDef=")+ typeDef)+", description=")+ description)+", specDef=")+ specDef)+", moduleVers=")+ moduleVers)+", releasedModuleVers=")+ releasedModuleVers)+", typeVers=")+ typeVers)+", releasedTypeVers=")+ releasedTypeVers)+", usingFuncDefs=")+ usingFuncDefs)+", usingTypeDefs=")+ usingTypeDefs)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("TypeInfo"+" [typeDef=")+ typeDef)+", description=")+ description)+", specDef=")+ specDef)+", jsonSchema=")+ jsonSchema)+", parsingStructure=")+ parsingStructure)+", moduleVers=")+ moduleVers)+", releasedModuleVers=")+ releasedModuleVers)+", typeVers=")+ typeVers)+", releasedTypeVers=")+ releasedTypeVers)+", usingFuncDefs=")+ usingFuncDefs)+", usingTypeDefs=")+ usingTypeDefs)+", usedTypeDefs=")+ usedTypeDefs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

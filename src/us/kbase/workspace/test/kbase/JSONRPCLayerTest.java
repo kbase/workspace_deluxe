@@ -2763,4 +2763,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Assert.assertTrue(types.containsKey("SomeModule"));
 		Assert.assertEquals("1.0", types.get("SomeModule").get("AType"));
 	}
+	
+	@Test
+	public void testGetAllTypeAndFuncInfo() throws Exception {
+		Assert.assertEquals(1, CLIENT1.getAllTypeInfo("RefSpec").size());
+		Assert.assertEquals(1, CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size());
+	}
 }
