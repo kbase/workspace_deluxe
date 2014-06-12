@@ -1802,6 +1802,185 @@ sub get_object
 
 
 
+=head2 get_object_provenance
+
+  $data = $obj->get_object_provenance($object_ids)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectProvenanceInfo
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectProvenanceInfo is a reference to a hash where the following keys are defined:
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$object_ids is a reference to a list where each element is a Workspace.ObjectIdentity
+$data is a reference to a list where each element is a Workspace.ObjectProvenanceInfo
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+ObjectProvenanceInfo is a reference to a hash where the following keys are defined:
+	info has a value which is a Workspace.object_info
+	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+	creator has a value which is a Workspace.username
+	created has a value which is a Workspace.timestamp
+	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+ProvenanceAction is a reference to a hash where the following keys are defined:
+	time has a value which is a Workspace.timestamp
+	service has a value which is a string
+	service_ver has a value which is a string
+	method has a value which is a string
+	method_params has a value which is a reference to a list where each element is an UnspecifiedObject, which can hold any non-null object
+	script has a value which is a string
+	script_ver has a value which is a string
+	script_command_line has a value which is a string
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	intermediate_incoming has a value which is a reference to a list where each element is a string
+	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	description has a value which is a string
+
+
+=end text
+
+=item Description
+
+Get object provenance from the workspace.
+
+=back
+
+=cut
+
+sub get_object_provenance
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object_provenance (received $n, expecting 1)");
+    }
+    {
+	my($object_ids) = @args;
+
+	my @_bad_arguments;
+        (ref($object_ids) eq 'ARRAY') or push(@_bad_arguments, "Invalid type for argument 1 \"object_ids\" (value was \"$object_ids\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object_provenance:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object_provenance');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, {
+	method => "Workspace.get_object_provenance",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_object_provenance',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_provenance",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object_provenance',
+				       );
+    }
+}
+
+
+
 =head2 get_objects
 
   $data = $obj->get_objects($object_ids)
@@ -8431,6 +8610,57 @@ metadata has a value which is a Workspace.object_metadata
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 metadata has a value which is a Workspace.object_metadata
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectProvenanceInfo
+
+=over 4
+
+
+
+=item Description
+
+The provenance and supplemental info for an object.
+
+        object_info info - information about the object.
+        list<ProvenanceAction> provenance - the object's provenance.
+        username creator - the user that first saved the object to the
+                workspace.
+        timestamp created - the date the object was first saved to the
+                workspace.
+        list<obj_ref> - the references contained within the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+info has a value which is a Workspace.object_info
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+creator has a value which is a Workspace.username
+created has a value which is a Workspace.timestamp
+refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+info has a value which is a Workspace.object_info
+provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
+creator has a value which is a Workspace.username
+created has a value which is a Workspace.timestamp
+refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text

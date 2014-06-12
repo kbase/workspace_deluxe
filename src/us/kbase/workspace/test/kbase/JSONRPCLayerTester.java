@@ -48,6 +48,7 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -417,6 +418,13 @@ public class JSONRPCLayerTester {
 				.after(getOlderDate(10 * 60 * 1000)));
 		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
 		
+		List<ObjectProvenanceInfo> p = CLIENT1.getObjectProvenance(Arrays.asList(id));
+		assertThat("user correct", p.get(0).getCreator(), is(user));
+		assertTrue("created within last 10 mins", 
+				DATE_FORMAT.parse(p.get(0).getCreated())
+				.after(getOlderDate(10 * 60 * 1000)));
+		checkProvenance(prov, p.get(0).getProvenance(), refmap, timemap);
+		
 		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)));
 		assertThat("user correct", ret.get(0).getCreator(), is(user));
 		assertTrue("created within last 10 mins", 
@@ -523,6 +531,13 @@ public class JSONRPCLayerTester {
 					is(exception.replace("ObjectIdentity", "SubObjectIdentity")));
 		}
 		try {
+			CLIENT1.getObjectProvenance(loi);
+			fail("got object provenance with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		try {
 			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
 			fail("got info with bad id");
 		} catch (ServerException se) {
@@ -570,10 +585,17 @@ public class JSONRPCLayerTester {
 					chksum, size, meta, data);
 		}
 		
+		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		assertThat("num prov correct", prov.size(), is(loi.size()));
+		for (ObjectProvenanceInfo p: prov) {
+			checkInfo(p.getInfo(), id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta);
+		}
+		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-		String, Long, Map<String, String>>> retusermeta =
-		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-		.withObjects(loi).withIncludeMetadata(1L));
+				String, Long, Map<String, String>>> retusermeta =
+				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+						.withObjects(loi).withIncludeMetadata(1L));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -735,6 +757,13 @@ public class JSONRPCLayerTester {
 				.withObjid(orig.getE1()).withVer(orig.getE5()), 
 				new ObjectIdentity().withWsid(copied.getE7())
 				.withObjid(copied.getE1()).withVer(copied.getE5()));
+		
+		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		compareObjectInfo(prov.get(0).getInfo(), prov.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", prov.get(1).getCreator(), is(prov.get(0).getCreator()));
+		assertThat("created same", prov.get(1).getCreated(), is(prov.get(0).getCreated()));
+		assertThat("prov same", prov.get(1).getProvenance(), is(prov.get(0).getProvenance()));
+		assertThat("refs same", prov.get(1).getRefs(), is(prov.get(0).getRefs()));
 		
 		List<ObjectData> objs = CLIENT1.getObjects(loi);
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);

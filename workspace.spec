@@ -732,6 +732,31 @@ module Workspace {
 	funcdef get_object(get_object_params params)
 		returns (get_object_output output);	
 	
+	/* The provenance and supplemental info for an object.
+	
+		object_info info - information about the object.
+		list<ProvenanceAction> provenance - the object's provenance.
+		username creator - the user that first saved the object to the
+			workspace.
+		timestamp created - the date the object was first saved to the
+			workspace.
+		list<obj_ref> - the references contained within the object.
+		
+	*/
+	typedef structure {
+		object_info info;
+		list<ProvenanceAction> provenance;
+		username creator;
+		timestamp created;
+		list<obj_ref> refs;
+	} ObjectProvenanceInfo;
+	
+	/* 
+		Get object provenance from the workspace.
+	*/
+	funcdef get_object_provenance(list<ObjectIdentity> object_ids)
+		returns (list<ObjectProvenanceInfo> data);
+	
 	/* The data and supplemental info for an object.
 	
 		UnspecifiedObject data - the object's data or subset data.

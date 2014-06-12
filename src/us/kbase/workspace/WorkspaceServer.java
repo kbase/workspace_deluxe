@@ -714,6 +714,25 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_object_provenance</p>
+     * <pre>
+     * Get object provenance from the workspace.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectProvenanceInfo ObjectProvenanceInfo}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object_provenance", authOptional=true)
+    public List<ObjectProvenanceInfo> getObjectProvenance(List<ObjectIdentity> objectIds, AuthToken authPart) throws Exception {
+        List<ObjectProvenanceInfo> returnVal = null;
+        //BEGIN get_object_provenance
+		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		returnVal = au.translateObjectProvInfo(
+				ws.getObjectProvenance(getUser(authPart), loi));
+        //END get_object_provenance
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
      * Get objects from the workspace.

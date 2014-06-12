@@ -27,6 +27,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
@@ -34,6 +35,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
 /**
@@ -325,6 +327,23 @@ public class ArgUtils {
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
 			resourcesToDestroy.add(resource);
+		}
+		return ret;
+	}
+	
+	public List<ObjectProvenanceInfo> translateObjectProvInfo(
+			final List<WorkspaceObjectInformation> objects) {
+		final List<ObjectProvenanceInfo> ret =
+				new ArrayList<ObjectProvenanceInfo>();
+		for (final WorkspaceObjectInformation o: objects) {
+			ret.add(new ObjectProvenanceInfo()
+					.withInfo(objInfoToTuple(o.getObjectInfo()))
+					.withProvenance(translateProvenanceActions(
+							o.getProvenance().getActions()))
+					.withCreator(o.getProvenance().getUser().getUser())
+					.withCreated(dateFormat.formatDate(
+							o.getProvenance().getDate()))
+					.withRefs(o.getReferences()));
 		}
 		return ret;
 	}

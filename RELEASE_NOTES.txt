@@ -23,7 +23,7 @@ VERSION: 0.2.1 (Released TBD)
 --------------------------------------
 
 NEW FEATURES:
-- N/A
+- get_object_provenance returns the object provenance without the data.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - the initialization script will no longer allow setting the mongo typedb

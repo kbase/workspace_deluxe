@@ -380,6 +380,24 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_object_provenance</p>
+     * <pre>
+     * Get object provenance from the workspace.
+     * </pre>
+     * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
+     * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectProvenanceInfo ObjectProvenanceInfo}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public List<ObjectProvenanceInfo> getObjectProvenance(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(objectIds);
+        TypeReference<List<List<ObjectProvenanceInfo>>> retType = new TypeReference<List<List<ObjectProvenanceInfo>>>() {};
+        List<List<ObjectProvenanceInfo>> res = caller.jsonrpcCall("Workspace.get_object_provenance", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
      * Get objects from the workspace.
