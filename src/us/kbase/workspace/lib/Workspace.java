@@ -62,6 +62,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -791,6 +792,24 @@ public class Workspace {
 		return db.getObjectInformation(pset, type, savers, meta, after, before,
 				showHidden, showDeleted, showOnlyDeleted, showAllVers,
 				includeMetaData, skip, limit);
+	}
+	
+	public List<WorkspaceObjectInformation> getObjectProvenance(
+			final WorkspaceUser user, final List<ObjectIdentifier> loi)
+			throws CorruptWorkspaceDBException,
+			WorkspaceCommunicationException, InaccessibleObjectException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> prov =
+				db.getObjectProvenance(
+						new HashSet<ObjectIDResolvedWS>(ws.values()));
+		final List<WorkspaceObjectInformation> ret =
+				new ArrayList<WorkspaceObjectInformation>();
+		
+		for (final ObjectIdentifier o: loi) {
+			ret.add(prov.get(ws.get(o)));
+		}
+		return ret;
 	}
 	
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,

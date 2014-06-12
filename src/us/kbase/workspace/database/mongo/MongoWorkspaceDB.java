@@ -73,6 +73,7 @@ import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DBAuthorizationException;
@@ -2171,6 +2172,42 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
 			Fields.VER_PROVREF, Fields.VER_REF);
+	
+	@Override
+	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
+			getObjectProvenance(final Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		//similar to getObjects but the code got too messy trying to combine
+		//could try to factor out methods 
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
+				resolveObjectIDs(objectIDs);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(
+						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
+						FLDS_VER_GET_OBJECT);
+		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
+		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> ret =
+				new HashMap<ObjectIDResolvedWS, WorkspaceObjectInformation>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedMongoObjectID roi = resobjs.get(o);
+			if (!vers.containsKey(roi)) {
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s exists "
+						+ "in workspace %s", roi.getId(), roi.getName(), 
+						roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), o);
+			}
+			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
+					.get(Fields.VER_PROV));
+			@SuppressWarnings("unchecked")
+			final List<String> refs =
+					(List<String>) vers.get(roi).get(Fields.VER_REF);
+			final MongoObjectInfo info = generateObjectInfo(
+					roi, vers.get(roi));
+			ret.put(o, new WorkspaceObjectInformation(info, prov, refs));
+		}
+		return ret;
+	}
 	
 	@Override
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>

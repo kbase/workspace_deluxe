@@ -107,12 +107,17 @@ public interface WorkspaceDatabase {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
 	
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> getObjects(
-			Set<ObjectIDResolvedWS> objectIDs) throws NoSuchObjectException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
+			getObjectProvenance(Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
+	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
+			getObjects(Set<ObjectIDResolvedWS> objectIDs)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException;
 
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> getObjects(
-			final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
+	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
+			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
@@ -205,5 +210,4 @@ public interface WorkspaceDatabase {
 	public TempFilesManager getTempFilesManager();
 
 	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
-
 }

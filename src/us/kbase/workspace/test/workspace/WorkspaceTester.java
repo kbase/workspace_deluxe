@@ -25,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.slf4j.LoggerFactory;
 
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -47,6 +48,7 @@ import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -56,6 +58,9 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -91,6 +96,12 @@ public class WorkspaceTester {
 		for (int i = 0; i < 10; i++) {
 			TEXT1000 += TEXT100;
 		}
+	}
+	
+	static {
+		//stfu EasyStream
+		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
+				.setLevel(Level.OFF);
 	}
 	
 	protected static final Map<String, String> MT_META = new HashMap<String, String>();
@@ -483,13 +494,15 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkObjectAndInfo(WorkspaceUser bar,
+	protected void checkObjectAndInfo(WorkspaceUser user,
 			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
 			List<Map<String, Object>> data) throws Exception {
-		List<WorkspaceObjectData> retdata = ws.getObjects(bar, ids);
-		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(bar, objIDToSubObjID(ids));
+		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
+		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(user, objIDToSubObjID(ids));
+		List<WorkspaceObjectInformation> infdata = ws.getObjectProvenance(user, ids);
 		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
 		Iterator<WorkspaceObjectData> ret2 = retdata2.iterator();
+		Iterator<WorkspaceObjectInformation> infd = infdata.iterator();
 		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
 		Iterator<Map<String, Object>> dataiter = data.iterator();
 		while (ret1.hasNext()) {
@@ -497,8 +510,12 @@ public class WorkspaceTester {
 			Map<String, Object> d = dataiter.next();
 			checkObjectAndInfo(ret1.next(), i , d);
 			checkObjectAndInfo(ret2.next(), i , d);
+			checkObjInfo(infd.next().getObjectInfo(), i.getObjectId(), i.getObjectName(),
+					i.getTypeString(), i.getVersion(), i.getSavedBy(),
+					i.getWorkspaceId(), i.getWorkspaceName(), i.getCheckSum(),
+					i.getSize(), i.getUserMetaData());
 		}
-		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext()) {
+		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || infd.hasNext()) {
 			fail("mismatched iter counts");
 		}
 	}
@@ -517,6 +534,7 @@ public class WorkspaceTester {
 			List<ObjectIdentifier> objs) throws Exception {
 		ws.getObjects(user, objs);
 		ws.getObjectsSubSet(user, objIDToSubObjID(objs));
+		ws.getObjectProvenance(user, objs);
 	}
 	
 	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
@@ -526,10 +544,10 @@ public class WorkspaceTester {
 	}
 	
 	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
-			Exception e, boolean getObjectsOnly) 
+			Exception e, boolean failExpectedOnlyForObjectSize) 
 			throws Exception {
 		try {
-			successGetObjects(user, objs);
+			ws.getObjects(user, objs);
 			fail("called get objects with bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -540,8 +558,14 @@ public class WorkspaceTester {
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
-		if (getObjectsOnly) {
+		if (failExpectedOnlyForObjectSize) {
 			return; //don't call the referencing methods
+		}
+		try {
+			ws.getObjectProvenance(user, objs);
+			fail("called get object prov with bad args");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
 		}
 		try {
 			ws.getReferencingObjects(user, objs);
@@ -590,7 +614,9 @@ public class WorkspaceTester {
 		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
 				.get(0).getProvenance();
 		checkProvenanceCorrect(prov, pgot2,refmap);
-		return Arrays.asList(pgot.getDate(), pgot2.getDate());
+		Provenance pgot3 = ws.getObjectProvenance(foo, Arrays.asList(obj)).get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot3,refmap);
+		return Arrays.asList(pgot.getDate(), pgot2.getDate(), pgot3.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
@@ -913,6 +939,8 @@ public class WorkspaceTester {
 			long objectid, String objname, int version) throws Exception {
 		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
 				objname, version);
+		
+		//getObjects
 		WorkspaceObjectData orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
 				new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
 						original.getObjectId(), original.getVersion()))).get(0);
@@ -925,6 +953,22 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
 		
+		//getObjectProvenance
+		WorkspaceObjectInformation originfo = ws.getObjectProvenance(original.getSavedBy(),
+				Arrays.asList(
+						new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
+						original.getObjectId(), original.getVersion()))).get(0);
+		WorkspaceObjectInformation copyinfo = ws.getObjectProvenance(copied.getSavedBy(),
+				Arrays.asList(
+				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
+						copied.getObjectId(), copied.getVersion()))).get(0);
+		compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
+				objname, version);
+		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
+		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(), null);
+		
+		
+		//getObjectsSubSet
 		WorkspaceObjectData origsub = ws.getObjectsSubSet(original.getSavedBy(), Arrays.asList(
 				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
 						original.getWorkspaceId()),

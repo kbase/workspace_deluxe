@@ -60,6 +60,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -1460,6 +1461,11 @@ public class WorkspaceTest extends WorkspaceTester {
 					is(reftypewsid + "/2/1"));
 			assertThat("sub obj reference included correctly", wodsub.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
+			
+			WorkspaceObjectInformation inf = ws.getObjectProvenance(userfoo, Arrays.asList(
+					new ObjectIdentifier(reftypecheck, i))).get(0);
+			assertThat("sub obj reference included correctly", inf.getReferences(),
+					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
 	}
 	
@@ -1615,6 +1621,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectIdentifier(prov, 5), null))).get(0).getProvenance();
 		assertThat("Prov date constant", gotsub2.getDate(), is(dates.get(1)));
 		assertThat("Prov dates same", got2.getDate(), is(gotsub2.getDate()));
+		Provenance gotProv2 = ws.getObjectProvenance(foo, Arrays.asList(
+				new ObjectIdentifier(prov, 5))).get(0).getProvenance();
+		assertThat("Prov date constant", gotProv2.getDate(), is(dates.get(2)));
+		assertThat("Prov dates same", got2.getDate(), is(gotProv2.getDate()));
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));

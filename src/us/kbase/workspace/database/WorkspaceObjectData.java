@@ -4,25 +4,18 @@ import java.util.List;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 
-public class WorkspaceObjectData {
+public class WorkspaceObjectData extends WorkspaceObjectInformation {
 	
 	private final ByteArrayFileCache data;
-	private final ObjectInformation info;
-	private final Provenance prov;
-	private final List<String> references;
 
 	public WorkspaceObjectData(final ByteArrayFileCache data,
 			final ObjectInformation info, final Provenance prov,
 			final List<String> references) {
-		if (data == null || info == null || prov == null ||
-				references == null) {
-			throw new IllegalArgumentException(
-					"references, data, prov and meta cannot be null");
+		super(info, prov, references);
+		if (data == null) {
+			throw new IllegalArgumentException("data cannot be null");
 		}
 		this.data = data;
-		this.info = info;
-		this.prov = prov;
-		this.references = references;
 	}
 
 	public ByteArrayFileCache getDataAsTokens() {
@@ -45,21 +38,10 @@ public class WorkspaceObjectData {
 		}
 	}
 
-	public ObjectInformation getObjectInfo() {
-		return info;
-	}
-
-	public Provenance getProvenance() {
-		return prov;
-	}
-	
-	public List<String> getReferences() {
-		return references;
-	}
-
 	@Override
 	public String toString() {
-		return "WorkspaceObjectData [data=" + data + ", info=" + info
-				+ ", prov=" + prov + ", references=" + references + "]";
+		return "WorkspaceObjectData [data=" + data + ", info=" +
+				getObjectInfo() + ", prov=" + getProvenance() + ", references="
+				+ getReferences() + "]";
 	}
 }
