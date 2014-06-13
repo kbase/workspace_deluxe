@@ -6,7 +6,7 @@ CLIENT_JAR = WorkspaceClient.jar
 WAR = WorkspaceService.war
 URL = https://kbase.us/services/ws/
 DEFAULT_SCRIPT_URL = $(URL)
-DEV_SCRIPT_URL = http://140.221.84.209:$(SERVICE_PORT)
+DEV_SCRIPT_URL = http://dev04.berkeley.kbase.us:$(SERVICE_PORT)
 
 #End of user defined variables
 
