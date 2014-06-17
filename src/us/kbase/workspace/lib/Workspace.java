@@ -32,8 +32,6 @@ import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
-import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
@@ -471,8 +469,7 @@ public class Workspace {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
-			TypeStorageException, IOException,
-			BadJsonSchemaDocumentException, InstanceValidationException { //TODO get rid of these when possible
+			TypeStorageException, IOException {
 		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");

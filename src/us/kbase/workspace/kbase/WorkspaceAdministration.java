@@ -16,8 +16,6 @@ import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
-import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
@@ -62,8 +60,8 @@ public class WorkspaceAdministration {
 			WorkspaceCommunicationException, PreExistingWorkspaceException,
 			CorruptWorkspaceDBException, NoSuchObjectException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
-			TypedObjectValidationException, BadJsonSchemaDocumentException,
-			InstanceValidationException, ParseException, NoSuchPrivilegeException {
+			ParseException, NoSuchPrivilegeException,
+			TypedObjectValidationException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {

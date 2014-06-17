@@ -16,8 +16,6 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
-import us.kbase.typedobj.exceptions.InstanceValidationException;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
@@ -125,7 +123,6 @@ public class WorkspaceServerMethods {
 			WorkspaceAuthorizationException, NoSuchObjectException,
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			TypedObjectValidationException, TypeStorageException,
-			BadJsonSchemaDocumentException, InstanceValidationException,
 			IOException {
 
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());

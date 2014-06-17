@@ -24,7 +24,7 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.exceptions.InstanceValidationException;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -86,7 +86,8 @@ public class TypedObjExample1 {
 			try {
 				instance1RootNode = mapper.readTree(instance1);
 			} catch (Exception e) {
-				throw new InstanceValidationException("instance was not a valid or readable JSON document",e);
+				throw new TypedObjectValidationException(
+						"instance was not a valid or readable JSON document",e);
 			}
 			
 			

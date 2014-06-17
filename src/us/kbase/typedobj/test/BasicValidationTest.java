@@ -261,8 +261,8 @@ public class BasicValidationTest {
 			} catch (Exception e) {
 				//if an exception is thrown, it must be an InstanceValidationException
 				//we are not testing if an incorrect module name or type name is given here
-				if(! e.getClass().getSimpleName().equals("InstanceValidationException")) {
-					fail("  -("+instance.resourceName+") did not validate successfully, but exception thrown was '"+e.getClass().getSimpleName()+"' and not 'InstanceValidationException'");
+				if(! e.getClass().getSimpleName().equals("TypedObjectValidationException")) {
+					fail("  -("+instance.resourceName+") did not validate successfully, but exception thrown was '"+e.getClass().getSimpleName()+"' and not 'TypedObjectValidationException'");
 				}
 			}
 		}

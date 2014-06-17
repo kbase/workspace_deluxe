@@ -94,20 +94,20 @@ public final class TypedObjectValidator {
 	 * @param type the type to process. Missing version information indicates 
 	 * use of the most recent version.
 	 * @return ProcessingReport containing the result of the validation
-	 * @throws InstanceValidationException 
-	 * @throws BadJsonSchemaDocumentException 
 	 * @throws TypeStorageException 
+	 * @throws TypedObjectValidationException 
 	 */
 	public TypedObjectValidationReport validate(String instance, TypeDefId type)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
-	{
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, TypedObjectValidationException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
 		try {
 			instanceRootNode = mapper.readTree(instance);
 		} catch (Exception e) {
-			throw new InstanceValidationException("instance was not a valid or readable JSON document",e);
+			throw new TypedObjectValidationException(
+					"instance was not a valid or readable JSON document",e);
 		}
 		
 		// validate and return the report
@@ -124,12 +124,10 @@ public final class TypedObjectValidator {
 	 * @param version (if set to null, then the latest version is used)
 	 * @return
 	 * @throws NoSuchTypeException
-	 * @throws InstanceValidationException
-	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
 	 */
 	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
 		try {
 			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), null);
 			return validate(obj, typeDefId);
@@ -139,7 +137,7 @@ public final class TypedObjectValidator {
 	}
 	
 	public TypedObjectValidationReport validate(UObject obj, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException {	
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {	
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
