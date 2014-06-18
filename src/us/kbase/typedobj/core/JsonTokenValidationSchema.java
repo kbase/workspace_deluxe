@@ -393,7 +393,9 @@ public class JsonTokenValidationSchema {
 	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {
 		if (refPath.size() == 0 || refPath.size() > path.size() + 1)
 			throw new IllegalStateException("Reference branch path has wrong length: " + refPath.size());
-		while (refPath.size() > 1 && !refPath.get(refPath.size() - 1).getRelativeLocation().equals(path.get(refPath.size() - 2))) {
+		while (refPath.size() > 1
+				&& !refPath.get(refPath.size() - 1).getRelativeLocation()
+						.equals(path.get(refPath.size() - 2))) {
 			refPath.remove(refPath.size() - 1);
 		}
 		while (refPath.size() <= path.size()) {

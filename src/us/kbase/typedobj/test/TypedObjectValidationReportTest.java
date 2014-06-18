@@ -92,7 +92,7 @@ public class TypedObjectValidationReportTest {
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("z", "y");
 		refmap.put("d", "whoop");
-		IdRefNode root = new IdRefNode(null);
+		IdRefNode root = new IdRefNode();
 		IdRefNode z = new IdRefNode("z");
 		z.setLocationIsID();
 		z.setIDAtValue("d");
@@ -140,7 +140,7 @@ public class TypedObjectValidationReportTest {
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("b", "y");
 		refmap.put("d", "whoop");
-		IdRefNode root = new IdRefNode(null);
+		IdRefNode root = new IdRefNode();
 		IdRefNode b = new IdRefNode("b");
 		b.setLocationIsID();
 		root.addChild(b);
@@ -169,7 +169,7 @@ public class TypedObjectValidationReportTest {
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("z", "b");
 		refmap.put("d", "whoop");
-		IdRefNode root = new IdRefNode(null);
+		IdRefNode root = new IdRefNode();
 		IdRefNode z = new IdRefNode("z");
 		z.setLocationIsID();
 		root.addChild(z);
@@ -198,7 +198,7 @@ public class TypedObjectValidationReportTest {
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("z", "y");
 		refmap.put("d", "whoop");
-		IdRefNode root = new IdRefNode(null);
+		IdRefNode root = new IdRefNode();
 		IdRefNode z = new IdRefNode("z");
 		z.setLocationIsID();
 		root.addChild(z);

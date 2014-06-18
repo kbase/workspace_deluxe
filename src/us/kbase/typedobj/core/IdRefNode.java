@@ -21,22 +21,37 @@ import java.util.Map;
  */
 public class IdRefNode {
 	//TODO should the class handle arrays and maps differently?
+	//TODO unit tests
 	private final String location;
 	private boolean locationIsID = false;;
 	private String valueID = null;
 	private Map<String, IdRefNode> children = null;
+	
+	/**
+	 * Construct a root IdRefNode.
+	 */
+	public IdRefNode() {
+		this.location = null;
+	}
 	
 	/** Construct a new IdRefNode.
 	 * @param relativeLocation the location of the node relative to the node's
 	 * parent.
 	 */
 	public IdRefNode(String relativeLocation) {
+		if (relativeLocation == null) {
+			throw new NullPointerException("relativeLocation cannot be null");
+		}
 		this.location = relativeLocation;
+	}
+	
+	public boolean isRoot() {
+		return location == null;
 	}
 	
 	/** Get the node's location.
 	 * @return the location of the node relative to the node's
-	 * parent.
+	 * parent. Returns null if the node is a root node.
 	 */
 	public String getRelativeLocation() {
 		return location;

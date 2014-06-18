@@ -145,7 +145,7 @@ public final class TypedObjectValidator {
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
 		final IdReferenceSet ids = new IdReferenceSet();
-		IdRefNode idRefTree = new IdRefNode(null);
+		IdRefNode idRefTree = new IdRefNode();
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
 			final JsonTokenValidationSchema schema =
@@ -170,6 +170,7 @@ public final class TypedObjectValidator {
 
 					@Override
 					public void addIdRefMessage(IdReference ref) {
+						//TODO 1 limit ID count to what ?
 						ids.addId(ref);
 					}
 
