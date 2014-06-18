@@ -3,14 +3,16 @@ package us.kbase.typedobj.core;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.idref.IdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -43,9 +45,13 @@ public class JsonTokenValidationSchema {
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 
+	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";
+	private static final String ATTRIBUTES = "attributes";
+	
 	@SuppressWarnings("unchecked")
 	public static JsonTokenValidationSchema parseJsonSchema(String document) 
-			throws JsonParseException, JsonMappingException, IOException {
+			throws JsonParseException, JsonMappingException, IOException,
+			BadJsonSchemaDocumentException {
 		Map<String, Object> data = new ObjectMapper().readValue(document, Map.class);
 		return parseJsonSchema(data);
 	}
@@ -53,27 +59,47 @@ public class JsonTokenValidationSchema {
 	/**
 	 * Method parses json schema of some typed object and constructs structure
 	 * containing everything necessary for validation of selected typed object.
+	 * @throws BadJsonSchemaDocumentException 
 	 */
 	@SuppressWarnings("unchecked")
-	public static JsonTokenValidationSchema parseJsonSchema(Map<String, Object> data) {
-		JsonTokenValidationSchema ret = new JsonTokenValidationSchema();
+	public static JsonTokenValidationSchema parseJsonSchema(
+			final Map<String, Object> data)
+			throws BadJsonSchemaDocumentException {
+		final JsonTokenValidationSchema ret = new JsonTokenValidationSchema();
 		ret.id = (String)data.get("id");
 		//ret.description = (String)data.get("description");
 		ret.type = Type.valueOf("" + data.get("type"));
 		ret.originalType = (String)data.get("original-type");
 		if (data.containsKey("id-reference")) {
-			Map<String, Object> idInfo = (Map<String, Object>)data.get("id-reference");
-			String idType = (String)idInfo.get("id-type");           // the id-type must be defined
-			Set<TypeDefName> validTypeDefNames = new HashSet<TypeDefName>();
-			if (idType.equals(WsIdReference.typestring)) {
-				List<String> validNames = (List<String>)idInfo.get("valid-typedef-names");
-				if (validNames == null) 
-					throw new RuntimeException("cannot create WsIdReference; invalid IdReference info; 'valid-typedef-names' field is required");
-				for (final String n: validNames) {
-					validTypeDefNames.add(new TypeDefName(n));
-				}
+			final Map<String, Object> idInfo =
+					(Map<String, Object>)data.get("id-reference");
+			final String idType = (String)idInfo.get("id-type");
+			if (idType == null) {
+				//could add location at some point, but not important
+				//we expect the type compiler not to compile bad schemas
+				throw new BadJsonSchemaDocumentException(
+						"ID reference is missing type");
 			}
-			ret.idReference = new IdRefDescr(idType, validTypeDefNames);
+			final List<String> attributes = new LinkedList<String>();
+			//for backwards compatibility
+			final List<String> typedefs =
+					(List<String>)idInfo.get(VALID_TYPEDEF_NAMES);
+			if (typedefs != null) {
+				attributes.addAll(typedefs);
+			}
+			final List<String> attribs = (List<String>)idInfo.get(ATTRIBUTES);
+			if (attribs != null) {
+				attributes.addAll(attribs);
+			}
+			if (attribs != null && typedefs != null) {
+				//could add location at some point, but not important
+				//we expect the type compiler not to compile bad schemas
+				throw new BadJsonSchemaDocumentException(String.format(
+						"ID reference with %s and %s both set is illegal",
+						VALID_TYPEDEF_NAMES, ATTRIBUTES));
+			}
+			
+			ret.idReference = new IdRefDescr(idType, attributes);
 		}
 		if (ret.type == Type.object) {
 			if (data.containsKey("searchable-ws-subset"))
@@ -216,15 +242,13 @@ public class JsonTokenValidationSchema {
 					// case there was defined idReference property in json-schema node describing this 
 					// object (mapping)
 					if (idReference != null) {
-						WsIdReference ref = createRef(fieldName, idReference, path.subList(0, path.size() - 1), true);
-						if (ref != null) {
-							// this line adds id-reference into flat list which will be used to extract resolved 
-							// values from workspace db
-							lst.addIdRefMessage(ref);
-							// this line adds id-reference into tree structure that will be used for actual 
-							// relabeling in object tokens based on list of resolved values constructed by workspace
-							getIdRefNode(path, refPath).setLocationIsID();
-						}
+						final IdReference ref = createRef(fieldName,
+								idReference, path.subList(0, path.size() - 1),
+								true);
+						lst.addIdRefMessage(ref);
+						// this line adds id-reference into tree structure that will be used for actual 
+						// relabeling in object tokens based on list of resolved values constructed by workspace
+						getIdRefNode(path, refPath).setLocationIsID();
 					}
 				}
 				// check whether all required fields were occured
@@ -305,13 +329,10 @@ public class JsonTokenValidationSchema {
 				// we can add this string value as requiring id-reference relabeling in case 
 				// there was defined idReference property in json-schema node describing this 
 				// string value
-				WsIdReference ref = createRef(jp.getText(), idReference, path, false);
-				if (ref != null) {
-					// this line adds id-reference into flat list which will be used to extract resolved 
-					// values from workspace db
-					lst.addIdRefMessage(ref);
-					getIdRefNode(path, refPath).setIDAtValue(jp.getText());
-				}
+				final IdReference ref = createRef(jp.getText(), idReference,
+						path, false);
+				lst.addIdRefMessage(ref);
+				getIdRefNode(path, refPath).setIDAtValue(jp.getText());
 			}
 		} else if (type == Type.integer) {
 			// integer value is expected
@@ -388,12 +409,13 @@ public class JsonTokenValidationSchema {
 		return refPath.get(path.size());
 	}
 	
-	private static WsIdReference createRef(String id, IdRefDescr idInfo, List<String> path, boolean isFieldName) { 
+	private static IdReference createRef(final String id,
+			final IdRefDescr idInfo, final List<String> path,
+			final boolean isFieldName) { 
 		// construct the IdReference object
-		if (idInfo.idType.equals(WsIdReference.typestring)) {
-			return new WsIdReference(id, idInfo.validTypeDefNames, isFieldName);
-		}
-		return null;
+		//TODO 1 the path is temporary. Might need a better way to deal with the path.
+		return new IdReference(idInfo.idType, id, isFieldName,
+				idInfo.attributes, StringUtils.join(path, "/"));
 	}
 	
 	private static void skipValue(JsonParser jp) throws JsonParseException, IOException, JsonTokenValidationException {
@@ -437,8 +459,8 @@ public class JsonTokenValidationSchema {
 		return idReference == null ? null : idReference.idType;
 	}
 
-	public Set<TypeDefName> getIdReferenceValidTypeDefNames() {
-		return idReference == null ? null : idReference.validTypeDefNames;
+	public List<String> getIdReferenceAttributes() {
+		return idReference == null ? null : idReference.attributes;
 	}
 
 	public JsonNode getSearchableWsSubset() {
@@ -479,15 +501,15 @@ public class JsonTokenValidationSchema {
 	
 	private static class IdRefDescr {
 		String idType;
-		Set<TypeDefName> validTypeDefNames;
-		public IdRefDescr(String idType, Set<TypeDefName> validTypeDefNames) {
+		List<String> attributes;
+		public IdRefDescr(String idType, List<String> attributes) {
 			this.idType = idType;
-			this.validTypeDefNames = validTypeDefNames;
+			this.attributes = attributes;
 		}
 		@Override
 		public String toString() {
-			return "IdRefDescr [idType=" + idType + ", validTypeDefNames="
-					+ validTypeDefNames + "]";
+			return "IdRefDescr [idType=" + idType + ", attributes="
+					+ attributes + "]";
 		}
 	}
 }

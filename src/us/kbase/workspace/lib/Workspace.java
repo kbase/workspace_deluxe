@@ -40,7 +40,7 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -89,6 +89,8 @@ public class Workspace {
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_INFO_COUNT = 10000;
+	
+	private final static String WS_ID_TYPE = "ws";
 	
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
@@ -516,8 +518,8 @@ public class Workspace {
 						"Object %s failed type checking:\n", objerrid) + err);
 			}
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
-			for (final WsIdReference ref: rep.getWsIdReferences()) {
-				//WsIdReference doesn't implement equals or hashcode so use string
+			for (final IdReference ref: rep.getIdReferences()
+					.getIds(WS_ID_TYPE)) {
 				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
 						false);
 			}
@@ -612,8 +614,14 @@ public class Workspace {
 					new HashMap<String, String>();
 			final Set<Reference> refs = new HashSet<Reference>();
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final WsIdReference r: rep.getWsIdReferences()) {
-				if (!r.isValidInstanceType(reftypes.get(r.getId()))) {
+			for (final IdReference r: rep.getIdReferences().getIds(WS_ID_TYPE)) {
+				final Set<TypeDefName> allowedTypes = new HashSet<TypeDefName>();
+				for (final String a: r.getAttributes()) {
+					allowedTypes.add(new TypeDefName(a));
+				}
+				final TypeDefName type = reftypes.get(r.getId()).getType();
+				if (!allowedTypes.isEmpty() && !allowedTypes.contains(type)) {
+					//TODO 1 include path
 					throw new TypedObjectValidationException(String.format(
 							"Object %s: The type %s of reference %s " + 
 							"contained in this object is not " +

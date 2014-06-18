@@ -1,43 +1,82 @@
 package us.kbase.typedobj.idref;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Stores an ID reference
  */
 public class IdReference {
 
+	//TODO unit test
 	
 	private final String type;
 	private final String id;
 	private final boolean isFieldName;
+	private final List<String> attributes;
+	//TODO 1 location is a placeholder, string may be a bad idea
+	private final String location;
 	
-	public IdReference(String type, String id, boolean isFieldName) {
+	public IdReference(final String type, final String id,
+			final boolean isFieldName, List<String> attributes,
+			final String location) {
+		if (type == null || id == null || location == null) {
+			throw new NullPointerException(
+					"type, id, and location cannot be null");
+		}
 		this.type = type;
 		this.id = id;
 		this.isFieldName = isFieldName;
+		attributes = attributes == null ? new LinkedList<String>() :
+			attributes;
+		this.attributes = Collections.unmodifiableList(attributes);
+		//TODO 1 location is a placeholder, string may be a bad idea
+		this.location = location;
+		
 	}
 	
 	/**
-	 * return the type of IdReference (e.g. "ws", "shock", "external", "kb")
+	 * Get the type of the ID.
+	 * @return the type of IdReference (e.g. "ws", "shock", "external", "kb")
 	 */
 	public final String getType() {
 		return type;
 	}
 	
 	/**
-	 * return the original id (note if the ID has been relabeled in the
-	 * typed object instance data, you will still always get the original Id found when validating)
+	 * Get the original ID.
+	 * @return the original id (note if the ID has been relabeled in the
+	 * typed object instance data, you will still always get the original
+	 * ID found when validating)
 	 */
 	public final String getId() {
 		return id;
 	}
 	
-	/**
-	 * true if id is a field name in the json document, false otherwise
+	/** 
+	 * Determine whether the id is in a field of a map/structure.
+	 * @return true if id is a field name in the json document, false otherwise
 	 */
 	public final boolean isFieldName() {
 		return isFieldName;
 	}
 	
+	/**
+	 * Get the location of the id in the enclosing object.
+	 * @return the location of the id in the enclosing object.
+	 */
+	public final String getLocation() {
+		return location;
+	}
+	
+	/**
+	 * Get the set of attributes associated with an id.
+	 * @return the set of attributes associated with an id.
+	 */
+	public final List<String> getAttributes() {
+		return attributes;
+	}
 	
 	@Override
 	public String toString() {

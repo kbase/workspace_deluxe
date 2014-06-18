@@ -7,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -20,8 +19,7 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
-import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.idref.IdReferenceSet;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -57,7 +55,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * Used to keep track of the IDs that were parsed from the 
 	 */
-	private List<WsIdReference> oldIdRefs;
+	private IdReferenceSet oldIdRefs;
 
 	/**
 	 * we keep a reference to the original instance that was validated so we can later easily rename labels or extract
@@ -91,7 +89,7 @@ public class TypedObjectValidationReport {
 	 * @param validationTypeDefId
 	 */
 	public TypedObjectValidationReport(List<String> errors, JsonNode searchData, AbsoluteTypeDefId validationTypeDefId, 
-			UObject tokenStreamProvider, IdRefNode idRefTree, List<WsIdReference> oldIdRefs) {
+			UObject tokenStreamProvider, IdRefNode idRefTree, IdReferenceSet oldIdRefs) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.searchData = searchData;
 		this.validationTypeDefId=validationTypeDefId;
@@ -123,22 +121,8 @@ public class TypedObjectValidationReport {
 		return errors;
 	}
 	
-	public List<WsIdReference> getWsIdReferences() {
+	public IdReferenceSet getIdReferences() {
 		return oldIdRefs;
-		//idRefManager.getAllWsIdReferences();
-	}
-	
-	public List<IdReference> getAllIdReferences() {
-		return new ArrayList<IdReference>(oldIdRefs);
-		//return idRefManager.getAllIdReferences();
-	}
-	
-	public List<String> getAllIds() {
-		List<String> ret = new ArrayList<String>();
-		for (IdReference ref : oldIdRefs)
-			ret.add(ref.getId());
-		return ret;
-		//return idRefManager.getAllIds();
 	}
 	
 	public Writable createJsonWritable() {
@@ -455,8 +439,7 @@ public class TypedObjectValidationReport {
 		mssg.append(" -status: ");
 		if(this.isInstanceValid()) {
 			mssg.append("pass\n");
-			mssg.append(" -id refs extracted: "+getAllIds().size());
-			mssg.append(" -ws id refs extracted: "+getWsIdReferences().size());
+			mssg.append(" -id refs extracted: " + oldIdRefs.size());
 		}
 		else {
 			List<String> errs = getErrorMessages();

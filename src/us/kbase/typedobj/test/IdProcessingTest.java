@@ -19,6 +19,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,7 +239,7 @@ public class IdProcessingTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		
 		// check that all expected Ids are in fact found
-		List<IdReference> fullIdList = report.getAllIdReferences();
+		List<IdReference> fullIdList = report.getIdReferences().getIds("ws");
 		//System.out.println("fullIdList: " + fullIdList.size());
 		for(IdReference ref: fullIdList) {
 			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
@@ -273,7 +274,10 @@ public class IdProcessingTest {
 		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
 		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
-		List<String> relabeledIds = report2.getAllIds();
+		List<String> relabeledIds = new LinkedList<String>();
+		for (IdReference id: report2.getIdReferences().getIds("ws")) {
+			relabeledIds.add(id.getId());
+		}
 		
 		//there should be the same number as before, of course!
 		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), fullIdList.size());

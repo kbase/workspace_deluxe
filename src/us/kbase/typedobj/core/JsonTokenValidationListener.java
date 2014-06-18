@@ -1,6 +1,6 @@
 package us.kbase.typedobj.core;
 
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.idref.IdReference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -21,7 +21,7 @@ public interface JsonTokenValidationListener {
 	 * extract resolved values from workspace db.
 	 * @param ref description of id-reference
 	 */
-	public void addIdRefMessage(WsIdReference ref);
+	public void addIdRefMessage(IdReference ref);
 	
 	/**
 	 * Method is for registering searchable ws-subset object.

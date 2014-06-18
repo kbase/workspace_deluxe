@@ -11,8 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
-import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.idref.IdReferenceSet;
 
 /**
  * for testing, you can instantiate this report without running any validation code.
@@ -26,7 +25,7 @@ public class DummyTypedObjectValidationReport extends
 	
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
 			final UObject data) {
-		super(Collections.<String>emptyList(), null, type, data, null, Collections.<WsIdReference>emptyList());
+		super(Collections.<String>emptyList(), null, type, data, null, new IdReferenceSet().lock());
 	}
 	
 	@Override
@@ -40,16 +39,8 @@ public class DummyTypedObjectValidationReport extends
 	}
 	
 	@Override
-	public List<WsIdReference> getWsIdReferences() {
-		return new ArrayList<WsIdReference>();
-	}
-	@Override
-	public List<IdReference> getAllIdReferences() {
-		return new ArrayList<IdReference>();
-	}
-	@Override
-	public List<String> getAllIds() {
-		return new ArrayList<String>();
+	public IdReferenceSet getIdReferences() {
+		return new IdReferenceSet().lock();
 	}
 	
 	@Override

@@ -13,7 +13,8 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
-import us.kbase.typedobj.idref.WsIdReference;
+import us.kbase.typedobj.idref.IdReference;
+import us.kbase.typedobj.idref.IdReferenceSet;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -143,13 +144,15 @@ public final class TypedObjectValidator {
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
-		final List<WsIdReference> oldRefIds = new ArrayList<WsIdReference>();
+		final IdReferenceSet ids = new IdReferenceSet();
 		IdRefNode idRefTree = new IdRefNode(null);
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		try {
-			JsonTokenValidationSchema schema = JsonTokenValidationSchema.parseJsonSchema(schemaText);
+			final JsonTokenValidationSchema schema =
+					JsonTokenValidationSchema.parseJsonSchema(schemaText);
 			if (!schema.getOriginalType().equals("kidl-structure"))
-				throw new IllegalStateException("Data of type other than structure couldn't be stored in workspace");
+				throw new IllegalStateException(
+						"Data of type other than structure couldn't be stored in workspace");
 			JsonTokenStream jts = obj.getPlacedStream();
 			try {
 				schema.checkJsonData(jts, new JsonTokenValidationListener() {
@@ -166,8 +169,8 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addIdRefMessage(WsIdReference ref) {
-						oldRefIds.add(ref);
+					public void addIdRefMessage(IdReference ref) {
+						ids.addId(ref);
 					}
 
 					@Override
@@ -182,7 +185,8 @@ public final class TypedObjectValidator {
 			mapErrors(errors, ex.getMessage());
 //			errors.add(ex.getMessage());
 		}
-		return new TypedObjectValidationReport(errors, searchDataWrap[0], absoluteTypeDefDB, obj, idRefTree, oldRefIds);
+		return new TypedObjectValidationReport(errors, searchDataWrap[0],
+				absoluteTypeDefDB, obj, idRefTree, ids.lock());
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {
