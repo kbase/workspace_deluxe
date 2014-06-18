@@ -1403,45 +1403,52 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
 				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false))); //should work
 		
+		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
+				"reference %s at location /ref in this object is not " + 
+				"allowed for this object's type, " + 
+				"TestTypeCheckingRefType.CheckRefType-0.1. Allowed types " + 
+				"are: [TestTypeChecking.CheckType]";
 		refdata.put("ref", "referencetypecheck/1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						"referencetypecheck/1/1")));
 		
 		refdata.put("ref", "referencetypecheck/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						"referencetypecheck/1")));
 		
 		refdata.put("ref", "referencetypecheck/auto1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/auto1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						"referencetypecheck/auto1/1")));
 		
 		refdata.put("ref", "referencetypecheck/auto1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference referencetypecheck/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						"referencetypecheck/auto1")));
 		
 		refdata.put("ref", reftypewsid + "/1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						reftypewsid + "/1/1")));
 		
 		refdata.put("ref", reftypewsid + "/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						reftypewsid + "/1")));
 		
 		refdata.put("ref", reftypewsid + "/auto1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1/1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						reftypewsid + "/auto1/1")));
 		
 		refdata.put("ref", reftypewsid + "/auto1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: The type SomeModule.AType-0.1 of reference " + reftypewsid + "/auto1 contained in this object is not allowed for this object's type, TestTypeCheckingRefType.CheckRefType-0.1"));
+				new TypedObjectValidationException(String.format(err,
+						reftypewsid + "/auto1")));
+		
+		//TODO 1: test different types, allowed types, and locations.
 		
 		//check references were rewritten correctly
 		for (int i = 3; i < 11; i++) {

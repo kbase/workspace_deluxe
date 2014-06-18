@@ -624,13 +624,16 @@ public class Workspace {
 					//TODO 1 include path
 					throw new TypedObjectValidationException(String.format(
 							"Object %s: The type %s of reference %s " + 
-							"contained in this object is not " +
-							"allowed for this object's type, %s",
+							"at location %s in this object is not " +
+							"allowed for this object's type, %s. " +
+							"Allowed types are: %s",
 							getObjectErrorId(wo.getObjectIdentifier(),
 									reports.get(wo).order),
 							reftypes.get(r.getId()).getTypeString(),
 							r.getId(),
-							rep.getValidationTypeDefId().getTypeString()));
+							r.getLocation(),
+							rep.getValidationTypeDefId().getTypeString(),
+							r.getAttributes()));
 				}
 				refs.add(newrefs.get(r.getId()));
 				replacerefs.put(r.getId(), newrefs.get(r.getId()).toString());

@@ -415,7 +415,7 @@ public class JsonTokenValidationSchema {
 		// construct the IdReference object
 		//TODO 1 the path is temporary. Might need a better way to deal with the path.
 		return new IdReference(idInfo.idType, id, isFieldName,
-				idInfo.attributes, StringUtils.join(path, "/"));
+				idInfo.attributes, "/" + StringUtils.join(path, "/"));
 	}
 	
 	private static void skipValue(JsonParser jp) throws JsonParseException, IOException, JsonTokenValidationException {
