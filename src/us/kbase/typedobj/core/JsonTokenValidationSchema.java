@@ -8,8 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
-
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.idref.IdReference;
@@ -415,7 +413,7 @@ public class JsonTokenValidationSchema {
 		// construct the IdReference object
 		//TODO 1 the path is temporary. Might need a better way to deal with the path.
 		return new IdReference(idInfo.idType, id, isFieldName,
-				idInfo.attributes, "/" + StringUtils.join(path, "/"));
+				idInfo.attributes, path);
 	}
 	
 	private static void skipValue(JsonParser jp) throws JsonParseException, IOException, JsonTokenValidationException {

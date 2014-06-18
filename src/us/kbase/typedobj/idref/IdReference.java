@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Stores an ID reference
  */
@@ -16,11 +18,11 @@ public class IdReference {
 	private final boolean isFieldName;
 	private final List<String> attributes;
 	//TODO 1 location is a placeholder, string may be a bad idea
-	private final String location;
+	private final List<String> location;
 	
 	public IdReference(final String type, final String id,
 			final boolean isFieldName, List<String> attributes,
-			final String location) {
+			final List<String> location) {
 		if (type == null || id == null || location == null) {
 			throw new NullPointerException(
 					"type, id, and location cannot be null");
@@ -32,7 +34,7 @@ public class IdReference {
 			attributes;
 		this.attributes = Collections.unmodifiableList(attributes);
 		//TODO 1 location is a placeholder, string may be a bad idea
-		this.location = location;
+		this.location = new LinkedList<String>(location);
 		
 	}
 	
@@ -66,8 +68,8 @@ public class IdReference {
 	 * Get the location of the id in the enclosing object.
 	 * @return the location of the id in the enclosing object.
 	 */
-	public final String getLocation() {
-		return location;
+	public final String getLocation(final char pathsep) {
+		return pathsep + StringUtils.join(location, pathsep);
 	}
 	
 	/**
@@ -81,7 +83,8 @@ public class IdReference {
 	@Override
 	public String toString() {
 		return "IdReference [type=" + type + ", id=" + id + ", isFieldName="
-				+ isFieldName + "]";
+				+ isFieldName + ", attributes=" + attributes + ", location="
+				+ location + "]";
 	}
 	
 }

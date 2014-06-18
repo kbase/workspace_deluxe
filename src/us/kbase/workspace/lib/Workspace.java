@@ -91,6 +91,7 @@ public class Workspace {
 	private final static int MAX_INFO_COUNT = 10000;
 	
 	private final static String WS_ID_TYPE = "ws";
+	private final static char OBJECT_PATH_SEPARATOR = '/';
 	
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
@@ -631,7 +632,7 @@ public class Workspace {
 									reports.get(wo).order),
 							reftypes.get(r.getId()).getTypeString(),
 							r.getId(),
-							r.getLocation(),
+							r.getLocation(OBJECT_PATH_SEPARATOR),
 							rep.getValidationTypeDefId().getTypeString(),
 							r.getAttributes()));
 				}
