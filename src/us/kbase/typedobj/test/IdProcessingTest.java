@@ -81,7 +81,16 @@ public class IdProcessingTest {
 	 */
 	private final static String TEST_RESOURCE_LOCATION = "files/t2/";
 	
-
+	/**
+	 * KB types to register
+	 */
+	private final static List<String> KB_TYPES =
+			Arrays.asList("Feature","Genome","FeatureGroup","genome_id",
+					"feature_id","FeatureMap","DeepFeatureMap",
+					"NestedFeaturesValue", "NestedFeaturesKey",
+					"NestedFeaturesList");
+	
+	
 	private static TypeDefinitionDB db;
 	private static TypedObjectValidator validator;
 	
@@ -170,10 +179,9 @@ public class IdProcessingTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","FeatureMap","DeepFeatureMap");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
-		db.registerModule(kbSpec ,kb_types, username);
+		db.registerModule(kbSpec ,KB_TYPES, username);
 		db.releaseModule("KB", username, false);
 		
 		String fbaSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"FBA.spec");

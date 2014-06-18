@@ -294,8 +294,10 @@ public class JsonTokenValidationSchema {
 					// let's increment last path element according to position of this item in array
 					path.set(path.size() - 1, "" + itemPos);
 					JsonTokenValidationSchema childType = arrayItems;
-					if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
+					if ((!skipAll) && childType == null && arrayItemList != null
+							&& itemPos < arrayItemList.size()) {
 						childType = arrayItemList.get(itemPos);
+					}
 					if (skipAll || childType == null) {
 						// if we have more items than we expect or we didn't specify types for 
 						// some of them then we skip real data of these items
@@ -390,12 +392,27 @@ public class JsonTokenValidationSchema {
 		return ret.toString();
 	}
 	
-	private static IdRefNode getIdRefNode(List<String> path, List<IdRefNode> refPath) {
-		if (refPath.size() == 0 || refPath.size() > path.size() + 1)
-			throw new IllegalStateException("Reference branch path has wrong length: " + refPath.size());
-		while (refPath.size() > 1
-				&& !refPath.get(refPath.size() - 1).getRelativeLocation()
-						.equals(path.get(refPath.size() - 2))) {
+	private static IdRefNode getIdRefNode(final List<String> path,
+			final List<IdRefNode> refPath) {
+		if (refPath.size() == 0 || refPath.size() > path.size() + 1) {
+			throw new IllegalStateException(
+					"Reference branch path has wrong length: " +
+					refPath.size());
+		}
+		final String refpos = refPath.get(refPath.size() - 1)
+				.getRelativeLocation();
+		// path doesn't have a root node like the refpath, hence - 2
+		final String pathpos = path.get(refPath.size() - 2);
+		
+		while (refPath.size() > 1 && !refpos.equals(pathpos)) {
+			/*
+			 * we are inside an array or a map and the key or index has changed,
+			 * so back up a position.
+			 * In the main loop, after completing processing of an array or map,
+			 * the refpath is set to the same position as the path (e.g. just
+			 * prior to the array or map, so we never have to back up more than
+			 * one path element
+			*/
 			refPath.remove(refPath.size() - 1);
 		}
 		while (refPath.size() <= path.size()) {
