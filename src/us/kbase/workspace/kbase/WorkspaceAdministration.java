@@ -12,10 +12,12 @@ import java.util.Set;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JacksonTupleModule;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -38,6 +40,9 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.lib.Workspace;
 
 public class WorkspaceAdministration {
+	
+	private final static ObjectMapper MAPPER = new ObjectMapper()
+			.registerModule(new JacksonTupleModule());
 	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
@@ -71,7 +76,7 @@ public class WorkspaceAdministration {
 		}
 		final AdminCommand cmd;
 		try {
-			cmd = command.asClassInstance(AdminCommand.class); //TODO 1 check with Roman on the right way to do this
+			cmd = command.asClassInstance(AdminCommand.class);
 		} catch (IllegalStateException ise) {
 			final IOException ioe = (IOException) ise.getCause();
 			if (ioe instanceof JsonMappingException) {
@@ -186,7 +191,6 @@ public class WorkspaceAdministration {
 		return new WorkspaceUser(user);
 	}
 
-	//TODO 1 I think this is now wrong: This will turn anything containing a UObject in a file into a UObject in memory
 	private <T> T getParams(final AdminCommand input, final Class<T> clazz)
 			throws IOException {
 		final UObject p = input.getParams();
@@ -195,17 +199,13 @@ public class WorkspaceAdministration {
 					+ " may not be null");
 		}
 		try {
-			return UObject.transformObjectToObject(p, clazz);
-		} catch (IllegalStateException ise) {
-			final IOException ioe = (IOException) ise.getCause();
-			if (ioe instanceof JsonMappingException) {
-				throw new IllegalArgumentException("Unable to deserialize "
-						+ clazz.getSimpleName() + " out of params field.", ioe);
-			}
-			throw ioe;
+			return MAPPER.readValue(p.getPlacedStream(), clazz);
+		} catch (JsonMappingException jme) {
+			throw new IllegalArgumentException("Unable to deserialize "
+					+ clazz.getSimpleName() + " out of params field.", jme);
 		}
 	}
-	
+
 	//why doesn't this work?
 	@SuppressWarnings("unused")
 	private <T> T getParams(final Map<String, Object> input) {

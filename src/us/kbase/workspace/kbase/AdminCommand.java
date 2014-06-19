@@ -4,8 +4,6 @@ import us.kbase.common.service.UObject;
 
 public class AdminCommand {
 	
-	//TODO 1 check with Roman that this'll do what I expect.
-	
 	private String command;
 	private String module;
 	private String user;
