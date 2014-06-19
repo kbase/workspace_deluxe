@@ -2217,11 +2217,11 @@ public class TypeDefinitionDB {
 				KbAnnotationId oldAnnId = oldIType.getAnnotations() == null ? null : 
 					oldIType.getAnnotations().getIdReference();
 				String oldAnnIdSchema = oldAnnId == null ? "" : (oldAnnId.getType() + ", " + 
-					oldAnnId.getValidTypedefNamesForWs() + ", " + oldAnnId.getSourcesForExternal());
+					oldAnnId.getAttributes());
 				KbAnnotationId newAnnId = newIType.getAnnotations() == null ? null : 
 					newIType.getAnnotations().getIdReference();
 				String newAnnIdSchema = newAnnId == null ? "" : (newAnnId.getType() + ", " + 
-						newAnnId.getValidTypedefNamesForWs() + ", " + newAnnId.getSourcesForExternal());
+						newAnnId.getAttributes());
 				if (!oldAnnIdSchema.equals(newAnnIdSchema)) {
 					//System.out.println("TypeDefinitionDB: oldref: " + oldAnnIdSchema);
 					//System.out.println("TypeDefinitionDB: newref: " + newAnnIdSchema);
