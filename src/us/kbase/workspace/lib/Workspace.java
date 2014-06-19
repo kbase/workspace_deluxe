@@ -40,6 +40,7 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
@@ -90,7 +91,7 @@ public class Workspace {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_INFO_COUNT = 10000;
 	
-	private final static String WS_ID_TYPE = "ws";
+	private final static IDReferenceType WS_ID_TYPE = new IDReferenceType("ws");
 	private final static char OBJECT_PATH_SEPARATOR = '/';
 	
 	private final WorkspaceDatabase db;

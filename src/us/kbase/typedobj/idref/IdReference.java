@@ -13,14 +13,14 @@ public class IdReference {
 
 	//TODO unit test
 	
-	private final String type;
+	private final IDReferenceType type;
 	private final String id;
 	private final boolean isFieldName;
 	private final List<String> attributes;
 	//TODO 1 location is a placeholder, string may be a bad idea
 	private final List<String> location;
 	
-	public IdReference(final String type, final String id,
+	public IdReference(final IDReferenceType type, final String id,
 			final boolean isFieldName, List<String> attributes,
 			final List<String> location) {
 		if (type == null || id == null || location == null) {
@@ -35,14 +35,14 @@ public class IdReference {
 		this.attributes = Collections.unmodifiableList(attributes);
 		//TODO 1 location is a placeholder, string may be a bad idea
 		this.location = new LinkedList<String>(location);
-		
+
 	}
 	
 	/**
 	 * Get the type of the ID.
 	 * @return the type of IdReference (e.g. "ws", "shock", "external", "kb")
 	 */
-	public final String getType() {
+	public final IDReferenceType getType() {
 		return type;
 	}
 	

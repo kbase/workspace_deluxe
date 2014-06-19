@@ -10,6 +10,7 @@ import java.util.Map;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -97,7 +98,8 @@ public class JsonTokenValidationSchema {
 						VALID_TYPEDEF_NAMES, ATTRIBUTES));
 			}
 			
-			ret.idReference = new IdRefDescr(idType, attributes);
+			ret.idReference = new IdRefDescr(new IDReferenceType(idType),
+					attributes);
 		}
 		if (ret.type == Type.object) {
 			if (data.containsKey("searchable-ws-subset"))
@@ -473,7 +475,7 @@ public class JsonTokenValidationSchema {
 		return originalType;
 	}
 	
-	public String getIdReferenceType() {
+	public IDReferenceType getIdReferenceType() {
 		return idReference == null ? null : idReference.idType;
 	}
 
@@ -518,9 +520,9 @@ public class JsonTokenValidationSchema {
 	}
 	
 	private static class IdRefDescr {
-		String idType;
+		IDReferenceType idType;
 		List<String> attributes;
-		public IdRefDescr(String idType, List<String> attributes) {
+		public IdRefDescr(IDReferenceType idType, List<String> attributes) {
 			this.idType = idType;
 			this.attributes = attributes;
 		}

@@ -43,6 +43,7 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -237,7 +238,7 @@ public class IdProcessingTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
 		
 		// check that all expected Ids are in fact found
-		List<IdReference> fullIdList = report.getIdReferences().getIds("ws");
+		List<IdReference> fullIdList = report.getIdReferences().getIds(new IDReferenceType("ws"));
 		//System.out.println("fullIdList: " + fullIdList.size());
 		for(IdReference ref: fullIdList) {
 			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
@@ -273,7 +274,7 @@ public class IdProcessingTest {
 		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
 		List<String> relabeledIds = new LinkedList<String>();
-		for (IdReference id: report2.getIdReferences().getIds("ws")) {
+		for (IdReference id: report2.getIdReferences().getIds(new IDReferenceType("ws"))) {
 			relabeledIds.add(id.getId());
 		}
 		

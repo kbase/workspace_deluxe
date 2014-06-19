@@ -15,8 +15,8 @@ public class IdReferenceSet {
 	//TODO unit tests
 	//TODO 1 test extraction of other id types
 	
-	private final Map<String, List<IdReference>> ids =
-			new HashMap<String, List<IdReference>>();
+	private final Map<IDReferenceType, List<IdReference>> ids =
+			new HashMap<IDReferenceType, List<IdReference>>();
 	private boolean locked = false;
 	private int size = 0;
 	
@@ -35,14 +35,14 @@ public class IdReferenceSet {
 		return this;
 	}
 	
-	public List<IdReference> getIds(final String type) {
+	public List<IdReference> getIds(final IDReferenceType type) {
 		if (!ids.containsKey(type)) {
 			return new LinkedList<IdReference>();
 		}
 		return new LinkedList<IdReference>(ids.get(type));
 	}
 	
-	public Set<String> getIdTypes() {
+	public Set<IDReferenceType> getIdTypes() {
 		return ids.keySet(); 
 	}
 	
