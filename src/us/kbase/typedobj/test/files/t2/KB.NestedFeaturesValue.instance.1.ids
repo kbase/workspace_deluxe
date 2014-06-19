@@ -1,0 +1,20 @@
+{
+	"ids-expected":[
+			"id1",
+			"id2",
+			"id2"
+		],
+	"ids-relabel":{
+		"id1": "id1remap",
+		"id2": "id2remap"
+		},
+	"renamed-expected": {
+		"nested_features": {"foo": {"foo": "id1remap"
+									},
+							"bar": {"foo": "id2remap"
+									},
+							"baz": {"bar": "id2remap"}
+									}
+							}
+	}
+}

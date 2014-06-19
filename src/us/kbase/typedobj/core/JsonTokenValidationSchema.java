@@ -294,8 +294,10 @@ public class JsonTokenValidationSchema {
 					// let's increment last path element according to position of this item in array
 					path.set(path.size() - 1, "" + itemPos);
 					JsonTokenValidationSchema childType = arrayItems;
-					if ((!skipAll) && childType == null && arrayItemList != null && itemPos < arrayItemList.size())
+					if ((!skipAll) && childType == null && arrayItemList != null
+							&& itemPos < arrayItemList.size()) {
 						childType = arrayItemList.get(itemPos);
+					}
 					if (skipAll || childType == null) {
 						// if we have more items than we expect or we didn't specify types for 
 						// some of them then we skip real data of these items

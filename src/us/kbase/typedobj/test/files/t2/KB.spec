@@ -67,6 +67,20 @@ module KB {
 	
 	} DeepFeatureMap;
 
+	typedef structure {
+		mapping<string, mapping<string, feature_id>> nested_features;
+	} NestedFeaturesValue;
+
+	typedef structure {
+		mapping<string, mapping<feature_id, string>> nested_features;
+	} NestedFeaturesKey;
+
+	typedef structure {
+		list<mapping<string, feature_id>> nested_features;
+	} NestedFeaturesList;
+
+
+
 };
 
 
