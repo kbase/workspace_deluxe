@@ -70,8 +70,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class IdProcessingTest {
 
-	//TODO 1 add ID processing tests for the new KB nested types
-	
 	/**
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
@@ -112,8 +110,6 @@ public class IdProcessingTest {
 		public String typeName;
 	}
 	
-	
-	
 	/**
 	 * As each test instance object is created, this sets which instance to actually test
 	 */
@@ -139,14 +135,6 @@ public class IdProcessingTest {
 		return Arrays.asList(instanceInfo);
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	
 	/**
 	 * Setup the typedef database, load and release the types in the simple specs, and
 	 * identify all the files containing instances to validate.
