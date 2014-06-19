@@ -53,6 +53,8 @@ import us.kbase.typedobj.idref.IdReferenceSet;
  */
 public final class TypedObjectValidator {
 	
+	private static final boolean VERBOSE_EXCEPTIONS = false;
+	
 	private static final Map<String, String> ERROR_MAP =
 			new HashMap<String, String>();
 	static {
@@ -183,6 +185,9 @@ public final class TypedObjectValidator {
 				try { jts.close(); } catch (Exception ignore) {}
 			}
 		} catch (Exception ex) {
+			if (VERBOSE_EXCEPTIONS) {
+				ex.printStackTrace();
+			}
 			mapErrors(errors, ex.getMessage());
 //			errors.add(ex.getMessage());
 		}

@@ -121,6 +121,7 @@ public class WorkspaceAdministration {
 				return null;
 			}
 			if ("saveObjects".equals(fn)) {
+				//TODO 1 this puts the entire object in memory. Need to use UObject throughout and transform to new object wrapping SaveObjectsParams.
 				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
 				return wsmeth.saveObjects(params, getUser(c, token));
 			}
@@ -178,13 +179,13 @@ public class WorkspaceAdministration {
 		return new WorkspaceUser(user);
 	}
 
+	//This will turn anything containing a UObject in a file into a UObject in memory
 	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
 		final Object p = input.get("params");
 		if (p == null) {
 			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
 					+ " may not be null");
 		}
-		//TODO 1 check with Roman that this won't instantiate UObjects. Pretty sure that's the case.
 		return UObject.transformObjectToObject(input.get("params"), clazz);
 	}
 	

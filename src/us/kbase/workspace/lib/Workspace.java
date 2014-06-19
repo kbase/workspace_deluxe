@@ -622,7 +622,6 @@ public class Workspace {
 				}
 				final TypeDefName type = reftypes.get(r.getId()).getType();
 				if (!allowedTypes.isEmpty() && !allowedTypes.contains(type)) {
-					//TODO 1 include path
 					throw new TypedObjectValidationException(String.format(
 							"Object %s: The type %s of reference %s " + 
 							"at location %s in this object is not " +

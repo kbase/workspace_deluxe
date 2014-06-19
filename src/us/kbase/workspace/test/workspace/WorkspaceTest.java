@@ -1448,7 +1448,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/auto1")));
 		
-		//TODO 1: test different types, allowed types, and locations.
+		//TODO 1 test different types, allowed types, and locations.
 		
 		//check references were rewritten correctly
 		for (int i = 3; i < 11; i++) {
