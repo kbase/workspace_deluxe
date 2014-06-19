@@ -1732,8 +1732,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public UObject administer(UObject command, AuthToken authPart) throws Exception {
         UObject returnVal = null;
         //BEGIN administer
-		returnVal = new UObject(wsadmin.runCommand(authPart,
-				command.asInstance()));
+		returnVal = new UObject(wsadmin.runCommand(authPart, command));
         //END administer
         return returnVal;
     }

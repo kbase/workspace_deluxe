@@ -2274,7 +2274,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
 		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
-		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command:\n{command=listAdmin}");
+		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command: listAdmin");
 		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
 						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
 				"thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid KBase user");
@@ -2352,6 +2352,20 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@Test
 	public void adminUserFacade() throws Exception {
+		failAdmin(CLIENT2,
+				"{\"command\": \"createWorkspace\"," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": [{\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
+				"			   \"description\": \"mydesc\"}]}",
+				"Unable to deserialize CreateWorkspaceParams out of params field.");
+		
+		failAdmin(CLIENT2,
+				"{\"command\": [\"createWorkspace\"]," +
+				" \"user\": \"" + USER1 + "\"," +
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
+				"			   \"description\": \"mydesc\"}}",
+				"Unable to deserialize a workspace admin command from the input.");
+		
 		TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> typeref
 				= new TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>() {};
 		TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>> listtyperef

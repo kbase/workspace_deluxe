@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -55,7 +56,7 @@ public class WorkspaceAdministration {
 		}
 	}
 
-	public Object runCommand(AuthToken token, Object cmd)
+	public Object runCommand(AuthToken token, UObject command)
 			throws TypeStorageException, IOException, AuthException,
 			WorkspaceCommunicationException, PreExistingWorkspaceException,
 			CorruptWorkspaceDBException, NoSuchObjectException,
@@ -65,86 +66,92 @@ public class WorkspaceAdministration {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
-			throw new IllegalArgumentException("User " + token.getUserName()
+			throw new IllegalArgumentException("User " + putativeAdmin
 					+ " is not an admin");
 		}
-		if (cmd instanceof Map) {
-			@SuppressWarnings("unchecked")
-			final Map<String, Object> c = (Map<String, Object>) cmd;
-			final String fn = (String) c.get("command");
-			if ("listModRequests".equals(fn)) {
-				return ws.listModuleRegistrationRequests();
+		final AdminCommand cmd;
+		try {
+			cmd = command.asClassInstance(AdminCommand.class); //TODO 1 check with Roman on the right way to do this
+		} catch (IllegalStateException ise) {
+			final IOException ioe = (IOException) ise.getCause();
+			if (ioe instanceof JsonMappingException) {
+				throw new IllegalArgumentException("Unable to deserialize " +
+						"a workspace admin command from the input.", ioe);
 			}
-			if ("approveModRequest".equals(fn)) {
-				ws.resolveModuleRegistration((String) c.get("module"), true);
-				return null;
+			throw ioe;
+		}
+		final String fn = (String) cmd.getCommand();
+		if ("listModRequests".equals(fn)) {
+			return ws.listModuleRegistrationRequests();
+		}
+		if ("approveModRequest".equals(fn)) {
+			ws.resolveModuleRegistration((String) cmd.getModule(), true);
+			return null;
+		}
+		if ("denyModRequest".equals(fn)) {
+			ws.resolveModuleRegistration((String) cmd.getModule(), false);
+			return null;
+		}
+		if ("listAdmins".equals(fn)) {
+			final Set<String> strAdm = new HashSet<String>();
+			strAdm.addAll(usersToStrings(ws.getAdmins()));
+			strAdm.addAll(internaladmins);
+			return strAdm;
+		}
+		if ("addAdmin".equals(fn)) {
+			ws.addAdmin(getUser(cmd, token));
+			return null;
+		}
+		if ("removeAdmin".equals(fn)) {
+			final WorkspaceUser wsadmin = getUser(cmd, token);
+			final String admin = wsadmin.getUser();
+			if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
+				internaladmins.remove(admin);
 			}
-			if ("denyModRequest".equals(fn)) {
-				ws.resolveModuleRegistration((String) c.get("module"), false);
-				return null;
-			}
-			if ("listAdmins".equals(fn)) {
-				final Set<String> strAdm = new HashSet<String>();
-				strAdm.addAll(usersToStrings(ws.getAdmins()));
-				strAdm.addAll(internaladmins);
-				return strAdm;
-			}
-			if ("addAdmin".equals(fn)) {
-				ws.addAdmin(getUser(c, token));
-				return null;
-			}
-			if ("removeAdmin".equals(fn)) {
-				final WorkspaceUser wsadmin = getUser(c, token);
-				final String admin = wsadmin.getUser();
-				if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
-					internaladmins.remove(admin);
-				}
-				ws.removeAdmin(wsadmin);
-				return null;
-			}
-			if ("createWorkspace".equals(fn)) {
-				final CreateWorkspaceParams params = getParams(c, CreateWorkspaceParams.class);
-				return wsmeth.createWorkspace(params, getUser(c, token));
-			}
-			if ("setPermissions".equals(fn)) {
-				final SetPermissionsParams params = getParams(c, SetPermissionsParams.class);
-				wsmeth.setPermissions(params, null, token, true);
-				return null;
-			}
-			if ("getPermissions".equals(fn)) {
-				final WorkspaceIdentity params = getParams(c, WorkspaceIdentity.class);
-				return wsmeth.getPermissions(params, getUser(c, token));
-			}
-			if ("setGlobalPermission".equals(fn)) {
-				final SetGlobalPermissionsParams params = getParams(c, SetGlobalPermissionsParams.class);
-				wsmeth.setGlobalPermission(params, getUser(c, token));
-				return null;
-			}
-			if ("saveObjects".equals(fn)) {
-				//TODO 1 this puts the entire object in memory. Need to use UObject throughout and transform to new object wrapping SaveObjectsParams.
-				final SaveObjectsParams params = getParams(c, SaveObjectsParams.class);
-				return wsmeth.saveObjects(params, getUser(c, token));
-			}
-			if ("listWorkspaces".equals(fn)) {
-				final ListWorkspaceInfoParams params = getParams(c, ListWorkspaceInfoParams.class);
-				return wsmeth.listWorkspaceInfo(params, getUser(c, token));
-			}
-			if ("listWorkspaceOwners".equals(fn)) {
-				return usersToStrings(ws.getAllWorkspaceOwners());
-			}
-			if ("grantModuleOwnership".equals(fn)) {
-				final GrantModuleOwnershipParams params = getParams(c, GrantModuleOwnershipParams.class);
-				wsmeth.grantModuleOwnership(params, null, true);
-				return null;
-			}
-			if ("removeModuleOwnership".equals(fn)) {
-				final RemoveModuleOwnershipParams params = getParams(c, RemoveModuleOwnershipParams.class);
-				wsmeth.removeModuleOwnership(params, null, true);
-				return null;
-			}
+			ws.removeAdmin(wsadmin);
+			return null;
+		}
+		if ("createWorkspace".equals(fn)) {
+			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
+			return wsmeth.createWorkspace(params, getUser(cmd, token));
+		}
+		if ("setPermissions".equals(fn)) {
+			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
+			wsmeth.setPermissions(params, null, token, true);
+			return null;
+		}
+		if ("getPermissions".equals(fn)) {
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+			return wsmeth.getPermissions(params, getUser(cmd, token));
+		}
+		if ("setGlobalPermission".equals(fn)) {
+			final SetGlobalPermissionsParams params = getParams(cmd, SetGlobalPermissionsParams.class);
+			wsmeth.setGlobalPermission(params, getUser(cmd, token));
+			return null;
+		}
+		if ("saveObjects".equals(fn)) {
+			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
+			return wsmeth.saveObjects(params, getUser(cmd, token));
+		}
+		if ("listWorkspaces".equals(fn)) {
+			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
+			return wsmeth.listWorkspaceInfo(params, getUser(cmd, token));
+		}
+		if ("listWorkspaceOwners".equals(fn)) {
+			return usersToStrings(ws.getAllWorkspaceOwners());
+		}
+		if ("grantModuleOwnership".equals(fn)) {
+			final GrantModuleOwnershipParams params = getParams(cmd, GrantModuleOwnershipParams.class);
+			wsmeth.grantModuleOwnership(params, null, true);
+			return null;
+		}
+		if ("removeModuleOwnership".equals(fn)) {
+			final RemoveModuleOwnershipParams params = getParams(cmd, RemoveModuleOwnershipParams.class);
+			wsmeth.removeModuleOwnership(params, null, true);
+			return null;
 		}
 		throw new IllegalArgumentException(
-				"I don't know how to process the command:\n" + cmd);
+				"I don't know how to process the command: " + fn);
 	}
 
 	private List<String> usersToStrings(final Set<WorkspaceUser> users) {
@@ -155,10 +162,10 @@ public class WorkspaceAdministration {
 		return ret;
 	}
 
-	private WorkspaceUser getUser(final Map<String, Object> input,
+	private WorkspaceUser getUser(final AdminCommand cmd,
 			final AuthToken token)
 			throws IOException, AuthException {
-		final String user = (String) input.get("user");
+		final String user = (String) cmd.getUser();
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
@@ -179,14 +186,24 @@ public class WorkspaceAdministration {
 		return new WorkspaceUser(user);
 	}
 
-	//This will turn anything containing a UObject in a file into a UObject in memory
-	private <T> T getParams(final Map<String, Object> input, Class<T> clazz) {
-		final Object p = input.get("params");
+	//TODO 1 I think this is now wrong: This will turn anything containing a UObject in a file into a UObject in memory
+	private <T> T getParams(final AdminCommand input, final Class<T> clazz)
+			throws IOException {
+		final UObject p = input.getParams();
 		if (p == null) {
 			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
 					+ " may not be null");
 		}
-		return UObject.transformObjectToObject(input.get("params"), clazz);
+		try {
+			return UObject.transformObjectToObject(p, clazz);
+		} catch (IllegalStateException ise) {
+			final IOException ioe = (IOException) ise.getCause();
+			if (ioe instanceof JsonMappingException) {
+				throw new IllegalArgumentException("Unable to deserialize "
+						+ clazz.getSimpleName() + " out of params field.", ioe);
+			}
+			throw ioe;
+		}
 	}
 	
 	//why doesn't this work?
