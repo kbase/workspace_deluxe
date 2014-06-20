@@ -197,7 +197,7 @@ public class JsonTokenValidationSchema {
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
 			try {
-				path.addLocation(path.new JsonMapStart());
+				path.addMapStart();
 				JsonToken t = jp.getCurrentToken();
 				if (t == null || t != JsonToken.START_OBJECT) {
 					// we expect mapping (object) but in real data we observe token of different type 
@@ -222,7 +222,7 @@ public class JsonTokenValidationSchema {
 					// name of object field (key of mapping)
 					String fieldName = jp.getCurrentName();
 					// set current path pointing to this field
-					path.replaceLast(path.new JsonMapLocation(fieldName));
+					path.replaceLast(fieldName);
 					// if this field is required we mark it as visited
 					if (objectRequired.containsKey(fieldName)) {
 						reqPropUsageCount++;
@@ -283,7 +283,7 @@ public class JsonTokenValidationSchema {
 				throw new JsonTokenValidationException(generateError(type, t, path));
 			}
 			try {
-				path.addLocation(path.new JsonArrayStart());
+				path.addArrayStart();
 				int itemPos = 0;
 				// following flag means that we have more items in real data than we have 
 				// described in scheme, we use this flag in order to skip not described 
@@ -301,7 +301,7 @@ public class JsonTokenValidationSchema {
 						break;
 					// if we are here then we see in real data next item of this array (list)
 					// let's increment last path element according to position of this item in array
-					path.replaceLast(path.new JsonArrayLocation(itemPos));
+					path.replaceLast(itemPos);
 					JsonTokenValidationSchema childType = arrayItems;
 					if ((!skipAll) && childType == null && arrayItemList != null
 							&& itemPos < arrayItemList.size()) {

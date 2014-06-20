@@ -46,9 +46,37 @@ public class JsonDocumentLocation {
 		loc.add(jl);
 	}
 	
+	public void addMapStart() {
+		loc.add(new JsonMapStart());
+	}
+	
+	public void addArrayStart() {
+		loc.add(new JsonArrayStart());
+	}
+	
+	public void addMapLocation(final String loc) {
+		this.loc.add(new JsonMapLocation(loc));
+	}
+	
+	public void addArrayLocation(final long loc) {
+		this.loc.add(new JsonArrayLocation(loc));
+	}
+	
 	public JsonLocation replaceLast(final JsonLocation jl) {
 		final JsonLocation l = removeLast();
 		addLocation(jl);
+		return l;
+	}
+	
+	public JsonLocation replaceLast(final String loc) {
+		final JsonLocation l = removeLast();
+		addMapLocation(loc);
+		return l;
+	}
+	
+	public JsonLocation replaceLast(final long loc) {
+		final JsonLocation l = removeLast();
+		addArrayLocation(loc);
 		return l;
 	}
 	
@@ -101,7 +129,7 @@ public class JsonDocumentLocation {
 		
 		private final long location;
 		
-		public JsonArrayLocation(final long location) {
+		private JsonArrayLocation(final long location) {
 			if (location < 0) {
 				throw new ArrayIndexOutOfBoundsException(
 						"JSON arrays cannot have negative indexes");
@@ -146,7 +174,7 @@ public class JsonDocumentLocation {
 	
 	public class JsonArrayStart implements JsonLocation {
 		
-		public JsonArrayStart() {}
+		private JsonArrayStart() {}
 
 		@Override
 		public String getLocationAsString() {
@@ -190,7 +218,7 @@ public class JsonDocumentLocation {
 		
 		private final String location;
 		
-		public JsonMapLocation(final String location) {
+		private JsonMapLocation(final String location) {
 			if (location == null || location.isEmpty()) {
 				throw new IllegalArgumentException(
 						"Map locations cannot be null or the empty string");
@@ -232,7 +260,7 @@ public class JsonDocumentLocation {
 	
 	public class JsonMapStart implements JsonLocation {
 		
-		public JsonMapStart() {}
+		private JsonMapStart() {}
 
 		@Override
 		public String getLocationAsString() {
