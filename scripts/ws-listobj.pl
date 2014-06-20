@@ -25,9 +25,9 @@ my $translation = {
 #Defining usage and options
 my ($opt, $usage) = describe_options(
     'ws-listobj %o',
-    [ 'workspace|w=s', 'Name of a workspace to search (can also be provided as arguments to this command without this flag, if none is given your default workspace is assumed)' ],
-    [ 'type|t=s','Specify that only objects of the given type should be listed'],
-    [ 'limit|l=i','Limit the number of objects listed to this number (after sorting)' ],
+    [ 'workspace|w=s', 'Name of a workspace to search (can also be provided directly as an argument without this flag; if none is given your default workspace is assumed)' ],
+    [ 'type|t=s','Specify that only objects of the given type should be listed; type names should be the fully qualified with the module name (e.g. KBaseGenomes.Genome)'],
+    [ 'limit|l=i','Limit the number of objects displayed to this number (after sorting)' ],
     [ 'column|c=i','Sort by this column number (first column = 1)' ],
     [ 'megabytes|m','Report size in MB (bytes/1024^2)' ],
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
@@ -41,8 +41,16 @@ $usage = "\nNAME\n  ws-listobj -- list the objects in a workspace\n\nSYNOPSIS\n 
 $usage .= "\nDESCRIPTION\n";
 $usage .= "    List objects in one or more workspaces.  Note that the Workspace service will\n";
 $usage .= "    limit the number of objects returned to 10,000.  If you need to iterate over\n";
-$usage .= "    all items, you should use the --skip [N] option to skip over the first 10000\n";
-$usage .= "    objects get the next set of objects.\n";
+$usage .= "    all items, you should use the --skip [N] option to skip over records you have\n";
+$usage .= "    seen to get the set of 10,000 objects starting at object [N].  Note that the\n";
+$usage .= "    limit flag of this script is applied after the object list is recieved and\n";
+$usage .= "    does not directly map to the limit parameter in the list_objects API call.\n";
+$usage .= "\nKNOWN BUG WARNING:\n";
+$usage .= "    When filtering the object list in the backend Workspace service, objects that\n";
+$usage .= "    are deleted, hidden, or are an old version are filtered *after* the 10000\n";
+$usage .= "    record limit is applied. This means that fewer objects than the 10000 limit\n";
+$usage .= "    may be returned, and in extreme cases many hidden, deleted, or lower version\n";
+$usage .= "    objects are found no objects may be returned.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
