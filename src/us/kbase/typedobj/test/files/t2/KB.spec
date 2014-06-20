@@ -79,6 +79,33 @@ module KB {
 		list<mapping<string, feature_id>> nested_features;
 	} NestedFeaturesList;
 
+	typedef structure {
+		feature_id id;
+	} ID;
+	
+	typedef structure {
+		string id;
+	} NoID;
+	
+	typedef structure {
+		ID id;
+	} WithID;
+	
+	typedef structure {
+		NoID id;
+	} WithNoID;
+	
+	typedef structure {
+		WithNoID id1;
+		WithID id2;
+		WithNoID id3;
+		WithNoID id4;
+		WithNoID id5;
+		WithID id6;
+		WithNoID id7;
+		WithNoID id8;
+	} AltIDs;
+
 };
 
 

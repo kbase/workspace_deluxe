@@ -89,7 +89,7 @@ public class IdProcessingTest {
 			Arrays.asList("Feature","Genome","FeatureGroup","genome_id",
 					"feature_id","FeatureMap","DeepFeatureMap",
 					"NestedFeaturesValue", "NestedFeaturesKey",
-					"NestedFeaturesList");
+					"NestedFeaturesList", "AltIDs");
 	
 	
 	private static TypeDefinitionDB db;
