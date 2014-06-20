@@ -39,11 +39,17 @@ public class JsonDocumentLocation {
 		return loc.size();
 	}
 	
-	public void addLocation(JsonLocation jl) {
+	public void addLocation(final JsonLocation jl) {
 		if (jl == null) {
 			throw new NullPointerException("loc cannot be null");
 		}
 		loc.add(jl);
+	}
+	
+	public JsonLocation replaceLast(final JsonLocation jl) {
+		final JsonLocation l = removeLast();
+		addLocation(jl);
+		return l;
 	}
 	
 	public JsonLocation removeLast() {
@@ -138,6 +144,48 @@ public class JsonDocumentLocation {
 		}
 	}
 	
+	public class JsonArrayStart implements JsonLocation {
+		
+		public JsonArrayStart() {}
+
+		@Override
+		public String getLocationAsString() {
+			throw new NoSuchLocationException(
+					"Array start is not a real location");
+		}
+
+		@Override
+		public String getLocationInFullPath() {
+			return "";
+		}
+		
+		@Override
+		public Object getLocation() {
+			throw new NoSuchLocationException(
+					"Array start is not a real location");
+		}
+		
+		public long getLocationAsLong() {
+			throw new NoSuchLocationException(
+					"Array start is not a real location");
+		}
+
+		@Override
+		public boolean isMapLocation() {
+			return false;
+		}
+
+		@Override
+		public boolean isArrayLocation() {
+			return true;
+		}
+
+		@Override
+		public String toString() {
+			return "JsonArrayLocation []";
+		}
+	}
+	
 	public class JsonMapLocation implements JsonLocation {
 		
 		private final String location;
@@ -182,12 +230,56 @@ public class JsonDocumentLocation {
 		}
 	}
 	
+	public class JsonMapStart implements JsonLocation {
+		
+		public JsonMapStart() {}
+
+		@Override
+		public String getLocationAsString() {
+			throw new NoSuchLocationException(
+					"Map start is not a real location");
+		}
+
+		@Override
+		public String getLocationInFullPath() {
+			return "";
+		}
+		
+		@Override
+		public Object getLocation() {
+			throw new NoSuchLocationException(
+					"Map start is not a real location");
+		}
+
+		@Override
+		public boolean isMapLocation() {
+			return true;
+		}
+
+		@Override
+		public boolean isArrayLocation() {
+			return false;
+		}
+
+		@Override
+		public String toString() {
+			return "JsonArrayLocation []";
+		}
+	}
+	
 	@SuppressWarnings("serial")
 	public static class EndOfPathException extends RuntimeException {
 
 		public EndOfPathException(String message) {
 			super(message);
 		}
-		
+	}
+	
+	@SuppressWarnings("serial")
+	public static class NoSuchLocationException extends RuntimeException{
+
+		public NoSuchLocationException(String message) {
+			super(message);
+		}
 	}
 }

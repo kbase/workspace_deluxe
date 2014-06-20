@@ -196,8 +196,8 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
-			boolean first = true;
 			try {
+				path.addLocation(path.new JsonMapStart());
 				JsonToken t = jp.getCurrentToken();
 				if (t == null || t != JsonToken.START_OBJECT) {
 					// we expect mapping (object) but in real data we observe token of different type 
@@ -222,11 +222,7 @@ public class JsonTokenValidationSchema {
 					// name of object field (key of mapping)
 					String fieldName = jp.getCurrentName();
 					// set current path pointing to this field
-					if (!first) {
-						path.removeLast();
-					}
-					first = false;
-					path.addLocation(path.new JsonMapLocation(fieldName));
+					path.replaceLast(path.new JsonMapLocation(fieldName));
 					// if this field is required we mark it as visited
 					if (objectRequired.containsKey(fieldName)) {
 						reqPropUsageCount++;
@@ -273,12 +269,11 @@ public class JsonTokenValidationSchema {
 				}
 			} finally {
 				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.getDepth() + (first ? 1 : 0))
+				while (refPath.size() > path.getDepth()) {
 					refPath.remove(refPath.size() - 1);
-				// shift depth of path by 1 level up (closer to root)
-				if (!first) {
-					path.removeLast();
 				}
+				// shift depth of path by 1 level up (closer to root)
+				path.removeLast();
 			}
 		} else if (type == Type.array) {
 			// array (list) is expected in json data based on json schema of selected type
@@ -287,8 +282,8 @@ public class JsonTokenValidationSchema {
 				// but token of some other type is observed
 				throw new JsonTokenValidationException(generateError(type, t, path));
 			}
-			boolean first = true;
 			try {
+				path.addLocation(path.new JsonArrayStart());
 				int itemPos = 0;
 				// following flag means that we have more items in real data than we have 
 				// described in scheme, we use this flag in order to skip not described 
@@ -306,11 +301,7 @@ public class JsonTokenValidationSchema {
 						break;
 					// if we are here then we see in real data next item of this array (list)
 					// let's increment last path element according to position of this item in array
-					if (!first) {
-						path.removeLast();
-					}
-					first = false;
-					path.addLocation(path.new JsonArrayLocation(itemPos));
+					path.replaceLast(path.new JsonArrayLocation(itemPos));
 					JsonTokenValidationSchema childType = arrayItems;
 					if ((!skipAll) && childType == null && arrayItemList != null
 							&& itemPos < arrayItemList.size()) {
@@ -331,12 +322,11 @@ public class JsonTokenValidationSchema {
 					lst.addError("Array contains less than " + arrayMinItems + " items");
 			} finally {
 				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.getDepth() + (first ? 1 : 0)) 
+				while (refPath.size() > path.getDepth()) {
 					refPath.remove(refPath.size() - 1);
-				// shift depth of path by 1 level up (closer to root)
-				if (!first) {
-					path.removeLast();
 				}
+				// shift depth of path by 1 level up (closer to root)
+				path.removeLast();
 			}
 		} else if (type == Type.string) {
 			// string value is expecting
