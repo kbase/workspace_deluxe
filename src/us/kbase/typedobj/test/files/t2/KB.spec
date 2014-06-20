@@ -79,8 +79,6 @@ module KB {
 		list<mapping<string, feature_id>> nested_features;
 	} NestedFeaturesList;
 
-
-
 };
 
 

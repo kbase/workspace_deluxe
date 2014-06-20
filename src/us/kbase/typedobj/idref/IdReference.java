@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.typedobj.core.JsonDocumentLocation;
+
 /**
  * Stores an ID reference
  */
@@ -18,11 +20,11 @@ public class IdReference {
 	private final boolean isFieldName;
 	private final List<String> attributes;
 	//TODO 1 location is a placeholder, string may be a bad idea
-	private final List<String> location;
+	private final JsonDocumentLocation location;
 	
 	public IdReference(final IDReferenceType type, final String id,
 			final boolean isFieldName, List<String> attributes,
-			final List<String> location) {
+			final JsonDocumentLocation location) {
 		if (type == null || id == null || location == null) {
 			throw new NullPointerException(
 					"type, id, and location cannot be null");
@@ -34,7 +36,7 @@ public class IdReference {
 			attributes;
 		this.attributes = Collections.unmodifiableList(attributes);
 		//TODO 1 location is a placeholder, string may be a bad idea
-		this.location = new LinkedList<String>(location);
+		this.location = new JsonDocumentLocation(location);
 
 	}
 	
@@ -69,7 +71,7 @@ public class IdReference {
 	 * @return the location of the id in the enclosing object.
 	 */
 	public final String getLocation(final char pathsep) {
-		return pathsep + StringUtils.join(location, pathsep);
+		return location.getFullLocationAsString();
 	}
 	
 	/**

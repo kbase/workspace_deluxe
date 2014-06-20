@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
+import us.kbase.typedobj.core.JsonDocumentLocation.JsonMapLocation;
+import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
 import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
@@ -157,22 +160,25 @@ public class JsonTokenValidationSchema {
 	 * @throws IOException
 	 * @throws JsonTokenValidationException
 	 */
-	public void checkJsonData(JsonParser jp, JsonTokenValidationListener lst, 
-			IdRefNode refRoot) 
+	public void checkJsonData(final JsonParser jp,
+			final JsonTokenValidationListener lst, final IdRefNode refRoot) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
-		checkJsonData(jp, lst, new ArrayList<String>(), new ArrayList<IdRefNode>(Arrays.asList(refRoot)));
+		checkJsonData(jp, lst, new JsonDocumentLocation(),
+				new ArrayList<IdRefNode>(Arrays.asList(refRoot)));
 		jp.close();
 	}
 	
-	private void checkJsonData(JsonParser jp, JsonTokenValidationListener lst, 
-			List<String> path, List<IdRefNode> refPath) 
+	private void checkJsonData(final JsonParser jp,
+			final JsonTokenValidationListener lst, 
+			final JsonDocumentLocation path, final List<IdRefNode> refPath) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		jp.nextToken();
 		checkJsonDataWithoutFirst(jp, lst, path, refPath);
 	}
 	
-	private void checkJsonDataWithoutFirst(JsonParser jp, JsonTokenValidationListener lst, 
-			List<String> path, List<IdRefNode> refPath) 
+	private void checkJsonDataWithoutFirst(final JsonParser jp,
+			final JsonTokenValidationListener lst, 
+			final JsonDocumentLocation path, final List<IdRefNode> refPath) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		// This is main recursive validation procedure. The idea is we enter here every time we observe
 		// token starting nested block (which could be only mapping or array) or token for basic scalar 
@@ -186,10 +192,7 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
-			// add new level to json path we are visiting now, every field of this object will
-			// change this '{' value into name of this field, so exact character ('{') is not 
-			// important, we just shift depth of path into deeper level
-			path.add("{");
+			boolean first = true;
 			try {
 				JsonToken t = jp.getCurrentToken();
 				if (t == null || t != JsonToken.START_OBJECT) {
@@ -215,7 +218,11 @@ public class JsonTokenValidationSchema {
 					// name of object field (key of mapping)
 					String fieldName = jp.getCurrentName();
 					// set current path pointing to this field
-					path.set(path.size() - 1, fieldName);
+					if (!first) {
+						path.removeLast();
+					}
+					first = false;
+					path.addLocation(new JsonMapLocation(fieldName));
 					// if this field is required we mark it as visited
 					if (objectRequired.containsKey(fieldName)) {
 						reqPropUsageCount++;
@@ -242,9 +249,10 @@ public class JsonTokenValidationSchema {
 					// case there was defined idReference property in json-schema node describing this 
 					// object (mapping)
 					if (idReference != null) {
+						final JsonLocation current = path.removeLast();
 						final IdReference ref = createRef(fieldName,
-								idReference, path.subList(0, path.size() - 1),
-								true);
+								idReference, path, true);
+						path.addLocation(current); //could add a sub path view later
 						lst.addIdRefMessage(ref);
 						// this line adds id-reference into tree structure that will be used for actual 
 						// relabeling in object tokens based on list of resolved values constructed by workspace
@@ -261,10 +269,12 @@ public class JsonTokenValidationSchema {
 				}
 			} finally {
 				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.size()) 
+				while (refPath.size() > path.getDepth() + (first ? 1 : 0))
 					refPath.remove(refPath.size() - 1);
 				// shift depth of path by 1 level up (closer to root)
-				path.remove(path.size() - 1);
+				if (!first) {
+					path.removeLast();
+				}
 			}
 		} else if (type == Type.array) {
 			// array (list) is expected in json data based on json schema of selected type
@@ -273,9 +283,7 @@ public class JsonTokenValidationSchema {
 				// but token of some other type is observed
 				throw new JsonTokenValidationException(generateError(type, t, path));
 			}
-			// add next level in path corresponding to this array, this value should be 
-			// incremented every time we jump to next array item
-			path.add("-1");
+			boolean first = true;
 			try {
 				int itemPos = 0;
 				// following flag means that we have more items in real data than we have 
@@ -294,7 +302,11 @@ public class JsonTokenValidationSchema {
 						break;
 					// if we are here then we see in real data next item of this array (list)
 					// let's increment last path element according to position of this item in array
-					path.set(path.size() - 1, "" + itemPos);
+					if (!first) {
+						path.removeLast();
+					}
+					first = false;
+					path.addLocation(new JsonArrayLocation(itemPos));
 					JsonTokenValidationSchema childType = arrayItems;
 					if ((!skipAll) && childType == null && arrayItemList != null
 							&& itemPos < arrayItemList.size()) {
@@ -315,10 +327,12 @@ public class JsonTokenValidationSchema {
 					lst.addError("Array contains less than " + arrayMinItems + " items");
 			} finally {
 				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.size()) 
+				while (refPath.size() > path.getDepth() + (first ? 1 : 0)) 
 					refPath.remove(refPath.size() - 1);
 				// shift depth of path by 1 level up (closer to root)
-				path.remove(path.size() - 1);
+				if (!first) {
+					path.removeLast();
+				}
 			}
 		} else if (type == Type.string) {
 			// string value is expecting
@@ -351,11 +365,12 @@ public class JsonTokenValidationSchema {
 		}
 	}
 	
-	private static String generateError(Type expectedType, JsonToken actualToken, List<String> path) {
+	private static String generateError(final Type expectedType,
+			final JsonToken actualToken, final JsonDocumentLocation path) {
 		String expected = expectedType == Type.number ? "float" : expectedType.toString();
 		String actual = tokenToType(actualToken);
 		return "instance type ("+actual+") does not match any allowed primitive type " +
-				"(allowed: [\""+expected+"\"]), at " + getPathText(path);
+				"(allowed: [\""+expected+"\"]), at " + path.getFullLocationAsString();
 	}
 	
 	private static String tokenToType(JsonToken t) {
@@ -387,16 +402,9 @@ public class JsonTokenValidationSchema {
 		}
 	}
 	
-	private static String getPathText(List<String> path) {
-		StringBuilder ret = new StringBuilder();
-		for (String part : path)
-			ret.append('/').append(part);
-		return ret.toString();
-	}
-	
-	private static IdRefNode getIdRefNode(final List<String> path,
+	private static IdRefNode getIdRefNode(final JsonDocumentLocation path,
 			final List<IdRefNode> refPath) {
-		if (refPath.size() == 0 || refPath.size() > path.size() + 1) {
+		if (refPath.size() == 0 || refPath.size() > path.getDepth() + 1) {
 			throw new IllegalStateException(
 					"Reference branch path has wrong length: " +
 					refPath.size());
@@ -405,7 +413,8 @@ public class JsonTokenValidationSchema {
 			final String refpos = refPath.get(refPath.size() - 1)
 					.getRelativeLocation();
 			// path doesn't have a root node like the refpath, hence - 2
-			final String pathpos = path.get(refPath.size() - 2);
+			final String pathpos = path.getLocation(refPath.size() - 2)
+					.getLocationAsString(); //this should probably change
 			if (!refpos.equals(pathpos)) {
 				/*
 				 * we are inside an array or a map and the key or index has changed,
@@ -418,19 +427,19 @@ public class JsonTokenValidationSchema {
 				refPath.remove(refPath.size() - 1);
 			}
 		}
-		while (refPath.size() <= path.size()) {
+		while (refPath.size() <= path.getDepth()) {
 			int pos = refPath.size() - 1;
 			IdRefNode parent = refPath.get(pos);
-			String key = path.get(pos);
+			String key = path.getLocation(pos).getLocationAsString();
 			IdRefNode child = new IdRefNode(key);
 			parent.addChild(child);
 			refPath.add(child);
 		}
-		return refPath.get(path.size());
+		return refPath.get(path.getDepth());
 	}
 	
 	private static IdReference createRef(final String id,
-			final IdRefDescr idInfo, final List<String> path,
+			final IdRefDescr idInfo, final JsonDocumentLocation path,
 			final boolean isFieldName) { 
 		// construct the IdReference object
 		//TODO 1 the path is temporary. Might need a better way to deal with the path.

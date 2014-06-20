@@ -225,6 +225,8 @@ public class IdProcessingTest {
 			} else { expectedIdList.put(id,new Integer(1)); }
 		}
 		
+		@SuppressWarnings("unused")
+		int breakpoint = 0;
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
 			validator.validate(

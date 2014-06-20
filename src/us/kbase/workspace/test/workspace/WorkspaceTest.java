@@ -1015,7 +1015,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"object\"]), at /val/{"));
+						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"object\"]), at /val"));
 		Map<String, Object> innerMap = new LinkedHashMap<String, Object>();
 		innerMap.put("key", null);
 		data3.put("val", innerMap);
