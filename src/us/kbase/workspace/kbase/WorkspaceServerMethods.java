@@ -18,6 +18,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
@@ -123,7 +124,7 @@ public class WorkspaceServerMethods {
 			WorkspaceAuthorizationException, NoSuchObjectException,
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			TypedObjectValidationException, TypeStorageException,
-			IOException {
+			IOException, TypedObjectSchemaException {
 
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(

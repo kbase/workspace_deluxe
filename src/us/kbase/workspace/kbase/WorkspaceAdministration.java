@@ -21,6 +21,7 @@ import us.kbase.common.service.JacksonTupleModule;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
@@ -67,7 +68,7 @@ public class WorkspaceAdministration {
 			CorruptWorkspaceDBException, NoSuchObjectException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			ParseException, NoSuchPrivilegeException,
-			TypedObjectValidationException {
+			TypedObjectValidationException, TypedObjectSchemaException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {

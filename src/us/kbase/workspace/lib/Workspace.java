@@ -39,6 +39,7 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
@@ -473,7 +474,7 @@ public class Workspace {
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
-			TypeStorageException, IOException {
+			TypeStorageException, IOException, TypedObjectSchemaException {
 		//TODO this method is a teensy bit long
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");

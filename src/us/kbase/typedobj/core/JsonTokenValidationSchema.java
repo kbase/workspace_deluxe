@@ -12,14 +12,13 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonMapLocation;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
-import us.kbase.typedobj.exceptions.BadJsonSchemaDocumentException;
+import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,10 +50,17 @@ public class JsonTokenValidationSchema {
 	private static final String ATTRIBUTES = "attributes";
 	
 	@SuppressWarnings("unchecked")
-	public static JsonTokenValidationSchema parseJsonSchema(String document) 
-			throws JsonParseException, JsonMappingException, IOException,
-			BadJsonSchemaDocumentException {
-		Map<String, Object> data = new ObjectMapper().readValue(document, Map.class);
+	public static JsonTokenValidationSchema parseJsonSchema(
+			final String document) 
+			throws TypedObjectSchemaException {
+		final Map<String, Object> data;
+		try {
+			data = new ObjectMapper().readValue(document, Map.class);
+		} catch (Exception e) {
+			throw new TypedObjectSchemaException(
+					"Could not parse type schema document: "
+					+ e.getMessage(), e);
+		}
 		return parseJsonSchema(data);
 	}
 	
@@ -66,7 +72,7 @@ public class JsonTokenValidationSchema {
 	@SuppressWarnings("unchecked")
 	public static JsonTokenValidationSchema parseJsonSchema(
 			final Map<String, Object> data)
-			throws BadJsonSchemaDocumentException {
+			throws TypedObjectSchemaException {
 		final JsonTokenValidationSchema ret = new JsonTokenValidationSchema();
 		ret.id = (String)data.get("id");
 		//ret.description = (String)data.get("description");
@@ -79,8 +85,8 @@ public class JsonTokenValidationSchema {
 			if (idType == null) {
 				//could add location at some point, but not important
 				//we expect the type compiler not to compile bad schemas
-				throw new BadJsonSchemaDocumentException(
-						"ID reference is missing type");
+				throw new TypedObjectSchemaException(
+						"ID reference in type schema is missing type");
 			}
 			final List<String> attributes = new LinkedList<String>();
 			//for backwards compatibility
@@ -96,8 +102,8 @@ public class JsonTokenValidationSchema {
 			if (attribs != null && typedefs != null) {
 				//could add location at some point, but not important
 				//we expect the type compiler not to compile bad schemas
-				throw new BadJsonSchemaDocumentException(String.format(
-						"ID reference with %s and %s both set is illegal",
+				throw new TypedObjectSchemaException(String.format(
+						"ID reference in type schema with %s and %s both set is illegal",
 						VALID_TYPEDEF_NAMES, ATTRIBUTES));
 			}
 			

@@ -498,11 +498,13 @@ public class TypeDefinitionDB {
 	 * @return
 	 * @throws NoSuchTypeException
 	 * @throws NoSuchModuleException
-	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
+	 * @throws TypedObjectSchemaException 
 	 */
-	public JsonTokenValidationSchema getJsonSchema(TypeDefName typeDefName)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
+	public JsonTokenValidationSchema getJsonSchema(
+			final TypeDefName typeDefName)
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, TypedObjectSchemaException {
 		return getJsonSchema(new TypeDefId(typeDefName));
 	}
 	
@@ -515,21 +517,18 @@ public class TypeDefinitionDB {
 	 * @return
 	 * @throws NoSuchTypeException
 	 * @throws NoSuchModuleException
-	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
+	 * @throws TypedObjectSchemaException 
 	 */
 	public JsonTokenValidationSchema getJsonSchema(final TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, BadJsonSchemaDocumentException, TypeStorageException {
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, TypedObjectSchemaException {
 		String moduleName = typeDefId.getType().getModule();
 		requestReadLock(moduleName);
 		try {
-			String jsonSchemaDocument = getJsonSchemaDocumentNL(typeDefId, null);
-			try {
-				return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
-			} catch (Exception e) {
-				throw new BadJsonSchemaDocumentException("schema for typed object '"+typeDefId.getTypeString()+"'" +
-						"was not a valid or readable JSON document",e);
-			}
+			final String jsonSchemaDocument =
+					getJsonSchemaDocumentNL(typeDefId, null);
+			return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
 		} finally {
 			releaseReadLock(moduleName);
 		}
@@ -539,16 +538,12 @@ public class TypeDefinitionDB {
 	 * Convert a Json Schema Document into a Json Schema object that can be used for json validation.
 	 * @param jsonSchemaDocument
 	 * @return
-	 * @throws BadJsonSchemaDocumentException
 	 * @throws TypeStorageException
+	 * @throws TypedObjectSchemaException 
 	 */
 	protected JsonTokenValidationSchema jsonSchemaFromString(String jsonSchemaDocument)
-			throws BadJsonSchemaDocumentException, TypeStorageException {
-		try {
-			return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
-		} catch (Exception e) {
-			throw new BadJsonSchemaDocumentException("string was not a valid or readable JSON Schema document",e);
-		}
+			throws TypeStorageException, TypedObjectSchemaException {
+		return JsonTokenValidationSchema.parseJsonSchema(jsonSchemaDocument);
 	}
 	
 	/**

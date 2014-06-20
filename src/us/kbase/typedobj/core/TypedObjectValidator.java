@@ -99,10 +99,13 @@ public final class TypedObjectValidator {
 	 * @return ProcessingReport containing the result of the validation
 	 * @throws TypeStorageException 
 	 * @throws TypedObjectValidationException 
+	 * @throws TypedObjectSchemaException 
 	 */
-	public TypedObjectValidationReport validate(String instance, TypeDefId type)
+	public TypedObjectValidationReport validate(final String instance,
+			final TypeDefId type)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectValidationException {
+			TypeStorageException, TypedObjectValidationException,
+			TypedObjectSchemaException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
@@ -128,19 +131,29 @@ public final class TypedObjectValidator {
 	 * @return
 	 * @throws NoSuchTypeException
 	 * @throws TypeStorageException
+	 * @throws TypedObjectSchemaException 
 	 */
-	public TypedObjectValidationReport validate(JsonNode instanceRootNode, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
+			final TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, TypedObjectSchemaException {
+		final UObject obj;
 		try {
-			UObject obj = new UObject(new JsonTokenStream(instanceRootNode), null);
-			return validate(obj, typeDefId);
+			obj = new UObject(new JsonTokenStream(instanceRootNode), null);
 		} catch (IOException ex) {
-			throw new IllegalStateException(ex);
+			//This should never happen since the data is already parsed into
+			// a JsonNode
+			throw new IllegalStateException("Something is very broken; " + 
+					"already parsed JSON in memory caused a parsing " +
+					"exception: " + ex.getMessage(), ex);
 		}
+		return validate(obj, typeDefId);
 	}
 	
-	public TypedObjectValidationReport validate(UObject obj, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {	
+	public TypedObjectValidationReport validate(final UObject obj,
+			final TypeDefId typeDefId)
+			throws NoSuchTypeException, NoSuchModuleException,
+			TypeStorageException, TypedObjectSchemaException {
 		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
@@ -149,9 +162,9 @@ public final class TypedObjectValidator {
 		final IdReferenceSet ids = new IdReferenceSet();
 		IdRefNode idRefTree = new IdRefNode();
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
+		final JsonTokenValidationSchema schema =
+				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		try {
-			final JsonTokenValidationSchema schema =
-					JsonTokenValidationSchema.parseJsonSchema(schemaText);
 			if (!schema.getOriginalType().equals("kidl-structure"))
 				throw new IllegalStateException(
 						"Data of type other than structure couldn't be stored in workspace");

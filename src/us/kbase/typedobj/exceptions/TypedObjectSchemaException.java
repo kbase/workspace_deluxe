@@ -6,13 +6,13 @@ package us.kbase.typedobj.exceptions;
  * @author msneddon
  *
  */
-public class BadJsonSchemaDocumentException extends TypedObjectException {
+public class TypedObjectSchemaException extends TypedObjectException {
 
-	public BadJsonSchemaDocumentException(String message) {
+	public TypedObjectSchemaException(String message) {
 		super(message);
 	}
 
-	public BadJsonSchemaDocumentException(String message, Throwable e) {
+	public TypedObjectSchemaException(String message, Throwable e) {
 		super(message,e);
 	}
 
