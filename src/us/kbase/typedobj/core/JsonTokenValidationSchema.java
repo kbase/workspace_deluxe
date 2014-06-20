@@ -10,8 +10,6 @@ import java.util.Map;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
-import us.kbase.typedobj.core.JsonDocumentLocation.JsonMapLocation;
-import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.idref.IDReferenceType;
 import us.kbase.typedobj.idref.IdReference;
@@ -228,7 +226,7 @@ public class JsonTokenValidationSchema {
 						path.removeLast();
 					}
 					first = false;
-					path.addLocation(new JsonMapLocation(fieldName));
+					path.addLocation(path.new JsonMapLocation(fieldName));
 					// if this field is required we mark it as visited
 					if (objectRequired.containsKey(fieldName)) {
 						reqPropUsageCount++;
@@ -312,7 +310,7 @@ public class JsonTokenValidationSchema {
 						path.removeLast();
 					}
 					first = false;
-					path.addLocation(new JsonArrayLocation(itemPos));
+					path.addLocation(path.new JsonArrayLocation(itemPos));
 					JsonTokenValidationSchema childType = arrayItems;
 					if ((!skipAll) && childType == null && arrayItemList != null
 							&& itemPos < arrayItemList.size()) {

@@ -72,8 +72,7 @@ public class JsonDocumentLocation {
 		}
 		final StringBuilder sb = new StringBuilder();
 		for (final JsonLocation l: loc) {
-			sb.append(pathSep);
-			sb.append(l.getLocationAsString());
+			sb.append(l.getLocationInFullPath());
 		}
 		return sb.toString();
 	}
@@ -84,14 +83,15 @@ public class JsonDocumentLocation {
 				+ "]";
 	}
 
-	public static interface JsonLocation {
+	public interface JsonLocation {
 		public String getLocationAsString();
+		public String getLocationInFullPath();
 		public Object getLocation();
 		public boolean isMapLocation();
 		public boolean isArrayLocation();
 	}
 	
-	public static class JsonArrayLocation implements JsonLocation {
+	public class JsonArrayLocation implements JsonLocation {
 		
 		private final long location;
 		
@@ -108,6 +108,11 @@ public class JsonDocumentLocation {
 			return location + "";
 		}
 
+		@Override
+		public String getLocationInFullPath() {
+			return pathSep + location;// + "array";
+		}
+		
 		@Override
 		public Object getLocation() {
 			return location;
@@ -133,7 +138,7 @@ public class JsonDocumentLocation {
 		}
 	}
 	
-	public static class JsonMapLocation implements JsonLocation {
+	public class JsonMapLocation implements JsonLocation {
 		
 		private final String location;
 		
@@ -148,6 +153,11 @@ public class JsonDocumentLocation {
 		@Override
 		public String getLocationAsString() {
 			return location;
+		}
+		
+		@Override
+		public String getLocationInFullPath() {
+			return pathSep + location;
 		}
 
 		@Override

@@ -1067,12 +1067,14 @@ public class WorkspaceTest extends WorkspaceTester {
 				"module TestTypeChecking {" +
 					"/* @id ws */" +
 					"typedef string reference;" +
-					"/* @optional ref */" + 
+					"/* @optional ref\n" + 
+					"   @optional map */" +
 					"typedef structure {" +
 						"int foo;" +
 						"list<int> bar;" +
 						"int baz;" +
 						"reference ref;" +
+						"mapping<string, string> map;" +
 					"} CheckType;" +
 				"};";
 		
@@ -1231,12 +1233,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
 		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
 		data.add(new WorkspaceSaveObject(data2, abstype0, null, emptyprov, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data);
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /bar/2"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+					"Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /bar/2"));
+		
+		data.set(1, new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false));
+		@SuppressWarnings("unchecked")
+		List<Integer> intlist = (List<Integer>) data2.get("bar");
+		intlist.set(2, 42);
+		Map<String, Object> inner = new HashMap<String, Object>();
+		inner.put("amapkey", 42);
+		data2.put("map", inner);
+		data2.put("baz", 1);
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /map/amapkey"));
+		
 		Map<String, Object> data3 = new HashMap<String, Object>(data1);
 		data3.put("ref", "typecheck/1/1");
 		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, emptyprov, false));
