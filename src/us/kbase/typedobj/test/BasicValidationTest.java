@@ -239,7 +239,7 @@ public class BasicValidationTest {
 			} catch (Exception e) {
 				//if an exception is thrown, the object did not validate, so we failed
 				System.out.println(e);
-				fail("("+instance.resourceName+") does not validate, but an exception was thrown during validation");
+				fail("("+instance.resourceName+") did not validate - an exception was thrown during validation");
 			}
 		} else {
 

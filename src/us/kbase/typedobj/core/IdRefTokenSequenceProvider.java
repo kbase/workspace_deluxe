@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 
 /**
  * This class lets you to substitute id references into text tokens (string 
@@ -26,7 +27,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	private Map<String, String> absoluteIdRefMapping;
 	// path is branch in real json data pointing to position of currently observed
 	// token in jts
-	private List<Object> path = new ArrayList<Object>();
+	private JsonDocumentLocation path = new JsonDocumentLocation();
 	// refPath reflects path as long as this path exists inside id-reference schema 
 	// tree with root stored in refPath[0]
 	private List<IdRefNode> refPath;
@@ -58,22 +59,24 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		JsonToken t = jts.nextToken();
 		if (t == JsonToken.START_OBJECT) {
 			incrementArrayPosIfInArray();
-			path.add("{");			// next level
+			path.addMapStart();
 			prevFieldName = null;
 		} else if (t == JsonToken.START_ARRAY) {
 			incrementArrayPosIfInArray();
-			path.add(-1);			// next level
+			path.addArrayStart();
 		} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
 			// these tokens that can not be first of some scalar or object and it means 
 			// we don't need to call incrementArrayPosIfInArray().
-			while (refPath.size() > path.size())
+			while (refPath.size() > path.getDepth())
 				refPath.remove(refPath.size() - 1);
-			path.remove(path.size() - 1);	// prev. level
+			path.removeLast();
 		} else if (t == JsonToken.FIELD_NAME) {
 			// this token that can not be first of some scalar or object and it means 
 			// we don't need to call incrementArrayPosIfInArray().
 			// we change last path element into new field
-			setCurrentLevel(jts.getText());
+			final String field = jts.getText();
+			path.replaceLast(field);
+			setCurrentLevel(field);
 			wasField = true;
 			// get real name of key after relabeling
 			String curFieldName = getText();
@@ -93,8 +96,8 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		// This method is called for text keys and text values. We can differentiate 
 		// these cases based on wasField flag.
 		String ret = jts.getText();
-		if (refPath.size() == path.size() + 1) {
-			IdRefNode node = refPath.get(path.size());
+		if (refPath.size() == path.getDepth() + 1) {
+			IdRefNode node = refPath.get(path.getDepth());
 			final String ref;
 			if (wasField) {
 				if (node.locationIsID()) {
@@ -129,15 +132,14 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	 * refPath pointing into id-ref relabeling tree according to path. If there
 	 * is no such branch in this tree then we don't need to do anything.
 	 */
-	private void setCurrentLevel(Object value) {
-		path.set(path.size() - 1, value);
-		while (refPath.size() > path.size())
+	private void setCurrentLevel(final String field) {
+		while (refPath.size() > path.getDepth()) {
 			refPath.remove(refPath.size() - 1);
-		if (refPath.size() == path.size()) {
+		}
+		if (refPath.size() == path.getDepth()) {
 			IdRefNode refNode = refPath.get(refPath.size() - 1);
 			if (refNode.hasChildren()) {
-				String text = "" + value;
-				IdRefNode child = refNode.getChildren().get(text);
+				IdRefNode child = refNode.getChildren().get(field);
 				if (child != null)
 					refPath.add(child);
 			}
@@ -151,12 +153,10 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	 * position in array we need to synchronize refPath as well.
 	 */
 	private void incrementArrayPosIfInArray() {
-		if (path.size() > 0) {
-			Object obj = path.get(path.size() - 1);
-			if (obj instanceof Integer) {
-				int pos = (Integer)obj;
-				setCurrentLevel(pos + 1);
-			}
+		if (path.getDepth() > 0 && path.getLast().isArrayLocation()) {
+			final JsonArrayLocation loc = (JsonArrayLocation)
+					path.incrementArrayLocation();
+			setCurrentLevel(loc.getLocationAsString());
 		}
 	}
 	

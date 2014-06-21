@@ -3,7 +3,6 @@ package us.kbase.typedobj.core;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /** Provides the current location in a JSON document.
  * @author gaprice@lbl.gov
  *
@@ -14,6 +13,9 @@ public class JsonDocumentLocation {
 	
 	public static final char DEFAULT_PATHSEP = '/';
 	private final String pathSep;
+	private static final JsonLocation MAP_START = new JsonMapStart();
+	private static final JsonLocation ARRAY_START = new JsonArrayStart();
+	
 	
 	private final List<JsonLocation> loc = new ArrayList<JsonLocation>();
 	
@@ -46,20 +48,26 @@ public class JsonDocumentLocation {
 		loc.add(jl);
 	}
 	
-	public void addMapStart() {
-		loc.add(new JsonMapStart());
+	public JsonLocation addMapStart() {
+		loc.add(MAP_START);
+		return MAP_START;
 	}
 	
-	public void addArrayStart() {
-		loc.add(new JsonArrayStart());
+	public JsonLocation addArrayStart() {
+		loc.add(ARRAY_START);
+		return ARRAY_START;
 	}
 	
-	public void addMapLocation(final String loc) {
-		this.loc.add(new JsonMapLocation(loc));
+	public JsonMapLocation addMapLocation(final String loc) {
+		final JsonMapLocation ret = new JsonMapLocation(loc);
+		this.loc.add(ret);
+		return ret;
 	}
 	
-	public void addArrayLocation(final long loc) {
-		this.loc.add(new JsonArrayLocation(loc));
+	public JsonArrayLocation addArrayLocation(final long loc) {
+		final JsonArrayLocation ret = new JsonArrayLocation(loc);
+		this.loc.add(ret);
+		return ret;
 	}
 	
 	public JsonLocation replaceLast(final JsonLocation jl) {
@@ -80,6 +88,20 @@ public class JsonDocumentLocation {
 		return l;
 	}
 	
+	public JsonArrayLocation incrementArrayLocation() {
+		final JsonLocation l = getLast();
+		if (!l.isArrayLocation()) {
+			throw new NoSuchLocationException(
+					"Last position is not in an array");
+		}
+		if (l.isStartLocation()) {
+			replaceLast(0);
+		} else {
+			replaceLast(((JsonArrayLocation)l).getLocationAsLong() + 1);
+		}
+		return (JsonArrayLocation) getLast();
+	}
+	
 	public JsonLocation removeLast() {
 		if (loc.isEmpty()) {
 			throw new EndOfPathException("At the path root");
@@ -90,6 +112,13 @@ public class JsonDocumentLocation {
 	}
 	
 	public JsonLocation getLocation(final int index) {
+		if (index < 0) {
+			throw new IndexOutOfBoundsException("index must be 0 or greater");
+		}
+		if (index >= getDepth()) {
+			throw new IndexOutOfBoundsException("index " + index +
+					"greater or equal to path depth " + getDepth());
+		}
 		return loc.get(index);
 	}
 	
@@ -119,6 +148,7 @@ public class JsonDocumentLocation {
 
 	public interface JsonLocation {
 		public String getLocationAsString();
+		public boolean isStartLocation();
 		public String getLocationInFullPath();
 		public Object getLocation();
 		public boolean isMapLocation();
@@ -165,6 +195,11 @@ public class JsonDocumentLocation {
 		public boolean isArrayLocation() {
 			return true;
 		}
+		
+		@Override
+		public boolean isStartLocation() {
+			return false;
+		}
 
 		@Override
 		public String toString() {
@@ -172,7 +207,7 @@ public class JsonDocumentLocation {
 		}
 	}
 	
-	public class JsonArrayStart implements JsonLocation {
+	public static class JsonArrayStart implements JsonLocation {
 		
 		private JsonArrayStart() {}
 
@@ -207,10 +242,15 @@ public class JsonDocumentLocation {
 		public boolean isArrayLocation() {
 			return true;
 		}
+		
+		@Override
+		public boolean isStartLocation() {
+			return true;
+		}
 
 		@Override
 		public String toString() {
-			return "JsonArrayLocation []";
+			return "JsonArrayStart []";
 		}
 	}
 	
@@ -251,6 +291,11 @@ public class JsonDocumentLocation {
 		public boolean isArrayLocation() {
 			return false;
 		}
+		
+		@Override
+		public boolean isStartLocation() {
+			return false;
+		}
 
 		@Override
 		public String toString() {
@@ -258,7 +303,7 @@ public class JsonDocumentLocation {
 		}
 	}
 	
-	public class JsonMapStart implements JsonLocation {
+	public static class JsonMapStart implements JsonLocation {
 		
 		private JsonMapStart() {}
 
@@ -288,10 +333,15 @@ public class JsonDocumentLocation {
 		public boolean isArrayLocation() {
 			return false;
 		}
+		
+		@Override
+		public boolean isStartLocation() {
+			return true;
+		}
 
 		@Override
 		public String toString() {
-			return "JsonArrayLocation []";
+			return "JsonMapStart []";
 		}
 	}
 	
