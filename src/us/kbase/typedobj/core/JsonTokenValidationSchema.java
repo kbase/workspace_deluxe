@@ -2,7 +2,6 @@ package us.kbase.typedobj.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -165,24 +164,23 @@ public class JsonTokenValidationSchema {
 	 * @throws JsonTokenValidationException
 	 */
 	public void checkJsonData(final JsonParser jp,
-			final JsonTokenValidationListener lst, final IdRefNode refRoot) 
+			final JsonTokenValidationListener lst) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
-		checkJsonData(jp, lst, new JsonDocumentLocation(),
-				new ArrayList<IdRefNode>(Arrays.asList(refRoot)));
+		checkJsonData(jp, lst, new JsonDocumentLocation());
 		jp.close();
 	}
 	
 	private void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
-			final JsonDocumentLocation path, final List<IdRefNode> refPath) 
+			final JsonDocumentLocation path) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		jp.nextToken();
-		checkJsonDataWithoutFirst(jp, lst, path, refPath);
+		checkJsonDataWithoutFirst(jp, lst, path);
 	}
 	
 	private void checkJsonDataWithoutFirst(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
-			final JsonDocumentLocation path, final List<IdRefNode> refPath) 
+			final JsonDocumentLocation path) 
 			throws JsonParseException, IOException, JsonTokenValidationException {
 		// This is main recursive validation procedure. The idea is we enter here every time we observe
 		// token starting nested block (which could be only mapping or array) or token for basic scalar 
@@ -243,20 +241,19 @@ public class JsonTokenValidationSchema {
 						skipValue(jp);
 					} else {
 						// otherwise we execute validation recursively for child json-schema node
-						childType.checkJsonData(jp, lst, path, refPath);
+						childType.checkJsonData(jp, lst, path);
 					}
 					// and finally we can add this key (field) as requiring id-reference relabeling in 
 					// case there was defined idReference property in json-schema node describing this 
 					// object (mapping)
 					if (idReference != null) {
 						final JsonLocation current = path.removeLast();
-						final IdReference ref = createRef(fieldName,
-								idReference, path, true);
 						path.addLocation(current); //could add a sub path view later
+						//TODO 1 the path is temporary. Might need a better way to deal with the path.
+						final IdReference ref = new IdReference(
+								idReference.idType, fieldName, true,
+								idReference.attributes, path);
 						lst.addIdRefMessage(ref);
-						// this line adds id-reference into tree structure that will be used for actual 
-						// relabeling in object tokens based on list of resolved values constructed by workspace
-						getIdRefNode(path, refPath).setLocationIsID();
 					}
 				}
 				// check whether all required fields were occured
@@ -268,10 +265,6 @@ public class JsonTokenValidationSchema {
 					lst.addError("Object doesn't have required fields : " + absentProperties);
 				}
 			} finally {
-				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.getDepth()) {
-					refPath.remove(refPath.size() - 1);
-				}
 				// shift depth of path by 1 level up (closer to root)
 				path.removeLast();
 			}
@@ -313,7 +306,7 @@ public class JsonTokenValidationSchema {
 						skipValueWithoutFirst(jp);
 					} else {
 						// otherwise we execute recursive validation for current item
-						childType.checkJsonDataWithoutFirst(jp, lst, path, refPath);
+						childType.checkJsonDataWithoutFirst(jp, lst, path);
 					}
 					itemPos++;
 				}
@@ -321,10 +314,6 @@ public class JsonTokenValidationSchema {
 				if (arrayMinItems != null && itemPos < arrayMinItems)
 					lst.addError("Array contains less than " + arrayMinItems + " items");
 			} finally {
-				// shift (if necessary) depth of id-reference related result tree
-				while (refPath.size() > path.getDepth()) {
-					refPath.remove(refPath.size() - 1);
-				}
 				// shift depth of path by 1 level up (closer to root)
 				path.removeLast();
 			}
@@ -339,10 +328,10 @@ public class JsonTokenValidationSchema {
 				// we can add this string value as requiring id-reference relabeling in case 
 				// there was defined idReference property in json-schema node describing this 
 				// string value
-				final IdReference ref = createRef(jp.getText(), idReference,
-						path, false);
+				//TODO 1 the path is temporary. Might need a better way to deal with the path.
+				final IdReference ref = new IdReference(idReference.idType,
+						jp.getText(), false, idReference.attributes, path);
 				lst.addIdRefMessage(ref);
-				getIdRefNode(path, refPath).setIDAtValue(jp.getText());
 			}
 		} else if (type == Type.integer) {
 			// integer value is expected
@@ -394,51 +383,6 @@ public class JsonTokenValidationSchema {
 		default:
 			return t.asString();
 		}
-	}
-	
-	private static IdRefNode getIdRefNode(final JsonDocumentLocation path,
-			final List<IdRefNode> refPath) {
-		if (refPath.size() == 0 || refPath.size() > path.getDepth() + 1) {
-			throw new IllegalStateException(
-					"Reference branch path has wrong length: " +
-					refPath.size());
-		}
-		if (refPath.size() > 1) {
-			final String refpos = refPath.get(refPath.size() - 1)
-					.getRelativeLocation();
-			// path doesn't have a root node like the refpath, hence - 2
-			final String pathpos = path.getLocation(refPath.size() - 2)
-					.getLocationAsString(); //this should probably change
-			if (!refpos.equals(pathpos)) {
-				/*
-				 * we are inside an array or a map and the key or index has changed,
-				 * so back up a position.
-				 * In the main loop, after completing processing of an array or map,
-				 * the refpath is set to the same position as the path (e.g. just
-				 * prior to the array or map, so we never have to back up more than
-				 * one path element
-				 */
-				refPath.remove(refPath.size() - 1);
-			}
-		}
-		while (refPath.size() <= path.getDepth()) {
-			int pos = refPath.size() - 1;
-			IdRefNode parent = refPath.get(pos);
-			String key = path.getLocation(pos).getLocationAsString();
-			IdRefNode child = new IdRefNode(key);
-			parent.addChild(child);
-			refPath.add(child);
-		}
-		return refPath.get(path.getDepth());
-	}
-	
-	private static IdReference createRef(final String id,
-			final IdRefDescr idInfo, final JsonDocumentLocation path,
-			final boolean isFieldName) { 
-		// construct the IdReference object
-		//TODO 1 the path is temporary. Might need a better way to deal with the path.
-		return new IdReference(idInfo.idType, id, isFieldName,
-				idInfo.attributes, path);
 	}
 	
 	private static void skipValue(JsonParser jp) throws JsonParseException, IOException, JsonTokenValidationException {

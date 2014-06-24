@@ -160,7 +160,6 @@ public final class TypedObjectValidator {
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
 		final IdReferenceSet ids = new IdReferenceSet();
-		IdRefNode idRefTree = new IdRefNode();
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
@@ -193,7 +192,7 @@ public final class TypedObjectValidator {
 					public void addSearchableWsSubsetMessage(JsonNode searchData) {
 						searchDataWrap[0] = searchData;
 					}
-				}, idRefTree);
+				});
 			} finally {
 				try { jts.close(); } catch (Exception ignore) {}
 			}

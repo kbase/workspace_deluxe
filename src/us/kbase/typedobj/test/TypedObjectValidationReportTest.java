@@ -19,7 +19,6 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
-import us.kbase.typedobj.core.IdRefNode;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.Writable;
