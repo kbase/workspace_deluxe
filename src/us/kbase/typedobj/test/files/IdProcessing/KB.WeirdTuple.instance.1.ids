@@ -7,8 +7,8 @@
 		},
 	"renamed-expected": 
 		{
-			"t": ["idremap", 1, {"bar": "id"}, "baz"],
-			"not_typechecked": ["id", 1, {"bar": "id"}, "baz"]
+			"t": ["idremap", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}],
+			"not_typechecked": ["id", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}]
 		}
 
 }

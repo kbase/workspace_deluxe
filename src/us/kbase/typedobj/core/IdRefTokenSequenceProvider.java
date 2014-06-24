@@ -55,9 +55,6 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		return sorted;
 	}
 	
-	//TODO 1 test structures without typechecked fields
-	//TODO 1 test with UO
-	
 	@Override
 	public JsonToken nextToken() throws IOException, JsonParseException {
 		// This is central method processing tokens one by one, substituting id-refs

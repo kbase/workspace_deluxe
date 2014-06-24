@@ -107,7 +107,8 @@ module KB {
 	} AltIDs;
 
 	typedef structure {
-		tuple<feature_id fid, int foo, UnspecifiedObject uo, string bar> t;
+		tuple<feature_id fid, int foo, UnspecifiedObject uo, mapping<string,
+			UnspecifiedObject> bar> t;
 	} WeirdTuple;
 
 
