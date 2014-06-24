@@ -36,7 +36,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	private boolean wasValue = false;
 	// previous key name is compared to current key in order to find are they sorted
 	private String prevFieldName = null;
-	// sorted flag is switched into false after first occurrence of unsroted keys
+	// sorted flag is switched into false after first occurrence of unsorted keys
 	private boolean sorted = true;
 	
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
@@ -139,7 +139,6 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		if (s != null && s.hasIdReference()) {
 			final String subst = absoluteIdRefMapping.get(ret);
 			if (subst == null) {
-				//TODO test
 				throw new IllegalStateException(String.format(
 						"Tried to remap id %s but no remapping found at %s",
 						ret, path.getFullLocationAsString()));

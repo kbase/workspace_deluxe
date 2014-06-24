@@ -109,7 +109,6 @@ public class TypedObjectValidationReportTest {
 				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(true));
-		
 	}
 	
 	@Test
@@ -205,6 +204,31 @@ public class TypedObjectValidationReportTest {
 					is("You must call sort() prior to creating a Writeable."));
 		}
 	}
+	
+	@Test
+	public void failWriteMissingID() throws Exception {
+		String json = "{\"m\": {\"b\": \"a\", \"w\": \"d\"}}";
+		@SuppressWarnings("unused") //below is just for reference
+		String expectedJson = "{\"m\":{\"w\":\"whoop\",\"y\":\"a\"}}";
+		Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("b", "y");
+		refmap.put("d", "whoop");
+		refmap.put("w", "w");
+		
+		//sort via sort() method in memory
+		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
+				new UObject(new JsonTokenStream(json)), null, null, null, null,
+				idMapSchema, null);
+		try {
+			tovr.setAbsoluteIdRefMapping(refmap);
+			fail("created a writable on non-naturally sorted data");
+		} catch (IllegalStateException ise) {
+			assertThat("correct exception message on failing to write",
+					ise.getLocalizedMessage(),
+					is("Tried to remap id a but no remapping found at /m/b"));
+		}
+	}
+	
 	
 	@Test
 	public void duplicateKeys() throws Exception {
