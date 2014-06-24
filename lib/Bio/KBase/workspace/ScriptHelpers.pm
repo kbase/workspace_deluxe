@@ -73,11 +73,11 @@ sub getKBaseCfg {
 	my $kbConfPath = $Bio::KBase::Auth::ConfPath;
 	if (!-e $kbConfPath) {
 		my $newcfg = new Config::Simple(syntax=>'ini') or die Config::Simple->error();
-		$newcfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptUrl::defaultURL);
+		$newcfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptConfig::defaultURL);
 		$newcfg->write($kbConfPath);
 		$newcfg->close();
 	}
-	my $cfg = new Config::Simple(filename=>$kbConfPath) or die Config::Simple->error();
+	my $cfg = new Config::Simple(filename=>$kbConfPath,syntax=>'ini') or die Config::Simple->error();
 	return $cfg;
 }
 
@@ -92,7 +92,8 @@ sub workspace {
                 if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
                         my $cfg = getKBaseCfg();
 			my $user_id = $cfg->param("authentication.user_id");
-			if (!defined($user_id)) { $user_id='public'; }
+			#Note: cfg lib will return ref to a list if the variable is not set!  make sure that the url isn't a ref
+			if (!defined($user_id) || (ref($user_id) ne '')) { $user_id='public'; }
                         $cfg->param("workspace_deluxe.$user_id-current-workspace",$newWs);
                         $cfg->save();
                         $cfg->close();
@@ -108,11 +109,12 @@ sub workspace {
                 if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
                         my $cfg = getKBaseCfg();
 			my $user_id = $cfg->param("authentication.user_id");
-			if (!defined($user_id)) { $user_id='public'; }
+			if (!defined($user_id) || (ref($user_id) ne '')) { $user_id='public'; }
                         $currentWs = $cfg->param("workspace_deluxe.$user_id-current-workspace");
 			# handle old config file style if that was not found, but save back in the
 			# new config style
-			if (!defined($currentWs)) {
+			#Note: cfg lib will return ref to a list if the variable is not set!  make sure that the url isn't a ref
+			if (!defined($currentWs) || (ref($currentWs) ne '')) {
 				$currentWs = $cfg->param("workspace_deluxe.workspace");
 				if (defined($currentWs)) {
 					$cfg->param("workspace_deluxe.$user_id-current-workspace",$currentWs);
@@ -124,11 +126,12 @@ sub workspace {
 					my $ujs = Bio::KBase::userandjobstate::Client->new();
 					eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
 					if($@ || !defined($currentWs)) {
-						print STDERR "\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
-						exit 1;
+						print STDERR "\nWarning! Workspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
+						$currentWs = "";
+					} else {
+						$cfg->param("workspace_deluxe.$user_id-current-workspace",$currentWs);
+						$cfg->save();
 					}
-					$cfg->param("workspace_deluxe.$user_id-current-workspace",$currentWs);
-					$cfg->save();
 				}
 			}
                         $cfg->close();
@@ -138,8 +141,8 @@ sub workspace {
 			my $ujs = Bio::KBase::userandjobstate::Client->new();
 			eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
 			if($@ || !defined($currentWs)) {
-				print STDERR "\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
-				exit 1;
+				print STDERR "\nWarning! Workspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
+				$currentWs = "";
 			}
                 }
         }
@@ -183,10 +186,11 @@ sub workspaceURL {
 		if (!defined($ENV{KB_RUNNING_IN_IRIS})) {
 			my $cfg = getKBaseCfg();
 			$currentURL = $cfg->param("workspace_deluxe.url");
-			if (!defined($currentURL)) {
-				$cfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptUrl::defaultURL);
+			#Note: cfg lib will return ref to a list if the variable is not set!  make sure that the url isn't a ref
+			if (!defined($currentURL) || (ref($currentURL) ne '')) {  
+				$cfg->param("workspace_deluxe.url",$Bio::KBase::workspace::ScriptConfig::defaultURL);
 				$cfg->save();
-				$currentURL=$Bio::KBase::workspace::ScriptUrl::defaultURL;
+				$currentURL=$Bio::KBase::workspace::ScriptConfig::defaultURL;
 			}
 			$cfg->close();
 		}
