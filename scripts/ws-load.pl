@@ -34,7 +34,12 @@ my ($opt, $usage) = describe_options(
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
-$usage = "\nNAME\n  ws-load -- load an object in JSON to a workspace\n\nSYNOPSIS\n  ".$usage;
+my $usageHead = "\nNAME\n  ws-load -- developer tool for loading a JSON object to a workspace\n\n";
+$usageHead .= "  WARNING! This command is designed for developers who understand the underlying\n";
+$usageHead .= "  data type definitions and how to encode KBase data types as JSON documents.\n";
+$usageHead .= "  If you just want to upload your own data (for instance, a GenBank file), you\n";
+$usageHead .= "  should use the standard front-end data uploader tools from https://kbase.us\n";
+$usage = $usageHead."\nSYNOPSIS\n  ".$usage;
 $usage .= "\nDESCRIPTION\n";
 $usage .= "    Load data in JSON format to a workspace.  If data is in a file, the filename\n";
 $usage .= "    should be provided.  Otherwise, data in JSON format can be entered directly into\n";
