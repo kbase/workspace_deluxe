@@ -160,7 +160,6 @@ public final class TypedObjectValidator {
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
 		final IdReferenceSet ids = new IdReferenceSet();
-		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		

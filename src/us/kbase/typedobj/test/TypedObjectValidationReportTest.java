@@ -5,6 +5,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
@@ -19,9 +22,15 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.typedobj.db.FileTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
 	
@@ -29,6 +38,27 @@ public class TypedObjectValidationReportTest {
 	
 	private static final UTF8JsonSorterFactory SORT_FAC =
 			new UTF8JsonSorterFactory(10000);
+	
+	private static TypeDefinitionDB db;
+	
+	private static final String USER = "someUser";
+	
+	@BeforeClass
+	public static void setupTypeDB() throws Exception {
+		//ensure test location is available
+		Path dir = Files.createTempDirectory("TypedObjectValReportTest");
+		dir.toFile().deleteOnExit();
+		System.out.println("setting up temporary typed obj database");
+
+		// point the type definition db to point there
+		Path tempdir = Files.createTempDirectory("TypedObjectValReportTest");
+		tempdir.toFile().deleteOnExit();
+		db = new TypeDefinitionDB(
+				new FileTypeStorage(dir.toFile().getAbsolutePath()),
+				tempdir.toFile(), new Util().getKIDLpath(),
+				WorkspaceTestCommon.getKidlSource());
+	}
+	
 	
 	@Test
 	public void errors() throws Exception {
@@ -85,38 +115,51 @@ public class TypedObjectValidationReportTest {
 	}
 	
 	//TODO 1 make equivalent tests to the commented out ones
-//	@Test
-//	public void writeWithoutSort() throws Exception {
-//		String json = "{\"c\": 1, \"z\": \"d\"}";
-//		String expectedJson = "{\"c\":1,\"y\":\"whoop\"}";
-//		Map<String, String> refmap = new HashMap<String, String>();
-//		refmap.put("z", "y");
-//		refmap.put("d", "whoop");
-//		IdRefNode root = new IdRefNode();
-//		IdRefNode z = new IdRefNode("z");
-//		z.setLocationIsID();
-//		z.setIDAtValue("d");
-//		root.addChild(z);
-//
-//		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-//				null, null, null, new UObject(new JsonTokenStream(json)),
-//				root, null);
-//		tovr.setAbsoluteIdRefMapping(refmap);
-//		ByteArrayOutputStream o = new ByteArrayOutputStream();
-//		tovr.createJsonWritable().write(o);
-//		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
-//		
-//		
-//		//sort unnecessarily
-//		tovr = new TypedObjectValidationReport(
-//				null, null, null, new UObject(new JsonTokenStream(json)),
-//				root, null);
-//		tovr.setAbsoluteIdRefMapping(refmap);
-//		tovr.sort(SORT_FAC);
-//		o = new ByteArrayOutputStream();
-//		tovr.createJsonWritable().write(o);
-//		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
-//	}
+	@Test
+	public void writeWithoutSort() throws Exception {
+		String module = "TestNoSort";
+		String name = "NoSort";
+		String spec =
+				"module " + module + " {" +
+					"/* @id ws\n */" +
+					"typedef string id;" +
+					"typedef structure {" +
+						"mapping<id, id> m;" +
+					"} " + name + ";" +
+				"};";
+		db.requestModuleRegistration(module, USER);
+		db.approveModuleRegistrationRequest(USER, module, true);
+		db.registerModule(spec, Arrays.asList(name), USER);
+		db.releaseModule(module, USER, false);
+		JsonTokenValidationSchema schema =
+				db.getJsonSchema(new TypeDefName(module, name));
+		
+		String json = "{\"m\": {\"c\": 1, \"z\": \"d\"}}";
+		String expectedJson = "{\"m\":{\"c\":1,\"y\":\"whoop\"}}";
+		Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("z", "y");
+		refmap.put("d", "whoop");
+		refmap.put("c", "c");
+
+		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
+				new UObject(new JsonTokenStream(json)), null, null, null, null,
+				schema, null);
+		tovr.setAbsoluteIdRefMapping(refmap);
+		ByteArrayOutputStream o = new ByteArrayOutputStream();
+		tovr.createJsonWritable().write(o);
+		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
+		
+		
+		//sort unnecessarily
+		tovr = new TypedObjectValidationReport(
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, schema, null);
+		tovr.setAbsoluteIdRefMapping(refmap);
+		tovr.sort(SORT_FAC);
+		o = new ByteArrayOutputStream();
+		tovr.createJsonWritable().write(o);
+		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
+	}
 	
 	@Test
 	public void sortWithNoMapping() throws Exception {
