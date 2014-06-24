@@ -77,12 +77,12 @@ public class IdProcessingTest {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t2";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/IdProcessing";
 	
 	/**
 	 * relative location to find the input files
 	 */
-	private final static String TEST_RESOURCE_LOCATION = "files/t2/";
+	private final static String TEST_RESOURCE_LOCATION = "files/IdProcessing/";
 	
 	/**
 	 * KB types to register
@@ -186,6 +186,7 @@ public class IdProcessingTest {
 		
 		System.out.println("finding test instances");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
+		Arrays.sort(resources);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
 			if(tokens.length!=4) { continue; }

@@ -35,16 +35,16 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		
 		List<String> errors = Arrays.asList("foo", "bar", "baz");
-
+		
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				errors, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, errors, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
 		tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(),
 				is((List<String>) new LinkedList<String>()));
 		assertThat("errors empty", tovr.isInstanceValid(), is(true));
@@ -52,8 +52,8 @@ public class TypedObjectValidationReportTest {
 		errors = Collections.emptyList();
 
 		tovr = new TypedObjectValidationReport(
-				errors, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, errors, null,
+				null, null, null);
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(true));
 		
@@ -64,8 +64,8 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		try {
 			tovr.sort(null);
 			fail("sorted with no factory");
@@ -124,8 +124,8 @@ public class TypedObjectValidationReportTest {
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)), null, null, null,
+				null, null, null);
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
@@ -257,8 +257,8 @@ public class TypedObjectValidationReportTest {
 		TempFilesManager tfm = TempFilesManager.forTests();
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				null, null, null, new UObject(new JsonTokenStream(json)),
-				null, null);
+				new UObject(new JsonTokenStream(json)),null, null, null, 
+				null, null, null);
 		
 		//test with json stored in file
 		tovr.sort(fac, tfm); //should work

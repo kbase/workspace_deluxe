@@ -70,18 +70,26 @@ public class KidlUtil {
 		if (origWidth > 100)
 			origWidth = 100;
 		int maxSize = Math.max(origLn.size(), newLn.size());
+		int maxOffset = Integer.toString(maxSize).length();
+		int offset = maxOffset;
+		String leftPad = ""; 
+		for(int k=0; k<offset; k++) { leftPad += " "; }
 		for (int pos = 0; pos < maxSize; pos++) {
+			while(maxOffset != offset+Integer.toString(pos).length()) {
+				offset--;
+				leftPad = leftPad.substring(1);
+			}
 			String origL = pos < origLn.size() ? origLn.get(pos) : "";
 			String newL = pos < newLn.size() ? newLn.get(pos) : "";
 			boolean eq = origL.equals(newL);
 			if (origL.length() > origWidth) {
-				System.out.println("/" + (eq ? " " : "*") +origL);
-				System.out.println("\\" + (eq ? " " : "*") + newL);
+				System.out.println(leftPad+pos+" "+"/" + (eq ? " " : "*") +origL);
+				System.out.println(leftPad+pos+" "+"\\" + (eq ? " " : "*") + newL);
 			} else {
 				String sep = eq ? "   " : " * ";
 				char[] gap = new char[origWidth - origL.length()];
 				Arrays.fill(gap, ' ');
-				System.out.println(origL + new String(gap) + sep + newL);
+				System.out.println(leftPad+pos+" "+origL + new String(gap) + sep + newL);
 			}
 		}
 	}

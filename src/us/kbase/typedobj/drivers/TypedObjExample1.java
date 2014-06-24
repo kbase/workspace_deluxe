@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
+import us.kbase.typedobj.core.ExtractedSubsetAndMetadata;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -135,9 +136,9 @@ public class TypedObjExample1 {
 			s.reset();
 			
 			// extract just the subset
-			JsonNode indexableSubset = report.extractSearchableWsSubset(-1); //.extractWsSearchableSubset(instance1RootNode, report);
+			ExtractedSubsetAndMetadata indexableSubset = report.extractSearchableWsSubsetAndMetadata(-1); //.extractWsSearchableSubset(instance1RootNode, report);
 			System.out.println("subset:");
-			writer.writeValue(s, indexableSubset);
+			writer.writeValue(s, indexableSubset.getMetadata());
 			System.out.println(s.toString());
 			s.close();
 			

@@ -154,15 +154,19 @@ public final class TypedObjectValidator {
 			final TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException {
-		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
+		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
-		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefDB);
+		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
 		final IdReferenceSet ids = new IdReferenceSet();
 		final JsonNode[] searchDataWrap = new JsonNode[] {null};
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
+		
+		// these must be arrays to get the inner class def override to work
+		final JsonNode [] wsSubsetSelection = new JsonNode[] {null}; // was renamed from searchDataWrap
+		final JsonNode [] metadataSelection = new JsonNode[] {null};
 		try {
 			if (!schema.getOriginalType().equals("kidl-structure"))
 				throw new IllegalStateException(
@@ -176,7 +180,6 @@ public final class TypedObjectValidator {
 						errorCount++;
 						if (errorCount < maxErrorCount) {
 							mapErrors(errors, message);
-//							errors.add(message);
 						} else {
 							throw new JsonTokenValidationException(message);
 						}
@@ -189,8 +192,13 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addSearchableWsSubsetMessage(JsonNode searchData) {
-						searchDataWrap[0] = searchData;
+					public void addSearchableWsSubsetMessage(JsonNode selection) {
+						wsSubsetSelection[0] = selection;
+					}
+
+					@Override
+					public void addMetadataWsMessage(JsonNode selection) {
+						metadataSelection[0] = selection;
 					}
 				});
 			} finally {
@@ -201,10 +209,16 @@ public final class TypedObjectValidator {
 				ex.printStackTrace();
 			}
 			mapErrors(errors, ex.getMessage());
-//			errors.add(ex.getMessage());
 		}
-		return new TypedObjectValidationReport(errors, searchDataWrap[0],
-				absoluteTypeDefDB, obj, schema, ids.lock());
+
+		return new TypedObjectValidationReport(
+									obj,
+									absoluteTypeDefId,
+									errors, 
+									wsSubsetSelection[0], 
+									metadataSelection[0],
+									schema,
+									ids.lock());
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {
@@ -214,64 +228,5 @@ public final class TypedObjectValidator {
 			errors.add(err);
 		}
 	}
-
-	/*
-	 * Batch validation of the given Json instances, all against a single TypeDefId.  This method saves some communication
-	 * steps with the backend 
-	 * @param instanceRootNodes
-	 * @param typeDefId
-	 * @return
-	 * @throws NoSuchTypeException
-	 * @throws NoSuchModuleException
-	 * @throws InstanceValidationException
-	 * @throws BadJsonSchemaDocumentException
-	 * @throws TypeStorageException
-	public List<TypedObjectValidationReport> validate(List <JsonNode> instanceRootNodes, TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException, InstanceValidationException, BadJsonSchemaDocumentException, TypeStorageException
-	{
-		AbsoluteTypeDefId absoluteTypeDefDB = typeDefDB.resolveTypeDefId(typeDefId);
-		final JsonSchema schema = typeDefDB.getJsonSchema(absoluteTypeDefDB);
-		
-		List <TypedObjectValidationReport> reportList = new ArrayList<TypedObjectValidationReport>(instanceRootNodes.size());
-		for(JsonNode node : instanceRootNodes) {
-			// Actually perform the validation and return the report
-			ProcessingReport report;
-			try {
-				report = schema.validate(node);
-			} catch (ProcessingException e) {
-				report = repackageProcessingExceptionIntoReport(e,typeDefId);
-			}
-			reportList.add(new TypedObjectValidationReport(report, absoluteTypeDefDB,node));
-		}
-		return reportList;
-	}*/
-	
-	
-	/*
-	 * If an exception is thrown during validation, we can catch that exception and instead of
-	 * throwing it back up, we package it into a new report, add the message
-	 * @param e
-	 * @param typeDefId
-	 * @return
-	 * @throws InstanceValidationException
-	protected ProcessingReport repackageProcessingExceptionIntoReport(ProcessingException e, TypeDefId typeDefId) 
-			throws InstanceValidationException {
-		ProcessingMessage m = e.getProcessingMessage();
-		//System.out.println(m);
-		ProcessingReport report = new ListReportProvider(LogLevel.DEBUG,LogLevel.NONE).newReport();
-		try {
-			if(m.getLogLevel().equals(LogLevel.FATAL)) {
-				report.fatal(m);
-			} else { //(m.getLogLevel().equals(LogLevel.ERROR))
-				m.setLogLevel(LogLevel.ERROR); // we always set this as an error, because we threw an exception
-				report.error(m);
-			}
-		} catch (ProcessingException e2) {
-			throw new InstanceValidationException(
-				"instance is not a valid '" + typeDefId.getTypeString() + "'",e2);
-		}
-		return report;
-	}*/
-	
 	
 }

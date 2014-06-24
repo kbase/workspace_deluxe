@@ -42,7 +42,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 @RunWith(value = Parameterized.class)
 public class ObjectExtractionByPathTest {
 
-	private final static String TEST_RESOURCE_LOCATION = "files/t5/";
+	private final static String TEST_RESOURCE_LOCATION = "files/SubdataExtraction/";
 	
 	private final static boolean VERBOSE = true;
 	
@@ -77,12 +77,12 @@ public class ObjectExtractionByPathTest {
 		
 		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
+		Arrays.sort(resources);
 		for(int k=0; k<resources.length; k++) {
 			if(resources[k].isEmpty()) continue;
 			instanceResources.add(new TestInstanceInfo(resources[k]));
 		}
 		if(VERBOSE) System.out.println(" " + instanceResources.size() + " found");
-		
 		Object [][] instanceInfo = new Object[instanceResources.size()][1];
 		for(int k=0; k<instanceResources.size(); k++) {
 			instanceInfo[k][0] = new Integer(k);

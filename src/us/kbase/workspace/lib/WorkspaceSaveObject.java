@@ -77,6 +77,10 @@ public class WorkspaceSaveObject {
 	public Map<String, String> getUserMeta() {
 		return userMeta;
 	}
+	
+	public static int getMaxUserMetaSize() {
+		return MAX_USER_META_SIZE;
+	}
 
 	public Provenance getProvenance() {
 		return provenance;

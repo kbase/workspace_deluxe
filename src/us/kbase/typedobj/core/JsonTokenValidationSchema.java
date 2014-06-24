@@ -1,6 +1,9 @@
 package us.kbase.typedobj.core;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -34,6 +37,7 @@ public class JsonTokenValidationSchema {
 	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
+	private JsonNode metadataWs;						// For structures: metadata-ws
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
 	private JsonTokenValidationSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
 	private boolean objectAdditionalPropertiesBoolean;	// For structures: additionalProperties
@@ -42,6 +46,9 @@ public class JsonTokenValidationSchema {
 	private List<JsonTokenValidationSchema> arrayItemList;				// For tuple: items (list of types)
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
+	
+	private NumberRange numberRange;					// For number: minimum, maximum, exclusiveMinimum, exclusiveMaximum
+	private IntRange intRange;							// For integer: minimum, maximum, exclusiveMinimum, exclusiveMaximum
 
 	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";
 	private static final String ATTRIBUTES = "attributes";
@@ -110,6 +117,9 @@ public class JsonTokenValidationSchema {
 		if (ret.type == Type.object) {
 			if (data.containsKey("searchable-ws-subset"))
 				ret.searchableWsSubset = UObject.transformObjectToJackson(data.get("searchable-ws-subset"));
+			if (data.containsKey("metadata-ws"))
+				ret.metadataWs = UObject.transformObjectToJackson(data.get("metadata-ws"));
+			
 			ret.objectProperties = new LinkedHashMap<String, JsonTokenValidationSchema>();
 			Map<String, Object> props = (Map<String, Object>)data.get("properties");
 			if (props != null) {
@@ -148,6 +158,10 @@ public class JsonTokenValidationSchema {
 				ret.arrayMinItems = Integer.parseInt("" + data.get("minItems"));
 			if (data.get("maxItems") != null)
 				ret.arrayMaxItems = Integer.parseInt("" + data.get("maxItems"));
+		} else if (ret.type == Type.number) {
+			ret.numberRange = new NumberRange(data);
+		} else if (ret.type == Type.integer) {
+			ret.intRange = new IntRange(data);
 		}
 		return ret;
 	}
@@ -194,6 +208,12 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
+			
+			if (metadataWs != null) {
+				// metadata ws description is defined for this object/mapping
+				lst.addMetadataWsMessage(metadataWs);
+			}
+			
 			try {
 				path.addMapStart();
 				JsonToken t = jp.getCurrentToken();
@@ -338,11 +358,15 @@ public class JsonTokenValidationSchema {
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
+			if(intRange!=null)
+				intRange.checkValue(jp, lst, path);
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
 				lst.addError(generateError(type, t, path));
+			if(numberRange!=null)
+				numberRange.checkValue(jp, lst, path);
 		} else {
 			lst.addError("Unsupported node type: " + type);
 		}
@@ -549,4 +573,280 @@ public class JsonTokenValidationSchema {
 					+ attributes + "]";
 		}
 	}
+	
+	
+	private static abstract class Range {
+		protected boolean minValueDefined;
+		protected boolean maxValueDefined;
+		protected boolean exclusiveMin;
+		protected boolean exclusiveMax;
+		protected Range() {
+			minValueDefined=false;
+			maxValueDefined=false;
+			exclusiveMin = false;
+			exclusiveMax = false;
+		}
+		abstract void checkValue(JsonParser jp, JsonTokenValidationListener lst, JsonDocumentLocation path) throws JsonTokenValidationException;
+	}
+	
+	private static class NumberRange extends Range {
+		double minValue;
+		double maxValue;
+		
+		public NumberRange(Map<String, Object> data) {
+			minValue=0; maxValue=0; 
+			if(data.get("minimum") != null) {
+				minValueDefined = true;
+				minValue = Double.parseDouble("" + data.get("minimum"));
+				if(data.get("exclusiveMinimum") != null)
+					exclusiveMin = true;
+				else
+					exclusiveMin = false;
+			}
+			if(data.get("maximum") != null) {
+				maxValueDefined = true;
+				maxValue = Double.parseDouble("" + data.get("maximum"));
+				if(data.get("exclusiveMaximum") != null)
+					exclusiveMax = true;
+				else
+					exclusiveMax = false;
+			}
+		}
+
+		@Override
+		void checkValue(JsonParser jp, JsonTokenValidationListener lst, JsonDocumentLocation path) throws JsonTokenValidationException {
+			// do not validate range for null values or non-numeric values (we assume typechecking will catch
+			// cases where something was given where a numeric value was expected)
+			if(jp.getCurrentToken() == JsonToken.VALUE_NULL || !jp.getCurrentToken().isNumeric()) return;
+			// do not validate range if no range was defined
+			if(!minValueDefined && !maxValueDefined) return;
+			try {
+				// first attempt to check range assuming it is a double value
+				double value = jp.getDoubleValue();
+				if(minValueDefined) {
+					if(exclusiveMin) {
+						if( !(value>minValue) ) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if( !(value>=minValue) ) {
+							lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+				if(maxValueDefined) {
+					if(exclusiveMax) {
+						if( !(value<maxValue)) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if( !(value<=maxValue) ) {
+							lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+			} catch (IOException e) {
+				System.out.println("ERROR !! buffer overflow: " + e.getMessage());
+				// if we encountered an exception, then there was probably a buffer overflow, so attempt to use a DecimalValue ??
+				//jp.getDecimalValue();
+			}
+		}
+		
+		@Override
+		public String toString() {
+			String s = "";
+			if(minValueDefined) {
+				if(exclusiveMin) s+="("; else s+="[";
+				s+=minValue+",";
+			} else s+= "inf,";
+			if(maxValueDefined) {
+				s+=maxValue;
+				if(exclusiveMax) s+=")"; else s+="]";
+			} else s+= "inf";
+			return s;
+		}
+	}
+	
+	private static class IntRange extends Range {
+		long minValue;
+		long maxValue;
+		BigInteger bigMin = null;
+		BigInteger bigMax = null;
+
+		public IntRange(Map<String, Object> data) {
+			minValue=0; maxValue=0; 
+			if(data.get("minimum") != null) {
+				minValueDefined = true;
+				try {
+					minValue = Long.parseLong("" + data.get("minimum"));
+				} catch (NumberFormatException e) {
+					try {
+						bigMin = new BigInteger(data.get("minimum").toString());
+					} catch (NumberFormatException e2) {
+						BigDecimal d = new BigDecimal(data.get("minimum").toString());
+						BigDecimal d2 = d.setScale(0, RoundingMode.CEILING);
+						if(d2.compareTo(d)!=0) {
+							// we cannot be exclusive if we had to round...
+							data.put("exclusiveMinimum",null);
+						}
+						bigMin = d2.toBigInteger();
+					}
+				}
+				if(data.get("exclusiveMinimum") != null)
+					exclusiveMin = true;
+				else
+					exclusiveMin = false;
+			}
+			if(data.get("maximum") != null) {
+				maxValueDefined = true;
+				try {
+					maxValue = Long.parseLong("" + data.get("maximum"));
+				} catch (NumberFormatException e) {
+					try {
+						bigMax = new BigInteger(data.get("maximum").toString());
+					} catch (NumberFormatException e2) {
+						BigDecimal d = new BigDecimal(data.get("maximum").toString());
+						BigDecimal d2 = d.setScale(0, RoundingMode.FLOOR);
+						if(d2.compareTo(d)!=0) {
+							// we cannot be exclusive if we had to round...
+							data.put("exclusiveMaximum",null);
+						}
+						bigMax = d2.toBigInteger();
+					}
+					
+				}
+				if(data.get("exclusiveMaximum") != null)
+					exclusiveMax = true;
+				else
+					exclusiveMax = false;
+			}
+		}
+
+		@Override
+		void checkValue(JsonParser jp, JsonTokenValidationListener lst, JsonDocumentLocation path) throws JsonTokenValidationException {
+			// do not validate range for null values or non-numeric values (we assume typechecking will catch
+			// cases where something was given where a numeric value was expected)
+			if(jp.getCurrentToken() == JsonToken.VALUE_NULL || !jp.getCurrentToken().isNumeric()) return;
+			// do not validate range if no range was defined
+			if(!minValueDefined && !maxValueDefined) return;
+			double value=0; String textValue = null; boolean tryAsBigValue = false;
+			try {
+				// first attempt to check range assuming it is a double value
+				value = jp.getLongValue();
+				textValue = jp.getText();
+			} catch (IOException e) { tryAsBigValue = true; }
+			
+			if(tryAsBigValue) {
+				BigInteger bigValue=null;
+				try {
+					bigValue = jp.getBigIntegerValue();
+				} catch (Exception e) {
+					lst.addError("Number value given cannot be parsed as an integer at "+path.getFullLocationAsString());
+					return;
+				}
+				if(minValueDefined) {
+					if(exclusiveMin) {
+						if(bigMin!=null) {
+							if( bigValue.compareTo(bigMin) <= 0 )
+								lst.addError("Number value given ("+bigValue+") was less than minimum value accepted ("+bigMin+", exclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( bigValue.compareTo(BigInteger.valueOf(minValue)) <= 0 )
+								lst.addError("Number value given ("+bigValue+") was less than minimum value accepted ("+minValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if(bigMin!=null) {
+							if( bigValue.compareTo(bigMin) < 0 )
+								lst.addError("Number value given ("+bigValue+") was less than minimum value accepted ("+bigMin+", inclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( bigValue.compareTo(BigInteger.valueOf(minValue)) < 0 )
+								lst.addError("Number value given ("+bigValue+") was less than minimum value accepted ("+minValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+				if(maxValueDefined) {
+					if(exclusiveMax) {
+						if(bigMax!=null) {
+							if( bigValue.compareTo(bigMax) >= 0 )
+								lst.addError("Number value given ("+bigValue+") was more than maximum value accepted ("+bigMax+", exclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( bigValue.compareTo(BigInteger.valueOf(maxValue)) >= 0 )
+								lst.addError("Number value given ("+bigValue+") was more than maximum value accepted ("+maxValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if(bigMax!=null) {
+							if( bigValue.compareTo(bigMax) > 0 )
+								lst.addError("Number value given ("+bigValue+") was more than maximum value accepted ("+bigMax+", inclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( bigValue.compareTo(BigInteger.valueOf(maxValue)) > 0 )
+								lst.addError("Number value given ("+bigValue+") was more than maximum value accepted ("+maxValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+			} else {
+				if(minValueDefined) {
+					if(exclusiveMin) {
+						if(bigMin!=null) {
+							// should never fail here because a valid long value should never be less than a min value we had to treat as a BigInt
+							if( new BigInteger(textValue).compareTo(bigMin) < 0 )
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+bigMin+", exclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( value<=minValue )
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if(bigMin!=null) {
+							// should never fail here because a valid long value should never be less than a min value we had to treat as a BigInt
+							if( new BigInteger(textValue).compareTo(bigMin) < 0 )
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+bigMin+", inclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( value<minValue )
+								lst.addError("Number value given ("+value+") was less than minimum value accepted ("+minValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+				if(maxValueDefined) {
+					if(exclusiveMax) {
+						if(bigMax!=null) {
+							// should never fail here because a valid long value should never be more than a max value we had to treat as a BigInt
+							if( new BigInteger(textValue).compareTo(bigMax) >= 0 )
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+bigMax+", exclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( value>=maxValue )
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", exclusive) at "+path.getFullLocationAsString());
+						}
+					} else {
+						if(bigMax!=null) {
+							// should never fail here because a valid long value should never be more than a max value we had to treat as a BigInt
+							if( new BigInteger(textValue).compareTo(bigMax) > 0 )
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+bigMax+", inclusive) at "+path.getFullLocationAsString());
+						} else {
+							if( value>maxValue )
+								lst.addError("Number value given ("+value+") was more than maximum value accepted ("+maxValue+", inclusive) at "+path.getFullLocationAsString());
+						}
+					}
+				}
+			}
+		}
+		
+		@Override
+		public String toString() {
+			String s = "";
+			if(minValueDefined) {
+				if(exclusiveMin) s+="("; else s+="[";
+				s+=minValue+",";
+			} else s+= "inf,";
+			if(maxValueDefined) {
+				s+=maxValue;
+				if(exclusiveMax) s+=")"; else s+="]";
+			} else s+= "inf";
+			return s;
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
 }

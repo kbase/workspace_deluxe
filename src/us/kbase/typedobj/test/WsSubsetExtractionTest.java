@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.typedobj.core.ExtractedSubsetAndMetadata;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -61,12 +62,12 @@ public class WsSubsetExtractionTest {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/t3";
+	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/SubsetAndMetadataExtraction";
 	
 	/**
 	 * relative location to find the input files
 	 */
-	private final static String TEST_RESOURCE_LOCATION = "files/t3/";
+	private final static String TEST_RESOURCE_LOCATION = "files/SubsetAndMetadataExtraction/";
 	
 	private final static boolean VERBOSE = true;
 
@@ -148,7 +149,9 @@ public class WsSubsetExtractionTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData");
+		List<String> kb_types =  Arrays.asList(
+				"NoExtractionData","SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData","KeysTest",
+				"MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
@@ -156,6 +159,7 @@ public class WsSubsetExtractionTest {
 		
 		if(VERBOSE) System.out.print("finding test instances...");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
+		Arrays.sort(resources);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
 			if(tokens.length!=4) { continue; }
@@ -181,12 +185,11 @@ public class WsSubsetExtractionTest {
 		
 		//read the instance data
 		if(VERBOSE) System.out.println("  -("+instance.resourceName+")");
-		String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
-		JsonNode instanceRootNode = mapper.readTree(instanceJson);
-		
-		// read the ids file, which provides the list of ids we expect to extract from the instance
-		String expectedSubsetString = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".subset");
-		JsonNode expectedSubset = mapper.readTree(expectedSubsetString);
+		String testdata = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
+		JsonNode testdataJson = mapper.readTree(testdata);
+		JsonNode instanceRootNode = testdataJson.get("instance");
+		JsonNode expectedSubset = testdataJson.get("subset");
+		JsonNode expectedMetadata = testdataJson.get("metadata");
 		
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
@@ -201,16 +204,17 @@ public class WsSubsetExtractionTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		
-		JsonNode actualSubset = report.extractSearchableWsSubset(-1);
-		// we can just check if they are equal like so:
-		//assertTrue("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
-		//		actualSubset.equals(expectedSubset));
-		// this method generates a patch, so that if they differ you can see what's up
-		compare(expectedSubset, actualSubset, instance.resourceName);
+		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1);
+		JsonNode actualSubset = extraction.getWsSearchableSubset();
+		JsonNode actualMetadata = extraction.getMetadata();
+		
+		compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
+		compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		System.out.println("       PASS");
 	}
 
 	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
-		assertEquals("  -("+instance.resourceName+") extracted subset does not match expected extracted subset",
+		assertEquals("  -("+resourceName+") extracted subset/metadata does not match expected extracted subset/metadata",
 				sortJson(expectedSubset), sortJson(actualSubset));
 	}
 

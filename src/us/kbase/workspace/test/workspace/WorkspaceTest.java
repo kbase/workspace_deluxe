@@ -833,6 +833,91 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void saveObjectsAndTestExtractedMeta() throws Exception {
+		String module = "TestMetaData";
+		String spec =
+				"module " + module + " {" +
+					"/* @metadata ws val \n@metadata ws length(l) as Length of list*/"+
+					"typedef structure { string val; list<int> l; } MyType;" +
+				"};";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, module);
+		ws.resolveModuleRegistration(module, true);
+		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList("MyType"), null, null, false, null);
+		TypeDefId MyType = new TypeDefId(new TypeDefName(module, "MyType"), 0, 1);
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("metadatatest");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		
+		// save an object and get back object info
+		Map<String, Object> d1 = new LinkedHashMap<String, Object>();
+		String val = "i should be a metadata";
+		d1.put("val", val);
+		d1.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
+		
+		Map<String, String> metadata = new HashMap<String, String>();
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d1"),d1, MyType, metadata, emptyprov, false)));
+		List <ObjectInformation> oi = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d1")), true, true);
+		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi);
+		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi.get(0));
+		
+		// check that automatic metadata fields were populated correctly, and nothing else was added
+		Map<String,String> savedUserMetaData = oi.get(0).getUserMetaData();
+		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
+			if(m.getKey().equals("val")) 
+				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals(val));
+			if(m.getKey().equals("Length of list"))
+				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("8"));
+		}
+		savedUserMetaData.remove("val");
+		savedUserMetaData.remove("Length of list");
+		Assert.assertEquals("Only metadata we wanted was extracted", 0, savedUserMetaData.size());
+		
+		// now we do the same thing, but make sure 1) metadata set was added, and 2) metadata is overridden
+		// by the extracted metadata
+		metadata.put("Length of list","i am pretty sure it was 7");
+		metadata.put("my_special_metadata", "yes");
+		ws.saveObjects(userfoo, wspace, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d2"),d1, MyType, metadata, emptyprov, false)));
+		List <ObjectInformation> oi2 = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d2")), true, true);
+		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2);
+		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2.get(0));
+		
+		savedUserMetaData = oi2.get(0).getUserMetaData();
+		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
+			if(m.getKey().equals("val"))
+				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals(val));
+			if(m.getKey().equals("Length of list"))
+				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("8"));
+			if(m.getKey().equals("my_special_metadata"))
+				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("yes"));
+		}
+		savedUserMetaData.remove("val");
+		savedUserMetaData.remove("Length of list");
+		savedUserMetaData.remove("my_special_metadata");
+		Assert.assertEquals("Only metadata we wanted was extracted", 0, savedUserMetaData.size());
+		
+		// finally, test that if we exceed the metadata extraction limit, we fail
+		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
+		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
+		StringBuilder bigVal = new StringBuilder();
+		for (int i = 0; i < 18; i++) {
+			bigVal.append(LONG_TEXT); //> 16kb now
+		}
+		dBig.put("val", bigVal.toString());
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+					new ObjectIDNoWSNoVer("bigextractedmeta"), dBig, MyType, null,
+					emptyprov, false)));
+			fail("saved object with > 16kb of extracted metadata");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(),
+					is("Metadata size of 19309 is > 16000 bytes"));
+		}
+	}
+	
+	@Test
 	public void encodings() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("encodings");
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("encodings");

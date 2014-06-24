@@ -27,5 +27,11 @@ public interface JsonTokenValidationListener {
 	 * Method is for registering searchable ws-subset object.
 	 * @param searchData
 	 */
-	public void addSearchableWsSubsetMessage(JsonNode searchData);
+	public void addSearchableWsSubsetMessage(JsonNode selection);
+	
+	/**
+	 * Method for registering the selection of metadata extraction.
+	 * @param selection
+	 */
+	public void addMetadataWsMessage(JsonNode selection);
 }

@@ -9,10 +9,12 @@ import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 
+import static us.kbase.workspace.database.Util.checkSize;
+
 public class ResolvedSaveObject {
 	
 	private final ObjectIDNoWSNoVer id;
-	private final Map<String, String> userMeta;
+	private Map<String, String> userMeta; // userMeta data is non-final because it can be appended
 	private final Provenance provenance;
 	private final boolean hidden;
 	private final TypedObjectValidationReport rep;
@@ -61,6 +63,16 @@ public class ResolvedSaveObject {
 	//mutable!
 	public Map<String, String> getUserMeta() {
 		return userMeta;
+	}
+	
+	/**
+	 * Add new metadata, which will overwrite existing metadata fields with the same name.
+	 * This method also checks that the size of the metadata is within the size limit.
+	 */
+	public void addUserMeta(Map<String,String> newUserMeta) {
+		if(userMeta==null) userMeta = newUserMeta;
+		else userMeta.putAll(newUserMeta);
+		checkSize(userMeta, "Metadata", WorkspaceSaveObject.getMaxUserMetaSize());
 	}
 
 	public Provenance getProvenance() {

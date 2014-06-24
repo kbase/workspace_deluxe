@@ -41,6 +41,7 @@ import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.ExtractedSubsetAndMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -1536,12 +1537,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 			final Map<String, Object> subdata;
 			try {
+				ExtractedSubsetAndMetadata extract = o.getRep().extractSearchableWsSubsetAndMetadata(MAX_SUBDATA_SIZE);
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(
-								o.getRep().extractSearchableWsSubset(MAX_SUBDATA_SIZE),
+								extract.getWsSearchableSubset(),
 								Map.class);
 				subdata = subdata2;
+				pkg.wo.addUserMeta(extract.getMetadataAsMap());
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
@@ -1553,6 +1556,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							"subdata", MAX_SUBDATA_SIZE));
 				throw e;
 			}
+			
 			
 			escapeSubdata(subdata);
 //			checkObjectLength(subdata, MAX_SUBDATA_SIZE,

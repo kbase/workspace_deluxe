@@ -25,7 +25,7 @@ public class DummyTypedObjectValidationReport extends
 	
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
 			final UObject data) {
-		super(Collections.<String>emptyList(), null, type, data, null, new IdReferenceSet().lock());
+		super(data, type, Collections.<String>emptyList(), null, null, null, new IdReferenceSet().lock());
 	}
 	
 	@Override

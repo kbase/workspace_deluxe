@@ -55,7 +55,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  * If the spec files are updated or new ones added, you need to modify the db
  * setup method to add the new typed obj defs.
  * 
- * Note: we could/should migrate this to JUnit parameterized tests in the future...
  * 
  * @author msneddon
  *
@@ -67,9 +66,9 @@ public class BasicValidationTest {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
+	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/BasicValidation";
 	
-	private final static String TEST_RESOURCE_LOCATION = "files/t1/";
+	private final static String TEST_RESOURCE_LOCATION = "files/BasicValidation/";
 	
 	private static TypeDefinitionDB db;
 	
@@ -170,7 +169,7 @@ public class BasicValidationTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","RandomObject");
+		List<String> kb_types =  Arrays.asList("Feature","Genome","FeatureGroup","genome_id","feature_id","RandomObject","NumberObj","TupleObject","BigNumberObj");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
@@ -185,6 +184,7 @@ public class BasicValidationTest {
 		
 		if(VERBOSE) System.out.print("finding test instances: ");
 		String [] resources = getResourceListing(TEST_RESOURCE_LOCATION);
+		Arrays.sort(resources);
 		for(int k=0; k<resources.length; k++) {
 			String [] tokens = resources[k].split("\\.");
 			if(tokens.length!=5) { continue; }
