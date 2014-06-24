@@ -205,7 +205,7 @@ public final class TypedObjectValidator {
 //			errors.add(ex.getMessage());
 		}
 		return new TypedObjectValidationReport(errors, searchDataWrap[0],
-				absoluteTypeDefDB, obj, idRefTree, ids.lock());
+				absoluteTypeDefDB, obj, schema, ids.lock());
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {

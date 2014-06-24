@@ -64,7 +64,7 @@ public class JsonDocumentLocation {
 		return ret;
 	}
 	
-	public JsonArrayLocation addArrayLocation(final long loc) {
+	public JsonArrayLocation addArrayLocation(final int loc) {
 		final JsonArrayLocation ret = new JsonArrayLocation(loc);
 		this.loc.add(ret);
 		return ret;
@@ -82,7 +82,7 @@ public class JsonDocumentLocation {
 		return l;
 	}
 	
-	public JsonLocation replaceLast(final long loc) {
+	public JsonLocation replaceLast(final int loc) {
 		final JsonLocation l = removeLast();
 		addArrayLocation(loc);
 		return l;
@@ -97,7 +97,7 @@ public class JsonDocumentLocation {
 		if (l.isStartLocation()) {
 			replaceLast(0);
 		} else {
-			replaceLast(((JsonArrayLocation)l).getLocationAsLong() + 1);
+			replaceLast(((JsonArrayLocation)l).getLocationAsInt() + 1);
 		}
 		return (JsonArrayLocation) getLast();
 	}
@@ -157,9 +157,9 @@ public class JsonDocumentLocation {
 	
 	public class JsonArrayLocation implements JsonLocation {
 		
-		private final long location;
+		private final int location;
 		
-		private JsonArrayLocation(final long location) {
+		private JsonArrayLocation(final int location) {
 			if (location < 0) {
 				throw new ArrayIndexOutOfBoundsException(
 						"JSON arrays cannot have negative indexes");
@@ -182,7 +182,7 @@ public class JsonDocumentLocation {
 			return location;
 		}
 		
-		public long getLocationAsLong() {
+		public int getLocationAsInt() {
 			return location;
 		}
 

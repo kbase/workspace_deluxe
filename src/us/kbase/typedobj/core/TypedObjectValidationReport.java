@@ -73,7 +73,7 @@ public class TypedObjectValidationReport {
 	
 	private File fileForSorting = null;
 	
-	private final IdRefNode idRefTree;
+	private final JsonTokenValidationSchema schema;
 	
 	/**
 	 * keep a jackson mapper around so we don't have to create a new one over and over during subset extration
@@ -88,14 +88,18 @@ public class TypedObjectValidationReport {
 	 * @param processingReport
 	 * @param validationTypeDefId
 	 */
-	public TypedObjectValidationReport(List<String> errors, JsonNode searchData, AbsoluteTypeDefId validationTypeDefId, 
-			UObject tokenStreamProvider, IdRefNode idRefTree, IdReferenceSet oldIdRefs) {
+	public TypedObjectValidationReport(final List<String> errors,
+			final JsonNode searchData,
+			final AbsoluteTypeDefId validationTypeDefId, 
+			final UObject tokenStreamProvider,
+			final JsonTokenValidationSchema schema,
+			final IdReferenceSet oldIdRefs) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.searchData = searchData;
 		this.validationTypeDefId=validationTypeDefId;
 		this.oldIdRefs = oldIdRefs;
 		this.tokenStreamProvider = tokenStreamProvider;
-		this.idRefTree = idRefTree;
+		this.schema = schema;
 	}
 	
 	/**
@@ -331,7 +335,7 @@ public class TypedObjectValidationReport {
 		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
 		if (absoluteIdRefMapping.isEmpty())
 			return makeTSPfromJTS(jts);
-		return new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
+		return new IdRefTokenSequenceProvider(jts, schema, absoluteIdRefMapping);
 	}
 	
 	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(JsonGenerator jgen) throws IOException {
@@ -345,7 +349,7 @@ public class TypedObjectValidationReport {
 				return sortCheck.isSorted();
 			} else {
 				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, idRefTree, absoluteIdRefMapping);
+				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, absoluteIdRefMapping);
 				tsp = idSubst;
 				new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
 				idSubst.close();

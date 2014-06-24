@@ -268,6 +268,7 @@ public class IdProcessingTest {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
+		breakpoint = 0;
 		report.setAbsoluteIdRefMapping(absoluteIdMapping);
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
 		

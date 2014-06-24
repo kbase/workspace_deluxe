@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonToken;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
+import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 
 /**
  * This class lets you to substitute id references into text tokens (string 
@@ -30,53 +31,71 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	private JsonDocumentLocation path = new JsonDocumentLocation();
 	// refPath reflects path as long as this path exists inside id-reference schema 
 	// tree with root stored in refPath[0]
-	private List<IdRefNode> refPath;
+//	private List<IdRefNode> refPath;
+	// the schema for the object into which we're relabeling IDs.
+	private List<JsonTokenValidationSchema> schemaLoc;
+	//the root of the schema tree
+	private JsonTokenValidationSchema rootSchema;
 	// internal flag helping to chose between relabeling rules for keys and values
 	private boolean wasField = false;
+	private boolean wasValue = false;
 	// previous key name is compared to current key in order to find are they sorted
 	private String prevFieldName = null;
 	// sorted flag is switched into false after first occurrence of unsroted keys
 	private boolean sorted = true;
 	
-	public IdRefTokenSequenceProvider(JsonTokenStream jts, IdRefNode idRefTree, 
-			Map<String, String> absoluteIdRefMapping) {
+	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
+			final JsonTokenValidationSchema schema, 
+			final Map<String, String> absoluteIdRefMapping) {
 		this.jts = jts;
 		this.absoluteIdRefMapping = absoluteIdRefMapping;
+		this.rootSchema = schema;
+		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
+				Arrays.asList(rootSchema));
 		// we put root of id-reference schema tree as first element of path, path
 		// should contain it until the whole json data token sequence is processed
-		refPath = new ArrayList<IdRefNode>(Arrays.asList(idRefTree));
+//		refPath = new ArrayList<IdRefNode>();
 	}
 	
 	public boolean isSorted() {
 		return sorted;
 	}
 	
+	//TODO 1 a whole crapload of cleanup for the commit this todo showed up in
+	
 	@Override
 	public JsonToken nextToken() throws IOException, JsonParseException {
 		// This is central method processing tokens one by one, substituting id-refs
 		// and tracking current json path and refPath branch in id-ref tree.
 		wasField = false;
+		if (wasValue) {
+			removeLastSchemaLocation();
+		}
+		wasValue = false;
 		JsonToken t = jts.nextToken();
 		if (t == JsonToken.START_OBJECT) {
-			incrementArrayPosIfInArray();
+			
+			incrementArrayPosAndUpdateSchemaIfInArray();
 			path.addMapStart();
 			prevFieldName = null;
 		} else if (t == JsonToken.START_ARRAY) {
-			incrementArrayPosIfInArray();
+			incrementArrayPosAndUpdateSchemaIfInArray();
 			path.addArrayStart();
 		} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
 			// these tokens that can not be first of some scalar or object and it means 
 			// we don't need to call incrementArrayPosIfInArray().
-			while (refPath.size() > path.getDepth())
-				refPath.remove(refPath.size() - 1);
+//			while (refPath.size() > path.getDepth())
+//				refPath.remove(refPath.size() - 1);
 			path.removeLast();
+			removeLastSchemaLocation();
 		} else if (t == JsonToken.FIELD_NAME) {
 			// this token that can not be first of some scalar or object and it means 
 			// we don't need to call incrementArrayPosIfInArray().
 			// we change last path element into new field
 			final String field = jts.getText();
-			path.replaceLast(field);
-			setCurrentLevel(field);
+			final JsonLocation prevLoc = path.replaceLast(field);
+			updateSchemaLocation();
+//			setCurrentLevel(field);
 			wasField = true;
 			// get real name of key after relabeling
 			String curFieldName = getText();
@@ -86,42 +105,106 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			}
 			prevFieldName = curFieldName;
 		} else {
-			incrementArrayPosIfInArray();
+			wasValue = true;
+			incrementArrayPosAndUpdateSchemaIfInArray();
 		}
 		return t;
+	}
+	
+//	private void removeSchemaLocationsBeyondPath() {
+//		//may need to back out 2 schema locations if in a mapping
+//		//e.g. schema for the mapping and schema for the value
+//		final int start = path.getDepth();
+//		final int end = schemaLoc.size();
+//		if (schemaLoc.size() > path.getDepth()) {
+//			schemaLoc.subList(start, end).clear();
+//		}
+//	}
+
+	private JsonTokenValidationSchema getCurrentSchema() {
+		return schemaLoc.get(schemaLoc.size() - 1);
+	}
+	
+	private JsonTokenValidationSchema getPreviousSchema() {
+		return schemaLoc.get(schemaLoc.size() - 2);
+	}
+
+	private void removeLastSchemaLocation() {
+		schemaLoc.remove(schemaLoc.size() - 1);
+	}
+
+	private void updateSchemaLocation() {
+		final JsonLocation jl = path.getLast();
+		final JsonTokenValidationSchema current = getLastSchema();
+		if (current == null) { //no type checking in this part of the object
+			schemaLoc.add(null);
+			return;
+		}
+		if (jl.isMapLocation()) {
+			final String field = jl.getLocationAsString();
+			schemaLoc.add(current.getChild(field));
+		} else if (jl.isArrayLocation()) {
+			final int index = ((JsonArrayLocation) jl).getLocationAsInt();
+			schemaLoc.add(current.getArraySchema(index));
+		}
+	}
+	
+	private JsonTokenValidationSchema getLastSchema() {
+		return schemaLoc.get(schemaLoc.size() - 1);
 	}
 
 	@Override
 	public String getText() throws IOException, JsonParseException {
 		// This method is called for text keys and text values. We can differentiate 
 		// these cases based on wasField flag.
-		String ret = jts.getText();
-		if (refPath.size() == path.getDepth() + 1) {
-			IdRefNode node = refPath.get(path.getDepth());
-			final String ref;
-			if (wasField) {
-				if (node.locationIsID()) {
-					ref = node.getRelativeLocation();
-				} else {
-					ref = null;
-				}
-			} else {
-				ref = node.getValueID();
-			}
-			if (ref != null) {
-				String subst = absoluteIdRefMapping.get(ret);
-				if (ref.equals(ret)) {
-					if (subst == null)
-						throw new IllegalStateException("Id was not found: " + ret);
-					return subst;
-				} else {
-					throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref + ", actual id=" + ret);
-				}
-			}
+		final String ret = jts.getText();
+		final JsonTokenValidationSchema s;
+		if (wasField) {
+			s = getPreviousSchema();
+		} else {
+			s = getCurrentSchema();
 		}
-		return ret;
+
+
+	//	if (refPath.size() == path.getDepth() + 1) {
+		//	IdRefNode node = refPath.get(path.getDepth());
+//			final String ref;
+//			if (wasField) {
+//				if (node.locationIsID()) {
+//					ref = node.getRelativeLocation();
+//				} else {
+//					ref = null;
+//				}
+//			} else {
+//				ref = node.getValueID();
+//			}
+//			if (ref != null) {
+//				String subst = absoluteIdRefMapping.get(ret);
+//				if (ref.equals(ret)) {
+//					if (subst == null)
+//						throw new IllegalStateException("Id was not found: " + ret);
+//					return subst;
+//				} else {
+//					throw new IllegalStateException("Id ref subst internal error: ref.id=" + ref + ", actual id=" + ret);
+//				}
+//			}
+//		}
+		return remapReference(ret, s);
 	}
 
+	//TODO 1 test structures without typechecked fields
+	private String remapReference(final String ref,
+			final JsonTokenValidationSchema schema) {
+		if (schema != null && schema.hasIdReference()) {
+			final String subst = absoluteIdRefMapping.get(ref);
+			if (subst == null) {
+				throw new IllegalStateException("Id was not found: " + ref);
+			}
+			return subst;
+		}
+		return ref;
+	}
+	
 	@Override
 	public Number getNumberValue() throws IOException, JsonParseException {
 		return jts.getNumberValue();
@@ -132,19 +215,19 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	 * refPath pointing into id-ref relabeling tree according to path. If there
 	 * is no such branch in this tree then we don't need to do anything.
 	 */
-	private void setCurrentLevel(final String field) {
-		while (refPath.size() > path.getDepth()) {
-			refPath.remove(refPath.size() - 1);
-		}
-		if (refPath.size() == path.getDepth()) {
-			IdRefNode refNode = refPath.get(refPath.size() - 1);
-			if (refNode.hasChildren()) {
-				IdRefNode child = refNode.getChildren().get(field);
-				if (child != null)
-					refPath.add(child);
-			}
-		}
-	}
+//	private void setCurrentLevel(final String field) {
+//		while (refPath.size() > path.getDepth()) {
+//			refPath.remove(refPath.size() - 1);
+//		}
+//		if (refPath.size() == path.getDepth()) {
+//			IdRefNode refNode = refPath.get(refPath.size() - 1);
+//			if (refNode.hasChildren()) {
+//				IdRefNode child = refNode.getChildren().get(field);
+//				if (child != null)
+//					refPath.add(child);
+//			}
+//		}
+//	}
 
 	/*
 	 * This method detects are we in array or not by type of last item in path.
@@ -154,9 +237,18 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	 */
 	private void incrementArrayPosIfInArray() {
 		if (path.getDepth() > 0 && path.getLast().isArrayLocation()) {
-			final JsonArrayLocation loc = (JsonArrayLocation)
+//			final JsonArrayLocation loc = (JsonArrayLocation)
 					path.incrementArrayLocation();
-			setCurrentLevel(loc.getLocationAsString());
+//			setCurrentLevel(loc.getLocationAsString());
+		}
+	}
+	
+	private void incrementArrayPosAndUpdateSchemaIfInArray() {
+		if (path.getDepth() > 0 && path.getLast().isArrayLocation()) {
+//			final JsonArrayLocation loc = (JsonArrayLocation)
+					path.incrementArrayLocation();
+			updateSchemaLocation();
+//			setCurrentLevel(loc.getLocationAsString());
 		}
 	}
 	

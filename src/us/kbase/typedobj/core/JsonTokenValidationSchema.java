@@ -478,6 +478,10 @@ public class JsonTokenValidationSchema {
 		return originalType;
 	}
 	
+	public boolean hasIdReference() {
+		return idReference != null;
+	}
+	
 	public IDReferenceType getIdReferenceType() {
 		return idReference == null ? null : idReference.idType;
 	}
@@ -498,6 +502,20 @@ public class JsonTokenValidationSchema {
 		return objectAdditionalPropertiesType;
 	}
 	
+	public JsonTokenValidationSchema getChild(final String field) {
+		if (field == null) {
+			throw new NullPointerException("field cannot be null");
+		}
+		if (objectAdditionalPropertiesType != null) {
+			return objectAdditionalPropertiesType;
+		}
+		if (objectProperties != null) {
+			return objectProperties.get(field);
+		}
+		throw new IllegalStateException(
+				"This schema does not represent a structure or mapping");
+	}
+	
 	public boolean isObjectAdditionalPropertiesBoolean() {
 		return objectAdditionalPropertiesBoolean;
 	}
@@ -514,6 +532,18 @@ public class JsonTokenValidationSchema {
 		return arrayItemList;
 	}
 	
+	public JsonTokenValidationSchema getArraySchema(final int pos) {
+		if (arrayItems != null) {
+			return arrayItems;
+		}
+		if (arrayItemList != null) {
+			 //just let the List implementation do bounds checking
+			return arrayItemList.get(pos);
+		}
+		throw new IllegalStateException(
+				"This schema does not represent an array or tuple");
+	}
+	
 	public Integer getArrayMinItems() {
 		return arrayMinItems;
 	}
@@ -522,6 +552,46 @@ public class JsonTokenValidationSchema {
 		return arrayMaxItems;
 	}
 	
+
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("JsonTokenValidationSchema [id=");
+		builder.append(id);
+		builder.append(", type=");
+		builder.append(type);
+		builder.append(", originalType=");
+		builder.append(originalType);
+		builder.append(", idReference=");
+		builder.append(idReference);
+		if (objectAdditionalPropertiesType != null) { //mapping
+			builder.append(", objectAdditionalPropertiesType=");
+			builder.append(objectAdditionalPropertiesType);
+		} else if (objectProperties != null) { //it's a structure
+			builder.append(", objectAdditionalPropertiesBoolean=");
+			builder.append(objectAdditionalPropertiesBoolean);
+			builder.append(", objectRequired=");
+			builder.append(objectRequired);
+			builder.append(", objectProperties=");
+			builder.append(objectProperties);
+		} else if (arrayItems != null) { //list
+			builder.append(", arrayItems=");
+			builder.append(arrayItems);
+		} else if (arrayItemList != null) { //tuple
+			builder.append(", arrayMinItems=");
+			builder.append(arrayMinItems);
+			builder.append(", arrayMaxItems=");
+			builder.append(arrayMaxItems);
+			builder.append(", arrayItemList=");
+			builder.append(arrayItemList);
+		}
+		builder.append("]");
+		return builder.toString();
+	}
+
+
+
 	private static class IdRefDescr {
 		IDReferenceType idType;
 		List<String> attributes;
