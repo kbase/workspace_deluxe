@@ -184,7 +184,7 @@ public final class TypedObjectValidator {
 
 					@Override
 					public void addIdRefMessage(IdReference ref) {
-						//TODO 1 limit ID count to what - or put ID tree in file when necessary
+						//TODO 1 limit ID count to 100K IDs in memory
 						ids.addId(ref);
 					}
 

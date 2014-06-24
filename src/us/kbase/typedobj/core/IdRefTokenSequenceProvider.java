@@ -55,7 +55,6 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		return sorted;
 	}
 	
-	//TODO 1 a whole crapload of cleanup for the commit this todo showed up in
 	//TODO 1 test structures without typechecked fields
 	//TODO 1 test with UO
 	
