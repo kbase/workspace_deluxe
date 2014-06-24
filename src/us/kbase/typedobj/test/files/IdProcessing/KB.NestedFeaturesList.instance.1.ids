@@ -12,6 +12,10 @@
 		"nested_features":	[{"foo": "id1remap"},
 							 {"foo": "id2remap"},
 							 {"bar": "id2remap"}
+							],
+		"not_typechecked": [{"foo": "id1"},
+							{"foo": "id2"},
+							{"bar": "id2"}
 							]
 	}
 }

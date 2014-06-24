@@ -71,8 +71,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class IdProcessingTest {
 
-	
-	//TODO 1 UnspecObjects in the type checker must be maps but in the cli/serv they can be anything, need to be consistent
 	/**
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!

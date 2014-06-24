@@ -14,8 +14,14 @@
 			"id4": {"id": {"id": "id"}},
 			"id5": {"id": {"id": "id"}},
 			"id6": {"id": {"id": "idremap"}},
-			"id7": {"id": {"id": "id"}},
-			"id8": {"id": {"id": "id"}}
+			"id7": {"id": {"id": "id",
+						   "not_typechecked": "id"
+						   }
+					},
+			"id8": {"id": {"id": "id"},
+					"not_typechecked": {"id": "id"}
+					},
+			"not_typechecked": {"id": {"id": "id"}}
 		}
 
 }

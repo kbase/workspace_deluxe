@@ -38,6 +38,22 @@
 					"4/5/6"
 				]
 			}
+		},
+		"no_tc" : {
+			"ws/myGene": { 
+				"ws/myGene2": [
+					"ws/myGene",
+					["ws/2","ws/myGene","ws/3"],
+					"ws/2"
+				]
+			},
+			"foobar": {
+				"ws/myGene2": [
+					"ws/myGene",
+					["ws/2","ws/myGene","ws/3"],
+					"ws/2"
+				]
+			}
 		}
 	}
 }
