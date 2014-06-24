@@ -1,0 +1,13 @@
+{
+	"ids-expected":[
+			"id"
+		],
+	"ids-relabel":{
+		"id": "idremap"
+		},
+	"renamed-expected": 
+		{
+			"t": ["idremap", 1, {"bar": "id"}, "baz"]
+		}
+
+}

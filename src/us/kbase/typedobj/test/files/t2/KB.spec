@@ -106,6 +106,11 @@ module KB {
 		WithNoID id8;
 	} AltIDs;
 
+	typedef structure {
+		tuple<feature_id fid, int foo, UnspecifiedObject uo, string bar> t;
+	} WeirdTuple;
+
+
 };
 
 
