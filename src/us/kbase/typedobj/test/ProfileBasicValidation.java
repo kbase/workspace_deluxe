@@ -33,6 +33,8 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -183,14 +185,16 @@ public class ProfileBasicValidation {
 	}
 
 	private static void test(TestInstanceInfo instance) {
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
+		IdReferenceHandlers han = fac.createHandlers();
 		if(instance.isValid) {
 
 			try {
 				TypedObjectValidationReport report = 
 					validator.validate(
 						instance.instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
+						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+						han);
 				
 				// print errors, if any before the assert to aid in testing
 				report.getErrorMessages();
@@ -207,8 +211,8 @@ public class ProfileBasicValidation {
 				TypedObjectValidationReport report = 
 					validator.validate(
 						instance.instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
+						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+						han);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
 				//System.out.println("  -("+instance.resourceName+")");
 				//System.out.println(report.toString());

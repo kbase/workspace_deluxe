@@ -26,6 +26,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -91,8 +92,11 @@ public class TypedObjExample1 {
 						"instance was not a valid or readable JSON document",e);
 			}
 			
+			IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
 			
-			TypedObjectValidationReport report = validator.validate(instance1RootNode, new TypeDefId(new TypeDefName("KB", "Genome")));
+			TypedObjectValidationReport report = validator.validate(instance1RootNode,
+					new TypeDefId(new TypeDefName("KB", "Genome")),
+					fac.createHandlers());
 			System.out.println("Validation errors:" );
 			for(String err : report.getErrorMessages()) {
 				System.out.println("  Error: "+err);

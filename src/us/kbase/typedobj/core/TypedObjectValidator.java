@@ -14,7 +14,9 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.IdReferenceSet;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -102,7 +104,7 @@ public final class TypedObjectValidator {
 	 * @throws TypedObjectSchemaException 
 	 */
 	public TypedObjectValidationReport validate(final String instance,
-			final TypeDefId type)
+			final TypeDefId type, final IdReferenceHandlers handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
 			TypedObjectSchemaException {
@@ -117,7 +119,7 @@ public final class TypedObjectValidator {
 		}
 		
 		// validate and return the report
-		return validate(instanceRootNode, type);
+		return validate(instanceRootNode, type, handlers);
 	}
 	
 	/**
@@ -134,7 +136,7 @@ public final class TypedObjectValidator {
 	 * @throws TypedObjectSchemaException 
 	 */
 	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
-			final TypeDefId typeDefId)
+			final TypeDefId typeDefId, final IdReferenceHandlers handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException {
 		final UObject obj;
@@ -147,11 +149,11 @@ public final class TypedObjectValidator {
 					"already parsed JSON in memory caused a parsing " +
 					"exception: " + ex.getMessage(), ex);
 		}
-		return validate(obj, typeDefId);
+		return validate(obj, typeDefId, handlers);
 	}
 	
 	public TypedObjectValidationReport validate(final UObject obj,
-			final TypeDefId typeDefId)
+			final TypeDefId typeDefId, final IdReferenceHandlers handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException {
 		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
@@ -159,7 +161,6 @@ public final class TypedObjectValidator {
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
-		final IdReferenceSet ids = new IdReferenceSet();
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		
@@ -185,9 +186,11 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addIdRefMessage(IdReference ref) {
+					public void addIdRefMessage(IdReference ref)
+							throws TooManyIdsException,
+							IdReferenceHandlerException {
 						//TODO 1 limit ID count to 100K IDs in memory
-						ids.addId(ref);
+						handlers.addId(ref);
 					}
 
 					@Override
@@ -217,7 +220,7 @@ public final class TypedObjectValidator {
 									wsSubsetSelection[0], 
 									metadataSelection[0],
 									schema,
-									ids.lock());
+									handlers.lock());
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {

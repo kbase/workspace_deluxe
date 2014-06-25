@@ -14,9 +14,9 @@ public class IdReferenceHandlers {
 	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
+	private boolean locked = false;
 	
-	private final Map<IdReferenceType, IdReferenceHandler> handlers =
-			new HashMap<IdReferenceType, IdReferenceHandler>();
+	private final Map<IdReferenceType, IdReferenceHandler> handlers;
 	
 	/** A handler for typed object IDs. Responsible for checking the
 	 * syntax of the id and its attributes, and remapping IDs if necessary.
@@ -40,26 +40,18 @@ public class IdReferenceHandlers {
 		 * @return the new, remapped ID.
 		 */
 		public String getRemappedId(String oldId);
+		/** Prevent addition of any more IDs.
+		 */
+		public void lock();
 	}
 	
-	public IdReferenceHandlers(final int maxUniqueIdCount) {
+	protected IdReferenceHandlers(final int maxUniqueIdCount,
+			final Map<IdReferenceType, IdReferenceHandler> handlers) {
 		this.maxUniqueIdCount = maxUniqueIdCount;
+		this.handlers = new HashMap<IdReferenceType,
+				IdReferenceHandlers.IdReferenceHandler>(handlers);
 	}
-	
-	/** Adds (and potentially overwrites) a handler for a type of ID.
-	 * @param idType the type of ID this handler will handle
-	 * @param handler the handler.
-	 */
-	public void addHandler(
-			final IdReferenceType idType,
-			final IdReferenceHandler handler) {
-		if (idType == null || handler == null) {
-			throw new NullPointerException(
-					"idType and handler cannot be null");
-		}
-		handlers.put(idType, handler);
-	}
-	
+
 	/** Add an ID to the appropriate ID handler. If an ID handler does not
 	 * exist for the ID type, nothing is done.
 	 * @param id the new ID.
@@ -68,6 +60,10 @@ public class IdReferenceHandlers {
 	 */
 	public void addId(final IdReference id)
 			throws TooManyIdsException, IdReferenceHandlerException {
+		if (locked) {
+			throw new IllegalStateException(
+					"This ID handlers instance is locked");
+		}
 		if (id == null) {
 			throw new NullPointerException("id cannot be null");
 		}
@@ -82,15 +78,18 @@ public class IdReferenceHandlers {
 		}
 	}
 	
-	/** Process all the IDs saved in all the registered handlers.
+	/** Process all the IDs saved in all the registered handlers and locks
+	 * the handlers.
 	 * @throws IdReferenceHandlerException if there was an error processing
 	 * the IDs.
 	 * 
 	 */
 	public void processIDs() throws IdReferenceHandlerException {
+		locked = true;
 		for (final Entry<IdReferenceType, IdReferenceHandler> es:
 			handlers.entrySet()) {
 			es.getValue().processIds();
+			es.getValue().lock();
 		}
 	}
 	
@@ -111,6 +110,19 @@ public class IdReferenceHandlers {
 					idType.getType());
 		}
 		return handlers.get(idType).getRemappedId(oldId);
+	}
+	
+	public IdReferenceHandlers lock() {
+		locked = true;
+		for (final Entry<IdReferenceType, IdReferenceHandler> es:
+			handlers.entrySet()) {
+			es.getValue().lock();
+		}
+		return this;
+	}
+	
+	public int size() {
+		return currentUniqueIdCount;
 	}
 	
 	@SuppressWarnings("serial")

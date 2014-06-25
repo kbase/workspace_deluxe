@@ -40,6 +40,8 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -192,11 +194,13 @@ public class WsSubsetExtractionTest {
 		JsonNode expectedMetadata = testdataJson.get("metadata");
 		
 		// perform the initial validation, which must validate!
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
+		IdReferenceHandlers han = fac.createHandlers();
 		TypedObjectValidationReport report = 
 			validator.validate(
 				instanceRootNode,
-				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-				);
+				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+				han);
 		List <String> mssgs = report.getErrorMessages();
 		for(int i=0; i<mssgs.size(); i++) {
 			System.out.println("    ["+i+"]:"+mssgs.get(i));

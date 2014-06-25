@@ -35,6 +35,8 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -212,9 +214,10 @@ public class BasicValidationTest {
 	@Test
 	public void testInstance() throws Exception {
 		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
+		IdReferenceHandlers handler = fac.createHandlers();
 		
 		if(this.isValidInstance) {
-
 			// load the instance information
 			TestInstanceInfo instance = validInstanceResources.get(this.instanceNumber);
 			if(VERBOSE) System.out.println("  -VALID TEST ("+instance.resourceName+")");
@@ -224,7 +227,8 @@ public class BasicValidationTest {
 				TypedObjectValidationReport report = 
 					validator.validate(
 						instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
+						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+						handler
 						);
 				
 				// print errors, if any before the assert to aid in testing
@@ -252,8 +256,8 @@ public class BasicValidationTest {
 				TypedObjectValidationReport report = 
 					validator.validate(
 						instanceJson,
-						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-						);
+						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+						handler);
 				assertFalse("  -("+instance.resourceName+") validates, but should not",report.isInstanceValid());
 				//System.out.println("  -("+instance.resourceName+")");
 				//System.out.println(report.toString());

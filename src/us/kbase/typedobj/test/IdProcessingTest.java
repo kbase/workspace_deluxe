@@ -43,6 +43,7 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
@@ -226,6 +227,19 @@ public class IdProcessingTest {
 			} else { expectedIdList.put(id,new Integer(1)); }
 		}
 		
+		//set up id relabeling mapping
+		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
+		JsonNode newIds = idsRootNode.get("ids-relabel");
+		Iterator<String> fieldNames = newIds.fieldNames();
+		while(fieldNames.hasNext()) {
+			String originalId = fieldNames.next();
+			String absoluteId = newIds.get(originalId).asText();
+			absoluteIdMapping.put(originalId, absoluteId);
+		}
+		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"), factory)
+		
 		@SuppressWarnings("unused")
 		int breakpoint = 0;
 		// perform the initial validation, which must validate!
@@ -261,14 +275,7 @@ public class IdProcessingTest {
 		
 		
 		// now we relabel the ids
-		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
-		JsonNode newIds = idsRootNode.get("ids-relabel");
-		Iterator<String> fieldNames = newIds.fieldNames();
-		while(fieldNames.hasNext()) {
-			String originalId = fieldNames.next();
-			String absoluteId = newIds.get(originalId).asText();
-			absoluteIdMapping.put(originalId, absoluteId);
-		}
+		
 		breakpoint = 0;
 		report.setAbsoluteIdRefMapping(absoluteIdMapping);
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();

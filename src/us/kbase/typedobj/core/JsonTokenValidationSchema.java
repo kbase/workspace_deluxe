@@ -13,6 +13,8 @@ import java.util.Map;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 
@@ -176,10 +178,14 @@ public class JsonTokenValidationSchema {
 	 * @throws JsonParseException
 	 * @throws IOException
 	 * @throws JsonTokenValidationException
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
 	 */
 	public void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		checkJsonData(jp, lst, new JsonDocumentLocation());
 		jp.close();
 	}
@@ -187,7 +193,9 @@ public class JsonTokenValidationSchema {
 	private void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		jp.nextToken();
 		checkJsonDataWithoutFirst(jp, lst, path);
 	}
@@ -195,7 +203,9 @@ public class JsonTokenValidationSchema {
 	private void checkJsonDataWithoutFirst(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		// This is main recursive validation procedure. The idea is we enter here every time we observe
 		// token starting nested block (which could be only mapping or array) or token for basic scalar 
 		// values (integer, floating, string, boolean and null). According to structure of nested blocks

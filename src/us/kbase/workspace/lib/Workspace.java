@@ -41,6 +41,8 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.database.ObjectChain;
@@ -100,9 +102,13 @@ public class Workspace {
 	private final ReferenceParser refparse;
 	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
+	private final IdReferenceHandlersFactory handlersFactory;
 	
-	public Workspace(final WorkspaceDatabase db,
-			final ReferenceParser refparse, ResourceUsageConfiguration cfg) {
+	public Workspace(
+			final WorkspaceDatabase db,
+			final ReferenceParser refparse,
+			final ResourceUsageConfiguration cfg,
+			final IdReferenceHandlersFactory idFac) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");
 		}
@@ -115,6 +121,7 @@ public class Workspace {
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;
 		db.setResourceUsageConfiguration(rescfg);
+		this.handlersFactory = idFac;
 	}
 	
 	public ResourceUsageConfiguration getResourceConfig() {
@@ -499,12 +506,13 @@ public class Workspace {
 		int objcount = 1;
 		
 		//stage 1: validate & extract & parse references
+		final IdReferenceHandlers idhandler = handlersFactory.createHandlers();
 		for (WorkspaceSaveObject wo: objects) {
 			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
 			final String objerrid = getObjectErrorId(oid, objcount);
 			final TypedObjectValidationReport rep;
 			try {
-				rep = val.validate(wo.getData(), wo.getType());
+				rep = val.validate(wo.getData(), wo.getType(), idhandler);
 			} catch (NoSuchTypeException nste) {
 				throw new TypedObjectValidationException(String.format(
 						"Object %s failed type checking:\n", objerrid)
