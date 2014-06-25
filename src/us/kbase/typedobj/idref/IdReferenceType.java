@@ -1,10 +1,10 @@
 package us.kbase.typedobj.idref;
 
-public class IDReferenceType {
+public class IdReferenceType {
 	
 	private final String type;
 
-	public IDReferenceType(String type) {
+	public IdReferenceType(String type) {
 		super();
 		if (type == null) {
 			throw new NullPointerException("type cannot be null");
@@ -37,7 +37,7 @@ public class IDReferenceType {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		IDReferenceType other = (IDReferenceType) obj;
+		IdReferenceType other = (IdReferenceType) obj;
 		if (type == null) {
 			if (other.type != null)
 				return false;

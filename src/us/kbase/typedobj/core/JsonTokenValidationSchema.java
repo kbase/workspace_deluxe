@@ -13,7 +13,7 @@ import java.util.Map;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
-import us.kbase.typedobj.idref.IDReferenceType;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -111,7 +111,7 @@ public class JsonTokenValidationSchema {
 						VALID_TYPEDEF_NAMES, ATTRIBUTES));
 			}
 			
-			ret.idReference = new IdRefDescr(new IDReferenceType(idType),
+			ret.idReference = new IdRefDescr(new IdReferenceType(idType),
 					attributes);
 		}
 		if (ret.type == Type.object) {
@@ -271,7 +271,7 @@ public class JsonTokenValidationSchema {
 						path.addLocation(current); //could add a sub path view later
 						//TODO 1 the path is temporary. Might need a better way to deal with the path.
 						final IdReference ref = new IdReference(
-								idReference.idType, fieldName, true,
+								idReference.idType, fieldName,
 								idReference.attributes, path);
 						lst.addIdRefMessage(ref);
 					}
@@ -350,7 +350,7 @@ public class JsonTokenValidationSchema {
 				// string value
 				//TODO 1 the path is temporary. Might need a better way to deal with the path.
 				final IdReference ref = new IdReference(idReference.idType,
-						jp.getText(), false, idReference.attributes, path);
+						jp.getText(), idReference.attributes, path);
 				lst.addIdRefMessage(ref);
 			}
 		} else if (type == Type.integer) {
@@ -450,7 +450,7 @@ public class JsonTokenValidationSchema {
 		return idReference != null;
 	}
 	
-	public IDReferenceType getIdReferenceType() {
+	public IdReferenceType getIdReferenceType() {
 		return idReference == null ? null : idReference.idType;
 	}
 
@@ -561,9 +561,9 @@ public class JsonTokenValidationSchema {
 
 
 	private static class IdRefDescr {
-		IDReferenceType idType;
+		IdReferenceType idType;
 		List<String> attributes;
-		public IdRefDescr(IDReferenceType idType, List<String> attributes) {
+		public IdRefDescr(IdReferenceType idType, List<String> attributes) {
 			this.idType = idType;
 			this.attributes = attributes;
 		}

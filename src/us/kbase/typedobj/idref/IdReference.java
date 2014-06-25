@@ -11,17 +11,16 @@ import us.kbase.typedobj.core.JsonDocumentLocation;
  */
 public class IdReference {
 
-	//TODO unit test
+	//TODO unit tests
 	
-	private final IDReferenceType type;
+	private final IdReferenceType type;
 	private final String id;
-	private final boolean isFieldName;
 	private final List<String> attributes;
 	//TODO 1 location is a placeholder, string may be a bad idea
 	private final JsonDocumentLocation location;
 	
-	public IdReference(final IDReferenceType type, final String id,
-			final boolean isFieldName, List<String> attributes,
+	public IdReference(final IdReferenceType type, final String id,
+			List<String> attributes,
 			final JsonDocumentLocation location) {
 		if (type == null || id == null || location == null) {
 			throw new NullPointerException(
@@ -29,9 +28,8 @@ public class IdReference {
 		}
 		this.type = type;
 		this.id = id;
-		this.isFieldName = isFieldName;
 		attributes = attributes == null ? new LinkedList<String>() :
-			attributes;
+			new LinkedList<String>(attributes);
 		this.attributes = Collections.unmodifiableList(attributes);
 		//TODO 1 location is a placeholder, string may be a bad idea
 		this.location = new JsonDocumentLocation(location);
@@ -42,7 +40,7 @@ public class IdReference {
 	 * Get the type of the ID.
 	 * @return the type of IdReference (e.g. "ws", "shock", "external", "kb")
 	 */
-	public final IDReferenceType getType() {
+	public final IdReferenceType getType() {
 		return type;
 	}
 	
@@ -54,14 +52,6 @@ public class IdReference {
 	 */
 	public final String getId() {
 		return id;
-	}
-	
-	/** 
-	 * Determine whether the id is in a field of a map/structure.
-	 * @return true if id is a field name in the json document, false otherwise
-	 */
-	public final boolean isFieldName() {
-		return isFieldName;
 	}
 	
 	/**
@@ -82,8 +72,8 @@ public class IdReference {
 	
 	@Override
 	public String toString() {
-		return "IdReference [type=" + type + ", id=" + id + ", isFieldName="
-				+ isFieldName + ", attributes=" + attributes + ", location="
+		return "IdReference [type=" + type + ", id=" + id
+				+ ", attributes=" + attributes + ", location="
 				+ location + "]";
 	}
 	
