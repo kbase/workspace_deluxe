@@ -4,19 +4,17 @@
 		"id2": "id2remap"
 		},
 	"renamed-expected": {
-		"nested_features": {"foo": {"id1remap": "foo"
-									},
-							"bar": {"id2remap": "foo"
-									},
-							"baz": {"id2remap": "bar"}
-									}
-							},
-		"not_typechecked": {"foo": {"id1": "foo"
-									},
-							"bar": {"id2": "foo"
-									},
+		"also_no_typechk": {"foo": {"id1": "foo"},
+							"bar": {"id2": "foo"},
 							"baz": {"id2": "bar"}
-									}
+							},
+		"nested_features": {"foo": {"id1remap": "foo"},
+							"bar": {"id2remap": "foo"},
+							"baz": {"id2remap": "bar"}
+							},
+		"not_typechecked": {"foo": {"id1": "foo"},
+							"bar": {"id2": "foo"},
+							"baz": {"id2": "bar"}
 							}
 	}
 }
