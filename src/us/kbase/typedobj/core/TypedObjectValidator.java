@@ -190,7 +190,9 @@ public final class TypedObjectValidator {
 							throws TooManyIdsException,
 							IdReferenceHandlerException {
 						//TODO 1 limit ID count to 100K IDs in memory
-						handlers.addId(ref);
+						if (handlers.hasHandler(ref.getType())) {
+							handlers.addId(ref);
+						}
 					}
 
 					@Override
@@ -220,7 +222,7 @@ public final class TypedObjectValidator {
 									wsSubsetSelection[0], 
 									metadataSelection[0],
 									schema,
-									handlers.lock());
+									handlers);
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {

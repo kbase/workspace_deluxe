@@ -10,29 +10,31 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import us.kbase.common.service.JsonTokenStream;
-import us.kbase.common.service.UObject;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
-import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
+	
+	//TODO 1 for this commit and previous commit, run through changes and add appropriate tests
 	
 	// needs more tests, just adding tests for new functionality
 	
@@ -40,7 +42,7 @@ public class TypedObjectValidationReportTest {
 			new UTF8JsonSorterFactory(10000);
 	
 	private static TypeDefinitionDB db;
-	private static JsonTokenValidationSchema idMapSchema;
+	private static TypedObjectValidator validator;
 	
 	private static final String USER = "someUser";
 	
@@ -77,47 +79,52 @@ public class TypedObjectValidationReportTest {
 		db.approveModuleRegistrationRequest(USER, module, true);
 		db.registerModule(spec, Arrays.asList(name), USER);
 		db.releaseModule(module, USER, false);
-		idMapSchema =
-				db.getJsonSchema(new TypeDefName(module, name));
+		validator = new TypedObjectValidator(db);
 		
 	}
-
 
 	@Test
 	public void errors() throws Exception {
-		String json = "{\"z\": \"a\", \"b\": \"d\"}";
+		String json = "{\"m\": {\"z\": 1, \"b\": []}}";
 		
-		List<String> errors = Arrays.asList("foo", "bar", "baz");
-		
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, errors, null,
-				null, null, null);
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), fac.createHandlers());
+		List<String> errors = Arrays.asList(
+			"instance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /m/z",
+			"instance type (array) does not match any allowed primitive type (allowed: [\"string\"]), at /m/b",
+			"Object field name is expected but found END_ARRAY at /m/b"); //TODO 1 this is a bug in the validator, Roman will fix
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
-		tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null,
-				null, null, null);
-		assertThat("correct errors", tovr.getErrorMessages(),
-				is((List<String>) new LinkedList<String>()));
-		assertThat("errors empty", tovr.isInstanceValid(), is(true));
+		json = "{\"m\": {\"z\": 1, \"b\": \"d\"}}";
+		tovr = validator.validate(json, new TypeDefId("TestIDMap.IDMap"),
+				fac.createHandlers());
+		errors = Arrays.asList(
+				"instance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /m/z");
+		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
+		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
+		json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
 		errors = Collections.emptyList();
-
-		tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, errors, null,
-				null, null, null);
+		tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), fac.createHandlers());
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(true));
 	}
-	
+
 	@Test
 	public void noSortFac() throws Exception {
-		String json = "{\"z\": \"a\", \"b\": \"d\"}";
-
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null,
-				null, null, null);
+		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
+		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"),
+				new DummyIdHandlerFactory(new HashMap<String, String>()));
+		IdReferenceHandlers handlers = fac.createHandlers();
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
+		
 		try {
 			tovr.sort(null);
 			fail("sorted with no factory");
@@ -135,50 +142,57 @@ public class TypedObjectValidationReportTest {
 		}
 		tfm.cleanup();
 	}
-	
 	@Test
 	public void writeWithoutSort() throws Exception {
-		String json = "{\"m\": {\"c\": 1, \"z\": \"d\"}}";
-		String expectedJson = "{\"m\":{\"c\":1,\"y\":\"whoop\"}}";
+		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";
+		String expectedJson = "{\"m\":{\"c\":\"a\",\"y\":\"whoop\"}}";
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("z", "y");
 		refmap.put("d", "whoop");
 		refmap.put("c", "c");
+		refmap.put("a", "a");
+		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(refmap));
+		IdReferenceHandlers handlers = fac.createHandlers();
 
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
-		tovr.setAbsoluteIdRefMapping(refmap);
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
+		tovr.getRelabeledSize();
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
 		
 		
 		//sort unnecessarily
-		tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null,
-				null, idMapSchema, null);
-		tovr.setAbsoluteIdRefMapping(refmap);
+		handlers = fac.createHandlers();
+		tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
 		tovr.sort(SORT_FAC);
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
 	}
-	
+
 	@Test
 	public void sortWithNoMapping() throws Exception {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null,
-				null, null, null);
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlers handlers = fac.createHandlers();
+
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
 	}
-	
+
 	@Test
 	public void failWriteWithoutSort() throws Exception {
 		String json = "{\"m\": {\"b\": \"a\", \"w\": \"d\"}}";
@@ -190,11 +204,14 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("w", "w");
 		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(refmap));
+		IdReferenceHandlers handlers = fac.createHandlers();
+		
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
 		//sort via sort() method in memory
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
-		tovr.setAbsoluteIdRefMapping(refmap);
+		handlers.processIDs();
 		try {
 			tovr.createJsonWritable();
 			fail("created a writable on non-naturally sorted data");
@@ -206,31 +223,6 @@ public class TypedObjectValidationReportTest {
 	}
 	
 	@Test
-	public void failWriteMissingID() throws Exception {
-		String json = "{\"m\": {\"b\": \"a\", \"w\": \"d\"}}";
-		@SuppressWarnings("unused") //below is just for reference
-		String expectedJson = "{\"m\":{\"w\":\"whoop\",\"y\":\"a\"}}";
-		Map<String, String> refmap = new HashMap<String, String>();
-		refmap.put("b", "y");
-		refmap.put("d", "whoop");
-		refmap.put("w", "w");
-		
-		//sort via sort() method in memory
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
-		try {
-			tovr.setAbsoluteIdRefMapping(refmap);
-			fail("created a writable on non-naturally sorted data");
-		} catch (IllegalStateException ise) {
-			assertThat("correct exception message on failing to write",
-					ise.getLocalizedMessage(),
-					is("Tried to remap id a but no remapping found at /m/b"));
-		}
-	}
-	
-	
-	@Test
 	public void duplicateKeys() throws Exception {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
 		Map<String, String> refmap = new HashMap<String, String>();
@@ -239,11 +231,13 @@ public class TypedObjectValidationReportTest {
 		refmap.put("b", "b");
 		refmap.put("a", "a");
 		
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(refmap));
+		IdReferenceHandlers handlers = fac.createHandlers();
 		
-		tovr.setAbsoluteIdRefMapping(refmap);
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
 		try {
 			tovr.sort(SORT_FAC);
 			fail("sorting didn't detect duplicate keys");
@@ -252,7 +246,7 @@ public class TypedObjectValidationReportTest {
 					is("Duplicated key 'b' was found at /m"));
 		}
 	}
-	
+
 	@Test
 	public void relabelAndSortInMemAndFile() throws Exception {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
@@ -263,13 +257,15 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("b", "b");
 		
-		//sort via sort() method in memory
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
-		assertThat("correct object size", tovr.getRelabeledSize(), is(23L));
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(refmap));
+		IdReferenceHandlers handlers = fac.createHandlers();
 		
-		tovr.setAbsoluteIdRefMapping(refmap);
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
+		
+		//sort via sort() method in memory
 		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
@@ -277,22 +273,22 @@ public class TypedObjectValidationReportTest {
 		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
 		
 		//sort via sort(TFM) method with null TFM, again in memory
-		tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
+		handlers = fac.createHandlers();
+		tovr = validator.validate(json, new TypeDefId("TestIDMap.IDMap"),
+				handlers);
+		handlers.processIDs();
 		
-		tovr.setAbsoluteIdRefMapping(refmap);
 		tovr.sort(SORT_FAC, null);
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
 		
 		//sort via sort(TFM) method with data stored in file
-		tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)), null, null, null, null,
-				idMapSchema, null);
+		handlers = fac.createHandlers();
+		tovr = validator.validate(json, new TypeDefId("TestIDMap.IDMap"),
+				handlers);
+		handlers.processIDs();
 
-		tovr.setAbsoluteIdRefMapping(refmap);
 		TempFilesManager tfm = TempFilesManager.forTests();
 		tfm.cleanup();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
@@ -306,16 +302,20 @@ public class TypedObjectValidationReportTest {
 		w.releaseResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
-	
+
 	@Test
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
+		
+		IdReferenceHandlersFactory hfac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlers handlers = hfac.createHandlers();
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
+		
 		int maxmem = 8 + 64 + 8 + 64;
 		TempFilesManager tfm = TempFilesManager.forTests();
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
-		TypedObjectValidationReport tovr = new TypedObjectValidationReport(
-				new UObject(new JsonTokenStream(json)),null, null, null, 
-				null, null, null);
 		
 		//test with json stored in file
 		tovr.sort(fac, tfm); //should work

@@ -7,11 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
@@ -66,7 +63,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * Used to keep track of the IDs that were parsed from the object
 	 */
-	private IdReferenceHandlers oldIdRefs;
+	private IdReferenceHandlers idHandler;
 
 	/**
 	 * We keep a reference to the original instance that was validated so we can later easily rename labels or extract
@@ -90,28 +87,25 @@ public class TypedObjectValidationReport {
 	 */
 	private static ObjectMapper mapper = new ObjectMapper();
 	
-	private Map<String,String> absoluteIdRefMapping = Collections.emptyMap();
-	
-	
 	/**
 	 * After validation, assemble the validation result into a report for later use. The report contains
 	 * information on validation errors (if any), the IDs found in the object, and information about the
 	 * subdata and metadata extraction selection.
 	 * 
 	 */
-	public TypedObjectValidationReport(
+	protected TypedObjectValidationReport(
 			final UObject tokenStreamProvider,
 			final AbsoluteTypeDefId validationTypeDefId, 
 			final List<String> errors,
 			final JsonNode wsSubsetSelection,
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
-			final IdReferenceHandlers oldIdRefs) {
+			final IdReferenceHandlers idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
 		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);
 		this.validationTypeDefId=validationTypeDefId;
-		this.oldIdRefs = oldIdRefs;
+		this.idHandler = idHandler;
 		this.tokenStreamProvider = tokenStreamProvider;
 		this.schema = schema;
 	}
@@ -140,7 +134,7 @@ public class TypedObjectValidationReport {
 	}
 	
 	public IdReferenceHandlers getIdReferences() {
-		return oldIdRefs;
+		return idHandler;
 	}
 	
 	public Writable createJsonWritable() {
@@ -203,6 +197,10 @@ public class TypedObjectValidationReport {
 	 * @throws IOException
 	 */
 	public long getRelabeledSize() throws IOException {
+		if (!idHandler.wereIdsProcessed()) {
+			throw new IllegalStateException(
+					"Must process IDs in handler prior to relabling");
+		}
 		if (size > -1) {
 			return size;
 		}
@@ -300,33 +298,11 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	/** Sets the mapping from temporary ID -> permanent ID. Calls
-	 * getRelabledSize() after setting the map and returns the result.
-	 * @param absoluteIdRefMapping the mapping from temporary ID -> permanent
-	 * ID.
-	 * @return the size of the object with remapped IDs.
-	 * @throws IOException if an IO exception occurs.
-	 */
-	public long setAbsoluteIdRefMapping(
-			final Map<String, String> absoluteIdRefMapping) throws IOException {
-		final HashMap<String, String> copy = new HashMap<String, String>();
-		copy.putAll(absoluteIdRefMapping);
-		this.absoluteIdRefMapping = Collections.unmodifiableMap(copy);
-		this.cacheForSorting = null;
-		nullifySortCacheFile();
-		size = -1; //force recalculation of size
-		return getRelabeledSize();
-	}
-
 	private void nullifySortCacheFile() {
 		if (this.fileForSorting != null) {
 			this.fileForSorting.delete();
 			this.fileForSorting = null;
 		}
-	}
-	
-	public Map<String, String> getAbsoluteIdRefMapping() {
-		return absoluteIdRefMapping;
 	}
 	
 	private void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
@@ -345,15 +321,15 @@ public class TypedObjectValidationReport {
 	
 	private TokenSequenceProvider createIdRefTokenSequenceProvider() throws IOException {
 		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-		if (absoluteIdRefMapping.isEmpty())
+		if (idHandler.isEmpty())
 			return makeTSPfromJTS(jts);
-		return new IdRefTokenSequenceProvider(jts, schema, absoluteIdRefMapping);
+		return new IdRefTokenSequenceProvider(jts, schema, idHandler);
 	}
 	
 	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(JsonGenerator jgen) throws IOException {
 		TokenSequenceProvider tsp = null;
 		try {
-			if (absoluteIdRefMapping.isEmpty()) {
+			if (idHandler.isEmpty()) {
 				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
 				SortCheckingTokenSequenceProvider sortCheck = new SortCheckingTokenSequenceProvider(jts);
 				tsp = sortCheck;
@@ -361,7 +337,7 @@ public class TypedObjectValidationReport {
 				return sortCheck.isSorted();
 			} else {
 				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, absoluteIdRefMapping);
+				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, idHandler);
 				tsp = idSubst;
 				new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
 				idSubst.close();
@@ -460,7 +436,7 @@ public class TypedObjectValidationReport {
 		mssg.append(" -status: ");
 		if(this.isInstanceValid()) {
 			mssg.append("pass\n");
-			mssg.append(" -id refs extracted: " + oldIdRefs.size());
+			mssg.append(" -id refs extracted: " + idHandler.size());
 		}
 		else {
 			List<String> errs = getErrorMessages();

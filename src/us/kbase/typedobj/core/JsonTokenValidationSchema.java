@@ -245,7 +245,9 @@ public class JsonTokenValidationSchema {
 					} else if (t != JsonToken.FIELD_NAME) {
 						// every time we here we expect next field since rest of this loop is for 
 						// processing of value for this field
-						throw new JsonTokenValidationException("Object field name is expected but found " + t);
+						throw new JsonTokenValidationException(
+								"Object field name is expected but found "
+								+ t + " at " + path.getFullLocationAsString());
 					}
 					// name of object field (key of mapping)
 					String fieldName = jp.getCurrentName();
@@ -353,30 +355,42 @@ public class JsonTokenValidationSchema {
 			if (t != JsonToken.VALUE_STRING) {	// but found something else
 				if (t != JsonToken.VALUE_NULL || idReference != null)	// we allow nulls but not for references
 					lst.addError(generateError(type, t, path));
-			}
-			if (idReference != null) {
-				// we can add this string value as requiring id-reference relabeling in case 
-				// there was defined idReference property in json-schema node describing this 
-				// string value
-				//TODO 1 the path is temporary. Might need a better way to deal with the path.
-				final IdReference ref = new IdReference(idReference.idType,
-						jp.getText(), idReference.attributes, path);
-				lst.addIdRefMessage(ref);
+				//TODO 1 Roman need to skip element here
+			} else {
+				if (idReference != null) {
+					// we can add this string value as requiring id-reference relabeling in case 
+					// there was defined idReference property in json-schema node describing this 
+					// string value
+					//TODO 1 the path is temporary. Might need a better way to deal with the path.
+					final IdReference ref = new IdReference(idReference.idType,
+							jp.getText(), idReference.attributes, path);
+					lst.addIdRefMessage(ref);
+				}
 			}
 		} else if (type == Type.integer) {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL)) {// but found something else
 				lst.addError(generateError(type, t, path));
-			if(intRange!=null)
-				intRange.checkValue(jp, lst, path);
+				//TODO 1 Roman need to skip element here and not check range
+			} else {
+				if (intRange != null) {
+					intRange.checkValue(jp, lst, path);
+				}
+			}
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_FLOAT) &&
+				(t != JsonToken.VALUE_NUMBER_INT) &&
+				(t != JsonToken.VALUE_NULL)) {   // but found something else
 				lst.addError(generateError(type, t, path));
-			if(numberRange!=null)
-				numberRange.checkValue(jp, lst, path);
+				//TODO 1 Roman need to skip element here and not check range
+			} else {
+				if (numberRange != null) {
+					numberRange.checkValue(jp, lst, path);
+				}
+			}
 		} else {
 			lst.addError("Unsupported node type: " + type);
 		}
@@ -852,11 +866,4 @@ public class JsonTokenValidationSchema {
 			return s;
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
 }

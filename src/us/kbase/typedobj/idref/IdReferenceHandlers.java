@@ -15,6 +15,7 @@ public class IdReferenceHandlers {
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
 	private boolean locked = false;
+	private boolean processed = false;
 	
 	private final Map<IdReferenceType, IdReferenceHandler> handlers;
 	
@@ -29,17 +30,21 @@ public class IdReferenceHandlers {
 		 * @param id the id.
 		 * @return boolean if this is a unique ID stored in memory and thus
 		 * should count towards the maximum ID limit.
+		 * @throws IdReferenceHandlerException if the ID could not be added.
+		 * @throws HandlerLockedException if the handler is already locked.
 		 */
-		public boolean addId(IdReference id) throws IdReferenceHandlerException;
+		public boolean addId(String id, List<String> attributes)
+				throws IdReferenceHandlerException,
+				HandlerLockedException;
 		/** Perform any necessary batch processing of the IDs before
-		 * remapping.
+		 * remapping and locks the handler.
 		 */
 		public void processIds() throws IdReferenceHandlerException;
 		/** Translate an ID to the remapped ID.
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
 		 */
-		public String getRemappedId(String oldId);
+		public String getRemappedId(String oldId) throws NoSuchIdException;
 		/** Prevent addition of any more IDs.
 		 */
 		public void lock();
@@ -52,8 +57,11 @@ public class IdReferenceHandlers {
 				IdReferenceHandlers.IdReferenceHandler>(handlers);
 	}
 
-	/** Add an ID to the appropriate ID handler. If an ID handler does not
-	 * exist for the ID type, nothing is done.
+	public boolean hasHandler(final IdReferenceType idType) {
+		return handlers.containsKey(idType);
+	}
+	
+	/** Add an ID to the appropriate ID handler.
 	 * @param id the new ID.
 	 * @throws TooManyIdsException if too many IDs are currently in memory.
 	 * @throws IdReferenceHandlerException if the id could not be handled
@@ -68,9 +76,12 @@ public class IdReferenceHandlers {
 			throw new NullPointerException("id cannot be null");
 		}
 		if (!handlers.containsKey(id.getType())) {
-			return;
+			throw new NoSuchIdReferenceHandlerException(
+					"There is no handler for the ID type " +
+							id.getType().getType());
 		}
-		final boolean newId = handlers.get(id.getType()).addId(id);
+		final boolean newId = handlers.get(id.getType()).addId(
+				id.getId(), id.getAttributes());
 		currentUniqueIdCount += newId ? 1 : 0;
 		if (currentUniqueIdCount > maxUniqueIdCount) {
 			throw new TooManyIdsException("Maximum ID count of " + 
@@ -79,18 +90,30 @@ public class IdReferenceHandlers {
 	}
 	
 	/** Process all the IDs saved in all the registered handlers and locks
-	 * the handlers.
+	 * the handlers. Calling this methond twice will have no effect.
 	 * @throws IdReferenceHandlerException if there was an error processing
 	 * the IDs.
 	 * 
 	 */
 	public void processIDs() throws IdReferenceHandlerException {
+		if (processed) {
+			return;
+		}
 		locked = true;
+		processed = true;
 		for (final Entry<IdReferenceType, IdReferenceHandler> es:
 			handlers.entrySet()) {
 			es.getValue().processIds();
 			es.getValue().lock();
 		}
+	}
+	
+	/** Check if processIds() has been called on this handler. Implies
+	 * that the handler is locked.
+	 * @return true if processIds() has been called.
+	 */
+	public boolean wereIdsProcessed() {
+		return processed;
 	}
 	
 	/** Translate an ID to the remapped ID.
@@ -125,6 +148,10 @@ public class IdReferenceHandlers {
 		return currentUniqueIdCount;
 	}
 	
+	public boolean isEmpty() {
+		return currentUniqueIdCount == 0;
+	}
+	
 	@SuppressWarnings("serial")
 	public class TooManyIdsException extends Exception {
 
@@ -140,6 +167,23 @@ public class IdReferenceHandlers {
 			super(message);
 		}
 		
+	}
+	
+	@SuppressWarnings("serial")
+	public class NoSuchIdException extends RuntimeException {
+
+		public NoSuchIdException(String message) {
+			super(message);
+		}
+		
+	}
+	
+	@SuppressWarnings("serial")
+	public class HandlerLockedException extends RuntimeException {
+		
+		public HandlerLockedException(String message) {
+			super(message);
+		}
 	}
 	
 	@SuppressWarnings("serial")

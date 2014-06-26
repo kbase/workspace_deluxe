@@ -102,13 +102,11 @@ public class Workspace {
 	private final ReferenceParser refparse;
 	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
-	private final IdReferenceHandlersFactory handlersFactory;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ReferenceParser refparse,
-			final ResourceUsageConfiguration cfg,
-			final IdReferenceHandlersFactory idFac) {
+			final ResourceUsageConfiguration cfg) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");
 		}
@@ -121,7 +119,6 @@ public class Workspace {
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;
 		db.setResourceUsageConfiguration(rescfg);
-		this.handlersFactory = idFac;
 	}
 	
 	public ResourceUsageConfiguration getResourceConfig() {
@@ -475,9 +472,11 @@ public class Workspace {
 		}
 	}
 	
-	public List<ObjectInformation> saveObjects(final WorkspaceUser user,
+	public List<ObjectInformation> saveObjects(
+			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
-			List<WorkspaceSaveObject> objects) throws
+			List<WorkspaceSaveObject> objects,
+			final IdReferenceHandlersFactory idHandlerFac) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
@@ -506,7 +505,7 @@ public class Workspace {
 		int objcount = 1;
 		
 		//stage 1: validate & extract & parse references
-		final IdReferenceHandlers idhandler = handlersFactory.createHandlers();
+		final IdReferenceHandlers idhandler = idHandlerFac.createHandlers();
 		for (WorkspaceSaveObject wo: objects) {
 			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
 			final String objerrid = getObjectErrorId(oid, objcount);
