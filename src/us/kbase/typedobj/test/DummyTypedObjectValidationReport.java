@@ -28,7 +28,7 @@ public class DummyTypedObjectValidationReport extends
 			final UObject data) {
 		
 		super(data, type, Collections.<String>emptyList(), null, null, null,
-				new IdReferenceHandlersFactory(6).createHandlers().lock());
+				new IdReferenceHandlersFactory<String>(6).createHandlers().lock());
 	}
 	
 	@Override
@@ -41,9 +41,11 @@ public class DummyTypedObjectValidationReport extends
 		return new ArrayList<String>();
 	}
 	
+	
+	//TODO 1 remove?
 	@Override
-	public IdReferenceHandlers getIdReferences() {
-		return new IdReferenceHandlersFactory(6).createHandlers().lock();
+	public IdReferenceHandlers<String> getIdReferences() {
+		return new IdReferenceHandlersFactory<String>(6).createHandlers().lock();
 	}
 	
 	@Override

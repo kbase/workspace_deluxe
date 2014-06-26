@@ -25,7 +25,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	// relabeling is just substituting tokens with old id-ref values by new ones
 	private final JsonTokenStream jts;
 	//ID handlers
-	private final IdReferenceHandlers handlers; 
+	private final IdReferenceHandlers<?> handlers; 
 	// path is branch in real json data pointing to position of currently observed
 	// token in jts
 	private final JsonDocumentLocation path = new JsonDocumentLocation();
@@ -41,7 +41,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
 			final JsonTokenValidationSchema schema, 
-			final IdReferenceHandlers idhandlers) {
+			final IdReferenceHandlers<?> idhandlers) {
 		this.jts = jts;
 		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
 				Arrays.asList(schema));

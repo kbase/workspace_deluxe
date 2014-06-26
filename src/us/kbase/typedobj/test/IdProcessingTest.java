@@ -226,11 +226,13 @@ public class IdProcessingTest {
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(absoluteIdMapping));
-		IdReferenceHandlers idhandlers = fac.createHandlers();
-		@SuppressWarnings("unused")
-		int breakpoint = 0;
+		IdReferenceHandlersFactory<String> fac =
+				new IdReferenceHandlersFactory<String>(100);
+		fac.addFactory(new IdReferenceType("ws"),
+				new DummyIdHandlerFactory<String>(absoluteIdMapping));
+		IdReferenceHandlers<String> idhandlers = fac.createHandlers();
+		idhandlers.associateObject("foo");
+		
 		// perform the initial validation, which must validate!
 		TypedObjectValidationReport report = 
 			validator.validate(
@@ -248,9 +250,9 @@ public class IdProcessingTest {
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
-		IdReferenceHandlersFactory dummyfac = new IdReferenceHandlersFactory(0);
+		IdReferenceHandlersFactory<String> dummyfac = new IdReferenceHandlersFactory<String>(0);
 		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
-				dummyfac.createHandlers());
+				dummyfac.createHandlers().associateObject("foo"));
 		List <String> mssgs2 = report2.getErrorMessages();
 		for(int i=0; i<mssgs2.size(); i++) {
 			System.out.println("    ["+i+"]:"+mssgs2.get(i));

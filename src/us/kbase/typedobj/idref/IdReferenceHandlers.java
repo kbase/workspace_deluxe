@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class IdReferenceHandlers {
+public class IdReferenceHandlers<T> {
 	
 	//TODO unit tests
 	//TODO 1 test extraction of various types
@@ -16,24 +16,34 @@ public class IdReferenceHandlers {
 	private int currentUniqueIdCount = 0;
 	private boolean locked = false;
 	private boolean processed = false;
+	private T associated = null;
 	
-	private final Map<IdReferenceType, IdReferenceHandler> handlers;
+	private final Map<IdReferenceType, IdReferenceHandler<T>> handlers;
 	
 	/** A handler for typed object IDs. Responsible for checking the
 	 * syntax of the id and its attributes, and remapping IDs if necessary.
+	 *
+	 * ID handlers allow associating IDs with a particular object. This is useful
+	 * for batch processing of typed object, as the IDs can be associated with
+	 * a particular object but the entire ID set can be processed as a batch.
 	 * @author gaprice@lbl.gov
 	 *
+	 * @param <T> the type of the object to be associated with IDs.
 	 */
-	public interface IdReferenceHandler {
+	public interface IdReferenceHandler<T> {
 		
 		/** Add an id to the handler
+		 * @param an object associated with the ID.
 		 * @param id the id.
-		 * @return boolean if this is a unique ID stored in memory and thus
-		 * should count towards the maximum ID limit.
+		 * @param the attributes of the ID.
+		 * @return boolean if this is a unique ID (on a per associated object
+		 * basis) stored in memory and thus should count towards the maximum ID
+		 * limit.
 		 * @throws IdReferenceHandlerException if the ID could not be added.
 		 * @throws HandlerLockedException if the handler is already locked.
 		 */
-		public boolean addId(String id, List<String> attributes)
+		public boolean addId(T associatedObject, String id,
+				List<String> attributes)
 				throws IdReferenceHandlerException,
 				HandlerLockedException;
 		/** Perform any necessary batch processing of the IDs before
@@ -51,14 +61,28 @@ public class IdReferenceHandlers {
 	}
 	
 	protected IdReferenceHandlers(final int maxUniqueIdCount,
-			final Map<IdReferenceType, IdReferenceHandler> handlers) {
+			final Map<IdReferenceType, IdReferenceHandler<T>> handlers) {
 		this.maxUniqueIdCount = maxUniqueIdCount;
-		this.handlers = new HashMap<IdReferenceType,
-				IdReferenceHandlers.IdReferenceHandler>(handlers);
+		this.handlers = new HashMap<IdReferenceType, IdReferenceHandler<T>>(
+				handlers);
 	}
 
 	public boolean hasHandler(final IdReferenceType idType) {
 		return handlers.containsKey(idType);
+	}
+	
+	/** Associate an object with any further IDs processed. For example,
+	 * if serially processing IDs from a set of typed objects the object in
+	 * question could be associated with the IDs.
+	 * @param object the object to associate with any IDs processed after this
+	 * point.
+	 */
+	public IdReferenceHandlers<T> associateObject(T object) {
+		if (object == null) {
+			throw new NullPointerException("object may not be null");
+		}
+		associated = object;
+		return this;
 	}
 	
 	/** Add an ID to the appropriate ID handler.
@@ -72,6 +96,10 @@ public class IdReferenceHandlers {
 			throw new IllegalStateException(
 					"This ID handlers instance is locked");
 		}
+		if (associated == null) {
+			throw new IllegalStateException(
+					"Must add an object to associate IDs with prior to adding IDs");
+		}
 		if (id == null) {
 			throw new NullPointerException("id cannot be null");
 		}
@@ -80,7 +108,7 @@ public class IdReferenceHandlers {
 					"There is no handler for the ID type " +
 							id.getType().getType());
 		}
-		final boolean newId = handlers.get(id.getType()).addId(
+		final boolean newId = handlers.get(id.getType()).addId(associated, 
 				id.getId(), id.getAttributes());
 		currentUniqueIdCount += newId ? 1 : 0;
 		if (currentUniqueIdCount > maxUniqueIdCount) {
@@ -101,7 +129,7 @@ public class IdReferenceHandlers {
 		}
 		locked = true;
 		processed = true;
-		for (final Entry<IdReferenceType, IdReferenceHandler> es:
+		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
 			handlers.entrySet()) {
 			es.getValue().processIds();
 			es.getValue().lock();
@@ -135,9 +163,9 @@ public class IdReferenceHandlers {
 		return handlers.get(idType).getRemappedId(oldId);
 	}
 	
-	public IdReferenceHandlers lock() {
+	public IdReferenceHandlers<T> lock() {
 		locked = true;
-		for (final Entry<IdReferenceType, IdReferenceHandler> es:
+		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
 			handlers.entrySet()) {
 			es.getValue().lock();
 		}
@@ -153,7 +181,7 @@ public class IdReferenceHandlers {
 	}
 	
 	@SuppressWarnings("serial")
-	public class TooManyIdsException extends Exception {
+	public static class TooManyIdsException extends Exception {
 
 		public TooManyIdsException(final String message) {
 			super(message);
@@ -161,7 +189,8 @@ public class IdReferenceHandlers {
 	}
 	
 	@SuppressWarnings("serial")
-	public class NoSuchIdReferenceHandlerException extends RuntimeException {
+	public static class NoSuchIdReferenceHandlerException
+			extends RuntimeException {
 
 		public NoSuchIdReferenceHandlerException(String message) {
 			super(message);
@@ -170,7 +199,7 @@ public class IdReferenceHandlers {
 	}
 	
 	@SuppressWarnings("serial")
-	public class NoSuchIdException extends RuntimeException {
+	public static class NoSuchIdException extends RuntimeException {
 
 		public NoSuchIdException(String message) {
 			super(message);
@@ -179,7 +208,7 @@ public class IdReferenceHandlers {
 	}
 	
 	@SuppressWarnings("serial")
-	public class HandlerLockedException extends RuntimeException {
+	public static class HandlerLockedException extends RuntimeException {
 		
 		public HandlerLockedException(String message) {
 			super(message);
@@ -187,27 +216,32 @@ public class IdReferenceHandlers {
 	}
 	
 	@SuppressWarnings("serial")
-	public class IdReferenceHandlerException extends Exception {
+	public static class IdReferenceHandlerException extends Exception {
 		
 		private final String id;
 		private final IdReferenceType idType;
 		private final List<String> idAttributes;
+		private final Object associatedObject;
+		
 		
 		public IdReferenceHandlerException(
 				final String message,
-				final String id,
 				final IdReferenceType idType,
+				final Object associatedObject,
+				final String id,
 				final List<String> idAttributes,
 				final Throwable cause) {
 			super(message, cause);
 			if (message == null || id == null || idType == null ||
-					idAttributes == null || cause == null) {
+					idAttributes == null || cause == null ||
+					associatedObject == null) {
 				throw new NullPointerException("No arguments can be null");
 			}
 			this.id = id;
 			this.idType = idType;
 			this.idAttributes = Collections.unmodifiableList(
 					new LinkedList<String>(idAttributes));
+			this.associatedObject = associatedObject;
 		}
 
 		public String getId() {
@@ -220,6 +254,10 @@ public class IdReferenceHandlers {
 
 		public List<String> getIdAttributes() {
 			return idAttributes;
+		}
+		
+		public Object getAssociatedObject() {
+			return associatedObject;
 		}
 		
 	}

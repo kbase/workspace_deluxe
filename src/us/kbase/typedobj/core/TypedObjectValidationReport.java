@@ -63,7 +63,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * Used to keep track of the IDs that were parsed from the object
 	 */
-	private IdReferenceHandlers idHandler;
+	private IdReferenceHandlers<?> idHandler;
 
 	/**
 	 * We keep a reference to the original instance that was validated so we can later easily rename labels or extract
@@ -100,7 +100,7 @@ public class TypedObjectValidationReport {
 			final JsonNode wsSubsetSelection,
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
-			final IdReferenceHandlers idHandler) {
+			final IdReferenceHandlers<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
 		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);
@@ -133,7 +133,8 @@ public class TypedObjectValidationReport {
 		return errors;
 	}
 	
-	public IdReferenceHandlers getIdReferences() {
+	//TODO 1 probably remove this
+	public IdReferenceHandlers<?> getIdReferences() {
 		return idHandler;
 	}
 	

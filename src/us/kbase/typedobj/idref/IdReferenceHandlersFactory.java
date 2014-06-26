@@ -6,20 +6,31 @@ import java.util.Map.Entry;
 
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 
-public class IdReferenceHandlersFactory {
+/** Builds a set of ID handlers for handling IDs found while validating a
+ * typed object. The handler could, for example, check the ID format, check
+ * that the ID refers to a valid item in a database, or both.
+ * 
+ * ID handlers allow associating IDs with a particular object. This is useful
+ * for batch processing of typed object, as the IDs can be associated with
+ * a particular object but the entire ID set can be processed as a batch.
+ * @author gaprice@lbl.gov
+ *
+ * @param <T> the type of the object to be associated with IDs.
+ */
+public class IdReferenceHandlersFactory<T> {
 
-	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
-			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();
+	private final Map<IdReferenceType,IdReferenceHandlerFactory<T>> factories = 
+			new HashMap<IdReferenceType,IdReferenceHandlerFactory<T>>();
 	private final int maxUniqueIdCount;
 	
 	/** An interface for a factory that creates an ID handler.
 	 * @author gaprice@lbl.gov
 	 */
-	public interface IdReferenceHandlerFactory {
+	public interface IdReferenceHandlerFactory<T> {
 		/** Create a empty, unlocked ID handler from this factory.
 		 * @return an ID hander.
 		 */
-		public IdReferenceHandler createHandler();
+		public IdReferenceHandler<T> createHandler();
 	}
 	
 	public IdReferenceHandlersFactory(final int maxUniqueIdCount) {
@@ -32,21 +43,21 @@ public class IdReferenceHandlersFactory {
 	
 	public void addFactory(
 			final IdReferenceType idType,
-			final IdReferenceHandlerFactory factory) {
+			final IdReferenceHandlerFactory<T> factory) {
 		if (factory == null || idType == null) {
 			throw new NullPointerException("factory and idType cannot be null");
 		}
 		factories.put(idType, factory);
 	}
 	
-	public IdReferenceHandlers createHandlers() {
-		final Map<IdReferenceType, IdReferenceHandler> handlers =
-				new HashMap<IdReferenceType, IdReferenceHandler>();
-		for (final Entry<IdReferenceType, IdReferenceHandlerFactory> e:
+	public IdReferenceHandlers<T> createHandlers() {
+		final Map<IdReferenceType, IdReferenceHandler<T>> handlers =
+				new HashMap<IdReferenceType, IdReferenceHandler<T>>();
+		for (final Entry<IdReferenceType, IdReferenceHandlerFactory<T>> e:
 				factories.entrySet()) {
 			handlers.put(e.getKey(), e.getValue().createHandler());
 		}
-		return new IdReferenceHandlers(maxUniqueIdCount, handlers);
+		return new IdReferenceHandlers<T>(maxUniqueIdCount, handlers);
 	}
 	
 }

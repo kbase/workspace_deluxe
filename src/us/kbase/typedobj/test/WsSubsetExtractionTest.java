@@ -194,8 +194,10 @@ public class WsSubsetExtractionTest {
 		JsonNode expectedMetadata = testdataJson.get("metadata");
 		
 		// perform the initial validation, which must validate!
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
-		IdReferenceHandlers han = fac.createHandlers();
+		IdReferenceHandlersFactory<String> fac =
+				new IdReferenceHandlersFactory<String>(6);
+		IdReferenceHandlers<String> han =
+				fac.createHandlers().associateObject("foo");
 		TypedObjectValidationReport report = 
 			validator.validate(
 				instanceRootNode,

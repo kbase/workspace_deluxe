@@ -104,7 +104,7 @@ public final class TypedObjectValidator {
 	 * @throws TypedObjectSchemaException 
 	 */
 	public TypedObjectValidationReport validate(final String instance,
-			final TypeDefId type, final IdReferenceHandlers handlers)
+			final TypeDefId type, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
 			TypedObjectSchemaException {
@@ -136,7 +136,7 @@ public final class TypedObjectValidator {
 	 * @throws TypedObjectSchemaException 
 	 */
 	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
-			final TypeDefId typeDefId, final IdReferenceHandlers handlers)
+			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException {
 		final UObject obj;
@@ -153,7 +153,7 @@ public final class TypedObjectValidator {
 	}
 	
 	public TypedObjectValidationReport validate(final UObject obj,
-			final TypeDefId typeDefId, final IdReferenceHandlers handlers)
+			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException {
 		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);

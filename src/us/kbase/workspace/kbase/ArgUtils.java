@@ -45,6 +45,7 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
+	//TODO 1 create a new one for each method, this is exactly the wrong thing to do 
 	//simple date formats aren't synchronized
 	private final UTCDateFormat dateFormat = new UTCDateFormat();
 	

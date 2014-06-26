@@ -214,8 +214,9 @@ public class BasicValidationTest {
 	@Test
 	public void testInstance() throws Exception {
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
-		IdReferenceHandlers handler = fac.createHandlers();
+		IdReferenceHandlersFactory<String> fac = new IdReferenceHandlersFactory<String>(6);
+		IdReferenceHandlers<String> handler = fac.createHandlers();
+		handler.associateObject("foo");
 		
 		if(this.isValidInstance) {
 			// load the instance information

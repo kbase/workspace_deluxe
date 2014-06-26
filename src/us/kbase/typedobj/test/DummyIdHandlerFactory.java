@@ -10,9 +10,9 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
 
-public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
+public class DummyIdHandlerFactory<T> implements IdReferenceHandlerFactory<T> {
 
-	private static class DummyIdHandler implements IdReferenceHandler {
+	private static class DummyIdHandler<T> implements IdReferenceHandler<T> {
 
 		private final Set<String> foundIDs = new HashSet<String>();
 		private final Map<String, String> idMapping;
@@ -23,7 +23,8 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
-		public boolean addId(String id, List<String> attributes)
+		public boolean addId(T associatedObject, String id,
+				List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
 			if (locked) {
 				throw new IllegalArgumentException("locked");
@@ -69,8 +70,8 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 
 	@Override
-	public IdReferenceHandler createHandler() {
-		return new DummyIdHandler(idMapping);
+	public IdReferenceHandler<T> createHandler() {
+		return new DummyIdHandler<T>(idMapping);
 	}
 
 }
