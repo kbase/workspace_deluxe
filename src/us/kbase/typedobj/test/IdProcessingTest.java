@@ -215,16 +215,6 @@ public class IdProcessingTest {
 		// read the ids file, which provides the list of ids we expect to extract from the instance
 		String idsJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".ids");
 		JsonNode idsRootNode = mapper.readTree(idsJson);
-		JsonNode expectedIds = idsRootNode.get("ids-expected");
-		Iterator <JsonNode> it = expectedIds.iterator();
-		Map <String,Integer> expectedIdList = new HashMap<String,Integer>();
-		while(it.hasNext()) {
-			String id = it.next().asText();
-			if(expectedIdList.containsKey(id)) {
-				int count = expectedIdList.get(id).intValue() + 1;
-				expectedIdList.put(id, new Integer(count));
-			} else { expectedIdList.put(id,new Integer(1)); }
-		}
 		
 		//set up id relabeling mapping
 		Map <String,String> absoluteIdMapping = new HashMap<String,String>();

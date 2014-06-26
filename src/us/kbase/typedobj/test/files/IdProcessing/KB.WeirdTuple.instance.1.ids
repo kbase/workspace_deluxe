@@ -1,7 +1,4 @@
 {
-	"ids-expected":[
-			"id"
-		],
 	"ids-relabel":{
 		"id": "idremap"
 		},
