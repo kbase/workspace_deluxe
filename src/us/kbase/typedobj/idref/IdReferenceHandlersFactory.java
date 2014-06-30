@@ -17,20 +17,22 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
  *
  * @param <T> the type of the object to be associated with IDs.
  */
-public class IdReferenceHandlersFactory<T> {
+public class IdReferenceHandlersFactory {
 
-	private final Map<IdReferenceType,IdReferenceHandlerFactory<T>> factories = 
-			new HashMap<IdReferenceType,IdReferenceHandlerFactory<T>>();
+	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
+			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();
 	private final int maxUniqueIdCount;
 	
 	/** An interface for a factory that creates an ID handler.
 	 * @author gaprice@lbl.gov
 	 */
-	public interface IdReferenceHandlerFactory<T> {
+	public interface IdReferenceHandlerFactory {
 		/** Create a empty, unlocked ID handler from this factory.
+		 * @param clazz the class of object to associate with IDs in the
+		 * produced ID handler.
 		 * @return an ID hander.
 		 */
-		public IdReferenceHandler<T> createHandler();
+		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz);
 	}
 	
 	public IdReferenceHandlersFactory(final int maxUniqueIdCount) {
@@ -43,19 +45,19 @@ public class IdReferenceHandlersFactory<T> {
 	
 	public void addFactory(
 			final IdReferenceType idType,
-			final IdReferenceHandlerFactory<T> factory) {
+			final IdReferenceHandlerFactory factory) {
 		if (factory == null || idType == null) {
 			throw new NullPointerException("factory and idType cannot be null");
 		}
 		factories.put(idType, factory);
 	}
 	
-	public IdReferenceHandlers<T> createHandlers() {
+	public <T> IdReferenceHandlers<T> createHandlers(final Class<T> clazz) {
 		final Map<IdReferenceType, IdReferenceHandler<T>> handlers =
 				new HashMap<IdReferenceType, IdReferenceHandler<T>>();
-		for (final Entry<IdReferenceType, IdReferenceHandlerFactory<T>> e:
+		for (final Entry<IdReferenceType, IdReferenceHandlerFactory> e:
 				factories.entrySet()) {
-			handlers.put(e.getKey(), e.getValue().createHandler());
+			handlers.put(e.getKey(), e.getValue().createHandler(clazz));
 		}
 		return new IdReferenceHandlers<T>(maxUniqueIdCount, handlers);
 	}

@@ -65,9 +65,9 @@ public class JsonTokenValidatorTester {
 			jgen.close();
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f);  //, buffer);
-			IdReferenceHandlersFactory<String> fac =
-					new IdReferenceHandlersFactory<String>(6);
-			IdReferenceHandlers<String> han = fac.createHandlers();
+			IdReferenceHandlersFactory fac =
+					new IdReferenceHandlersFactory(6);
+			IdReferenceHandlers<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
 			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);

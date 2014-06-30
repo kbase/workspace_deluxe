@@ -185,9 +185,9 @@ public class ProfileBasicValidation {
 	}
 
 	private static void test(TestInstanceInfo instance) {
-		IdReferenceHandlersFactory<String> fac =
-				new IdReferenceHandlersFactory<String>(6);
-		IdReferenceHandlers<String> han = fac.createHandlers();
+		IdReferenceHandlersFactory fac =
+				new IdReferenceHandlersFactory(6);
+		IdReferenceHandlers<String> han = fac.createHandlers(String.class);
 		han.associateObject("foo");
 		if(instance.isValid) {
 

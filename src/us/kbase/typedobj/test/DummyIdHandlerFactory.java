@@ -10,7 +10,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
 
-public class DummyIdHandlerFactory<T> implements IdReferenceHandlerFactory<T> {
+public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	private static class DummyIdHandler<T> implements IdReferenceHandler<T> {
 
@@ -70,7 +70,7 @@ public class DummyIdHandlerFactory<T> implements IdReferenceHandlerFactory<T> {
 	}
 
 	@Override
-	public IdReferenceHandler<T> createHandler() {
+	public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
 		return new DummyIdHandler<T>(idMapping);
 	}
 
