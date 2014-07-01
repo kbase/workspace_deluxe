@@ -227,8 +227,8 @@ public class IdProcessingTest {
 		}
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new DummyIdHandlerFactory(absoluteIdMapping));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
+				absoluteIdMapping));
 		IdReferenceHandlers<String> idhandlers = fac.createHandlers(String.class);
 		idhandlers.associateObject("foo");
 		

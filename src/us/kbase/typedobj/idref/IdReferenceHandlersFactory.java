@@ -33,6 +33,7 @@ public class IdReferenceHandlersFactory {
 		 * @return an ID hander.
 		 */
 		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz);
+		public IdReferenceType getIDType();
 	}
 	
 	public IdReferenceHandlersFactory(final int maxUniqueIdCount) {
@@ -43,13 +44,15 @@ public class IdReferenceHandlersFactory {
 		this.maxUniqueIdCount = maxUniqueIdCount;
 	}
 	
-	public void addFactory(
-			final IdReferenceType idType,
-			final IdReferenceHandlerFactory factory) {
-		if (factory == null || idType == null) {
-			throw new NullPointerException("factory and idType cannot be null");
+	public void addFactory(final IdReferenceHandlerFactory factory) {
+		if (factory == null) {
+			throw new NullPointerException("factory cannot be null");
 		}
-		factories.put(idType, factory);
+		if (factory.getIDType() == null) {
+			throw new NullPointerException(
+					"factory returned null for ID type");
+		}
+		factories.put(factory.getIDType(), factory);
 	}
 	
 	public <T> IdReferenceHandlers<T> createHandlers(final Class<T> clazz) {

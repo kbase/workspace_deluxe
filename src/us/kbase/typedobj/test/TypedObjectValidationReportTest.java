@@ -119,7 +119,7 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"), new DummyIdHandlerFactory(
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
 						new HashMap<String, String>()));
 		IdReferenceHandlers<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
@@ -155,8 +155,7 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new DummyIdHandlerFactory(refmap));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
 		IdReferenceHandlers<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
@@ -210,8 +209,7 @@ public class TypedObjectValidationReportTest {
 		refmap.put("w", "w");
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new DummyIdHandlerFactory(refmap));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
 		IdReferenceHandlers<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
@@ -239,8 +237,7 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new DummyIdHandlerFactory(refmap));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
 		IdReferenceHandlers<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
@@ -267,8 +264,7 @@ public class TypedObjectValidationReportTest {
 		refmap.put("b", "b");
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new DummyIdHandlerFactory(refmap));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
 		IdReferenceHandlers<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		

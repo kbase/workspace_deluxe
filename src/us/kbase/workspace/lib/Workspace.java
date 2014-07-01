@@ -15,6 +15,8 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -42,9 +44,10 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -210,7 +213,7 @@ public class Workspace {
 		return wsid;
 	}
 	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
+	Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final Permission perm, final String operation)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -452,6 +455,12 @@ public class Workspace {
 		return db.getBackendType();
 	}
 	
+	private static String getObjectErrorId(final WorkspaceSaveObject wo,
+			final int objcount) {
+		final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
+		return getObjectErrorId(oid, objcount);
+	}
+	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
 		String objErrId = "#" + objcount;
@@ -505,50 +514,48 @@ public class Workspace {
 		int objcount = 1;
 		
 		//stage 1: validate & extract & parse references
-		final IdReferenceHandlers idhandler = idHandlerFac.createHandlers();
+		final IdReferenceHandlers<Integer> idhandler =
+				idHandlerFac.createHandlers(Integer.class);
 		for (WorkspaceSaveObject wo: objects) {
-			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
-			final String objerrid = getObjectErrorId(oid, objcount);
-			final TypedObjectValidationReport rep;
-			try {
-				rep = val.validate(wo.getData(), wo.getType(), idhandler);
-			} catch (NoSuchTypeException nste) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid)
-						+ nste.getLocalizedMessage(), nste);
-			} catch (NoSuchModuleException nsme) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid)
-						+ nsme.getLocalizedMessage(), nsme);
-			}
-			if (!rep.isInstanceValid()) {
-				final List<String> e = rep.getErrorMessages();
-				final String err = StringUtils.join(e, "\n");
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid) + err);
-			}
+			idhandler.associateObject(objcount);
+			final TypedObjectValidationReport rep = validate(wo, val,
+					idhandler, objcount);
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
-			for (final IdReference ref: rep.getIdReferences()
-					.getIds(WS_ID_TYPE)) {
-				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
-						false);
-			}
+//			for (final IdReference ref: rep.getIdReferences()
+//					.getIds(WS_ID_TYPE)) {
+//				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
+//						false);
+//			}
 			for (final Provenance.ProvenanceAction action:
 				wo.getProvenance().getActions()) {
 				for (final String pref: action.getWorkspaceObjects()) {
-					processRef(provRefToOid, provOidToObject, objerrid, data,
-							pref, true);
+					//TODO 1 try and process the prov IDs in the same handler, if not need to count all IDs
+					//TODO 1 clean this up later, don't need boolean at least
+					processRef(provRefToOid, provOidToObject, data, pref, true);
 				}
 			}
 			reports.put(wo, data);
 			objcount++;
 		}
+		try {
+			idhandler.processIDs();
+		} catch (IdReferenceHandlerException e) {
+			if (e.getCause() instanceof WorkspaceCommunicationException) {
+				throw (WorkspaceCommunicationException) e.getCause();
+			} else if (e.getCause() instanceof CorruptWorkspaceDBException) {
+				throw (CorruptWorkspaceDBException) e.getCause();
+			} else {
+				//TODO 1 throw TypedObject exception wrapping e
+				//TODO 1 get path from object data and add to exception
+			}
+		}
 		
 		//stage 2: resolve references and get types
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
 		final Set<ObjectIdentifier> allOids =
-				new HashSet<ObjectIdentifier>(oidToObject.keySet());
-		allOids.addAll(provOidToObject.keySet());
+				new HashSet<ObjectIdentifier>(provOidToObject.keySet());
+//				new HashSet<ObjectIdentifier>(oidToObject.keySet());
+//		allOids.addAll(provOidToObject.keySet());
 		if (!allOids.isEmpty()) {
 			try {
 				wsresolvedids = checkPerms(user, 
@@ -556,6 +563,7 @@ public class Workspace {
 						Permission.READ, "read");
 			} catch (InaccessibleObjectException ioe) {
 				final TypedObjectValidationException tove =
+						//TODO 1 remove refToOid and oidToObject
 						generateInaccessibleObjectException(refToOid,
 								oidToObject, provRefToOid, provOidToObject,
 								ioe, ioe.getInaccessibleObject());
@@ -582,6 +590,7 @@ public class Workspace {
 					}
 				}
 				final TypedObjectValidationException tove =
+						//TODO 1 remove refToOid and oidToObject
 						generateInaccessibleObjectException(refToOid,
 								oidToObject, provRefToOid, provOidToObject,
 								nsoe, oi);
@@ -623,7 +632,7 @@ public class Workspace {
 			final Map<String, String> replacerefs =
 					new HashMap<String, String>();
 			final Set<Reference> refs = new HashSet<Reference>();
-			final List<Reference> provrefs = new LinkedList<Reference>();
+			final List<Reference> provrefs = new LinkedList<Reference>();/*
 			for (final IdReference r: rep.getIdReferences().getIds(WS_ID_TYPE)) {
 				final Set<TypeDefName> allowedTypes = new HashSet<TypeDefName>();
 				for (final String a: r.getAttributes()) {
@@ -654,9 +663,9 @@ public class Workspace {
 				}
 			}
 			ttlObjSize += rep.setAbsoluteIdRefMapping(replacerefs);
-			saveobjs.add(wo.resolve(rep, refs, provrefs));
+			saveobjs.add(wo.resolve(rep, refs, provrefs));*/
 		}
-		objects = null; // don't screw with the input, but release to gc
+		objects = null;
 		reports.clear();
 		reftypes.clear();
 		newrefs.clear();
@@ -692,12 +701,65 @@ public class Workspace {
 		}
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
+	
+	//TODO 1 this seems like a really bad idea - maybe the handler factory should be a non-static class, then can close up checkPerms too
+	Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
+			final Set<ObjectIDResolvedWS> objectIDs) throws
+			NoSuchObjectException, WorkspaceCommunicationException {
+		return db.getObjectType(objectIDs);
+	}
+
+	private TypedObjectValidationReport validate(
+			final WorkspaceSaveObject wo,
+			final TypedObjectValidator val,
+			final IdReferenceHandlers<Integer> idhandler,
+			final int objcount)
+			throws TypeStorageException,
+			TypedObjectSchemaException, JsonParseException, IOException,
+			TypedObjectValidationException {
+		final TypedObjectValidationReport rep;
+		try {
+			rep = val.validate(wo.getData(), wo.getType(), idhandler);
+		} catch (NoSuchTypeException nste) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount))
+					+ nste.getLocalizedMessage(), nste);
+		} catch (NoSuchModuleException nsme) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount))
+					+ nsme.getLocalizedMessage(), nsme);
+		} catch (TooManyIdsException e) { //TODO 1 test
+			throw new TypedObjectValidationException(String.format(
+					"Failed type checking at object #%s - the number of " +
+					"IDs in the saved objects exceeds the maximum " +
+					"allowed, %s",
+					objcount, idhandler.getMaximumIdCount()), e);
+					
+		} catch (IdReferenceHandlerException e) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking ",
+					getObjectErrorId(wo, objcount)) + 
+					"- an ID could not be processed: " + e.getMessage(),
+					e);
+		}
+		if (!rep.isInstanceValid()) {
+			final List<String> e = rep.getErrorMessages();
+			final String err = StringUtils.join(e, "\n");
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount)) + err);
+		}
+		return rep;
+	}
 
 	private void processRef(final Map<String, ObjectIdentifier> refToOid,
 			final Map<ObjectIdentifier, TempObjectData> oidToObject,
-			final String objerrid, final TempObjectData data, final String ref,
+			final TempObjectData data, final String ref,
 			final boolean provenance)
 			throws TypedObjectValidationException {
+		//TODO 1 don't need to make this work for either prov or refs 
 		try {
 			if (!refToOid.containsKey(ref)) {
 				final ObjectIdentifier oi = refparse.parse(ref);
@@ -707,8 +769,8 @@ public class Workspace {
 		} catch (IllegalArgumentException iae) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s has unparseable %sreference %s: %s",
-					objerrid, provenance ? "provenance " : "", ref,
-							iae.getLocalizedMessage(), iae));
+					getObjectErrorId(data.wo, data.order), provenance ? "provenance " : "", ref,
+							iae.getLocalizedMessage()), iae);
 		}
 	}
 
@@ -743,7 +805,7 @@ public class Workspace {
 		final TypedObjectValidationException tove =
 				new TypedObjectValidationException(String.format(
 				"Object %s has inaccessible %sreference %s: %s",
-				objerrid, reftype, ref, ioe.getLocalizedMessage(), ioe));
+				objerrid, reftype, ref, ioe.getLocalizedMessage()), ioe);
 		return tove;
 	}
 	

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -102,12 +103,18 @@ public final class TypedObjectValidator {
 	 * @throws TypeStorageException 
 	 * @throws TypedObjectValidationException 
 	 * @throws TypedObjectSchemaException 
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
+	 * @throws IOException 
+	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final String instance,
 			final TypeDefId type, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
-			TypedObjectSchemaException {
+			TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
@@ -134,11 +141,17 @@ public final class TypedObjectValidator {
 	 * @throws NoSuchTypeException
 	 * @throws TypeStorageException
 	 * @throws TypedObjectSchemaException 
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
+	 * @throws IOException 
+	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
 			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectSchemaException {
+			TypeStorageException, TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		final UObject obj;
 		try {
 			obj = new UObject(new JsonTokenStream(instanceRootNode), null);
@@ -155,7 +168,9 @@ public final class TypedObjectValidator {
 	public TypedObjectValidationReport validate(final UObject obj,
 			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectSchemaException {
+			TypeStorageException, TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
@@ -208,7 +223,7 @@ public final class TypedObjectValidator {
 			} finally {
 				try { jts.close(); } catch (Exception ignore) {}
 			}
-		} catch (Exception ex) {
+		} catch (JsonTokenValidationException ex) {
 			if (VERBOSE_EXCEPTIONS) {
 				ex.printStackTrace();
 			}

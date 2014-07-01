@@ -89,6 +89,11 @@ public class ObjectIdentifier {
 		}
 		return "" + getId();
 	}
+	
+	public String getReferenceString() {
+		return getIdentifierString() + getWorkspaceIdentifierString() +
+				version == null ? "" : Integer.toString(version);
+	}
 
 	public String getWorkspaceIdentifierString() {
 		return wsi.getIdentifierString();

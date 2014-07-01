@@ -58,6 +58,7 @@ public class IdReferenceHandlers<T> {
 		/** Prevent addition of any more IDs.
 		 */
 		public void lock();
+		public IdReferenceType getIdType();
 	}
 	
 	protected IdReferenceHandlers(final int maxUniqueIdCount,
@@ -180,6 +181,11 @@ public class IdReferenceHandlers<T> {
 		return currentUniqueIdCount == 0;
 	}
 	
+
+	public int getMaximumIdCount() {
+		return maxUniqueIdCount;
+	}
+	
 	@SuppressWarnings("serial")
 	public static class TooManyIdsException extends Exception {
 
@@ -232,15 +238,15 @@ public class IdReferenceHandlers<T> {
 				final List<String> idAttributes,
 				final Throwable cause) {
 			super(message, cause);
-			if (message == null || id == null || idType == null ||
-					idAttributes == null || cause == null ||
-					associatedObject == null) {
-				throw new NullPointerException("No arguments can be null");
+			if (message == null || idType == null || cause == null) {
+				throw new NullPointerException(
+						"message, idType, and cause, cannot be null");
 			}
 			this.id = id;
 			this.idType = idType;
-			this.idAttributes = Collections.unmodifiableList(
-					new LinkedList<String>(idAttributes));
+			this.idAttributes = idAttributes == null ? null :
+				Collections.unmodifiableList(
+						new LinkedList<String>(idAttributes));
 			this.associatedObject = associatedObject;
 		}
 

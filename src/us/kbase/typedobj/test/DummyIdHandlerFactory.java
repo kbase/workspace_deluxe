@@ -9,6 +9,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
 
 public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
@@ -17,9 +18,11 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		private final Set<String> foundIDs = new HashSet<String>();
 		private final Map<String, String> idMapping;
 		private boolean locked = false;
+		private IdReferenceType type;
 
-		public DummyIdHandler(Map<String, String> idMapping) {
+		public DummyIdHandler(IdReferenceType type, Map<String, String> idMapping) {
 			this.idMapping = idMapping;
+			this.type = type;
 		}
 
 		@Override
@@ -60,18 +63,30 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		public void lock() {
 			locked = true;
 		}
+
+		@Override
+		public IdReferenceType getIdType() {
+			return type;
+		}
 	}
 
 
 	private final Map<String, String> idMapping;
+	private final IdReferenceType type;
 
-	public DummyIdHandlerFactory(Map<String, String> idMapping) {
+	public DummyIdHandlerFactory(IdReferenceType type, Map<String, String> idMapping) {
 		this.idMapping = idMapping;
+		this.type = type;
 	}
 
 	@Override
 	public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
-		return new DummyIdHandler<T>(idMapping);
+		return new DummyIdHandler<T>(type, idMapping);
+	}
+
+	@Override
+	public IdReferenceType getIDType() {
+		return type;
 	}
 
 }

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.collections.map.ReferenceIdentityMap;
 import org.jongo.Jongo;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,6 +22,8 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -33,6 +36,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.Workspace;
+import us.kbase.workspace.lib.WorkspaceIDHandlerFactory;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -105,11 +109,17 @@ public class MongoInternalsTest {
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
 		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new IdReferenceType("ws"),
+				new WorkspaceIDHandlerFactory(userfoo, ws,
+						new DefaultReferenceParser()));
+		
 		for (int i = 1; i < 5; i++) {
 			for (int j = 0; j < 4; j++) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj" + i),
-								new UObject(data1), SAFE_TYPE, null, emptyprov, false)));
+								new UObject(data1), SAFE_TYPE, null, emptyprov, false)),
+						fac);
 			}
 		}
 		// now we've got a 4x4 set of objects
@@ -123,11 +133,11 @@ public class MongoInternalsTest {
 			if (i % 2 == 0) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, "obj" + obj, ver)),
-						refcounttype, null, emptyprov, false)));
+						refcounttype, null, emptyprov, false)), fac);
 			} else {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, obj, ver)),
-						refcounttype, null, emptyprov, false)));
+						refcounttype, null, emptyprov, false)), fac);
 			}
 		}
 		checkRefCounts(wsid, expected, 1);
