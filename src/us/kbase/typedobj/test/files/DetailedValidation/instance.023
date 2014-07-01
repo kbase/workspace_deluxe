@@ -1,0 +1,8 @@
+{
+	"type":"KB.ListField",
+	"result":"error",
+	"error-mssgs":["instance type (float) does not match any allowed primitive type (allowed: [\"array\"]), at /f"],
+	"instance": {
+		"f":-0.223
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"type":"KB.FloatField",
+	"result":"error",
+	"error-mssgs":["instance type (string) does not match any allowed primitive type (allowed: [\"float\"]), at /f"],
+	"instance": {
+		"f":"hello"
+	}
+}

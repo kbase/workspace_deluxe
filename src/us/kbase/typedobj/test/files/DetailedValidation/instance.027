@@ -1,0 +1,8 @@
+{
+	"type":"KB.MappingField",
+	"result":"error",
+	"error-mssgs":["instance type (integer) does not match any allowed primitive type (allowed: [\"object\"]), at /f"],
+	"instance": {
+		"f":13
+	}
+}

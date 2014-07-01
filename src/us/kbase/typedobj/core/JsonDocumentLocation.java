@@ -140,6 +140,18 @@ public class JsonDocumentLocation {
 		return sb.toString();
 	}
 	
+	/** string representation of the path to the object containing the current position */
+	public String getLocationOfContainerAsString() {
+		if(loc.isEmpty()) {
+			return pathSep;
+		}
+		final StringBuilder sb = new StringBuilder();
+		for (int k=0; k<loc.size()-1; k++) {
+			sb.append(loc.get(k).getLocationInFullPath());
+		}
+		return sb.toString();
+	}
+	
 	@Override
 	public String toString() {
 		return "JsonDocumentLocation [pathSep=" + pathSep + ", loc=" + loc

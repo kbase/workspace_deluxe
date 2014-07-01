@@ -1,0 +1,8 @@
+{
+	"type":"KB.StructureField",
+	"result":"error",
+	"error-mssgs":["Object doesn't have required fields : [f], at /f"],
+	"instance": {
+		"f":{"hello":"34"}
+	}
+}

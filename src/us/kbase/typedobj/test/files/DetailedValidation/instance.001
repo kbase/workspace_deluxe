@@ -1,0 +1,9 @@
+{
+	"type":"KB.NotAType",
+	"result":"error",
+	"exception-class":"us.kbase.typedobj.exceptions.NoSuchTypeException",
+	"error-mssgs":[],
+	"instance": {
+		"f":"madeup"
+	}
+}

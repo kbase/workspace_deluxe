@@ -1,0 +1,8 @@
+{
+	"type":"KB.TupleField",
+	"result":"error",
+	"error-mssgs":["Array contains more than 4 items, at /f"],
+	"instance": {
+		"f":["tuple","tuple","tuple",12,12]
+	}
+}

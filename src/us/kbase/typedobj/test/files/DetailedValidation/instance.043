@@ -1,0 +1,11 @@
+{
+	"type":"KB.TupleField",
+	"result":"error",
+	"error-mssgs":[
+		"instance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /f/0",
+		"instance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /f/3"
+	],
+	"instance": {
+		"f":[12,"tuple","tuple","tuple"]
+	}
+}

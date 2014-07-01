@@ -1,0 +1,8 @@
+{
+	"type":"KB.StructureField",
+	"result":"error",
+	"error-mssgs":["instance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /f/f"],
+	"instance": {
+		"f":{"f":34}
+	}
+}
