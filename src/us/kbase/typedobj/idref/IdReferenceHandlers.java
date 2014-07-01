@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 
 public class IdReferenceHandlers<T> {
 	
-	//TODO unit tests
+	//TODO unit tests, docs
 	//TODO 1 test extraction of various types
 	
 	private final int maxUniqueIdCount;
@@ -54,7 +54,7 @@ public class IdReferenceHandlers<T> {
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
 		 */
-		public String getRemappedId(String oldId) throws NoSuchIdException;
+		public RemappedId getRemappedId(String oldId) throws NoSuchIdException;
 		/** Prevent addition of any more IDs.
 		 */
 		public void lock();
@@ -150,7 +150,7 @@ public class IdReferenceHandlers<T> {
 	 * @param oldId the original ID.
 	 * @return the new, remapped ID.
 	 */
-	public String getRemappedId(
+	public RemappedId getRemappedId(
 			final IdReferenceType idType,
 			final String oldId) {
 		if (idType == null || oldId == null) {

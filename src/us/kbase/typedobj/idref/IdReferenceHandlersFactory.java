@@ -18,6 +18,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
  * @param <T> the type of the object to be associated with IDs.
  */
 public class IdReferenceHandlersFactory {
+	
+	//TODO unit tests, docs
 
 	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
 			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();

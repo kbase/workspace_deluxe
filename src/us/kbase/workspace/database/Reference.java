@@ -1,6 +1,8 @@
 package us.kbase.workspace.database;
 
-public interface Reference {
+import us.kbase.typedobj.idref.RemappedId;
+
+public interface Reference extends RemappedId {
 	
 	public long getWorkspaceID();
 	public long getObjectID();

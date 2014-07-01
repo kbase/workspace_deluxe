@@ -9,7 +9,9 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 
 public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
@@ -46,7 +48,7 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
-		public String getRemappedId(String oldId) {
+		public RemappedId getRemappedId(String oldId) {
 			if (oldId == null) {
 				throw new NullPointerException();
 			}
@@ -56,7 +58,7 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (!idMapping.containsKey(oldId)) {
 				throw new IllegalArgumentException("No mapping for ID: " + oldId);
 			}
-			return idMapping.get(oldId);
+			return new DefaultRemappedId(idMapping.get(oldId));
 		}
 
 		@Override

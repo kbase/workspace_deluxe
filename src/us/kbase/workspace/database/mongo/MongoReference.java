@@ -41,11 +41,15 @@ public class MongoReference implements Reference {
 	public int getVersion() {
 		return version;
 	}
+
+	@Override
+	public String getId() {
+		return toString();
+	}
 	
 	@Override
 	public String toString() {
 		return workspaceID + ObjectIdentifier.REFERENCE_SEP + objectID +
 				ObjectIdentifier.REFERENCE_SEP + version;
 	}
-
 }

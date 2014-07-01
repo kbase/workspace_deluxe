@@ -133,7 +133,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		if (s != null && s.hasIdReference()) {
 			final IdReferenceType idType = s.getIdReferenceType();
 			if (handlers.hasHandler(idType)) {
-				return handlers.getRemappedId(idType, ret);
+				return handlers.getRemappedId(idType, ret).getId();
 			}
 		}
 		return ret;

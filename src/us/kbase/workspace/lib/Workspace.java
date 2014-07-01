@@ -53,6 +53,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -690,10 +691,13 @@ public class Workspace {
 				refs.add(newrefs.get(r.getId()));
 				replacerefs.put(r.getId(), newrefs.get(r.getId()).toString());
 			}*/
+			
+			//maintain ordering
 			for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
-					provrefs.add(idhandler.getRemappedId(WS_ID_TYPE, ref));
+					provrefs.add((Reference)
+							idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
 			}
 //			ttlObjSize += rep.setAbsoluteIdRefMapping(replacerefs);
@@ -1462,10 +1466,10 @@ public class Workspace {
 		
 		// associatedObject -> id -> list of attributes
 		// maybe should store strings instead of OIs to save memory
-		private final Map<T, Map<ObjectIdentifier, List<List<String>>>> ids =
-				new HashMap<T, Map<ObjectIdentifier,List<List<String>>>>();
-		private final Map<String, String> remapped =
-				new HashMap<String, String>();
+		private final Map<T, Map<ObjectIdentifier, Set<List<String>>>> ids =
+				new HashMap<T, Map<ObjectIdentifier, Set<List<String>>>>();
+		private final Map<String, RemappedId> remapped =
+				new HashMap<String, RemappedId>();
 		private boolean locked = false;
 		private boolean processed = false;
 		
@@ -1508,11 +1512,11 @@ public class Workspace {
 			}
 			if (!ids.containsKey(associatedObject)) {
 				ids.put(associatedObject,
-						new HashMap<ObjectIdentifier, List<List<String>>>());
+						new HashMap<ObjectIdentifier, Set<List<String>>>());
 			}
 			if (!ids.get(associatedObject).containsKey(id)) {
 				ids.get(associatedObject).put(oi,
-						new LinkedList<List<String>>());
+						new HashSet<List<String>>());
 			} else {
 				unique = false;
 			}
@@ -1544,7 +1548,7 @@ public class Workspace {
 					typeCheckReference(oi, wsresolvedids, objtypes, assObj);
 					final Reference ref = objtypes.get(
 							wsresolvedids.get(oi)).getReference();
-					remapped.put(oi.getIdentifierString(), ref.toString());
+					remapped.put(oi.getIdentifierString(), ref);
 				}
 			}
 		}
@@ -1555,7 +1559,7 @@ public class Workspace {
 				final Map<ObjectIDResolvedWS, TypeAndReference> objtypes,
 				final T assObj)
 				throws IdReferenceHandlerException {
-			final List<List<String>> typeSets = ids.get(assObj).get(oi);
+			final Set<List<String>> typeSets = ids.get(assObj).get(oi);
 			if (typeSets.isEmpty()) {
 				return;
 			}
@@ -1678,7 +1682,7 @@ public class Workspace {
 		//TODO 1 method to drop associations but keep mapping
 
 		@Override
-		public String getRemappedId(final String oldId)
+		public RemappedId getRemappedId(final String oldId)
 				throws NoSuchIdException {
 			if (!processed) {
 				throw new IllegalStateException(
