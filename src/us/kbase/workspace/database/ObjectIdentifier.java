@@ -91,8 +91,10 @@ public class ObjectIdentifier {
 	}
 	
 	public String getReferenceString() {
-		return getIdentifierString() + getWorkspaceIdentifierString() +
-				version == null ? "" : Integer.toString(version);
+		return getWorkspaceIdentifierString() + REFERENCE_SEP +
+				getIdentifierString() +
+				(version == null ? "" : REFERENCE_SEP +
+						Integer.toString(version));
 	}
 
 	public String getWorkspaceIdentifierString() {

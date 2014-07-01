@@ -133,11 +133,6 @@ public class TypedObjectValidationReport {
 		return errors;
 	}
 	
-	//TODO 1 probably remove this
-	public IdReferenceHandlers<?> getIdReferences() {
-		return idHandler;
-	}
-	
 	public Writable createJsonWritable() {
 		if (sorted == false && cacheForSorting == null &&
 				fileForSorting == null) {

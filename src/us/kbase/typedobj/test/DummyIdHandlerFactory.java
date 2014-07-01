@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.common.exceptions.UnimplementedException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
@@ -69,6 +70,11 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		@Override
 		public IdReferenceType getIdType() {
 			return type;
+		}
+
+		@Override
+		public Set<RemappedId> getRemappedIds(T associatedObject) {
+			throw new UnimplementedException();
 		}
 	}
 

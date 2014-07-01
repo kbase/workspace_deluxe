@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class IdReferenceHandlers<T> {
 	
@@ -44,17 +45,25 @@ public class IdReferenceHandlers<T> {
 		 */
 		public boolean addId(T associatedObject, String id,
 				List<String> attributes)
-				throws IdReferenceHandlerException,
+				throws IdParseException, IdReferenceHandlerException,
 				HandlerLockedException;
 		/** Perform any necessary batch processing of the IDs before
 		 * remapping and locks the handler.
 		 */
-		public void processIds() throws IdReferenceHandlerException;
+		public void processIds() throws IdParseException,
+				IdReferenceHandlerException;
 		/** Translate an ID to the remapped ID.
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
 		 */
 		public RemappedId getRemappedId(String oldId) throws NoSuchIdException;
+		
+		/** Get the set of remapped IDs associated with a particular object.
+		 * @param associatedObject the object to which the desired set of IDs
+		 * are associated.
+		 * @return the set of remapped IDs associated with an object.
+		 */
+		public Set<RemappedId> getRemappedIds(T associatedObject);
 		/** Prevent addition of any more IDs.
 		 */
 		public void lock();
@@ -164,6 +173,21 @@ public class IdReferenceHandlers<T> {
 		return handlers.get(idType).getRemappedId(oldId);
 	}
 	
+	public Set<RemappedId> getRemappedIds(
+			final IdReferenceType idType,
+			final T associatedObject) {
+		if (idType == null || associatedObject == null) {
+			throw new NullPointerException(
+					"idType and associatedObject can't be null");
+		}
+		if (!handlers.containsKey(idType)) {
+			throw new NoSuchIdReferenceHandlerException(
+					"There is no handler registered for the ID type " + 
+					idType.getType());
+		}
+		return handlers.get(idType).getRemappedIds(associatedObject);
+	}
+	
 	public IdReferenceHandlers<T> lock() {
 		locked = true;
 		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
@@ -264,6 +288,21 @@ public class IdReferenceHandlers<T> {
 		
 		public Object getAssociatedObject() {
 			return associatedObject;
+		}
+		
+	}
+	
+	@SuppressWarnings("serial")
+	public static class IdParseException extends IdReferenceHandlerException {
+
+		public IdParseException(
+				final String message,
+				final IdReferenceType idType,
+				final Object associatedObject,
+				final String id,
+				final List<String> idAttributes,
+				final Throwable cause) {
+			super(message, idType, associatedObject, id, idAttributes, cause);
 		}
 		
 	}

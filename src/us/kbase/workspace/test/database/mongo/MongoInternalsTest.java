@@ -36,7 +36,6 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.Workspace;
-import us.kbase.workspace.lib.WorkspaceIDHandlerFactory;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 

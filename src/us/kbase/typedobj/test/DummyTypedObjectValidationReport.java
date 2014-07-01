@@ -41,13 +41,6 @@ public class DummyTypedObjectValidationReport extends
 		return new ArrayList<String>();
 	}
 	
-	
-	//TODO 1 remove?
-	@Override
-	public IdReferenceHandlers<String> getIdReferences() {
-		return new IdReferenceHandlersFactory(6).createHandlers(String.class).lock();
-	}
-	
 	@Override
 	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
 		ObjectMapper mapper = new ObjectMapper();
