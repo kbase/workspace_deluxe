@@ -58,7 +58,7 @@ public class IdReference {
 	 * Get the location of the id in the enclosing object.
 	 * @return the location of the id in the enclosing object.
 	 */
-	public final String getLocation(final char pathsep) {
+	public final String getLocation() {
 		return location.getFullLocationAsString();
 	}
 	

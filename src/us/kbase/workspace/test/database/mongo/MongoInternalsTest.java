@@ -110,9 +110,8 @@ public class MongoInternalsTest {
 		data1.put("foo", 3);
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(new IdReferenceType("ws"),
-				new WorkspaceIDHandlerFactory(userfoo, ws,
-						new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(userfoo,
+				new DefaultReferenceParser()));
 		
 		for (int i = 1; i < 5; i++) {
 			for (int j = 0; j < 4; j++) {

@@ -33,9 +33,9 @@ public class IdReferenceHandlers<T> {
 	public interface IdReferenceHandler<T> {
 		
 		/** Add an id to the handler
-		 * @param an object associated with the ID.
+		 * @param associatedObject an object associated with the ID.
 		 * @param id the id.
-		 * @param the attributes of the ID.
+		 * @param attributes the attributes of the ID.
 		 * @return boolean if this is a unique ID (on a per associated object
 		 * basis) stored in memory and thus should count towards the maximum ID
 		 * limit.
@@ -238,9 +238,9 @@ public class IdReferenceHandlers<T> {
 				final List<String> idAttributes,
 				final Throwable cause) {
 			super(message, cause);
-			if (message == null || idType == null || cause == null) {
+			if (message == null || idType == null) {
 				throw new NullPointerException(
-						"message, idType, and cause, cannot be null");
+						"message and idType cannot be null");
 			}
 			this.id = id;
 			this.idType = idType;
