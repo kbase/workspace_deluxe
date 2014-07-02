@@ -64,7 +64,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			//printMem("*** created object ***");
 			UObject data = new UObject(tempFile);
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
-					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
+					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
+					getIdFactory(userfoo));
 		} finally {
 			tempFile.delete();
 		}
@@ -162,9 +163,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			refs.put("tenKrefs/auto" + i, "expected " + i);
 			expectedRefs.add(wsid + "/" + i + "/" + 1);
 		}
-		ws.saveObjects(userfoo, wspace, wsos);
+		ws.saveObjects(userfoo, wspace, wsos, getIdFactory(userfoo));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)));
+				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)),
+				getIdFactory(userfoo));
 		
 		WorkspaceObjectData wod = ws.getObjects(userfoo,
 				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
@@ -211,7 +213,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			subdata.add(test);
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
+				getIdFactory(userfoo));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
@@ -227,7 +230,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data.clear();
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)));
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
+				getIdFactory(userfoo));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
@@ -247,7 +251,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
 				null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs);
+		ws.saveObjects(user, wsi, objs, getIdFactory(user));
 		
 		//this depends on the natural sort order of mongo
 		checkObjectPagination(user, wsi, -1, 0, 1, 10000);

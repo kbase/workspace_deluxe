@@ -24,6 +24,7 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -32,6 +33,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -80,8 +82,10 @@ public class GetObjectsLibSpeedTest {
 		ws.createWorkspace(user, "fake", false, null, null);
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("fake");
 		TypeDefId td = new TypeDefId(new TypeDefName(module, type));
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(1);
+		fac.addFactory(ws.getHandlerFactory(user, new KBaseReferenceParser()));
 		ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)));
+				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)), fac);
 		o = null;
 		
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");

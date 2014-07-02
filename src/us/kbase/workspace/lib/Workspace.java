@@ -564,6 +564,7 @@ public class Workspace {
 		
 		int objcount = 1;
 		
+		//TODO 1 test max id limit
 		//stage 1: validate & extract & parse references
 		final IdReferenceHandlers<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
@@ -1607,33 +1608,30 @@ public class Workspace {
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids =
 					resolveIDs(idset);
 			
-			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
-			objtypes = getObjectTypes(wsresolvedids);
+			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes =
+					getObjectTypes(wsresolvedids);
 
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = parser.parse(id);
-					typeCheckReference(oi, wsresolvedids, objtypes, assObj);
-					final Reference ref = objtypes.get(
-							wsresolvedids.get(oi)).getReference();
-					remapped.put(id, ref);
+					final TypeAndReference tnr =
+							objtypes.get(wsresolvedids.get(oi));
+					typeCheckReference(id, tnr.getType(), assObj);
+					remapped.put(id, tnr.getReference());
 				}
 			}
 		}
 
 		private void typeCheckReference(
-				final ObjectIdentifier oi,
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids,
-				final Map<ObjectIDResolvedWS, TypeAndReference> objtypes,
+				final String id,
+				final AbsoluteTypeDefId type,
 				final T assObj)
 				throws IdReferenceException {
 			final Set<List<String>> typeSets = ids.get(assObj)
-					.get(oi.getReferenceString());
+					.get(id);
 			if (typeSets.isEmpty()) {
 				return;
 			}
-			final AbsoluteTypeDefId type = objtypes.get(wsresolvedids.get(oi))
-					.getType();
 			for (final List<String> allowed: typeSets) {
 				final List<TypeDefName> allowedTypes =
 						new ArrayList<TypeDefName>();
@@ -1646,9 +1644,9 @@ public class Workspace {
 							"in this object is not " +
 							"allowed. Allowed types are: %s",
 							type.getTypeString(),
-							oi.getReferenceString(), allowed),
+							id, allowed),
 							getIdType(), assObj,
-							oi.getReferenceString(), allowed, null);
+							id, allowed, null);
 				}
 			}
 		}
