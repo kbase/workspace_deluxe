@@ -215,18 +215,19 @@ public class DetailedValidationTest {
 		
 
 		if(VERBOSE) System.out.println("  -TEST ("+resource.resourceName+") - instance of '"+typeName+"' expected result: "+expectedResult+".");
-		// actually perform the test and verify we 
+		// actually perform the test and verify we get what is expected
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		IdReferenceHandlers<String> idhandlers = fac.createHandlers(String.class);
-		idhandlers.associateObject("foo");
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
+		IdReferenceHandlers<String> handler = fac.createHandlers(String.class);
+		handler.associateObject("foo");
 		
 		try {
 			TypedObjectValidationReport report = 
 				validator.validate(
 					instance,
 					new TypeDefId(new TypeDefName(typeTokens[0],typeTokens[1])),
-					idhandlers);
+					handler
+					);
 			
 			// if we expected to pass, we must pass without any error messages
 			if(expectedResult.equals("pass")) {

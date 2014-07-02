@@ -246,7 +246,7 @@ public class JsonTokenValidationSchema {
 						// every time we here we expect next field since rest of this loop is for 
 						// processing of value for this field
 						throw new JsonTokenValidationException(
-								"Object field name is expected but found "
+								"Object field name is expected but found, "
 								+ t + " at " + path.getFullLocationAsString());
 					}
 					// name of object field (key of mapping)
@@ -266,7 +266,7 @@ public class JsonTokenValidationSchema {
 								lst.addError("Object field name [" +
 										fieldName + "] is not in allowed " +
 										"object properties: " +
-										objectProperties.keySet() + " at " +
+										objectProperties.keySet() + ", at " +
 										path.getFullLocationAsString());
 						}
 						childType = objectAdditionalPropertiesType;
@@ -298,7 +298,7 @@ public class JsonTokenValidationSchema {
 						if (!reqPropUsage[entry.getValue()])
 							absentProperties.add(entry.getKey());
 					lst.addError("Object doesn't have required fields : " +
-							absentProperties + " at " +
+							absentProperties + ", at " +
 							path.getLocationOfContainerAsString());
 				}
 			} finally {
@@ -324,7 +324,7 @@ public class JsonTokenValidationSchema {
 					if (arrayMaxItems != null && itemPos > arrayMaxItems) {
 						// too many items in real data comparing to limitation in json schema
 						lst.addError("Array contains more than " +
-								arrayMaxItems + " items at " +
+								arrayMaxItems + " items, at " +
 								path.getLocationOfContainerAsString());
 						skipAll = true;
 					}
@@ -352,7 +352,7 @@ public class JsonTokenValidationSchema {
 				// check if we have too less items than we define in schema limitations (if any)
 				if (arrayMinItems != null && itemPos < arrayMinItems)
 					lst.addError("Array contains less than " + arrayMinItems +
-							" items at " + path.getLocationOfContainerAsString());
+							" items, at " + path.getLocationOfContainerAsString());
 			} finally {
 				// shift depth of path by 1 level up (closer to root)
 				path.removeLast();
