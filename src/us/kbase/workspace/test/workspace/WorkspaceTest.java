@@ -1121,10 +1121,6 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)),
 				getIdFactory(userfoo));
 		innerMap.put(null, "foo");
-		//TODO 1 remove below, temp
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)),
-				getIdFactory(userfoo));
 		
 		failSave(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -228,6 +229,16 @@ public final class TypedObjectValidator {
 				ex.printStackTrace();
 			}
 			mapErrors(errors, ex.getMessage());
+		} catch (IllegalArgumentException iae) {
+			if (iae.getCause() instanceof JsonGenerationException) {
+				//thrown if there's a null map key by Jackson
+				if (VERBOSE_EXCEPTIONS) {
+					iae.printStackTrace();
+				}
+				mapErrors(errors, iae.getMessage());
+			} else {
+				throw iae;
+			}
 		}
 
 		return new TypedObjectValidationReport(
