@@ -184,7 +184,7 @@ public final class TypedObjectValidator {
 		final JsonNode [] metadataSelection = new JsonNode[] {null};
 		try {
 			if (!schema.getOriginalType().equals("kidl-structure"))
-				throw new IllegalStateException(
+				throw new JsonTokenValidationException(
 						"Data of type other than structure couldn't be stored in workspace");
 			JsonTokenStream jts = obj.getPlacedStream();
 			try {
