@@ -220,7 +220,7 @@ public class WorkspaceTester {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null, tfm);
 		}
-		Workspace work = new Workspace(wsdb, new DefaultReferenceParser(),
+		Workspace work = new Workspace(wsdb,
 				new ResourceUsageConfigurationBuilder().build());
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =

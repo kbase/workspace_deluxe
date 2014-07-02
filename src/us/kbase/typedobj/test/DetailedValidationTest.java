@@ -29,7 +29,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -39,6 +38,8 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -215,12 +216,17 @@ public class DetailedValidationTest {
 
 		if(VERBOSE) System.out.println("  -TEST ("+resource.resourceName+") - instance of '"+typeName+"' expected result: "+expectedResult+".");
 		// actually perform the test and verify we 
+		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlers<String> idhandlers = fac.createHandlers(String.class);
+		idhandlers.associateObject("foo");
+		
 		try {
 			TypedObjectValidationReport report = 
 				validator.validate(
 					instance,
-					new TypeDefId(new TypeDefName(typeTokens[0],typeTokens[1]))
-					);
+					new TypeDefId(new TypeDefName(typeTokens[0],typeTokens[1])),
+					idhandlers);
 			
 			// if we expected to pass, we must pass without any error messages
 			if(expectedResult.equals("pass")) {

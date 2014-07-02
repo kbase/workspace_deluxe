@@ -42,7 +42,6 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
-import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -161,7 +160,7 @@ public class ConfigurationsAndThreads {
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
 				password, TempFilesManager.forTests(), 0),
-				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
@@ -463,7 +462,7 @@ public class ConfigurationsAndThreads {
 		public WorkspaceLibShock() throws Exception {
 			super();
 			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests(), 0),
-					new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
+					new ResourceUsageConfigurationBuilder().build());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);

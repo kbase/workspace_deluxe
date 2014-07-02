@@ -1,6 +1,5 @@
 package performance;
 
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -26,7 +25,6 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -68,7 +66,7 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, shockuser);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, TempFilesManager.forTests(), 0),
-				new DefaultReferenceParser(), new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build());
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, module);

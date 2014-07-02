@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 
 /**

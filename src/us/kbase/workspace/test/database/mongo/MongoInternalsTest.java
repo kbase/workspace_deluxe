@@ -22,7 +22,6 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
-import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -67,7 +66,7 @@ public class MongoInternalsTest {
 			mwdb = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
 					kidlpath, null, TempFilesManager.forTests());
 		}
-		ws = new Workspace(mwdb, new DefaultReferenceParser(),
+		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build());
 		assertTrue("GridFS backend setup failed", ws.getBackendType().equals("GridFS"));
 
