@@ -21,6 +21,7 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -581,7 +582,7 @@ public class Workspace {
 					wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
 						idhandler.addId(new IdReference(WS_ID_TYPE, pref, null,
-								null));
+								new JsonDocumentLocation())); //TODO 1 get rid of path in JsonDocumentLocation
 						//processRef(provRefToOid, provOidToObject, data, pref, true);
 					}
 				}
@@ -600,15 +601,32 @@ public class Workspace {
 		idhandler.lock();
 		try {
 			idhandler.processIDs();
-		} catch (IdReferenceHandlerException e) {
-			if (e.getCause() instanceof WorkspaceCommunicationException) {
-				throw (WorkspaceCommunicationException) e.getCause();
-			} else if (e.getCause() instanceof CorruptWorkspaceDBException) {
-				throw (CorruptWorkspaceDBException) e.getCause();
+		} catch (IdParseException ipe) {
+			final IDAssociation idloc =
+					(IDAssociation) ipe.getAssociatedObject();
+			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has unparseable %sreference %s: %s",
+					getObjectErrorId(wo, idloc.objnum),
+					(idloc.provenance ? "provenance " : ""),
+					ipe.getId(), ipe.getLocalizedMessage()), ipe);
+					//TODO 1 add path
+			
+		} catch (IdReferenceHandlerException irhe) {
+			if (irhe.getCause() instanceof WorkspaceCommunicationException) {
+				throw (WorkspaceCommunicationException) irhe.getCause();
+			} else if (irhe.getCause() instanceof CorruptWorkspaceDBException) {
+				throw (CorruptWorkspaceDBException) irhe.getCause();
 			} else {
-				//TODO 1 throw TypedObject exception wrapping e
-				//TODO 1 get path from object data and add to exception
-				//TODO 1 catch IDparse exception
+				final IDAssociation idloc =
+						(IDAssociation) irhe.getAssociatedObject();
+				final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
+				throw new TypedObjectValidationException(String.format(
+						"Object %s has invalid %sreference: %s",
+						getObjectErrorId(wo, idloc.objnum),
+						(idloc.provenance ? "provenance " : ""),
+						irhe.getLocalizedMessage()), irhe);
+				//TODO 1 add path
 			}
 		}
 		/*
@@ -1575,9 +1593,7 @@ public class Workspace {
 						oi = parser.parse(id);
 						//Illegal arg is probably not the right exception
 					} catch (IllegalArgumentException iae) {
-						throw new IdParseException(
-								"Couldn't parse ID " + id + ": " +
-										iae.getMessage(),
+						throw new IdParseException(iae.getMessage(),
 								getIdType(), assObj, id, null, iae);
 					}
 					idset.add(oi);
@@ -1694,7 +1710,7 @@ public class Workspace {
 		private IdReferenceHandlerException
 				generateInaccessibleObjectException(
 				final InaccessibleObjectException ioe) {
-			String exception = "No read access to embedded object id: ";
+			String exception = "No read access to id ";
 			return generateInaccessibleObjectException(ioe,
 					ioe.getInaccessibleObject(), exception);
 		}
@@ -1704,7 +1720,7 @@ public class Workspace {
 				final NoSuchObjectException ioe,
 				final ObjectIdentifier originalObject) {
 			String exception =
-					"There is no such object with embedded id: ";
+					"There is no such object with id ";
 			return generateInaccessibleObjectException(ioe, originalObject,
 					exception);
 		}
@@ -1718,7 +1734,7 @@ public class Workspace {
 				for (final String id: ids.get(assObj).keySet()) {
 					if (id.equals(originalObject.getReferenceString())) {
 						e = new IdReferenceHandlerException(
-								exception + id,
+								exception + id + ": " + ioe.getMessage(),
 								getIdType(), assObj,
 								id, null, ioe);
 					}

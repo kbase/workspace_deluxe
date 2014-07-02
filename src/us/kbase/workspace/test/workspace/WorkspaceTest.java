@@ -1083,6 +1083,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
+		//TODO 1 should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -1400,12 +1401,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+						"Object #1 has invalid reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
 		Provenance nowsref = new Provenance(userfoo);
 		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, nowsref,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible provenance reference thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+						"Object #1 has invalid provenance reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
 		
 		ws.createWorkspace(userfoo, "tobedeleted", false, null, null);
 		ws.setWorkspaceDeleted(userfoo, new WorkspaceIdentifier("tobedeleted"), true);
