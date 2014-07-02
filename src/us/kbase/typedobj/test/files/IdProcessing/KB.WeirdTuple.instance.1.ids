@@ -1,13 +1,11 @@
 {
-	"ids-expected":[
-			"id"
-		],
 	"ids-relabel":{
 		"id": "idremap"
 		},
 	"renamed-expected": 
 		{
-			"t": ["idremap", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}],
+			"also_not_typechecked": ["id", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}],
+			"t": ["idremap", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}, "idremap"],
 			"not_typechecked": ["id", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}]
 		}
 

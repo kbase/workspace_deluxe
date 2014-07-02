@@ -11,6 +11,7 @@ DEV_SCRIPT_URL = http://dev04.berkeley.kbase.us:$(SERVICE_PORT)
 #End of user defined variables
 
 GITCOMMIT := $(shell git rev-parse --short HEAD)
+#TODO use --points-at when git 1.7.10 available 
 TAGS := $(shell git tag --contains $(GITCOMMIT))
 
 TOP_DIR = $(shell python -c "import os.path as p; print p.abspath('../..')")

@@ -84,6 +84,7 @@ public class ShockBackend implements BlobStore {
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
+		//TODO check that a few nodes exist to ensure we're pointing at the right Shock instance
 	}
 	
 	private AuthToken getToken() throws BlobStoreAuthorizationException,
@@ -99,11 +100,13 @@ public class ShockBackend implements BlobStore {
 					"Could not connect to the shock backend auth provider: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
+		//TODO check that expiry time is at least X in the future
 		return u.getToken();
 	}
 	
 	private void checkAuth() throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
+		//TODO check if token expiry is in X amount of time, if so get a new token
 		if(client.isTokenExpired()) {
 			try {
 				client.updateToken(getToken());

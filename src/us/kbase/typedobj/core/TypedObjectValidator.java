@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -14,7 +16,9 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.IdReferenceSet;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -100,12 +104,18 @@ public final class TypedObjectValidator {
 	 * @throws TypeStorageException 
 	 * @throws TypedObjectValidationException 
 	 * @throws TypedObjectSchemaException 
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
+	 * @throws IOException 
+	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final String instance,
-			final TypeDefId type)
+			final TypeDefId type, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
-			TypedObjectSchemaException {
+			TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
@@ -117,7 +127,7 @@ public final class TypedObjectValidator {
 		}
 		
 		// validate and return the report
-		return validate(instanceRootNode, type);
+		return validate(instanceRootNode, type, handlers);
 	}
 	
 	/**
@@ -132,11 +142,17 @@ public final class TypedObjectValidator {
 	 * @throws NoSuchTypeException
 	 * @throws TypeStorageException
 	 * @throws TypedObjectSchemaException 
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
+	 * @throws IOException 
+	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
-			final TypeDefId typeDefId)
+			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectSchemaException {
+			TypeStorageException, TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		final UObject obj;
 		try {
 			obj = new UObject(new JsonTokenStream(instanceRootNode), null);
@@ -147,19 +163,20 @@ public final class TypedObjectValidator {
 					"already parsed JSON in memory caused a parsing " +
 					"exception: " + ex.getMessage(), ex);
 		}
-		return validate(obj, typeDefId);
+		return validate(obj, typeDefId, handlers);
 	}
 	
 	public TypedObjectValidationReport validate(final UObject obj,
-			final TypeDefId typeDefId)
+			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectSchemaException {
+			TypeStorageException, TypedObjectSchemaException,
+			TooManyIdsException, IdReferenceHandlerException,
+			JsonParseException, IOException {
 		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
 		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
-		final IdReferenceSet ids = new IdReferenceSet();
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		
@@ -168,7 +185,7 @@ public final class TypedObjectValidator {
 		final JsonNode [] metadataSelection = new JsonNode[] {null};
 		try {
 			if (!schema.getOriginalType().equals("kidl-structure"))
-				throw new IllegalStateException(
+				throw new JsonTokenValidationException(
 						"Data of type other than structure couldn't be stored in workspace");
 			JsonTokenStream jts = obj.getPlacedStream();
 			try {
@@ -185,9 +202,13 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addIdRefMessage(IdReference ref) {
+					public void addIdRefMessage(IdReference ref)
+							throws TooManyIdsException,
+							IdReferenceHandlerException {
 						//TODO 1 limit ID count to 100K IDs in memory
-						ids.addId(ref);
+						if (handlers.hasHandler(ref.getType())) {
+							handlers.addId(ref);
+						}
 					}
 
 					@Override
@@ -203,11 +224,21 @@ public final class TypedObjectValidator {
 			} finally {
 				try { jts.close(); } catch (Exception ignore) {}
 			}
-		} catch (Exception ex) {
+		} catch (JsonTokenValidationException ex) {
 			if (VERBOSE_EXCEPTIONS) {
 				ex.printStackTrace();
 			}
 			mapErrors(errors, ex.getMessage());
+		} catch (IllegalArgumentException iae) {
+			if (iae.getCause() instanceof JsonGenerationException) {
+				//thrown if there's a null map key by Jackson
+				if (VERBOSE_EXCEPTIONS) {
+					iae.printStackTrace();
+				}
+				mapErrors(errors, iae.getMessage());
+			} else {
+				throw iae;
+			}
 		}
 
 		return new TypedObjectValidationReport(
@@ -217,7 +248,7 @@ public final class TypedObjectValidator {
 									wsSubsetSelection[0], 
 									metadataSelection[0],
 									schema,
-									ids.lock());
+									handlers);
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {

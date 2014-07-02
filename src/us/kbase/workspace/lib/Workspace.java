@@ -15,10 +15,13 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -41,8 +44,19 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
-import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdParseException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.NoSuchIdException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -101,8 +115,10 @@ public class Workspace {
 	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
 	
-	public Workspace(final WorkspaceDatabase db,
-			final ReferenceParser refparse, ResourceUsageConfiguration cfg) {
+	public Workspace(
+			final WorkspaceDatabase db,
+			final ReferenceParser refparse,
+			final ResourceUsageConfiguration cfg) {
 		if (db == null) {
 			throw new IllegalArgumentException("db cannot be null");
 		}
@@ -243,8 +259,8 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-				rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted,
-						allowMissing);
+			rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted,
+					allowMissing);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
@@ -448,6 +464,12 @@ public class Workspace {
 		return db.getBackendType();
 	}
 	
+	private static String getObjectErrorId(final WorkspaceSaveObject wo,
+			final int objcount) {
+		final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
+		return getObjectErrorId(oid, objcount);
+	}
+	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
 			final int objcount) {
 		String objErrId = "#" + objcount;
@@ -468,9 +490,53 @@ public class Workspace {
 		}
 	}
 	
-	public List<ObjectInformation> saveObjects(final WorkspaceUser user,
+	private static class IDAssociation {
+		final int objnum;
+		final boolean provenance;
+		
+		public IDAssociation(int objnum, boolean provenance) {
+			super();
+			this.objnum = objnum;
+			this.provenance = provenance;
+		}
+
+		@Override
+		public String toString() {
+			return "IDAssociation [objnum=" + objnum + ", provenance="
+					+ provenance + "]";
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + objnum;
+			result = prime * result + (provenance ? 1231 : 1237);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			IDAssociation other = (IDAssociation) obj;
+			if (objnum != other.objnum)
+				return false;
+			if (provenance != other.provenance)
+				return false;
+			return true;
+		}
+	}
+	
+	public List<ObjectInformation> saveObjects(
+			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
-			List<WorkspaceSaveObject> objects) throws
+			List<WorkspaceSaveObject> objects,
+			final IdReferenceHandlersFactory idHandlerFac) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
@@ -483,65 +549,98 @@ public class Workspace {
 				"write to");
 		final TypedObjectValidator val = db.getTypeValidator();
 		//this method must maintain the order of the objects
-		final Map<String, ObjectIdentifier> refToOid =
-				new HashMap<String, ObjectIdentifier>();
-		final Map<String, ObjectIdentifier> provRefToOid =
-				new HashMap<String, ObjectIdentifier>();
+//		final Map<String, ObjectIdentifier> refToOid =
+//				new HashMap<String, ObjectIdentifier>();
+//		final Map<String, ObjectIdentifier> provRefToOid =
+//				new HashMap<String, ObjectIdentifier>();
 		final Map<WorkspaceSaveObject, TempObjectData> reports = 
 				new HashMap<WorkspaceSaveObject, TempObjectData>();
 		//note these only contains the first object encountered with the ref.
 		// For error reporting purposes only
-		final Map<ObjectIdentifier, TempObjectData> oidToObject =
-				new HashMap<ObjectIdentifier, TempObjectData>();
-		final Map<ObjectIdentifier, TempObjectData> provOidToObject =
-				new HashMap<ObjectIdentifier, TempObjectData>();
+//		final Map<ObjectIdentifier, TempObjectData> oidToObject =
+//				new HashMap<ObjectIdentifier, TempObjectData>();
+//		final Map<ObjectIdentifier, TempObjectData> provOidToObject =
+//				new HashMap<ObjectIdentifier, TempObjectData>();
 		
 		int objcount = 1;
 		
+		//TODO 1 test max id limit
 		//stage 1: validate & extract & parse references
+		final IdReferenceHandlers<IDAssociation> idhandler =
+				idHandlerFac.createHandlers(IDAssociation.class);
 		for (WorkspaceSaveObject wo: objects) {
-			final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
-			final String objerrid = getObjectErrorId(oid, objcount);
-			final TypedObjectValidationReport rep;
-			try {
-				rep = val.validate(wo.getData(), wo.getType());
-			} catch (NoSuchTypeException nste) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid)
-						+ nste.getLocalizedMessage(), nste);
-			} catch (NoSuchModuleException nsme) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid)
-						+ nsme.getLocalizedMessage(), nsme);
-			}
-			if (!rep.isInstanceValid()) {
-				final List<String> e = rep.getErrorMessages();
-				final String err = StringUtils.join(e, "\n");
-				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking:\n", objerrid) + err);
-			}
+			idhandler.associateObject(new IDAssociation(objcount, false));
+			final TypedObjectValidationReport rep = validate(wo, val,
+					idhandler, objcount);
 			final TempObjectData data = new TempObjectData(wo, rep, objcount);
-			for (final IdReference ref: rep.getIdReferences()
-					.getIds(WS_ID_TYPE)) {
-				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
-						false);
-			}
-			for (final Provenance.ProvenanceAction action:
-				wo.getProvenance().getActions()) {
-				for (final String pref: action.getWorkspaceObjects()) {
-					processRef(provRefToOid, provOidToObject, objerrid, data,
-							pref, true);
+//			for (final IdReference ref: rep.getIdReferences()
+//					.getIds(WS_ID_TYPE)) {
+//				processRef(refToOid, oidToObject, objerrid, data, ref.getId(),
+			//						false);
+			//			}
+			idhandler.associateObject(new IDAssociation(objcount, true));
+			try {
+				for (final Provenance.ProvenanceAction action:
+					wo.getProvenance().getActions()) {
+					for (final String pref: action.getWorkspaceObjects()) {
+						idhandler.addId(new IdReference(WS_ID_TYPE, pref, null,
+								new JsonDocumentLocation())); //TODO 1 get rid of path in JsonDocumentLocation
+						//processRef(provRefToOid, provOidToObject, data, pref, true);
+					}
 				}
+			} catch (IdReferenceHandlerException ihre) {
+				throw new TypedObjectValidationException(String.format(
+						"Object %s failed type checking ",
+						getObjectErrorId(wo, objcount)) + 
+						"- a provenance ID could not be processed: "
+						+ ihre.getMessage(), ihre);
+			} catch (TooManyIdsException tmie) {
+				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
 			reports.put(wo, data);
 			objcount++;
 		}
-		
+		idhandler.lock();
+		try {
+			idhandler.processIDs();
+		} catch (IdParseException ipe) {
+			final IDAssociation idloc =
+					(IDAssociation) ipe.getAssociatedObject();
+			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has unparseable %sreference %s: %s",
+					getObjectErrorId(wo, idloc.objnum),
+					(idloc.provenance ? "provenance " : ""),
+					ipe.getId(), ipe.getLocalizedMessage()), ipe);
+					//TODO 1 add path
+		} catch (IdReferenceException ire) {
+			final IDAssociation idloc =
+					(IDAssociation) ire.getAssociatedObject();
+			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has invalid %sreference: %s",
+					getObjectErrorId(wo, idloc.objnum),
+					(idloc.provenance ? "provenance " : ""),
+					ire.getLocalizedMessage()), ire);
+			//TODO 1 add path
+		} catch (IdReferenceHandlerException irhe) {
+			if (irhe.getCause() instanceof WorkspaceCommunicationException) {
+				throw (WorkspaceCommunicationException) irhe.getCause();
+			} else if (irhe.getCause() instanceof CorruptWorkspaceDBException) {
+				throw (CorruptWorkspaceDBException) irhe.getCause();
+			} else {
+				throw new TypedObjectValidationException(
+						"An error occured while processing IDs: " +
+						irhe.getLocalizedMessage(), irhe);
+			}
+		}
+		/*
 		//stage 2: resolve references and get types
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
 		final Set<ObjectIdentifier> allOids =
-				new HashSet<ObjectIdentifier>(oidToObject.keySet());
-		allOids.addAll(provOidToObject.keySet());
+				new HashSet<ObjectIdentifier>(provOidToObject.keySet());
+//				new HashSet<ObjectIdentifier>(oidToObject.keySet());
+//		allOids.addAll(provOidToObject.keySet());
 		if (!allOids.isEmpty()) {
 			try {
 				wsresolvedids = checkPerms(user, 
@@ -549,6 +648,7 @@ public class Workspace {
 						Permission.READ, "read");
 			} catch (InaccessibleObjectException ioe) {
 				final TypedObjectValidationException tove =
+						//TODO 1 remove refToOid and oidToObject
 						generateInaccessibleObjectException(refToOid,
 								oidToObject, provRefToOid, provOidToObject,
 								ioe, ioe.getInaccessibleObject());
@@ -575,6 +675,7 @@ public class Workspace {
 					}
 				}
 				final TypedObjectValidationException tove =
+						//TODO 1 remove refToOid and oidToObject
 						generateInaccessibleObjectException(refToOid,
 								oidToObject, provRefToOid, provOidToObject,
 								nsoe, oi);
@@ -586,6 +687,11 @@ public class Workspace {
 		
 		oidToObject.clear();
 		provOidToObject.clear();
+		
+		//temp to make code compile
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids = new HashMap<ObjectIdentifier,
+				ObjectIDResolvedWS>();
+		final Map<ObjectIDResolvedWS, TypeAndReference> objtypes = new HashMap<ObjectIDResolvedWS, TypeAndReference>();
 		
 		//stage 3: rewrite references
 		final Map<String, Reference> newrefs = new HashMap<String, Reference>();
@@ -606,17 +712,18 @@ public class Workspace {
 		wsresolvedids.clear();
 		objtypes.clear();
 		refToOid.clear();
-		provRefToOid.clear();
+		provRefToOid.clear();*/
 		
 		final List<ResolvedSaveObject> saveobjs =
 				new ArrayList<ResolvedSaveObject>();
 		long ttlObjSize = 0;
 		for (WorkspaceSaveObject wo: objects) {
 			final TypedObjectValidationReport rep = reports.get(wo).rep;
-			final Map<String, String> replacerefs =
-					new HashMap<String, String>();
-			final Set<Reference> refs = new HashSet<Reference>();
-			final List<Reference> provrefs = new LinkedList<Reference>();
+			final int order = reports.get(wo).order; 
+//			final Map<String, String> replacerefs =
+//					new HashMap<String, String>();
+//			final Set<Reference> refs = new HashSet<Reference>();
+			final List<Reference> provrefs = new LinkedList<Reference>();/*
 			for (final IdReference r: rep.getIdReferences().getIds(WS_ID_TYPE)) {
 				final Set<TypeDefName> allowedTypes = new HashSet<TypeDefName>();
 				for (final String a: r.getAttributes()) {
@@ -639,20 +746,33 @@ public class Workspace {
 				}
 				refs.add(newrefs.get(r.getId()));
 				replacerefs.put(r.getId(), newrefs.get(r.getId()).toString());
-			}
+			}*/
+			
+			//maintain ordering
 			for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
-					provrefs.add(newrefs.get(ref));
+					provrefs.add((Reference)
+							idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
 			}
-			ttlObjSize += rep.setAbsoluteIdRefMapping(replacerefs);
+//			ttlObjSize += rep.setAbsoluteIdRefMapping(replacerefs);
+//			saveobjs.add(wo.resolve(rep, refs, provrefs));
+//			final 
+			final Set<RemappedId> refids = idhandler.getRemappedIds(
+					WS_ID_TYPE,  new IDAssociation(order, false));
+			final Set<Reference> refs = new HashSet<Reference>();
+			for (final RemappedId id: refids) {
+				refs.add((Reference) id);
+			}
+			
 			saveobjs.add(wo.resolve(rep, refs, provrefs));
+			ttlObjSize += rep.getRelabeledSize();
 		}
-		objects = null; // don't screw with the input, but release to gc
+		objects = null;
 		reports.clear();
-		reftypes.clear();
-		newrefs.clear();
+//		reftypes.clear();
+//		newrefs.clear();
 		
 		objcount = 1;
 		final TempFilesManager tempTFM;
@@ -685,12 +805,69 @@ public class Workspace {
 		}
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
+	
+
+	private TypedObjectValidationReport validate(
+			final WorkspaceSaveObject wo,
+			final TypedObjectValidator val,
+			final IdReferenceHandlers<IDAssociation> idhandler,
+			final int objcount)
+			throws TypeStorageException,
+			TypedObjectSchemaException, JsonParseException, IOException,
+			TypedObjectValidationException {
+		final TypedObjectValidationReport rep;
+		try {
+			rep = val.validate(wo.getData(), wo.getType(), idhandler);
+		} catch (NoSuchTypeException nste) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount))
+					+ nste.getLocalizedMessage(), nste);
+		} catch (NoSuchModuleException nsme) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount))
+					+ nsme.getLocalizedMessage(), nsme);
+		} catch (TooManyIdsException e) { //TODO 1 test
+			throw wrapTooManyIDsException(objcount, idhandler, e);
+		} catch (IdReferenceHandlerException e) {
+			//TODO 1 find path
+			//TODO 1 catch ID parse exception and ID reference exception
+			//TODO 1 can't assume e fields are not null
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking ",
+					getObjectErrorId(wo, objcount)) + 
+					"- an embedded ID could not be processed: "
+					+ e.getMessage(), e);
+		}
+		if (!rep.isInstanceValid()) {
+			final List<String> e = rep.getErrorMessages();
+			final String err = StringUtils.join(e, "\n");
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking:\n",
+					getObjectErrorId(wo, objcount)) + err);
+		}
+		//TODO 1 catch Json and IO exception and wrap in type val exception, note as fatal
+		return rep;
+	}
+	
+	private TypedObjectValidationException wrapTooManyIDsException(
+			final int objcount,
+			final IdReferenceHandlers<IDAssociation> idhandler,
+			final TooManyIdsException e) {
+		return new TypedObjectValidationException(String.format(
+				"Failed type checking at object #%s - the number of " +
+				"IDs in the saved objects exceeds the maximum " +
+				"allowed, %s",
+				objcount, idhandler.getMaximumIdCount()), e);
+	}
 
 	private void processRef(final Map<String, ObjectIdentifier> refToOid,
 			final Map<ObjectIdentifier, TempObjectData> oidToObject,
-			final String objerrid, final TempObjectData data, final String ref,
+			final TempObjectData data, final String ref,
 			final boolean provenance)
 			throws TypedObjectValidationException {
+		//TODO 1 don't need to make this work for either prov or refs 
 		try {
 			if (!refToOid.containsKey(ref)) {
 				final ObjectIdentifier oi = refparse.parse(ref);
@@ -700,8 +877,8 @@ public class Workspace {
 		} catch (IllegalArgumentException iae) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s has unparseable %sreference %s: %s",
-					objerrid, provenance ? "provenance " : "", ref,
-							iae.getLocalizedMessage(), iae));
+					getObjectErrorId(data.wo, data.order), provenance ? "provenance " : "", ref,
+							iae.getLocalizedMessage()), iae);
 		}
 	}
 
@@ -736,7 +913,7 @@ public class Workspace {
 		final TypedObjectValidationException tove =
 				new TypedObjectValidationException(String.format(
 				"Object %s has inaccessible %sreference %s: %s",
-				objerrid, reftype, ref, ioe.getLocalizedMessage(), ioe));
+				objerrid, reftype, ref, ioe.getLocalizedMessage()), ioe);
 		return tove;
 	}
 	
@@ -1304,5 +1481,306 @@ public class Workspace {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		db.addAdmin(user);
+	}
+	
+	
+	/* need to have an internal handler to reference this specific workspace instance
+	 * 
+	 */
+	public WorkspaceIDHandlerFactory getHandlerFactory(
+			final WorkspaceUser user,
+			final ReferenceParser parser) {
+		return new WorkspaceIDHandlerFactory(user, parser);
+	}
+	
+	private class WorkspaceIDHandlerFactory
+			implements IdReferenceHandlerFactory {
+
+		private final WorkspaceUser user;
+		private final ReferenceParser parser;
+		
+		public WorkspaceIDHandlerFactory(
+				final WorkspaceUser user,
+				final ReferenceParser parser) {
+			super();
+			if (user == null || parser == null) {
+				throw new NullPointerException(
+						"user, parser and ws cannot be null");
+			}
+			this.user = user;
+			this.parser = parser;
+		}
+
+		@Override
+		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
+			return new WorkspaceIDHandler<T>(user, parser);
+		}
+		
+
+		@Override
+		public IdReferenceType getIDType() {
+			return WS_ID_TYPE;
+		}
+		
+	}
+	
+	public class WorkspaceIDHandler<T> implements IdReferenceHandler<T> {
+
+		private final WorkspaceUser user;
+		private final ReferenceParser parser;
+		
+		// associatedObject -> id -> list of attributes
+		private final Map<T, Map<String, Set<List<String>>>> ids =
+				new HashMap<T, Map<String, Set<List<String>>>>();
+		private final Map<String, RemappedId> remapped =
+				new HashMap<String, RemappedId>();
+		private boolean locked = false;
+		private boolean processed = false;
+		
+		private WorkspaceIDHandler(
+				final WorkspaceUser user,
+				final ReferenceParser parser) {
+			super();
+			this.user = user;
+			this.parser = parser;
+		}
+
+		/** To conserve memory the attributes are not copied to another list,
+		 * so modification of the attributes will modify the internal
+		 * representation of the object.
+		 */
+		@Override
+		public boolean addId(
+				final T associatedObject,
+				final String id,
+				final List<String> attributes)
+				throws IdParseException, IdReferenceHandlerException,
+				HandlerLockedException {
+			if (locked) {
+				throw new HandlerLockedException("This handler is locked");
+			}
+			if (associatedObject == null) {
+				throw new NullPointerException(
+						"associatedObject cannot be null");
+			}
+			if (id == null || id.isEmpty()) {
+				throw new IdParseException(
+						"IDs may not be null or the empty string",
+						getIdType(), associatedObject, id, attributes, null);
+			}
+			boolean unique = true;
+			if (!ids.containsKey(associatedObject)) {
+				ids.put(associatedObject,
+						new HashMap<String, Set<List<String>>>());
+			}
+			if (!ids.get(associatedObject).containsKey(id)) {
+				ids.get(associatedObject).put(id,
+						new HashSet<List<String>>());
+			} else {
+				unique = false;
+			}
+			if (attributes != null && !attributes.isEmpty()) {
+				ids.get(associatedObject).get(id).add(attributes);
+			}
+			return unique;
+		}
+
+		@Override
+		public void processIds()
+				throws IdParseException, IdReferenceHandlerException {
+			locked = true;
+			processed = true;
+			final Set<ObjectIdentifier> idset =
+					new HashSet<ObjectIdentifier>();
+			for (final T assObj: ids.keySet()) {
+				for (final String id: ids.get(assObj).keySet()) {
+					final ObjectIdentifier oi;
+					try {
+						oi = parser.parse(id);
+						//Illegal arg is probably not the right exception
+					} catch (IllegalArgumentException iae) {
+						throw new IdParseException(iae.getMessage(),
+								getIdType(), assObj, id, null, iae);
+					}
+					idset.add(oi);
+				}
+			}
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids =
+					resolveIDs(idset);
+			
+			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes =
+					getObjectTypes(wsresolvedids);
+
+			for (final T assObj: ids.keySet()) {
+				for (final String id: ids.get(assObj).keySet()) {
+					final ObjectIdentifier oi = parser.parse(id);
+					final TypeAndReference tnr =
+							objtypes.get(wsresolvedids.get(oi));
+					typeCheckReference(id, tnr.getType(), assObj);
+					remapped.put(id, tnr.getReference());
+				}
+			}
+		}
+
+		private void typeCheckReference(
+				final String id,
+				final AbsoluteTypeDefId type,
+				final T assObj)
+				throws IdReferenceException {
+			final Set<List<String>> typeSets = ids.get(assObj)
+					.get(id);
+			if (typeSets.isEmpty()) {
+				return;
+			}
+			for (final List<String> allowed: typeSets) {
+				final List<TypeDefName> allowedTypes =
+						new ArrayList<TypeDefName>();
+				for (final String t: allowed) {
+					allowedTypes.add(new TypeDefName(t));
+				}
+				if (!allowedTypes.contains(type.getType())) {
+					throw new IdReferenceException(String.format(
+							"The type %s of reference %s " + 
+							"in this object is not " +
+							"allowed. Allowed types are: %s",
+							type.getTypeString(),
+							id, allowed),
+							getIdType(), assObj,
+							id, allowed, null);
+				}
+			}
+		}
+
+		private Map<ObjectIDResolvedWS, TypeAndReference> getObjectTypes(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS>
+						wsresolvedids)
+				throws IdReferenceHandlerException {
+			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
+			if (!wsresolvedids.isEmpty()) {
+				try {
+					objtypes = db.getObjectType(
+							new HashSet<ObjectIDResolvedWS>(
+									wsresolvedids.values()));
+				} catch (NoSuchObjectException nsoe) {
+					final ObjectIDResolvedWS cause =
+							nsoe.getResolvedInaccessibleObject();
+					ObjectIdentifier oi = null;
+					for (final ObjectIdentifier o: wsresolvedids.keySet()) {
+						if (wsresolvedids.get(o).equals(cause)) {
+							oi = o;
+							break;
+						}
+					}
+					throw generateInaccessibleObjectException(nsoe, oi);
+				} catch (WorkspaceCommunicationException e) {
+					throw new IdReferenceHandlerException(
+							"Workspace communication exception", getIdType(),
+							e);
+				}
+			} else {
+				objtypes = new HashMap<ObjectIDResolvedWS, TypeAndReference>();
+			}
+			return objtypes;
+		}
+
+		private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveIDs(
+				final Set<ObjectIdentifier> idset)
+				throws IdReferenceHandlerException {
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
+			if (!idset.isEmpty()) {
+				try {
+					wsresolvedids = checkPerms(user, 
+							new LinkedList<ObjectIdentifier>(idset),
+							Permission.READ, "read");
+				} catch (InaccessibleObjectException ioe) {
+					throw generateInaccessibleObjectException(ioe);
+				} catch (WorkspaceCommunicationException e) {
+					throw new IdReferenceHandlerException(
+							"Workspace communication exception",
+							getIdType(), e);
+				} catch (CorruptWorkspaceDBException e) {
+					throw new IdReferenceHandlerException(
+							"Corrupt workspace exception", getIdType(), e);
+				}
+			} else {
+				wsresolvedids = new HashMap<ObjectIdentifier,
+						ObjectIDResolvedWS>();
+			}
+			return wsresolvedids;
+		}
+
+		private IdReferenceException
+				generateInaccessibleObjectException(
+				final InaccessibleObjectException ioe) {
+			String exception = "No read access to id ";
+			return generateInaccessibleObjectException(ioe,
+					ioe.getInaccessibleObject(), exception);
+		}
+		
+		private IdReferenceException
+				generateInaccessibleObjectException(
+				final NoSuchObjectException ioe,
+				final ObjectIdentifier originalObject) {
+			String exception =
+					"There is no object with id ";
+			return generateInaccessibleObjectException(ioe, originalObject,
+					exception);
+		}
+
+		private IdReferenceException
+				generateInaccessibleObjectException(
+				final InaccessibleObjectException ioe,
+				final ObjectIdentifier originalObject, String exception) {
+			IdReferenceException e = null;
+			for (final T assObj: ids.keySet()) {
+				for (final String id: ids.get(assObj).keySet()) {
+					if (id.equals(originalObject.getReferenceString())) {
+						e = new IdReferenceException(
+								exception + id + ": " + ioe.getMessage(),
+								getIdType(), assObj,
+								id, null, ioe);
+					}
+				}
+			}
+			return e;
+		}
+		
+		//TODO 1 method to drop associations but keep mapping
+
+		@Override
+		public RemappedId getRemappedId(final String oldId)
+				throws NoSuchIdException {
+			if (!processed) {
+				throw new IllegalStateException(
+						"IDs haven't been processed yet");
+			}
+			if (!remapped.containsKey(oldId)) {
+				throw new NoSuchIdException(
+						"No such ID contained in this mapper: " + oldId);
+			}
+			return remapped.get(oldId);
+		}
+
+		@Override
+		public Set<RemappedId> getRemappedIds(T associatedObject) {
+			Set<RemappedId> newids = new HashSet<RemappedId>();
+			if (!ids.containsKey(associatedObject)) {
+				return newids;
+			}
+			for (final String id: ids.get(associatedObject).keySet()) {
+				newids.add(remapped.get(id));
+			}
+			return newids;
+		}
+
+		@Override
+		public void lock() {
+			locked = true;
+		}
+
+		@Override
+		public IdReferenceType getIdType() {
+			return WS_ID_TYPE;
+		}
 	}
 }

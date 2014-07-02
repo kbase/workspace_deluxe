@@ -108,7 +108,7 @@ module KB {
 
 	typedef structure {
 		tuple<feature_id fid, int foo, UnspecifiedObject uo, mapping<string,
-			UnspecifiedObject> bar> t;
+			UnspecifiedObject> bar, feature_id fid2> t;
 	} WeirdTuple;
 
 

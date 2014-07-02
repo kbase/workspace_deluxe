@@ -25,5 +25,5 @@ SETUP
 8) /kb/deployment/services/Workspace/start_service
 
 If the server doesn't start up correctly, check /var/log/syslog and
-/kb/runtime/glassfish3/glassfish/domains/domain1/logs/server.log 
-for debugging information.
+/kb/deployment/services/workspace/glassfish_domain/Workspace/logs/server.log 
+for debugging information, assuming the deploy is in the default location.

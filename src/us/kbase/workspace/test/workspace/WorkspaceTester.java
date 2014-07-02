@@ -31,6 +31,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectChain;
@@ -342,6 +343,12 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
+	protected IdReferenceHandlersFactory getIdFactory(WorkspaceUser user) {
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		return fac;
+	}
+	
 	protected void failSetWSDesc(WorkspaceUser user,
 			WorkspaceIdentifier wsi, String description,
 			Exception e) throws Exception {
@@ -485,8 +492,10 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, List<WorkspaceSaveObject> wso,
 			Exception exp)
 			throws Exception {
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
 		try {
-			ws.saveObjects(user, wsi, wso);
+			ws.saveObjects(user, wsi, wso, fac);
 			fail("Saved bad objects");
 		} catch (Exception e) {
 			assertThat("correct exception type", e, is(exp.getClass()));
@@ -593,9 +602,11 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
 			Map<String, Object> data, TypeDefId type, Provenance prov,
 			Throwable exception) throws Exception{
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, null, prov, false)));
+					new WorkspaceSaveObject(data, type, null, prov, false)), fac);
 			fail("Saved bad object");
 		} catch (Exception e) {
 			if (e instanceof NullPointerException) {
@@ -1026,14 +1037,16 @@ public class WorkspaceTester {
 			Map<String, String> meta, Map<String, ? extends Object> data,
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, meta, prov, hide)))
+					new WorkspaceSaveObject(data, type, meta, prov, hide)), fac)
 					.get(0);
 		}
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
-						type, meta, prov, hide))).get(0);
+						type, meta, prov, hide)), fac).get(0);
 	}
 
 	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,

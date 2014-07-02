@@ -3,6 +3,10 @@ package us.kbase.workspace.database.mongo;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Reference;
 
+//could make this an inner class and provide method to get parent to make
+//sure MRs don't cross instances of the MongoDBDatabase
+//same for the other Mongo* classes that implement an interface
+//probably not worth the trouble
 public class MongoReference implements Reference {
 	
 	private final long workspaceID;
@@ -41,11 +45,15 @@ public class MongoReference implements Reference {
 	public int getVersion() {
 		return version;
 	}
+
+	@Override
+	public String getId() {
+		return toString();
+	}
 	
 	@Override
 	public String toString() {
 		return workspaceID + ObjectIdentifier.REFERENCE_SEP + objectID +
 				ObjectIdentifier.REFERENCE_SEP + version;
 	}
-
 }

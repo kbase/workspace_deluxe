@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -12,6 +11,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceType;
 
 /**
  * This class lets you to substitute id references into text tokens (string 
@@ -22,15 +23,14 @@ import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	// jts provides tokens of real json data we would like to relabel id-refs in,
 	// relabeling is just substituting tokens with old id-ref values by new ones
-	private JsonTokenStream jts;
-	// info about mapping old id-refs into new ones taken from workspace db based
-	// on list of old id-refs created on validation stage
-	private Map<String, String> absoluteIdRefMapping;
+	private final JsonTokenStream jts;
+	//ID handlers
+	private final IdReferenceHandlers<?> handlers; 
 	// path is branch in real json data pointing to position of currently observed
 	// token in jts
-	private JsonDocumentLocation path = new JsonDocumentLocation();
+	private final JsonDocumentLocation path = new JsonDocumentLocation();
 	// the path into the schema for the object into which we're relabeling IDs.
-	private List<JsonTokenValidationSchema> schemaLoc;
+	private final List<JsonTokenValidationSchema> schemaLoc;
 	// internal flags helping to chose between relabeling rules for keys and values
 	private boolean wasField = false;
 	private boolean wasValue = false;
@@ -41,14 +41,11 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
 			final JsonTokenValidationSchema schema, 
-			final Map<String, String> absoluteIdRefMapping) {
+			final IdReferenceHandlers<?> idhandlers) {
 		this.jts = jts;
-		this.absoluteIdRefMapping = absoluteIdRefMapping;
 		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
 				Arrays.asList(schema));
-		// we put root of id-reference schema tree as first element of path, path
-		// should contain it until the whole json data token sequence is processed
-//		refPath = new ArrayList<IdRefNode>();
+		this.handlers = idhandlers;
 	}
 	
 	public boolean isSorted() {
@@ -134,13 +131,10 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			s = getCurrentSchema();
 		}
 		if (s != null && s.hasIdReference()) {
-			final String subst = absoluteIdRefMapping.get(ret);
-			if (subst == null) {
-				throw new IllegalStateException(String.format(
-						"Tried to remap id %s but no remapping found at %s",
-						ret, path.getFullLocationAsString()));
+			final IdReferenceType idType = s.getIdReferenceType();
+			if (handlers.hasHandler(idType)) {
+				return handlers.getRemappedId(idType, ret).getId();
 			}
-			return subst;
 		}
 		return ret;
 	}

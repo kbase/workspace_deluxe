@@ -1,14 +1,13 @@
 {
-	"ids-expected":[
-			"id1",
-			"id2",
-			"id2"
-		],
 	"ids-relabel":{
 		"id1": "id1remap",
 		"id2": "id2remap"
 		},
 	"renamed-expected": {
+			"also_no_typechk": [{"foo": "id1"},
+							{"foo": "id2"},
+							{"bar": "id2"}
+							],
 		"nested_features":	[{"foo": "id1remap"},
 							 {"foo": "id2remap"},
 							 {"bar": "id2remap"}

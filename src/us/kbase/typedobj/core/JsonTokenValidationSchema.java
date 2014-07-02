@@ -13,6 +13,8 @@ import java.util.Map;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 
@@ -176,10 +178,14 @@ public class JsonTokenValidationSchema {
 	 * @throws JsonParseException
 	 * @throws IOException
 	 * @throws JsonTokenValidationException
+	 * @throws IdReferenceHandlerException 
+	 * @throws TooManyIdsException 
 	 */
 	public void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		checkJsonData(jp, lst, new JsonDocumentLocation());
 		jp.close();
 	}
@@ -187,7 +193,9 @@ public class JsonTokenValidationSchema {
 	private void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		jp.nextToken();
 		checkJsonDataWithoutFirst(jp, lst, path);
 	}
@@ -195,7 +203,9 @@ public class JsonTokenValidationSchema {
 	private void checkJsonDataWithoutFirst(final JsonParser jp,
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
-			throws JsonParseException, IOException, JsonTokenValidationException {
+			throws JsonParseException, IOException,
+			JsonTokenValidationException, TooManyIdsException,
+			IdReferenceHandlerException {
 		// This is main recursive validation procedure. The idea is we enter here every time we observe
 		// token starting nested block (which could be only mapping or array) or token for basic scalar 
 		// values (integer, floating, string, boolean and null). According to structure of nested blocks
@@ -235,7 +245,9 @@ public class JsonTokenValidationSchema {
 					} else if (t != JsonToken.FIELD_NAME) {
 						// every time we here we expect next field since rest of this loop is for 
 						// processing of value for this field
-						throw new JsonTokenValidationException("Object field name is expected but found " + t);
+						throw new JsonTokenValidationException(
+								"Object field name is expected but found "
+								+ t + " at " + path.getFullLocationAsString());
 					}
 					// name of object field (key of mapping)
 					String fieldName = jp.getCurrentName();
@@ -251,8 +263,11 @@ public class JsonTokenValidationSchema {
 					if (childType == null) {
 						if (!objectAdditionalPropertiesBoolean) {
 							if (objectProperties.size() > 0)
-								lst.addError("Object field name [" + fieldName + "] is not in allowed " +
-										"object properties: " + objectProperties.keySet());
+								lst.addError("Object field name [" +
+										fieldName + "] is not in allowed " +
+										"object properties: " +
+										objectProperties.keySet() + " at " +
+										path.getFullLocationAsString());
 						}
 						childType = objectAdditionalPropertiesType;
 					}
@@ -282,7 +297,9 @@ public class JsonTokenValidationSchema {
 					for (Map.Entry<String, Integer> entry : objectRequired.entrySet())
 						if (!reqPropUsage[entry.getValue()])
 							absentProperties.add(entry.getKey());
-					lst.addError("Object doesn't have required fields : " + absentProperties + ", at " + path.getLocationOfContainerAsString());
+					lst.addError("Object doesn't have required fields : " +
+							absentProperties + " at " +
+							path.getLocationOfContainerAsString());
 				}
 			} finally {
 				// shift depth of path by 1 level up (closer to root)
@@ -306,7 +323,9 @@ public class JsonTokenValidationSchema {
 				while (true) {
 					if (arrayMaxItems != null && itemPos > arrayMaxItems) {
 						// too many items in real data comparing to limitation in json schema
-						lst.addError("Array contains more than " + arrayMaxItems + " items, at "+ path.getLocationOfContainerAsString());
+						lst.addError("Array contains more than " +
+								arrayMaxItems + " items at " +
+								path.getLocationOfContainerAsString());
 						skipAll = true;
 					}
 					t = jp.nextToken();
@@ -332,7 +351,8 @@ public class JsonTokenValidationSchema {
 				}
 				// check if we have too less items than we define in schema limitations (if any)
 				if (arrayMinItems != null && itemPos < arrayMinItems)
-					lst.addError("Array contains less than " + arrayMinItems + " items, at " + path.getLocationOfContainerAsString());
+					lst.addError("Array contains less than " + arrayMinItems +
+							" items at " + path.getLocationOfContainerAsString());
 			} finally {
 				// shift depth of path by 1 level up (closer to root)
 				path.removeLast();
@@ -343,32 +363,45 @@ public class JsonTokenValidationSchema {
 			if (t != JsonToken.VALUE_STRING) {	// but found something else
 				if (t != JsonToken.VALUE_NULL || idReference != null)	// we allow nulls but not for references
 					lst.addError(generateError(type, t, path));
-			}
-			if (idReference != null) {
-				// we can add this string value as requiring id-reference relabeling in case 
-				// there was defined idReference property in json-schema node describing this 
-				// string value
-				//TODO 1 the path is temporary. Might need a better way to deal with the path.
-				final IdReference ref = new IdReference(idReference.idType,
-						jp.getText(), idReference.attributes, path);
-				lst.addIdRefMessage(ref);
+				//TODO 1 Roman need to skip element here
+			} else {
+				if (idReference != null) {
+					// we can add this string value as requiring id-reference relabeling in case 
+					// there was defined idReference property in json-schema node describing this 
+					// string value
+					//TODO 1 the path is temporary. Might need a better way to deal with the path.
+					final IdReference ref = new IdReference(idReference.idType,
+							jp.getText(), idReference.attributes, path);
+					lst.addIdRefMessage(ref);
+				}
 			}
 		} else if (type == Type.integer) {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL)) {// but found something else
 				lst.addError(generateError(type, t, path));
-			if(intRange!=null)
-				intRange.checkValue(jp, lst, path);
+				//TODO 1 Roman need to skip element here and not check range
+			} else {
+				if (intRange != null) {
+					intRange.checkValue(jp, lst, path);
+				}
+			}
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_FLOAT) && (t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL))	// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_FLOAT) &&
+				(t != JsonToken.VALUE_NUMBER_INT) &&
+				(t != JsonToken.VALUE_NULL)) {   // but found something else
 				lst.addError(generateError(type, t, path));
-			if(numberRange!=null)
-				numberRange.checkValue(jp, lst, path);
+				//TODO 1 Roman need to skip element here and not check range
+			} else {
+				if (numberRange != null) {
+					numberRange.checkValue(jp, lst, path);
+				}
+			}
 		} else {
-			lst.addError("Unsupported node type: " + type);
+			lst.addError("Unsupported node type: " + type + " at " +
+					path.getFullLocationAsString());
 		}
 	}
 	
@@ -842,11 +875,4 @@ public class JsonTokenValidationSchema {
 			return s;
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
 }

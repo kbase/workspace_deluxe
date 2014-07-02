@@ -19,7 +19,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,8 +42,9 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.typedobj.idref.IdReference;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -215,52 +215,8 @@ public class IdProcessingTest {
 		// read the ids file, which provides the list of ids we expect to extract from the instance
 		String idsJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName+".ids");
 		JsonNode idsRootNode = mapper.readTree(idsJson);
-		JsonNode expectedIds = idsRootNode.get("ids-expected");
-		Iterator <JsonNode> it = expectedIds.iterator();
-		Map <String,Integer> expectedIdList = new HashMap<String,Integer>();
-		while(it.hasNext()) {
-			String id = it.next().asText();
-			if(expectedIdList.containsKey(id)) {
-				int count = expectedIdList.get(id).intValue() + 1;
-				expectedIdList.put(id, new Integer(count));
-			} else { expectedIdList.put(id,new Integer(1)); }
-		}
 		
-		@SuppressWarnings("unused")
-		int breakpoint = 0;
-		// perform the initial validation, which must validate!
-		TypedObjectValidationReport report = 
-			validator.validate(
-					instanceRootNode,
-					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName))
-				);
-		List <String> mssgs = report.getErrorMessages();
-		for(int i=0; i<mssgs.size(); i++) {
-			System.out.println("    ["+i+"]:"+mssgs.get(i));
-		}
-		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
-		
-		// check that all expected Ids are in fact found
-		List<IdReference> fullIdList = report.getIdReferences().getIds(new IdReferenceType("ws"));
-		//System.out.println("fullIdList: " + fullIdList.size());
-		for(IdReference ref: fullIdList) {
-			assertTrue("  -("+instance.resourceName+") extracted id "+ref.getId()+" that should not have been extracted",
-					expectedIdList.containsKey(ref.getId()));
-			int n_refs = expectedIdList.get(ref.getId()).intValue();
-			assertFalse("  -("+instance.resourceName+") extracted id "+ref.getId()+" too many times",
-					n_refs==0);
-			expectedIdList.put(ref.getId(), new Integer(n_refs-1));
-		}
-		Iterator<Map.Entry<String,Integer>> mapIter = expectedIdList.entrySet().iterator();
-		while(mapIter.hasNext()) {
-			Map.Entry<String, Integer> pair = mapIter.next();
-			int n_refs_remaining = pair.getValue().intValue();
-			assertTrue("  -("+instance.resourceName+") needed to extract id '"+pair.getKey()+"' "+n_refs_remaining+" more times",
-					n_refs_remaining == 0);
-		}
-		
-		
-		// now we relabel the ids
+		//set up id relabeling mapping
 		Map <String,String> absoluteIdMapping = new HashMap<String,String>();
 		JsonNode newIds = idsRootNode.get("ids-relabel");
 		Iterator<String> fieldNames = newIds.fieldNames();
@@ -269,21 +225,38 @@ public class IdProcessingTest {
 			String absoluteId = newIds.get(originalId).asText();
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
-		breakpoint = 0;
-		report.setAbsoluteIdRefMapping(absoluteIdMapping);
+		
+		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
+				absoluteIdMapping));
+		IdReferenceHandlers<String> idhandlers = fac.createHandlers(String.class);
+		idhandlers.associateObject("foo");
+		
+		// perform the initial validation, which must validate!
+		TypedObjectValidationReport report = 
+			validator.validate(
+					instanceRootNode,
+					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+					idhandlers);
+		idhandlers.processIDs();
+		List <String> mssgs = report.getErrorMessages();
+		for(int i=0; i<mssgs.size(); i++) {
+			System.out.println("    ["+i+"]:"+mssgs.get(i));
+		}
+		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
+		
+		// now we relabel the ids
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
-		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)));
-		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
-		
-		List<String> relabeledIds = new LinkedList<String>();
-		for (IdReference id: report2.getIdReferences().getIds(new IdReferenceType("ws"))) {
-			relabeledIds.add(id.getId());
+		IdReferenceHandlersFactory dummyfac = new IdReferenceHandlersFactory(0);
+		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+				dummyfac.createHandlers(String.class).associateObject("foo"));
+		List <String> mssgs2 = report2.getErrorMessages();
+		for(int i=0; i<mssgs2.size(); i++) {
+			System.out.println("    ["+i+"]:"+mssgs2.get(i));
 		}
-		
-		//there should be the same number as before, of course!
-		assertEquals("  -("+instance.resourceName+") validation of relabeled object must still pass", relabeledIds.size(), fullIdList.size());
+		assertTrue("  -("+instance.resourceName+") validation of relabeled object must still pass", report2.isInstanceValid());
 		
 		// make sure that the relabeled object matches what we expect
 		JsonNode expectedRelabeled = idsRootNode.get("renamed-expected");
@@ -380,5 +353,4 @@ public class IdProcessingTest {
 		}
 		throw new UnsupportedOperationException("Cannot list files for URL "+dirURL);
 	}
-	
 }

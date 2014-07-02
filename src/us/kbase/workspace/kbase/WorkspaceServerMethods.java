@@ -20,6 +20,7 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -177,8 +178,11 @@ public class WorkspaceServerMethods {
 		params.setObjects(null); // garbage collect the objects, although
 		// just passing a pointer around so no biggie
 		// setting params = null won't help since the method caller still has a ref
+		final IdReferenceHandlersFactory fac =
+				new IdReferenceHandlersFactory(100000); //TODO 1 make this a parameter
+		fac.addFactory(ws.getHandlerFactory(user, new KBaseReferenceParser()));
 		
-		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc); 
+		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return au.objInfoToTuple(meta);
 	}
 	
