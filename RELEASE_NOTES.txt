@@ -61,7 +61,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - configuration of the default URL for the CLI is handled properly; in 0.2.0
   the ws-url command needed to be called prior to other commands
 - improved documentation and other minor error handling in the CLI
-- again allows IRIS deployment of ws-workspace
+- again allows IRIS deployment of ws-workspace and ws-url
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of

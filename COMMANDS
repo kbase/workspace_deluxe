@@ -15,7 +15,8 @@ ws-revert	workspace
 ws-share	workspace
 ws-typespec-list	workspace
 ws-typespec-register	workspace
-ws-workspace		workspace
+ws-url	workspace
+ws-workspace	workspace
 kbws-clone	workspace
 kbws-copy	workspace
 kbws-createws	workspace
@@ -32,4 +33,5 @@ kbws-revert	workspace
 kbws-share	workspace
 kbws-typespec-list	workspace
 kbws-typespec-register	workspace
-kbws-workspace		workspace
+kbws-url	workspace
+kbws-workspace	workspace
