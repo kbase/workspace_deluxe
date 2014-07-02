@@ -2,7 +2,7 @@ import os
 import sys
 from ConfigParser import ConfigParser
 from biokbase.auth import kb_config
-from biokbase.userandjobstate.client import UserAndJobState
+#from biokbase.userandjobstate.client import UserAndJobState
 
 def getKBaseCfg():
     cfg = ConfigParser()
@@ -20,46 +20,45 @@ def getKBaseCfg():
 def user_workspace(newWs = None):
     if newWs is not None:
         currentWs = newWs
-        if 'KB_RUNNING_IN_IRIS' not in os.environ:
-            cfg = getKBaseCfg()
-            try:
-                userId = cfg.get('authentication','user_id')
-            except:
-                userId = 'public'
-            cfg.set('workspace_deluxe', userId+'-current-workspace', currentWs)
-            with open(kb_config, 'w') as configfile:
-                cfg.write(configfile)
-        else:
-            ujs = UserAndJobState()
-            ujs.set_state('Workspace', 'current-workspace', currentWs)
+        #if 'KB_RUNNING_IN_IRIS' not in os.environ:
+        cfg = getKBaseCfg()
+        try:
+            userId = cfg.get('authentication','user_id')
+        except:
+            userId = 'public'
+        cfg.set('workspace_deluxe', userId+'-current-workspace', currentWs)
+        with open(kb_config, 'w') as configfile:
+            cfg.write(configfile)
+        #else:
+        #    ujs = UserAndJobState()
+        #    ujs.set_state('Workspace', 'current-workspace', currentWs)
     else:
-        if 'KB_RUNNING_IN_IRIS' not in os.environ:
-            cfg = getKBaseCfg()
+        #if 'KB_RUNNING_IN_IRIS' not in os.environ:
+        cfg = getKBaseCfg()
+        try:
+            userId = cfg.get('authentication','user_id')
+        except:
+            userId = 'public'
+        try:
+            currentWs = cfg.get('workspace_deluxe', userId+'-current-workspace')
+        except:
+            # for compatibility, look for the old style workspace config variable 
             try:
-                userId = cfg.get('authentication','user_id')
+                currentWs = cfg.get('workspace_deluxe', 'workspace')
+                cfg.set('workspace_deluxe',userId+'-current-workspace', currentWs)
+                cfg.remove_option('workspace_deluxe','workspace')
+                with open(kb_config, 'w') as configfile:
+                    cfg.write(configfile)
             except:
-                userId = 'public'
-            try:
-                currentWs = cfg.get('workspace_deluxe', userId+'-current-workspace')
-            except:
-                # for compatibility, look for the old style workspace config variable 
-                try:
-                    currentWs = cfg.get('workspace_deluxe', 'workspace')
-                    cfg.set('workspace_deluxe',userId+'-current-workspace', currentWs)
-                    cfg.remove_option('workspace_deluxe','workspace')
-                    with open(kb_config, 'w') as configfile:
-                        cfg.write(configfile)
-                except:
-                    # optionally, we can try here to retrieve from the User and Job State service first before we abort
-                    sys.stderr.write('\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n')
-                    return None
-        else:
-            ujs = UserAndJobState()
-            try:
-                currentWs = ujs.get_state('Workspace', 'current-workspace', 0)
-            except: # Could be explicit about the exception to catch
                 sys.stderr.write('\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n')
                 return None
+        #else:
+        #    ujs = UserAndJobState()
+        #    try:
+        #        currentWs = ujs.get_state('Workspace', 'current-workspace', 0)
+        #    except: # Could be explicit about the exception to catch
+        #        sys.stderr.write('\nWorkspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n')
+        #        return None
     return currentWs
 
 def parseObjectMeta(metaTuple):
