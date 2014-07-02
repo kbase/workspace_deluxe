@@ -124,16 +124,19 @@ sub workspace {
 					$cfg->save();
 				}
 				else {
+					print STDERR "\nWarning! Workspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
+					$currentWs = "";
+					
 					# if we could not find from the config file, then lookup from UJS and save it to our local config file
-					my $ujs = Bio::KBase::userandjobstate::Client->new();
-					eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
-					if($@ || !defined($currentWs)) {
-						print STDERR "\nWarning! Workspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
-						$currentWs = "";
-					} else {
-						$cfg->param("workspace_deluxe.$user_id-current-workspace",$currentWs);
-						$cfg->save();
-					}
+					#my $ujs = Bio::KBase::userandjobstate::Client->new();
+					#eval { $currentWs = $ujs->get_state("Workspace","current-workspace",0); };
+					#if($@ || !defined($currentWs)) {
+					#	print STDERR "\nWarning! Workspace has not been set!\nRun ws-workspace [WORKSPACE_NAME] to set your workspace.\n\n";
+					#	$currentWs = "";
+					#} else {
+					#	$cfg->param("workspace_deluxe.$user_id-current-workspace",$currentWs);
+					#	$cfg->save();
+					#}
 				}
 			}
                         $cfg->close();

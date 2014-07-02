@@ -27,6 +27,9 @@ my $clientCfgFile = dirname(abs_path($0)).'/scratch/kbase_client_test_config';
 $ENV{KB_CLIENT_CONFIG}=$clientCfgFile;
 if(-e $clientCfgFile) { unlink([$clientCfgFile]); }
 my $clientcfg = new Config::Simple(syntax=>'ini');
+$clientcfg->param("madeupfortest.test","test");
+# this config lib sucks!  we should switch.  I have to add an INI parameter or else the config
+# library can't read it's own output even with explicitly telling it to use INI format!
 $clientcfg->write($clientCfgFile);
 $clientcfg->close();
 
