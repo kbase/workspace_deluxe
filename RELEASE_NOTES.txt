@@ -48,6 +48,9 @@ NEW FEATURES:
 - get_object_provenance returns the object provenance without the data.
 - added get_all_type_info and get_all_func_info to return all type/function
   information registered for a specified module
+- parsing structures of types were added into TypeInfo and FuncInfo
+- owner of module now can determine the released versions of a types and 
+  functions (released versions were added into TypeInfo and FuncInfo)
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - the initialization script will no longer allow setting the mongo typedb
