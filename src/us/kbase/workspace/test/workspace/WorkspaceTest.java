@@ -1413,23 +1413,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "tobedeleted/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+						"Object #1 has invalid reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
 		Provenance delwsref = new Provenance(userfoo);
 		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, delwsref,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible provenance reference tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+						"Object #1 has invalid provenance reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
 		
 		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null, null);
 		refdata.put("ref", "stingyworkspace/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+						"Object #1 has invalid reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
 		Provenance privwsref = new Provenance(userfoo);
 		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, privwsref,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible provenance reference stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+						"Object #1 has invalid provenance reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
 		
 		//test inaccessible reference due to missing or deleted objects, incl bad versions
 		ws.createWorkspace(userfoo, "referencetesting", false, null, null);
@@ -1452,13 +1452,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		long refwsid = ws.getWorkspaceInformation(userfoo, reftest).getId();
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible reference referencetesting/2/1: No object with id 2 exists in workspace "
+						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: No object with id 2 exists in workspace "
 								+ refwsid));
 		Provenance noobjref = new Provenance(userfoo);
 		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, noobjref,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible provenance reference referencetesting/2/1: No object with id 2 exists in workspace "
+						"Object #1 has invalid provenance reference: There is no object with id referencetesting/2/1: No object with id 2 exists in workspace "
 								+ refwsid));
 		
 		ws.saveObjects(userfoo, reftest, Arrays.asList(
@@ -1467,25 +1467,25 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(userfoo, Arrays.asList(new ObjectIdentifier(reftest, 2)), true);
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has inaccessible reference referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
+						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
 								refwsid)));
 		Provenance delobjref = new Provenance(userfoo);
 		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, delobjref,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has inaccessible provenance reference referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
+						"Object #1 has invalid provenance reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
 								refwsid)));
 		
 		refdata.put("ref", "referencetesting/1/2");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible reference referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
+						"Object #1 has invalid reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
 		Provenance noverref = new Provenance(userfoo);
 		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/2")));
 		failSave(userfoo, wspace, data1, abstype0, noverref,
 				new TypedObjectValidationException(
-						"Object #1 has inaccessible provenance reference referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
+						"Object #1 has invalid provenance reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
 		
 		//TODO test references against garbage collected objects
@@ -1547,11 +1547,16 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory(userfoo)); //should work
 		
-		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
-				"reference %s at location /ref in this object is not " + 
-				"allowed for this object's type, " + 
-				"TestTypeCheckingRefType.CheckRefType-0.1. Allowed types " + 
-				"are: [TestTypeChecking.CheckType]";
+		
+//		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
+//				"reference %s at location /ref in this object is not " + 
+//				"allowed for this object's type, " + 
+//				"TestTypeCheckingRefType.CheckRefType-0.1. Allowed types " + 
+//				"are: [TestTypeChecking.CheckType]";
+		String err = "Object #1 has invalid reference: The type " +
+				"SomeModule.AType-0.1 of reference %s in this object is not " + 
+				"allowed. Allowed types are: [TestTypeChecking.CheckType]";
+		
 		refdata.put("ref", "referencetypecheck/1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,

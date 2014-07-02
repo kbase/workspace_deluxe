@@ -45,13 +45,12 @@ public class IdReferenceHandlers<T> {
 		 */
 		public boolean addId(T associatedObject, String id,
 				List<String> attributes)
-				throws IdParseException, IdReferenceHandlerException,
+				throws IdReferenceHandlerException,
 				HandlerLockedException;
 		/** Perform any necessary batch processing of the IDs before
 		 * remapping and locks the handler.
 		 */
-		public void processIds() throws IdParseException,
-				IdReferenceHandlerException;
+		public void processIds() throws IdReferenceHandlerException;
 		/** Translate an ID to the remapped ID.
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
@@ -248,26 +247,48 @@ public class IdReferenceHandlers<T> {
 	@SuppressWarnings("serial")
 	public static class IdReferenceHandlerException extends Exception {
 		
-		private final String id;
 		private final IdReferenceType idType;
-		private final List<String> idAttributes;
-		private final Object associatedObject;
 		
 		
 		public IdReferenceHandlerException(
 				final String message,
 				final IdReferenceType idType,
-				final Object associatedObject,
-				final String id,
-				final List<String> idAttributes,
 				final Throwable cause) {
 			super(message, cause);
 			if (message == null || idType == null) {
 				throw new NullPointerException(
 						"message and idType cannot be null");
 			}
-			this.id = id;
 			this.idType = idType;
+		}
+
+		public IdReferenceType getIdType() {
+			return idType;
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	public static class IdReferenceException
+			extends IdReferenceHandlerException {
+		
+		private final String id;
+		private final List<String> idAttributes;
+		private final Object associatedObject;
+		
+		
+		public IdReferenceException(
+				final String message,
+				final IdReferenceType idType,
+				final Object associatedObject,
+				final String id,
+				final List<String> idAttributes,
+				final Throwable cause) {
+			super(message, idType, cause);
+			if (associatedObject == null || id == null) {
+				throw new NullPointerException(
+						"associatedObject and id cannot be null");
+			}
+			this.id = id;
 			this.idAttributes = idAttributes == null ? null :
 				Collections.unmodifiableList(
 						new LinkedList<String>(idAttributes));
@@ -278,9 +299,6 @@ public class IdReferenceHandlers<T> {
 			return id;
 		}
 
-		public IdReferenceType getIdType() {
-			return idType;
-		}
 
 		public List<String> getIdAttributes() {
 			return idAttributes;
@@ -293,7 +311,7 @@ public class IdReferenceHandlers<T> {
 	}
 	
 	@SuppressWarnings("serial")
-	public static class IdParseException extends IdReferenceHandlerException {
+	public static class IdParseException extends IdReferenceException {
 
 		public IdParseException(
 				final String message,
