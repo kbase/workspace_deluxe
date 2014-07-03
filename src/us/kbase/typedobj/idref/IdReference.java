@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import us.kbase.typedobj.core.JsonDocumentLocation;
-
 /**
  * Stores an ID reference
  */
@@ -16,13 +14,10 @@ public class IdReference {
 	private final IdReferenceType type;
 	private final String id;
 	private final List<String> attributes;
-	//TODO 1 location is a placeholder, string may be a bad idea
-	private final JsonDocumentLocation location;
 	
 	public IdReference(final IdReferenceType type, final String id,
-			List<String> attributes,
-			final JsonDocumentLocation location) {
-		if (type == null || id == null || location == null) {
+			List<String> attributes) {
+		if (type == null || id == null) {
 			throw new NullPointerException(
 					"type, id, and location cannot be null");
 		}
@@ -31,9 +26,6 @@ public class IdReference {
 		attributes = attributes == null ? new LinkedList<String>() :
 			new LinkedList<String>(attributes);
 		this.attributes = Collections.unmodifiableList(attributes);
-		//TODO 1 location is a placeholder, string may be a bad idea
-		this.location = new JsonDocumentLocation(location);
-
 	}
 	
 	/**
@@ -55,14 +47,6 @@ public class IdReference {
 	}
 	
 	/**
-	 * Get the location of the id in the enclosing object.
-	 * @return the location of the id in the enclosing object.
-	 */
-	public final String getLocation() {
-		return location.getFullLocationAsString();
-	}
-	
-	/**
 	 * Get the set of attributes associated with an id.
 	 * @return the set of attributes associated with an id.
 	 */
@@ -73,8 +57,7 @@ public class IdReference {
 	@Override
 	public String toString() {
 		return "IdReference [type=" + type + ", id=" + id
-				+ ", attributes=" + attributes + ", location="
-				+ location + "]";
+				+ ", attributes=" + attributes + "]";
 	}
 	
 }

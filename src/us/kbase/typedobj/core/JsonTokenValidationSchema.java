@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
@@ -282,12 +281,9 @@ public class JsonTokenValidationSchema {
 					// case there was defined idReference property in json-schema node describing this 
 					// object (mapping)
 					if (idReference != null) {
-						final JsonLocation current = path.removeLast();
-						path.addLocation(current); //could add a sub path view later
-						//TODO 1 the path is temporary. Might need a better way to deal with the path.
 						final IdReference ref = new IdReference(
 								idReference.idType, fieldName,
-								idReference.attributes, path);
+								idReference.attributes);
 						lst.addIdRefMessage(ref);
 					}
 				}
@@ -369,9 +365,8 @@ public class JsonTokenValidationSchema {
 					// we can add this string value as requiring id-reference relabeling in case 
 					// there was defined idReference property in json-schema node describing this 
 					// string value
-					//TODO 1 the path is temporary. Might need a better way to deal with the path.
 					final IdReference ref = new IdReference(idReference.idType,
-							jp.getText(), idReference.attributes, path);
+							jp.getText(), idReference.attributes);
 					lst.addIdRefMessage(ref);
 				}
 			}

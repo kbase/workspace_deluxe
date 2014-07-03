@@ -1546,7 +1546,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory(userfoo)); //should work
 		
-		
+		//TODO 1 restore path
 //		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
 //				"reference %s at location /ref in this object is not " + 
 //				"allowed for this object's type, " + 

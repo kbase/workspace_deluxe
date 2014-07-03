@@ -205,7 +205,6 @@ public final class TypedObjectValidator {
 					public void addIdRefMessage(IdReference ref)
 							throws TooManyIdsException,
 							IdReferenceHandlerException {
-						//TODO 1 limit ID count to 100K IDs in memory
 						if (handlers.hasHandler(ref.getType())) {
 							handlers.addId(ref);
 						}

@@ -21,7 +21,6 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -91,7 +90,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class Workspace {
 	
 	//TODO general unit tests
-	//TODO import shock objects
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
 	//TODO BIG SHOCK shock acl integration. Needs auth groups. group = workspace.
 	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
@@ -627,8 +625,8 @@ public class Workspace {
 				for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
-						idhandler.addId(new IdReference(WS_ID_TYPE, pref, null,
-								new JsonDocumentLocation())); //TODO 1 get rid of path in IdReference
+						idhandler.addId(
+								new IdReference(WS_ID_TYPE, pref, null));
 					}
 				}
 			} catch (IdReferenceHandlerException ihre) {
@@ -707,12 +705,11 @@ public class Workspace {
 					"Object %s failed type checking:\n",
 					getObjectErrorId(wo, objcount))
 					+ nsme.getLocalizedMessage(), nsme);
-		} catch (TooManyIdsException e) { //TODO 1 test
+		} catch (TooManyIdsException e) { //TODO 1 test TooManyIdsException
 			throw wrapTooManyIDsException(objcount, idhandler, e);
 		} catch (IdReferenceHandlerException e) {
 			//TODO 1 find path
-			//TODO 1 catch ID parse exception and ID reference exception
-			//TODO 1 can't assume e fields are not null
+			//TODO 1 catch ID parse exception and ID reference exception and test
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking ",
 					getObjectErrorId(wo, objcount)) + 
