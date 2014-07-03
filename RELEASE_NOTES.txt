@@ -19,30 +19,6 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-
-VERSION: 0.2.2 (Released TBD)
---------------------------------------
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
-
-ANTICIPATED FUTURE DEVELOPMENTS:
-- Automatically populated metadata
-- Range annotation support to set limits on float/int values
-- Garbage collection
-- Pointers to shock data too large to fit in the workspace
-- ACLs based on KBase groups
-- KBase Search API
-- Service Search API (e.g. MongoDB queries on TOs)
-- Object sharing queue (share specific versions of objects)
-- Import TOs from shock
-- Update copied objects from source
-- Improvements to returning the subset of an object
-
 VERSION: 0.2.1 (Released TBD)
 --------------------------------------
 NEW FEATURES:
@@ -69,6 +45,18 @@ KNOWN BUGS:
   objects than the limit may be returned, and in extreme cases where many
   hidden, deleted, or lower version objects are found no objects may be
   returned.
+  
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Automatically populated metadata
+- Range annotation support to set limits on float/int values
+- Garbage collection
+- Pointers to shock data too large to fit in the workspace
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing queue (share specific versions of objects)
+- Update copied objects from source
+- Improvements to returning the subset of an object
 
 VERSION: 0.2.0 (Released 5/18/14)
 --------------------------------------

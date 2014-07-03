@@ -45,6 +45,8 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
+	//TODO 0.2.1 get Matt to run tests and show that the date problem is fixed
+	
 	/* Note that SimpleDateFormat, of which UTCDateFormat is a subclass,
 	 * is not thread safe and therefore must be instantiated on a per
 	 * method basis
