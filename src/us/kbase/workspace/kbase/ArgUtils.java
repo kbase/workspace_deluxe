@@ -45,12 +45,12 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
-	//simple date formats aren't synchronized
-	private final UTCDateFormat dateFormat = new UTCDateFormat();
+	/* Note that SimpleDateFormat, of which UTCDateFormat is a subclass,
+	 * is not thread safe and therefore must be instantiated on a per
+	 * method basis
+	 */
 	
-	public ArgUtils() {}
-	
-	public Provenance processProvenance(final WorkspaceUser user,
+	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) throws ParseException {
 		
 		final Provenance p = new Provenance(user);
@@ -78,11 +78,12 @@ public class ArgUtils {
 		return p;
 	}
 	
-	public Date parseDate(final String date) throws ParseException {
+	public static Date parseDate(final String date) throws ParseException {
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		return date == null ? null : dateFormat.parseDate(date);
 	}
 	
-	private List<Object> translateMethodParametersToObject(
+	private static List<Object> translateMethodParametersToObject(
 			final List<UObject> methodParams) {
 		if (methodParams == null) {
 			return null;
@@ -95,7 +96,7 @@ public class ArgUtils {
 	}
 	
 
-	private List<UObject> translateMethodParametersToUObject(
+	private static List<UObject> translateMethodParametersToUObject(
 			final List<Object> methodParams) {
 		if (methodParams == null) {
 			return null;
@@ -107,7 +108,7 @@ public class ArgUtils {
 		return params;
 	}
 	
-	public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
+	public static List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
 			wsInfoToTuple (final List<WorkspaceInformation> info) {
 		final List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> ret =
 				new LinkedList<Tuple9<Long, String, String, String, Long, String,
@@ -118,8 +119,9 @@ public class ArgUtils {
 		return ret;
 	}
 
-	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
+	public static Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
 			wsInfoToTuple(final WorkspaceInformation info) {
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		return new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
 				.withE1(info.getId())
 				.withE2(info.getName())
@@ -132,7 +134,7 @@ public class ArgUtils {
 				.withE9(info.getUserMeta());
 	}
 	
-	public List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(
+	public static List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(
 			List<WorkspaceInformation> info) {
 		final List<Tuple7<String, String, String, Long, String, String, Long>> ret =
 				new LinkedList<Tuple7<String, String, String, Long, String,
@@ -143,8 +145,9 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public Tuple7<String, String, String, Long, String, String, Long>
+	public static Tuple7<String, String, String, Long, String, String, Long>
 				wsInfoToMetaTuple(final WorkspaceInformation info) {
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		return new Tuple7<String, String, String, Long, String, String, Long>()
 				.withE7(info.getId())
 				.withE1(info.getName())
@@ -155,7 +158,7 @@ public class ArgUtils {
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
-	public Tuple11<Long, String, String, String, Long, String,
+	public static Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>
 			objInfoToTuple(final ObjectInformation info) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
@@ -163,7 +166,7 @@ public class ArgUtils {
 		return objInfoToTuple(m).get(0);
 	}
 
-	public List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
+	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
 			translateObjectDataList(
 					final List<Set<ObjectInformation>> lsoi) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
@@ -175,7 +178,7 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public List<Tuple11<Long, String, String, String, Long, String,
+	public static List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>>
 			objInfoToTuple(final List<ObjectInformation> info) {
 
@@ -184,7 +187,7 @@ public class ArgUtils {
 			Long, String, String, Long, Map<String, String>>> ret = 
 			new ArrayList<Tuple11<Long, String, String, String, Long,
 			String, Long, String, String, Long, Map<String, String>>>();
-
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		for (ObjectInformation m: info) {
 			if (m == null) {
 				ret.add(null);
@@ -208,7 +211,7 @@ public class ArgUtils {
 	}
 	
 	
-	public Tuple12<String, String, String, Long, String, String, String,
+	public static Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>
 			objInfoToMetaTuple(final ObjectInformation info) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
@@ -216,10 +219,10 @@ public class ArgUtils {
 		return objInfoToMetaTuple(m).get(0);
 	}
 	
-	public List<Tuple12<String, String, String, Long, String, String, String,
+	public static List<Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>>
 			objInfoToMetaTuple(final List<ObjectInformation> info) {
-		
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		//oh the humanity
 		final List<Tuple12<String, String, String, Long, String, String, String,
 		String, String, String, Map<String, String>, Long>> ret = 
@@ -312,8 +315,9 @@ public class ArgUtils {
 		return wsusers;
 	}
 	
-	public List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
+	public static List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
 			Set<ByteArrayFileCache> resourcesToDestroy) {
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			final ByteArrayFileCache resource = o.getDataAsTokens();
@@ -321,7 +325,8 @@ public class ArgUtils {
 					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+							o.getProvenance().getActions(),
+							dateFormat))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withCreated(dateFormat.formatDate(
 							o.getProvenance().getDate()))
@@ -331,15 +336,17 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public List<ObjectProvenanceInfo> translateObjectProvInfo(
+	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectInformation> objects) {
+		final UTCDateFormat dateFormat = new UTCDateFormat();
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
 		for (final WorkspaceObjectInformation o: objects) {
 			ret.add(new ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+							o.getProvenance().getActions(),
+							dateFormat))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withCreated(dateFormat.formatDate(
 							o.getProvenance().getDate()))
@@ -348,8 +355,9 @@ public class ArgUtils {
 		return ret;
 	}
 
-	private List<ProvenanceAction> translateProvenanceActions(
-			final List<Provenance.ProvenanceAction> actions) {
+	private static List<ProvenanceAction> translateProvenanceActions(
+			final List<Provenance.ProvenanceAction> actions,
+			final UTCDateFormat dateFormat) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
 			pas.add(new ProvenanceAction()
@@ -372,14 +380,14 @@ public class ArgUtils {
 		return pas;
 	}
 	
-	public boolean longToBoolean(final Long b) {
+	public static boolean longToBoolean(final Long b) {
 		if (b == null) {
 			return false;
 		}
 		return b != 0;
 	}
 	
-	public int longToInt(final Long l, final String name, final int deflt) {
+	public static int longToInt(final Long l, final String name, final int deflt) {
 		if (l == null) {
 			return deflt;
 		}
@@ -390,7 +398,7 @@ public class ArgUtils {
 		return new Long(l).intValue();
 	}
 	
-	public Permission getGlobalWSPerm(final String globalRead) {
+	public static Permission getGlobalWSPerm(final String globalRead) {
 		Permission p = Permission.NONE;
 		if (globalRead != null) {
 			if (!globalRead.equals(PERM_READ) && 

@@ -14,6 +14,17 @@ import us.kbase.common.service.UObject;
 //BEGIN_HEADER
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
+import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
+import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.wsInfoToMetaTuple;
+import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
+import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectDataList;
+import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
+import static us.kbase.workspace.kbase.ArgUtils.longToInt;
+import static us.kbase.workspace.kbase.ArgUtils.parseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
@@ -108,7 +119,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static final String VER = "0.2.0";
 
-	private ArgUtils au = new ArgUtils();
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
@@ -456,13 +466,13 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN clone_workspace
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = au.getGlobalWSPerm(params.getGlobalread());
+		Permission p = getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription(), params.getMeta());
-		returnVal = au.wsInfoToTuple(meta);
+		returnVal = wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;
     }
@@ -487,7 +497,7 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN lock_workspace
 		final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
-		returnVal = au.wsInfoToTuple(ws.lockWorkspace(getUser(authPart), wsid));
+		returnVal = wsInfoToTuple(ws.lockWorkspace(getUser(authPart), wsid));
         //END lock_workspace
         return returnVal;
     }
@@ -511,7 +521,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), params.getId());
 		final WorkspaceInformation meta = ws.getWorkspaceInformation(
 				getUser(params.getAuth(), authPart), wksp);
-		returnVal = au.wsInfoToMetaTuple(meta);
+		returnVal = wsInfoToMetaTuple(meta);
         //END get_workspacemeta
         return returnVal;
     }
@@ -531,7 +541,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceInformation meta = ws.getWorkspaceInformation(
 				getUser(authPart), wksp);
-		returnVal = au.wsInfoToTuple(meta);
+		returnVal = wsInfoToTuple(meta);
         //END get_workspace_info
         return returnVal;
     }
@@ -706,7 +716,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ByteArrayFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
-			.withMetadata(au.objInfoToMetaTuple(ret.getObjectInfo()));
+			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo()));
 			resourcesToDelete.set(new HashSet<ByteArrayFileCache>(
 					Arrays.asList(resource)));
         //END get_object
@@ -726,7 +736,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectProvenanceInfo> returnVal = null;
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = au.translateObjectProvInfo(
+		returnVal = translateObjectProvInfo(
 				ws.getObjectProvenance(getUser(authPart), loi));
         //END get_object_provenance
         return returnVal;
@@ -747,7 +757,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
-		returnVal = au.translateObjectData(
+		returnVal = translateObjectData(
 				ws.getObjects(getUser(authPart), loi), resources);
 		resourcesToDelete.set(resources);
         //END get_objects
@@ -781,7 +791,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				subObjectIds);
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
-		returnVal = au.translateObjectData(
+		returnVal = translateObjectData(
 				ws.getObjectsSubSet(getUser(authPart), loi), resources);
 		resourcesToDelete.set(resources);
         //END get_object_subset
@@ -802,7 +812,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = au.objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi));
+		returnVal = objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi));
         //END get_object_history
         return returnVal;
     }
@@ -820,7 +830,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> returnVal = null;
         //BEGIN list_referencing_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = au.translateObjectDataList(
+		returnVal = translateObjectDataList(
 				ws.getReferencingObjects(getUser(authPart), loi));
         //END list_referencing_objects
         return returnVal;
@@ -898,7 +908,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
-		returnVal = au.translateObjectData(ws.getReferencedObjects(
+		returnVal = translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains), resources);
 		resourcesToDelete.set(resources);	
         //END get_referenced_objects
@@ -920,9 +930,9 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple7<String, String, String, Long, String, String, Long>> listWorkspaces(ListWorkspacesParams params, AuthToken authPart) throws Exception {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
-		returnVal =  au.wsInfoToMetaTuple(ws.listWorkspaces(
+		returnVal =  wsInfoToMetaTuple(ws.listWorkspaces(
 				getUser(params.getAuth(), authPart), null, null, null, null, null,
-				au.longToBoolean(params.getExcludeGlobal()), false, false));
+				longToBoolean(params.getExcludeGlobal()), false, false));
         //END list_workspaces
         return returnVal;
     }
@@ -962,9 +972,9 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null);
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final boolean showDeleted = au.longToBoolean(
+		final boolean showDeleted = longToBoolean(
 				params.getShowDeletedObject());
-		returnVal = au.objInfoToMetaTuple(
+		returnVal = objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, null, null, null, null, null,
 						false, showDeleted, false, false, true, false, 0, 10000));
@@ -1000,24 +1010,24 @@ public class WorkspaceServer extends JsonServerServlet {
 				TypeDefId.fromTypeString(params.getType());
 		final Permission p = params.getPerm() == null ? null :
 			translatePermission(params.getPerm());
-		final boolean showHidden = au.longToBoolean(params.getShowHidden());
-		final boolean showDeleted = au.longToBoolean(params.getShowDeleted());
-		final boolean showOnlyDeleted = au.longToBoolean(
+		final boolean showHidden = longToBoolean(params.getShowHidden());
+		final boolean showDeleted = longToBoolean(params.getShowDeleted());
+		final boolean showOnlyDeleted = longToBoolean(
 				params.getShowOnlyDeleted());
-		final boolean showAllVers = au.longToBoolean(
+		final boolean showAllVers = longToBoolean(
 				params.getShowAllVersions());
-		final boolean includeMetadata = au.longToBoolean(
+		final boolean includeMetadata = longToBoolean(
 				params.getIncludeMetadata());
-		final boolean excludeGlobal = au.longToBoolean(
+		final boolean excludeGlobal = longToBoolean(
 				params.getExcludeGlobal());
-		final int skip = au.longToInt(params.getSkip(), "Skip", -1);
-		final int limit = au.longToInt(params.getLimit(), "Limit", -1);
-		returnVal = au.objInfoToTuple(
+		final int skip = longToInt(params.getSkip(), "Skip", -1);
+		final int limit = longToInt(params.getLimit(), "Limit", -1);
+		returnVal = objInfoToTuple(
 				//this sig is insane
 				ws.listObjects(getUser(authPart), wsis, type, p,
 						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), au.parseDate(params.getAfter()),
-						au.parseDate(params.getBefore()), showHidden,
+						params.getMeta(), parseDate(params.getAfter()),
+						parseDate(params.getBefore()), showHidden,
 						showDeleted, showOnlyDeleted, showAllVers,
 						includeMetadata, excludeGlobal, skip, limit));
         //END list_objects
@@ -1042,7 +1052,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
-		returnVal = au.objInfoToMetaTuple(
+		returnVal = objInfoToMetaTuple(
 				ws.getObjectInformation(getUser(params.getAuth(), authPart),
 						Arrays.asList(oi), true, false).get(0));
         //END get_objectmeta
@@ -1068,9 +1078,9 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_info
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = au.objInfoToTuple(
+		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
-						au.longToBoolean(includeMetadata), false));
+						longToBoolean(includeMetadata), false));
         //END get_object_info
         return returnVal;
     }
@@ -1090,10 +1100,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(
 				params.getObjects());
-		returnVal = au.objInfoToTuple(
+		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
-						au.longToBoolean(params.getIncludeMetadata()),
-						au.longToBoolean(params.getIgnoreErrors())));
+						longToBoolean(params.getIncludeMetadata()),
+						longToBoolean(params.getIgnoreErrors())));
         //END get_object_info_new
         return returnVal;
     }
@@ -1113,7 +1123,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
-		returnVal = au.wsInfoToTuple(ws.renameWorkspace(getUser(authPart),
+		returnVal = wsInfoToTuple(ws.renameWorkspace(getUser(authPart),
 				wsi, params.getNewName()));
         //END rename_workspace
         return returnVal;
@@ -1133,7 +1143,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN rename_object
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
-		returnVal = au.objInfoToTuple(ws.renameObject(getUser(authPart),
+		returnVal = objInfoToTuple(ws.renameObject(getUser(authPart),
 				oi, params.getNewName()));
         //END rename_object
         return returnVal;
@@ -1154,7 +1164,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier from = processObjectIdentifier(params.getFrom());
 		final ObjectIdentifier to = processObjectIdentifier(params.getTo());
-		returnVal = au.objInfoToTuple(ws.copyObject(getUser(authPart), from, to));
+		returnVal = objInfoToTuple(ws.copyObject(getUser(authPart), from, to));
         //END copy_object
         return returnVal;
     }
@@ -1174,7 +1184,7 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
         //BEGIN revert_object
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = au.objInfoToTuple(ws.revertObject(getUser(authPart), oi));
+		returnVal = objInfoToTuple(ws.revertObject(getUser(authPart), oi));
         //END revert_object
         return returnVal;
     }
