@@ -19,16 +19,9 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.2.1 (Released TBD)
+
+VERSION: 0.2.2 (Released TBD)
 --------------------------------------
-
-NEW FEATURES:
-- get_object_provenance returns the object provenance without the data.
-
-UPDATED FEATURES / MAJOR BUG FIXES:
-- the initialization script will no longer allow setting the mongo typedb
-  name to the workspace type db name, and the server will refuse to start up
-  if such is the case.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
@@ -39,6 +32,7 @@ KNOWN BUGS:
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Automatically populated metadata
+- Range annotation support to set limits on float/int values
 - Garbage collection
 - Pointers to shock data too large to fit in the workspace
 - ACLs based on KBase groups
@@ -48,6 +42,33 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Import TOs from shock
 - Update copied objects from source
 - Improvements to returning the subset of an object
+
+VERSION: 0.2.1 (Released TBD)
+--------------------------------------
+NEW FEATURES:
+- get_object_provenance returns the object provenance without the data.
+- added get_all_type_info and get_all_func_info to return all type/function
+  information registered for a specified module
+- a parsed structure of type and function defintions were added to TypeInfo
+  and FuncInfo
+- the owner of a module now can determine the released versions of a types and 
+  and functions (released version info was added to TypeInfo and FuncInfo)
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- the initialization script will no longer allow setting the mongo typedb
+  name to the workspace type db name, and the server will refuse to start up
+  if such is the case.
+- configuration of the default URL for the CLI is handled properly; in 0.2.0
+  the ws-url command needed to be called prior to other commands
+- improved documentation and other minor error handling in the CLI
+- again allows IRIS deployment of ws-workspace and ws-url
+
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
 
 VERSION: 0.2.0 (Released 5/18/14)
 --------------------------------------

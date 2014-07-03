@@ -43,9 +43,13 @@ $usage = $usageHead."\nSYNOPSIS\n  ".$usage;
 $usage .= "\nDESCRIPTION\n";
 $usage .= "    Load data in JSON format to a workspace.  If data is in a file, the filename\n";
 $usage .= "    should be provided.  Otherwise, data in JSON format can be entered directly into\n";
-$usage .= "    the command line.  If you want to set user meta data, the meta data should also\n";
-$usage .= "    be provided in JSON format as an object with string keys and string values. The\n";
-$usage .= "    meta data can be in a file or specified directly via the command line.\n";
+$usage .= "    the command line.  Note that the Workspace only supports saving typed object \n";
+$usage .= "    data (that is, types defined in KIDL as a typedef structure) even if a non-object\n";
+$usage .= "    type is released.  For instance, if a list type is released, you cannot save\n";
+$usage .= "    instances of that list type to the Workspace.\n\n";
+$usage .= "    If you want to set user meta data, the meta data should also be provided in JSON\n";
+$usage .= "    format as an object with string keys and string values. The meta data can be in a\n";
+$usage .= "    file or specified directly via the command line.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
