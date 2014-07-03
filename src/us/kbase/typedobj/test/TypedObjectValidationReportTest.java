@@ -34,8 +34,6 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
 	
-	//TODO 1 for this commit and previous commit, run through changes and add appropriate tests
-	
 	// needs more tests, just adding tests for new functionality
 	
 	private static final UTF8JsonSorterFactory SORT_FAC =

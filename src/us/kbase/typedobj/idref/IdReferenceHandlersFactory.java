@@ -15,10 +15,10 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
  * a particular object but the entire ID set can be processed as a batch.
  * @author gaprice@lbl.gov
  *
- * @param <T> the type of the object to be associated with IDs.
  */
 public class IdReferenceHandlersFactory {
 	
+	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	//TODO unit tests, docs
 
 	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 

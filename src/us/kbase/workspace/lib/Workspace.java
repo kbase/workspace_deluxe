@@ -514,7 +514,6 @@ public class Workspace {
 		}
 	}
 	
-	//TODO 1 run through the last week of commits and check for new test cases
 	public List<ObjectInformation> saveObjects(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
@@ -1313,13 +1312,15 @@ public class Workspace {
 	 */
 	public WorkspaceIDHandlerFactory getHandlerFactory(
 			final WorkspaceUser user,
-			final ReferenceParser parser) {
+			final ReferenceParser parser) { //TODO 1 set reference parser in constructor - shouldn't change
 		return new WorkspaceIDHandlerFactory(user, parser);
 	}
 	
 	private class WorkspaceIDHandlerFactory
 			implements IdReferenceHandlerFactory {
 
+		//TODO 1 read through all this & check docs, write any new tests, check coverage.
+		
 		private final WorkspaceUser user;
 		private final ReferenceParser parser;
 		
@@ -1348,6 +1349,8 @@ public class Workspace {
 	
 	public class WorkspaceIDHandler<T> implements IdReferenceHandler<T> {
 
+		//TODO 1 read through all this & check docs, write any new tests, check coverage.
+		
 		private final WorkspaceUser user;
 		private final ReferenceParser parser;
 		

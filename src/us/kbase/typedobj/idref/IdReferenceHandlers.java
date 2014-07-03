@@ -12,6 +12,7 @@ public class IdReferenceHandlers<T> {
 	
 	//TODO unit tests, docs
 	//TODO 1 test extraction of various types
+	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
