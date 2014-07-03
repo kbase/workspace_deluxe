@@ -94,7 +94,7 @@ public class TypedObjectValidationReportTest {
 		List<String> errors = Arrays.asList(
 			"instance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /m/z",
 			"instance type (array) does not match any allowed primitive type (allowed: [\"string\"]), at /m/b",
-			"Object field name is expected but found END_ARRAY at /m/b"); //TODO 1 this is a bug in the validator, Roman will fix
+			"Object field name is expected but found, END_ARRAY at /m/b"); //TODO 1 this is a bug in the validator, Roman will fix
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
