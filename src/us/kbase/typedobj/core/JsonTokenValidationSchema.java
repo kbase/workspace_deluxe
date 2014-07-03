@@ -357,9 +357,13 @@ public class JsonTokenValidationSchema {
 			// string value is expecting
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING) {	// but found something else
-				if (t != JsonToken.VALUE_NULL || idReference != null)	// we allow nulls but not for references
+				if (t != JsonToken.VALUE_NULL || idReference != null) {// we allow nulls but not for references
 					lst.addError(generateError(type, t, path));
-				//TODO 1 Roman need to skip element here
+				}
+				if (t == JsonToken.START_ARRAY
+						|| t == JsonToken.START_OBJECT) {
+					skipValueWithoutFirst(jp);
+				}
 			} else {
 				if (idReference != null) {
 					// we can add this string value as requiring id-reference relabeling in case 
@@ -373,9 +377,13 @@ public class JsonTokenValidationSchema {
 		} else if (type == Type.integer) {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_INT) && (t != JsonToken.VALUE_NULL)) {// but found something else
+			if ((t != JsonToken.VALUE_NUMBER_INT)
+					&& (t != JsonToken.VALUE_NULL)) {// but found something else
 				lst.addError(generateError(type, t, path));
-				//TODO 1 Roman need to skip element here and not check range
+				if (t == JsonToken.START_ARRAY
+						|| t == JsonToken.START_OBJECT) {
+					skipValueWithoutFirst(jp);
+				}	
 			} else {
 				if (intRange != null) {
 					intRange.checkValue(jp, lst, path);
@@ -388,7 +396,10 @@ public class JsonTokenValidationSchema {
 				(t != JsonToken.VALUE_NUMBER_INT) &&
 				(t != JsonToken.VALUE_NULL)) {   // but found something else
 				lst.addError(generateError(type, t, path));
-				//TODO 1 Roman need to skip element here and not check range
+				if (t == JsonToken.START_ARRAY
+						|| t == JsonToken.START_OBJECT) {
+					skipValueWithoutFirst(jp);
+				}	
 			} else {
 				if (numberRange != null) {
 					numberRange.checkValue(jp, lst, path);

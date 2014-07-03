@@ -29,9 +29,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -54,9 +56,11 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class DetailedValidationTest {
 
+	private static final int EXPECTED_TESTS = 61;
+	
 	/**
 	 * location to stash the temporary database for testing
-	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
+	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!
 	 */
 	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/DetailedValidation";
 	private final static String TEST_SCRATCH_SPACE = "test/temp_files";
@@ -162,6 +166,13 @@ public class DetailedValidationTest {
 				resources.add(new TestInstanceInfo(resourcesArray[k]));
 			}
 		}
+		if (resources.size() != EXPECTED_TESTS) {
+			System.out.println("Missing test resources - found " +
+					resources.size() + ", expected " + EXPECTED_TESTS);
+			throw new TestException("Missing test resources - found " +
+					resources.size() + ", expected " + EXPECTED_TESTS);
+			
+		}
 		if(VERBOSE) System.out.println("found "+resources.size()+" instances.");
 	}
 	
@@ -181,14 +192,16 @@ public class DetailedValidationTest {
 		try {
 			testConditionsString = loadResourceFile(TEST_RESOURCE_LOCATION+resource.resourceName);
 		} catch (Exception e) {
+			if (VERBOSE) System.out.println("    malformed test case, cannot load '"+resource.resourceName+"'. error was: "+e.getMessage());
 			throw new RuntimeException("malformed test case, cannot load '"+resource.resourceName+"'. error was: "+e.getMessage());
 		}
 		
-		ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = new ObjectMapper().configure(Feature.ALLOW_COMMENTS, true);
 		JsonNode testConditions;
 		try {
 			testConditions = mapper.readTree(testConditionsString);
 		} catch (Exception e) {
+			if (VERBOSE) System.out.println("malformed test case, cannot parse '"+resource.resourceName+"' as JSON. error was: "+e.getMessage());
 			throw new RuntimeException("malformed test case, cannot parse '"+resource.resourceName+"' as JSON. error was: "+e.getMessage());
 		} 
 		

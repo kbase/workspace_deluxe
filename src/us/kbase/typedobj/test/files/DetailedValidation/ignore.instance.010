@@ -1,8 +1,0 @@
-{
-	"type":"KB.StringField",
-	"result":"error",
-	"error-mssgs":["instance type (list) does not match any allowed primitive type (allowed: [\"integer\"]), at /f"],
-	"instance": {
-		"f":["hello","goodbye"]
-	}
-}

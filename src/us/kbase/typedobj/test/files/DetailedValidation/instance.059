@@ -1,0 +1,13 @@
+/*
+Test that, when encountering an unexpected array, the parser skips the
+array. Previous versions skipped the first token and continued which produced
+an unexpected error.
+*/
+{
+	"type":"KB.IntField",
+	"result":"error",
+	"error-mssgs":["instance type (array) does not match any allowed primitive type (allowed: [\"integer\"]), at /f"],
+	"instance": {
+		"f":["foo"]
+	}
+}

@@ -1,0 +1,14 @@
+/*
+Test that, when encountering an unexpected mapping, the parser skips the
+mapping. Previous versions skipped the first token and continued which means
+the unexpected mapping took the place of the enclosing mapping.
+*/
+
+{
+	"type":"KB.StringField",
+	"result":"error",
+	"error-mssgs":["instance type (object) does not match any allowed primitive type (allowed: [\"string\"]), at /f"],
+	"instance": {
+		"f":{"f": 42}
+	}
+}

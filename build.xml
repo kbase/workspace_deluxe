@@ -170,6 +170,7 @@
           <include name="**/*.properties"/>
           <include name="**/*.spec"/>
           <include name="**/*.instance.*"/>
+          <include name="**/instance.*"/>
           <include name="**/*.instance"/>
         </patternset>
       </fileset>
