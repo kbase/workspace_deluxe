@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -69,6 +70,8 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class IdProcessingTest {
 
+	private static final int TEST_COUNT = 5;
+	
 	/**
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
@@ -190,6 +193,13 @@ public class IdProcessingTest {
 			if(tokens[2].equals("instance")) {
 				instanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1]));
 			}
+		}
+		if (TEST_COUNT != instanceResources.size()) {
+			String err = String.format(
+					"Incorrect test count, got: %s, expected %s",
+					instanceResources.size(), TEST_COUNT);
+			System.out.println(err);
+			throw new TestException(err);
 		}
 	}
 	
