@@ -38,6 +38,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   the ws-url command needed to be called prior to other commands
 - improved documentation and other minor error handling in the CLI
 - again allows IRIS deployment of ws-workspace and ws-url
+- fixed a bug that could cause date parsing errors on valid incoming
+  date strings
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of

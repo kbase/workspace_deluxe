@@ -1,6 +1,12 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
+import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
+import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
+import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.parseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
@@ -48,7 +54,6 @@ import us.kbase.workspace.lib.Workspace;
 public class WorkspaceServerMethods {
 	
 	final Workspace ws;
-	final ArgUtils au = new ArgUtils();
 	
 	public WorkspaceServerMethods(final Workspace ws) {
 		this.ws = ws;
@@ -60,11 +65,11 @@ public class WorkspaceServerMethods {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = au.getGlobalWSPerm(params.getGlobalread());
+		Permission p = getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(user,
 				params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription(), params.getMeta());
-		return au.wsInfoToTuple(meta);
+		return wsInfoToTuple(meta);
 	}
 	
 	public void setPermissions(final SetPermissionsParams params,
@@ -155,9 +160,9 @@ public class WorkspaceServerMethods {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
-			final Provenance p = au.processProvenance(user,
+			final Provenance p = processProvenance(user,
 					d.getProvenance());
-			final boolean hidden = au.longToBoolean(d.getHidden());
+			final boolean hidden = longToBoolean(d.getHidden());
 			try {
 				if (oi == null) {
 					woc.add(new WorkspaceSaveObject(d.getData(),
@@ -178,7 +183,7 @@ public class WorkspaceServerMethods {
 		// setting params = null won't help since the method caller still has a ref
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc); 
-		return au.objInfoToTuple(meta);
+		return objInfoToTuple(meta);
 	}
 	
 	public void grantModuleOwnership(final GrantModuleOwnershipParams params,
@@ -187,7 +192,7 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(),
 				GrantModuleOwnershipParams.class);
 		ws.grantModuleOwnership(params.getMod(), params.getNewOwner(),
-				au.longToBoolean(params.getWithGrantOption()), user, asAdmin);
+				longToBoolean(params.getWithGrantOption()), user, asAdmin);
 	}
 
 	public void removeModuleOwnership(final RemoveModuleOwnershipParams params,
@@ -206,12 +211,12 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
-		return au.wsInfoToTuple(ws.listWorkspaces(user,
+		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
-				au.parseDate(params.getAfter()),
-				au.parseDate(params.getBefore()),
-				au.longToBoolean(params.getExcludeGlobal()),
-				au.longToBoolean(params.getShowDeleted()),
-				au.longToBoolean(params.getShowOnlyDeleted())));
+				parseDate(params.getAfter()),
+				parseDate(params.getBefore()),
+				longToBoolean(params.getExcludeGlobal()),
+				longToBoolean(params.getShowDeleted()),
+				longToBoolean(params.getShowOnlyDeleted())));
 	}
 }
