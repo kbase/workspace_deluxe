@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -42,6 +43,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 @RunWith(value = Parameterized.class)
 public class ObjectExtractionByPathTest {
 
+	private final static int TEST_COUNT = 12;
 	private final static String TEST_RESOURCE_LOCATION = "files/SubdataExtraction/";
 	
 	private final static boolean VERBOSE = true;
@@ -82,6 +84,14 @@ public class ObjectExtractionByPathTest {
 			if(resources[k].isEmpty()) continue;
 			instanceResources.add(new TestInstanceInfo(resources[k]));
 		}
+		if (TEST_COUNT != instanceResources.size()) {
+			String err = String.format(
+					"Incorrect test count, got: %s, expected %s",
+					instanceResources.size(), TEST_COUNT);
+			System.out.println(err);
+			throw new TestException(err);
+		}
+		
 		if(VERBOSE) System.out.println(" " + instanceResources.size() + " found");
 		Object [][] instanceInfo = new Object[instanceResources.size()][1];
 		for(int k=0; k<instanceResources.size(); k++) {

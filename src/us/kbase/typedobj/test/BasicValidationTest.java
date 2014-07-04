@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -63,6 +64,9 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  */
 @RunWith(value = Parameterized.class)
 public class BasicValidationTest {
+	
+	private static final int VALID_TEST_COUNT = 16;
+	private static final int INVALID_TEST_COUNT = 29;
 
 	/**
 	 * location to stash the temporary database for testing
@@ -197,6 +201,15 @@ public class BasicValidationTest {
 					invalidInstanceResources.add(new TestInstanceInfo(resources[k],tokens[0],tokens[1],false));
 				}
 			}
+		}
+		if (VALID_TEST_COUNT != validInstanceResources.size() ||
+				INVALID_TEST_COUNT != invalidInstanceResources.size()) {
+			String err = String.format(
+					"Incorrect test count, got valid: %s, invalid: %s. Expected valid: %s, invalid: %s",
+					validInstanceResources.size(), invalidInstanceResources.size(),
+					VALID_TEST_COUNT, INVALID_TEST_COUNT);
+			System.out.println(err);
+			throw new TestException(err);
 		}
 		if(VERBOSE) System.out.println(validInstanceResources.size()+" valid, "+invalidInstanceResources.size()+" invalid");
 	}

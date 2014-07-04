@@ -53,10 +53,12 @@ module Workspace {
 	typedef string username;
 	
 	/* 
-		A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is the difference
+		A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the
+		character Z (representing the UTC timezone) or the difference
 		in time to UTC in the format +/-HHMM, eg:
 			2012-12-17T23:24:06-0500 (EST time)
 			2013-04-03T08:56:32+0000 (UTC time)
+			2013-04-03T08:56:32Z (UTC time)
 	*/
 	typedef string timestamp;
 	
