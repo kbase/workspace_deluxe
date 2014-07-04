@@ -438,7 +438,7 @@ public class JSONRPCLayerTester {
 		return new Date(now - ms);
 	}
 	
-	protected void saveProvWithBadTime(String time) throws Exception {
+	protected void saveProvWithBadTime(String time, String exception) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
 				.withObjects(Arrays.asList(
@@ -450,7 +450,7 @@ public class JSONRPCLayerTester {
 			fail("save w/ prov w/ bad time");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is(String.format("Unparseable date: \"%s\"", time)));
+					is(exception));
 		}
 	}
 	

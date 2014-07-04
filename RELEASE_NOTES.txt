@@ -40,6 +40,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - again allows IRIS deployment of ws-workspace and ws-url
 - fixed a bug that could cause date parsing errors on valid incoming
   date strings
+- date strings now may contain 'Z' for the timezone
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of

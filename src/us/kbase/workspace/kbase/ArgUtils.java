@@ -15,12 +15,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.common.utils.UTCDateFormat;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -47,10 +51,15 @@ public class ArgUtils {
 	
 	//TODO 0.2.1 get Matt to run tests and show that the date problem is fixed
 	
-	/* Note that SimpleDateFormat, of which UTCDateFormat is a subclass,
-	 * is not thread safe and therefore must be instantiated on a per
-	 * method basis
-	 */
+	private final static DateTimeFormatter DATE_PARSER =
+			new DateTimeFormatterBuilder()
+				.append(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss"))
+				.appendOptional(DateTimeFormat.forPattern(".SSS").getParser())
+				.append(DateTimeFormat.forPattern("Z"))
+				.toFormatter();
+	
+	private final static DateTimeFormatter DATE_FORMATTER =
+			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
 	
 	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) throws ParseException {
@@ -81,8 +90,22 @@ public class ArgUtils {
 	}
 	
 	public static Date parseDate(final String date) throws ParseException {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
-		return date == null ? null : dateFormat.parseDate(date);
+		if (date == null) {
+			return null;
+		}
+		try {
+			return DATE_PARSER.parseDateTime(date).toDate();
+		} catch (IllegalArgumentException iae) {
+			throw new IllegalArgumentException("Unparseable date: " +
+					iae.getMessage());
+		}
+	}
+	
+	public static String formatDate(final Date date) {
+		if (date == null) {
+			return null;
+		}
+		return DATE_FORMATTER.print(new DateTime(date));
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
@@ -122,13 +145,12 @@ public class ArgUtils {
 	}
 
 	public static Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
-			wsInfoToTuple(final WorkspaceInformation info) {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
+			wsInfoToTuple(final WorkspaceInformation info)  {
 		return new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
 				.withE1(info.getId())
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
-				.withE4(dateFormat.formatDate(info.getModDate()))
+				.withE4(formatDate(info.getModDate()))
 				.withE5(info.getApproximateObjects())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
@@ -149,12 +171,11 @@ public class ArgUtils {
 	
 	public static Tuple7<String, String, String, Long, String, String, Long>
 				wsInfoToMetaTuple(final WorkspaceInformation info) {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
 		return new Tuple7<String, String, String, Long, String, String, Long>()
 				.withE7(info.getId())
 				.withE1(info.getName())
 				.withE2(info.getOwner().getUser())
-				.withE3(dateFormat.formatDate(info.getModDate()))
+				.withE3(formatDate(info.getModDate()))
 				.withE4(info.getApproximateObjects())
 				.withE5(translatePermission(info.getUserPermission())) 
 				.withE6(translatePermission(info.isGloballyReadable()));
@@ -189,7 +210,6 @@ public class ArgUtils {
 			Long, String, String, Long, Map<String, String>>> ret = 
 			new ArrayList<Tuple11<Long, String, String, String, Long,
 			String, Long, String, String, Long, Map<String, String>>>();
-		final UTCDateFormat dateFormat = new UTCDateFormat();
 		for (ObjectInformation m: info) {
 			if (m == null) {
 				ret.add(null);
@@ -199,7 +219,7 @@ public class ArgUtils {
 						.withE1(m.getObjectId())
 						.withE2(m.getObjectName())
 						.withE3(m.getTypeString())
-						.withE4(dateFormat.formatDate(m.getSavedDate()))
+						.withE4(formatDate(m.getSavedDate()))
 						.withE5(new Long(m.getVersion()))
 						.withE6(m.getSavedBy().getUser())
 						.withE7(m.getWorkspaceId())
@@ -224,7 +244,6 @@ public class ArgUtils {
 	public static List<Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>>
 			objInfoToMetaTuple(final List<ObjectInformation> info) {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
 		//oh the humanity
 		final List<Tuple12<String, String, String, Long, String, String, String,
 		String, String, String, Map<String, String>, Long>> ret = 
@@ -236,7 +255,7 @@ public class ArgUtils {
 					String, String, String, Map<String, String>, Long>()
 					.withE1(m.getObjectName())
 					.withE2(m.getTypeString())
-					.withE3(dateFormat.formatDate(m.getSavedDate()))
+					.withE3(formatDate(m.getSavedDate()))
 					.withE4(new Long(m.getVersion()))
 					.withE5("") //command is deprecated
 					.withE6(m.getSavedBy().getUser())
@@ -319,7 +338,6 @@ public class ArgUtils {
 	
 	public static List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
 			Set<ByteArrayFileCache> resourcesToDestroy) {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			final ByteArrayFileCache resource = o.getDataAsTokens();
@@ -327,10 +345,9 @@ public class ArgUtils {
 					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions(),
-							dateFormat))
+							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withCreated(dateFormat.formatDate(
+					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
 			resourcesToDestroy.add(resource);
@@ -340,17 +357,15 @@ public class ArgUtils {
 	
 	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectInformation> objects) {
-		final UTCDateFormat dateFormat = new UTCDateFormat();
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
 		for (final WorkspaceObjectInformation o: objects) {
 			ret.add(new ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions(),
-							dateFormat))
+							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withCreated(dateFormat.formatDate(
+					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences()));
 		}
@@ -358,12 +373,11 @@ public class ArgUtils {
 	}
 
 	private static List<ProvenanceAction> translateProvenanceActions(
-			final List<Provenance.ProvenanceAction> actions,
-			final UTCDateFormat dateFormat) {
+			final List<Provenance.ProvenanceAction> actions) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
 			pas.add(new ProvenanceAction()
-					.withTime(dateFormat.formatDate(a.getTime()))
+					.withTime(formatDate(a.getTime()))
 					.withService(a.getServiceName())
 					.withServiceVer(a.getServiceVersion())
 					.withMethod(a.getMethod())

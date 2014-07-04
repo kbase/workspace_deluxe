@@ -503,10 +503,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is("Unexpected arguments in ProvenanceAction: foo"));
 		}
 		
-		saveProvWithBadTime("2013-04-26T25:52:06-0800");
-		saveProvWithBadTime("2013-04-26T23:52:06-8000");
-		saveProvWithBadTime("2013-04-35T23:52:06-0800");
-		saveProvWithBadTime("2013-13-26T23:52:06-0800");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06-0800",
+				"2013-04-27T07:52:06+0000");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06Z",
+				"2013-04-26T23:52:06+0000");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.145Z",
+				"2013-04-26T23:52:06+0000");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.14Z",
+				"2013-04-26T23:52:06+0000");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.1Z",
+				"2013-04-26T23:52:06+0000");
+		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.14-0800",
+				"2013-04-27T07:52:06+0000");
+		
+		saveProvWithBadTime("2013-04-26T25:52:06-0800",
+				"Unparseable date: Cannot parse \"2013-04-26T25:52:06-0800\": Value 25 for hourOfDay must be in the range [0,23]");
+		saveProvWithBadTime("2013-04-26T23:52:06-8000",
+				"Unparseable date: Invalid format: \"2013-04-26T23:52:06-8000\" is malformed at \"8000\"");
+		saveProvWithBadTime("2013-04-35T23:52:06-0800",
+				"Unparseable date: Cannot parse \"2013-04-35T23:52:06-0800\": Value 35 for dayOfMonth must be in the range [1,30]");
+		saveProvWithBadTime("2013-13-26T23:52:06-0800",
+				"Unparseable date: Cannot parse \"2013-13-26T23:52:06-0800\": Value 13 for monthOfYear must be in the range [1,12]");
+		saveProvWithBadTime("2013-13-26T23:52:06.1111-0800",
+				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.1111-0800\" is malformed at \"1-0800\"");
+		saveProvWithBadTime("2013-13-26T23:52:06.-0800",
+				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.-0800\" is malformed at \".-0800\"");
+		saveProvWithBadTime("2013-12-26T23:52:06.55",
+				"Unparseable date: Invalid format: \"2013-12-26T23:52:06.55\" is too short");
+		saveProvWithBadTime("2013-12-26T23:52-0800",
+				"Unparseable date: Invalid format: \"2013-12-26T23:52-0800\" is malformed at \"-0800\"");
 		
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
@@ -519,6 +544,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("provenance").withNewPermission("n"));
+	}
+
+	private void saveProvWithGoodTime(String workspace, String inputTime,
+			String expectedTime) throws Exception {
+		UObject data = new UObject(new HashMap<String, Object>());
+		
+		List<ProvenanceAction> prov = Arrays.asList(
+				new ProvenanceAction().withTime(inputTime));
+		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+				.withProvenance(prov));
+		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(objects);
+		Long objid = CLIENT1.saveObjects(sop).get(0).getE1();
+		Map<String, String> refmap = new HashMap<String, String>();
+		Map<String, String> timemap = new HashMap<String, String>();
+		timemap.put(inputTime, expectedTime);
+		ObjectIdentity id = new ObjectIdentity().withWorkspace(workspace).withObjid(objid);
+		checkProvenance(USER1, id, prov, refmap, timemap);
+		
 	}
 
 	@Test
@@ -1824,7 +1869,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withAfter(addSec(w1.getE4())).withBefore(subSec(w3.getE4()))),
 				Arrays.asList(w2), Arrays.asList(w1, w3), true);
 		
-		failListWorkspaceByDate("crappy date", "Unparseable date: \"crappy date\"");
+		failListWorkspaceByDate("crappy date", "Unparseable date: Invalid format: \"crappy date\"");
 	}
 	
 	@Test
@@ -2090,7 +2135,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
 		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
 		
-		failListObjectsByDate("crappy obj date", "Unparseable date: \"crappy obj date\"");
+		failListObjectsByDate("crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
 	}
 	
 	@Test
