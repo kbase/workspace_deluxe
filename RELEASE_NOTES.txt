@@ -41,6 +41,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - fixed a bug that could cause date parsing errors on valid incoming
   date strings
 - date strings now may contain 'Z' for the timezone
+- kbase user is now configurable for deploy-upstart target
+- there is now an option in deploy.cfg to specify the number of times to
+  attempt to contact MongoDB on startup
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
