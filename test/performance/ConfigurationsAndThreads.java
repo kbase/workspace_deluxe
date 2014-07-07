@@ -392,7 +392,7 @@ public class ConfigurationsAndThreads {
 		public WorkspaceJsonRPCShock() throws Exception {
 			super();
 			wsc = new WorkspaceClient(workspace0_1_0URL, token);
-			wsc.setAuthAllowedForHttp(true);
+			wsc.setIsInsecureHttpConnectionAllowed(true);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			try {

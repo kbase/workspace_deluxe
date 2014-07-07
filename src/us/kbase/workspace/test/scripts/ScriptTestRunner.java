@@ -174,8 +174,8 @@ public class ScriptTestRunner {
 				.containsKey(USER3)) {
 			throw new TestException(USER3 + " is not a valid kbase user");
 		}
-		CLIENT1.setAuthAllowedForHttp(true);
-		CLIENT2.setAuthAllowedForHttp(true);
+		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
 		System.out.println("Starting tests");
 	}
 

@@ -194,9 +194,9 @@ public class JSONRPCLayerTester {
 			throw new TestException(USER3 + " is not a valid kbase user");
 		}
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
-		CLIENT1.setAuthAllowedForHttp(true);
-		CLIENT2.setAuthAllowedForHttp(true);
-		CLIENT_NO_AUTH.setAuthAllowedForHttp(true);
+		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
 		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
@@ -227,7 +227,7 @@ public class JSONRPCLayerTester {
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
 				SERVER2.getServerPort()), USER2, p2);
-		clientForSrv2.setAuthAllowedForHttp(true);
+		clientForSrv2.setIsInsecureHttpConnectionAllowed(true);
 		clientForSrv2.requestModuleOwnership("SomeModule");
 		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
 		clientForSrv2.registerTypespec(new RegisterTypespecParams()

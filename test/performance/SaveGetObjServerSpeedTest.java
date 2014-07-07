@@ -404,7 +404,7 @@ public class SaveGetObjServerSpeedTest {
 			System.out.println("Setting up server at " + u);
 			WorkspaceClient ws = new WorkspaceClient(u, user, pwd);
 			clients.put(u, ws);
-			ws.setAuthAllowedForHttp(true);
+			ws.setIsInsecureHttpConnectionAllowed(true);
 	
 			for (TestSetup test: tests) {
 				if (!ws.listModules(new ListModulesParams()).contains(test.getModule())) {
