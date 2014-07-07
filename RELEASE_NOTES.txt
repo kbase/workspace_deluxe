@@ -29,6 +29,8 @@ NEW FEATURES:
   and FuncInfo
 - the owner of a module now can determine the released versions of a types and 
   and functions (released version info was added to TypeInfo and FuncInfo)
+- Java client now has a method to deactivate SSL certification validation
+  (primarily for use with self-signed certs)
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - the initialization script will no longer allow setting the mongo typedb
