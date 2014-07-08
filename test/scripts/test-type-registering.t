@@ -135,6 +135,18 @@ ok($out =~ m/KB\.Feature-1\.0/,"KB.Feature-1.0 info is displayed");
 executeInvalidCommand("ws-typespec-list KB.Feature-2.0  2> /dev/null");
 
 
+# test that we can save and retrieve an object as user 2 without error
+executeValidCommand("kbase-login $user2 -p $pwd2");
+executeValidCommand("ws-createws typeRegTest");
+executeValidCommand("ws-workspace typeRegTest");
+executeValidCommand('ws-load KB.Feature myfeature \'{"id":"f1","name":"cheB","type":"something","length":150}\'');
+executeValidCommand('ws-get myfeature');
+executeValidCommand('ws-get --prov myfeature');
+executeValidCommand('ws-get --prov-old-style myfeature');
+executeValidCommand('ws-get --meta myfeature');
+executeValidCommand("kbase-logout");
+
+
 # TODO: add tests for removing types
 
 
