@@ -117,7 +117,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
 	
-	private static final String VER = "0.2.0";
+	private static final String VER = "0.2.1";
 
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
