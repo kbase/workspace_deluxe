@@ -10,7 +10,7 @@ public class TestClientImport {
 	public void checkClientImport() throws Exception {
 		WorkspaceClient c = new WorkspaceClient(
 				new URL("http://johanngambolputtydevonausfernschplendenschlittercrasscrenbon.com"));
-		c.isAuthAllowedForHttp();
+		c.isInsecureHttpConnectionAllowed();
 		//ok all imports work
 	}
 }

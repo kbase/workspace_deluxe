@@ -2787,7 +2787,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void testSpecRegError() throws Exception {
 		WorkspaceClient cl = CLIENT2;
-		cl.setAuthAllowedForHttp(true);
+		cl.setIsInsecureHttpConnectionAllowed(true);
 		cl.requestModuleOwnership("TestModule2");
 		administerCommand(CLIENT2, "approveModRequest", "module", "TestModule2");
 		cl.registerTypespec(new RegisterTypespecParams()
