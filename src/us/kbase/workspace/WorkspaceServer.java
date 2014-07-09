@@ -116,6 +116,9 @@ public class WorkspaceServer extends JsonServerServlet {
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
+    //TODO timestamps for startup script
+    //TODO check shock version
+    //TODO shock client should ignore extra fields
 	
 	private static final String VER = "0.2.1";
 
