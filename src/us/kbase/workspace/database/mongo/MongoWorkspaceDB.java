@@ -2632,7 +2632,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (MongoProvenance p: provs) {
 				@SuppressWarnings("unchecked")
 				final List<String> resolvedRefs = (List<String>) provIDs
-				.get(p.getMongoId()).get(Fields.VER_PROVREF);
+						.get(p.getMongoId()).get(Fields.VER_PROVREF);
 				ret.put(p.getMongoId(), p);
 				p.resolveReferences(resolvedRefs); //this is a gross hack. I'm rather proud of it actually
 			}
