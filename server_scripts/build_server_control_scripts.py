@@ -76,6 +76,9 @@ with open(os.path.join(serviceDir, 'start_service'), 'w') as ss:
                 os.path.join(serviceDir, war), port, threads, minmem, maxmem))
 
 with open(os.path.join(serviceDir, 'stop_service'), 'w') as ss:
+    ss.write('export JAVA_HOME={}\n'.format(javaHome))
+    ss.write('export PATH=$JAVA_HOME/bin:$PATH\n')
+    ss.write('export CLASSPATH=\n')
     ss.write(('{}/glassfish_administer_service.py --admin {} ' +
         '--domain {} --domain-dir {}/glassfish_domain --port {}\n')
         .format(serviceDir, asadmin, serviceDomain, serviceDir, port))
