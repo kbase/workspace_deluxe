@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.2.1 (Released TBD)
+VERSION: 0.2.1 (Released 7/11/14)
 --------------------------------------
 NEW FEATURES:
 - get_object_provenance returns the object provenance without the data.
