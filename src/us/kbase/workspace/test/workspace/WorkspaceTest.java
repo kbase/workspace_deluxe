@@ -1082,7 +1082,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
-		//TODO 1 should try these tests with bytes vs. maps
+		//TODO 2 should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -1546,7 +1546,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory(userfoo)); //should work
 		
-		//TODO 1 restore path
+		//TODO 2 restore path
 //		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
 //				"reference %s at location /ref in this object is not " + 
 //				"allowed for this object's type, " + 

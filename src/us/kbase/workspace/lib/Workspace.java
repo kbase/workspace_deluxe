@@ -662,7 +662,7 @@ public class Workspace {
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
 					ipe.getId(), ipe.getLocalizedMessage()), ipe);
-					//TODO 1 add path
+					//TODO 2 add path
 		} catch (IdReferenceException ire) {
 			final IDAssociation idloc =
 					(IDAssociation) ire.getAssociatedObject();
@@ -672,7 +672,7 @@ public class Workspace {
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
 					ire.getLocalizedMessage()), ire);
-			//TODO 1 add path
+			//TODO 2 add path
 		} catch (IdReferenceHandlerException irhe) {
 			if (irhe.getCause() instanceof WorkspaceCommunicationException) {
 				throw (WorkspaceCommunicationException) irhe.getCause();
@@ -711,7 +711,7 @@ public class Workspace {
 		} catch (TooManyIdsException e) { //TODO 1 test TooManyIdsException
 			throw wrapTooManyIDsException(objcount, idhandler, e);
 		} catch (IdReferenceHandlerException e) {
-			//TODO 1 find path
+			//TODO 2 find path
 			//TODO 1 catch ID parse exception and ID reference exception and test
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking ",
@@ -1312,7 +1312,7 @@ public class Workspace {
 	 */
 	public WorkspaceIDHandlerFactory getHandlerFactory(
 			final WorkspaceUser user,
-			final ReferenceParser parser) { //TODO 1 set reference parser in constructor - shouldn't change
+			final ReferenceParser parser) { //TODO 2 set reference parser in constructor - shouldn't change
 		return new WorkspaceIDHandlerFactory(user, parser);
 	}
 	
@@ -1570,7 +1570,7 @@ public class Workspace {
 			return e;
 		}
 		
-		//TODO 1 method to drop associations but keep mapping
+		//TODO 2 method to drop associations but keep mapping
 
 		@Override
 		public RemappedId getRemappedId(final String oldId)

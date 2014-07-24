@@ -271,7 +271,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		final Settings settings = getSettings();
-		//TODO 1 factor blob store creation out, BlobStore should be passed into the constructor
+		//TODO 2 factor blob store creation out, BlobStore should be passed into the constructor
 		blob = setupBlobStore(settings, backendSecret);
 		updateWScounter = buildCounterQuery(wsjongo);
 		this.typeValidator = new TypedObjectValidator(

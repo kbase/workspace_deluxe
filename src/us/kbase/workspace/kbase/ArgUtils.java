@@ -49,8 +49,6 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
-	//TODO 0.2.1 get Matt to run tests and show that the date problem is fixed
-	
 	private final static DateTimeFormatter DATE_PARSER =
 			new DateTimeFormatterBuilder()
 				.append(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss"))

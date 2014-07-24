@@ -184,7 +184,7 @@ public class WorkspaceServerMethods {
 		// just passing a pointer around so no biggie
 		// setting params = null won't help since the method caller still has a ref
 		final IdReferenceHandlersFactory fac =
-				new IdReferenceHandlersFactory(100000); //TODO 1 make this a parameter
+				new IdReferenceHandlersFactory(100000); //TODO 2 make this a parameter
 		fac.addFactory(ws.getHandlerFactory(user, new KBaseReferenceParser()));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
