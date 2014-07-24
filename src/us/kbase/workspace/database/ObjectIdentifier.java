@@ -89,14 +89,6 @@ public class ObjectIdentifier {
 		}
 		return "" + getId();
 	}
-	
-	//TODO 1 remove, this is dangerous
-	public String getReferenceString() {
-		return getWorkspaceIdentifierString() + REFERENCE_SEP +
-				getIdentifierString() +
-				(version == null ? "" : REFERENCE_SEP +
-						Integer.toString(version));
-	}
 
 	public String getWorkspaceIdentifierString() {
 		return wsi.getIdentifierString();

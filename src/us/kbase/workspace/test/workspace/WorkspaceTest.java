@@ -28,6 +28,7 @@ import junit.framework.Assert;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
@@ -837,6 +838,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 	
+	@Ignore //TODO meta restore when metadata restored
 	@Test
 	public void saveObjectsAndTestExtractedMeta() throws Exception {
 		String module = "TestMetaData";

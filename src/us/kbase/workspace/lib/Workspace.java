@@ -114,17 +114,26 @@ public class Workspace {
 	private final TypeDefinitionDB typedb;
 	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
+	private final ReferenceParser parser;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
-			final ResourceUsageConfiguration cfg) {
+			final ResourceUsageConfiguration cfg,
+			final ReferenceParser parser) {
 		if (db == null) {
-			throw new IllegalArgumentException("db cannot be null");
+			throw new NullPointerException("db cannot be null");
+		}
+		if (parser == null) {
+			throw new NullPointerException("parser cannot be null");
+		}
+		if (cfg == null) {
+			throw new NullPointerException("cfg cannot be null");
 		}
 		this.db = db;
 		typedb = db.getTypeValidator().getDB();
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;
+		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
 	}
 	
@@ -133,6 +142,9 @@ public class Workspace {
 	}
 	
 	public void setResourceConfig(ResourceUsageConfiguration rescfg) {
+		if (rescfg == null) {
+			throw new NullPointerException("rescfg cannot be null");
+		}
 		this.rescfg = rescfg;
 		db.setResourceUsageConfiguration(rescfg);
 	}
@@ -1311,9 +1323,8 @@ public class Workspace {
 	/* need to have an internal handler to reference this specific workspace instance
 	 */
 	public WorkspaceIDHandlerFactory getHandlerFactory(
-			final WorkspaceUser user,
-			final ReferenceParser parser) { //TODO 2 set reference parser in constructor - shouldn't change
-		return new WorkspaceIDHandlerFactory(user, parser);
+			final WorkspaceUser user) {
+		return new WorkspaceIDHandlerFactory(user);
 	}
 	
 	private class WorkspaceIDHandlerFactory
@@ -1322,23 +1333,19 @@ public class Workspace {
 		//TODO 1 read through all this & check docs, write any new tests, check coverage.
 		
 		private final WorkspaceUser user;
-		private final ReferenceParser parser;
 		
-		public WorkspaceIDHandlerFactory(
-				final WorkspaceUser user,
-				final ReferenceParser parser) {
+		public WorkspaceIDHandlerFactory(final WorkspaceUser user) {
 			super();
-			if (user == null || parser == null) {
+			if (user == null) {
 				throw new NullPointerException(
 						"user, parser and ws cannot be null");
 			}
 			this.user = user;
-			this.parser = parser;
 		}
 
 		@Override
 		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
-			return new WorkspaceIDHandler<T>(user, parser);
+			return new WorkspaceIDHandler<T>(user);
 		}
 
 		@Override
@@ -1352,7 +1359,6 @@ public class Workspace {
 		//TODO 1 read through all this & check docs, write any new tests, check coverage.
 		
 		private final WorkspaceUser user;
-		private final ReferenceParser parser;
 		
 		// associatedObject -> id -> list of attributes
 		private final Map<T, Map<String, Set<List<String>>>> ids =
@@ -1362,12 +1368,9 @@ public class Workspace {
 		private boolean locked = false;
 		private boolean processed = false;
 		
-		private WorkspaceIDHandler(
-				final WorkspaceUser user,
-				final ReferenceParser parser) {
+		private WorkspaceIDHandler(final WorkspaceUser user) {
 			super();
 			this.user = user;
-			this.parser = parser;
 		}
 
 		/* To conserve memory the attributes are not copied to another list,
@@ -1545,8 +1548,7 @@ public class Workspace {
 		private IdReferenceException generateInaccessibleObjectException(
 				final NoSuchObjectException ioe,
 				final ObjectIdentifier originalObject) {
-			String exception =
-					"There is no object with id ";
+			String exception = "There is no object with id ";
 			return generateInaccessibleObjectException(ioe, originalObject,
 					exception);
 		}
@@ -1558,8 +1560,8 @@ public class Workspace {
 			IdReferenceException e = null;
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
-					//TODO 1 this is probably a bug - if the parser is not a standard parser this won't work
-					if (id.equals(originalObject.getReferenceString())) {
+					final ObjectIdentifier oi = parser.parse(id);
+					if (oi.equals(originalObject)) {
 						e = new IdReferenceException(
 								exception + id + ": " + ioe.getMessage(),
 								getIdType(), assObj,

@@ -221,7 +221,8 @@ public class WorkspaceTester {
 					kidlpath, null, tfm);
 		}
 		Workspace work = new Workspace(wsdb,
-				new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build(),
+				new DefaultReferenceParser());
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
 					new ResourceUsageConfigurationBuilder(work.getResourceConfig());
@@ -345,7 +346,7 @@ public class WorkspaceTester {
 	
 	protected IdReferenceHandlersFactory getIdFactory(WorkspaceUser user) {
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		return fac;
 	}
 	
@@ -493,7 +494,7 @@ public class WorkspaceTester {
 			Exception exp)
 			throws Exception {
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		try {
 			ws.saveObjects(user, wsi, wso, fac);
 			fail("Saved bad objects");
@@ -603,7 +604,7 @@ public class WorkspaceTester {
 			Map<String, Object> data, TypeDefId type, Provenance prov,
 			Throwable exception) throws Exception{
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(
 					new WorkspaceSaveObject(data, type, null, prov, false)), fac);
@@ -1038,7 +1039,7 @@ public class WorkspaceTester {
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
 					new WorkspaceSaveObject(data, type, meta, prov, hide)), fac)

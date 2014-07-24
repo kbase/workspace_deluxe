@@ -80,6 +80,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
+import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.lib.Workspace;
@@ -376,7 +377,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo(String.format("Initialized %s backend",
 						db.getBackendType()));
 				ws = new Workspace(db,
-						new ResourceUsageConfigurationBuilder().build());
+						new ResourceUsageConfigurationBuilder().build(),
+						new KBaseReferenceParser());
 				wsmeth = new WorkspaceServerMethods(ws);
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));

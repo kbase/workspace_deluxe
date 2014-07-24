@@ -66,7 +66,8 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.shock.url", shockurl);
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, shockuser);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, TempFilesManager.forTests(), 0),
-				new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build(),
+				new KBaseReferenceParser());
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, module);
@@ -81,7 +82,7 @@ public class GetObjectsLibSpeedTest {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("fake");
 		TypeDefId td = new TypeDefId(new TypeDefName(module, type));
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(1);
-		fac.addFactory(ws.getHandlerFactory(user, new KBaseReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)), fac);
 		o = null;

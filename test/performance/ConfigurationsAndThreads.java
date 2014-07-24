@@ -160,7 +160,8 @@ public class ConfigurationsAndThreads {
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
 				password, TempFilesManager.forTests(), 0),
-				new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build(),
+				new KBaseReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
@@ -462,7 +463,8 @@ public class ConfigurationsAndThreads {
 		public WorkspaceLibShock() throws Exception {
 			super();
 			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests(), 0),
-					new ResourceUsageConfigurationBuilder().build());
+					new ResourceUsageConfigurationBuilder().build(),
+					new KBaseReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);
@@ -493,7 +495,7 @@ public class ConfigurationsAndThreads {
 		public int performWrites() throws Exception {
 			for (JsonNode o: objs) {
 				final IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(1);
-				fac.addFactory(ws.getHandlerFactory(foo, new KBaseReferenceParser()));
+				fac.addFactory(ws.getHandlerFactory(foo));
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(
 								o, type, null, new Provenance(foo), false)), fac)

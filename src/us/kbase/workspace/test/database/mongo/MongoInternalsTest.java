@@ -67,7 +67,8 @@ public class MongoInternalsTest {
 					kidlpath, null, TempFilesManager.forTests());
 		}
 		ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build());
+				new ResourceUsageConfigurationBuilder().build(),
+				new DefaultReferenceParser());
 		assertTrue("GridFS backend setup failed", ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
@@ -83,7 +84,7 @@ public class MongoInternalsTest {
 	
 	private IdReferenceHandlersFactory getIdFactory(WorkspaceUser user) {
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user, new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(user));
 		return fac;
 	}
 	
@@ -113,8 +114,7 @@ public class MongoInternalsTest {
 		data1.put("foo", 3);
 		
 		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		fac.addFactory(ws.getHandlerFactory(userfoo,
-				new DefaultReferenceParser()));
+		fac.addFactory(ws.getHandlerFactory(userfoo));
 		
 		for (int i = 1; i < 5; i++) {
 			for (int j = 0; j < 4; j++) {

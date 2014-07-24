@@ -220,7 +220,7 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
-			//TODO reinstate metadata extraction
+			//TODO meta reinstate metadata extraction
 //			if (metadataWs != null) {
 //				// metadata ws description is defined for this object/mapping
 //				lst.addMetadataWsMessage(metadataWs);
@@ -388,7 +388,7 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				//TODO reinstate range checking
+				//TODO range reinstate range checking
 //				if (intRange != null) {
 //					intRange.checkValue(jp, lst, path);
 //				}
@@ -405,7 +405,7 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				//TODO reinstate range checking
+				//TODO range reinstate range checking
 //				if (numberRange != null) {
 //					numberRange.checkValue(jp, lst, path);
 //				}
