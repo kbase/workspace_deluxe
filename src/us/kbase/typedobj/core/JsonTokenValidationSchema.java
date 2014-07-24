@@ -38,6 +38,7 @@ public class JsonTokenValidationSchema {
 	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
+	@SuppressWarnings("unused")
 	private JsonNode metadataWs;						// For structures: metadata-ws
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
 	private JsonTokenValidationSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
@@ -48,7 +49,9 @@ public class JsonTokenValidationSchema {
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 	
+	@SuppressWarnings("unused")
 	private NumberRange numberRange;					// For number: minimum, maximum, exclusiveMinimum, exclusiveMaximum
+	@SuppressWarnings("unused")
 	private IntRange intRange;							// For integer: minimum, maximum, exclusiveMinimum, exclusiveMaximum
 
 	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";
@@ -217,11 +220,11 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
-			
-			if (metadataWs != null) {
-				// metadata ws description is defined for this object/mapping
-				lst.addMetadataWsMessage(metadataWs);
-			}
+			//TODO reinstate metadata extraction
+//			if (metadataWs != null) {
+//				// metadata ws description is defined for this object/mapping
+//				lst.addMetadataWsMessage(metadataWs);
+//			}
 			
 			try {
 				path.addMapStart();
@@ -385,9 +388,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				if (intRange != null) {
-					intRange.checkValue(jp, lst, path);
-				}
+				//TODO reinstate range checking
+//				if (intRange != null) {
+//					intRange.checkValue(jp, lst, path);
+//				}
 			}
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well
@@ -401,9 +405,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				if (numberRange != null) {
-					numberRange.checkValue(jp, lst, path);
-				}
+				//TODO reinstate range checking
+//				if (numberRange != null) {
+//					numberRange.checkValue(jp, lst, path);
+//				}
 			}
 		} else {
 			lst.addError("Unsupported node type: " + type + " at " +
