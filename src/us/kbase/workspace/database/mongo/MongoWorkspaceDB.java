@@ -2197,7 +2197,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	//TODO 1 test copied field
-	//TODO 1 test ext ids field
 	
 	@Override
 	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>

@@ -1690,26 +1690,54 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
-		//TODO 1 test extracted IDs are copied/cloned (anything else)
 		//TODO 1 return extracted IDs with provenance
 		//TODO 2 lots more tests with more complicated structures
-		//test id extraction and saving
 		Map<String, Object> iddata = new HashMap<String, Object>();
 		iddata.put("an_id", "parseExcept");
 		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
 
 		IdReferenceHandlersFactory fac = getIdFactory(user).addFactory(
-				new TestIDReferenceHandlerFactory(new IdReferenceType("someid")));
+				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
 
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
 				"Object #2 has an unparseable reference: Parse exception for ID parseExcept"));
 		
 		iddata.put("an_id", "id here");
+		iddata.put("an_id2", "foo");
 		ws.saveObjects(user, wsi, data, fac); //should work
 		Map<String, List<String>> expected = new HashMap<String, List<String>>();
-		expected.put("someid", Arrays.asList("id here"));
-		ObjectIdentifier obj = new ObjectIdentifier(wsi, "auto2");
-		checkExternalIds(user, obj, expected);
+		ObjectIdentifier obj1 = new ObjectIdentifier(wsi, "auto1");
+		checkExternalIds(user, obj1, expected);
+		
+		expected.put(idtype1, Arrays.asList("id here"));
+		ObjectIdentifier obj2 = new ObjectIdentifier(wsi, "auto2");
+		checkExternalIds(user, obj2, expected);
+		
+		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtype2)));
+		ws.saveObjects(user, wsi, data, fac); //should work
+		expected.put(idtype2, Arrays.asList("foo"));
+		ObjectIdentifier obj4 = new ObjectIdentifier(wsi, "auto4");
+		checkExternalIds(user, obj4, expected);
+		
+		ObjectIdentifier copied = new ObjectIdentifier(wsi, "copied");
+		ws.copyObject(user, obj4, copied);
+		checkExternalIds(user, copied, expected);
+		
+		WorkspaceIdentifier clone = new WorkspaceIdentifier("idextract_cloned");
+		ws.cloneWorkspace(user, wsi, clone.getName(), false, null, null);
+		ObjectIdentifier clonedobj = new ObjectIdentifier(clone, "copied");
+		checkExternalIds(user, clonedobj, expected);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("copied"),
+						new HashMap<String, Object>(), idtype, null, emptyprov, false)),
+						fac);
+		ws.revertObject(user, new ObjectIdentifier(wsi, "copied", 1));
+		checkExternalIds(user, new ObjectIdentifier(wsi, "copied", 3), expected);
+		
+		expected.clear();
+		ws.revertObject(user, new ObjectIdentifier(wsi, "copied", 2));
+		checkExternalIds(user, new ObjectIdentifier(wsi, "copied", 4), expected);
 	}
 	
 	@Test
