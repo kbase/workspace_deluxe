@@ -1382,6 +1382,27 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct exception", tove.getLocalizedMessage(),
 					is("Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		}
+		
+		Map<String, Object> data5 = new HashMap<String, Object>(data1);
+		data5.put("ref", null);
+		data.set(1, new WorkspaceSaveObject(data5, abstype0, null, emptyprov, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 failed type checking:\ninstance type (null) not allowed for ID references (allowed: [\"string\"]), at /ref"));
+		}
+		
+		Map<String, Object> data6 = new HashMap<String, Object>(data1);
+		data6.put("ref", "");
+		data.set(1, new WorkspaceSaveObject(data6, abstype0, null, emptyprov, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 has an unparseable reference: IDs may not be null or the empty string"));
+		}
+		
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
 		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, goodids, false));
@@ -1395,6 +1416,26 @@ public class WorkspaceTest extends WorkspaceTester {
 		} catch (TypedObjectValidationException tove) {
 			assertThat("correct exception", tove.getLocalizedMessage(),
 					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
+		}
+		
+		badids = new Provenance(userfoo);
+		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 has a null provenance reference"));
+		}
+		
+		badids = new Provenance(userfoo);
+		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("")));
+		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
+		try {
+			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
+		} catch (TypedObjectValidationException tove) {
+			assertThat("correct exception", tove.getLocalizedMessage(),
+					is("Object #2 has invalid provenance reference: IDs may not be null or the empty string"));
 		}
 		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces

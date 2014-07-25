@@ -231,7 +231,8 @@ public class JsonTokenValidationSchema {
 				JsonToken t = jp.getCurrentToken();
 				if (t == null || t != JsonToken.START_OBJECT) {
 					// we expect mapping (object) but in real data we observe token of different type 
-					throw new JsonTokenValidationException(generateError(type, t, path));
+					throw new JsonTokenValidationException(
+							generateError(type, t, path, false));
 				}
 				// flags for usage (true) or not usage (false) of fields having positions in this 
 				// array coded in objectRequired map
@@ -309,7 +310,8 @@ public class JsonTokenValidationSchema {
 			JsonToken t = jp.getCurrentToken();
 			if (t == null || t != JsonToken.START_ARRAY) {
 				// but token of some other type is observed
-				throw new JsonTokenValidationException(generateError(type, t, path));
+				throw new JsonTokenValidationException(
+						generateError(type, t, path, false));
 			}
 			try {
 				path.addArrayStart();
@@ -360,8 +362,9 @@ public class JsonTokenValidationSchema {
 			// string value is expecting
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING) {	// but found something else
-				if (t != JsonToken.VALUE_NULL || idReference != null) {// we allow nulls but not for references
-					lst.addError(generateError(type, t, path));
+				final boolean isID = idReference != null;
+				if (t != JsonToken.VALUE_NULL || isID) {// we allow nulls but not for references
+					lst.addError(generateError(type, t, path, isID));
 				}
 				if (t == JsonToken.START_ARRAY
 						|| t == JsonToken.START_OBJECT) {
@@ -382,7 +385,7 @@ public class JsonTokenValidationSchema {
 			JsonToken t = jp.getCurrentToken();
 			if ((t != JsonToken.VALUE_NUMBER_INT)
 					&& (t != JsonToken.VALUE_NULL)) {// but found something else
-				lst.addError(generateError(type, t, path));
+				lst.addError(generateError(type, t, path, false));
 				if (t == JsonToken.START_ARRAY
 						|| t == JsonToken.START_OBJECT) {
 					skipValueWithoutFirst(jp);
@@ -399,7 +402,7 @@ public class JsonTokenValidationSchema {
 			if ((t != JsonToken.VALUE_NUMBER_FLOAT) &&
 				(t != JsonToken.VALUE_NUMBER_INT) &&
 				(t != JsonToken.VALUE_NULL)) {   // but found something else
-				lst.addError(generateError(type, t, path));
+				lst.addError(generateError(type, t, path, false));
 				if (t == JsonToken.START_ARRAY
 						|| t == JsonToken.START_OBJECT) {
 					skipValueWithoutFirst(jp);
@@ -416,12 +419,22 @@ public class JsonTokenValidationSchema {
 		}
 	}
 	
-	private static String generateError(final Type expectedType,
-			final JsonToken actualToken, final JsonDocumentLocation path) {
-		String expected = expectedType == Type.number ? "float" : expectedType.toString();
+	private static String generateError(
+			final Type expectedType,
+			final JsonToken actualToken,
+			final JsonDocumentLocation path,
+			final boolean isID) {
+		String expected = expectedType == 
+				Type.number ? "float" : expectedType.toString();
 		String actual = tokenToType(actualToken);
-		return "instance type ("+actual+") does not match any allowed primitive type " +
-				"(allowed: [\""+expected+"\"]), at " + path.getFullLocationAsString();
+		if (isID) {
+			return "instance type (" + actual + ") not allowed for ID references " +
+					"(allowed: [\"" + expected + "\"]), at " +
+					path.getFullLocationAsString();
+		}
+		return "instance type (" + actual + ") does not match any allowed primitive type " +
+				"(allowed: [\"" + expected + "\"]), at " +
+				path.getFullLocationAsString();
 	}
 	
 	private static String tokenToType(JsonToken t) {

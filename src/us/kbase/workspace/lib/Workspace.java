@@ -625,12 +625,12 @@ public class Workspace {
 			final List<WorkspaceSaveObject> objects,
 			final IdReferenceHandlers<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
-			JsonParseException, IOException, TypedObjectValidationException {
+			TypedObjectValidationException {
 		final TypedObjectValidator val = db.getTypeValidator();
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				new HashMap<WorkspaceSaveObject, TypedObjectValidationReport>();
 		int objcount = 1;
-		for (WorkspaceSaveObject wo: objects) {
+		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
 			final TypedObjectValidationReport rep = validate(wo, val,
 					idhandler, objcount);
@@ -640,17 +640,22 @@ public class Workspace {
 				for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
+						if (pref == null) {
+							throw new TypedObjectValidationException(
+									String.format(
+									"Object %s has a null provenance reference",
+									getObjectErrorId(wo, objcount)));
+						}
 						idhandler.addId(
 								new IdReference(WS_ID_TYPE, pref, null));
 					}
 				}
 			} catch (IdReferenceHandlerException ihre) {
 				throw new TypedObjectValidationException(String.format(
-						"Object %s failed type checking ",
+						"Object %s has invalid provenance reference: ",
 						getObjectErrorId(wo, objcount)) + 
-						"- a provenance ID could not be processed: "
-						+ ihre.getMessage(), ihre);
-			} catch (TooManyIdsException tmie) {
+						ihre.getMessage(), ihre);
+			} catch (TooManyIdsException tmie) { //TODO 2 test too many IDs exception
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
 			objcount++;
@@ -703,12 +708,10 @@ public class Workspace {
 			final TypedObjectValidator val,
 			final IdReferenceHandlers<IDAssociation> idhandler,
 			final int objcount)
-			throws TypeStorageException,
-			TypedObjectSchemaException, JsonParseException, IOException,
+			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
 		final TypedObjectValidationReport rep;
 		try {
-			//TODO 1 why is this throwing jsonparse and IO exceptions
 			rep = val.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
@@ -722,14 +725,33 @@ public class Workspace {
 					+ nsme.getLocalizedMessage(), nsme);
 		} catch (TooManyIdsException e) { //TODO 1 test TooManyIdsException
 			throw wrapTooManyIDsException(objcount, idhandler, e);
+		} catch (IdParseException e) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has an unparseable reference: ",
+					getObjectErrorId(wo, objcount)) + 
+					e.getMessage(), e);
+		} catch (IdReferenceException e) { //TODO 2 test with new handler impl
+			throw new TypedObjectValidationException(String.format(
+					"Object %s has an invalid reference: ",
+					getObjectErrorId(wo, objcount)) + 
+					e.getMessage(), e);
 		} catch (IdReferenceHandlerException e) {
 			//TODO 2 find path
-			//TODO 1 catch ID parse exception and ID reference exception and test
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking ",
 					getObjectErrorId(wo, objcount)) + 
 					"- an embedded ID could not be processed: "
 					+ e.getMessage(), e);
+		} catch (JsonParseException jpe) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking ",
+					getObjectErrorId(wo, objcount)) + 
+					"- a fatal JSON processing error occurred: "
+					+ jpe.getMessage(), jpe);
+		} catch (IOException ioe) {
+			throw new TypedObjectValidationException(String.format(
+					"A fatal IO error occured while type checking object %s: ",
+					getObjectErrorId(wo, objcount)) + ioe.getMessage(), ioe);
 		}
 		if (!rep.isInstanceValid()) {
 			final List<String> e = rep.getErrorMessages();
@@ -738,7 +760,6 @@ public class Workspace {
 					"Object %s failed type checking:\n",
 					getObjectErrorId(wo, objcount)) + err);
 		}
-		//TODO 1 catch Json and IO exception and wrap in type val exception, note as fatal
 		return rep;
 	}
 	
@@ -1382,8 +1403,7 @@ public class Workspace {
 				final T associatedObject,
 				final String id,
 				final List<String> attributes)
-				throws IdParseException, IdReferenceHandlerException,
-				HandlerLockedException {
+				throws IdParseException {
 			if (locked) {
 				throw new HandlerLockedException("This handler is locked");
 			}
@@ -1415,7 +1435,7 @@ public class Workspace {
 
 		@Override
 		public void processIds()
-				throws IdParseException, IdReferenceHandlerException {
+				throws IdReferenceHandlerException {
 			locked = true;
 			processed = true;
 			final Set<ObjectIdentifier> idset =
@@ -1472,10 +1492,8 @@ public class Workspace {
 							"The type %s of reference %s " + 
 							"in this object is not " +
 							"allowed. Allowed types are: %s",
-							type.getTypeString(),
-							id, allowed),
-							getIdType(), assObj,
-							id, allowed, null);
+							type.getTypeString(), id, allowed),
+							getIdType(), assObj, id, allowed, null);
 				}
 			}
 		}
