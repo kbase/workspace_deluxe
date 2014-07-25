@@ -214,8 +214,10 @@ public class WorkspaceTester {
 		tfm.cleanup();
 		WorkspaceDatabase wsdb = null;
 		if (mUser != null) {
-			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
-					kidlpath, null, tfm);
+			//TODO 1 restore test
+			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd, tfm, 0);
+//			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
+//					kidlpath, null, tfm);
 		} else {
 			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 					kidlpath, null, tfm);

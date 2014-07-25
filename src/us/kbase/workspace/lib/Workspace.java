@@ -1355,11 +1355,10 @@ public class Workspace {
 		
 		private final WorkspaceUser user;
 		
-		public WorkspaceIDHandlerFactory(final WorkspaceUser user) {
+		private WorkspaceIDHandlerFactory(final WorkspaceUser user) {
 			super();
 			if (user == null) {
-				throw new NullPointerException(
-						"user, parser and ws cannot be null");
+				throw new NullPointerException("user cannot be null");
 			}
 			this.user = user;
 		}
@@ -1476,8 +1475,7 @@ public class Workspace {
 				final AbsoluteTypeDefId type,
 				final T assObj)
 				throws IdReferenceException {
-			final Set<List<String>> typeSets = ids.get(assObj)
-					.get(id);
+			final Set<List<String>> typeSets = ids.get(assObj).get(id);
 			if (typeSets.isEmpty()) {
 				return;
 			}

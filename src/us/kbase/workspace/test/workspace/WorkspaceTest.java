@@ -1159,12 +1159,20 @@ public class WorkspaceTest extends WorkspaceTester {
 				"module TestTypeChecking {" +
 					"/* @id ws */" +
 					"typedef string reference;" +
-					"/* @optional ref */" + 
+					"/* @id someid */" +
+					"typedef string some_id;" +
+					"/* @id someid2 */" +
+					"typedef string some_id2;" +
+					"/* @optional ref\n " + 
+					"   @optional an_id\n" +
+					"   @optional an_id2 */" +
 					"typedef structure {" +
 						"int foo;" +
 						"list<int> bar;" +
 						"string baz;" +
 						"reference ref;" +
+						"some_id an_id;" +
+						"some_id2 an_id2;" +
 					"} CheckType;" +
 				"};";
 		
@@ -1376,32 +1384,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data4 = new HashMap<String, Object>(data1);
 		data4.put("ref", "foo/bar/baz");
 		data.set(1, new WorkspaceSaveObject(data4, abstype0, null, emptyprov, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		
 		Map<String, Object> data5 = new HashMap<String, Object>(data1);
 		data5.put("ref", null);
 		data.set(1, new WorkspaceSaveObject(data5, abstype0, null, emptyprov, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 failed type checking:\ninstance type (null) not allowed for ID references (allowed: [\"string\"]), at /ref"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 failed type checking:\ninstance type (null) not allowed for ID references (allowed: [\"string\"]), at /ref"));
 		
 		Map<String, Object> data6 = new HashMap<String, Object>(data1);
 		data6.put("ref", "");
 		data.set(1, new WorkspaceSaveObject(data6, abstype0, null, emptyprov, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 has an unparseable reference: IDs may not be null or the empty string"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 has an unparseable reference: IDs may not be null or the empty string"));
 		
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
