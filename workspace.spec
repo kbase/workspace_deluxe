@@ -83,6 +83,12 @@ module Workspace {
 	*/
 	typedef string type_string;
 	
+	/* An id type (e.g. from a typespec @id annotation: @id [idtype]) */
+	typedef string id_type;
+	
+	/* An id extracted from an object. */
+	typedef string extracted_id;
+	
 	/* User provided metadata about an object.
 		Arbitrary key-value pairs provided by the user.
 	*/
@@ -743,7 +749,10 @@ module Workspace {
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
-		
+		obj_ref copied - the reference of the source object if this object is
+			a copy. null otherwise.
+		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+			from the object.
 	*/
 	typedef structure {
 		object_info info;
@@ -751,6 +760,8 @@ module Workspace {
 		username creator;
 		timestamp created;
 		list<obj_ref> refs;
+		obj_ref copied;
+		mapping<id_type, list<extracted_id>> extracted_ids;
 	} ObjectProvenanceInfo;
 	
 	/* 
@@ -769,6 +780,10 @@ module Workspace {
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
+		obj_ref copied - the reference of the source object if this object is
+			a copy. null otherwise.
+		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+			from the object.
 		
 	*/
 	typedef structure {
@@ -778,6 +793,8 @@ module Workspace {
 		username creator;
 		timestamp created;
 		list<obj_ref> refs;
+		obj_ref copied;
+		mapping<id_type, list<extracted_id>> extracted_ids;
 	} ObjectData;
 	
 	/* 

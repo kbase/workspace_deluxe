@@ -28,8 +28,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         existing version.
  *                 
  *                 Optional arguments:
- *                 permission perm - filter objects by permission level. 'None' and
- *                         'readable' are ignored.
+ *                 permission perm - filter objects by minimum permission level. 'None'
+ *                         and 'readable' are ignored.
  *                 list<username> savedby - filter objects by the user that saved or
  *                         copied the object.
  *                 usermeta meta - filter objects by the user supplied metadata. NOTE:

@@ -1834,6 +1834,8 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1864,6 +1866,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 </pre>
 
@@ -1892,6 +1896,8 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1922,6 +1928,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 
 =end text
@@ -2014,6 +2022,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2044,6 +2054,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 </pre>
 
@@ -2073,6 +2085,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2103,6 +2117,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 
 =end text
@@ -2197,6 +2213,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2227,6 +2245,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 </pre>
 
@@ -2258,6 +2278,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2288,6 +2310,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 
 =end text
@@ -2783,6 +2807,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2813,6 +2839,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 </pre>
 
@@ -2843,6 +2871,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	creator has a value which is a Workspace.username
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+	copied has a value which is a Workspace.obj_ref
+	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2873,6 +2903,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+id_type is a string
+extracted_id is a string
 
 
 =end text
@@ -7162,6 +7194,68 @@ a string
 
 
 
+=head2 id_type
+
+=over 4
+
+
+
+=item Description
+
+An id type (e.g. from a typespec @id annotation: @id [idtype])
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
+=head2 extracted_id
+
+=over 4
+
+
+
+=item Description
+
+An id extracted from an object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 usermeta
 
 =over 4
@@ -8637,6 +8731,10 @@ The provenance and supplemental info for an object.
         timestamp created - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
+        obj_ref copied - the reference of the source object if this object is
+                a copy. null otherwise.
+        mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+                from the object.
 
 
 =item Definition
@@ -8650,6 +8748,8 @@ provenance has a value which is a reference to a list where each element is a Wo
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+copied has a value which is a Workspace.obj_ref
+extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 
 </pre>
 
@@ -8663,6 +8763,8 @@ provenance has a value which is a reference to a list where each element is a Wo
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+copied has a value which is a Workspace.obj_ref
+extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 
 
 =end text
@@ -8689,6 +8791,10 @@ The data and supplemental info for an object.
         timestamp created - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
+        obj_ref copied - the reference of the source object if this object is
+                a copy. null otherwise.
+        mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+                from the object.
 
 
 =item Definition
@@ -8703,6 +8809,8 @@ provenance has a value which is a reference to a list where each element is a Wo
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+copied has a value which is a Workspace.obj_ref
+extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 
 </pre>
 
@@ -8717,6 +8825,8 @@ provenance has a value which is a reference to a list where each element is a Wo
 creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
+copied has a value which is a Workspace.obj_ref
+extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 
 
 =end text
@@ -8783,8 +8893,8 @@ excludeGlobal has a value which is a Workspace.boolean
 Input parameters for the "list_workspace_info" function.
 
 Optional parameters:
-permission perm - filter workspaces by permission level. 'None' and
-        'readable' are ignored.
+permission perm - filter workspaces by minimum permission level. 'None'
+        and 'readable' are ignored.
 list<username> owners - filter workspaces by owner.
 usermeta meta - filter workspaces by the user supplied metadata. NOTE:
         only one key/value pair is supported at this time. A full map
@@ -8920,8 +9030,8 @@ Parameters for the 'list_objects' function.
                         existing version.
                 
                 Optional arguments:
-                permission perm - filter objects by permission level. 'None' and
-                        'readable' are ignored.
+                permission perm - filter objects by minimum permission level. 'None'
+                        and 'readable' are ignored.
                 list<username> savedby - filter objects by the user that saved or
                         copied the object.
                 usermeta meta - filter objects by the user supplied metadata. NOTE:

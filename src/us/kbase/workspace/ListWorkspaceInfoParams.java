@@ -17,8 +17,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the "list_workspace_info" function.
  * Optional parameters:
- * permission perm - filter workspaces by permission level. 'None' and
- *         'readable' are ignored.
+ * permission perm - filter workspaces by minimum permission level. 'None'
+ *         and 'readable' are ignored.
  * list<username> owners - filter workspaces by owner.
  * usermeta meta - filter workspaces by the user supplied metadata. NOTE:
  *         only one key/value pair is supported at this time. A full map

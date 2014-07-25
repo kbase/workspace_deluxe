@@ -24,6 +24,10 @@ import us.kbase.common.service.Tuple11;
  *         timestamp created - the date the object was first saved to the
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
+ *         obj_ref copied - the reference of the source object if this object is
+ *                 a copy. null otherwise.
+ *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+ *                 from the object.
  * </pre>
  * 
  */
@@ -34,7 +38,9 @@ import us.kbase.common.service.Tuple11;
     "provenance",
     "creator",
     "created",
-    "refs"
+    "refs",
+    "copied",
+    "extracted_ids"
 })
 public class ObjectProvenanceInfo {
 
@@ -48,6 +54,10 @@ public class ObjectProvenanceInfo {
     private java.lang.String created;
     @JsonProperty("refs")
     private List<String> refs;
+    @JsonProperty("copied")
+    private java.lang.String copied;
+    @JsonProperty("extracted_ids")
+    private Map<String, List<String>> extractedIds;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("info")
@@ -125,6 +135,36 @@ public class ObjectProvenanceInfo {
         return this;
     }
 
+    @JsonProperty("copied")
+    public java.lang.String getCopied() {
+        return copied;
+    }
+
+    @JsonProperty("copied")
+    public void setCopied(java.lang.String copied) {
+        this.copied = copied;
+    }
+
+    public ObjectProvenanceInfo withCopied(java.lang.String copied) {
+        this.copied = copied;
+        return this;
+    }
+
+    @JsonProperty("extracted_ids")
+    public Map<String, List<String>> getExtractedIds() {
+        return extractedIds;
+    }
+
+    @JsonProperty("extracted_ids")
+    public void setExtractedIds(Map<String, List<String>> extractedIds) {
+        this.extractedIds = extractedIds;
+    }
+
+    public ObjectProvenanceInfo withExtractedIds(Map<String, List<String>> extractedIds) {
+        this.extractedIds = extractedIds;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -137,7 +177,7 @@ public class ObjectProvenanceInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", extractedIds=")+ extractedIds)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
