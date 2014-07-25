@@ -19,6 +19,43 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.3.0 (Released TBD)
+--------------------------------------
+NEW FEATURES:
+- The major change in this release is a major refactoring of the ID handling
+  system. ID handling has been generalized to allow for registering custom
+  ID handlers per ID type (e.g. the @id [ID_type] annotation).
+- There is now a limit of 100,000 IDs in objects per save_objects call.
+  IDs duplicated in the same object do not count towards this limit.
+- Any IDs extracted from an object are returned in get_objects,
+  get_object_subset, and get_object_provenance.
+- If an object is a copy of another object, the source object reference is
+  returned in get_objects, get_object_subset, and get_object_provenance. Note
+  that the client may not have access to the copy source depending on
+  workspace permissions and object deletion state.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- N/A
+
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
+  
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Automatically populated metadata
+- Range annotation support to set limits on float/int values
+- Garbage collection
+- Pointers to shock data too large to fit in the workspace
+- ACLs based on KBase groups
+- KBase Search API
+- Service Search API (e.g. MongoDB queries on TOs)
+- Object sharing 'inbox' (share specific versions of objects)
+- Update copied objects from source
+- Improvements to returning the subset of an object
+
 VERSION: 0.2.1 (Released 7/11/14)
 --------------------------------------
 NEW FEATURES:
