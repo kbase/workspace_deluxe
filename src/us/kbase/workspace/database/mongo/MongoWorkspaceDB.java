@@ -53,6 +53,8 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -688,7 +690,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
-			Fields.VER_COPIED, Fields.VER_META);
+			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
 	
 	@Override
 	public ObjectInformation copyObject(final WorkspaceUser user,
@@ -1267,6 +1269,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_SIZE, pkg.td.getSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
+		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(
+				pkg.wo.getExtractedIDs()));
+		
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
@@ -1277,6 +1282,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
 				pkg.wo.getUserMeta() == null ? new HashMap<String, String>() :
 						pkg.wo.getUserMeta());
+	}
+
+	private Map<String, Set<String>> extractedIDsToStrings(
+			Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
+		Map<String, Set<String>> ret = new HashMap<String, Set<String>>();
+		for (final IdReferenceType t: extractedIDs.keySet()) {
+			ret.put(t.getType(), new HashSet<String>());
+			for (final RemappedId i: extractedIDs.get(t)) {
+				ret.get(t.getType()).add(i.getId());
+			}
+		}
+		return ret;
 	}
 
 	private List<Map<String, String>> metaHashToMongoArray(
@@ -2176,7 +2193,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
-			Fields.VER_PROVREF, Fields.VER_REF);
+			Fields.VER_PROVREF, Fields.VER_REF, Fields.VER_EXT_IDS,
+			Fields.VER_COPIED);
+	
+	//TODO 1 test copied field
+	//TODO 1 test ext ids field
 	
 	@Override
 	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
@@ -2207,9 +2228,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
+			final String copied =
+					(String) vers.get(roi).get(Fields.VER_COPIED);
+			@SuppressWarnings("unchecked")
+			final Map<String, List<String>> extIDs =
+					(Map<String, List<String>>) vers.get(roi).get(
+							Fields.VER_EXT_IDS);
 			final MongoObjectInfo info = generateObjectInfo(
 					roi, vers.get(roi));
-			ret.put(o, new WorkspaceObjectInformation(info, prov, refs));
+			ret.put(o, new WorkspaceObjectInformation(
+					info, prov, refs, copied, extIDs));
 		}
 		return ret;
 	}
@@ -2289,19 +2317,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
+			final String copied =
+					(String) vers.get(roi).get(Fields.VER_COPIED);
+			@SuppressWarnings("unchecked")
+			final Map<String, List<String>> extIDs =
+					(Map<String, List<String>>) vers.get(roi).get(
+							Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final MongoObjectInfo meta = generateObjectInfo(
+			final MongoObjectInfo info = generateObjectInfo(
 					roi, vers.get(roi));
 			try {
 				if (paths.get(o) == null || paths.get(o).isEmpty()) {
 					buildReturnedObjectData(chksumToData, ret, o, prov, refs,
-							meta, null, bafcMan);
+							copied, extIDs, info, null, bafcMan);
 				} else {
 					for (final ObjectPaths op: paths.get(o)) {
 						buildReturnedObjectData(chksumToData, ret, o, prov,
-								refs, meta, op, bafcMan);
+								refs, copied, extIDs, info, op, bafcMan);
 					}
 				}
 			} catch (TypedObjectExtractionException e) {
@@ -2362,26 +2396,30 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void buildReturnedObjectData(
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret,
-			final ObjectIDResolvedWS o, final MongoProvenance prov,
-			final List<String> refs, final MongoObjectInfo meta,
+			final ObjectIDResolvedWS o,
+			final MongoProvenance prov,
+			final List<String> refs,
+			final String copied,
+			final Map<String, List<String>> extIDs,
+			final MongoObjectInfo info,
 			final ObjectPaths op, final ByteArrayFileCacheManager bafcMan)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
 			ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
 		}
-		if (chksumToData.containsKey(meta.getCheckSum())) {
+		if (chksumToData.containsKey(info.getCheckSum())) {
 			/* might be subsetting the same object the same way multiple
 			 * times, but probably unlikely. If it becomes a problem
 			 * memoize the subset
 			 */
 			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					chksumToData.get(meta.getCheckSum()), op, bafcMan),
-					meta, prov, refs));
+					chksumToData.get(info.getCheckSum()), op, bafcMan),
+					info, prov, refs, copied, extIDs));
 		} else {
 			final ByteArrayFileCache data;
 			try {
-				data = blob.getBlob(new MD5(meta.getCheckSum()), bafcMan);
+				data = blob.getBlob(new MD5(info.getCheckSum()), bafcMan);
 			} catch (FileCacheIOException e) {
 				throw new WorkspaceCommunicationException(
 						e.getLocalizedMessage(), e);
@@ -2400,12 +2438,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			} catch (NoSuchBlobException e) {
 				throw new CorruptWorkspaceDBException(String.format(
 						"No data present for valid object %s.%s.%s",
-						meta.getWorkspaceId(), meta.getObjectId(),
-						meta.getVersion()), e);
+						info.getWorkspaceId(), info.getObjectId(),
+						info.getVersion()), e);
 			}
-			chksumToData.put(meta.getCheckSum(), data);
-			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					data, op, bafcMan), meta, prov, refs));
+			chksumToData.put(info.getCheckSum(), data);
+			ret.get(o).put(op, new WorkspaceObjectData(
+					getDataSubSet(data, op, bafcMan),
+					info, prov, refs, copied, extIDs));
 		}
 	}
 	
@@ -3349,10 +3388,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new UObject(data), t, meta, p, false);
 			List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
 			wco.add(wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
-					new HashSet<Reference>(), new LinkedList<Reference>()));
+					new HashSet<Reference>(), new LinkedList<Reference>(),
+					new HashMap<IdReferenceType, Set<RemappedId>>()));
 			ObjectSavePackage pkg = new ObjectSavePackage();
 			pkg.wo = wo.resolve(new DummyTypedObjectValidationReport(at, wo.getData()),
-					new HashSet<Reference>(), new LinkedList<Reference>());
+					new HashSet<Reference>(), new LinkedList<Reference>(),
+					new HashMap<IdReferenceType, Set<RemappedId>>());
 			ResolvedMongoWSID rwsi = new ResolvedMongoWSID("ws", 1, false, false);
 			pkg.td = new TypeData(new Writable() {
 				@Override

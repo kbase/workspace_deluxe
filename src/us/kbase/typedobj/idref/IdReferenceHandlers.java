@@ -154,6 +154,14 @@ public class IdReferenceHandlers<T> {
 		return processed;
 	}
 	
+	/** Get the id types with registered handlers.
+	 * @return the id types with handlers that have been added to this handler
+	 * set.
+	 */
+	public Set<IdReferenceType> getIDTypes() {
+		return handlers.keySet();
+	}
+	
 	/** Translate an ID to the remapped ID.
 	 * @param idType the ID type.
 	 * @param oldId the original ID.

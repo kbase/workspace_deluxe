@@ -59,6 +59,8 @@ public class Fields {
 	public static final String VER_RVRT = "revert";
 	public static final String VER_META = "meta";
 	public static final String VER_COPIED = "copied";
+	//in 0.3.0, if missing assume no external IDs
+	public static final String VER_EXT_IDS = "extids";
 	
 	// meta document key & value
 	public static final String META_KEY = "k";

@@ -465,6 +465,7 @@ public class WorkspaceTester {
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String wsname, String chksum, long size,
 			Map<String, String> usermeta) {
+		
 		assertDateisRecent(info.getSavedDate());
 		assertThat("Object id correct", info.getObjectId(), is(id));
 		assertThat("Object name is correct", info.getObjectName(), is(name));
@@ -525,14 +526,17 @@ public class WorkspaceTester {
 		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
 		Iterator<Map<String, Object>> dataiter = data.iterator();
 		while (ret1.hasNext()) {
-			FakeObjectInfo i = info.next();
+			FakeObjectInfo inf = info.next();
 			Map<String, Object> d = dataiter.next();
-			checkObjectAndInfo(ret1.next(), i , d);
-			checkObjectAndInfo(ret2.next(), i , d);
-			checkObjInfo(infd.next().getObjectInfo(), i.getObjectId(), i.getObjectName(),
-					i.getTypeString(), i.getVersion(), i.getSavedBy(),
-					i.getWorkspaceId(), i.getWorkspaceName(), i.getCheckSum(),
-					i.getSize(), i.getUserMetaData());
+			WorkspaceObjectInformation woi = infd.next();
+			WorkspaceObjectData wod1 = ret1.next();
+			WorkspaceObjectData wod2 = ret2.next();
+			checkObjectAndInfo(wod1, inf , d);
+			checkObjectAndInfo(wod2, inf , d);
+			checkObjInfo(woi.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
+					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
+					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
+					inf.getSize(), inf.getUserMetaData());
 		}
 		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || infd.hasNext()) {
 			fail("mismatched iter counts");
@@ -1299,5 +1303,18 @@ public class WorkspaceTester {
 	protected Map<String, Object> createData(String json)
 			throws JsonParseException, JsonMappingException, IOException {
 		return new ObjectMapper().readValue(json, Map.class);
+	}
+
+	protected void checkExternalIds(WorkspaceUser user, ObjectIdentifier obj,
+			Map<String, List<String>> expected)
+			throws Exception {
+		List<ObjectIdentifier> o = Arrays.asList(obj);
+		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
+		WorkspaceObjectData swod = ws.getObjectsSubSet(user, objIDToSubObjID(o)).get(0);
+		WorkspaceObjectInformation woi = ws.getObjectProvenance(user, o).get(0);
+		
+		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
+		assertThat("get sub objs correct ext ids", swod.getExtractedIds(), is(expected));
+		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
 	}
 }

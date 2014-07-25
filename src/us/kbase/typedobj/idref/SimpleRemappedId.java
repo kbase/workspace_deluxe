@@ -16,4 +16,13 @@ public class SimpleRemappedId implements RemappedId {
 		return id;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("SimpleRemappedId [id=");
+		builder.append(id);
+		builder.append("]");
+		return builder.toString();
+	}
+
 }

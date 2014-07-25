@@ -566,6 +566,18 @@ public class Workspace {
 							idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
 			}
+			final Map<IdReferenceType, Set<RemappedId>> extractedIDs =
+					new HashMap<IdReferenceType, Set<RemappedId>>();
+			for (final IdReferenceType irt: idhandler.getIDTypes()) {
+				if (!WS_ID_TYPE.equals(irt)) {
+					final Set<RemappedId> ids = idhandler.getRemappedIds(
+							irt, new IDAssociation(objcount, false));
+					if (!ids.isEmpty()) {
+						extractedIDs.put(irt, idhandler.getRemappedIds(
+								irt, new IDAssociation(objcount, false)));
+					}
+				}
+			}
 			final Set<RemappedId> refids = idhandler.getRemappedIds(
 					WS_ID_TYPE,  new IDAssociation(objcount, false));
 			final Set<Reference> refs = new HashSet<Reference>();
@@ -574,7 +586,7 @@ public class Workspace {
 			}
 			
 			final TypedObjectValidationReport rep = reports.get(wo);
-			saveobjs.add(wo.resolve(rep, refs, provrefs));
+			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
 			ttlObjSize += rep.getRelabeledSize();
 			objcount++;
 		}

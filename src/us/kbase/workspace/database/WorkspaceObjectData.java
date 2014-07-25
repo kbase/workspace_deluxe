@@ -1,6 +1,8 @@
 package us.kbase.workspace.database;
 
 import java.util.List;
+import java.util.Map;
+
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 
@@ -8,10 +10,14 @@ public class WorkspaceObjectData extends WorkspaceObjectInformation {
 	
 	private final ByteArrayFileCache data;
 
-	public WorkspaceObjectData(final ByteArrayFileCache data,
-			final ObjectInformation info, final Provenance prov,
-			final List<String> references) {
-		super(info, prov, references);
+	public WorkspaceObjectData(
+			final ByteArrayFileCache data,
+			final ObjectInformation info,
+			final Provenance prov,
+			final List<String> references,
+			final String copied,
+			final Map<String, List<String>> extractedIds) {
+		super(info, prov, references, copied, extractedIds);
 		if (data == null) {
 			throw new IllegalArgumentException("data cannot be null");
 		}
@@ -40,8 +46,20 @@ public class WorkspaceObjectData extends WorkspaceObjectInformation {
 
 	@Override
 	public String toString() {
-		return "WorkspaceObjectData [data=" + data + ", info=" +
-				getObjectInfo() + ", prov=" + getProvenance() + ", references="
-				+ getReferences() + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("WorkspaceObjectData [data=");
+		builder.append(data);
+		builder.append(", info=");
+		builder.append(getObjectInfo());
+		builder.append(", prov=");
+		builder.append(getProvenance());
+		builder.append(", refs=");
+		builder.append(getReferences());
+		builder.append(", copied=");
+		builder.append(getCopyReference());
+		builder.append(", extractedIds=");
+		builder.append(getExtractedIds());
+		builder.append("]");
+		return builder.toString();
 	}
 }

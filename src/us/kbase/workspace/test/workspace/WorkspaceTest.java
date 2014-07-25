@@ -1691,18 +1691,25 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
 		//TODO 1 test extracted IDs are copied/cloned (anything else)
-		//TODO 2 return extracted IDs with provenance
+		//TODO 1 return extracted IDs with provenance
 		//TODO 2 lots more tests with more complicated structures
 		//test id extraction and saving
-		Map<String, Object> iddata1 = new HashMap<String, Object>();
-		iddata1.put("an_id", "parseExcept");
-		data.add(new WorkspaceSaveObject(iddata1, idtype, null, emptyprov, false));
+		Map<String, Object> iddata = new HashMap<String, Object>();
+		iddata.put("an_id", "parseExcept");
+		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
 
 		IdReferenceHandlersFactory fac = getIdFactory(user).addFactory(
 				new TestIDReferenceHandlerFactory(new IdReferenceType("someid")));
 
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
 				"Object #2 has an unparseable reference: Parse exception for ID parseExcept"));
+		
+		iddata.put("an_id", "id here");
+		ws.saveObjects(user, wsi, data, fac); //should work
+		Map<String, List<String>> expected = new HashMap<String, List<String>>();
+		expected.put("someid", Arrays.asList("id here"));
+		ObjectIdentifier obj = new ObjectIdentifier(wsi, "auto2");
+		checkExternalIds(user, obj, expected);
 	}
 	
 	@Test

@@ -426,21 +426,16 @@ public class TypedObjectValidationReport {
 	
 	@Override
 	public String toString() {
-		StringBuilder mssg = new StringBuilder();
-		mssg.append("TYPED OBJECT VALIDATION REPORT\n");
-		mssg.append(" -validated instance against: '"+validationTypeDefId.getTypeString()+"'\n");
-		mssg.append(" -status: ");
-		if(this.isInstanceValid()) {
-			mssg.append("pass\n");
-			mssg.append(" -id refs extracted: " + idHandler.size());
-		}
-		else {
-			List<String> errs = getErrorMessages();
-			mssg.append("fail ("+errs.size()+" error(s))\n");
-			for(int k=0; k<errs.size(); k++) {
-				mssg.append(" -["+(k+1)+"]:"+errs.get(k)+"\n");
-			}
-		}
-		return mssg.toString();
+		StringBuilder builder = new StringBuilder();
+		builder.append("TypedObjectValidationReport [errors=");
+		builder.append(errors);
+		builder.append(", validationTypeDefId=");
+		builder.append(validationTypeDefId);
+		builder.append(", size=");
+		builder.append(size);
+		builder.append(", sorted=");
+		builder.append(sorted);
+		builder.append("]");
+		return builder.toString();
 	}
 }

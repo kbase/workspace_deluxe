@@ -9,6 +9,8 @@ import java.util.Set;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
@@ -92,14 +94,16 @@ public class WorkspaceSaveObject {
 
 	public ResolvedSaveObject resolve(final TypedObjectValidationReport rep,
 			final Set<Reference> references,
-			final List<Reference> provenancerefs) {
+			final List<Reference> provenancerefs,
+			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
 		if (id == null) {
 			return new ResolvedSaveObject(this.userMeta, this.provenance,
-					this.hidden, rep, references, provenancerefs);
+					this.hidden, rep, references, provenancerefs,
+					extractedIDs);
 		} else {
 			return new ResolvedSaveObject(this.id, this.userMeta,
 					this.provenance, this.hidden, rep, references,
-					provenancerefs);
+					provenancerefs, extractedIDs);
 		}
 	}
 	

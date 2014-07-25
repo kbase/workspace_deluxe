@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
@@ -20,15 +22,21 @@ public class ResolvedSaveObject {
 	private final TypedObjectValidationReport rep;
 	private final Set<Reference> refs;
 	private final List<Reference> provrefs;
+	final Map<IdReferenceType, Set<RemappedId>> extractedIDs;
 	
-	ResolvedSaveObject(final ObjectIDNoWSNoVer id,
-			final Map<String, String> userMeta, final Provenance provenance,
-			final boolean hidden, final TypedObjectValidationReport rep,
-			final Set<Reference> refs, final List<Reference> provenancerefs) {
+	ResolvedSaveObject(
+			final ObjectIDNoWSNoVer id,
+			final Map<String, String> userMeta,
+			final Provenance provenance,
+			final boolean hidden,
+			final TypedObjectValidationReport rep,
+			final Set<Reference> refs,
+			final List<Reference> provenancerefs,
+			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
 		if (id == null || rep == null || refs == null ||
-				provenancerefs == null) {
+				provenancerefs == null || extractedIDs == null) {
 			throw new IllegalArgumentException(
-					"Neither id, rep, refs, nor provenancerefs may be null");
+					"Neither id, rep, refs, extractedIDs, nor provenancerefs may be null");
 		}
 		this.id = id;
 		this.userMeta = userMeta;
@@ -37,15 +45,21 @@ public class ResolvedSaveObject {
 		this.rep = rep;
 		this.refs = refs;
 		this.provrefs = provenancerefs;
+		this.extractedIDs = extractedIDs;
 	}
 	
-	ResolvedSaveObject(final Map<String, String> userMeta,
-			final Provenance provenance, final boolean hidden,
-			final TypedObjectValidationReport rep, final Set<Reference> refs,
-			final List<Reference> provenancerefs) {
-		if (rep == null || refs == null || provenancerefs == null) {
+	ResolvedSaveObject(
+			final Map<String, String> userMeta,
+			final Provenance provenance,
+			final boolean hidden,
+			final TypedObjectValidationReport rep,
+			final Set<Reference> refs,
+			final List<Reference> provenancerefs,
+			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
+		if (rep == null || refs == null || provenancerefs == null ||
+				extractedIDs == null) {
 			throw new IllegalArgumentException(
-					"Neither rep, refs, nor provenancerefs may be null");
+					"Neither rep, refs, extractedIDs nor provenancerefs may be null");
 		}
 		this.id = null;
 		this.userMeta = userMeta;
@@ -54,6 +68,7 @@ public class ResolvedSaveObject {
 		this.rep = rep;
 		this.refs = refs;
 		this.provrefs = provenancerefs;
+		this.extractedIDs = extractedIDs;
 	}
 	
 	public ObjectIDNoWSNoVer getObjectIdentifier() {
@@ -94,12 +109,31 @@ public class ResolvedSaveObject {
 	public List<Reference> getProvRefs() {
 		return provrefs;
 	}
+	
+	public Map<IdReferenceType, Set<RemappedId>> getExtractedIDs() {
+		return extractedIDs;
+	}
 
 	@Override
 	public String toString() {
-		return "ResolvedSaveObject [id=" + id + ", userMeta=" + userMeta +
-				", provenance=" + provenance + ", hidden=" + hidden +
-				", rep=" + rep + ", refs=" + refs +
-				", provrefs=" + provrefs + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("ResolvedSaveObject [id=");
+		builder.append(id);
+		builder.append(", userMeta=");
+		builder.append(userMeta);
+		builder.append(", provenance=");
+		builder.append(provenance);
+		builder.append(", hidden=");
+		builder.append(hidden);
+		builder.append(", rep=");
+		builder.append(rep);
+		builder.append(", refs=");
+		builder.append(refs);
+		builder.append(", provrefs=");
+		builder.append(provrefs);
+		builder.append(", extractedIDs=");
+		builder.append(extractedIDs);
+		builder.append("]");
+		return builder.toString();
 	}
 }
