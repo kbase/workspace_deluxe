@@ -2196,8 +2196,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_PROVREF, Fields.VER_REF, Fields.VER_EXT_IDS,
 			Fields.VER_COPIED);
 	
-	//TODO 1 test copied field
-	
 	@Override
 	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
 			getObjectProvenance(final Set<ObjectIDResolvedWS> objectIDs)

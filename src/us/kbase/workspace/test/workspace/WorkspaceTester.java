@@ -965,6 +965,9 @@ public class WorkspaceTester {
 		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
 				objname, version);
 		
+		String expectedCopyRef = original.getWorkspaceId() + "/" +
+				original.getObjectId() + "/" + original.getVersion();
+		
 		//getObjects
 		WorkspaceObjectData orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
 				new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
@@ -976,6 +979,7 @@ public class WorkspaceTester {
 				objname, version);
 		assertThat("returned data same", copy.getData(), is(orig.getData()));
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
+		assertThat("copy ref correct", copy.getCopyReference(), is(expectedCopyRef));
 		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
 		
 		//getObjectProvenance
@@ -990,6 +994,7 @@ public class WorkspaceTester {
 		compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
 				objname, version);
 		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
+		assertThat("copy ref correct", copyinfo.getCopyReference(), is(expectedCopyRef));
 		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(), null);
 		
 		
@@ -1006,6 +1011,7 @@ public class WorkspaceTester {
 				objname, version);
 		assertThat("returned data same", copysub.getData(), is(origsub.getData()));
 		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
+		assertThat("copy ref correct", copysub.getCopyReference(), is(expectedCopyRef));
 		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(), null);
 	}
 	

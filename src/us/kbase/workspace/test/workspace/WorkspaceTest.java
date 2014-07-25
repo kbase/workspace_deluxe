@@ -2546,10 +2546,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		Date cp1LastDate = cp1info.getModDate();
 		Date cp2LastDate = cp2info.getModDate();
 		
-		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
+		ObjectIdentifier oihide = new ObjectIdentifier(cp1, "hide");
+		List<ObjectInformation> objs = ws.getObjectHistory(user1, oihide);
 		ObjectInformation save11 = objs.get(0);
 		ObjectInformation save12 = objs.get(1);
 		ObjectInformation save13 = objs.get(2);
+		
+		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
+		WorkspaceObjectData swod = ws.getObjectsSubSet(user1, objIDToSubObjID(Arrays.asList(oihide))).get(0);
+		WorkspaceObjectInformation woi = ws.getObjectProvenance(user1, Arrays.asList(oihide)).get(0);
+		assertThat("copy ref for obj is null", wod.getCopyReference(), is((String) null));
+		assertThat("copy ref for sub obj is null", swod.getCopyReference(), is((String) null));
+		assertThat("copy ref for prov is null", woi.getCopyReference(), is((String) null));
 		
 		//copy entire stack of hidden objects
 		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
