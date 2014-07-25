@@ -69,29 +69,29 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 						"IDs may not be null or the empty string",
 						getIdType(), associatedObject, id, attributes, null);
 			}
-			if (attributes.contains("parseExcept")) {
+			if ("parseExcept".equals(id)) {
 				throw new IdParseException("Parse exception for ID " + id,
 						type, associatedObject, id, attributes, null);
 			}
-			if (attributes.contains("refExcept")) {
+			if ("refExcept".equals(id)) {
 				throw new IdReferenceException(
 						"Reference exception for ID " + id, type,
 						associatedObject, id, attributes, null);
 			}
-			if (attributes.contains("genExcept")) {
+			if ("genExcept".equals(id)) {
 				throw new IdReferenceHandlerException(
 						"General exception for ID " + id, type, null);
 			}
-			if (attributes.contains("procParseExcept")) {
+			if ("procParseExcept".equals(id)) {
 				parseExcept = new IdParseException("Parse exception for ID " + id,
 						type, associatedObject, id, attributes, null);
 			}
-			if (attributes.contains("procRefExcept")) {
+			if ("procRefExcept".equals(id)) {
 				refExcept = new IdReferenceException(
 						"Reference exception for ID " + id, type,
 						associatedObject, id, attributes, null);
 			}
-			if (attributes.contains("procGenExcept")) {
+			if ("procGenExcept".equals(id)) {
 				genExcept = new IdReferenceHandlerException(
 						"General exception for ID " + id, type, null);
 			}

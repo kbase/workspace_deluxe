@@ -47,6 +47,7 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -1159,20 +1160,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				"module TestTypeChecking {" +
 					"/* @id ws */" +
 					"typedef string reference;" +
-					"/* @id someid */" +
-					"typedef string some_id;" +
-					"/* @id someid2 */" +
 					"typedef string some_id2;" +
-					"/* @optional ref\n " + 
-					"   @optional an_id\n" +
-					"   @optional an_id2 */" +
+					"/* @optional ref */ " + 
 					"typedef structure {" +
 						"int foo;" +
 						"list<int> bar;" +
 						"string baz;" +
 						"reference ref;" +
-						"some_id an_id;" +
-						"some_id2 an_id2;" +
 					"} CheckType;" +
 				"};";
 		
@@ -1398,6 +1392,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.set(1, new WorkspaceSaveObject(data6, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
 				"Object #2 has an unparseable reference: IDs may not be null or the empty string"));
+		
 		
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
@@ -1661,6 +1656,53 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("sub obj reference included correctly", inf.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
+	}
+	
+	@Test
+	public void idExtraction() throws Exception {
+		String idtype1 = "someid";
+		String idtype2 = "someid2";
+		String mod = "TestIDExtraction";
+		String type = "IdType";
+		final String idSpec =
+				"module " + mod + " {" +
+					"/* @id " + idtype1 + " */" +
+					"typedef string some_id;" +
+					"/* @id " + idtype2 + " */" +
+					"typedef string some_id2;" +
+					"/* @optional an_id\n" +
+					"   @optional an_id2 */" +
+					"typedef structure {" +
+						"some_id an_id;" +
+						"some_id2 an_id2;" +
+					"} " + type + ";" +
+				"};";
+		WorkspaceUser user = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(user, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type), null, null, false, null);
+		TypeDefId idtype = new TypeDefId(new TypeDefName(mod, type), 0, 1);
+		
+		// test basic type checking with different versions
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("idextract");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(user);
+		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
+		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
+		
+		//TODO 1 test extracted IDs are copied/cloned (anything else)
+		//TODO 2 return extracted IDs with provenance
+		//TODO 2 lots more tests with more complicated structures
+		//test id extraction and saving
+		Map<String, Object> iddata1 = new HashMap<String, Object>();
+		iddata1.put("an_id", "parseExcept");
+		data.add(new WorkspaceSaveObject(iddata1, idtype, null, emptyprov, false));
+
+		IdReferenceHandlersFactory fac = getIdFactory(user).addFactory(
+				new TestIDReferenceHandlerFactory(new IdReferenceType("someid")));
+
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 has an unparseable reference: Parse exception for ID parseExcept"));
 	}
 	
 	@Test

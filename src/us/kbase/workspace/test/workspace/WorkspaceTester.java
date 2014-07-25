@@ -492,11 +492,18 @@ public class WorkspaceTester {
 		return readCurrentDate;
 	}
 	
-	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, List<WorkspaceSaveObject> wso,
+	
+	
+	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
+			List<WorkspaceSaveObject> wso, Exception exp)
+			throws Exception {
+		failSave(user, wsi, wso, getIdFactory(user), exp);
+	}
+	
+	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
+			List<WorkspaceSaveObject> wso, IdReferenceHandlersFactory fac,
 			Exception exp)
 			throws Exception {
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user));
 		try {
 			ws.saveObjects(user, wsi, wso, fac);
 			fail("Saved bad objects");
