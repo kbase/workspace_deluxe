@@ -347,7 +347,9 @@ public class ArgUtils {
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
-					.withRefs(o.getReferences()));
+					.withRefs(o.getReferences())
+					.withCopied(o.getCopyReference())
+					.withExtractedIds(o.getExtractedIds()));
 			resourcesToDestroy.add(resource);
 		}
 		return ret;
@@ -365,7 +367,9 @@ public class ArgUtils {
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
-					.withRefs(o.getReferences()));
+					.withRefs(o.getReferences())
+					.withCopied(o.getCopyReference())
+					.withExtractedIds(o.getExtractedIds()));
 		}
 		return ret;
 	}

@@ -288,7 +288,7 @@ module Workspace {
 	*/
 	typedef tuple<obj_name id, type_string type, timestamp moddate,
 		int instance, string command, username lastmodifier, username owner,
-		ws_name workspace, string ref ,string chsum, usermeta metadata,
+		ws_name workspace, string ref, string chsum, usermeta metadata,
 		obj_id objid> object_metadata;
 		
 	/* Information about an object, including user provided metadata.

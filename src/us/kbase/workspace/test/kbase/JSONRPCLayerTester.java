@@ -758,12 +758,15 @@ public class JSONRPCLayerTester {
 				new ObjectIdentity().withWsid(copied.getE7())
 				.withObjid(copied.getE1()).withVer(copied.getE5()));
 		
+		String expectedCopy = orig.getE7() + "/" + orig.getE1() + "/" + orig.getE5();
+		
 		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
 		compareObjectInfo(prov.get(0).getInfo(), prov.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", prov.get(1).getCreator(), is(prov.get(0).getCreator()));
 		assertThat("created same", prov.get(1).getCreated(), is(prov.get(0).getCreated()));
 		assertThat("prov same", prov.get(1).getProvenance(), is(prov.get(0).getProvenance()));
 		assertThat("refs same", prov.get(1).getRefs(), is(prov.get(0).getRefs()));
+		assertThat("copy ref correct", prov.get(1).getCopied(), is(expectedCopy));
 		
 		List<ObjectData> objs = CLIENT1.getObjects(loi);
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
@@ -773,6 +776,7 @@ public class JSONRPCLayerTester {
 				is(objs.get(0).getData().asClassInstance(Map.class)));
 		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
 		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
+		assertThat("copy ref correct", objs.get(1).getCopied(), is(expectedCopy));
 		
 		objs = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
@@ -782,6 +786,7 @@ public class JSONRPCLayerTester {
 				is(objs.get(0).getData().asClassInstance(Map.class)));
 		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
 		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
+		assertThat("copy ref correct", objs.get(1).getCopied(), is(expectedCopy));
 	}
 
 	protected void compareObjectInfo(

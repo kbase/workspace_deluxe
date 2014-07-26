@@ -48,6 +48,7 @@ import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecCopyParams;
@@ -643,6 +644,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkInfo(retmet.get(0), 1, "auto1", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta);
 		checkInfo(retmet.get(1), 2, "auto2", SAFE_TYPE, 1, USER1, wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta);
 		checkInfo(retmet.get(2), 3, "foo", SAFE_TYPE, 1, USER1, wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		
+		ObjectIdentity ojbid = new ObjectIdentity().withWorkspace("saveget")
+				.withName("auto1");
+		Map<String, List<String>> exp = new HashMap<String, List<String>>();
+		ObjectData obj = CLIENT1.getObjects(Arrays.asList(ojbid)).get(0);
+		assertThat("extracted ids empty", obj.getExtractedIds(), is(exp));
+		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(ojbid))).get(0);
+		assertThat("extracted ids empty", obj.getExtractedIds(), is(exp));
+		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(ojbid)).get(0);
+		assertThat("extracted ids empty", prov.getExtractedIds(), is(exp));
 		
 		
 		objects.clear();
@@ -1457,6 +1468,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withType(SAFE_TYPE).withName("myname"));
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.saveObjects(soc);
+		
+		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
+				.withName("myname");
+		ObjectData obj = CLIENT1.getObjects(Arrays.asList(nocopy)).get(0);
+		assertThat("copy ref is null", obj.getCopied(), is((String) null));
+		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
+		assertThat("copy ref is null", obj.getCopied(), is((String) null));
+		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(nocopy)).get(0);
+		assertThat("copy ref is null", prov.getCopied(), is((String) null));
+		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
 				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
 				.withTo(new ObjectIdentity().withWsid(wsid).withName("myname2")));
