@@ -43,8 +43,8 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -236,10 +236,10 @@ public class IdProcessingTest {
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
 				absoluteIdMapping));
-		IdReferenceHandlers<String> idhandlers = fac.createHandlers(String.class);
+		IdReferenceHandlerSet<String> idhandlers = fac.createHandlers(String.class);
 		idhandlers.associateObject("foo");
 		
 		// perform the initial validation, which must validate!
@@ -259,7 +259,7 @@ public class IdProcessingTest {
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
-		IdReferenceHandlersFactory dummyfac = new IdReferenceHandlersFactory(0);
+		IdReferenceHandlerSetFactory dummyfac = new IdReferenceHandlerSetFactory(0);
 		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
 				dummyfac.createHandlers(String.class).associateObject("foo"));
 		List <String> mssgs2 = report2.getErrorMessages();

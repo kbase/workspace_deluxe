@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 
 /** Builds a set of ID handlers for handling IDs found while validating a
  * typed object. The handler could, for example, check the ID format, check
@@ -16,7 +16,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
  * @author gaprice@lbl.gov
  *
  */
-public class IdReferenceHandlersFactory {
+public class IdReferenceHandlerSetFactory {
 	
 	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	//TODO unit tests, docs
@@ -38,7 +38,7 @@ public class IdReferenceHandlersFactory {
 		public IdReferenceType getIDType();
 	}
 	
-	public IdReferenceHandlersFactory(final int maxUniqueIdCount) {
+	public IdReferenceHandlerSetFactory(final int maxUniqueIdCount) {
 		if (maxUniqueIdCount < 0) {
 			throw new IllegalArgumentException(
 					"maxUniqueIdCount must be at least 0");
@@ -46,7 +46,7 @@ public class IdReferenceHandlersFactory {
 		this.maxUniqueIdCount = maxUniqueIdCount;
 	}
 	
-	public IdReferenceHandlersFactory addFactory(
+	public IdReferenceHandlerSetFactory addFactory(
 			final IdReferenceHandlerFactory factory) {
 		if (factory == null) {
 			throw new NullPointerException("factory cannot be null");
@@ -59,14 +59,14 @@ public class IdReferenceHandlersFactory {
 		return this;
 	}
 	
-	public <T> IdReferenceHandlers<T> createHandlers(final Class<T> clazz) {
+	public <T> IdReferenceHandlerSet<T> createHandlers(final Class<T> clazz) {
 		final Map<IdReferenceType, IdReferenceHandler<T>> handlers =
 				new HashMap<IdReferenceType, IdReferenceHandler<T>>();
 		for (final Entry<IdReferenceType, IdReferenceHandlerFactory> e:
 				factories.entrySet()) {
 			handlers.put(e.getKey(), e.getValue().createHandler(clazz));
 		}
-		return new IdReferenceHandlers<T>(maxUniqueIdCount, handlers);
+		return new IdReferenceHandlerSet<T>(maxUniqueIdCount, handlers);
 	}
 	
 }

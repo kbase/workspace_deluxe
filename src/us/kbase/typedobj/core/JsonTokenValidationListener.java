@@ -1,8 +1,8 @@
 package us.kbase.typedobj.core;
 
 import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

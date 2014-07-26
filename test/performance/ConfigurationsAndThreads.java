@@ -34,7 +34,7 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.Writable;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
@@ -494,7 +494,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (JsonNode o: objs) {
-				final IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(1);
+				final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
 				fac.addFactory(ws.getHandlerFactory(foo));
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(

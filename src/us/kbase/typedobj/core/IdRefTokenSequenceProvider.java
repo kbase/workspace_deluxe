@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceType;
 
 /**
@@ -25,7 +25,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	// relabeling is just substituting tokens with old id-ref values by new ones
 	private final JsonTokenStream jts;
 	//ID handlers
-	private final IdReferenceHandlers<?> handlers; 
+	private final IdReferenceHandlerSet<?> handlers; 
 	// path is branch in real json data pointing to position of currently observed
 	// token in jts
 	private final JsonDocumentLocation path = new JsonDocumentLocation();
@@ -41,7 +41,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
 			final JsonTokenValidationSchema schema, 
-			final IdReferenceHandlers<?> idhandlers) {
+			final IdReferenceHandlerSet<?> idhandlers) {
 		this.jts = jts;
 		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
 				Arrays.asList(schema));

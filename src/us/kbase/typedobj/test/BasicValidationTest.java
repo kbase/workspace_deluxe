@@ -36,8 +36,8 @@ import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -227,8 +227,8 @@ public class BasicValidationTest {
 	@Test
 	public void testInstance() throws Exception {
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(6);
-		IdReferenceHandlers<String> handler = fac.createHandlers(String.class);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
+		IdReferenceHandlerSet<String> handler = fac.createHandlers(String.class);
 		handler.associateObject("foo");
 		
 		if(this.isValidInstance) {

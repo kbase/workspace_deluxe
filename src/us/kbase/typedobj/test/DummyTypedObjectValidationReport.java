@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
 /**
  * for testing, you can instantiate this report without running any validation code.
@@ -27,7 +27,7 @@ public class DummyTypedObjectValidationReport extends
 			final UObject data) {
 		
 		super(data, type, Collections.<String>emptyList(), null, null, null,
-				new IdReferenceHandlersFactory(6).createHandlers(String.class).lock());
+				new IdReferenceHandlerSetFactory(6).createHandlers(String.class).lock());
 	}
 	
 	@Override

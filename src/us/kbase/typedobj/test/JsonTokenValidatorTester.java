@@ -23,8 +23,8 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.kbase.Util;
 
 public class JsonTokenValidatorTester {
@@ -65,9 +65,9 @@ public class JsonTokenValidatorTester {
 			jgen.close();
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f);  //, buffer);
-			IdReferenceHandlersFactory fac =
-					new IdReferenceHandlersFactory(6);
-			IdReferenceHandlers<String> han = fac.createHandlers(String.class);
+			IdReferenceHandlerSetFactory fac =
+					new IdReferenceHandlerSetFactory(6);
+			IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
 			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);

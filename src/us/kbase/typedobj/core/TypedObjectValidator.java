@@ -16,9 +16,9 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 
 /**
  * Interface for validating typed object instances in JSON against typed object definitions
@@ -110,7 +110,7 @@ public final class TypedObjectValidator {
 	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final String instance,
-			final TypeDefId type, final IdReferenceHandlers<?> handlers)
+			final TypeDefId type, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
 			TypedObjectSchemaException,
@@ -148,7 +148,7 @@ public final class TypedObjectValidator {
 	 * @throws JsonParseException 
 	 */
 	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
-			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
+			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,
@@ -167,7 +167,7 @@ public final class TypedObjectValidator {
 	}
 	
 	public TypedObjectValidationReport validate(final UObject obj,
-			final TypeDefId typeDefId, final IdReferenceHandlers<?> handlers)
+			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,

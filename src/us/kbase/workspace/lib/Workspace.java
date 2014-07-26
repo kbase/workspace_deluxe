@@ -44,16 +44,16 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReference;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdParseException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.NoSuchIdException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectChain;
@@ -530,7 +530,7 @@ public class Workspace {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
 			List<WorkspaceSaveObject> objects,
-			final IdReferenceHandlersFactory idHandlerFac) throws
+			final IdReferenceHandlerSetFactory idHandlerFac) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			NoSuchObjectException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, TypedObjectValidationException,
@@ -540,7 +540,7 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
-		final IdReferenceHandlers<IDAssociation> idhandler =
+		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
 		
 		//TODO 1 test max id limit
@@ -635,7 +635,7 @@ public class Workspace {
 	private Map<WorkspaceSaveObject, TypedObjectValidationReport>
 			validateObjectsAndExtractReferences(
 			final List<WorkspaceSaveObject> objects,
-			final IdReferenceHandlers<IDAssociation> idhandler)
+			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
 		final TypedObjectValidator val = db.getTypeValidator();
@@ -677,7 +677,7 @@ public class Workspace {
 
 	private void processIds(
 			final List<WorkspaceSaveObject> objects,
-			final IdReferenceHandlers<IDAssociation> idhandler)
+			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypedObjectValidationException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
@@ -718,7 +718,7 @@ public class Workspace {
 	private TypedObjectValidationReport validate(
 			final WorkspaceSaveObject wo,
 			final TypedObjectValidator val,
-			final IdReferenceHandlers<IDAssociation> idhandler,
+			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
@@ -777,7 +777,7 @@ public class Workspace {
 	
 	private TypedObjectValidationException wrapTooManyIDsException(
 			final int objcount,
-			final IdReferenceHandlers<IDAssociation> idhandler,
+			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final TooManyIdsException e) {
 		return new TypedObjectValidationException(String.format(
 				"Failed type checking at object #%s - the number of " +

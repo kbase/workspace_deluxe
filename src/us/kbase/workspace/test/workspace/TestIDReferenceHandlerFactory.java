@@ -7,14 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdParseException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.NoSuchIdException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 

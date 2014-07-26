@@ -12,8 +12,8 @@ import java.util.Map;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReference;
 

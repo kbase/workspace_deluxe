@@ -26,8 +26,8 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -85,7 +85,7 @@ public class TypedObjectValidationReportTest {
 	public void errors() throws Exception {
 		String json = "{\"m\": {\"z\": 1, \"b\": []}}";
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"),
 				fac.createHandlers(String.class).associateObject("foo"));
@@ -115,10 +115,10 @@ public class TypedObjectValidationReportTest {
 	public void noSortFac() throws Exception {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
 						new HashMap<String, String>()));
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
@@ -151,9 +151,9 @@ public class TypedObjectValidationReportTest {
 		refmap.put("c", "c");
 		refmap.put("a", "a");
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -181,8 +181,8 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -205,9 +205,9 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("w", "w");
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -233,9 +233,9 @@ public class TypedObjectValidationReportTest {
 		refmap.put("b", "b");
 		refmap.put("a", "a");
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -260,9 +260,9 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("b", "b");
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -311,8 +311,8 @@ public class TypedObjectValidationReportTest {
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
 		
-		IdReferenceHandlersFactory hfac = new IdReferenceHandlersFactory(100);
-		IdReferenceHandlers<String> handlers =
+		IdReferenceHandlerSetFactory hfac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSet<String> handlers =
 				hfac.createHandlers(String.class).associateObject("foo");
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);

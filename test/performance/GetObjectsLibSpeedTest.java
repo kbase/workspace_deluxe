@@ -23,7 +23,7 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
@@ -81,7 +81,7 @@ public class GetObjectsLibSpeedTest {
 		ws.createWorkspace(user, "fake", false, null, null);
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("fake");
 		TypeDefId td = new TypeDefId(new TypeDefName(module, type));
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(1);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
 		fac.addFactory(ws.getHandlerFactory(user));
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)), fac);

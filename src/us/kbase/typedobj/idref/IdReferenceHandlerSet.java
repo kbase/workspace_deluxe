@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class IdReferenceHandlers<T> {
+public class IdReferenceHandlerSet<T> {
 	
 	//TODO unit tests, docs
 	//TODO 1 test extraction of various types
@@ -70,7 +70,7 @@ public class IdReferenceHandlers<T> {
 		public IdReferenceType getIdType();
 	}
 	
-	protected IdReferenceHandlers(final int maxUniqueIdCount,
+	protected IdReferenceHandlerSet(final int maxUniqueIdCount,
 			final Map<IdReferenceType, IdReferenceHandler<T>> handlers) {
 		this.maxUniqueIdCount = maxUniqueIdCount;
 		this.handlers = new HashMap<IdReferenceType, IdReferenceHandler<T>>(
@@ -87,7 +87,7 @@ public class IdReferenceHandlers<T> {
 	 * @param object the object to associate with any IDs processed after this
 	 * point.
 	 */
-	public IdReferenceHandlers<T> associateObject(T object) {
+	public IdReferenceHandlerSet<T> associateObject(T object) {
 		if (object == null) {
 			throw new NullPointerException("object may not be null");
 		}
@@ -104,7 +104,7 @@ public class IdReferenceHandlers<T> {
 			throws TooManyIdsException, IdReferenceHandlerException {
 		if (locked) {
 			throw new IllegalStateException(
-					"This ID handlers instance is locked");
+					"This ID handler set instance is locked");
 		}
 		if (associated == null) {
 			throw new IllegalStateException(
@@ -196,7 +196,7 @@ public class IdReferenceHandlers<T> {
 		return handlers.get(idType).getRemappedIds(associatedObject);
 	}
 	
-	public IdReferenceHandlers<T> lock() {
+	public IdReferenceHandlerSet<T> lock() {
 		locked = true;
 		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
 			handlers.entrySet()) {

@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.exceptions.UnimplementedException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.HandlerLockedException;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandler;
-import us.kbase.typedobj.idref.IdReferenceHandlers.IdReferenceHandlerException;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;

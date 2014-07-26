@@ -21,7 +21,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -82,8 +82,8 @@ public class MongoInternalsTest {
 		ws.releaseTypes(foo, "SomeModule");
 	}
 	
-	private IdReferenceHandlersFactory getIdFactory(WorkspaceUser user) {
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+	private IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		fac.addFactory(ws.getHandlerFactory(user));
 		return fac;
 	}
@@ -113,7 +113,7 @@ public class MongoInternalsTest {
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
 		
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(ws.getHandlerFactory(userfoo));
 		
 		for (int i = 1; i < 5; i++) {

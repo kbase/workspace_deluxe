@@ -16,7 +16,7 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
-import us.kbase.typedobj.idref.IdReferenceHandlers;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -63,7 +63,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * Used to keep track of the IDs that were parsed from the object
 	 */
-	private IdReferenceHandlers<?> idHandler;
+	private IdReferenceHandlerSet<?> idHandler;
 
 	/**
 	 * We keep a reference to the original instance that was validated so we can later easily rename labels or extract
@@ -100,7 +100,7 @@ public class TypedObjectValidationReport {
 			final JsonNode wsSubsetSelection,
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
-			final IdReferenceHandlers<?> idHandler) {
+			final IdReferenceHandlerSet<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
 		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);

@@ -46,7 +46,7 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectChain;
@@ -610,8 +610,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		
-		IdReferenceHandlersFactory foofac = getIdFactory(foo);
-		IdReferenceHandlersFactory barfac = getIdFactory(bar);
+		IdReferenceHandlerSetFactory foofac = getIdFactory(foo);
+		IdReferenceHandlerSetFactory barfac = getIdFactory(bar);
 		
 		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
@@ -1696,7 +1696,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		iddata.put("an_id", "parseExcept");
 		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
 
-		IdReferenceHandlersFactory fac = getIdFactory(user).addFactory(
+		IdReferenceHandlerSetFactory fac = getIdFactory(user).addFactory(
 				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
 
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(

@@ -31,7 +31,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.idref.IdReferenceHandlersFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectChain;
@@ -346,8 +346,8 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
-	protected IdReferenceHandlersFactory getIdFactory(WorkspaceUser user) {
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+	protected IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		fac.addFactory(ws.getHandlerFactory(user));
 		return fac;
 	}
@@ -502,7 +502,7 @@ public class WorkspaceTester {
 	}
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
-			List<WorkspaceSaveObject> wso, IdReferenceHandlersFactory fac,
+			List<WorkspaceSaveObject> wso, IdReferenceHandlerSetFactory fac,
 			Exception exp)
 			throws Exception {
 		try {
@@ -616,7 +616,7 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
 			Map<String, Object> data, TypeDefId type, Provenance prov,
 			Throwable exception) throws Exception{
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		fac.addFactory(ws.getHandlerFactory(user));
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(
@@ -1057,7 +1057,7 @@ public class WorkspaceTester {
 			Map<String, String> meta, Map<String, ? extends Object> data,
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
-		IdReferenceHandlersFactory fac = new IdReferenceHandlersFactory(100000);
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		fac.addFactory(ws.getHandlerFactory(user));
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
