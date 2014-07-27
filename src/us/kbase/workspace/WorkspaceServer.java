@@ -33,6 +33,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -81,6 +82,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
+import us.kbase.workspace.kbase.RefreshingToken;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.lib.Workspace;
@@ -135,6 +137,13 @@ public class WorkspaceServer extends JsonServerServlet {
 	//mongo connection attempt limit
 	private static final String MONGO_RECONNECT = "mongodb-retry";
 	
+	//handle service / manager info
+	private static final String HANDLE_SERVICE_URL = "handle-service-url";
+	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
+	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
+	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
+	private static final int TOKEN_REFRESH_INTERVAL = 3 * 24 * 60 * 60;
+
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
 	
@@ -151,6 +160,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
+	
+	private final URL handleServiceUrl;
+	private final URL handleManagerUrl;
+	private final RefreshingToken handleMgrToken;
 	
 	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
 			new ThreadLocal<Set<ByteArrayFileCache>>();
@@ -301,11 +314,47 @@ public class WorkspaceServer extends JsonServerServlet {
 		return recint;
 	}
 	
+
+	private URL getHandleUrl(String configKey, String serviceName) {
+		final String urlStr = wsConfig.get(configKey);
+		if (urlStr == null || urlStr.isEmpty()) {
+			fail("Must provide param " + configKey + " in config file");
+			return null;
+		}
+		try {
+			return new URL(urlStr);
+		} catch (MalformedURLException e) {
+			fail("Invalid url for parameter " + configKey + ": " + urlStr);
+		}
+		return null;
+	}
+	
+	private RefreshingToken getHandleToken() {
+		final String user = wsConfig.get(HANDLE_MANAGER_USER);
+		final String pwd =  wsConfig.get(HANDLE_MANAGER_PWD);
+		//TODO make a method that checks for all required params and fails
+		if (user == null || user.isEmpty() || pwd == null || pwd.isEmpty()) {
+			fail("Must provide params " + HANDLE_MANAGER_USER + " and " +
+					HANDLE_MANAGER_PWD + " in config file");
+			return null;
+		}
+		try {
+			return new RefreshingToken(user, pwd, TOKEN_REFRESH_INTERVAL);
+		} catch (AuthException e) {
+			fail("Couldn't log in with handle manager credentials for user " +
+					user + ": " + e.getLocalizedMessage());
+		} catch (IOException e) {
+			fail("Couldn't contact the auth service to obtain a token for the handle manager: "
+					+ e.getLocalizedMessage());
+		}
+		return null;
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
+		setUpLogger();
 		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
 		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
 		//assign config once per jvm, otherwise you could wind up with
@@ -317,43 +366,56 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		tfm = initTempFilesManager();
 		boolean failed = tfm == null;
-		if (!wsConfig.containsKey(HOST)) {
+		final String host = wsConfig.get(HOST);
+		if (host == null || host.isEmpty()) {
 			fail("Must provide param " + HOST + " in config file");
 			failed = true;
 		}
-		final String host = wsConfig.get(HOST);
-		if (!wsConfig.containsKey(DB)) {
+		final String dbs = wsConfig.get(DB);
+		if (dbs == null || dbs.isEmpty()) {
 			fail("Must provide param " + DB + " in config file");
 			failed = true;
 		}
-		final String dbs = wsConfig.get(DB);
-		if (!wsConfig.containsKey(BACKEND_SECRET)) {
+		final String secret = wsConfig.get(BACKEND_SECRET);
+		if (secret == null || secret.isEmpty()) {
 			failed = true;
 			fail("Must provide param " + BACKEND_SECRET + " in config file");
 		}
-		final String secret = wsConfig.get(BACKEND_SECRET);
-		if (wsConfig.containsKey(USER) ^ wsConfig.containsKey(PWD)) {
+		final String user = wsConfig.get(USER);
+		final String pwd = wsConfig.get(PWD);
+		final boolean hasUser = user != null && !user.isEmpty();
+		final boolean hasPwd = pwd != null && !pwd.isEmpty();
+		
+		if (hasUser ^ hasPwd) {
 			fail(String.format("Must provide both %s and %s ",
 					USER, PWD) + "params in config file if authentication " + 
 					"is to be used");
 			failed = true;
 		}
+		handleServiceUrl = getHandleUrl(HANDLE_SERVICE_URL, "handle service");
+		failed = failed || handleServiceUrl == null;
+		handleManagerUrl = getHandleUrl(HANDLE_MANAGER_URL, "handle manager");
+		failed = failed || handleManagerUrl == null;
+		handleMgrToken = getHandleToken();
+		failed = failed || handleMgrToken == null;
+		//TODO 1 test handle service & manager connections
+		
 		if (failed) {
 			fail("Server startup failed - all calls will error out.");
 			ws = null;
 			wsmeth = null;
 			wsadmin = null;
 		} else {
-			final String user = wsConfig.get(USER);
-			final String pwd = wsConfig.get(PWD);
 			String params = "";
-			for (String s: Arrays.asList(HOST, DB, USER)) {
+			for (String s: Arrays.asList(HOST, DB, USER,
+					HANDLE_SERVICE_URL, HANDLE_MANAGER_URL,
+					HANDLE_MANAGER_USER)) {
 				if (wsConfig.containsKey(s)) {
 					params += s + "=" + wsConfig.get(s) + "\n";
 				}
 			}
 			params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
-			if (pwd != null) {
+			if (pwd != null && !pwd.isEmpty()) {
 				params += PWD + "=[redacted for your safety and comfort]\n";
 			}
 			System.out.println("Starting server using connection parameters:\n"
@@ -362,7 +424,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println("Temporary file location: "
 					+ tfm.getTempDir());
 			logInfo("Temporary file location: " + tfm.getTempDir());
-			setUpLogger();
 			final int mongoConnectRetry = getReconnectCount();
 			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd,
 					tfm, mongoConnectRetry);
@@ -379,7 +440,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws = new Workspace(db,
 						new ResourceUsageConfigurationBuilder().build(),
 						new KBaseReferenceParser());
-				wsmeth = new WorkspaceServerMethods(ws);
+				wsmeth = new WorkspaceServerMethods(ws, handleServiceUrl);
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));
 				final String mem = String.format(
@@ -395,7 +456,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //END_CONSTRUCTOR
     }
 
-    /**
+	/**
      * <p>Original spec-file function name: ver</p>
      * <pre>
      * Returns the version of the workspace service.
@@ -741,7 +802,8 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
-				ws.getObjectProvenance(getUser(authPart), loi));
+				ws.getObjectProvenance(getUser(authPart), loi),
+					handleManagerUrl, handleMgrToken);
         //END get_object_provenance
         return returnVal;
     }
@@ -762,7 +824,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), resources);
+				ws.getObjects(getUser(authPart), loi), resources,
+					handleManagerUrl, handleMgrToken);
 		resourcesToDelete.set(resources);
         //END get_objects
         return returnVal;
@@ -796,7 +859,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi), resources);
+				ws.getObjectsSubSet(getUser(authPart), loi), resources,
+						handleManagerUrl, handleMgrToken);
 		resourcesToDelete.set(resources);
         //END get_object_subset
         return returnVal;
@@ -913,7 +977,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(ws.getReferencedObjects(
-				getUser(authPart), chains), resources);
+				getUser(authPart), chains), resources, handleManagerUrl,
+					handleMgrToken);
 		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;

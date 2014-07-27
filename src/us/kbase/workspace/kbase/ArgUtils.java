@@ -6,6 +6,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -334,10 +335,16 @@ public class ArgUtils {
 		return wsusers;
 	}
 	
-	public static List<ObjectData> translateObjectData(final List<WorkspaceObjectData> objects, 
-			Set<ByteArrayFileCache> resourcesToDestroy) {
+	public static List<ObjectData> translateObjectData(
+			final List<WorkspaceObjectData> objects, 
+			final Set<ByteArrayFileCache> resourcesToDestroy,
+			final URL handleManagerURl,
+			final RefreshingToken handleManagertoken) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
+			final String error = makeHandlesReadable(o, handleManagerURl,
+					handleManagertoken);
+			//TODO 1 add handle error
 			final ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
@@ -356,10 +363,15 @@ public class ArgUtils {
 	}
 	
 	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
-			final List<WorkspaceObjectInformation> objects) {
+			final List<WorkspaceObjectInformation> objects,
+			final URL handleManagerURl,
+			final RefreshingToken handleManagertoken) {
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
 		for (final WorkspaceObjectInformation o: objects) {
+			final String error = makeHandlesReadable(o, handleManagerURl,
+					handleManagertoken);
+			//TODO 1 add handle error
 			ret.add(new ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
@@ -372,6 +384,19 @@ public class ArgUtils {
 					.withExtractedIds(o.getExtractedIds()));
 		}
 		return ret;
+	}
+
+	private static String makeHandlesReadable(WorkspaceObjectInformation o,
+			URL handleManagerURl, RefreshingToken handleManagertoken) {
+		// TODO 1 call handle manager, return error string
+		/* could batch up calls for higher efficiency, but probably not worth
+		 * the trouble for now. Only helps if you have multiple objects with
+		 * handles in the same call. Also makes error handling harder, have
+		 * to maintain a map of handle -> list<objects> and construct
+		 * error message appropriately for each object after the call.
+		 */
+		
+		return null;
 	}
 
 	private static List<ProvenanceAction> translateProvenanceActions(

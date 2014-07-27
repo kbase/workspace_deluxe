@@ -56,10 +56,12 @@ import us.kbase.workspace.lib.Workspace;
 
 public class WorkspaceServerMethods {
 	
-	final Workspace ws;
+	final private Workspace ws;
+	final private URL handleServiceUrl;
 	
-	public WorkspaceServerMethods(final Workspace ws) {
+	public WorkspaceServerMethods(final Workspace ws, URL handleServiceUrl) {
 		this.ws = ws;
+		this.handleServiceUrl = handleServiceUrl;
 	}
 	
 	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
@@ -189,7 +191,7 @@ public class WorkspaceServerMethods {
 		final IdReferenceHandlerSetFactory fac =
 				new IdReferenceHandlerSetFactory(100000); //TODO 2 make this a parameter
 		fac.addFactory(ws.getHandlerFactory(user));
-		fac.addFactory(new HandleIdHandlerFactory(new URL("http://fake.com"),
+		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl,
 				token));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
