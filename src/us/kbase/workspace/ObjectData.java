@@ -26,8 +26,6 @@ import us.kbase.common.service.UObject;
  *         timestamp created - the date the object was first saved to the
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
- *         obj_ref copied - the reference of the source object if this object is
- *                 a copy. null otherwise.
  *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
  *                 from the object.
  * </pre>
@@ -42,7 +40,6 @@ import us.kbase.common.service.UObject;
     "creator",
     "created",
     "refs",
-    "copied",
     "extracted_ids"
 })
 public class ObjectData {
@@ -59,8 +56,6 @@ public class ObjectData {
     private java.lang.String created;
     @JsonProperty("refs")
     private List<String> refs;
-    @JsonProperty("copied")
-    private java.lang.String copied;
     @JsonProperty("extracted_ids")
     private Map<String, List<String>> extractedIds;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -155,21 +150,6 @@ public class ObjectData {
         return this;
     }
 
-    @JsonProperty("copied")
-    public java.lang.String getCopied() {
-        return copied;
-    }
-
-    @JsonProperty("copied")
-    public void setCopied(java.lang.String copied) {
-        this.copied = copied;
-    }
-
-    public ObjectData withCopied(java.lang.String copied) {
-        this.copied = copied;
-        return this;
-    }
-
     @JsonProperty("extracted_ids")
     public Map<String, List<String>> getExtractedIds() {
         return extractedIds;
@@ -197,7 +177,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", extractedIds=")+ extractedIds)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", extractedIds=")+ extractedIds)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

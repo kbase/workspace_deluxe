@@ -29,10 +29,6 @@ NEW FEATURES:
   IDs duplicated in the same object do not count towards this limit.
 - Any IDs extracted from an object are returned in get_objects,
   get_object_subset, and get_object_provenance.
-- If an object is a copy of another object, the source object reference is
-  returned in get_objects, get_object_subset, and get_object_provenance. Note
-  that the client may not have access to the copy source depending on
-  workspace permissions and object deletion state.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - N/A

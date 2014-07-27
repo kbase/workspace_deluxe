@@ -22,10 +22,9 @@ import us.kbase.typedobj.idref.RemappedId;
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	//TODO 1 add configs to deploy.cfg - handle serv and mang urls, user/pwd for handl mang
-	//TODO 1 remove copy
 	//TODO 2 show copy if user can see object
 	//TODO 2 copy method needs to call exists on any handle IDs (needs get ext ids method)
-	//TODO 1 get object / subset /prov needs to call set perms on handle IDs, if fails put bad_handles = true (or list of handles if possible) in ouput
+	//TODO 1 get object / subset /prov needs to call set perms on handle IDs, if fails put error message (or list of bad handles if possible) in output
 	//TODO 2 tests for handler id extraction, verification, etc.
 	
 	private static final IdReferenceType type = new IdReferenceType("handle");

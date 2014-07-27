@@ -1469,14 +1469,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.saveObjects(soc);
 		
-		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
-				.withName("myname");
-		ObjectData obj = CLIENT1.getObjects(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is null", obj.getCopied(), is((String) null));
-		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
-		assertThat("copy ref is null", obj.getCopied(), is((String) null));
-		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is null", prov.getCopied(), is((String) null));
+		//temporarily removed copy from API
+//		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
+//				.withName("myname");
+//		ObjectData obj = CLIENT1.getObjects(Arrays.asList(nocopy)).get(0);
+//		assertThat("copy ref is null", obj.getCopied(), is((String) null));
+//		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
+//		assertThat("copy ref is null", obj.getCopied(), is((String) null));
+//		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(nocopy)).get(0);
+//		assertThat("copy ref is null", prov.getCopied(), is((String) null));
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
 				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))

@@ -749,8 +749,6 @@ module Workspace {
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
-		obj_ref copied - the reference of the source object if this object is
-			a copy. null otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 	*/
@@ -760,7 +758,6 @@ module Workspace {
 		username creator;
 		timestamp created;
 		list<obj_ref> refs;
-		obj_ref copied;
 		mapping<id_type, list<extracted_id>> extracted_ids;
 	} ObjectProvenanceInfo;
 	
@@ -780,8 +777,6 @@ module Workspace {
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
-		obj_ref copied - the reference of the source object if this object is
-			a copy. null otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		
@@ -793,7 +788,6 @@ module Workspace {
 		username creator;
 		timestamp created;
 		list<obj_ref> refs;
-		obj_ref copied;
 		mapping<id_type, list<extracted_id>> extracted_ids;
 	} ObjectData;
 	
