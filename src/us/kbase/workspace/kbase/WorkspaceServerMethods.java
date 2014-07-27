@@ -11,6 +11,7 @@ import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceId
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -125,7 +126,9 @@ public class WorkspaceServerMethods {
 	}
 
 	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> saveObjects(
-			final SaveObjectsParams params, final WorkspaceUser user)
+			final SaveObjectsParams params,
+			final WorkspaceUser user,
+			final AuthToken token)
 			throws ParseException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, NoSuchObjectException,
 			CorruptWorkspaceDBException, NoSuchWorkspaceException,
@@ -186,6 +189,8 @@ public class WorkspaceServerMethods {
 		final IdReferenceHandlerSetFactory fac =
 				new IdReferenceHandlerSetFactory(100000); //TODO 2 make this a parameter
 		fac.addFactory(ws.getHandlerFactory(user));
+		fac.addFactory(new HandleIdHandlerFactory(new URL("http://fake.com"),
+				token));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return objInfoToTuple(meta);

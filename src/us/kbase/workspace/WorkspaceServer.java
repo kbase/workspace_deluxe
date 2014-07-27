@@ -692,7 +692,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params, AuthToken authPart) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN save_objects
-		returnVal = wsmeth.saveObjects(params, getUser(authPart));
+		returnVal = wsmeth.saveObjects(params, getUser(authPart), authPart);
         //END save_objects
         return returnVal;
     }

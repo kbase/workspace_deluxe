@@ -137,7 +137,7 @@ public class WorkspaceAdministration {
 		}
 		if ("saveObjects".equals(fn)) {
 			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
-			return wsmeth.saveObjects(params, getUser(cmd, token));
+			return wsmeth.saveObjects(params, getUser(cmd, token), token);
 		}
 		if ("listWorkspaces".equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
