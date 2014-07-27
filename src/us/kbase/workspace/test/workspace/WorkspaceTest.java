@@ -1690,7 +1690,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
-		//TODO 1 return extracted IDs with provenance
 		//TODO 2 lots more tests with more complicated structures
 		Map<String, Object> iddata = new HashMap<String, Object>();
 		iddata.put("an_id", "parseExcept");
@@ -2552,6 +2551,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation save12 = objs.get(1);
 		ObjectInformation save13 = objs.get(2);
 		
+		//TODO 1 remove copy from API
 		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
 		WorkspaceObjectData swod = ws.getObjectsSubSet(user1, objIDToSubObjID(Arrays.asList(oihide))).get(0);
 		WorkspaceObjectInformation woi = ws.getObjectProvenance(user1, Arrays.asList(oihide)).get(0);
