@@ -344,7 +344,7 @@ public class ArgUtils {
 		for (final WorkspaceObjectData o: objects) {
 			final String error = makeHandlesReadable(o, handleManagerURl,
 					handleManagertoken);
-			//TODO 1 add handle error
+			//TODO 1 add handle error when error structure known
 			final ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
@@ -371,7 +371,7 @@ public class ArgUtils {
 		for (final WorkspaceObjectInformation o: objects) {
 			final String error = makeHandlesReadable(o, handleManagerURl,
 					handleManagertoken);
-			//TODO 1 add handle error
+			//TODO 1 add handle error when error structure known
 			ret.add(new ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
@@ -388,6 +388,11 @@ public class ArgUtils {
 
 	private static String makeHandlesReadable(WorkspaceObjectInformation o,
 			URL handleManagerURl, RefreshingToken handleManagertoken) {
+		final List<String> handles = o.getExtractedIds().get(
+				HandleIdHandlerFactory.type.getType());
+		if (handles == null || handles.isEmpty()) {
+			return null;
+		}
 		// TODO 1 call handle manager, return error string
 		/* could batch up calls for higher efficiency, but probably not worth
 		 * the trouble for now. Only helps if you have multiple objects with

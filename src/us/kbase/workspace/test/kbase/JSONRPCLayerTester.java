@@ -293,7 +293,7 @@ public class JSONRPCLayerTester {
 		ws.add("mongodb-database", dbName);
 		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
 		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
-		ws.add("backend-secret", "");
+		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", "tempForJSONRPCLayerTester");
 		ini.store(iniFile);
@@ -304,6 +304,7 @@ public class JSONRPCLayerTester {
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
+		WorkspaceServer.setIgnoreHandleServiceForTests(true);
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
 		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files

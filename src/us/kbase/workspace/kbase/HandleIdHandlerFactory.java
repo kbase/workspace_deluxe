@@ -21,12 +21,10 @@ import us.kbase.typedobj.idref.RemappedId;
 
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO 1 add configs to deploy.cfg - handle serv and mang urls, user/pwd for handl mang
-	//TODO 2 show copy if user can see object
 	//TODO 2 copy method needs to call exists on any handle IDs (needs get ext ids method)
 	//TODO 2 tests for handler id extraction, verification, etc.
 	
-	private static final IdReferenceType type = new IdReferenceType("handle");
+	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
 	private final AuthToken userToken;
 	
@@ -56,8 +54,9 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 	
 	public class HandleIdHandler<T> implements IdReferenceHandler<T> {
+		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
-		private final URL handleService;
+		private final URL handleService; //TODO just use parent instance for these two
 		private final AuthToken token;
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
 		private boolean processed = false;
@@ -70,7 +69,6 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			this.token = token;
 		}
 		
-		//TODO seems like this should be an abstract class
 		@Override
 		public boolean addId(T associatedObject, String id,
 				List<String> attributes) throws IdReferenceHandlerException,
@@ -91,8 +89,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						attributes, null);
 			}
 			try {
-				Integer i = Integer.parseInt(id);
-				if (i < 0) {
+				if (Integer.parseInt(id) < 0) {
 					throw new IdReferenceException("Illegal handle id " + id +
 							", must be positive", type, associatedObject, id,
 							attributes, null);

@@ -121,6 +121,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO timestamps for startup script
     //TODO check shock version
     //TODO shock client should ignore extra fields
+    //TODO 2 show copy if user can see object
 	
 	private static final String VER = "0.3.0";
 
@@ -167,6 +168,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
 			new ThreadLocal<Set<ByteArrayFileCache>>();
+	
+	private static boolean ignoreHandleService = false;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd,
@@ -231,6 +234,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public static void clearConfigForTests() {
 		wsConfig = null;
+	}
+	
+	public static void setIgnoreHandleServiceForTests(final boolean ignore) {
+		ignoreHandleService = ignore;
 	}
 	
 	@Override
@@ -315,7 +322,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 
-	private URL getHandleUrl(String configKey, String serviceName) {
+	private URL getHandleUrl(String configKey) {
 		final String urlStr = wsConfig.get(configKey);
 		if (urlStr == null || urlStr.isEmpty()) {
 			fail("Must provide param " + configKey + " in config file");
@@ -392,13 +399,19 @@ public class WorkspaceServer extends JsonServerServlet {
 					"is to be used");
 			failed = true;
 		}
-		handleServiceUrl = getHandleUrl(HANDLE_SERVICE_URL, "handle service");
-		failed = failed || handleServiceUrl == null;
-		handleManagerUrl = getHandleUrl(HANDLE_MANAGER_URL, "handle manager");
-		failed = failed || handleManagerUrl == null;
-		handleMgrToken = getHandleToken();
-		failed = failed || handleMgrToken == null;
-		//TODO 1 test handle service & manager connections
+		if (ignoreHandleService) {
+			handleServiceUrl = null;
+			handleManagerUrl = null;
+			handleMgrToken = null;
+		} else {
+			handleServiceUrl = getHandleUrl(HANDLE_SERVICE_URL);
+			failed = failed || handleServiceUrl == null;
+			handleManagerUrl = getHandleUrl(HANDLE_MANAGER_URL);
+			failed = failed || handleManagerUrl == null;
+			handleMgrToken = getHandleToken();
+			failed = failed || handleMgrToken == null;
+			//TODO 1 check handle service & manager connections
+		}
 		
 		if (failed) {
 			fail("Server startup failed - all calls will error out.");
