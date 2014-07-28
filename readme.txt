@@ -2,8 +2,6 @@ Repo for phase 2 workspace service development
 
 *WARNING*: DO NOT RUN TESTS ON A PRODUCTION DATABASE! THE TEST SCRIPTS WILL
   WIPE THE DB.
-Running tests on a production Shock instance should be safe, but to be
-  cautious run the tests on a standalone instance.
 
 COMPILATION REQUIREMENTS:
 typecomp dev-prototypes branch
@@ -14,15 +12,17 @@ For now, all compiled files are checked in.
 SETUP
 
 1) A mongodb instance must be up and running.
-2) If using Shock as a backend or running tests, Shock must be up and running.
-3) Run administration/initialize.py and follow the instructions
-4) make
-5) if you want to run tests:
-5a) fill in the the test.cfg config file in ./test
-5b) make test
-6) make deploy
-7) fill in deploy.cfg and set KB_DEPLOYMENT_CONFIG appropriately
-8) /kb/deployment/services/Workspace/start_service
+2) If using Shock as a backend, Shock must be up and running.
+3) make
+4) if you want to run tests:
+4a) Shock must be installed (but not running).
+4b) fill in the the test.cfg config file in ./test
+4c) make test
+5) fill in deploy.cfg
+6) Run administration/initialize.py and follow the instructions
+7) make deploy
+8) optionally, set KB_DEPLOYMENT_CONFIG appropriately
+9) /kb/deployment/services/Workspace/start_service
 
 If the server doesn't start up correctly, check /var/log/syslog and
 /kb/deployment/services/workspace/glassfish_domain/Workspace/logs/server.log 

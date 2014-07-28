@@ -12,8 +12,7 @@ ANT = 'ant'
 
 CFG_SECTION = 'Workspacetest'
 
-CONFIG_OPTS = ['test.shock.url',
-               'test.mongo.host',
+CONFIG_OPTS = ['test.mongo.host',
                'test.mongo.db1',
                'test.mongo.db2',
                'test.mongo.db.types1',

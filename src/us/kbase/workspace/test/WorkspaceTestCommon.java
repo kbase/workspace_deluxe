@@ -1,7 +1,6 @@
 package us.kbase.workspace.test;
 
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
@@ -26,7 +25,7 @@ public class WorkspaceTestCommon {
 	public static final String HOST = "test.mongo.host";
 	public static final String M_USER = "test.mongo.user";
 	public static final String M_PWD = "test.mongo.pwd";
-	public static final String SHOCKURL = "test.shock.url";
+//	public static final String SHOCKURL = "test.shock.url";
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String SHOCKDB = "test.shock.db";
 	public static final String GRIDFS = "gridFS";
@@ -72,9 +71,9 @@ public class WorkspaceTestCommon {
 		return getProp(TYPEDB2);
 	}
 	
-	public static String getShockUrl() {
-		return getProp(SHOCKURL);
-	}
+//	public static String getShockUrl() {
+//		return getProp(SHOCKURL);
+//	}
 	
 	public static String getKidlSource() {
 		return "both";
@@ -144,7 +143,6 @@ public class WorkspaceTestCommon {
 		}
 		destroyAndSetupDB(typedb);
 		DB mdb = destroyAndSetupDB(db);
-		System.out.println(" buhbye.");
 		
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
@@ -157,22 +155,26 @@ public class WorkspaceTestCommon {
 				throw new TestException("Shock user cannot be null");
 			}
 			dbo.put("shock_user", shockuser);
-			URL sh;
-			
-			if (shockURL != null) {
-				sh = shockURL;
-			} else {
-				try {
-					sh = new URL(getShockUrl());
-				} catch (MalformedURLException mue) {
-					throw new TestException("Bad shock url:" +
-							getShockUrl());
-				}
+			if (shockURL == null) {
+				throw new TestException("The shock url may not be null");
 			}
-			dbo.put("shock_location", sh.toExternalForm());
+
+//			URL sh;
+//			
+//			if (shockURL != null) {
+//				sh = shockURL;
+//			} else {
+//				try {
+//					sh = new URL(getShockUrl());
+//				} catch (MalformedURLException mue) {
+//					throw new TestException("Bad shock url:" +
+//							getShockUrl());
+//				}
+//			}
+			dbo.put("shock_location", shockURL.toExternalForm());
 			System.out.println(String.format(
 					"Setting up shock with user %s and url %s", shockuser,
-					sh.toExternalForm()));
+					shockURL.toExternalForm()));
 		}
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", type));

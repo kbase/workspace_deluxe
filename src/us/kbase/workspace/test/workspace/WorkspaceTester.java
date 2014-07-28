@@ -53,12 +53,12 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.kbase.shock.ShockController;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -66,11 +66,11 @@ import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
+	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
@@ -107,7 +107,7 @@ public class WorkspaceTester {
 	
 	protected static final Map<String, String> MT_META = new HashMap<String, String>();
 	
-	private static ShockBackend sbe = null;
+	private static ShockController shock = null;
 	private static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
@@ -158,9 +158,8 @@ public class WorkspaceTester {
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		if (sbe != null) {
-			System.out.println("deleting all shock nodes");
-			sbe.removeAllBlobs();
+		if (shock != null) {
+			shock.destroy();
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -191,19 +190,35 @@ public class WorkspaceTester {
 	}
 	
 	private Workspace setUpMongo(Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces("gridFS", "foo", "foo", maxMemoryUsePerCall);
+		return setUpWorkspaces("gridFS", "foo", "foo", maxMemoryUsePerCall, null);
 	}
 	
 	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
+		WorkspaceTestCommon.destroyAndSetupShockDB();
+
+		shock = new ShockController(
+				WorkspaceTestCommon.getShockExe(),
+				"***---fakeuser---***",
+				WorkspaceTestCommon.getHost(),
+				WorkspaceTestCommon.getShockDB(),
+				WorkspaceTestCommon.getMongoUser(),
+				WorkspaceTestCommon.getMongoPwd(),
+				DELETE_TEMP_DIR_ON_EXIT);
+		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
 		return setUpWorkspaces("shock", shockuser, shockpwd,
-				maxMemoryUsePerCall);
+				maxMemoryUsePerCall, shockUrl);
 	}
 	
-	private Workspace setUpWorkspaces(String type, String shockuser,
-			String shockpwd, Integer maxMemoryUsePerCall) throws Exception {
-		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser, null);
+	private Workspace setUpWorkspaces(
+			String type,
+			String shockuser,
+			String shockpwd,
+			Integer maxMemoryUsePerCall,
+			URL shockUrl) throws Exception {
+		
+		WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser, shockUrl);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();
@@ -233,10 +248,6 @@ public class WorkspaceTester {
 		}
 		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
-		if ("shock".equals(type)) {
-			sbe = new ShockBackend(db, "shock_", new URL(WorkspaceTestCommon.getShockUrl()), 
-					shockuser, shockpwd);
-		}
 		return work;
 	}
 		
