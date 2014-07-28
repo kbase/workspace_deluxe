@@ -34,7 +34,7 @@ public class GridFSBackendTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
+		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null, null);
 		gfs = new GridFS(db);
 		gfsb = new GridFSBackend(db);
 	}

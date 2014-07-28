@@ -87,11 +87,18 @@
     <include name="google/guava-14.0.1.jar"/>
   </fileset>
 	
+  <fileset dir="${jardir}" id="testlib">
+    <include name="apache_commons/velocity-1.7.jar"/>
+    <include name="apache_commons/commons-lang-2.4.jar"/>
+    <include name="apache_commons/commons-collections-3.2.1.jar"/>
+  </fileset>
+	
   <union id="serverside">
     <fileset refid="serverlib"/>
     <fileset refid="clientserverlib"/>
     <fileset refid="shocklib"/>
     <fileset refid="applicationlib"/>
+    <fileset refid="testlib"/>
   </union>
 
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
@@ -168,6 +175,7 @@
       <fileset dir="${src}">
         <patternset>
           <include name="**/*.properties"/>
+          <include name="**/*.cfg"/>
           <include name="**/*.spec"/>
           <include name="**/*.instance.*"/>
           <include name="**/instance.*"/>
@@ -220,6 +228,8 @@
 
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
     <fail unless="test.shock.url" message="property test.shock.url not set."/>
+    <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
+    <fail unless="test.shock.db" message="property test.shock.db not set."/>
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
     <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
     <fail unless="test.mongo.db2" message="property test.mongo.db2 not set."/>
@@ -242,6 +252,8 @@
       <formatter type="plain" usefile="false" />
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
       <sysproperty key="test.shock.url" value="${test.shock.url}"/>
+      <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
+      <sysproperty key="test.shock.db" value="${test.shock.db}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
       <sysproperty key="test.mongo.db2" value="${test.mongo.db2}"/>

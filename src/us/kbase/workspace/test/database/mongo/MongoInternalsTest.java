@@ -51,7 +51,7 @@ public class MongoInternalsTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null);
+		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null, null);
 		jdb = new Jongo(db);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();

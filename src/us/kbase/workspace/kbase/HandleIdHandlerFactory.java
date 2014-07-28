@@ -23,6 +23,18 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	//TODO 2 copy method needs to call exists on any handle IDs (needs get ext ids method)
 	//TODO 2 tests for handler id extraction, verification, etc.
+/*
+	crusherofheads@icrushdeheads:~$ export PERL5LIB=/kb/deployment/lib
+	crusherofheads@icrushdeheads:~$ export KB_DEPLOYMENT_CONFIG=/kb/deployment/deployment.cfg
+	crusherofheads@icrushdeheads:~$ plackup /kb/deployment/lib/AbstractHandle.psgi
+	2014/07/27 23:26:42 15811 reading config from /kb/deployment/deployment.cfg
+	2014/07/27 23:26:42 15811 using http://localhost:7044 as the default shock server
+	{"attribute_indexes":[""],"contact":"shock-admin@kbase.us","documentation":"http://localhost:7044/wiki/","id":"Shock","resources":["node"],"type":"Shock","url":"http://localhost:7044/","version":"0.8.16"}DBI connect('hsi;host=localhost','hsi',...) failed: Access denied for user 'hsi'@'localhost' (using password: YES) at /kb/deployment/lib/Bio/KBase/AbstractHandle/AbstractHandleImpl.pm line 67
+	Cannot read config file /etc/log/log.conf at /kb/deployment/lib/Bio/KBase/Log.pm line 282.
+	HTTP::Server::PSGI: Accepting connections at http://0:5000/
+	
+	--port for port
+*/
 	
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
@@ -45,7 +57,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	
 	@Override
 	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
-		return new HandleIdHandler<T>(handleService, userToken);
+		return new HandleIdHandler<T>();
 	}
 
 	@Override
@@ -56,18 +68,11 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	public class HandleIdHandler<T> implements IdReferenceHandler<T> {
 		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
-		private final URL handleService; //TODO just use parent instance for these two
-		private final AuthToken token;
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
 		private boolean processed = false;
 		private boolean locked = false;
 		
-		private HandleIdHandler(
-				final URL handleServiceURL,
-				final AuthToken token) {
-			this.handleService = handleServiceURL;
-			this.token = token;
-		}
+		private HandleIdHandler() {}
 		
 		@Override
 		public boolean addId(T associatedObject, String id,

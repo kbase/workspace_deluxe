@@ -277,7 +277,7 @@ public class JSONRPCLayerTester {
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
-		WorkspaceTestCommon.destroyAndSetupDB(dbNum, "gridFS", null);
+		WorkspaceTestCommon.destroyAndSetupDB(dbNum, "gridFS", null, null);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File("./"));

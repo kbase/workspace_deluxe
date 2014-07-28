@@ -203,7 +203,7 @@ public class WorkspaceTester {
 	
 	private Workspace setUpWorkspaces(String type, String shockuser,
 			String shockpwd, Integer maxMemoryUsePerCall) throws Exception {
-		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser);
+		DB db = WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser, null);
 		String host = WorkspaceTestCommon.getHost();
 		String mUser = WorkspaceTestCommon.getMongoUser();
 		String mPwd = WorkspaceTestCommon.getMongoPwd();

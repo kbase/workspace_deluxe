@@ -64,7 +64,7 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.mongo.db.types1", typeDB);
 		System.setProperty("test.mongo.host", mongohost);
 		System.setProperty("test.shock.url", shockurl);
-		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, shockuser);
+		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, shockuser, null);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, TempFilesManager.forTests(), 0),
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());

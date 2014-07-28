@@ -157,7 +157,7 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.mongo.db.types1", TYPE_DB);
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
-		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user);
+		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user, null);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
 				password, TempFilesManager.forTests(), 0),
 				new ResourceUsageConfigurationBuilder().build(),

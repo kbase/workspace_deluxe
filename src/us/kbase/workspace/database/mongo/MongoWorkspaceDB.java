@@ -3353,7 +3353,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 		@BeforeClass
 		public static void setUpClass() throws Exception {
-			WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", "foo");
+			WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", "foo", null);
 			String host = WorkspaceTestCommon.getHost();
 			String db1 = WorkspaceTestCommon.getDB1();
 			String mUser = WorkspaceTestCommon.getMongoUser();

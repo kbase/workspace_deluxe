@@ -1,6 +1,8 @@
 package us.kbase.workspace.test;
 
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,6 +27,8 @@ public class WorkspaceTestCommon {
 	public static final String M_USER = "test.mongo.user";
 	public static final String M_PWD = "test.mongo.pwd";
 	public static final String SHOCKURL = "test.shock.url";
+	public static final String SHOCKEXE = "test.shock.exe";
+	public static final String SHOCKDB = "test.shock.db";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 			
@@ -76,6 +80,14 @@ public class WorkspaceTestCommon {
 		return "both";
 	}
 	
+	public static String getShockExe() {
+		return getProp(SHOCKEXE);
+	}
+
+	public static String getShockDB() {
+		return getProp(SHOCKDB);
+	}
+	
 	private static void buildMongo() throws UnknownHostException,
 			InvalidHostException, TestException {
 		if (mongoClient != null) {
@@ -117,9 +129,9 @@ public class WorkspaceTestCommon {
 	}
 	
 	//run this method first, lots of error checking
-	public static DB destroyAndSetupDB(int num, String type, String shockuser)
+	public static DB destroyAndSetupDB(int num, String type, String shockuser,
+			URL shockURL)
 			throws InvalidHostException, UnknownHostException, TestException {
-		buildMongo();
 		String db = num == 1 ? getDB1() : getDB2();
 		String typedb = num == 1 ? getTypeDB1() : getTypeDB2();
 		if (db == null) {
@@ -130,16 +142,8 @@ public class WorkspaceTestCommon {
 			throw new TestException("The property " + (num == 1 ? TYPEDB1 :
 					TYPEDB2) + " is not set.");
 		}
-		String mUser = getMongoUser();
-		String mPwd = getMongoPwd();
-		System.out.print(String.format("Destroying mongo workspace database %s at %s...",
-				db, getHost()));
-		DB mdb = destroyDB(db, mUser, mPwd);
-		System.out.println(" buhbye.");
-		
-		System.out.print(String.format("Destroying mongo type database %s at %s...",
-				typedb, getHost()));
-		destroyDB(typedb, mUser, mPwd);
+		destroyAndSetupDB(typedb);
+		DB mdb = destroyAndSetupDB(db);
 		System.out.println(" buhbye.");
 		
 		DBObject dbo = new BasicDBObject();
@@ -153,17 +157,44 @@ public class WorkspaceTestCommon {
 				throw new TestException("Shock user cannot be null");
 			}
 			dbo.put("shock_user", shockuser);
-			dbo.put("shock_location", getShockUrl());
+			URL sh;
+			
+			if (shockURL != null) {
+				sh = shockURL;
+			} else {
+				try {
+					sh = new URL(getShockUrl());
+				} catch (MalformedURLException mue) {
+					throw new TestException("Bad shock url:" +
+							getShockUrl());
+				}
+			}
+			dbo.put("shock_location", sh.toExternalForm());
 			System.out.println(String.format(
 					"Setting up shock with user %s and url %s", shockuser,
-					getShockUrl()));
+					sh.toExternalForm()));
 		}
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", type));
 		return mdb;
 	}
 
-	private static DB destroyDB(String db, String mUser, String mPwd) {
+	public static DB destroyAndSetupShockDB()
+			throws InvalidHostException, UnknownHostException, TestException {
+		String db = getShockDB();
+		if (db == null) {
+			throw new TestException("The property " + SHOCKDB + " is not set.");
+		}
+		return destroyAndSetupDB(db);
+	}
+
+	private static DB destroyAndSetupDB(String db) throws UnknownHostException,
+			InvalidHostException {
+		buildMongo();
+		String mUser = getMongoUser();
+		String mPwd = getMongoPwd();
+		System.out.print(String.format("Destroying mongo database %s at %s...",
+				db, getHost()));
 		DB mdb;
 		try {
 			mdb = mongoClient.getDB(db);
@@ -185,6 +216,7 @@ public class WorkspaceTestCommon {
 					"read/write access to the database or correct the credentials:\n" +
 					me.getLocalizedMessage());
 		}
+		System.out.println(" buhbye.");
 		return mdb;
 	}
 }
