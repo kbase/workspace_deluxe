@@ -445,7 +445,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (!failed) {
 				failed = checkHandleServiceConnection();
 			}
-			//TODO 1 check handle service & manager connections
+			//TODO 1 check handle manager connection
 		}
 		
 		if (failed) {
