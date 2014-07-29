@@ -14,6 +14,8 @@ public class IdReferenceHandlerSet<T> {
 	//TODO 1 test extraction of various types
 	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	
+	//TODO 1 add tests for Long IDs in workspace and id processing tests
+	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
 	private boolean locked = false;
@@ -48,10 +50,27 @@ public class IdReferenceHandlerSet<T> {
 				List<String> attributes)
 				throws IdReferenceHandlerException,
 				HandlerLockedException;
+		
+		/** Add an id to the handler
+		 * @param associatedObject an object associated with the ID.
+		 * @param id the id.
+		 * @param attributes the attributes of the ID.
+		 * @return boolean if this is a unique ID (on a per associated object
+		 * basis) stored in memory and thus should count towards the maximum ID
+		 * limit.
+		 * @throws IdReferenceHandlerException if the ID could not be added.
+		 * @throws HandlerLockedException if the handler is already locked.
+		 */
+		public boolean addId(T associatedObject, Long id,
+				List<String> attributes)
+				throws IdReferenceHandlerException,
+				HandlerLockedException;
+
 		/** Perform any necessary batch processing of the IDs before
 		 * remapping and locks the handler.
 		 */
 		public void processIds() throws IdReferenceHandlerException;
+		
 		/** Translate an ID to the remapped ID.
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
@@ -64,6 +83,7 @@ public class IdReferenceHandlerSet<T> {
 		 * @return the set of remapped IDs associated with an object.
 		 */
 		public Set<RemappedId> getRemappedIds(T associatedObject);
+		
 		/** Prevent addition of any more IDs.
 		 */
 		public void lock();
@@ -95,13 +115,41 @@ public class IdReferenceHandlerSet<T> {
 		return this;
 	}
 	
-	/** Add an ID to the appropriate ID handler.
+	/** Add a long ID to the appropriate ID handler.
 	 * @param id the new ID.
 	 * @throws TooManyIdsException if too many IDs are currently in memory.
 	 * @throws IdReferenceHandlerException if the id could not be handled
 	 */
-	public void addId(final IdReference id)
+	public void addLongId(IdReference<Long> id)
 			throws TooManyIdsException, IdReferenceHandlerException {
+		checkIdRefValidity(id);
+		updateIdCount(handlers.get(id.getType()).addId(associated, 
+				id.getId(), id.getAttributes()));
+		
+	}
+	
+	/** Add a string ID to the appropriate ID handler.
+	 * @param id the new ID.
+	 * @throws TooManyIdsException if too many IDs are currently in memory.
+	 * @throws IdReferenceHandlerException if the id could not be handled
+	 */
+	public void addStringId(final IdReference<String> id)
+			throws TooManyIdsException, IdReferenceHandlerException {
+		checkIdRefValidity(id);
+		updateIdCount(handlers.get(id.getType()).addId(associated, 
+				id.getId(), id.getAttributes()));
+	}
+
+	private void updateIdCount(final boolean newId)
+			throws TooManyIdsException {
+		currentUniqueIdCount += newId ? 1 : 0;
+		if (currentUniqueIdCount > maxUniqueIdCount) {
+			throw new TooManyIdsException("Maximum ID count of " + 
+					maxUniqueIdCount + " exceeded");
+		}
+	}
+
+	private void checkIdRefValidity(final IdReference<?> id) {
 		if (locked) {
 			throw new IllegalStateException(
 					"This ID handler set instance is locked");
@@ -117,13 +165,6 @@ public class IdReferenceHandlerSet<T> {
 			throw new NoSuchIdReferenceHandlerException(
 					"There is no handler for the ID type " +
 							id.getType().getType());
-		}
-		final boolean newId = handlers.get(id.getType()).addId(associated, 
-				id.getId(), id.getAttributes());
-		currentUniqueIdCount += newId ? 1 : 0;
-		if (currentUniqueIdCount > maxUniqueIdCount) {
-			throw new TooManyIdsException("Maximum ID count of " + 
-					maxUniqueIdCount + " exceeded");
 		}
 	}
 	

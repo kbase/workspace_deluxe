@@ -19,15 +19,25 @@ public interface JsonTokenValidationListener {
 	public void addError(String message) throws JsonTokenValidationException;
 	
 	/**
-	 * Method is for adding id-reference into flat list which will be used to 
-	 * extract resolved values from workspace db.
+	 * Method is for adding id-reference into a reference handler.
 	 * @param ref description of id-reference
 	 * @throws IdReferenceHandlerException if an ID could not be handled
 	 * appropriately due to a syntax error or other issue. 
 	 * @throws TooManyIdsException if the object undergoing validation
 	 * contains too many IDs.
 	 */
-	public void addIdRefMessage(IdReference ref)
+	public void addStringIdRefMessage(IdReference<String> ref)
+			throws TooManyIdsException, IdReferenceHandlerException;
+	
+	/**
+	 * Method is for adding id-reference into a reference handler.
+	 * @param ref description of id-reference
+	 * @throws IdReferenceHandlerException if an ID could not be handled
+	 * appropriately due to a syntax error or other issue. 
+	 * @throws TooManyIdsException if the object undergoing validation
+	 * contains too many IDs.
+	 */
+	public void addLongIdRefMessage(IdReference<Long> ref)
 			throws TooManyIdsException, IdReferenceHandlerException;
 	
 	/**

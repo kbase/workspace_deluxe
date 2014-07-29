@@ -202,11 +202,20 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addIdRefMessage(IdReference ref)
+					public void addStringIdRefMessage(IdReference<String> ref)
 							throws TooManyIdsException,
 							IdReferenceHandlerException {
 						if (handlers.hasHandler(ref.getType())) {
-							handlers.addId(ref);
+							handlers.addStringId(ref);
+						}
+					}
+					
+					@Override
+					public void addLongIdRefMessage(IdReference<Long> ref)
+							throws TooManyIdsException,
+							IdReferenceHandlerException {
+						if (handlers.hasHandler(ref.getType())) {
+							handlers.addLongId(ref);
 						}
 					}
 

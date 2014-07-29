@@ -285,10 +285,10 @@ public class JsonTokenValidationSchema {
 					// case there was defined idReference property in json-schema node describing this 
 					// object (mapping)
 					if (idReference != null) {
-						final IdReference ref = new IdReference(
+						final IdReference<String> ref = new IdReference<String>(
 								idReference.idType, fieldName,
 								idReference.attributes);
-						lst.addIdRefMessage(ref);
+						lst.addStringIdRefMessage(ref);
 					}
 				}
 				// check whether all required fields were occured
@@ -363,7 +363,7 @@ public class JsonTokenValidationSchema {
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_STRING) {	// but found something else
 				final boolean isID = idReference != null;
-				if (t != JsonToken.VALUE_NULL || isID) {// we allow nulls but not for references
+				if (t != JsonToken.VALUE_NULL || isID) { // we allow nulls but not for references
 					lst.addError(generateError(type, t, path, isID));
 				}
 				if (t == JsonToken.START_ARRAY
@@ -375,26 +375,38 @@ public class JsonTokenValidationSchema {
 					// we can add this string value as requiring id-reference relabeling in case 
 					// there was defined idReference property in json-schema node describing this 
 					// string value
-					final IdReference ref = new IdReference(idReference.idType,
-							jp.getText(), idReference.attributes);
-					lst.addIdRefMessage(ref);
+					final IdReference<String> ref = new IdReference<String>(
+							idReference.idType, jp.getText(),
+							idReference.attributes);
+					lst.addStringIdRefMessage(ref);
 				}
 			}
 		} else if (type == Type.integer) {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
-			if ((t != JsonToken.VALUE_NUMBER_INT)
-					&& (t != JsonToken.VALUE_NULL)) {// but found something else
-				lst.addError(generateError(type, t, path, false));
+			if (t != JsonToken.VALUE_NUMBER_INT) { // but found something else
+				final boolean isID = idReference != null;
+				if (t != JsonToken.VALUE_NULL || isID) { // we allow nulls but not for references
+					lst.addError(generateError(type, t, path, isID));
+				}
 				if (t == JsonToken.START_ARRAY
 						|| t == JsonToken.START_OBJECT) {
 					skipValueWithoutFirst(jp);
-				}	
+				}
 			} else {
 				//TODO range reinstate range checking
 //				if (intRange != null) {
 //					intRange.checkValue(jp, lst, path);
 //				}
+				if (idReference != null) {
+					// we can add this int value as requiring id-reference relabeling in case 
+					// there was defined idReference property in json-schema node describing this 
+					// string value
+					final IdReference<Long> ref = new IdReference<Long>(
+							idReference.idType, jp.getLongValue(),
+							idReference.attributes);
+					lst.addLongIdRefMessage(ref);
+				}
 			}
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well

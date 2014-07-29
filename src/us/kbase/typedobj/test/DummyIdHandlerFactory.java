@@ -29,6 +29,13 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
+		public boolean addId(T associatedObject, Long id,
+				List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
+			return addId(associatedObject, "" + id, attributes);
+		}
+		
+		@Override
 		public boolean addId(T associatedObject, String id,
 				List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {

@@ -1,13 +1,18 @@
 package us.kbase.workspace.kbase;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.UnauthorizedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -68,16 +73,29 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	public class HandleIdHandler<T> implements IdReferenceHandler<T> {
 		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
-		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
+		private final Map<T, Set<Long>> ids = new HashMap<T, Set<Long>>();
 		private boolean processed = false;
 		private boolean locked = false;
 		
 		private HandleIdHandler() {}
 		
 		@Override
-		public boolean addId(T associatedObject, String id,
-				List<String> attributes) throws IdReferenceHandlerException,
-				HandlerLockedException {
+		public boolean addId(final T associatedObject, final String id,
+				final List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
+			try {
+				return addId(associatedObject, Long.parseLong(id), attributes);
+			} catch (NumberFormatException nfe) {
+				throw new IdParseException("Illegal handle id " + id +
+						", expected an integer ", type, associatedObject,
+						id, attributes, null);
+			}
+		}
+		
+		@Override
+		public boolean addId(final T associatedObject, final Long id,
+				final List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
 			if (locked) {
 				throw new HandlerLockedException("This handler is locked");
 			}
@@ -85,28 +103,28 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 				throw new NullPointerException(
 						"associatedObject cannot be null");
 			}
+			if (id == null) {
+				throw new IdParseException("Ids may not be null", type,
+						associatedObject, "" + id, attributes, null);
+			}
 			if (handleService == null) {
 				throw new IdReferenceException("Found handle id " + id +
 						". The workspace service currently does not have a " +
 						"connection to the handle service and so cannot " +
 						"process objects containing handle IDs.",
-						type, associatedObject, id,
+						type, associatedObject, "" + id,
 						attributes, null);
 			}
-			try {
-				if (Integer.parseInt(id) < 0) {
-					throw new IdReferenceException("Illegal handle id " + id +
-							", must be positive", type, associatedObject, id,
-							attributes, null);
-				}
-			} catch (NumberFormatException nfe) {
-				throw new IdParseException("Illegal handle id " + id +
-						", expected an integer ", type, associatedObject,
-						id, attributes, null);
+			
+			if (id < 0) {
+				throw new IdReferenceException("Illegal handle id " + id +
+						", must be positive", type, associatedObject, "" + id,
+						attributes, null);
 			}
+			
 			boolean unique = true;
 			if (!ids.containsKey(associatedObject)) {
-				ids.put(associatedObject, new HashSet<String>());
+				ids.put(associatedObject, new HashSet<Long>());
 			}
 			if (ids.get(associatedObject).contains(id)) {
 				unique = false;
@@ -120,21 +138,57 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		public void processIds() throws IdReferenceHandlerException {
 			processed = true;
 			locked = true;
-			// TODO 1 needs handle service to process IDs
-			// 1) collect all IDs
-			// 2) call handle service
-			// 4) throw error if not all readable by user
-			
+			// TODO 1 test with handle service
+			final Set<Long> handles = new HashSet<Long>();
+			for (final Set<Long> idset: ids.values()) {
+				handles.addAll(idset);
+			}
+			if (handles.isEmpty()) {
+				return;
+			}
+			if (handleService == null || userToken == null) {
+				throw new IdReferenceHandlerException(
+						"The workspace is not currently connected to the Handle Service and cannot process Handle ids.",
+						type, null);
+			}
+			final Long allreadable;
+			try {
+				final AbstractHandleClient ahc = new AbstractHandleClient(
+						handleService, userToken);
+				allreadable = ahc.areReadable(new LinkedList<Long>(handles));
+			} catch (UnauthorizedException e) {
+				throw new IdReferenceHandlerException(
+						"Authorization for Handle Service failed. The server said: "
+								+ e.getLocalizedMessage(), type, e);
+			} catch (IOException e) {
+				throw new IdReferenceHandlerException(
+						"There was a communication error while trying contact the Handle Service: "
+						+ e.getLocalizedMessage(), type, e);
+			} catch (JsonClientException e) {
+				throw new IdReferenceHandlerException(
+						"There was an unexpected error while trying contact the Handle Service: "
+						+ e.getLocalizedMessage(), type, e);
+			}
+			//per Tom Brettin, 0 = false, anything else = true
+			if (allreadable == 0) {
+				throw new IdReferenceHandlerException(
+						"The Handle Service reported that at least one of " +
+						"the handles contained in the objects in this call " +
+						"was not accessible with your credentials. The call " +
+						"cannot complete.", type, null);
+			}
 		}
 
 		@Override
-		public RemappedId getRemappedId(String oldId) throws NoSuchIdException {
+		public RemappedId getRemappedId(String oldId)
+				throws NoSuchIdException {
 			if (!processed) {
 				throw new IllegalStateException(
 						"IDs haven't been processed yet");
 			}
+			final Long oldIdLong = Long.parseLong(oldId);
 			for (final T assobj: ids.keySet()) {
-				if (ids.get(assobj).contains(oldId)) {
+				if (ids.get(assobj).contains(oldIdLong)) {
 					return new SimpleRemappedId(oldId);
 				}
 			}
@@ -152,8 +206,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (!ids.containsKey(associatedObject)) {
 				return newids;
 			}
-			for (final String id: ids.get(associatedObject)) {
-				newids.add(new SimpleRemappedId(id));
+			for (final Long id: ids.get(associatedObject)) {
+				newids.add(new SimpleRemappedId("" + id));
 			}
 			return newids;
 		}

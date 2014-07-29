@@ -7,15 +7,15 @@ import java.util.List;
 /**
  * Stores an ID reference
  */
-public class IdReference {
+public class IdReference<T> {
 
 	//TODO unit tests
 	
 	private final IdReferenceType type;
-	private final String id;
+	private final T id;
 	private final List<String> attributes;
 	
-	public IdReference(final IdReferenceType type, final String id,
+	public IdReference(final IdReferenceType type, final T id,
 			List<String> attributes) {
 		if (type == null || id == null) {
 			throw new NullPointerException(
@@ -42,7 +42,7 @@ public class IdReference {
 	 * typed object instance data, you will still always get the original
 	 * ID found when validating)
 	 */
-	public final String getId() {
+	public final T getId() {
 		return id;
 	}
 	

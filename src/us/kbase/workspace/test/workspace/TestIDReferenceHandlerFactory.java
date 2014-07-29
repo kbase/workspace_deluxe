@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.common.exceptions.UnimplementedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -51,6 +52,13 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		
 		private TestIDReferenceHandler(final IdReferenceType type) {
 			this.type = type;
+		}
+		
+		@Override
+		public boolean addId(T associatedObject,
+				Long id, List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
+			throw new UnimplementedException("unimplemented");
 		}
 		
 		@Override

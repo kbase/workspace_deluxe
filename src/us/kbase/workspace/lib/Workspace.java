@@ -658,8 +658,8 @@ public class Workspace {
 									"Object %s has a null provenance reference",
 									getObjectErrorId(wo, objcount)));
 						}
-						idhandler.addId(
-								new IdReference(WS_ID_TYPE, pref, null));
+						idhandler.addStringId(new IdReference<String>(
+								WS_ID_TYPE, pref, null));
 					}
 				}
 			} catch (IdReferenceHandlerException ihre) {
@@ -1405,6 +1405,14 @@ public class Workspace {
 			this.user = user;
 		}
 
+		@Override
+		public boolean addId(T associatedObject, Long id,
+				List<String> attributes) throws IdReferenceHandlerException,
+				HandlerLockedException {
+			throw new IdReferenceException("Workspace IDs must be strings",
+					getIdType(), associatedObject, "" + id, attributes, null);
+		}
+		
 		/* To conserve memory the attributes are not copied to another list,
 		 * so modification of the attributes will modify the internal
 		 * representation of the object.
