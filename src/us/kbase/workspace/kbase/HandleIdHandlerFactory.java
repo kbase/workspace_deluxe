@@ -155,6 +155,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			try {
 				final AbstractHandleClient ahc = new AbstractHandleClient(
 						handleService, userToken);
+				if (handleService.getProtocol().equals("http"));
+				ahc.setIsInsecureHttpConnectionAllowed(true);
 				allreadable = ahc.areReadable(new LinkedList<Long>(handles));
 			} catch (UnauthorizedException e) {
 				throw new IdReferenceHandlerException(

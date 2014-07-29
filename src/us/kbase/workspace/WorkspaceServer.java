@@ -2,9 +2,12 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
+import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
@@ -122,7 +125,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     //TODO 2 show copy if user can see object
-    //TODO 1 @id should only apply to strings
 	
 	private static final String VER = "0.3.0";
 
@@ -140,6 +142,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String MONGO_RECONNECT = "mongodb-retry";
 	
 	//handle service / manager info
+	private static final String IGNORE_HANDLE_SERVICE =
+			"ignore_handle_service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
@@ -357,6 +361,29 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		return null;
 	}
+	
+
+	private boolean checkHandleServiceConnection() {
+		try {
+			final AbstractHandleClient cli = new AbstractHandleClient(
+					handleServiceUrl, handleMgrToken.getToken());
+			if (handleServiceUrl.getProtocol().equals("http")) {
+				System.out.println("Warning - the Handle Service url uses insecure http. https is recommended.");
+				logInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
+				cli.setIsInsecureHttpConnectionAllowed(true);
+			}
+			cli.areReadable(new LinkedList<Long>());
+		} catch (Exception e) {
+			if (!(e instanceof ServerException) ||
+					!e.getMessage().contains(
+							"can not execute select * from Handle")) {
+				fail("Could not establish a connection to the Handle Service: "
+							+ e.getMessage());
+				return true;
+			}
+		}
+		return false;
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -400,7 +427,11 @@ public class WorkspaceServer extends JsonServerServlet {
 					"is to be used");
 			failed = true;
 		}
+		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
+		ignoreHandleService = ignoreHandle != null && !ignoreHandle.isEmpty();
 		if (ignoreHandleService) {
+			logInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
+			System.out.println("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
 			handleServiceUrl = null;
 			handleManagerUrl = null;
 			handleMgrToken = null;
@@ -411,6 +442,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			failed = failed || handleManagerUrl == null;
 			handleMgrToken = getHandleToken();
 			failed = failed || handleMgrToken == null;
+			if (!failed) {
+				failed = checkHandleServiceConnection();
+			}
 			//TODO 1 check handle service & manager connections
 		}
 		
@@ -421,9 +455,13 @@ public class WorkspaceServer extends JsonServerServlet {
 			wsadmin = null;
 		} else {
 			String params = "";
-			for (String s: Arrays.asList(HOST, DB, USER,
-					HANDLE_SERVICE_URL, HANDLE_MANAGER_URL,
-					HANDLE_MANAGER_USER)) {
+			final List<String> paramSet = new LinkedList<String>(
+					Arrays.asList(HOST, DB, USER));
+			if (!ignoreHandleService) {
+				paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
+						HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
+			}
+			for (final String s: paramSet) {
 				if (wsConfig.containsKey(s)) {
 					params += s + "=" + wsConfig.get(s) + "\n";
 				}
