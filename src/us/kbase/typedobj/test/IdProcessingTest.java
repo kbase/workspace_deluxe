@@ -47,8 +47,8 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.kbase.Util;
-import us.kbase.workspace.test.WorkspaceTestCommon;
+//import us.kbase.workspace.kbase.Util;
+//import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /**
  * Tests that ensure IDs are properly extracted from typed object instances, and that IDs
@@ -163,8 +163,10 @@ public class IdProcessingTest {
 		File tempdir = new File("temp_files");
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir,
-				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		
+		//TODO mike restore test
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir);//,
+				//new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
@@ -245,6 +247,8 @@ public class IdProcessingTest {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
 				absoluteIdMapping, foundIDs));
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("intid"),
+				new HashMap<String, String>(), foundIDs));
 		IdReferenceHandlerSet<String> idhandlers = fac.createHandlers(String.class);
 		idhandlers.associateObject("foo");
 		

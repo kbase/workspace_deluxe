@@ -3,29 +3,42 @@
 		"id": "idremap"
 		},
 	"ids-found": {
-		"id": 2
+		"id": 2,
+		"2": 1,
+		"6": 1
 	},
 	"renamed-expected": 
 		{
-			"id1": {"id": {"id": "id"}},
-			"id2": {"id": {"id": "idremap"}},
-			"id3": {"id": {"id": "id",
-						   "not_typechecked": "id"
-						   }
-					},
-			"id4": {"id": {"id": "id"},
-					"not_typechecked": {"id": "id"}
-					},
-			"id5": {"id": {"id": "id"}},
-			"id6": {"id": {"id": "idremap"}},
-			"id7": {"id": {"id": "id",
-						   "not_typechecked": "id"
-						   }
-					},
-			"id8": {"id": {"id": "id"},
-					"not_typechecked": {"id": "id"}
-					},
-			"not_typechecked": {"id": {"id": "id"}}
+		"id1": {"id": {"id": "id",
+					   "iid": 1}},
+		"id2": {"id": {"id": "idremap",
+					   "iid": 2}},
+		"id3": {"id": {"id": "id",
+					   "iid": 3,
+					   "not_typechecked": "id"
+					   }
+				},
+		"id4": {"id": {"id": "id",
+					   "iid": 4},
+				"not_typechecked": {"id": "id",
+									"iid": 42}
+				},
+		"id5": {"id": {"id": "id",
+					   "iid": 5}},
+		"id6": {"id": {"id": "idremap",
+					   "iid": 6}},
+		"id7": {"id": {"id": "id",
+					   "iid": 7,
+					   "not_typechecked": "id"
+					   }
+				},
+		"id8": {"id": {"id": "id",
+					   "iid": 8},
+				"not_typechecked": {"id": "id",
+									"iid": 82}
+				},
+		"not_typechecked": {"id": {"id": "id",
+								   "iid": 83}}
 		}
 
 }

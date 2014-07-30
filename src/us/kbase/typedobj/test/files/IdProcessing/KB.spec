@@ -3,6 +3,10 @@ test module for type validation with annotations
 */
 module KB {
 
+	/*
+	@id intid
+	*/
+	typedef int int_id;
 
 	/*
 	@id ws
@@ -81,10 +85,12 @@ module KB {
 
 	typedef structure {
 		feature_id id;
+		int_id iid;
 	} ID;
 	
 	typedef structure {
 		string id;
+		int iid;
 	} NoID;
 	
 	typedef structure {
