@@ -2,6 +2,9 @@
 	"ids-relabel":{
 		"id": "idremap"
 		},
+	"ids-found": {
+		"id": 2
+	},
 	"renamed-expected": 
 		{
 			"id1": {"id": {"id": "id"}},

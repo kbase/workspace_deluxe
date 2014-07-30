@@ -1,4 +1,4 @@
-package us.kbase.workspace.database.mongo;
+package us.kbase.typedobj.util;
 
 /**
  * A simple counter class that can be initialized to
@@ -6,6 +6,8 @@ package us.kbase.workspace.database.mongo;
  * @author Owen Astrachan
  * see http://www.cs.duke.edu/csed/ap/subset/code/Counter.html
  */
+
+//TODO move to common
 
 public class Counter
 {

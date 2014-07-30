@@ -6,6 +6,13 @@
 		"ws/3":"5/6/7",
 		"foobar": "6/7/8"
 		},
+	"ids-found":{
+		"ws/myGene": 5,
+		"ws/myGene2": 2,
+		"ws/2": 4,
+		"ws/3": 2,
+		"foobar": 1
+		},
 	"renamed-expected": {
 		"azy_no_tc": {
 			"ws/myGene": { 

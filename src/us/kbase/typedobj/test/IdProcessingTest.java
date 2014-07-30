@@ -1,6 +1,7 @@
 package us.kbase.typedobj.test;
 
 import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -236,9 +237,14 @@ public class IdProcessingTest {
 			absoluteIdMapping.put(originalId, absoluteId);
 		}
 		
+		@SuppressWarnings("unchecked")
+		Map<String, Integer> expectedIds = mapper.treeToValue(
+				idsRootNode.get("ids-found"), Map.class); 
+		
+		Map<String, Integer> foundIDs = new HashMap<String, Integer>();
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
-				absoluteIdMapping));
+				absoluteIdMapping, foundIDs));
 		IdReferenceHandlerSet<String> idhandlers = fac.createHandlers(String.class);
 		idhandlers.associateObject("foo");
 		
@@ -254,6 +260,8 @@ public class IdProcessingTest {
 			System.out.println("    ["+i+"]:"+mssgs.get(i));
 		}
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",report.isInstanceValid());
+		
+		assertThat("found the correct id counts", foundIDs, is(expectedIds));
 		
 		// now we relabel the ids
 		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();

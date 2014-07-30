@@ -9,6 +9,16 @@
 		"blah/5/2":"3/1/2",
 		"blah/myGene3":"3/2/2"
 		},
+	"ids-found": {
+		"ws/myGene": 1,
+		"ws/myGene2": 3,
+		"ws/myGene3": 1,
+		"ws/ad~": 1,
+		"ws/myGene4": 1,
+		"ws/3/2": 1,
+		"blah/5/2": 1,
+		"blah/myGene3": 1
+		},
 	"renamed-expected": {
 		"fids" : {
 			"25/1/1":"25/2/1",

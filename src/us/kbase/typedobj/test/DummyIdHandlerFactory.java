@@ -1,8 +1,9 @@
 package us.kbase.typedobj.test;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import us.kbase.common.exceptions.UnimplementedException;
@@ -13,19 +14,24 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.typedobj.util.Counter;
 
 public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	private static class DummyIdHandler<T> implements IdReferenceHandler<T> {
+	public static class DummyIdHandler<T> implements IdReferenceHandler<T> {
 
-		private final Set<String> foundIDs = new HashSet<String>();
+		private final Map<String, Counter> foundIDs = new HashMap<String, Counter>();
 		private final Map<String, String> idMapping;
 		private boolean locked = false;
 		private IdReferenceType type;
+		
+		private final Map<String, Integer> userFoundIDs; 
 
-		public DummyIdHandler(IdReferenceType type, Map<String, String> idMapping) {
+		private DummyIdHandler(IdReferenceType type, Map<String, String> idMapping,
+				Map<String, Integer> foundIDs) {
 			this.idMapping = idMapping;
 			this.type = type;
+			this.userFoundIDs = foundIDs;
 		}
 
 		@Override
@@ -43,16 +49,19 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 				throw new IllegalArgumentException("locked");
 			}
 			//in a real implementation should check type is ok & for NPEs
-			if (foundIDs.contains(id)) {
+			if (foundIDs.containsKey(id)) {
+				foundIDs.get(id).increment();
 				return false;
 			}
-			foundIDs.add(id);
+			foundIDs.put(id, new Counter(1));
 			return true;
 		}
 
 		@Override
 		public void processIds() throws IdReferenceHandlerException {
-			// do nothing
+			for (Entry<String, Counter> e: foundIDs.entrySet()) {
+				userFoundIDs.put(e.getKey(), e.getValue().getValue());
+			}
 		}
 
 		@Override
@@ -60,7 +69,7 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (oldId == null) {
 				throw new NullPointerException();
 			}
-			if (!foundIDs.contains(oldId)) {
+			if (!foundIDs.containsKey(oldId)) {
 				throw new IllegalArgumentException("ID not in object: " + oldId);
 			}
 			if (!idMapping.containsKey(oldId)) {
@@ -83,20 +92,37 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 		public Set<RemappedId> getRemappedIds(T associatedObject) {
 			throw new UnimplementedException();
 		}
+		
+		public Map<String, Integer> getFoundIDs() {
+			Map<String, Integer> ret = new HashMap<String, Integer>();
+			for (Entry<String, Counter> e: foundIDs.entrySet()) {
+				ret.put(e.getKey(), e.getValue().getValue());
+			}
+			return ret;
+		}
 	}
 
 
 	private final Map<String, String> idMapping;
 	private final IdReferenceType type;
+	private final Map<String, Integer> foundIds;
 
+	public DummyIdHandlerFactory(IdReferenceType type, Map<String, String> idMapping,
+			Map<String, Integer> foundIds) {
+		this.idMapping = idMapping;
+		this.type = type;
+		this.foundIds = foundIds;
+	}
+	
 	public DummyIdHandlerFactory(IdReferenceType type, Map<String, String> idMapping) {
 		this.idMapping = idMapping;
 		this.type = type;
+		this.foundIds = new HashMap<String, Integer>();
 	}
 
 	@Override
 	public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
-		return new DummyIdHandler<T>(type, idMapping);
+		return new DummyIdHandler<T>(type, idMapping, foundIds);
 	}
 
 	@Override

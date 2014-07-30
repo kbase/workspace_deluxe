@@ -2,6 +2,9 @@
 	"ids-relabel":{
 		"id": "idremap"
 		},
+	"ids-found":{
+		"id": 2
+		},
 	"renamed-expected": 
 		{
 			"also_not_typechecked": ["id", 1, {"bar": "id"}, {"baz": {"a": ["foo", "bar"], "b": "c"}}],
