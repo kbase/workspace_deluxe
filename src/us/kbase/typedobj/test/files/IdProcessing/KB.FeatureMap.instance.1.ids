@@ -1,11 +1,17 @@
 {
 	"ids-relabel":{
 					"f1//1~01":"absolute_id.1",
-					"f2/2":"absolute_id.2"
+					"f2/2":"absolute_id.2",
+					"f2": "f2"
 					},
 	"ids-found": {
 					"f1//1~01": 1,
-					"f2/2": 1
+					"f2/2": 1,
+					"f2": 1,
+					"42": 1
 					},
-	"renamed-expected": { "fids":{"absolute_id.1":"absolute_id.2"} }
+	"renamed-expected": {
+						"fids":{"absolute_id.1":"absolute_id.2"},
+						"iids":{"f2": 42}
+						 }
 }

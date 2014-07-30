@@ -9,11 +9,6 @@ module KB {
 	typedef int int_id;
 
 	/*
-	@id ws
-	*/
-	typedef string kbid;
-
-	/*
 	@id ws KB.Genome
 	*/
 	typedef string genome_id;
@@ -63,16 +58,18 @@ module KB {
 
 	typedef structure {
 		mapping <feature_id,feature_id> fids;
+		mapping <feature_id, int_id> iids;
 	} FeatureMap;
 
 	typedef structure {
 	
-		mapping<feature_id,mapping<feature_id,tuple<feature_id,list<feature_id>,feature_id>>> crazy;
+		mapping<feature_id,mapping<feature_id,tuple<int_id,list<feature_id>,feature_id>>> crazy;
 	
 	} DeepFeatureMap;
 
 	typedef structure {
 		mapping<string, mapping<string, feature_id>> nested_features;
+		mapping<string, mapping<string, int_id>> nested_features_int;
 	} NestedFeaturesValue;
 
 	typedef structure {
@@ -81,6 +78,7 @@ module KB {
 
 	typedef structure {
 		list<mapping<string, feature_id>> nested_features;
+		list<mapping<string, int_id>> nested_features_int;
 	} NestedFeaturesList;
 
 	typedef structure {
@@ -113,8 +111,9 @@ module KB {
 	} AltIDs;
 
 	typedef structure {
-		tuple<feature_id fid, int foo, UnspecifiedObject uo, mapping<string,
-			UnspecifiedObject> bar, feature_id fid2> t;
+		tuple<feature_id fid, int foo, int_id intid, UnspecifiedObject uo,
+			mapping<string, UnspecifiedObject> bar, feature_id fid2,
+			int_id intid> t;
 	} WeirdTuple;
 
 

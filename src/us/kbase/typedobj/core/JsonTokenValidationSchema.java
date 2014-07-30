@@ -440,7 +440,7 @@ public class JsonTokenValidationSchema {
 				Type.number ? "float" : expectedType.toString();
 		String actual = tokenToType(actualToken);
 		if (isID) {
-			return "instance type (" + actual + ") not allowed for ID references " +
+			return "instance type (" + actual + ") not allowed for ID reference " +
 					"(allowed: [\"" + expected + "\"]), at " +
 					path.getFullLocationAsString();
 		}

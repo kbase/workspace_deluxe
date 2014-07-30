@@ -7,24 +7,26 @@
 		"foobar": "6/7/8"
 		},
 	"ids-found":{
-		"ws/myGene": 5,
+		"ws/myGene": 3,
 		"ws/myGene2": 2,
 		"ws/2": 4,
 		"ws/3": 2,
-		"foobar": 1
+		"foobar": 1,
+		"3": 1,
+		"4": 1
 		},
 	"renamed-expected": {
 		"azy_no_tc": {
 			"ws/myGene": { 
 				"ws/myGene2": [
-					"ws/myGene",
+					1,
 					["ws/2","ws/myGene","ws/3"],
 					"ws/2"
 				]
 			},
 			"foobar": {
 				"ws/myGene2": [
-					"ws/myGene",
+					2,
 					["ws/2","ws/myGene","ws/3"],
 					"ws/2"
 				]
@@ -33,14 +35,14 @@
 		"crazy" : {
 			"1/2/3": { 
 				"2/3/4": [
-					"1/2/3",
+					3,
 					["4/5/6","1/2/3","5/6/7"],
 					"4/5/6"
 				]
 			},
 			"6/7/8": { 
 				"2/3/4": [
-					"1/2/3",
+					4,
 					["4/5/6","1/2/3","5/6/7"],
 					"4/5/6"
 				]
@@ -49,14 +51,14 @@
 		"no_tc" : {
 			"ws/myGene": { 
 				"ws/myGene2": [
-					"ws/myGene",
+					5,
 					["ws/2","ws/myGene","ws/3"],
 					"ws/2"
 				]
 			},
 			"foobar": {
 				"ws/myGene2": [
-					"ws/myGene",
+					6,
 					["ws/2","ws/myGene","ws/3"],
 					"ws/2"
 				]

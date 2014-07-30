@@ -3,11 +3,9 @@ package us.kbase.workspace;
 import java.util.List;
 import java.util.Map;
 
-import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
-import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
@@ -56,10 +54,12 @@ import ch.qos.logback.core.AppenderBase;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
+import us.kbase.common.service.ServerException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -428,7 +428,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			failed = true;
 		}
 		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
-		ignoreHandleService = ignoreHandle != null && !ignoreHandle.isEmpty();
+		ignoreHandleService = ignoreHandleService ||
+				(ignoreHandle != null && !ignoreHandle.isEmpty());
 		if (ignoreHandleService) {
 			logInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
 			System.out.println("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
@@ -508,7 +509,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //END_CONSTRUCTOR
     }
 
-	/**
+    /**
      * <p>Original spec-file function name: ver</p>
      * <pre>
      * Returns the version of the workspace service.

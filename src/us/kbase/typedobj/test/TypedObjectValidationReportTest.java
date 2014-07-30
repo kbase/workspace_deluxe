@@ -90,8 +90,8 @@ public class TypedObjectValidationReportTest {
 				new TypeDefId("TestIDMap.IDMap"),
 				fac.createHandlers(String.class).associateObject("foo"));
 		List<String> errors = Arrays.asList(
-			"instance type (integer) not allowed for ID references (allowed: [\"string\"]), at /m/z",
-			"instance type (array) not allowed for ID references (allowed: [\"string\"]), at /m/b");
+			"instance type (integer) not allowed for ID reference (allowed: [\"string\"]), at /m/z",
+			"instance type (array) not allowed for ID reference (allowed: [\"string\"]), at /m/b");
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		
@@ -99,7 +99,7 @@ public class TypedObjectValidationReportTest {
 		tovr = validator.validate(json, new TypeDefId("TestIDMap.IDMap"),
 				fac.createHandlers(String.class));
 		errors = Arrays.asList(
-				"instance type (integer) not allowed for ID references (allowed: [\"string\"]), at /m/z");
+				"instance type (integer) not allowed for ID reference (allowed: [\"string\"]), at /m/z");
 		assertThat("correct errors", tovr.getErrorMessages(), is(errors));
 		assertThat("errors not empty", tovr.isInstanceValid(), is(false));
 		

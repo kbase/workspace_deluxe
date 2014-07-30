@@ -5,16 +5,22 @@
 		},
 	"ids-found": {
 		"id1": 1,
-		"id2": 2
+		"id2": 2,
+		"22": 2,
+		"44": 1
 		},
 	"renamed-expected": {
-			"also_no_typechk": [{"foo": "id1"},
+		"also_no_typechk": [{"foo": "id1"},
 							{"foo": "id2"},
 							{"bar": "id2"}
 							],
 		"nested_features":	[{"foo": "id1remap"},
 							 {"foo": "id2remap"},
 							 {"bar": "id2remap"}
+							],
+		"nested_features_int": [{"foo": 22},
+							{"foo": 44},
+							{"bar": 22}
 							],
 		"not_typechecked": [{"foo": "id1"},
 							{"foo": "id2"},

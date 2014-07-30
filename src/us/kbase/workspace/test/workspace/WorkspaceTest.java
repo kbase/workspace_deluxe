@@ -1385,7 +1385,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data5.put("ref", null);
 		data.set(1, new WorkspaceSaveObject(data5, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 failed type checking:\ninstance type (null) not allowed for ID references (allowed: [\"string\"]), at /ref"));
+				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /ref"));
 		
 		Map<String, Object> data6 = new HashMap<String, Object>(data1);
 		data6.put("ref", "");
@@ -1756,7 +1756,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		iddata.put("an_int_id", null);
 		
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\ninstance type (null) not allowed for ID references (allowed: [\"integer\"]), at /an_int_id"));
+				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"integer\"]), at /an_int_id"));
 	}
 	
 	@Test

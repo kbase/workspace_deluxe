@@ -5,15 +5,18 @@
 		},
 	"ids-found": {
 		"id1": 1,
-		"id2": 2
+		"id2": 2,
+		"11": 2,
+		"33": 1
 		},
 	"renamed-expected": {
-		"nested_features": {"foo": {"foo": "id1remap"
-									},
-							"bar": {"foo": "id2remap"
-									},
+		"nested_features": {"foo": {"foo": "id1remap"},
+							"bar": {"foo": "id2remap"},
 							"baz": {"bar": "id2remap"}
-									}
-							}
+							},
+		"nested_features_int": {"foo": {"foo": 11},
+								"bar": {"foo": 33},
+								"baz": {"bar": 11}
+								}
 	}
 }
