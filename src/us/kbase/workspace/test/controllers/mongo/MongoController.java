@@ -51,6 +51,7 @@ public class MongoController {
 				.redirectOutput(tempDir.resolve("mongo.log").toFile());
 		
 		mongo = servpb.start();
+		Thread.sleep(1000); //wait for server to start up
 	}
 
 	public int getServerPort() {

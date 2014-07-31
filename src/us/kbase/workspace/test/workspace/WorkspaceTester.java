@@ -53,11 +53,12 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.kbase.Util;
+//import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
 import ch.qos.logback.classic.Level;
@@ -66,11 +67,13 @@ import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
+	private static final boolean DELETE_TEMP_DIRS_ON_EXIT = true;
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
@@ -107,6 +110,7 @@ public class WorkspaceTester {
 	
 	protected static final Map<String, String> MT_META = new HashMap<String, String>();
 	
+	private static MongoController mongo = null;
 	private static ShockController shock = null;
 	private static TempFilesManager tfm;
 	
@@ -161,6 +165,9 @@ public class WorkspaceTester {
 		if (shock != null) {
 			shock.destroy();
 		}
+		if (mongo != null) {
+			mongo.destroy();
+		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
 		JsonTokenStreamOCStat.showStat();
@@ -173,6 +180,10 @@ public class WorkspaceTester {
 	public WorkspaceTester(String config, String backend,
 			Integer maxMemoryUsePerCall)
 			throws Exception {
+		if (mongo == null) {
+			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+					DELETE_TEMP_DIRS_ON_EXIT);
+		}
 		if (!configs.containsKey(config)) {
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
@@ -190,53 +201,50 @@ public class WorkspaceTester {
 	}
 	
 	private Workspace setUpMongo(Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces("gridFS", "foo", "foo", maxMemoryUsePerCall, null);
+		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
+		WorkspaceTestCommon.initializeGridFSWorkspaceDB(mongo,
+				"WorkspaceBackendTest_types");
+		return setUpWorkspaces("gridFS", "foo", maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
-		WorkspaceTestCommon.destroyAndSetupShockDB();
-
-		shock = new ShockController(
-				WorkspaceTestCommon.getShockExe(),
-				"***---fakeuser---***",
-				WorkspaceTestCommon.getHost(),
-				WorkspaceTestCommon.getShockDB(),
-				WorkspaceTestCommon.getMongoUser(),
-				WorkspaceTestCommon.getMongoPwd(),
-				DELETE_TEMP_DIR_ON_EXIT);
+//		WorkspaceTestCommon.destroyAndSetupShockDB();
+		if (shock == null) {
+			shock = new ShockController(
+					WorkspaceTestCommon.getShockExe(),
+					"***---fakeuser---***",
+					"localhost:" + mongo.getServerPort(),
+					"WorkspaceTester_ShockDB",
+					"foo",
+					"foo",
+					DELETE_TEMP_DIRS_ON_EXIT);
+		}
+		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		return setUpWorkspaces("shock", shockuser, shockpwd,
-				maxMemoryUsePerCall, shockUrl);
+		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, shockuser,
+				shockUrl, "WorkspaceBackendTest_types");
+		return setUpWorkspaces("shock", shockpwd, maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpWorkspaces(
 			String type,
-			String shockuser,
 			String shockpwd,
-			Integer maxMemoryUsePerCall,
-			URL shockUrl) throws Exception {
+			Integer maxMemoryUsePerCall)
+					throws Exception {
 		
-		WorkspaceTestCommon.destroyAndSetupDB(1, type, shockuser, shockUrl);
-		String host = WorkspaceTestCommon.getHost();
-		String mUser = WorkspaceTestCommon.getMongoUser();
-		String mPwd = WorkspaceTestCommon.getMongoPwd();
-		String db1 = WorkspaceTestCommon.getDB1();
-		final String kidlpath = new Util().getKIDLpath();
 		
 		tfm = TempFilesManager.forTests();
 		tfm.cleanup();
-		WorkspaceDatabase wsdb = null;
-		if (mUser != null) {
-			//TODO 1 restore test
-			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd, tfm, 0);
-//			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, mUser, mPwd,
-//					kidlpath, null, tfm);
-		} else {
-			wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
-					kidlpath, null, tfm);
-		}
+		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
+				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
+		//TODO 1 restore test
+//		final String kidlpath = new Util().getKIDLpath();
+//		wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
+//				kidlpath, null, tfm);
 		Workspace work = new Workspace(wsdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());

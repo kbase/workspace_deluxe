@@ -160,6 +160,8 @@ public class WorkspaceTestCommon {
 	}
 
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
+		destroyDB(mdb);
+		destroyDB(mdb.getSisterDB(typedb));
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", GRIDFS);
@@ -167,8 +169,18 @@ public class WorkspaceTestCommon {
 		System.out.println(String.format("Configured new %s backend.", GRIDFS));
 	}
 	
+	private static void destroyDB(DB db) {
+		for (String name: db.getCollectionNames()) {
+			if (!name.startsWith("system.")) {
+				db.getCollection(name).drop();
+			}
+		}
+	}
+	
 	public static void initializeShockWorkspaceDB(DB mdb, String shockuser,
 			URL shockURL, String typedb) {
+		destroyDB(mdb);
+		destroyDB(mdb.getSisterDB(typedb));
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", SHOCK);
@@ -189,6 +201,7 @@ public class WorkspaceTestCommon {
 	
 	public static void initializeWorkspaceDB(String type, String shockuser,
 			URL shockURL, String typedb, DB mdb) {
+		
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		if (type == GRIDFS) {
