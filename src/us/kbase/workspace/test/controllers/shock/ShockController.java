@@ -1,27 +1,24 @@
 package us.kbase.workspace.test.controllers.shock;
 
+import static us.kbase.workspace.test.controllers.ControllerCommon.findFreePort;
+import static us.kbase.workspace.test.controllers.ControllerCommon.checkExe;
+import static us.kbase.workspace.test.controllers.ControllerCommon.makeTempDirs;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.ServerSocket;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
-
 
 /** Q&D Utility to run a Shock server for the purposes of testing from
  * Java.
@@ -60,7 +57,7 @@ public class ShockController {
 			final String mongopwd,
 			final boolean deleteTempDirOnExit)
 					throws Exception {
-		tempDir = makeTempDirs();
+		tempDir = makeTempDirs("ShockController-", tempDirectories);
 		port = findFreePort();
 		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		
@@ -104,36 +101,6 @@ public class ShockController {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
-	
-
-	private void checkExe(String shockExe, String exeType) {
-		File e = new File(shockExe);
-		if (!e.exists()) {
-			throw new IllegalArgumentException("The provided " + exeType +
-					" executable does not exist:" + shockExe);
-		}
-		if (!e.isFile()) {
-			throw new IllegalArgumentException("The provided " + exeType +
-					" executable is not a file:" + shockExe);
-		}
-		if (!e.canExecute()) {
-			throw new IllegalArgumentException("The provided " + exeType +
-					" executable is not executable:" + shockExe);
-		}
-		
-	}
-
-	private Path makeTempDirs() throws IOException {
-		Set<PosixFilePermission> perms =
-				PosixFilePermissions.fromString("rwx------");
-		FileAttribute<Set<PosixFilePermission>> attr =
-				PosixFilePermissions.asFileAttribute(perms);
-		Path tempDir = Files.createTempDirectory("ShockController-", attr);
-		for(String p: tempDirectories) {
-			Files.createDirectories(tempDir.resolve(p));
-		}
-		return tempDir;
-	}
 
 	private void generateConfig(final String configFile,
 			final VelocityContext context, File file)
@@ -148,42 +115,6 @@ public class ShockController {
 		PrintWriter pw = new PrintWriter(file);
 		pw.write(sw.toString());
 		pw.close();
-	}
-	
-	/** See https://gist.github.com/vorburger/3429822
-	 * Returns a free port number on localhost.
-	 *
-	 * Heavily inspired from org.eclipse.jdt.launching.SocketUtil (to avoid a
-	 * dependency to JDT just because of this).
-	 * Slightly improved with close() missing in JDT. And throws exception
-	 * instead of returning -1.
-	 *
-	 * @return a free port number on localhost
-	 * @throws IllegalStateException if unable to find a free port
-	 */
-	private static int findFreePort() {
-		ServerSocket socket = null;
-		try {
-			socket = new ServerSocket(0);
-			socket.setReuseAddress(true);
-			int port = socket.getLocalPort();
-			try {
-				socket.close();
-			} catch (IOException e) {
-				// Ignore IOException on close()
-			}
-			return port;
-		} catch (IOException e) {
-		} finally {
-			if (socket != null) {
-				try {
-					socket.close();
-				} catch (IOException e) {
-				}
-			}
-		}
-		throw new IllegalStateException(
-				"Could not find a free TCP/IP port");
 	}
 	
 	public static void main(String[] args) throws Exception {

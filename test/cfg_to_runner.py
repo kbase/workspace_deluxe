@@ -25,7 +25,8 @@ CONFIG_OPTS = ['test.mongo.host',
                'test.pwd2',
                'test.user3',
                'test.shock.exe',
-               'test.shock.db'
+               'test.shock.db',
+               'test.mongo.exe'
                ]
 
 

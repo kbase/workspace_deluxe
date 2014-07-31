@@ -3,8 +3,6 @@ package us.kbase.workspace.test;
 
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.test.TestException;
@@ -27,11 +25,20 @@ public class WorkspaceTestCommon {
 	public static final String M_PWD = "test.mongo.pwd";
 //	public static final String SHOCKURL = "test.shock.url";
 	public static final String SHOCKEXE = "test.shock.exe";
+	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String SHOCKDB = "test.shock.db";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 			
 	private static MongoClient mongoClient = null;
+	
+	public static void stfuLoggers() {
+		((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
+				.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
+			.setLevel(ch.qos.logback.classic.Level.OFF);
+		java.util.logging.Logger.getLogger("com.mongodb")
+			.setLevel(java.util.logging.Level.OFF);
+	}
 	
 	public static void printJava() {
 		System.out.println("Java: " + System.getProperty("java.runtime.version"));
@@ -42,6 +49,10 @@ public class WorkspaceTestCommon {
 			throw new TestException("Property " + prop + " cannot be null or the empty string.");
 		}
 		return System.getProperty(prop);
+	}
+	
+	public static String getMongoExe() {
+		return getProp(MONGOEXE);
 	}
 	
 	public static String getHost() {
@@ -114,7 +125,7 @@ public class WorkspaceTestCommon {
 			System.out.println(mPwd);
 		}
 		if (mongoClient == null) {
-			Logger.getLogger("com.mongodb").setLevel(Level.OFF);
+			java.util.logging.Logger.getLogger("com.mongodb").setLevel(java.util.logging.Level.OFF);
 			final MongoClientOptions opts = MongoClientOptions.builder()
 					.autoConnectRetry(true).build();
 			try {

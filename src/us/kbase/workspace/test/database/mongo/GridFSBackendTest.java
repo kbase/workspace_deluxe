@@ -9,10 +9,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.DB;
+import com.mongodb.MongoClient;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSInputFile;
 
@@ -23,20 +25,36 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 public class GridFSBackendTest {
 	
+	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
+	
 	private static GridFSBackend gfsb;
 	private static GridFS gfs;
-	private static DB db;
+	private static MongoController mongo;
 	
 	private static final String a32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null, null);
+		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				DELETE_TEMP_DIR_ON_EXIT);
+		WorkspaceTestCommon.stfuLoggers();
+		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		DB db = mongoClient.getDB("GridFSBackendTest");
 		gfs = new GridFS(db);
 		gfsb = new GridFSBackend(db);
+		
+	}
+	
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+		if (mongo != null) {
+			System.out.println("Deleting temp mongo files");
+			mongo.destroy();
+		}
 	}
 	
 	@Test
