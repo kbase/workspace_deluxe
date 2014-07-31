@@ -7,7 +7,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,7 +31,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
@@ -56,6 +56,7 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 @RunWith(Parameterized.class)
 public class TypeRegisteringTest {
@@ -63,6 +64,10 @@ public class TypeRegisteringTest {
 	private TypeDefinitionDB db = null;
 	private final boolean useMongo;
 	private static String adminUser = "admin";
+	
+	private static final boolean DELETE_MONGO_DB_ON_EXIT = true;
+	
+	private static MongoController mongo = null;
 
 	public static void main(String[] args) throws Exception {
 		boolean[] storageParams = {false, true};
@@ -122,18 +127,14 @@ public class TypeRegisteringTest {
 		db = new TypeDefinitionDB(storage, dir, new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 	}
 	
-	public static DB createMongoDbConnection() throws UnknownHostException {
-		String host = System.getProperty(WorkspaceTestCommon.HOST);
-		if (host == null)
-			host = "localhost";
-		String db = System.getProperty(WorkspaceTestCommon.DB1);
-		if (db == null)
-			db = "test";
-		DB mdb = new MongoClient(host, MongoClientOptions.builder().autoConnectRetry(true).build()).getDB(db);
-		String mUser = System.getProperty(WorkspaceTestCommon.M_USER);
-		String mPwd = System.getProperty(WorkspaceTestCommon.M_PWD);
-		if (mUser != null)
-			mdb.authenticate(mUser, mPwd.toCharArray());
+	public static DB createMongoDbConnection() throws Exception {
+		if (mongo == null) {
+			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+					Paths.get(WorkspaceTestCommon.getTempDir()),
+					DELETE_MONGO_DB_ON_EXIT);
+		}
+		DB mdb = new MongoClient("localhost:" + mongo.getServerPort()).getDB("TypeRegisteringTest");
+		WorkspaceTestCommon.destroyDB(mdb);
 		return mdb;
 	}
 	
@@ -154,6 +155,13 @@ public class TypeRegisteringTest {
 	@After
 	public void cleanupAfter() throws Exception {
 		cleanupBefore();
+	}
+	
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+		if (mongo != null) {
+			mongo.destroy();
+		}
 	}
 	
 	@Test

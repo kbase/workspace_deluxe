@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
@@ -40,6 +41,7 @@ public class GridFSBackendTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIR_ON_EXIT);
 		WorkspaceTestCommon.stfuLoggers();
 		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());

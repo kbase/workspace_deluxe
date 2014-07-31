@@ -231,6 +231,7 @@
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
+    <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
     <fail unless="test.shock.db" message="property test.shock.db not set."/>
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
     <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
@@ -255,6 +256,7 @@
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
+      <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
       <sysproperty key="test.shock.db" value="${test.shock.db}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
@@ -279,6 +281,7 @@
 
   <target name="test-scripts" depends="compile" description="run tests of scripts">
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
+    <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
     <fail unless="test.mongo.host" message="property test.mongo.host not set."/>
     <fail unless="test.mongo.db1" message="property test.mongo.db1 not set."/>
     <fail unless="test.mongo.db2" message="property test.mongo.db2 not set."/>
@@ -300,6 +303,7 @@
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
+      <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
       <sysproperty key="test.mongo.host" value="${test.mongo.host}"/>
       <sysproperty key="test.mongo.db1" value="${test.mongo.db1}"/>
       <sysproperty key="test.mongo.db2" value="${test.mongo.db2}"/>

@@ -27,6 +27,7 @@ public class WorkspaceTestCommon {
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String SHOCKDB = "test.shock.db";
+	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 			
@@ -49,6 +50,10 @@ public class WorkspaceTestCommon {
 			throw new TestException("Property " + prop + " cannot be null or the empty string.");
 		}
 		return System.getProperty(prop);
+	}
+	
+	public static String getTempDir() {
+		return getProp(TEST_TEMP_DIR);
 	}
 	
 	public static String getMongoExe() {
@@ -169,7 +174,7 @@ public class WorkspaceTestCommon {
 		System.out.println(String.format("Configured new %s backend.", GRIDFS));
 	}
 	
-	private static void destroyDB(DB db) {
+	public static void destroyDB(DB db) {
 		for (String name: db.getCollectionNames()) {
 			if (!name.startsWith("system.")) {
 				db.getCollection(name).drop();

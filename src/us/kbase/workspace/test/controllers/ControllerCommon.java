@@ -71,13 +71,15 @@ public class ControllerCommon {
 		}
 	}
 	
-	public static Path makeTempDirs(String prefix, List<String> subdirs)
+	public static Path makeTempDirs(Path rootTempDir, String prefix,
+			List<String> subdirs)
 			throws IOException {
+		Files.createDirectories(rootTempDir.toAbsolutePath());
 		Set<PosixFilePermission> perms =
 				PosixFilePermissions.fromString("rwx------");
 		FileAttribute<Set<PosixFilePermission>> attr =
 				PosixFilePermissions.asFileAttribute(perms);
-		Path tempDir = Files.createTempDirectory(prefix, attr);
+		Path tempDir = Files.createTempDirectory(rootTempDir, prefix, attr);
 		for(String p: subdirs) {
 			Files.createDirectories(tempDir.resolve(p));
 		}

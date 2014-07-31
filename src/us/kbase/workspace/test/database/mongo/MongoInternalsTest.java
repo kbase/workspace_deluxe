@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -57,6 +58,7 @@ public class MongoInternalsTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIR_ON_EXIT);
 		WorkspaceTestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();

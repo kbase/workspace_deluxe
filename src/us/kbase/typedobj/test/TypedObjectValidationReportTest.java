@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,7 +48,9 @@ public class TypedObjectValidationReportTest {
 	@BeforeClass
 	public static void setupTypeDB() throws Exception {
 		//ensure test location is available
-		Path dir = Files.createTempDirectory("TypedObjectValReportTest");
+		Path dir = Files.createTempDirectory(
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				"TypedObjectValReportTest");
 		dir.toFile().deleteOnExit();
 		System.out.println("setting up temporary typed obj database");
 

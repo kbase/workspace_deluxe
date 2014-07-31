@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -182,6 +183,7 @@ public class JSONRPCLayerTester {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIRS_ON_EXIT);
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
@@ -351,7 +353,7 @@ public class JSONRPCLayerTester {
 			System.out.println("Done");
 		}
 		if (mongo != null) {
-			System.out.print("destroying mongo temp files");
+			System.out.println("destroying mongo temp files");
 			mongo.destroy();
 		}
 		JsonTokenStreamOCStat.showStat();

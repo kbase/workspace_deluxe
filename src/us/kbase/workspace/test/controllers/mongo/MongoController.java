@@ -6,6 +6,7 @@ import static us.kbase.workspace.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -36,14 +37,14 @@ public class MongoController {
 
 	public MongoController(
 			final String mongoExe,
+			final Path rootTempDir,
 			final boolean deleteTempDirOnExit)
 					throws Exception {
 		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		checkExe(mongoExe, "mongod server");
-		tempDir = makeTempDirs("MongoController-", tempDirectories);
+		tempDir = makeTempDirs(rootTempDir, "MongoController-", tempDirectories);
 		port = findFreePort();
-		
-		
+
 		ProcessBuilder servpb = new ProcessBuilder(mongoExe, "--port",
 				"" + port, "--dbpath", tempDir.resolve(DATA_DIR).toString(),
 				"--nojournal")
@@ -74,8 +75,10 @@ public class MongoController {
 	public static void main(String[] args) throws Exception {
 		MongoController ac = new MongoController(
 				"/kb/runtime/bin/mongod",
+				Paths.get("workspacetesttemp"),
 				false);
 		System.out.println(ac.getServerPort());
+		System.out.println(ac.getTempDir());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
 		//get user input for a

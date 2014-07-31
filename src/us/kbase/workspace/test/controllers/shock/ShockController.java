@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -50,6 +51,7 @@ public class ShockController {
 
 	public ShockController(
 			final String shockExe,
+			final Path rootTempDir,
 			final String adminUser,
 			final String mongohost,
 			final String shockMongoDBname,
@@ -57,7 +59,7 @@ public class ShockController {
 			final String mongopwd,
 			final boolean deleteTempDirOnExit)
 					throws Exception {
-		tempDir = makeTempDirs("ShockController-", tempDirectories);
+		tempDir = makeTempDirs(rootTempDir, "ShockController-", tempDirectories);
 		port = findFreePort();
 		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		
@@ -120,6 +122,7 @@ public class ShockController {
 	public static void main(String[] args) throws Exception {
 		ShockController ac = new ShockController(
 				"/kb/deployment/bin/shock-server",
+				Paths.get("workspacetemp"),
 				"kbasetest2",
 				"localhost",
 				"delete_shock_db",

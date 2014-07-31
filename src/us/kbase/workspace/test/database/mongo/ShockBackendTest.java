@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
@@ -61,6 +62,7 @@ public class ShockBackendTest {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		mongoCon = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIR_ON_EXIT);
 		
 		String mongohost = "localhost:" + mongoCon.getServerPort();
@@ -69,6 +71,7 @@ public class ShockBackendTest {
 		
 		shock = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
 				"***---fakeuser---***",
 				mongohost,
 				"ShockBackendTest_ShockDB",

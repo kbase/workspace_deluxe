@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -182,6 +183,7 @@ public class WorkspaceTester {
 			throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+					Paths.get(WorkspaceTestCommon.getTempDir()),
 					DELETE_TEMP_DIRS_ON_EXIT);
 		}
 		if (!configs.containsKey(config)) {
@@ -215,6 +217,7 @@ public class WorkspaceTester {
 		if (shock == null) {
 			shock = new ShockController(
 					WorkspaceTestCommon.getShockExe(),
+					Paths.get(WorkspaceTestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
