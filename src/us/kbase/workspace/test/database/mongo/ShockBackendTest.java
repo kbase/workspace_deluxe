@@ -38,7 +38,7 @@ import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.kbase.shock.ShockController;
+import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class ShockBackendTest {
 	

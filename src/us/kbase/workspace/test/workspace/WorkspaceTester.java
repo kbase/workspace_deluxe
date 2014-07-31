@@ -58,7 +58,7 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.kbase.shock.ShockController;
+import us.kbase.workspace.test.controllers.shock.ShockController;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;

@@ -1,4 +1,4 @@
-package us.kbase.workspace.test.kbase.shock;
+package us.kbase.workspace.test.controllers.shock;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -34,7 +34,7 @@ public class ShockController {
 	
 	private final static String SHOCK_CONFIG_FN = "shock.cfg";
 	private final static String SHOCK_CONFIG =
-			"us/kbase/workspace/test/kbase/shock/conf/" +
+			"us/kbase/workspace/test/controllers/shock/conf/" +
 					SHOCK_CONFIG_FN;
 	
 	private final static List<String> tempDirectories =

@@ -14,8 +14,6 @@ public class IdReferenceHandlerSet<T> {
 	//TODO 1 test extraction of various types
 	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	
-	//TODO 1 add tests for Long IDs in workspace and id processing tests
-	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
 	private boolean locked = false;
