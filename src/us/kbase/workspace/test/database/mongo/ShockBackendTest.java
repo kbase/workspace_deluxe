@@ -15,14 +15,11 @@ import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthService;
 import us.kbase.common.test.TestException;
@@ -38,6 +35,7 @@ import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class ShockBackendTest {
@@ -48,38 +46,38 @@ public class ShockBackendTest {
 	private static DB mongo;
 	private static BasicShockClient client;
 	private static ShockController shock;
+	private static MongoController mongoCon;
 	
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
 	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String COLLECTION = "shock_";
 
-	static {
-		//stfu easystream
-		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
-				.setLevel(Level.OFF);
-	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		String u1 = System.getProperty("test.user1");
 		String p1 = System.getProperty("test.pwd1");
 		
-		WorkspaceTestCommon.destroyAndSetupShockDB();
+		WorkspaceTestCommon.stfuLoggers();
+		mongoCon = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				DELETE_TEMP_DIR_ON_EXIT);
+		
+		String mongohost = "localhost:" + mongoCon.getServerPort();
+		MongoClient mongoClient = new MongoClient(mongohost);
+		mongo = mongoClient.getDB("ShockBackendTest");
 		
 		shock = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
 				"***---fakeuser---***",
-				WorkspaceTestCommon.getHost(),
-				WorkspaceTestCommon.getShockDB(),
-				WorkspaceTestCommon.getMongoUser(),
-				WorkspaceTestCommon.getMongoPwd(),
+				mongohost,
+				"ShockBackendTest_ShockDB",
+				"foo",
+				"foo",
 				DELETE_TEMP_DIR_ON_EXIT);
-		
 		URL url = new URL("http://localhost:" + shock.getServerPort());
-		mongo = WorkspaceTestCommon.destroyAndSetupDB(1, "shock", u1, url);
-		
-//		URL url = new URL(System.getProperty("test.shock.url"));
+		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, u1, url,
+				"ShockBackendTest_types");
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
 			sb = new ShockBackend(mongo, COLLECTION, url, u1, p1);
@@ -92,11 +90,11 @@ public class ShockBackendTest {
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		if (sb != null) {
-			sb.removeAllBlobs();
-		}
 		if (shock != null) {
 			shock.destroy();
+		}
+		if (mongoCon != null) {
+			mongoCon.destroy();
 		}
 	}
 	

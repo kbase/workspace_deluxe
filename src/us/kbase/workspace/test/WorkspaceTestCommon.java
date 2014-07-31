@@ -155,6 +155,40 @@ public class WorkspaceTestCommon {
 		destroyAndSetupDB(typedb);
 		DB mdb = destroyAndSetupDB(db);
 		
+		initializeWorkspaceDB(type, shockuser, shockURL, typedb, mdb);
+		return mdb;
+	}
+
+	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
+		DBObject dbo = new BasicDBObject();
+		dbo.put("type_db", typedb);
+		dbo.put("backend", GRIDFS);
+		mdb.getCollection("settings").insert(dbo);
+		System.out.println(String.format("Configured new %s backend.", GRIDFS));
+	}
+	
+	public static void initializeShockWorkspaceDB(DB mdb, String shockuser,
+			URL shockURL, String typedb) {
+		DBObject dbo = new BasicDBObject();
+		dbo.put("type_db", typedb);
+		dbo.put("backend", SHOCK);
+		if (shockuser == null) {
+			throw new TestException("Shock user cannot be null");
+		}
+		dbo.put("shock_user", shockuser);
+		if (shockURL == null) {
+			throw new TestException("The shock url may not be null");
+		}
+		dbo.put("shock_location", shockURL.toExternalForm());
+		System.out.println(String.format(
+				"Setting up shock with user %s and url %s", shockuser,
+				shockURL.toExternalForm()));
+	mdb.getCollection("settings").insert(dbo);
+		System.out.println(String.format("Configured new %s backend.", SHOCK));
+	}
+	
+	public static void initializeWorkspaceDB(String type, String shockuser,
+			URL shockURL, String typedb, DB mdb) {
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		if (type == GRIDFS) {
@@ -189,7 +223,6 @@ public class WorkspaceTestCommon {
 		}
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", type));
-		return mdb;
 	}
 
 	public static DB destroyAndSetupShockDB()

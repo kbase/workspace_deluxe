@@ -65,12 +65,15 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 import us.kbase.workspace.test.workspace.FakeObjectInfo;
 import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -81,6 +84,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
 public class JSONRPCLayerTester {
+	
+	public static boolean DELETE_TEMP_DIRS_ON_EXIT = true;
 	
 	protected static WorkspaceServer SERVER1 = null;
 	protected static WorkspaceClient CLIENT1 = null;
@@ -95,6 +100,8 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	protected static ObjectMapper MAPPER = new ObjectMapper();
+	
+	private static MongoController mongo;
 	
 	protected static SimpleDateFormat DATE_FORMAT =
 			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
@@ -172,7 +179,17 @@ public class JSONRPCLayerTester {
 		}
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
-		SERVER1 = startupWorkspaceServer(1);
+		
+		WorkspaceTestCommon.stfuLoggers();
+		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				DELETE_TEMP_DIRS_ON_EXIT);
+		
+		final String mongohost = "localhost:" + mongo.getServerPort();
+		MongoClient mongoClient = new MongoClient(mongohost);
+		
+		SERVER1 = startupWorkspaceServer(mongohost,
+				mongoClient.getDB("JSONRPCLayerTester1"), 
+				"JSONRPCLayerTester1_types");
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
@@ -223,7 +240,9 @@ public class JSONRPCLayerTester {
 			.withSpec(specParseRef)
 			.withNewTypes(Arrays.asList("Ref")));
 		
-		SERVER2 = startupWorkspaceServer(2);
+		SERVER2 = startupWorkspaceServer(mongohost,
+				mongoClient.getDB("JSONRPCLayerTester2"), 
+				"JSONRPCLayerTester2_types");
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
 				SERVER2.getServerPort()), USER2, p2);
@@ -273,11 +292,12 @@ public class JSONRPCLayerTester {
 		client.administer(new UObject(releasemod));
 	}
 
-	private static WorkspaceServer startupWorkspaceServer(int dbNum)
+	private static WorkspaceServer startupWorkspaceServer(String mongohost,
+			DB db, String typedb)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
-		WorkspaceTestCommon.destroyAndSetupDB(dbNum, "gridFS", null, null);
+		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
@@ -287,12 +307,8 @@ public class JSONRPCLayerTester {
 		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", WorkspaceTestCommon.getHost());
-		String dbName = dbNum == 1 ? WorkspaceTestCommon.getDB1() : 
-			WorkspaceTestCommon.getDB2();
-		ws.add("mongodb-database", dbName);
-		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
-		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
+		ws.add("mongodb-host", mongohost);
+		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", "tempForJSONRPCLayerTester");
@@ -333,6 +349,10 @@ public class JSONRPCLayerTester {
 			System.out.print("Killing server 2... ");
 			SERVER2.stopServer();
 			System.out.println("Done");
+		}
+		if (mongo != null) {
+			System.out.print("destroying mongo temp files");
+			mongo.destroy();
 		}
 		JsonTokenStreamOCStat.showStat();
 	}

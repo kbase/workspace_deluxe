@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.jongo.Jongo;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,36 +37,37 @@ import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 public class MongoInternalsTest {
 	
-	private static DB db;
+	private static final boolean DELETE_TEMP_DIR_ON_EXIT = false;
+	
 	private static Jongo jdb;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
+	private static MongoController mongo;
 	
 	public static final TypeDefId SAFE_TYPE =
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		db = WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", null, null);
+		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				DELETE_TEMP_DIR_ON_EXIT);
+		WorkspaceTestCommon.stfuLoggers();
+		String mongohost = "localhost:" + mongo.getServerPort();
+		MongoClient mongoClient = new MongoClient(mongohost);
+		final DB db = mongoClient.getDB("MongoInternalsTest");
+		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, "MongoInternalsTest_types");
 		jdb = new Jongo(db);
-		String host = WorkspaceTestCommon.getHost();
-		String mUser = WorkspaceTestCommon.getMongoUser();
-		String mPwd = WorkspaceTestCommon.getMongoPwd();
-		String db1 = WorkspaceTestCommon.getDB1();
 		final String kidlpath = new Util().getKIDLpath();
 		
-		if (mUser != null) {
-			mwdb = new MongoWorkspaceDB(host, db1, "fOo", mUser, mPwd,
-					kidlpath, null, TempFilesManager.forTests());
-		} else {
-			mwdb = new MongoWorkspaceDB(host, db1, "foo", "foo", "foo",
-					kidlpath, null, TempFilesManager.forTests());
-		}
+		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo", "foo", "foo",
+				kidlpath, null, TempFilesManager.forTests());
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
@@ -80,6 +82,13 @@ public class MongoInternalsTest {
 				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 				Arrays.asList("AType"), null, null, false, null);
 		ws.releaseTypes(foo, "SomeModule");
+	}
+	
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+		if (mongo != null) {
+			mongo.destroy();
+		}
 	}
 	
 	private IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
