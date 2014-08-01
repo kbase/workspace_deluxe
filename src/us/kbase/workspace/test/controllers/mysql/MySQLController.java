@@ -1,4 +1,4 @@
-package us.kbase.workspace.test.controllers.mongo;
+package us.kbase.workspace.test.controllers.mysql;
 
 import static us.kbase.workspace.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.workspace.test.controllers.ControllerCommon.checkExe;
@@ -13,13 +13,15 @@ import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
 
+import us.kbase.common.test.TestException;
 
-/** Q&D Utility to run a Mongo server for the purposes of testing from
+
+/** Q&D Utility to run a MySQL server for the purposes of testing from
  * Java.
  * @author gaprice@lbl.gov
  *
  */
-public class MongoController {
+public class MySQLController {
 	
 	private final static String DATA_DIR = "data";
 	
@@ -31,27 +33,51 @@ public class MongoController {
 	
 	private final Path tempDir;
 	
-	private final Process mongo;
+	private final Process mysql;
 	private final int port;
 	private final boolean deleteTempDirOnExit;
 
-	public MongoController(
-			final String mongoExe,
+	/**
+	 * @param mysqlExe
+	 * @param mysqlInstallExe
+	 * @param rootTempDir where to place temp files. Cannot have any system
+	 * specific info (~, $HOME, etc).
+	 * @param deleteTempDirOnExit
+	 * @throws Exception
+	 */
+	public MySQLController(
+			final String mysqlExe,
+			final String mysqlInstallExe,
 			final Path rootTempDir,
 			final boolean deleteTempDirOnExit)
 					throws Exception {
 		this.deleteTempDirOnExit = deleteTempDirOnExit;
-		checkExe(mongoExe, "mongod server");
-		tempDir = makeTempDirs(rootTempDir, "MongoController-", tempDirectories);
-		port = findFreePort();
+		checkExe(mysqlExe, "mysql server");
+		checkExe(mysqlInstallExe, "mysql_install_db executable");
+		tempDir = makeTempDirs(rootTempDir, "MySQLController-",
+				tempDirectories).toAbsolutePath();
 
-		ProcessBuilder servpb = new ProcessBuilder(mongoExe, "--port",
-				"" + port, "--dbpath", tempDir.resolve(DATA_DIR).toString(),
-				"--nojournal")
+		final int exit = new ProcessBuilder(mysqlInstallExe, "--datadir=" +
+				tempDir.resolve(DATA_DIR).toString(), "--no-defaults")
 				.redirectErrorStream(true)
-				.redirectOutput(tempDir.resolve("mongo.log").toFile());
+				.redirectOutput(tempDir.resolve("mysql_install.log").toFile())
+				.start().waitFor();
+		if (exit != 0) {
+			throw new TestException(
+					"Failed setting up mysql database, exit code: " + exit +
+					". Check the log in " + tempDir);
+		}
 		
-		mongo = servpb.start();
+		port = findFreePort();
+		ProcessBuilder servpb = new ProcessBuilder(mysqlExe,
+				"--port=" + port,
+				"--datadir=" + tempDir.resolve(DATA_DIR).toString(),
+				"--pid-file=" + tempDir.resolve("pid").toString(),
+				"--socket=" + tempDir.resolve("socket").toString())
+				.redirectErrorStream(true)
+				.redirectOutput(tempDir.resolve("mysql.log").toFile());
+		
+		mysql = servpb.start();
 		Thread.sleep(1000); //wait for server to start up
 	}
 
@@ -64,8 +90,8 @@ public class MongoController {
 	}
 	
 	public void destroy() throws IOException {
-		if (mongo != null) {
-			mongo.destroy();
+		if (mysql != null) {
+			mysql.destroy();
 		}
 		if (tempDir != null && deleteTempDirOnExit) {
 			FileUtils.deleteDirectory(tempDir.toFile());
@@ -73,8 +99,9 @@ public class MongoController {
 	}
 
 	public static void main(String[] args) throws Exception {
-		MongoController ac = new MongoController(
-				"/kb/runtime/bin/mongod",
+		MySQLController ac = new MySQLController(
+				"/usr/sbin/mysqld",
+				"/usr/bin/mysql_install_db",
 				Paths.get("workspacetesttemp"),
 				false);
 		System.out.println(ac.getServerPort());
