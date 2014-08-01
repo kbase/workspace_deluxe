@@ -372,7 +372,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.areReadable(new LinkedList<Long>());
+			cli.areReadable(new LinkedList<String>());
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) ||
 					!e.getMessage().contains(

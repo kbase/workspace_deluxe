@@ -73,7 +73,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	public class HandleIdHandler<T> implements IdReferenceHandler<T> {
 		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
-		private final Map<T, Set<Long>> ids = new HashMap<T, Set<Long>>();
+		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
 		private boolean processed = false;
 		private boolean locked = false;
 		
@@ -81,19 +81,6 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		
 		@Override
 		public boolean addId(final T associatedObject, final String id,
-				final List<String> attributes)
-				throws IdReferenceHandlerException, HandlerLockedException {
-			try {
-				return addId(associatedObject, Long.parseLong(id), attributes);
-			} catch (NumberFormatException nfe) {
-				throw new IdParseException("Illegal handle id " + id +
-						", expected an integer ", type, associatedObject,
-						id, attributes, null);
-			}
-		}
-		
-		@Override
-		public boolean addId(final T associatedObject, final Long id,
 				final List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
 			if (locked) {
@@ -115,16 +102,9 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						type, associatedObject, "" + id,
 						attributes, null);
 			}
-			
-			if (id < 0) {
-				throw new IdReferenceException("Illegal handle id " + id +
-						", must be positive", type, associatedObject, "" + id,
-						attributes, null);
-			}
-			
 			boolean unique = true;
 			if (!ids.containsKey(associatedObject)) {
-				ids.put(associatedObject, new HashSet<Long>());
+				ids.put(associatedObject, new HashSet<String>());
 			}
 			if (ids.get(associatedObject).contains(id)) {
 				unique = false;
@@ -133,20 +113,30 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			}
 			return unique;
 		}
+		
+		@Override
+		public boolean addId(final T associatedObject, final Long id,
+				final List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
+			throw new IdParseException(
+					"Handle Service IDs are expected to be strings. Got: " +
+							id, type, associatedObject, "" + id, attributes,
+							null);
+		}
 
 		@Override
 		public void processIds() throws IdReferenceHandlerException {
 			processed = true;
 			locked = true;
 			// TODO 1 test with handle service
-			final Set<Long> handles = new HashSet<Long>();
-			for (final Set<Long> idset: ids.values()) {
+			final Set<String> handles = new HashSet<String>();
+			for (final Set<String> idset: ids.values()) {
 				handles.addAll(idset);
 			}
 			if (handles.isEmpty()) {
 				return;
 			}
-			if (handleService == null || userToken == null) {
+			if (handleService == null) {
 				throw new IdReferenceHandlerException(
 						"The workspace is not currently connected to the Handle Service and cannot process Handle ids.",
 						type, null);
@@ -158,7 +148,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 				if (handleService.getProtocol().equals("http")) {
 					ahc.setIsInsecureHttpConnectionAllowed(true);
 				}
-				allreadable = ahc.areReadable(new LinkedList<Long>(handles));
+				allreadable = ahc.areReadable(new LinkedList<String>(handles));
 			} catch (UnauthorizedException e) {
 				throw new IdReferenceHandlerException(
 						"Authorization for Handle Service failed. The server said: "
@@ -189,9 +179,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 				throw new IllegalStateException(
 						"IDs haven't been processed yet");
 			}
-			final Long oldIdLong = Long.parseLong(oldId);
 			for (final T assobj: ids.keySet()) {
-				if (ids.get(assobj).contains(oldIdLong)) {
+				if (ids.get(assobj).contains(oldId)) {
 					return new SimpleRemappedId(oldId);
 				}
 			}
@@ -209,8 +198,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (!ids.containsKey(associatedObject)) {
 				return newids;
 			}
-			for (final Long id: ids.get(associatedObject)) {
-				newids.add(new SimpleRemappedId("" + id));
+			for (final String id: ids.get(associatedObject)) {
+				newids.add(new SimpleRemappedId(id));
 			}
 			return newids;
 		}

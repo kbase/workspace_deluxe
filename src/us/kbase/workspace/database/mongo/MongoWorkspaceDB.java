@@ -1738,6 +1738,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
 				new HashMap<ObjectIDNoWSNoVer, List<ObjectSavePackage>>();
 		int newobjects = 0;
+		
+		//list all the save packages by object id/name
+		//find packages where an object id or name was not provided
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer o = p.wo.getObjectIdentifier();
 			if (o != null) {
@@ -1746,23 +1749,33 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 				idToPkg.get(o).add(p);
 			} else {
+				//no name or ID was given, we need to make an ID and autogenerate a name
 				newobjects++;
 			}
 		}
+		
+		//confirm object IDs exist or get the id for a name, if any
 		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objIDs =
 				resolveObjectIDs(wsidmongo, idToPkg.keySet());
+		
+		//check each id or name provided by the user
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
+				//the id or name wasn't found
 				if (o.getId() != null) {
+					//no such id, punt
 					throw new NoSuchObjectException(
 							"There is no object with id " + o.getId());
 				} else {
+					//no such name, add the unconfirmed name to all the packages
+					// and increment the counter for the object ids we need
 					for (ObjectSavePackage pkg: idToPkg.get(o)) {
 						pkg.name = o.getName();
 					}
 					newobjects++;
 				}
 			} else {
+				//confirmed either the ID or the name, add the confirmed name to the package
 				for (ObjectSavePackage pkg: idToPkg.get(o)) {
 					pkg.name = objIDs.get(o).getName();
 				}
