@@ -127,7 +127,7 @@ public class ConfigurationsAndThreads {
 	private static URL workspace0_1_0URL;
 	private static URL workspace0_0_5URL;
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "deprecation" })
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
 			String workspaceURL, String workspace005URL, List<String> configs, List<Integer> threadCounts)
 					throws Exception {
@@ -163,7 +163,8 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.shock.url", shockurl);
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user, null);
+		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
+				1, WorkspaceTestCommon.SHOCK, user, null);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
 				password, tfm, 0),
 				new ResourceUsageConfigurationBuilder().build(),

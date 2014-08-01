@@ -30,7 +30,6 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /*
  * These tests are specifically for testing the WS CLI written in perl.
@@ -183,11 +182,12 @@ public class ScriptTestRunner {
 		System.out.println("Starting tests");
 	}
 
+	@SuppressWarnings("deprecation")
 	private static WorkspaceServer startupWorkspaceServer(int dbNum)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
-		WorkspaceTestCommon.destroyAndSetupDB(dbNum, "gridFS", null, null);
+		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(dbNum, "gridFS", null, null);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
@@ -197,12 +197,12 @@ public class ScriptTestRunner {
 		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", WorkspaceTestCommon.getHost());
-		String dbName = dbNum == 1 ? WorkspaceTestCommon.getDB1() : 
-			WorkspaceTestCommon.getDB2();
+		ws.add("mongodb-host", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getHost());
+		String dbName = dbNum == 1 ? us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getDB1() : 
+			us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getDB2();
 		ws.add("mongodb-database", dbName);
-		ws.add("mongodb-user", WorkspaceTestCommon.getMongoUser());
-		ws.add("mongodb-pwd", WorkspaceTestCommon.getMongoPwd());
+		ws.add("mongodb-user", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoUser());
+		ws.add("mongodb-pwd", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoPwd());
 		ws.add("backend-secret", "");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", "tempForJSONRPCLayerTester");

@@ -98,7 +98,6 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.ResolvedSaveObject;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -3352,16 +3351,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 		private static MongoWorkspaceDB testdb;
 		
+		@SuppressWarnings("deprecation")
 		@BeforeClass
 		public static void setUpClass() throws Exception {
-			WorkspaceTestCommon.destroyAndSetupDB(1, "gridFS", "foo", null);
-			String host = WorkspaceTestCommon.getHost();
-			String db1 = WorkspaceTestCommon.getDB1();
-			String mUser = WorkspaceTestCommon.getMongoUser();
-			String mPwd = WorkspaceTestCommon.getMongoPwd();
+			us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(1, "gridFS", "foo", null);
+			String host = us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getHost();
+			String db1 = us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getDB1();
+			String mUser = us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoUser();
+			String mPwd = us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoPwd();
 			final String kidlpath = new Util().getKIDLpath();
 			TempFilesManager tfm = new TempFilesManager(
-					new File(WorkspaceTestCommon.getTempDir()));
+					new File(us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getTempDir()));
 			if (mUser == null || mUser == "") {
 				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", "foo",
 						"foo", null, tfm);
@@ -3371,6 +3371,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		
+		//TODO 1 deal with this nutty test
 		@Test
 		public void createObject() throws Exception {
 			testdb.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
