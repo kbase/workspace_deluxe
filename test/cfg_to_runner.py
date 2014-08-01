@@ -12,20 +12,12 @@ ANT = 'ant'
 
 CFG_SECTION = 'Workspacetest'
 
-CONFIG_OPTS = ['test.mongo.host',
-               'test.mongo.db1',
-               'test.mongo.db2',
-               'test.mongo.db.types1',
-               'test.mongo.db.types2',
-               'test.mongo.user',
-               'test.mongo.pwd',
-               'test.user1',
+CONFIG_OPTS = ['test.user1',
                'test.pwd1',
                'test.user2',
                'test.pwd2',
                'test.user3',
                'test.shock.exe',
-               'test.shock.db',
                'test.mongo.exe',
                'test.temp.dir'
                ]
