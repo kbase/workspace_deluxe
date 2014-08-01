@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -239,12 +240,12 @@ public class WorkspaceTester {
 			Integer maxMemoryUsePerCall)
 					throws Exception {
 		
-		
-		tfm = TempFilesManager.forTests();
+		tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
 		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
 				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
-		//TODO 1 restore test
+		//TODO 1 mike restore test
 //		final String kidlpath = new Util().getKIDLpath();
 //		wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
 //				kidlpath, null, tfm);

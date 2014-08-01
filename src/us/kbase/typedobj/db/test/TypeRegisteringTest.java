@@ -1,12 +1,13 @@
 package us.kbase.typedobj.db.test;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -114,17 +115,17 @@ public class TypeRegisteringTest {
 
 	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
 		useMongo = useMongoParam;
-		File dir = new File("temp_files");
-		if (!dir.exists())
-			dir.mkdir();
+		Path d = Paths.get(WorkspaceTestCommon.getTempDir())
+				.resolve("TypeRegisteringTest");
+		Files.createDirectories(d);
 		TypeStorage innerStorage;
 		if (useMongo) {
 			innerStorage = new MongoTypeStorage(createMongoDbConnection());
 		} else {
-			innerStorage = new FileTypeStorage(dir.getAbsolutePath());
+			innerStorage = new FileTypeStorage(d.toFile().getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, dir, new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(storage, d.toFile(), new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 	}
 	
 	public static DB createMongoDbConnection() throws Exception {

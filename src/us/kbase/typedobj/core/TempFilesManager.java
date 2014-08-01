@@ -96,13 +96,6 @@ public class TempFilesManager {
 			f.delete();
 		}
 	}
-	
-	/** Return a TFM using the ./temp_files directory.
-	 * @return
-	 */
-	public static TempFilesManager forTests() {
-		return new TempFilesManager(new File("temp_files"));
-	}
 
 	/** Check if any temporary files exist.
 	 * @return true if any temporary files exist.

@@ -226,10 +226,6 @@ public class ByteArrayFileCacheManager {
 				+ ", maxSizeInMem=" + maxSizeInMem + ", sizeOnDisk="
 				+ sizeOnDisk + ", maxSizeOnDisk=" + maxSizeOnDisk + "]";
 	}
-
-	public static ByteArrayFileCacheManager forTests() {
-		return new ByteArrayFileCacheManager(16000000, 2000000000L, TempFilesManager.forTests());
-	}
 	
 	public class ByteArrayFileCache {
 		private File tempFile = null;

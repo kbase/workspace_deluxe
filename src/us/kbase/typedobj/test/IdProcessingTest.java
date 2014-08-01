@@ -13,6 +13,9 @@ import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,6 +52,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 //import us.kbase.workspace.kbase.Util;
 //import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /**
  * Tests that ensure IDs are properly extracted from typed object instances, and that IDs
@@ -76,15 +80,13 @@ public class IdProcessingTest {
 	private static final int TEST_COUNT = 10;
 	
 	/**
-	 * location to stash the temporary database for testing
-	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
-	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/IdProcessing";
-	
-	/**
 	 * relative location to find the input files
 	 */
 	private final static String TEST_RESOURCE_LOCATION = "files/IdProcessing/";
+	
+	private final static Path TEST_DB_LOCATION =
+			Paths.get(WorkspaceTestCommon.getTempDir())
+			.resolve("IdProcessingTest");
 	
 	/**
 	 * KB types to register
@@ -149,23 +151,22 @@ public class IdProcessingTest {
 	{
 		
 		//ensure test location is available
-		File dir = new File(TEST_DB_LOCATION);
+		File dir = TEST_DB_LOCATION.toFile();
 		if (dir.exists()) {
 			//fail("database at location: "+TEST_DB_LOCATION+" already exists, remove/rename this directory first");
 			removeDb();
 		}
-		if(!dir.mkdirs()) {
-			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
-		}
+		Files.createDirectories(TEST_DB_LOCATION);
+
 		
 		System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
-		File tempdir = new File("temp_files");
+		File tempdir = Paths.get(dir.toString()).resolve("temp_files").toFile();
 		if (!dir.exists())
 			dir.mkdir();
 		
-		//TODO mike restore test
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir);//,
+		//TODO 1 mike restore test
+		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()), tempdir);//,
 				//new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		// create a validator that uses the type def db
@@ -210,7 +211,7 @@ public class IdProcessingTest {
 	
 	@AfterClass
 	public static void removeDb() throws IOException {
-		File dir = new File(TEST_DB_LOCATION);
+		File dir = TEST_DB_LOCATION.toFile();
 		FileUtils.deleteDirectory(dir);
 		System.out.println("deleting typed obj database");
 	}

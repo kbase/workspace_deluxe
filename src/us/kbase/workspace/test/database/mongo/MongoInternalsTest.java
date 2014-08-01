@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Date;
@@ -45,7 +46,7 @@ import com.mongodb.MongoClient;
 
 public class MongoInternalsTest {
 	
-	private static final boolean DELETE_TEMP_DIR_ON_EXIT = false;
+	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
 	
 	private static Jongo jdb;
 	private static MongoWorkspaceDB mwdb;
@@ -68,8 +69,10 @@ public class MongoInternalsTest {
 		jdb = new Jongo(db);
 		final String kidlpath = new Util().getKIDLpath();
 		
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo", "foo", "foo",
-				kidlpath, null, TempFilesManager.forTests());
+				kidlpath, null, tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());

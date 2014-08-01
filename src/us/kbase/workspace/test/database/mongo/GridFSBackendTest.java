@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
@@ -20,6 +21,7 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSInputFile;
 
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -35,11 +37,13 @@ public class GridFSBackendTest {
 	private static GridFSBackend gfsb;
 	private static GridFS gfs;
 	private static MongoController mongo;
+	private static TempFilesManager tfm;
 	
 	private static final String a32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
+		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIR_ON_EXIT);
@@ -91,7 +95,7 @@ public class GridFSBackendTest {
 		gif.save();
 		
 		ByteArrayFileCache d = gfsb.getBlob(md5, 
-				ByteArrayFileCacheManager.forTests());
+				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(s));
@@ -105,7 +109,7 @@ public class GridFSBackendTest {
 		gfsb.saveBlob(md1, stringToWriteable(data), true);
 		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		ByteArrayFileCache d = gfsb.getBlob(md1copy, 
-				ByteArrayFileCacheManager.forTests());
+				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
@@ -114,12 +118,14 @@ public class GridFSBackendTest {
 		
 		gfsb.saveBlob(md1, stringToWriteable(data), false); //this should do nothing
 		assertThat("sorted still true", gfsb.getBlob(md1copy,
-				ByteArrayFileCacheManager.forTests()).isSorted(), is(true));
+				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
+					.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
 		gfsb.saveBlob(md2, stringToWriteable(data2), false);
-		d = gfsb.getBlob(md2, ByteArrayFileCacheManager.forTests());
+		d = gfsb.getBlob(md2,
+				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
 		
 		gfsb.removeBlob(md1);
@@ -129,7 +135,8 @@ public class GridFSBackendTest {
 	@Test
 	public void getNonExistantBlob() throws Exception {
 		try {
-			gfsb.getBlob(new MD5(a32), ByteArrayFileCacheManager.forTests());
+			gfsb.getBlob(new MD5(a32),
+					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 			fail("getblob should throw exception");
 		} catch (BlobStoreException wbe) {
 			assertThat("wrong exception message from failed getblob",

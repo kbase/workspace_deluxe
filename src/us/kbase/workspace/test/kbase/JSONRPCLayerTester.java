@@ -302,7 +302,8 @@ public class JSONRPCLayerTester {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
-		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
+		File iniFile = File.createTempFile("test", ".cfg",
+				new File(WorkspaceTestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -313,7 +314,7 @@ public class JSONRPCLayerTester {
 		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		ws.add("temp-dir", "tempForJSONRPCLayerTester");
+		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		

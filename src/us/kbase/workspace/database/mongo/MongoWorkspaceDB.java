@@ -3360,12 +3360,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			String mUser = WorkspaceTestCommon.getMongoUser();
 			String mPwd = WorkspaceTestCommon.getMongoPwd();
 			final String kidlpath = new Util().getKIDLpath();
+			TempFilesManager tfm = new TempFilesManager(
+					new File(WorkspaceTestCommon.getTempDir()));
 			if (mUser == null || mUser == "") {
 				testdb = new MongoWorkspaceDB(host, db1, kidlpath, "foo", "foo",
-						"foo", null, TempFilesManager.forTests());
+						"foo", null, tfm);
 			} else {
 				testdb = new MongoWorkspaceDB(host, db1, kidlpath, mUser, mPwd,
-						"foo", null, TempFilesManager.forTests());
+						"foo", null, tfm);
 			}
 		}
 		

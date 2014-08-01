@@ -2,6 +2,7 @@ package performance;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
@@ -120,6 +121,7 @@ public class ConfigurationsAndThreads {
 	private static Map<String, Object> mapData;
 	private static AuthToken token;
 	private static String password;
+	private static TempFilesManager tfm;
 	
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
@@ -129,6 +131,8 @@ public class ConfigurationsAndThreads {
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
 			String workspaceURL, String workspace005URL, List<String> configs, List<Integer> threadCounts)
 					throws Exception {
+		
+		
 		System.out.println(
 				"Timing read/write against shock and the workspace service");
 		System.out.println("Shock url: " + shockurl);
@@ -157,9 +161,11 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.mongo.db.types1", TYPE_DB);
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
+		tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		WorkspaceTestCommon.destroyAndSetupDB(1, WorkspaceTestCommon.SHOCK, user, null);
 		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
-				password, TempFilesManager.forTests(), 0),
+				password, tfm, 0),
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -462,7 +468,7 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, TempFilesManager.forTests(), 0),
+			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, tfm, 0),
 					new ResourceUsageConfigurationBuilder().build(),
 					new KBaseReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -532,7 +538,8 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
-				sb.getBlob(md5, ByteArrayFileCacheManager.forTests());
+				sb.getBlob(md5,
+						new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 			}
 			return 0;
 		}
@@ -572,7 +579,8 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.getBlob(md5, ByteArrayFileCacheManager.forTests());
+				gfsb.getBlob(md5,
+						new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 			}
 			return 0;
 		}

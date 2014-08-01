@@ -12,6 +12,9 @@ import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -67,7 +70,9 @@ public class WsSubsetExtractionTest {
 	 * location to stash the temporary database for testing
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
-	private final static String TEST_DB_LOCATION = "test/typedobj_temp_test_files/SubsetAndMetadataExtraction";
+	private final static Path TEST_DB_LOCATION =
+			Paths.get(WorkspaceTestCommon.getTempDir())
+			.resolve("WsSubsetExtractionTest");
 	
 	/**
 	 * relative location to find the input files
@@ -130,21 +135,20 @@ public class WsSubsetExtractionTest {
 	{
 		
 		//ensure test location is available
-		File dir = new File(TEST_DB_LOCATION);
+		File dir = TEST_DB_LOCATION.toFile();
 		if (dir.exists()) {
 			//fail("database at location: "+TEST_DB_LOCATION+" already exists, remove/rename this directory first");
 			removeDb();
 		}
-		if(!dir.mkdirs()) {
-			fail("unable to create needed test directory: "+TEST_DB_LOCATION);
-		}
+		Files.createDirectories(TEST_DB_LOCATION);
+
 		
 		if(VERBOSE) System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
-		File tempdir = new File("temp_files");
+		File tempdir = TEST_DB_LOCATION.resolve("temp_files").toFile();
 		if (!dir.exists())
 			dir.mkdir();
-		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION), tempdir, 
+		db = new TypeDefinitionDB(new FileTypeStorage(TEST_DB_LOCATION.toString()), tempdir, 
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		
@@ -185,7 +189,7 @@ public class WsSubsetExtractionTest {
 	
 	@AfterClass
 	public static void removeDb() throws IOException {
-		File dir = new File(TEST_DB_LOCATION);
+		File dir = TEST_DB_LOCATION.toFile();
 		FileUtils.deleteDirectory(dir);
 		if(VERBOSE) System.out.println("deleting typed obj database");
 	}

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,24 +48,31 @@ public class TypedObjectValidationReportTest {
 	
 	private static final String USER = "someUser";
 	
+	private static Path tempdir;
+	
 	@BeforeClass
 	public static void setupTypeDB() throws Exception {
 		//ensure test location is available
-		Path dir = Files.createTempDirectory(
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				"TypedObjectValReportTest");
-		dir.toFile().deleteOnExit();
+		final Path temppath = Paths.get(WorkspaceTestCommon.getTempDir());
+		Files.createDirectories(temppath);
+		tempdir = Files.createTempDirectory(temppath, "TypedObjectValReportTest");
 		System.out.println("setting up temporary typed obj database");
 
 		// point the type definition db to point there
-		Path tempdir = Files.createTempDirectory("TypedObjectValReportTest");
-		tempdir.toFile().deleteOnExit();
+		final Path storagedir = tempdir.resolve("typestorage");
+		Files.createDirectories(storagedir);
 		db = new TypeDefinitionDB(
-				new FileTypeStorage(dir.toFile().getAbsolutePath()),
+				new FileTypeStorage(storagedir.toFile().getAbsolutePath()),
 				tempdir.toFile(), new Util().getKIDLpath(),
 				WorkspaceTestCommon.getKidlSource());
 		addSpecs();
 	}
+	
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+		FileUtils.deleteDirectory(tempdir.toFile());
+	}
+	
 	
 	
 	private static void addSpecs() throws Exception {
@@ -134,7 +144,8 @@ public class TypedObjectValidationReportTest {
 			assertThat("correct expt msg", npe.getLocalizedMessage(),
 					is("Sorter factory cannot be null"));
 		}
-		TempFilesManager tfm = TempFilesManager.forTests();
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		try {
 			tovr.sort(null, tfm);
 			fail("sorted with no factory");
@@ -296,7 +307,8 @@ public class TypedObjectValidationReportTest {
 				handlers);
 		handlers.processIDs();
 
-		TempFilesManager tfm = TempFilesManager.forTests();
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		tovr.sort(SORT_FAC, tfm);
@@ -322,7 +334,8 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 		
 		int maxmem = 8 + 64 + 8 + 64;
-		TempFilesManager tfm = TempFilesManager.forTests();
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		
 		//test with json stored in file
