@@ -5,11 +5,18 @@ import static us.kbase.workspace.test.controllers.ControllerCommon.checkExe;
 import static us.kbase.workspace.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 
@@ -36,6 +43,8 @@ public class MySQLController {
 	private final Process mysql;
 	private final int port;
 	private final boolean deleteTempDirOnExit;
+
+	private Connection client;
 
 	/**
 	 * @param mysqlExe
@@ -68,17 +77,34 @@ public class MySQLController {
 					". Check the log in " + tempDir);
 		}
 		
+		Set<PosixFilePermission> perms =
+				PosixFilePermissions.fromString("rwx------");
+		FileAttribute<Set<PosixFilePermission>> attr =
+				PosixFilePermissions.asFileAttribute(perms);
+		Path socket = Files.createTempDirectory("mysqlsocket", attr);
+		
 		port = findFreePort();
 		ProcessBuilder servpb = new ProcessBuilder(mysqlExe,
 				"--port=" + port,
 				"--datadir=" + tempDir.resolve(DATA_DIR).toString(),
 				"--pid-file=" + tempDir.resolve("pid").toString(),
-				"--socket=" + tempDir.resolve("socket").toString())
+				"--socket=" + socket.resolve("MySQLController.sock"))
+				//don't do this: http://bugs.mysql.com/bug.php?id=42512
+//				"--socket=" + tempDir.resolve("socket").toString())
 				.redirectErrorStream(true)
 				.redirectOutput(tempDir.resolve("mysql.log").toFile());
 		
 		mysql = servpb.start();
-		Thread.sleep(1000); //wait for server to start up
+		Thread.sleep(3000); //wait for server to start up
+		
+		
+		Class.forName("com.mysql.jdbc.Driver");
+		client = DriverManager.getConnection("jdbc:mysql://localhost:" + port,
+				"root", null);
+	}
+	
+	public Connection getClient() {
+		return client;
 	}
 
 	public int getServerPort() {
