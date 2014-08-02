@@ -141,10 +141,10 @@ public class JSONRPCLayerTester {
 	private static List<TempFilesManager> tfms =
 			new LinkedList<TempFilesManager>();;
 	
-	private static class ServerThread extends Thread {
+	protected static class ServerThread extends Thread {
 		private WorkspaceServer server;
 		
-		private ServerThread(WorkspaceServer server) {
+		protected ServerThread(WorkspaceServer server) {
 			this.server = server;
 		}
 		
@@ -160,7 +160,7 @@ public class JSONRPCLayerTester {
 	
 	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
-	private static Map<String, String> getenv() throws NoSuchFieldException,
+	protected static Map<String, String> getenv() throws NoSuchFieldException,
 			SecurityException, IllegalArgumentException, IllegalAccessException {
 		Map<String, String> unmodifiable = System.getenv();
 		Class<?> cu = unmodifiable.getClass();

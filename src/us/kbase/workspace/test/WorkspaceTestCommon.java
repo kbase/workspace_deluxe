@@ -12,6 +12,9 @@ public class WorkspaceTestCommon {
 	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
+	public static final String MYSQLEXE = "test.mysql.exe";
+	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
+	
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
@@ -49,6 +52,14 @@ public class WorkspaceTestCommon {
 	
 	public static String getShockExe() {
 		return getProp(SHOCKEXE);
+	}
+
+	public static String getMySQLExe() {
+		return getProp(MYSQLEXE);
+	}
+	
+	public static String getMySQLInstallExe() {
+		return getProp(MYSQL_INSTALL_EXE);
 	}
 	
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
@@ -90,4 +101,5 @@ public class WorkspaceTestCommon {
 	mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", SHOCK));
 	}
+
 }

@@ -10,6 +10,7 @@ import org.junit.Test;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.kbase.RefreshingToken;
 
+//TODO move to auth
 public class RefreshingTokenTest {
 	
 	private static String USER;
