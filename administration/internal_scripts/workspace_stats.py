@@ -3,6 +3,10 @@ Created on Apr 27, 2014
 
 @author: crusherofheads
 
+Get stats about the workspace. Object counts by pub/priv/type, unique users
+who have saved data, pub/priv workspaces, total size of data (note this
+double counts copied data and data with the same MD5)
+
 Don't run this during high loads - runs through every object in the DB
 Hasn't been optimized much either
 '''
