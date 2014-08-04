@@ -2,6 +2,9 @@
 Created on Apr 27, 2014
 
 @author: crusherofheads
+
+Don't run this during high loads - runs through every object in the DB
+Hasn't been optimized much either
 '''
 from __future__ import print_function
 from configobj import ConfigObj
@@ -16,7 +19,7 @@ USER = 'user'
 PWD = 'pwd'
 # mongo db location
 WS_MONGO_HOST = 'localhost'
-WS_MONGO_PORT = 49996
+WS_MONGO_PORT = 49990
 WS_MONGO_DB = 'workspace'
 #collection names
 COL_WS = 'workspaces'
@@ -33,7 +36,7 @@ if __name__ == '__main__':
     cfg = ConfigObj(CREDS_FILE)
     user = cfg[CREDS_SECTION][USER]
     pwd = cfg[CREDS_SECTION][PWD]
-    mongo = MongoClient(WS_MONGO_HOST, WS_MONGO_PORT)
+    mongo = MongoClient(WS_MONGO_HOST, WS_MONGO_PORT, slaveOk=True)
     db = mongo[WS_MONGO_DB]
     db.authenticate(user, pwd)
     # may need to do this in chunks in the future, for now there's
