@@ -15,6 +15,7 @@ from configobj import ConfigObj
 from pymongo import MongoClient
 import time
 import sys
+from collections import defaultdict
 
 # where to get credentials (don't check these into git, idiot)
 CREDS_FILE = 'ws_mongo_creds'
@@ -45,15 +46,23 @@ if __name__ == '__main__':
     db.authenticate(user, pwd)
     # may need to do this in chunks in the future, for now there's
     # < 2000 workspaces
-    mongo_workspaces = db[COL_WS].find({'del': False}, ['ws'])
-    pub_read = db[COL_ACLS].find({'user': '*'}, ['id', 'perm'])
-    pub_ws = {}
-    for ws in mongo_workspaces:
-        pub_ws[ws['ws']] = False
+    ws_cursor = db[COL_WS].find({'del': False}, ['ws', 'numObj'])
+    pub_read = db[COL_ACLS].find({'user': '*'}, ['id'])
+    workspaces = defaultdict(dict)
+    for ws in ws_cursor:
+        workspaces[ws['ws']]['pub'] = False
+        workspaces[ws['ws']]['numObj'] = ws['numObj']
     for pr in pub_read:
-        pub_ws[pr['id']] = True
+        if pr['id'] in workspaces:  # otherwise deleted
+            workspaces[pr['id']]['pub'] = True
     print("Total objects: " + str(db[COL_OBJ].count()))
     types = {}
+    for ws in workspaces:
+        objs = workspaces[ws]['numObj']
+        print('Processing workspace {}, {} objects'.format(ws, objs))
+        for lim in xrange(LIMIT, objs + LIMIT, LIMIT):
+            print('Processing objects {} - {}'.format(lim - LIMIT + 1, min(objs, lim)))
+    sys.exit(0)
     skip = 0
     no_record = False
     while(not no_record):
@@ -78,7 +87,7 @@ if __name__ == '__main__':
                 types[tname][ver] = {}
                 types[tname][ver][PUBLIC] = 0
                 types[tname][ver][PRIVATE] = 0
-            p = PUBLIC if pub_ws[v['ws']] else PRIVATE
+            p = PUBLIC if workspaces[v['ws']] else PRIVATE
             types[tname][ver][p] += 1
         print('total ver query time: ' + str(time.time() - ttlstart))
         sys.stdout.flush()
