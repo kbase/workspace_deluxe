@@ -36,32 +36,54 @@ PUBLIC = 'pub'
 PRIVATE = 'priv'
 
 LIMIT = 10000
+OR_QUERY_SIZE = 100
 MAX_WS = 358  # for testing, set to < 1 for all ws
+
+
+def chunkiter(iterable, size):
+    """Iterates over an iterable in chunks of size size. Returns an iterator
+  that in turn returns iterators over the iterable that each iterate through
+  size objects in the iterable.
+  Note that since the inner and outer loops are pulling values from the same
+  iterator, continue and break don't necessarily behave exactly as one would
+  expect. In the outer loop of the iteration, continue effectively does
+  nothing, but break works normally. In the inner loop, break has no real
+  effect but continue works normally. For the latter issue, wrapping the inner
+  iterator in a tuple will cause break to skip the remaining items in the
+  iterator. Alternatively, one can set a flag and exhaust the inner iterator.
+  """
+    def inneriter(first, iterator, size):
+        yield first
+        for _ in xrange(size - 1):
+            yield iterator.next()
+    it = iter(iterable)
+    while True:
+        yield inneriter(it.next(), it, size)
 
 
 def process_objects(objs, unique_users, types, workspaces):
     objsproc = 0
     size = 0
-    for o in objs:
-        #this is faster than $or queries - although it might be faster
-        # to do $or if the # of items is < 100 say. > 1000 was about
-        # 10x slower
-        # should make some batching code for small batches
-        v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
-                                  'ver': o['numver']},
-                                  ['type', 'ws', 'savedby', 'size'])
-        unique_users.add(v['savedby'])
-        size += v['size']
-        tname, ver = v['type'].split('-')
-        if tname not in types:
-            types[tname] = {}
-        if ver not in types[tname]:
-            types[tname][ver] = {}
-            types[tname][ver][PUBLIC] = 0
-            types[tname][ver][PRIVATE] = 0
-        p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
-        types[tname][ver][p] += 1
-        objsproc += 1
+    # note all objects are from the same workspace
+    for objs in chunkiter(objs, OR_QUERY_SIZE):
+        innerq = []
+        for o in objs:
+            innerq.append({'id': o['id'], 'ver': o['numver']})
+        res = db[COL_VERS].find({'ws': o['ws'], '$or': innerq},
+                                ['type', 'ws', 'savedby', 'size'])
+        for v in res:
+            unique_users.add(v['savedby'])
+            size += v['size']
+            tname, ver = v['type'].split('-')
+            if tname not in types:
+                types[tname] = {}
+            if ver not in types[tname]:
+                types[tname][ver] = {}
+                types[tname][ver][PUBLIC] = 0
+                types[tname][ver][PRIVATE] = 0
+            p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
+            types[tname][ver][p] += 1
+            objsproc += 1
     return size, objsproc
 
 
