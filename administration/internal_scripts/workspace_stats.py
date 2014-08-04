@@ -36,6 +36,7 @@ PUBLIC = 'pub'
 PRIVATE = 'priv'
 
 LIMIT = 10000
+MAX_WS = -1  # for testing, set to < 1 for all ws
 
 if __name__ == '__main__':
     cfg = ConfigObj(CREDS_FILE)
@@ -55,43 +56,50 @@ if __name__ == '__main__':
     for pr in pub_read:
         if pr['id'] in workspaces:  # otherwise deleted
             workspaces[pr['id']]['pub'] = True
+    print('Total workspaces: ' + str(len(workspaces)))
     print("Total objects: " + str(db[COL_OBJ].count()))
     types = {}
+    wscount = 0
+    objcount = 0
     for ws in workspaces:
-        objs = workspaces[ws]['numObj']
-        print('Processing workspace {}, {} objects'.format(ws, objs))
-        for lim in xrange(LIMIT, objs + LIMIT, LIMIT):
-            print('Processing objects {} - {}'.format(lim - LIMIT + 1, min(objs, lim)))
-    sys.exit(0)
-    skip = 0
-    no_record = False
-    while(not no_record):
-        print('Skip: {}'.format(skip))
-        sys.stdout.flush()
-        no_record = True
-        objtime = time.time()
-        objs = db[COL_OBJ].find({'del': False}, ['ws', 'id', 'numver'],
-                                 skip=skip, limit=LIMIT)
-        ttlstart = time.time()
-        for o in objs:
-            no_record = False
-            #this is faster than $or queries - although it might be faster
-            # to do $or if the # of items is < 100 say. > 1000 was about 10x
-            # slower
-            v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
-                                   'ver': o['numver']}, ['type', 'ws'])
-            tname, ver = v['type'].split('-')
-            if tname not in types:
-                types[tname] = {}
-            if ver not in types[tname]:
-                types[tname][ver] = {}
-                types[tname][ver][PUBLIC] = 0
-                types[tname][ver][PRIVATE] = 0
-            p = PUBLIC if workspaces[v['ws']] else PRIVATE
-            types[tname][ver][p] += 1
-        print('total ver query time: ' + str(time.time() - ttlstart))
-        sys.stdout.flush()
-        skip += LIMIT
+        if wscount > 0 and wscount > MAX_WS:
+            break
+        wsobjcount = workspaces[ws]['numObj']
+        print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
+        for lim in xrange(LIMIT, wsobjcount + LIMIT, LIMIT):
+            print('\tProcessing objects {} - {}'.format(
+                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim))
+            sys.stdout.flush()
+            objtime = time.time()
+            query = {'del': False, 'ws': ws,
+                      'id': {'$gt': lim - LIMIT, '$lte': lim}}
+            objs = db[COL_OBJ].find(query, ['ws', 'id', 'numver'])
+            print('\ttotal obj query time: ' + str(time.time() - objtime))
+            ttlstart = time.time()
+            objsproc = 0
+            for o in objs:
+                #this is faster than $or queries - although it might be faster
+                # to do $or if the # of items is < 100 say. > 1000 was about
+                # 10x slower
+                # should make some batching code for small batches
+                v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
+                                       'ver': o['numver']}, ['type', 'ws'])
+                tname, ver = v['type'].split('-')
+                if tname not in types:
+                    types[tname] = {}
+                if ver not in types[tname]:
+                    types[tname][ver] = {}
+                    types[tname][ver][PUBLIC] = 0
+                    types[tname][ver][PRIVATE] = 0
+                p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
+                types[tname][ver][p] += 1
+                objsproc += 1
+            print('\ttotal ver query time: ' + str(time.time() - ttlstart))
+            print('\tobjects processed: ' + str(objsproc))
+            objcount += objsproc
+            print('total objects processed: ' + str(objcount))
+            sys.stdout.flush()
+        wscount += 1
 
     print()
     print('\t'.join(['Type', 'Version', 'Public', 'Private', 'TTL']))
@@ -100,7 +108,7 @@ if __name__ == '__main__':
     for t in types:
         pub_type_tot = 0
         priv_type_tot = 0
-        for v in types[t]:
+        for v in sorted(types[t]):
             print('\t'.join([t, v, str(types[t][v][PUBLIC]),
                              str(types[t][v][PRIVATE]),
                              str(types[t][v][PUBLIC] + types[t][v][PRIVATE])]))
