@@ -36,8 +36,8 @@ PUBLIC = 'pub'
 PRIVATE = 'priv'
 
 LIMIT = 10000
-OR_QUERY_SIZE = 100
-MAX_WS = 358  # for testing, set to < 1 for all ws
+OR_QUERY_SIZE = 100  # 75 was slower, 150 was slower
+MAX_WS = -1  # for testing, set to < 1 for all ws
 
 
 def chunkiter(iterable, size):
