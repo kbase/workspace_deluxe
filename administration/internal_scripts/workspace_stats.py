@@ -61,8 +61,10 @@ if __name__ == '__main__':
     types = {}
     wscount = 0
     objcount = 0
+    unique_users = set()
+    total_size = 0
     for ws in workspaces:
-        if wscount > 0 and wscount > MAX_WS:
+        if MAX_WS > 0 and wscount > MAX_WS:
             break
         wsobjcount = workspaces[ws]['numObj']
         print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
@@ -83,7 +85,10 @@ if __name__ == '__main__':
                 # 10x slower
                 # should make some batching code for small batches
                 v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
-                                       'ver': o['numver']}, ['type', 'ws'])
+                                          'ver': o['numver']},
+                                          ['type', 'ws', 'savedby', 'size'])
+                unique_users.add(v['savedby'])
+                total_size += v['size']
                 tname, ver = v['type'].split('-')
                 if tname not in types:
                     types[tname] = {}
@@ -101,8 +106,22 @@ if __name__ == '__main__':
             sys.stdout.flush()
         wscount += 1
 
-    print()
-    print('\t'.join(['Type', 'Version', 'Public', 'Private', 'TTL']))
+    print('\nResults:')
+    pubws = 0
+    privws = 0
+    for ws in workspaces:
+        if workspaces[ws]['pub']:
+            pubws += 1
+        else:
+            privws += 1
+    print('Total public workspaces ' + str(pubws))
+    print('Total private workspaces ' + str(privws))
+    print('Total users who have saved or copied an object: ' +
+          str(len(unique_users)))
+    print('Total size of stored data (double counts copies and identical ' +
+          'data saved > 1 times): ' + str(total_size))
+
+    print('\n' + '\t'.join(['Type', 'Version', 'Public', 'Private', 'TTL']))
     pub_tot = 0
     priv_tot = 0
     for t in types:
