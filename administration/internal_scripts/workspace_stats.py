@@ -36,7 +36,34 @@ PUBLIC = 'pub'
 PRIVATE = 'priv'
 
 LIMIT = 10000
-MAX_WS = -1  # for testing, set to < 1 for all ws
+MAX_WS = 358  # for testing, set to < 1 for all ws
+
+
+def process_objects(objs, unique_users, types, workspaces):
+    objsproc = 0
+    size = 0
+    for o in objs:
+        #this is faster than $or queries - although it might be faster
+        # to do $or if the # of items is < 100 say. > 1000 was about
+        # 10x slower
+        # should make some batching code for small batches
+        v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
+                                  'ver': o['numver']},
+                                  ['type', 'ws', 'savedby', 'size'])
+        unique_users.add(v['savedby'])
+        size += v['size']
+        tname, ver = v['type'].split('-')
+        if tname not in types:
+            types[tname] = {}
+        if ver not in types[tname]:
+            types[tname][ver] = {}
+            types[tname][ver][PUBLIC] = 0
+            types[tname][ver][PRIVATE] = 0
+        p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
+        types[tname][ver][p] += 1
+        objsproc += 1
+    return size, objsproc
+
 
 if __name__ == '__main__':
     cfg = ConfigObj(CREDS_FILE)
@@ -78,27 +105,11 @@ if __name__ == '__main__':
             objs = db[COL_OBJ].find(query, ['ws', 'id', 'numver'])
             print('\ttotal obj query time: ' + str(time.time() - objtime))
             ttlstart = time.time()
-            objsproc = 0
-            for o in objs:
-                #this is faster than $or queries - although it might be faster
-                # to do $or if the # of items is < 100 say. > 1000 was about
-                # 10x slower
-                # should make some batching code for small batches
-                v = db[COL_VERS].find_one({'ws': o['ws'], 'id': o['id'],
-                                          'ver': o['numver']},
-                                          ['type', 'ws', 'savedby', 'size'])
-                unique_users.add(v['savedby'])
-                total_size += v['size']
-                tname, ver = v['type'].split('-')
-                if tname not in types:
-                    types[tname] = {}
-                if ver not in types[tname]:
-                    types[tname][ver] = {}
-                    types[tname][ver][PUBLIC] = 0
-                    types[tname][ver][PRIVATE] = 0
-                p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
-                types[tname][ver][p] += 1
-                objsproc += 1
+
+            size, objsproc = process_objects(
+                objs, unique_users, types, workspaces)
+
+            total_size += size
             print('\ttotal ver query time: ' + str(time.time() - ttlstart))
             print('\tobjects processed: ' + str(objsproc))
             objcount += objsproc
