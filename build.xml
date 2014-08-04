@@ -93,6 +93,7 @@
     <include name="apache_commons/velocity-1.7.jar"/>
     <include name="apache_commons/commons-lang-2.4.jar"/>
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
+    <include name="mysql/mysql-connector-java-5.1.22-bin.jar"/>
   </fileset>
 	
   <union id="serverside">
@@ -231,6 +232,8 @@
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
+    <fail unless="test.mysql.exe" message="property test.mysql.exe not set."/>
+    <fail unless="test.mysql.install.exe" message="property test.mysql.install.exe not set."/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
@@ -244,6 +247,8 @@
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
+      <sysproperty key="test.mysql.exe" value="${test.mysql.exe}"/>
+      <sysproperty key="test.mysql.install.exe" value="${test.mysql.install.exe}"/>
       <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>

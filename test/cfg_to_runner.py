@@ -19,6 +19,8 @@ CONFIG_OPTS = ['test.user1',
                'test.user3',
                'test.shock.exe',
                'test.mongo.exe',
+               'test.mysql.exe',
+               'test.mysql.install.exe',
                'test.temp.dir'
                ]
 

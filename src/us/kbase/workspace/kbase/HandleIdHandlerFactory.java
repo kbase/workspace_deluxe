@@ -155,11 +155,11 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 								+ e.getLocalizedMessage(), type, e);
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
-						"There was a communication error while trying contact the Handle Service: "
+						"There was a communication error while trying to contact the Handle Service: "
 						+ e.getLocalizedMessage(), type, e);
 			} catch (JsonClientException e) {
 				throw new IdReferenceHandlerException(
-						"There was an unexpected error while trying contact the Handle Service: "
+						"There was an unexpected error while trying to contact the Handle Service: "
 						+ e.getLocalizedMessage(), type, e);
 			}
 			//per Tom Brettin, 0 = false, anything else = true
