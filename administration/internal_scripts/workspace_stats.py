@@ -91,6 +91,7 @@ if __name__ == '__main__':
     cfg = ConfigObj(CREDS_FILE)
     user = cfg[CREDS_SECTION][USER]
     pwd = cfg[CREDS_SECTION][PWD]
+    starttime = time.time()
     mongo = MongoClient(WS_MONGO_HOST, WS_MONGO_PORT, slaveOk=True)
     db = mongo[WS_MONGO_DB]
     db.authenticate(user, pwd)
@@ -139,7 +140,6 @@ if __name__ == '__main__':
             sys.stdout.flush()
         wscount += 1
 
-    print('\nResults:')
     pubws = 0
     privws = 0
     for ws in workspaces:
@@ -147,6 +147,10 @@ if __name__ == '__main__':
             pubws += 1
         else:
             privws += 1
+
+    print('\nElapsed time: ' + str(time.time() - starttime))
+
+    print('\nResults:')
     print('Total public workspaces ' + str(pubws))
     print('Total private workspaces ' + str(privws))
     print('Total users who have saved or copied an object: ' +
