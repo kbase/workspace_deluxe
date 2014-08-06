@@ -1835,6 +1835,8 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -1896,6 +1898,8 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2021,6 +2025,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2083,6 +2089,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2210,6 +2218,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2274,6 +2284,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2802,6 +2814,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -2865,6 +2879,8 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+	handle_error has a value which is a string
+	handle_stacktrace has a value which is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -8725,6 +8741,9 @@ The provenance and supplemental info for an object.
         list<obj_ref> - the references contained within the object.
         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
                 from the object.
+        string handle_error - if an error occurs while setting ACLs on
+                embedded handle IDs, it will be reported here.
+        string handle_stacktrace - the stacktrace for handle_error.
 
 
 =item Definition
@@ -8739,6 +8758,8 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+handle_error has a value which is a string
+handle_stacktrace has a value which is a string
 
 </pre>
 
@@ -8753,6 +8774,8 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+handle_error has a value which is a string
+handle_stacktrace has a value which is a string
 
 
 =end text
@@ -8781,6 +8804,9 @@ The data and supplemental info for an object.
         list<obj_ref> - the references contained within the object.
         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
                 from the object.
+        string handle_error - if an error occurs while setting ACLs on
+                embedded handle IDs, it will be reported here.
+        string handle_stacktrace - the stacktrace for handle_error.
 
 
 =item Definition
@@ -8796,6 +8822,8 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+handle_error has a value which is a string
+handle_stacktrace has a value which is a string
 
 </pre>
 
@@ -8811,6 +8839,8 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
+handle_error has a value which is a string
+handle_stacktrace has a value which is a string
 
 
 =end text

@@ -751,6 +751,9 @@ module Workspace {
 		list<obj_ref> - the references contained within the object.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
+		string handle_error - if an error occurs while setting ACLs on
+			embedded handle IDs, it will be reported here.
+		string handle_stacktrace - the stacktrace for handle_error.
 	*/
 	typedef structure {
 		object_info info;
@@ -759,6 +762,8 @@ module Workspace {
 		timestamp created;
 		list<obj_ref> refs;
 		mapping<id_type, list<extracted_id>> extracted_ids;
+		string handle_error;
+		string handle_stacktrace;
 	} ObjectProvenanceInfo;
 	
 	/* 
@@ -779,6 +784,9 @@ module Workspace {
 		list<obj_ref> - the references contained within the object.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
+		string handle_error - if an error occurs while setting ACLs on
+			embedded handle IDs, it will be reported here.
+		string handle_stacktrace - the stacktrace for handle_error.
 		
 	*/
 	typedef structure {
@@ -789,6 +797,8 @@ module Workspace {
 		timestamp created;
 		list<obj_ref> refs;
 		mapping<id_type, list<extracted_id>> extracted_ids;
+		string handle_error;
+		string handle_stacktrace;
 	} ObjectData;
 	
 	/* 

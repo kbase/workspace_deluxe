@@ -16,16 +16,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
+import us.kbase.common.service.UnauthorizedException;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -335,16 +340,17 @@ public class ArgUtils {
 		return wsusers;
 	}
 	
+	//TODO 1 handle manager interaction needs testing
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
+			final WorkspaceUser user,
 			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
-			final String error = makeHandlesReadable(o, handleManagerURl,
-					handleManagertoken);
-			//TODO 1 add handle error when error structure known
+			final HandleError error = makeHandlesReadable(
+					o, user, handleManagerURl, handleManagertoken);
 			final ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
@@ -356,22 +362,25 @@ public class ArgUtils {
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
 //					.withCopied(o.getCopyReference())
-					.withExtractedIds(o.getExtractedIds()));
+					.withExtractedIds(o.getExtractedIds())
+					.withHandleError(error.error)
+					.withHandleStacktrace(error.stackTrace));
 			resourcesToDestroy.add(resource);
 		}
 		return ret;
 	}
 	
+	//TODO 1 handle manager interaction needs testing
 	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectInformation> objects,
+			final WorkspaceUser user,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken) {
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
 		for (final WorkspaceObjectInformation o: objects) {
-			final String error = makeHandlesReadable(o, handleManagerURl,
-					handleManagertoken);
-			//TODO 1 add handle error when error structure known
+			final HandleError error = makeHandlesReadable(
+					o, user, handleManagerURl, handleManagertoken);
 			ret.add(new ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo()))
 					.withProvenance(translateProvenanceActions(
@@ -381,27 +390,111 @@ public class ArgUtils {
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
 //					.withCopied(o.getCopyReference())
-					.withExtractedIds(o.getExtractedIds()));
+					.withExtractedIds(o.getExtractedIds())
+					.withHandleError(error.error)
+					.withHandleStacktrace(error.stackTrace));
 		}
 		return ret;
 	}
+	
+	private static class HandleError {
+		
+		public String error;
+		public String stackTrace;
 
-	private static String makeHandlesReadable(WorkspaceObjectInformation o,
-			URL handleManagerURl, RefreshingToken handleManagertoken) {
+		public HandleError(String error, String stackTrace) {
+			super();
+			this.error = error;
+			this.stackTrace = stackTrace;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("HandleError [error=");
+			builder.append(error);
+			builder.append(", stackTrace=");
+			builder.append(stackTrace);
+			builder.append("]");
+			return builder.toString();
+		}
+		
+	}
+
+	//TODO 1 handle manager interaction needs testing
+	private static HandleError makeHandlesReadable(
+			final WorkspaceObjectInformation o,
+			final WorkspaceUser user,
+			final URL handleManagerURL,
+			final RefreshingToken handleManagertoken) {
 		final List<String> handles = o.getExtractedIds().get(
 				HandleIdHandlerFactory.type.getType());
 		if (handles == null || handles.isEmpty()) {
-			return null;
+			return new HandleError(null, null);
 		}
-		// TODO 1 call handle manager, return error string
-		/* could batch up calls for higher efficiency, but probably not worth
-		 * the trouble for now. Only helps if you have multiple objects with
-		 * handles in the same call. Also makes error handling harder, have
-		 * to maintain a map of handle -> list<objects> and construct
-		 * error message appropriately for each object after the call.
-		 */
+		final AuthToken token;
+		try {
+			token = handleManagertoken.getToken();
+		} catch (AuthException e) {
+			return new HandleError(
+					"Unable to contact the Handle Manager - " +
+							"couldn't refresh the workspace credentials: " +
+							e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		} catch (IOException e) {
+			return new HandleError(
+					"Unable to contact the Handle Manager - " +
+							"an IO error occured while attempting to " + 
+							"refresh the workspace credentials: " +
+							e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		}
 		
-		return null;
+		final HandleMngrClient hmc;
+		try {
+			hmc = new HandleMngrClient(handleManagerURL, token);
+			if (handleManagerURL.getProtocol().equals("http")) {
+				hmc.setIsInsecureHttpConnectionAllowed(true);
+			}
+		} catch (UnauthorizedException e) {
+			return new HandleError(
+					"Unable to contact the Handle Manager - " +
+							"the Workspace credentials were rejected: " +
+							e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		} catch (IOException e) {
+			return new HandleError(
+					"Unable to contact the Handle Manager - IO exception " +
+							"attempting to validate credentials with the " +
+							"Auth Service: " + e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		}
+		try {
+			hmc.addReadAcl(handles, user.getUser());
+		} catch (IOException e) {
+			return new HandleError(
+					"There was an IO problem while attempting to set " +
+							"Handle ACLs: " + e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		} catch (UnauthorizedException e) {
+			return new HandleError(
+					"Unable to contact the Handle Manager - " +
+							"the Workspace credentials were rejected: " +
+							e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		} catch (ServerException e) {
+			return new HandleError(
+					"The Handle Manager reported a problem while attempting " +
+							"to set Handle ACLs: " + e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		} catch (JsonClientException e) {
+			return new HandleError(
+					"There was an unexpected problem while contacting the " +
+							"Handle Manager to set Handle ACLs: " +
+							e.getMessage(),
+					ExceptionUtils.getStackTrace(e));
+		}
+		return new HandleError(null, null);
 	}
 
 	private static List<ProvenanceAction> translateProvenanceActions(

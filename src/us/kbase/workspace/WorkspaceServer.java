@@ -2,7 +2,6 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -60,6 +59,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -385,6 +385,24 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		return false;
 	}
+	
+	private boolean checkHandleManagerConnection() {
+		try {
+			final HandleMngrClient cli = new HandleMngrClient(
+					handleManagerUrl, handleMgrToken.getToken());
+			if (handleManagerUrl.getProtocol().equals("http")) {
+				System.out.println("Warning - the Handle Manager url uses insecure http. https is recommended.");
+				logInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
+				cli.setIsInsecureHttpConnectionAllowed(true);
+			}
+			cli.addReadAcl(new LinkedList<String>(), "fakeuser");
+		} catch (Exception e) {
+			fail("Could not establish a connection to the Handle Manager Service: " +
+					e.getMessage());
+			return true;
+		}
+		return false;
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -447,7 +465,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (!failed) {
 				failed = checkHandleServiceConnection();
 			}
-			//TODO 1 check handle manager connection
+			if (!failed) {
+				failed = checkHandleManagerConnection();
+			}
 		}
 		
 		if (failed) {
@@ -857,7 +877,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
 				ws.getObjectProvenance(getUser(authPart), loi),
-					handleManagerUrl, handleMgrToken);
+					getUser(authPart), handleManagerUrl, handleMgrToken);
         //END get_object_provenance
         return returnVal;
     }
@@ -878,8 +898,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), resources,
-					handleManagerUrl, handleMgrToken);
+				ws.getObjects(getUser(authPart), loi), getUser(authPart),
+					resources, handleManagerUrl, handleMgrToken);
 		resourcesToDelete.set(resources);
         //END get_objects
         return returnVal;
@@ -913,8 +933,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi), resources,
-						handleManagerUrl, handleMgrToken);
+				ws.getObjectsSubSet(getUser(authPart), loi), getUser(authPart),
+						resources, handleManagerUrl, handleMgrToken);
 		resourcesToDelete.set(resources);
         //END get_object_subset
         return returnVal;
@@ -1031,8 +1051,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(ws.getReferencedObjects(
-				getUser(authPart), chains), resources, handleManagerUrl,
-					handleMgrToken);
+				getUser(authPart), chains), getUser(authPart), resources,
+					handleManagerUrl, handleMgrToken);
 		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;

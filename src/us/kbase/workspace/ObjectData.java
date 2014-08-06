@@ -28,6 +28,9 @@ import us.kbase.common.service.UObject;
  *         list<obj_ref> - the references contained within the object.
  *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
  *                 from the object.
+ *         string handle_error - if an error occurs while setting ACLs on
+ *                 embedded handle IDs, it will be reported here.
+ *         string handle_stacktrace - the stacktrace for handle_error.
  * </pre>
  * 
  */
@@ -40,7 +43,9 @@ import us.kbase.common.service.UObject;
     "creator",
     "created",
     "refs",
-    "extracted_ids"
+    "extracted_ids",
+    "handle_error",
+    "handle_stacktrace"
 })
 public class ObjectData {
 
@@ -58,6 +63,10 @@ public class ObjectData {
     private List<String> refs;
     @JsonProperty("extracted_ids")
     private Map<String, List<String>> extractedIds;
+    @JsonProperty("handle_error")
+    private java.lang.String handleError;
+    @JsonProperty("handle_stacktrace")
+    private java.lang.String handleStacktrace;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("data")
@@ -165,6 +174,36 @@ public class ObjectData {
         return this;
     }
 
+    @JsonProperty("handle_error")
+    public java.lang.String getHandleError() {
+        return handleError;
+    }
+
+    @JsonProperty("handle_error")
+    public void setHandleError(java.lang.String handleError) {
+        this.handleError = handleError;
+    }
+
+    public ObjectData withHandleError(java.lang.String handleError) {
+        this.handleError = handleError;
+        return this;
+    }
+
+    @JsonProperty("handle_stacktrace")
+    public java.lang.String getHandleStacktrace() {
+        return handleStacktrace;
+    }
+
+    @JsonProperty("handle_stacktrace")
+    public void setHandleStacktrace(java.lang.String handleStacktrace) {
+        this.handleStacktrace = handleStacktrace;
+    }
+
+    public ObjectData withHandleStacktrace(java.lang.String handleStacktrace) {
+        this.handleStacktrace = handleStacktrace;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -177,7 +216,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", extractedIds=")+ extractedIds)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
