@@ -53,23 +53,37 @@ public class ControllerCommon {
 	}
 	
 	public static void checkExe(String exe, String exeType) {
-		if (exe == null || exe.isEmpty()) {
-			throw new TestException("Executable path for " + exeType +
-					" cannot be null or the empty string ");
-		}
-		File e = new File(exe);
-		if (!e.exists()) {
-			throw new IllegalArgumentException("The provided " + exeType +
-					" executable does not exist:" + exe);
-		}
-		if (!e.isFile()) {
-			throw new IllegalArgumentException("The provided " + exeType +
-					" executable is not a file:" + exe);
-		}
+		File e = checkFile(exe, exeType, true);
 		if (!e.canExecute()) {
 			throw new IllegalArgumentException("The provided " + exeType +
 					" executable is not executable:" + exe);
 		}
+	}
+
+	public static File checkFile(String exe, String exeType) {
+		return checkFile(exe, exeType, false);
+	}
+	
+	public static File checkFile(String exe, String exeType,
+			boolean executable) {
+		
+		if (exe == null || exe.isEmpty()) {
+			throw new TestException(
+					(executable ? "Executable path for " : "Path for ") +
+							exeType + " cannot be null or the empty string ");
+		}
+		File e = new File(exe);
+		if (!e.exists()) {
+			throw new IllegalArgumentException("The provided " + exeType +
+					(executable ? " executable does not exist:" :
+						" path does not exist: ") + exe);
+		}
+		if (!e.isFile()) {
+			throw new IllegalArgumentException("The provided " + exeType +
+					(executable ? " executable is not a file:" :
+					" path is not a file: ") + exe);
+		}
+		return e;
 	}
 	
 	public static Path makeTempDirs(Path rootTempDir, String prefix,

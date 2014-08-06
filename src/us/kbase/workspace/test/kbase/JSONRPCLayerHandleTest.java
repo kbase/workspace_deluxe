@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -79,7 +77,6 @@ public class JSONRPCLayerHandleTest {
 				WorkspaceTestCommon.getMySQLInstallExe(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				DELETE_TEMP_DIRS_ON_EXIT);
-		setUpHandleServiceMySQLTables(mysql.getClient());
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerHandleTester"), 
@@ -100,12 +97,6 @@ public class JSONRPCLayerHandleTest {
 		}
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-	}
-
-	private static void setUpHandleServiceMySQLTables(Connection connection)
-			throws Exception {
-		Statement s = connection.createStatement();
-		s.execute("CREATE DATABASE hsi;");
 	}
 
 	private static WorkspaceServer startupWorkspaceServer(String mongohost,
