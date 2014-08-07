@@ -379,7 +379,7 @@ public class WorkspaceServer extends JsonServerServlet {
 					!e.getMessage().contains(
 							"can not execute select * from Handle")) {
 				fail("Could not establish a connection to the Handle Service at "
-						+ handleServiceUrl + ":" + e.getMessage());
+						+ handleServiceUrl + ": " + e.getMessage());
 				return true;
 			}
 		}
@@ -395,11 +395,15 @@ public class WorkspaceServer extends JsonServerServlet {
 				logInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.addReadAcl(new LinkedList<String>(), "fakeuser");
+			cli.addReadAcl(Arrays.asList("FAKEHANDLE_-100"), "fakeuser");
 		} catch (Exception e) {
-			fail("Could not establish a connection to the Handle Manager Service at "
-					+ handleManagerUrl + ":" + e.getMessage());
-			return true;
+			if (!(e instanceof ServerException) ||
+					!e.getMessage().contains(
+							"Unable to set acls on handles FAKEHANDLE_-100")) {
+				fail("Could not establish a connection to the Handle Manager Service at "
+						+ handleManagerUrl + ": " + e.getMessage());
+				return true;
+			}
 		}
 		return false;
 	}
