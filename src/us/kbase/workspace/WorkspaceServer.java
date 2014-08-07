@@ -378,8 +378,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			if (!(e instanceof ServerException) ||
 					!e.getMessage().contains(
 							"can not execute select * from Handle")) {
-				fail("Could not establish a connection to the Handle Service: "
-							+ e.getMessage());
+				fail("Could not establish a connection to the Handle Service at "
+						+ handleServiceUrl + ":" + e.getMessage());
 				return true;
 			}
 		}
@@ -397,8 +397,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 			cli.addReadAcl(new LinkedList<String>(), "fakeuser");
 		} catch (Exception e) {
-			fail("Could not establish a connection to the Handle Manager Service: " +
-					e.getMessage());
+			fail("Could not establish a connection to the Handle Manager Service at "
+					+ handleManagerUrl + ":" + e.getMessage());
 			return true;
 		}
 		return false;
