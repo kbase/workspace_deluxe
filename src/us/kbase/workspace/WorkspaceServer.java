@@ -399,7 +399,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) ||
 					!e.getMessage().contains(
-							"Unable to set acls on handles FAKEHANDLE_-100")) {
+							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
 				fail("Could not establish a connection to the Handle Manager Service at "
 						+ handleManagerUrl + ": " + e.getMessage());
 				return true;
