@@ -68,7 +68,7 @@ public class ShockController {
 		Velocity.init();
 		VelocityContext context = new VelocityContext();
 		context.put("port", port);
-		context.put("tempdir", tempDir.toString());
+		context.put("tempdir", tempDir.toAbsolutePath().toString());
 		context.put("mongohost", mongohost);
 		context.put("mongodbname", shockMongoDBname);
 		context.put("mongouser", mongouser == null ? "" : mongouser);

@@ -33,6 +33,9 @@ public class HandleServiceController {
 	
 	private final Process handleService;
 	private final int handleServicePort;
+	private final Process handleManager;
+	private final int handleManagerPort;
+	
 	private final Path tempDir;
 	private boolean deleteTempDirOnExit;
 	
@@ -44,9 +47,12 @@ public class HandleServiceController {
 	public HandleServiceController(
 			final String plackupExe,
 			final String abstractHandlePSGIpath,
-			final String handleManagerPSGIpath, //TODO handle manager
+			final String handleManagerPSGIpath,
+			final String handleManagerAllowedUser,
 			final MySQLController mysql,
 			final String shockHost,
+			final String shockAdmin,
+			final String shockAdminPwd,
 			final String perl5lib,
 			final Path rootTempDir,
 			final boolean deleteTempDirOnExit)
@@ -55,18 +61,84 @@ public class HandleServiceController {
 		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		checkExe(plackupExe, "plackup");
 		checkFile(abstractHandlePSGIpath, "Abstract Handle Service PSGI");
-//		checkFile(handleManagerPSGIpath, "Abstract Handle Service PSGI");
+		checkFile(handleManagerPSGIpath, "Handle Manager PSGI");
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
 		
 		setUpHandleServiceMySQLTables(mysql.getClient());
 		
-		File iniFile = tempDir.resolve("handleService.cfg").toFile();
+		handleServicePort = findFreePort();
+		
+		File hsIniFile = createHandleServiceDeployCfg(mysql, shockHost);
+		
+		/*
+		crusherofheads@icrushdeheads:~$ export PERL5LIB=/kb/deployment/lib
+		crusherofheads@icrushdeheads:~$ export KB_DEPLOYMENT_CONFIG=/kb/deployment/deployment.cfg
+		crusherofheads@icrushdeheads:~$ plackup /kb/deployment/lib/AbstractHandle.psgi
+		2014/07/27 23:26:42 15811 reading config from /kb/deployment/deployment.cfg
+		2014/07/27 23:26:42 15811 using http://localhost:7044 as the default shock server
+		{"attribute_indexes":[""],"contact":"shock-admin@kbase.us","documentation":"http://localhost:7044/wiki/","id":"Shock","resources":["node"],"type":"Shock","url":"http://localhost:7044/","version":"0.8.16"}DBI connect('hsi;host=localhost','hsi',...) failed: Access denied for user 'hsi'@'localhost' (using password: YES) at /kb/deployment/lib/Bio/KBase/AbstractHandle/AbstractHandleImpl.pm line 67
+		Cannot read config file /etc/log/log.conf at /kb/deployment/lib/Bio/KBase/Log.pm line 282.
+		HTTP::Server::PSGI: Accepting connections at http://0:5000/
+		
+		--port for port
+		 */
+		
+		ProcessBuilder handlepb = new ProcessBuilder(plackupExe, "--port",
+				"" + handleServicePort, abstractHandlePSGIpath)
+				.redirectErrorStream(true)
+				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
+		Map<String, String> env = handlepb.environment();
+		env.put("PERL5LIB", perl5lib);
+		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.toString());
+		handleService = handlepb.start();
+		
+		handleManagerPort = findFreePort();
+		
+		File hmIniFile = createHandleManagerDeployCfg(
+				shockAdmin, shockAdminPwd, handleManagerAllowedUser);
+		
+		ProcessBuilder handlemgrpb = new ProcessBuilder(plackupExe, "--port",
+				"" + handleManagerPort, handleManagerPSGIpath)
+				.redirectErrorStream(true)
+				.redirectOutput(tempDir.resolve("handle_mngr.log").toFile());
+		env = handlemgrpb.environment();
+		env.put("PERL5LIB", perl5lib);
+		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
+		handleManager = handlemgrpb.start();
+		
+	}
+
+	private File createHandleManagerDeployCfg(
+			final String shockAdmin,
+			final String shockAdminPwd,
+			final String allowedUser)
+			throws IOException {
+		File iniFile = tempDir.resolve("handleManager.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
 		
-		handleServicePort = findFreePort();
+		Ini ini = new Ini();
+		Section ws = ini.add("HandleMngr");
+		ws.add("handle-service-url", "http://localhost:" + handleServicePort);
+		ws.add("service-host", "localhost");
+		ws.add("service-port", "" + handleManagerPort);
+		ws.add("admin-login", shockAdmin);
+		ws.add("admin-password", shockAdminPwd);
+		ws.add("allowed-users", allowedUser);
+		
+		ini.store(iniFile);
+		iniFile.deleteOnExit();
+		return iniFile;
+	}
+	
+	private File createHandleServiceDeployCfg(final MySQLController mysql,
+			final String shockHost) throws IOException {
+		File iniFile = tempDir.resolve("handleService.cfg").toFile();
+		if (iniFile.exists()) {
+			iniFile.delete();
+		}
 		
 		Ini ini = new Ini();
 		Section ws = ini.add("handle_service");
@@ -83,34 +155,16 @@ public class HandleServiceController {
 		
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
-		
-		/*
-		crusherofheads@icrushdeheads:~$ export PERL5LIB=/kb/deployment/lib
-		crusherofheads@icrushdeheads:~$ export KB_DEPLOYMENT_CONFIG=/kb/deployment/deployment.cfg
-		crusherofheads@icrushdeheads:~$ plackup /kb/deployment/lib/AbstractHandle.psgi
-		2014/07/27 23:26:42 15811 reading config from /kb/deployment/deployment.cfg
-		2014/07/27 23:26:42 15811 using http://localhost:7044 as the default shock server
-		{"attribute_indexes":[""],"contact":"shock-admin@kbase.us","documentation":"http://localhost:7044/wiki/","id":"Shock","resources":["node"],"type":"Shock","url":"http://localhost:7044/","version":"0.8.16"}DBI connect('hsi;host=localhost','hsi',...) failed: Access denied for user 'hsi'@'localhost' (using password: YES) at /kb/deployment/lib/Bio/KBase/AbstractHandle/AbstractHandleImpl.pm line 67
-		Cannot read config file /etc/log/log.conf at /kb/deployment/lib/Bio/KBase/Log.pm line 282.
-		HTTP::Server::PSGI: Accepting connections at http://0:5000/
-		
-		--port for port
-		 */
-		
-		
-		ProcessBuilder handlepb = new ProcessBuilder(plackupExe, "--port",
-				"" + handleServicePort, abstractHandlePSGIpath)
-				.redirectErrorStream(true)
-				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
-		Map<String, String> env = handlepb.environment();
-		env.put("PERL5LIB", perl5lib);
-		env.put("KB_DEPLOYMENT_CONFIG", iniFile.toString());
-		handleService = handlepb.start();
+		return iniFile;
 	}
 	
 
 	public int getHandleServerPort() {
 		return handleServicePort;
+	}
+	
+	public int getHandleManagerPort() {
+		return handleManagerPort;
 	}
 	
 	public Path getTempDir() {
@@ -120,6 +174,9 @@ public class HandleServiceController {
 	public void destroy() throws IOException {
 		if (handleService != null) {
 			handleService.destroy();
+		}
+		if (handleManager != null) {
+			handleManager.destroy();
 		}
 		if (tempDir != null && deleteTempDirOnExit) {
 			FileUtils.deleteDirectory(tempDir.toFile());
@@ -167,20 +224,24 @@ public class HandleServiceController {
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
 				Paths.get("workspacetesttemp"),
-				"fakeuser",
+				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
-				"shocdb", "foo", "foo", false); 
+				"shockdb", "foo", "foo", false); 
 		
 		HandleServiceController hsc = new HandleServiceController(
 				"/kb/runtime/bin/plackup",
 				"/kb/deployment/lib/AbstractHandle.psgi",
-				"/kb/deployment/lib/HandleManager.psgi",
+				"/kb/deployment/lib/HandleMngr.psgi",
+				System.getProperty("test.user2"),
 				mc,
-				"localhost:" + sc.getServerPort(),
+				"http://localhost:" + sc.getServerPort(),
+				System.getProperty("test.user1"),
+				System.getProperty("test.pwd1"),
 				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"),
 				false);
-		System.out.println(hsc.getHandleServerPort());
+		System.out.println("handlesrv: " + hsc.getHandleServerPort());
+		System.out.println("handlemng: " + hsc.getHandleManagerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
