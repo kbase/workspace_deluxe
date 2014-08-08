@@ -42,7 +42,6 @@ public class MySQLController {
 	
 	private final Process mysql;
 	private final int port;
-	private final boolean deleteTempDirOnExit;
 
 	private Connection client;
 
@@ -57,10 +56,8 @@ public class MySQLController {
 	public MySQLController(
 			final String mysqlExe,
 			final String mysqlInstallExe,
-			final Path rootTempDir,
-			final boolean deleteTempDirOnExit)
+			final Path rootTempDir)
 					throws Exception {
-		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		checkExe(mysqlExe, "mysql server");
 		checkExe(mysqlInstallExe, "mysql_install_db executable");
 		tempDir = makeTempDirs(rootTempDir, "MySQLController-",
@@ -115,11 +112,11 @@ public class MySQLController {
 		return tempDir;
 	}
 	
-	public void destroy() throws IOException {
+	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (mysql != null) {
 			mysql.destroy();
 		}
-		if (tempDir != null && deleteTempDirOnExit) {
+		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
@@ -128,15 +125,14 @@ public class MySQLController {
 		MySQLController ac = new MySQLController(
 				"/usr/sbin/mysqld",
 				"/usr/bin/mysql_install_db",
-				Paths.get("workspacetesttemp"),
-				false);
+				Paths.get("workspacetesttemp"));
 		System.out.println(ac.getServerPort());
 		System.out.println(ac.getTempDir());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
 		//get user input for a
 		reader.next();
-		ac.destroy();
+		ac.destroy(false);
 	}
 	
 }

@@ -32,7 +32,6 @@ import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 public class GridFSBackendTest {
 	
-	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
 	
 	private static GridFSBackend gfsb;
 	private static GridFS gfs;
@@ -45,8 +44,9 @@ public class GridFSBackendTest {
 	public static void setUpClass() throws Exception {
 		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				DELETE_TEMP_DIR_ON_EXIT);
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using Mongo temp dir " +
+				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
 		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
 		DB db = mongoClient.getDB("GridFSBackendTest");
@@ -58,8 +58,7 @@ public class GridFSBackendTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			System.out.println("Deleting temp mongo files");
-			mongo.destroy();
+			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
 	

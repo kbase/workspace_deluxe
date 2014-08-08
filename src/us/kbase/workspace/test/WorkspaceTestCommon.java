@@ -14,8 +14,13 @@ public class WorkspaceTestCommon {
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MYSQLEXE = "test.mysql.exe";
 	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
+	public static final String PLACKUPEXE = "test.plackup.exe";
+	public static final String HANDLE_SRV_PSGI = "test.handle.service.psgi";
+	public static final String HANDLE_MGR_PSGI = "test.handle.manager.psgi";
+	public static final String HANDLE_PERL5LIB = "test.handle.PERL5LIB";
 	
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
+	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 			
@@ -60,6 +65,26 @@ public class WorkspaceTestCommon {
 	
 	public static String getMySQLInstallExe() {
 		return getProp(MYSQL_INSTALL_EXE);
+	}
+	
+	public static String getPlackupExe() {
+		return getProp(PLACKUPEXE);
+	}
+	
+	public static String getHandleServicePSGI() {
+		return getProp(HANDLE_SRV_PSGI);
+	}
+	
+	public static String getHandleManagerPSGI() {
+		return getProp(HANDLE_MGR_PSGI);
+	}
+	
+	public static String getHandlePERL5LIB() {
+		return getProp(HANDLE_PERL5LIB);
+	}
+	
+	public static boolean getDeleteTempFiles() {
+		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
 	}
 	
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {

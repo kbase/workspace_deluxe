@@ -43,8 +43,6 @@ import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class ShockBackendTest {
 	
-	public static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
-	
 	private static ShockBackend sb;
 	private static DB mongo;
 	private static BasicShockClient client;
@@ -65,8 +63,8 @@ public class ShockBackendTest {
 		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
 		WorkspaceTestCommon.stfuLoggers();
 		mongoCon = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				DELETE_TEMP_DIR_ON_EXIT);
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		
 		String mongohost = "localhost:" + mongoCon.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
@@ -79,8 +77,8 @@ public class ShockBackendTest {
 				mongohost,
 				"ShockBackendTest_ShockDB",
 				"foo",
-				"foo",
-				DELETE_TEMP_DIR_ON_EXIT);
+				"foo");
+		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, u1, url,
 				"ShockBackendTest_types");
@@ -97,10 +95,10 @@ public class ShockBackendTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy();
+			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		if (mongoCon != null) {
-			mongoCon.destroy();
+			mongoCon.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
 	

@@ -37,7 +37,6 @@ public class HandleServiceController {
 	private final int handleManagerPort;
 	
 	private final Path tempDir;
-	private boolean deleteTempDirOnExit;
 	
 	private final static String DB = "hsi";
 	private final static String TABLE = "Handle";
@@ -54,11 +53,9 @@ public class HandleServiceController {
 			final String shockAdmin,
 			final String shockAdminPwd,
 			final String perl5lib,
-			final Path rootTempDir,
-			final boolean deleteTempDirOnExit)
+			final Path rootTempDir)
 					throws Exception {
 		
-		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		checkExe(plackupExe, "plackup");
 		checkFile(abstractHandlePSGIpath, "Abstract Handle Service PSGI");
 		checkFile(handleManagerPSGIpath, "Handle Manager PSGI");
@@ -171,14 +168,14 @@ public class HandleServiceController {
 		return tempDir;
 	}
 	
-	public void destroy() throws IOException {
+	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (handleService != null) {
 			handleService.destroy();
 		}
 		if (handleManager != null) {
 			handleManager.destroy();
 		}
-		if (tempDir != null && deleteTempDirOnExit) {
+		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
@@ -215,18 +212,16 @@ public class HandleServiceController {
 		MySQLController mc = new MySQLController(
 				"/usr/sbin/mysqld",
 				"/usr/bin/mysql_install_db",
-				Paths.get("workspacetesttemp"),
-				false);
+				Paths.get("workspacetesttemp"));
 		MongoController monc = new MongoController(
 				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp"),
-				false); 
+				Paths.get("workspacetesttemp")); 
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
 				Paths.get("workspacetesttemp"),
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
-				"shockdb", "foo", "foo", false); 
+				"shockdb", "foo", "foo"); 
 		
 		HandleServiceController hsc = new HandleServiceController(
 				"/kb/runtime/bin/plackup",
@@ -238,8 +233,7 @@ public class HandleServiceController {
 				System.getProperty("test.user1"),
 				System.getProperty("test.pwd1"),
 				"/kb/deployment/lib",
-				Paths.get("workspacetesttemp"),
-				false);
+				Paths.get("workspacetesttemp"));
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println("handlemng: " + hsc.getHandleManagerPort());
 		System.out.println(hsc.getTempDir());
@@ -247,10 +241,10 @@ public class HandleServiceController {
 		System.out.println("any char to shut down");
 		//get user input for a
 		reader.next();
-		hsc.destroy();
-		sc.destroy();
-		monc.destroy();
-		mc.destroy();
+		hsc.destroy(false);
+		sc.destroy(false);
+		monc.destroy(false);
+		mc.destroy(false);
 	}
 	
 }

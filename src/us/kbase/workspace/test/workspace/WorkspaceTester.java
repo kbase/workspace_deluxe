@@ -75,7 +75,6 @@ import com.mongodb.MongoClient;
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	private static final boolean DELETE_TEMP_DIRS_ON_EXIT = true;
 	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
@@ -165,10 +164,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy();
+			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy();
+			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -184,8 +183,8 @@ public class WorkspaceTester {
 			throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
-					DELETE_TEMP_DIRS_ON_EXIT);
+					Paths.get(WorkspaceTestCommon.getTempDir()));
+			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 		}
 		if (!configs.containsKey(config)) {
 			System.out.println("Starting test suite with parameters:");
@@ -223,8 +222,8 @@ public class WorkspaceTester {
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
 					"foo",
-					"foo",
-					DELETE_TEMP_DIRS_ON_EXIT);
+					"foo");
+			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
 		DB mongo = mongoClient.getDB("WorkspaceBackendTest");

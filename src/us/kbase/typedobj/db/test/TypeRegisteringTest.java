@@ -66,8 +66,6 @@ public class TypeRegisteringTest {
 	private final boolean useMongo;
 	private static String adminUser = "admin";
 	
-	private static final boolean DELETE_MONGO_DB_ON_EXIT = true;
-	
 	private static MongoController mongo = null;
 
 	public static void main(String[] args) throws Exception {
@@ -125,16 +123,19 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(d.toFile().getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, d.toFile(), new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(storage, d.toFile(), new Util().getKIDLpath(),
+				WorkspaceTestCommon.getKidlSource());
 	}
 	
 	public static DB createMongoDbConnection() throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
-					DELETE_MONGO_DB_ON_EXIT);
+					Paths.get(WorkspaceTestCommon.getTempDir()));
+			System.out.println("Using mongo temp dir " + 
+					mongo.getTempDir());
 		}
-		DB mdb = new MongoClient("localhost:" + mongo.getServerPort()).getDB("TypeRegisteringTest");
+		DB mdb = new MongoClient("localhost:" + mongo.getServerPort())
+			.getDB("TypeRegisteringTest");
 		WorkspaceTestCommon.destroyDB(mdb);
 		return mdb;
 	}
@@ -161,7 +162,7 @@ public class TypeRegisteringTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy();
+			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
 	

@@ -46,8 +46,6 @@ import com.mongodb.MongoClient;
 
 public class MongoInternalsTest {
 	
-	private static final boolean DELETE_TEMP_DIR_ON_EXIT = true;
-	
 	private static Jongo jdb;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
@@ -59,24 +57,27 @@ public class MongoInternalsTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				DELETE_TEMP_DIR_ON_EXIT);
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using mongo temp dir " +
+				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, "MongoInternalsTest_types");
+		WorkspaceTestCommon.initializeGridFSWorkspaceDB(
+				db, "MongoInternalsTest_types");
 		jdb = new Jongo(db);
 		final String kidlpath = new Util().getKIDLpath();
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo", "foo", "foo",
-				kidlpath, null, tfm);
+		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo",
+				"foo", "foo", kidlpath, null, tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
-		assertTrue("GridFS backend setup failed", ws.getBackendType().equals("GridFS"));
+		assertTrue("GridFS backend setup failed",
+				ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -92,7 +93,7 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy();
+			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
 	

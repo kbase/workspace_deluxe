@@ -235,12 +235,17 @@
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
     <fail unless="test.mysql.exe" message="property test.mysql.exe not set."/>
     <fail unless="test.mysql.install.exe" message="property test.mysql.install.exe not set."/>
+    <fail unless="test.plackup.exe" message="property test.plackup.exe not set.}"/>
+    <fail unless="test.handle.service.psgi" message="property test.handle.service.psgi not set.}"/>
+    <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
+    <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
     <fail unless="test.user1" message="property test.user1 not set."/>
     <fail unless="test.pwd1" message="property test.pwd1 not set."/>
     <fail unless="test.user2" message="property test.user2 not set."/>
     <fail unless="test.pwd2" message="property test.pwd2 not set."/>
     <fail unless="test.user3" message="property test.user3 not set."/>
+    <fail unless="test.pwd3" message="property test.pwd3 not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
@@ -250,12 +255,18 @@
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
       <sysproperty key="test.mysql.exe" value="${test.mysql.exe}"/>
       <sysproperty key="test.mysql.install.exe" value="${test.mysql.install.exe}"/>
+      <sysproperty key="test.plackup.exe" value="${test.plackup.exe}"/>
+      <sysproperty key="test.handle.service.psgi" value="${test.handle.service.psgi}"/>
+      <sysproperty key="test.handle.manager.psgi" value="${test.handle.manager.psgi}"/>
+      <sysproperty key="test.handle.PERL5LIB" value="${test.handle.PERL5LIB}"/>
       <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
+      <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
+      <sysproperty key="test.pwd3" value="${test.pwd3}"/>
       <batchtest todir="${env.JENKINS_REPORT_DIR}">
         <fileset dir="${src}">
           <include name="**/test/**/**Test.java"/>

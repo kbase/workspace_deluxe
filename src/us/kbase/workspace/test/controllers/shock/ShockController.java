@@ -47,7 +47,6 @@ public class ShockController {
 	
 	private final Process shock;
 	private final int port;
-	private final boolean deleteTempDirOnExit;
 
 	public ShockController(
 			final String shockExe,
@@ -56,12 +55,10 @@ public class ShockController {
 			final String mongohost,
 			final String shockMongoDBname,
 			final String mongouser,
-			final String mongopwd,
-			final boolean deleteTempDirOnExit)
+			final String mongopwd)
 					throws Exception {
 		tempDir = makeTempDirs(rootTempDir, "ShockController-", tempDirectories);
 		port = findFreePort();
-		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		
 		checkExe(shockExe, "shock server");
 		
@@ -95,11 +92,11 @@ public class ShockController {
 		return tempDir;
 	}
 	
-	public void destroy() throws IOException {
+	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (shock != null) {
 			shock.destroy();
 		}
-		if (tempDir != null && deleteTempDirOnExit) {
+		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
@@ -126,13 +123,13 @@ public class ShockController {
 				"kbasetest2",
 				"localhost",
 				"delete_shock_db",
-				"foo", "foo", false);
+				"foo", "foo");
 		System.out.println(ac.getServerPort());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
 		//get user input for a
 		reader.next();
-		ac.destroy();
+		ac.destroy(false);
 	}
 	
 }

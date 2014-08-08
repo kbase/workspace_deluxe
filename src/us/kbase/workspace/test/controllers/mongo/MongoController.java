@@ -33,14 +33,11 @@ public class MongoController {
 	
 	private final Process mongo;
 	private final int port;
-	private final boolean deleteTempDirOnExit;
 
 	public MongoController(
 			final String mongoExe,
-			final Path rootTempDir,
-			final boolean deleteTempDirOnExit)
+			final Path rootTempDir)
 					throws Exception {
-		this.deleteTempDirOnExit = deleteTempDirOnExit;
 		checkExe(mongoExe, "mongod server");
 		tempDir = makeTempDirs(rootTempDir, "MongoController-", tempDirectories);
 		port = findFreePort();
@@ -63,11 +60,11 @@ public class MongoController {
 		return tempDir;
 	}
 	
-	public void destroy() throws IOException {
+	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (mongo != null) {
 			mongo.destroy();
 		}
-		if (tempDir != null && deleteTempDirOnExit) {
+		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
@@ -75,15 +72,14 @@ public class MongoController {
 	public static void main(String[] args) throws Exception {
 		MongoController ac = new MongoController(
 				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp"),
-				false);
+				Paths.get("workspacetesttemp"));
 		System.out.println(ac.getServerPort());
 		System.out.println(ac.getTempDir());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
 		//get user input for a
 		reader.next();
-		ac.destroy();
+		ac.destroy(false);
 	}
 	
 }

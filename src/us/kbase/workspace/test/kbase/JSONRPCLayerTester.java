@@ -86,8 +86,6 @@ import com.mongodb.MongoClient;
  */
 public class JSONRPCLayerTester {
 	
-	public static boolean DELETE_TEMP_DIRS_ON_EXIT = true;
-	
 	protected static WorkspaceServer SERVER1 = null;
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
@@ -183,8 +181,8 @@ public class JSONRPCLayerTester {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				DELETE_TEMP_DIRS_ON_EXIT);
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
@@ -355,7 +353,7 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy();
+			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
 	}

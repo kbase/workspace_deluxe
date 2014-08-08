@@ -17,11 +17,17 @@ CONFIG_OPTS = ['test.user1',
                'test.user2',
                'test.pwd2',
                'test.user3',
+               'test.pwd3',
                'test.shock.exe',
                'test.mongo.exe',
                'test.mysql.exe',
                'test.mysql.install.exe',
-               'test.temp.dir'
+               'test.plackup.exe',
+               'test.handle.service.psgi',
+               'test.handle.manager.psgi',
+               'test.handle.PERL5LIB',
+               'test.temp.dir',
+               'test.temp.dir.keep',
                ]
 
 
@@ -57,8 +63,10 @@ if __name__ == '__main__':
         print 'Test config file ' + fn + ' is missing section ' +\
             CFG_SECTION + '. Halting.'
         sys.exit(1)
-    if testcfg['test.user1'] == testcfg['test.user2']:
-        print "The two test users are identical. Halting."
+    if (testcfg['test.user1'] == testcfg['test.user2'] or
+        testcfg['test.user1'] == testcfg['test.user3'] or
+        testcfg['test.user2'] == testcfg['test.user3']):
+        print "At least two test users are identical. Halting."
         sys.exit(1)
     write_runner(out_run_tests, 'test')
     write_runner(out_run_script_tests, 'test-scripts')
