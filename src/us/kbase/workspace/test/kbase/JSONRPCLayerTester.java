@@ -283,7 +283,7 @@ public class JSONRPCLayerTester {
 		System.out.println("Starting tests");
 	}
 
-	protected static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
+	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
 			JsonClientException {
 		Map<String, String> releasemod = new HashMap<String, String>();
 		releasemod.put("command", command);

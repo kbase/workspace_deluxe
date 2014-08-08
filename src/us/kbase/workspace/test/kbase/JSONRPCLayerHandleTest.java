@@ -1,11 +1,16 @@
 package us.kbase.workspace.test.kbase;
 
+import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -18,10 +23,21 @@ import org.junit.Test;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
+import us.kbase.abstracthandle.AbstractHandleClient;
+import us.kbase.abstracthandle.Handle;
 import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
+import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockNodeId;
+import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.RegisterTypespecParams;
+import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -32,17 +48,20 @@ import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class JSONRPCLayerHandleTest {
 
-	private static MySQLController mysql;
-	private static MongoController mongo;
-	private static ShockController shock;
-	private static HandleServiceController handle;
+	private static MySQLController MYSQL;
+	private static MongoController MONGO;
+	private static ShockController SHOCK;
+	private static HandleServiceController HANDLE;
+	private static WorkspaceServer SERVER;
 	
 	private static String USER1;
 	private static String USER2;
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 
-	private static WorkspaceServer SERVER;
+	private static AbstractHandleClient HANDLE_CLIENT;
+	
+	private static String HANDLE_TYPE = "HandleList.HList-0.1";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -73,13 +92,13 @@ public class JSONRPCLayerHandleTest {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
+		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
 				Paths.get(WorkspaceTestCommon.getTempDir()));
-		System.out.println("Using Mongo temp dir " + mongo.getTempDir());
-		final String mongohost = "localhost:" + mongo.getServerPort();
+		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
+		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
-		shock = new ShockController(
+		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				u3,
@@ -87,27 +106,27 @@ public class JSONRPCLayerHandleTest {
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
 				"foo");
-		System.out.println("Using Shock temp dir " + shock.getTempDir());
+		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
-		mysql = new MySQLController(
+		MYSQL = new MySQLController(
 				WorkspaceTestCommon.getMySQLExe(),
 				WorkspaceTestCommon.getMySQLInstallExe(),
 				Paths.get(WorkspaceTestCommon.getTempDir()));
-		System.out.println("Using MySQL temp dir " + mysql.getTempDir());
+		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
-		handle = new HandleServiceController(
+		HANDLE = new HandleServiceController(
 				WorkspaceTestCommon.getPlackupExe(),
 				WorkspaceTestCommon.getHandleServicePSGI(),
 				WorkspaceTestCommon.getHandleManagerPSGI(),
 				u3,
-				mysql,
-				"http://localhost:" + shock.getServerPort(),
+				MYSQL,
+				"http://localhost:" + SHOCK.getServerPort(),
 				u3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(WorkspaceTestCommon.getTempDir()));
 		System.out.println("Using Handle Service temp dir " +
-				handle.getTempDir());
+				HANDLE.getTempDir());
 		
 		
 		SERVER = startupWorkspaceServer(mongohost,
@@ -130,8 +149,31 @@ public class JSONRPCLayerHandleTest {
 		}
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		
+		setUpSpecs();
+		
+		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
+				HANDLE.getHandleServerPort()), USER1, p1);
+		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 	}
 
+	private static void setUpSpecs() throws Exception {
+		final String handlespec =
+				"module HandleList {" +
+					"/* @id handle */" +
+					"typedef string handle;" +
+					"typedef structure {" +
+						"list<handle> handles;" +
+					"} HList;" +
+				"};";
+		CLIENT1.requestModuleOwnership("HandleList");
+		administerCommand(CLIENT2, "approveModRequest", "module", "HandleList");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(handlespec)
+			.withNewTypes(Arrays.asList("HList")));
+	}
+	
 	private static WorkspaceServer startupWorkspaceServer(
 			String mongohost,
 			DB db,
@@ -158,9 +200,9 @@ public class JSONRPCLayerHandleTest {
 		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
 		ws.add("handle-service-url", "http://localhost:" +
-				handle.getHandleServerPort());
+				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +
-				handle.getHandleManagerPort());
+				HANDLE.getHandleManagerPort());
 		ws.add("handle-manager-user", handleUser);
 		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
@@ -185,8 +227,30 @@ public class JSONRPCLayerHandleTest {
 	}
 
 	@Test
-	public void foo() throws Exception {
-		System.out.println("foo");
+	public void basicHandleTest() throws Exception {
+		String workspace = "basichandle";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		Handle h1 = HANDLE_CLIENT.newHandle();
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(h1.getHid());
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(handleobj))
+						.withType(HANDLE_TYPE))));
+		//TODO fail save with CLIENT2
+		//TODO fail get node with CLIENT2
+		
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		
+		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L)));
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT2.getToken());
+		bsc.getNode(new ShockNodeId(h1.getId()));
+		//TODO test with 3 other methods
 	}
 
 	@AfterClass
@@ -196,17 +260,17 @@ public class JSONRPCLayerHandleTest {
 			SERVER.stopServer();
 			System.out.println("Done");
 		}
-		if (handle != null) {
-			handle.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		if (HANDLE != null) {
+			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
-		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		if (SHOCK != null) {
+			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
-		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		if (MONGO != null) {
+			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
-		if (mysql != null) {
-			mysql.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		if (MYSQL != null) {
+			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
 }

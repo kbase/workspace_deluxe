@@ -126,7 +126,6 @@ public class HandleServiceController {
 		ws.add("allowed-users", allowedUser);
 		
 		ini.store(iniFile);
-		iniFile.deleteOnExit();
 		return iniFile;
 	}
 	
@@ -151,7 +150,6 @@ public class HandleServiceController {
 		ws.add("data-source", "dbi:mysql:" + DB);
 		
 		ini.store(iniFile);
-		iniFile.deleteOnExit();
 		return iniFile;
 	}
 	
