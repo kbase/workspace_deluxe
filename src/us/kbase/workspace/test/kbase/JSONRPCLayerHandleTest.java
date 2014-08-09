@@ -1,5 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
 import java.io.File;
@@ -27,11 +30,13 @@ import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
 import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.shock.client.exceptions.ShockAuthorizationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
@@ -225,34 +230,7 @@ public class JSONRPCLayerHandleTest {
 		}
 		return server;
 	}
-
-	@Test
-	public void basicHandleTest() throws Exception {
-		String workspace = "basichandle";
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		Handle h1 = HANDLE_CLIENT.newHandle();
-		List<String> handleList = new LinkedList<String>();
-		handleList.add(h1.getHid());
-		Map<String, Object> handleobj = new HashMap<String, Object>();
-		handleobj.put("handles", handleList);
-		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
-				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(new UObject(handleobj))
-						.withType(HANDLE_TYPE))));
-		//TODO fail save with CLIENT2
-		//TODO fail get node with CLIENT2
-		
-		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
-				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
-		
-		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L)));
-		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT2.getToken());
-		bsc.getNode(new ShockNodeId(h1.getId()));
-		//TODO test with 3 other methods
-	}
-
+	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SERVER != null) {
@@ -272,5 +250,56 @@ public class JSONRPCLayerHandleTest {
 		if (MYSQL != null) {
 			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
+	}
+
+	@Test
+	public void basicHandleTest() throws Exception {
+		String workspace = "basichandle";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		Handle h1 = HANDLE_CLIENT.newHandle();
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(h1.getHid());
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(handleobj))
+						.withType(HANDLE_TYPE))));
+		
+		String workspace2 = "basichandle2";
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
+		try {
+			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace(workspace2)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj))
+							.withType(HANDLE_TYPE))));
+			fail("saved object with bad handle");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getMessage(),
+					is("An error occured while processing IDs: The Handle Service " + 
+					"reported that at least one of the handles contained in the " +
+					"objects in this call was not accessible with your credentials. " +
+					"The call cannot complete."));
+		}
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT2.getToken());
+		
+		try {
+			bsc.getNode(new ShockNodeId(h1.getId()));
+			fail("got shock node w/o permissions");
+		} catch (ShockAuthorizationException e) {
+			assertThat("correct exception message", e.getMessage(),
+					is("User Unauthorized"));
+		}
+
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		
+		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L)));
+		bsc.getNode(new ShockNodeId(h1.getId()));
+		//TODO test with 3 other methods
+		
+		//TODO test with deleted node on a get and check error
 	}
 }
