@@ -30,6 +30,8 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.common.test.TestException;
+import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -60,8 +62,6 @@ import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;

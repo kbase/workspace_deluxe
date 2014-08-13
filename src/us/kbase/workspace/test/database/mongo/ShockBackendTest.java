@@ -25,6 +25,8 @@ import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthService;
 import us.kbase.common.test.TestException;
+import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -38,8 +40,6 @@ import us.kbase.workspace.database.mongo.ShockBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class ShockBackendTest {
 	

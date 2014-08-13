@@ -1,9 +1,9 @@
 package us.kbase.workspace.test.controllers.handle;
 
-import static us.kbase.workspace.test.controllers.ControllerCommon.findFreePort;
-import static us.kbase.workspace.test.controllers.ControllerCommon.checkExe;
-import static us.kbase.workspace.test.controllers.ControllerCommon.checkFile;
-import static us.kbase.workspace.test.controllers.ControllerCommon.makeTempDirs;
+import static us.kbase.common.test.controllers.ControllerCommon.checkExe;
+import static us.kbase.common.test.controllers.ControllerCommon.checkFile;
+import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
+import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,9 +19,9 @@ import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
-import us.kbase.workspace.test.controllers.mongo.MongoController;
-import us.kbase.workspace.test.controllers.mysql.MySQLController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
+import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.test.controllers.mysql.MySQLController;
+import us.kbase.common.test.controllers.shock.ShockController;
 
 
 /** Q&D Utility to run Handle Service/Manager servers for the purposes of

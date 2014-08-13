@@ -21,6 +21,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
+import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -39,7 +40,6 @@ import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;

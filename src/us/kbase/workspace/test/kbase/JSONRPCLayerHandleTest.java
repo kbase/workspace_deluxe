@@ -34,6 +34,9 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.test.controllers.mysql.MySQLController;
+import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.ShockAuthorizationException;
@@ -47,9 +50,6 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
-import us.kbase.workspace.test.controllers.mysql.MySQLController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class JSONRPCLayerHandleTest {
 
@@ -298,6 +298,7 @@ public class JSONRPCLayerHandleTest {
 		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L)));
 		bsc.getNode(new ShockNodeId(h1.getId()));
+		
 		//TODO test with 3 other methods
 		
 		//TODO test with deleted node on a get and check error

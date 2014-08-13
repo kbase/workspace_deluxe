@@ -20,6 +20,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSInputFile;
 
+import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.Writable;
@@ -28,7 +29,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 public class GridFSBackendTest {
 	

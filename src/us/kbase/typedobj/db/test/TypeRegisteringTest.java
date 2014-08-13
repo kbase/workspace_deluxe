@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
+import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
@@ -57,7 +58,6 @@ import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.controllers.mongo.MongoController;
 
 @RunWith(Parameterized.class)
 public class TypeRegisteringTest {
