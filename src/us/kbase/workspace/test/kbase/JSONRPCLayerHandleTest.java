@@ -38,14 +38,17 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACLType;
+import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
-import us.kbase.shock.client.exceptions.ShockAuthorizationException;
+import us.kbase.shock.client.ShockUserId;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -61,12 +64,18 @@ public class JSONRPCLayerHandleTest {
 	
 	private static String USER1;
 	private static String USER2;
+	private static ShockUserId SHOCK_USER1;
+	private static ShockUserId SHOCK_USER2;
+	
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
+	private static ShockACLType READ_ACL = new ShockACLType("read");
+	
 	private static String HANDLE_TYPE = "HandleList.HList-0.1";
+	private static String HANDLE_REF_TYPE = "HandleList.HRef-0.1";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -160,6 +169,12 @@ public class JSONRPCLayerHandleTest {
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), USER1, p1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
+		
+		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
+				+ SHOCK.getServerPort()), CLIENT1.getToken());
+		SHOCK_USER1 = bsc.addNode().getACLs().getOwner();
+		bsc.updateToken(CLIENT2.getToken());
+		SHOCK_USER2 = bsc.addNode().getACLs().getOwner();
 	}
 
 	private static void setUpSpecs() throws Exception {
@@ -170,13 +185,18 @@ public class JSONRPCLayerHandleTest {
 					"typedef structure {" +
 						"list<handle> handles;" +
 					"} HList;" +
+					"/* @id ws */" +
+					"typedef string wsid;" +
+					"typedef structure {" +
+						"wsid id;" +
+					"} HRef;" +
 				"};";
 		CLIENT1.requestModuleOwnership("HandleList");
 		administerCommand(CLIENT2, "approveModRequest", "module", "HandleList");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handlespec)
-			.withNewTypes(Arrays.asList("HList")));
+			.withNewTypes(Arrays.asList("HList", "HRef")));
 	}
 	
 	private static WorkspaceServer startupWorkspaceServer(
@@ -282,25 +302,62 @@ public class JSONRPCLayerHandleTest {
 					"The call cannot complete."));
 		}
 		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT2.getToken());
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
 		
-		try {
-			bsc.getNode(new ShockNodeId(h1.getId()));
-			fail("got shock node w/o permissions");
-		} catch (ShockAuthorizationException e) {
-			assertThat("correct exception message", e.getMessage(),
-					is("User Unauthorized"));
-		}
+		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
+		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
+		
+		ShockNode node = bsc.getNode(new ShockNodeId(h1.getId()));
+		
+		checkReadAcl(node, oneuser);
 
+		//basic get objects
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		
 		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L)));
-		bsc.getNode(new ShockNodeId(h1.getId()));
 		
-		//TODO test with 3 other methods
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
+		checkReadAcl(node, oneuser);
+
+		//object subset
+		CLIENT2.getObjectSubset(Arrays.asList(new SubObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L)));
+		
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
+		checkReadAcl(node, oneuser);
+
+		//object provenance
+		CLIENT2.getObjectProvenance(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L)));
+		
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
+		checkReadAcl(node, oneuser);
+		
+		//object by ref chain
+		Map<String, String> refdata = new HashMap<String, String>();
+		refdata.put("id", "1/1");
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(refdata))
+						.withType(HANDLE_REF_TYPE))));
+		CLIENT2.getReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(2L), new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L))));
+		
+		checkReadAcl(node, twouser);
 		
 		//TODO test with deleted node on a get and check error
+	}
+	
+	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
+			throws Exception {
+		assertThat("correct shock acls", node.getACLs(READ_ACL).getRead(),
+				is(uuids));
+		
 	}
 }
