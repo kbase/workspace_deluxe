@@ -2,6 +2,7 @@ package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
@@ -43,6 +44,7 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockUserId;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -351,7 +353,22 @@ public class JSONRPCLayerHandleTest {
 		
 		checkReadAcl(node, twouser);
 		
-		//TODO test with deleted node on a get and check error
+		//test error message for deleted node
+		node.delete();
+		
+		ObjectData wod = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L))).get(0);
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
+		assertThat("got correct data", retdata, is(handleobj));
+		
+		assertThat("got correct error message", wod.getHandleError(),
+				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
+						+ h1.getHid()));
+		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
+				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+						+ h1.getHid()));
 	}
 	
 	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
