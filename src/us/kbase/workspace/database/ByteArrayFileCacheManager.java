@@ -58,6 +58,7 @@ public class ByteArrayFileCacheManager {
 		return maxSizeOnDisk;
 	}
 
+	@SuppressWarnings("resource")
 	public ByteArrayFileCache createBAFC(final InputStream input,
 			final boolean trustedJson, final boolean sorted)
 			throws FileCacheIOException, FileCacheLimitExceededException {
@@ -142,6 +143,7 @@ public class ByteArrayFileCacheManager {
 			tempFile.delete();
 	}
 
+	@SuppressWarnings("resource")
 	public ByteArrayFileCache getSubdataExtraction(
 			final ByteArrayFileCache parent, final ObjectPaths paths)
 			throws TypedObjectExtractionException,

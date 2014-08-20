@@ -90,6 +90,8 @@ public class HandleServiceController {
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.toString());
 		handleService = handlepb.start();
 		
+		Thread.sleep(1000); //let the service start up
+		
 		handleManagerPort = findFreePort();
 		
 		File hmIniFile = createHandleManagerDeployCfg(
@@ -103,6 +105,8 @@ public class HandleServiceController {
 		env.put("PERL5LIB", perl5lib);
 		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
 		handleManager = handlemgrpb.start();
+		
+		Thread.sleep(1000); //let the manager start up
 		
 	}
 
@@ -243,6 +247,7 @@ public class HandleServiceController {
 		sc.destroy(false);
 		monc.destroy(false);
 		mc.destroy(false);
+		reader.close();
 	}
 	
 }

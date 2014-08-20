@@ -115,6 +115,7 @@ public class GetObjectsLibSpeedTest {
 		System.out.println("JsonTokenStream initialized. Start profiler, then hit enter to continue");
 		Scanner s = new Scanner(System.in);
 		s.nextLine();
+		s.close();
 		
 		for (int i = 0; i < reps; i++) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream(30000000);
@@ -122,6 +123,7 @@ public class GetObjectsLibSpeedTest {
 			jts.setRoot(null);
 			jts.writeTokens(jgen);
 		}
+		jts.close();
 	}
 
 	private static List<PerformanceMeasurement> measureGetObjectsOptionsPerformance(
