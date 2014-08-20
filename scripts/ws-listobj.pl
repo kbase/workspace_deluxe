@@ -2,14 +2,13 @@
 ########################################################################
 # adpated for WS 0.1.0+ by Michael Sneddon, LBL
 # Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
-# Contact email: chenry@mcs.anl.gov
-# Development location: Mathematics and Computer Science Division, Argonne National Lab
+# Contact email: mwsneddon@lbl.gov or chenry@mcs.anl.gov
 ########################################################################
 use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client workspace parseObjectMeta parseWorkspaceMeta parseNiceDateTime);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
@@ -30,6 +29,7 @@ my ($opt, $usage) = describe_options(
     [ 'limit|l=i','Limit the number of objects displayed to this number (after sorting)' ],
     [ 'column|c=i','Sort by this column number (first column = 1)' ],
     [ 'megabytes|m','Report size in MB (bytes/1024^2)' ],
+    [ 'timestamp|p','Report absolute timestamp instead of relative time' ],
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
     [ 'showhidden|a','Include hidden objects', {"default" =>0} ],
     [ 'showdeleted|s','Include objects that have been deleted', {"default" =>0} ],
@@ -142,20 +142,26 @@ if (!defined($output)) {
 	#	6ws_id wsid, 7ws_name workspace, 8string chsum, 9int size, 10usermeta meta>
 	#	object_info;
 	my $tbl = [];
+	my @localtime = localtime();
+	
 	for (my $i=0; $i < @{$output};$i++) {
 	    my $r = $output->[$i];
 	    my $size = $r->[9]+0;
 	    if (defined($opt->{megabytes})) {
 		$size = int(($size/1048576)*1000+0.5)/1000; # convert to MB, rounded to three decimals
 	    }
-	    push(@{$tbl},[$r->[0],$r->[1],$r->[4],$r->[2],$r->[6],$r->[7],$r->[5],$r->[3],$size]);
+	    my $moddate = $r->[3];
+	    if (!defined($opt->{timestamp})) {
+		$moddate = parseNiceDateTime($r->[3], $localtime[5], $localtime[4], $localtime[3], $localtime[2], $localtime[1], $localtime[0]);
+	    }
+	    push(@{$tbl},[$r->[0],$r->[1],$r->[4],$r->[2],$r->[6],$r->[7],$r->[5],$moddate,$size, $r->[3] ]);
 	}
-	my $sizeHeader = 'Size(bytes)';
+	my $sizeHeader = 'Size(B)';
 	if (defined($opt->{megabytes})) {
 		$sizeHeader = 'Size(MB)';
 	}
 	my $table = Text::Table->new(
-		'ID', 'ObjName', 'Vers', 'Type','WSID','WS','Last_modby','Moddate',$sizeHeader
+		'ID', 'ObjName', 'Vers', 'Type','WSID','WS','ModBy','ModDate',$sizeHeader
 		);
 	my @sorted_tbl = @$tbl;
 	if (defined($opt->{column})) {
@@ -165,9 +171,16 @@ if (!defined($output)) {
 		} elsif ( $opt->{column}==1 || $opt->{column}==3 || $opt->{column}==5) {
 			#ids and version numbers are numeric, so sort numerically, largest last
 			@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
+		} elsif ( $opt->{column}==8 ) {
+			#time should be sorted not based on the nice name, but on the time stamp in pos 9
+			@sorted_tbl = sort { $b->[9] cmp $a->[9] } @sorted_tbl;
 		} else {
 			@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
 		}
+	}
+	else {
+		# default sort? it should probably be based on time?
+		@sorted_tbl = sort { $b->[9] cmp $a->[9] } @sorted_tbl;
 	}
 	# splice out the first n if limit is set
 	if (defined($opt->{limit})) {
