@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,15 +22,28 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
+
+import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestException;
+import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.test.controllers.mysql.MySQLController;
+import us.kbase.common.test.controllers.shock.ShockController;
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACLType;
+import us.kbase.shock.client.ShockUserId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
+import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.handle.HandleServiceController;
+import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 /*
  * These tests are specifically for testing the WS CLI written in perl.
@@ -46,7 +60,6 @@ public class ScriptTestRunner {
 	//TODO needs to run w/o dev container
 	//TODO needs to start up own copy of mongo like JRLT
 	
-	protected static WorkspaceServer SERVER1 = null;
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	protected static String USER1 = null;
@@ -54,6 +67,15 @@ public class ScriptTestRunner {
 	protected static String USER3 = null;
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
+	
+	private static MySQLController MYSQL;
+	private static MongoController MONGO;
+	private static ShockController SHOCK;
+	
+	private static HandleServiceController HANDLE;
+	private static WorkspaceServer SERVER;
+	
+	private static AbstractHandleClient HANDLE_CLIENT;
 	
 	static {
 		JsonTokenStreamOCStat.register();
@@ -99,7 +121,7 @@ public class ScriptTestRunner {
 	}
 
 	private static String getTestURL() {
-		int testport = SERVER1.getServerPort();
+		int testport = SERVER.getServerPort();
 		return "http://localhost:"+testport;
 	}
 	
@@ -145,20 +167,79 @@ public class ScriptTestRunner {
 		return concatCmd.toString();
 	}
 	
+	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		USER1 = System.getProperty("test.user1");
 		USER2 = System.getProperty("test.user2");
-		USER3 = System.getProperty("test.user3");
-		if (USER1.equals(USER2) || USER2.equals(USER3) || USER1.equals(USER3)) {
+		String u3 = System.getProperty("test.user3");
+		if (USER1.equals(USER2)) {
 			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
+					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
+		}
+		if (USER1.equals(u3)) {
+			throw new TestException("All the test users must be unique: " + 
+					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
+		}
+		if (USER2.equals(u3)) {
+			throw new TestException("All the test users must be unique: " + 
+					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
 		}
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
-		SERVER1 = startupWorkspaceServer(1);
-		int port = SERVER1.getServerPort();
-		System.out.println("Started test server 1 on port " + port);
+		String p3 = System.getProperty("test.pwd3");
+		
+		try {
+			AuthService.login(u3, p3);
+		} catch (Exception e) {
+			throw new TestException("Could not log in test user test.user3: " + u3, e);
+		}
+		
+		WorkspaceTestCommon.stfuLoggers();
+		
+		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
+		final String mongohost = "localhost:" + MONGO.getServerPort();
+		MongoClient mongoClient = new MongoClient(mongohost);
+
+		SHOCK = new ShockController(
+				WorkspaceTestCommon.getShockExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				u3,
+				mongohost,
+				"JSONRPCLayerHandleTest_ShockDB",
+				"foo",
+				"foo");
+		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
+
+		MYSQL = new MySQLController(
+				WorkspaceTestCommon.getMySQLExe(),
+				WorkspaceTestCommon.getMySQLInstallExe(),
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
+		
+		HANDLE = new HandleServiceController(
+				WorkspaceTestCommon.getPlackupExe(),
+				WorkspaceTestCommon.getHandleServicePSGI(),
+				WorkspaceTestCommon.getHandleManagerPSGI(),
+				u3,
+				MYSQL,
+				"http://localhost:" + SHOCK.getServerPort(),
+				u3,
+				p3,
+				WorkspaceTestCommon.getHandlePERL5LIB(),
+				Paths.get(WorkspaceTestCommon.getTempDir()));
+		System.out.println("Using Handle Service temp dir " +
+				HANDLE.getTempDir());
+		
+		
+		SERVER = startupWorkspaceServer(mongohost,
+				mongoClient.getDB("JSONRPCLayerHandleTester"), 
+				"JSONRPCLayerHandleTester_types",
+				u3, p3);
+		int port = SERVER.getServerPort();
+		System.out.println("Started test workspace server on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
 		} catch (UnauthorizedException ue) {
@@ -171,44 +252,52 @@ public class ScriptTestRunner {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AUTH_USER1 = AuthService.login(USER1, p1);
-		AUTH_USER2 = AuthService.login(USER2, p2);
-		if (!AuthService.isValidUserName(Arrays.asList(USER3), AUTH_USER1.getToken())
-				.containsKey(USER3)) {
-			throw new TestException(USER3 + " is not a valid kbase user");
-		}
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		System.out.println("Starting tests");
+		
+		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
+				HANDLE.getHandleServerPort()), USER1, p1);
+		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
+		
 	}
-
-	@SuppressWarnings("deprecation")
-	private static WorkspaceServer startupWorkspaceServer(int dbNum)
+	
+	private static WorkspaceServer startupWorkspaceServer(
+			String mongohost,
+			DB db,
+			String typedb,
+			String handleUser,
+			String handlePwd)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
-		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(dbNum, "gridFS", null, null);
 		
+		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
+
 		//write the server config file:
-		File iniFile = File.createTempFile("test", ".cfg", new File("./"));
+		File iniFile = File.createTempFile("test", ".cfg",
+				new File(WorkspaceTestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
-		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
+		System.out.println("Created temporary config file: " +
+				iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("mongodb-host", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getHost());
-		String dbName = dbNum == 1 ? us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getDB1() : 
-			us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getDB2();
-		ws.add("mongodb-database", dbName);
-		ws.add("mongodb-user", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoUser());
-		ws.add("mongodb-pwd", us.kbase.workspace.test.WorkspaceTestCommonDeprecated.getMongoPwd());
-		ws.add("backend-secret", "");
+		ws.add("mongodb-host", mongohost);
+		ws.add("mongodb-database", db.getName());
+		ws.add("backend-secret", "foo");
+		ws.add("handle-service-url", "http://localhost:" +
+				HANDLE.getHandleServerPort());
+		ws.add("handle-manager-url", "http://localhost:" +
+				HANDLE.getHandleManagerPort());
+		ws.add("handle-manager-user", handleUser);
+		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
-		ws.add("temp-dir", "tempForJSONRPCLayerTester");
+		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+				.resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
-		
+
 		//set up env
 		Map<String, String> env = getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
@@ -216,7 +305,6 @@ public class ScriptTestRunner {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		tfms.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -225,11 +313,12 @@ public class ScriptTestRunner {
 		return server;
 	}
 	
+	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		if (SERVER1 != null) {
+		if (SERVER != null) {
 			System.out.print("Killing server 1... ");
-			SERVER1.stopServer();
+			SERVER.stopServer();
 			System.out.println("Done");
 		}
 		JsonTokenStreamOCStat.showStat();
