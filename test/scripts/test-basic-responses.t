@@ -30,6 +30,7 @@ my $commandNames = [
     "ws-listobj",
     "ws-load",
     "ws-rename",
+    "ws-renamews",
     "ws-revert",
     "ws-share",
     "ws-typespec-list",

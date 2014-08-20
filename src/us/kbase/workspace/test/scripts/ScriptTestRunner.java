@@ -307,11 +307,22 @@ public class ScriptTestRunner {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SERVER != null) {
-			System.out.print("Killing server 1... ");
+			System.out.print("Killing workspace server... ");
 			SERVER.stopServer();
 			System.out.println("Done");
 		}
-		JsonTokenStreamOCStat.showStat();
+		if (HANDLE != null) {
+			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		}
+		if (SHOCK != null) {
+			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		}
+		if (MONGO != null) {
+			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		}
+		if (MYSQL != null) {
+			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+		}
 	}
 	
 }

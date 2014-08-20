@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use Getopt::Long::Descriptive;
 use Text::Table;
-use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client);
+use Bio::KBase::workspace::ScriptHelpers qw(get_ws_client parseNiceDateTime);
 
 my $serv = get_ws_client();
 #Defining globals describing behavior
@@ -22,6 +22,7 @@ my ($opt, $usage) = describe_options(
     [ 'column|c:i','Sort by this column number (first column = 1)' ],
     [ 'deleted|d', 'Include deleted workspaces',{"default"=>0}],
     [ 'global|g', 'Include globally readable workspaces',{"default"=>0}],
+    [ 'timestamp|p','Display absolute timestamp of last modified date instead of relative/local time' ],
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
@@ -97,6 +98,18 @@ if ($opt->{showerror} == 0){
 my $table = Text::Table->new(
     'Id', 'WsName', 'Owner', 'Last_Modified', 'Size', 'Permission', 'GlobalAccess'
     );
+
+my @localtime = localtime();
+for (my $i=0; $i < @{$output};$i++) {
+	my $moddate = $output->[$i]->[3];
+	if (!defined($opt->{timestamp})) {
+		$moddate = parseNiceDateTime($output->[$i]->[3], $localtime[5], $localtime[4], $localtime[3], $localtime[2], $localtime[1], $localtime[0]);
+	}
+	
+	push @{$output->[$i]}, $output->[$i]->[3];
+	$output->[$i]->[3] = $moddate;
+}
+
 my @sorted_tbl = @$output;
 if (defined($opt->{column})) {
 	if ($opt->{column}==5) {
@@ -105,10 +118,16 @@ if (defined($opt->{column})) {
 	} elsif ( $opt->{column}==1) {
 		#id is numeric, so sort numerically, largest last
 		@sorted_tbl = sort { $a->[$opt->{column}-1] <=> $b->[$opt->{column}-1] } @sorted_tbl;
+	} elsif ( $opt->{column}==4 ) {
+		#time should be sorted not based on the nice name, but on the time stamp in pos 9
+		@sorted_tbl = sort { $b->[9] cmp $a->[9] } @sorted_tbl;
 	} else {
 		@sorted_tbl = sort { $a->[$opt->{column}-1] cmp $b->[$opt->{column}-1] } @sorted_tbl;
 	}
-}
+} else {
+	#default sort is on last update time
+	@sorted_tbl = sort { $b->[9] cmp $a->[9] } @sorted_tbl;
+} 
 $table->load(@sorted_tbl);
 print $table;
 exit 0;
