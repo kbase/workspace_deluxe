@@ -43,6 +43,11 @@ import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockUserId;
+import us.kbase.typedobj.idref.IdReference;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -53,6 +58,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.kbase.HandleIdHandlerFactory;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 
@@ -287,7 +293,7 @@ public class JSONRPCLayerHandleTest {
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withData(new UObject(handleobj))
 						.withType(HANDLE_TYPE))));
-		
+
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
 		try {
@@ -342,7 +348,7 @@ public class JSONRPCLayerHandleTest {
 		
 		//object by ref chain
 		Map<String, String> refdata = new HashMap<String, String>();
-		refdata.put("id", "1/1");
+		refdata.put("id", workspace + "/1");
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withData(new UObject(refdata))
@@ -375,6 +381,50 @@ public class JSONRPCLayerHandleTest {
 			throws Exception {
 		assertThat("correct shock acls", node.getACLs(READ_ACL).getRead(),
 				is(uuids));
+		
+	}
+	
+	@Test
+	public void nullHandle() throws Exception {
+		String workspace = "nullhandle";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(null);
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj))
+							.withType(HANDLE_TYPE))));
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getMessage(),
+					is("Object #1 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /handles/0"));
+		}
+	}
+	
+	
+	@Test
+	public void idCount() throws Exception {
+		IdReferenceType type = HandleIdHandlerFactory.type;
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(4);
+		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
+				+ HANDLE.getHandleServerPort()), CLIENT1.getToken()));
+		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
+		handlers.associateObject("foo");
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
+		handlers.associateObject("foo1");
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		assertThat("id count correct", handlers.getCurrentUniqueIdCount(), is(3));
+		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
+		try {
+			handlers.addStringId(new IdReference<String>(type, "KBH_3", null));
+		} catch (TooManyIdsException e) {
+			assertThat("correct exception msg", e.getMessage(),
+					is("Maximum ID count of 4 exceeded"));
+		}
 		
 	}
 }

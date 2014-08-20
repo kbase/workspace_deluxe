@@ -340,7 +340,6 @@ public class ArgUtils {
 		return wsusers;
 	}
 	
-	//TODO 1 handle manager interaction needs testing
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
@@ -370,7 +369,6 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	//TODO 1 handle manager interaction needs testing
 	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectInformation> objects,
 			final WorkspaceUser user,
@@ -421,7 +419,6 @@ public class ArgUtils {
 		
 	}
 
-	//TODO 1 handle manager interaction needs testing
 	private static HandleError makeHandlesReadable(
 			final WorkspaceObjectInformation o,
 			final WorkspaceUser user,
