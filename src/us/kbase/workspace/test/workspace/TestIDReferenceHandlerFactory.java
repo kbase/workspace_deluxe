@@ -30,7 +30,7 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 
 	@Override
 	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
-		return new TestIDReferenceHandler<T>(type);
+		return new TestIDReferenceHandler<T>();
 	}
 
 	@Override
@@ -38,44 +38,28 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		return type;
 	}
 	
-	public class TestIDReferenceHandler<T> implements IdReferenceHandler<T> {
+	public class TestIDReferenceHandler<T> extends IdReferenceHandler<T> {
 
-		private final IdReferenceType type;
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
-		private boolean processed = false;
-		private boolean locked = false;
 		
 		private IdParseException parseExcept = null;
 		private IdReferenceException refExcept = null;
 		private IdReferenceHandlerException genExcept = null;
 		
-		private TestIDReferenceHandler(final IdReferenceType type) {
-			this.type = type;
+		private TestIDReferenceHandler() {
 		}
 		
 		@Override
-		public boolean addId(T associatedObject,
+		protected boolean addIdImpl(T associatedObject,
 				Long id, List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
 			return addId(associatedObject, "" + id, attributes);
 		}
 		
 		@Override
-		public boolean addId(T associatedObject,
+		protected boolean addIdImpl(T associatedObject,
 				String id, List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
-			if (locked) {
-				throw new HandlerLockedException("This handler is locked");
-			}
-			if (associatedObject == null) {
-				throw new NullPointerException(
-						"associatedObject cannot be null");
-			}
-			if (id == null || id.isEmpty()) {
-				throw new IdParseException(
-						"IDs may not be null or the empty string",
-						getIdType(), associatedObject, id, attributes, null);
-			}
 			if ("parseExcept".equals(id)) {
 				throw new IdParseException("Parse exception for ID " + id,
 						type, associatedObject, id, attributes, null);
@@ -115,9 +99,7 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		}
 
 		@Override
-		public void processIds() throws IdReferenceHandlerException {
-			processed = true;
-			locked = true;
+		protected void processIdsImpl() throws IdReferenceHandlerException {
 			for (IdReferenceHandlerException e:
 					Arrays.asList(parseExcept, refExcept, genExcept)) {
 				if (e != null) {
@@ -128,7 +110,8 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		}
 
 		@Override
-		public RemappedId getRemappedId(String oldId) throws NoSuchIdException {
+		protected RemappedId getRemappedIdImpl(String oldId)
+				throws NoSuchIdException {
 			for (final T assobj: ids.keySet()) {
 				if (ids.get(assobj).contains(oldId)) {
 					return new SimpleRemappedId(oldId);
@@ -138,11 +121,7 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		}
 
 		@Override
-		public Set<RemappedId> getRemappedIds(T associatedObject) {
-			if (!processed) {
-				throw new IllegalStateException(
-						"IDs haven't been processed yet");
-			}
+		protected Set<RemappedId> getRemappedIdsImpl(T associatedObject) {
 			Set<RemappedId> newids = new HashSet<RemappedId>();
 			if (!ids.containsKey(associatedObject)) {
 				return newids;
@@ -151,11 +130,6 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 				newids.add(new SimpleRemappedId(id));
 			}
 			return newids;
-		}
-
-		@Override
-		public void lock() {
-			locked = true;
 		}
 
 		@Override

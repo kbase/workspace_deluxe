@@ -397,12 +397,12 @@ public class HandleTest {
 					.withObjects(Arrays.asList(
 							new ObjectSaveData().withData(new UObject(handleobj))
 							.withType(HANDLE_TYPE))));
+			fail("saved null handle");
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getMessage(),
 					is("Object #1 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /handles/0"));
 		}
 	}
-	
 	
 	@Test
 	public void idCount() throws Exception {
@@ -421,6 +421,7 @@ public class HandleTest {
 		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
 		try {
 			handlers.addStringId(new IdReference<String>(type, "KBH_3", null));
+			fail("exceeded max IDs");
 		} catch (TooManyIdsException e) {
 			assertThat("correct exception msg", e.getMessage(),
 					is("Maximum ID count of 4 exceeded"));

@@ -27,7 +27,7 @@ import us.kbase.typedobj.idref.RemappedId;
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	//TODO 2 copy method needs to call exists on any handle IDs (needs get ext ids method)
-	//TODO 2 tests for handler id extraction, verification, etc.
+	//TODO unit tests
 	
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
@@ -58,30 +58,17 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		return type;
 	}
 	
-	public class HandleIdHandler<T> implements IdReferenceHandler<T> {
+	public class HandleIdHandler<T> extends IdReferenceHandler<T> {
 		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
-		private boolean processed = false;
-		private boolean locked = false;
 		
 		private HandleIdHandler() {}
 		
 		@Override
-		public boolean addId(final T associatedObject, final String id,
+		protected boolean addIdImpl(final T associatedObject, final String id,
 				final List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
-			if (locked) {
-				throw new HandlerLockedException("This handler is locked");
-			}
-			if (associatedObject == null) {
-				throw new NullPointerException(
-						"associatedObject cannot be null");
-			}
-			if (id == null) {
-				throw new IdParseException("Ids may not be null", type,
-						associatedObject, "" + id, attributes, null);
-			}
 			if (handleService == null) {
 				throw new IdReferenceException("Found handle id " + id +
 						". The workspace service currently does not have a " +
@@ -103,7 +90,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 		
 		@Override
-		public boolean addId(final T associatedObject, final Long id,
+		protected boolean addIdImpl(final T associatedObject, final Long id,
 				final List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
 			throw new IdParseException(
@@ -113,10 +100,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
-		public void processIds() throws IdReferenceHandlerException {
-			processed = true;
-			locked = true;
-			// TODO 1 test with handle service
+		protected void processIdsImpl() throws IdReferenceHandlerException {
 			final Set<String> handles = new HashSet<String>();
 			for (final Set<String> idset: ids.values()) {
 				handles.addAll(idset);
@@ -161,12 +145,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
-		public RemappedId getRemappedId(String oldId)
+		protected RemappedId getRemappedIdImpl(String oldId)
 				throws NoSuchIdException {
-			if (!processed) {
-				throw new IllegalStateException(
-						"IDs haven't been processed yet");
-			}
 			for (final T assobj: ids.keySet()) {
 				if (ids.get(assobj).contains(oldId)) {
 					return new SimpleRemappedId(oldId);
@@ -177,11 +157,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 
 		@Override
-		public Set<RemappedId> getRemappedIds(T associatedObject) {
-			if (!processed) {
-				throw new IllegalStateException(
-						"IDs haven't been processed yet");
-			}
+		protected Set<RemappedId> getRemappedIdsImpl(T associatedObject) {
 			final Set<RemappedId> newids = new HashSet<RemappedId>();
 			if (!ids.containsKey(associatedObject)) {
 				return newids;
@@ -190,11 +166,6 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 				newids.add(new SimpleRemappedId(id));
 			}
 			return newids;
-		}
-
-		@Override
-		public void lock() {
-			locked = true;
 		}
 
 		@Override
