@@ -125,7 +125,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     //TODO 2 show copy if user can see object
-    //TODO 1 make & use new dev jar for better exception handling
 	
 	private static final String VER = "0.3.0";
 
