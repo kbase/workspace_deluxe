@@ -32,7 +32,10 @@ public class IdReferenceHandlerSet<T> {
 	 *
 	 * @param <T> the type of the object to be associated with IDs.
 	 */
-	public interface IdReferenceHandler<T> {
+	public static abstract class IdReferenceHandler<T> {
+		
+		private boolean locked = false;
+		private boolean processed = false;
 		
 		/** Add an id to the handler
 		 * @param associatedObject an object associated with the ID.
@@ -45,6 +48,26 @@ public class IdReferenceHandlerSet<T> {
 		 * @throws HandlerLockedException if the handler is already locked.
 		 */
 		public boolean addId(T associatedObject, String id,
+				List<String> attributes)
+				throws IdReferenceHandlerException,
+				HandlerLockedException {
+			if (locked) {
+				throw new HandlerLockedException("This handler is locked");
+			}
+			if (associatedObject == null) {
+				throw new NullPointerException(
+						"associatedObject cannot be null");
+			}
+			if (id == null || id.isEmpty()) {
+				throw new IdParseException(
+						"IDs may not be null or the empty string",
+						getIdType(), associatedObject, id, attributes, null);
+			}
+			return addIdImpl(associatedObject, id, attributes);
+		}
+		
+		/** Implementation of the addId method */
+		protected abstract boolean addIdImpl(T associatedObject, String id,
 				List<String> attributes)
 				throws IdReferenceHandlerException,
 				HandlerLockedException;
@@ -62,30 +85,83 @@ public class IdReferenceHandlerSet<T> {
 		public boolean addId(T associatedObject, Long id,
 				List<String> attributes)
 				throws IdReferenceHandlerException,
+				HandlerLockedException {
+			if (locked) {
+				throw new HandlerLockedException("This handler is locked");
+			}
+			if (associatedObject == null) {
+				throw new NullPointerException(
+						"associatedObject cannot be null");
+			}
+			if (id == null) {
+				throw new IdParseException(
+						"IDs may not be null",
+						getIdType(), associatedObject, "" + id, attributes,
+						null);
+			}
+			return addIdImpl(associatedObject, id, attributes);
+		}
+		
+		/** Implementation of the addId method */
+		protected abstract boolean addIdImpl(T associatedObject, Long id,
+				List<String> attributes)
+				throws IdReferenceHandlerException,
 				HandlerLockedException;
 
 		/** Perform any necessary batch processing of the IDs before
 		 * remapping and locks the handler.
 		 */
-		public void processIds() throws IdReferenceHandlerException;
+		public void processIds() throws IdReferenceHandlerException {
+			locked = true;
+			processed = true;
+			processIdsImpl();
+		}
+		
+		/** Implementation of the processIds method */
+		protected abstract void processIdsImpl()
+				throws IdReferenceHandlerException;
 		
 		/** Translate an ID to the remapped ID.
 		 * @param oldId the original ID.
 		 * @return the new, remapped ID.
 		 */
-		public RemappedId getRemappedId(String oldId) throws NoSuchIdException;
+		public RemappedId getRemappedId(String oldId)
+				throws NoSuchIdException {
+			if (!processed) {
+				throw new IllegalStateException(
+						"IDs haven't been processed yet");
+			}
+			return getRemappedIdImpl(oldId);
+		}
+		
+		/** Implementation of the getRemappedId method */
+		protected abstract RemappedId getRemappedIdImpl(String oldId)
+				throws NoSuchIdException;
 		
 		/** Get the set of remapped IDs associated with a particular object.
 		 * @param associatedObject the object to which the desired set of IDs
 		 * are associated.
 		 * @return the set of remapped IDs associated with an object.
 		 */
-		public Set<RemappedId> getRemappedIds(T associatedObject);
+		public Set<RemappedId> getRemappedIds(T associatedObject) {
+			if (!processed) {
+				throw new IllegalStateException(
+						"IDs haven't been processed yet");
+			}
+			return getRemappedIdsImpl(associatedObject);
+		}
+		
+		/** Implementation of the getRemappedIds method */
+		protected abstract Set<RemappedId> getRemappedIdsImpl(
+				T associatedObject);
+
+		public abstract IdReferenceType getIdType();
 		
 		/** Prevent addition of any more IDs.
 		 */
-		public void lock();
-		public IdReferenceType getIdType();
+		public void lock() {
+			locked = true;
+		}
 	}
 	
 	protected IdReferenceHandlerSet(final int maxUniqueIdCount,

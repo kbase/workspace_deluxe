@@ -1386,7 +1386,7 @@ public class Workspace {
 		}
 	}
 	
-	public class WorkspaceIDHandler<T> implements IdReferenceHandler<T> {
+	public class WorkspaceIDHandler<T> extends IdReferenceHandler<T> {
 
 		//TODO 1 read through all this & check docs, write any new tests, check coverage.
 		
@@ -1397,8 +1397,6 @@ public class Workspace {
 				new HashMap<T, Map<String, Set<List<String>>>>();
 		private final Map<String, RemappedId> remapped =
 				new HashMap<String, RemappedId>();
-		private boolean locked = false;
-		private boolean processed = false;
 		
 		private WorkspaceIDHandler(final WorkspaceUser user) {
 			super();
@@ -1406,7 +1404,7 @@ public class Workspace {
 		}
 
 		@Override
-		public boolean addId(T associatedObject, Long id,
+		protected boolean addIdImpl(T associatedObject, Long id,
 				List<String> attributes) throws IdReferenceHandlerException,
 				HandlerLockedException {
 			throw new IdReferenceException("Workspace IDs must be strings",
@@ -1418,23 +1416,11 @@ public class Workspace {
 		 * representation of the object.
 		 */
 		@Override
-		public boolean addId(
+		protected boolean addIdImpl(
 				final T associatedObject,
 				final String id,
 				final List<String> attributes)
 				throws IdParseException {
-			if (locked) {
-				throw new HandlerLockedException("This handler is locked");
-			}
-			if (associatedObject == null) {
-				throw new NullPointerException(
-						"associatedObject cannot be null");
-			}
-			if (id == null || id.isEmpty()) {
-				throw new IdParseException(
-						"IDs may not be null or the empty string",
-						getIdType(), associatedObject, id, attributes, null);
-			}
 			boolean unique = true;
 			if (!ids.containsKey(associatedObject)) {
 				ids.put(associatedObject,
@@ -1453,10 +1439,8 @@ public class Workspace {
 		}
 
 		@Override
-		public void processIds()
+		protected void processIdsImpl()
 				throws IdReferenceHandlerException {
-			locked = true;
-			processed = true;
 			final Set<ObjectIdentifier> idset =
 					new HashSet<ObjectIdentifier>();
 			for (final T assObj: ids.keySet()) {
@@ -1611,12 +1595,8 @@ public class Workspace {
 		//TODO 2 method to drop associations but keep mapping
 
 		@Override
-		public RemappedId getRemappedId(final String oldId)
+		protected RemappedId getRemappedIdImpl(final String oldId)
 				throws NoSuchIdException {
-			if (!processed) {
-				throw new IllegalStateException(
-						"IDs haven't been processed yet");
-			}
 			if (!remapped.containsKey(oldId)) {
 				throw new NoSuchIdException(
 						"No such ID contained in this mapper: " + oldId);
@@ -1625,11 +1605,7 @@ public class Workspace {
 		}
 
 		@Override
-		public Set<RemappedId> getRemappedIds(T associatedObject) {
-			if (!processed) {
-				throw new IllegalStateException(
-						"IDs haven't been processed yet");
-			}
+		protected Set<RemappedId> getRemappedIdsImpl(T associatedObject) {
 			Set<RemappedId> newids = new HashSet<RemappedId>();
 			if (!ids.containsKey(associatedObject)) {
 				return newids;
@@ -1638,11 +1614,6 @@ public class Workspace {
 				newids.add(remapped.get(id));
 			}
 			return newids;
-		}
-
-		@Override
-		public void lock() {
-			locked = true;
 		}
 
 		@Override
