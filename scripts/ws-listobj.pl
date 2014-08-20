@@ -29,7 +29,7 @@ my ($opt, $usage) = describe_options(
     [ 'limit|l=i','Limit the number of objects displayed to this number (after sorting)' ],
     [ 'column|c=i','Sort by this column number (first column = 1)' ],
     [ 'megabytes|m','Report size in MB (bytes/1024^2)' ],
-    [ 'timestamp|p','Report absolute timestamp instead of relative time' ],
+    [ 'timestamp|p','Display absolute timestamp of last modified date instead of relative/local time' ],
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
     [ 'showhidden|a','Include hidden objects', {"default" =>0} ],
     [ 'showdeleted|s','Include objects that have been deleted', {"default" =>0} ],
