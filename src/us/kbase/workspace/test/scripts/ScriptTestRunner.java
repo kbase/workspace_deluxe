@@ -11,8 +11,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,16 +32,11 @@ import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
-import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.ShockACLType;
-import us.kbase.shock.client.ShockUserId;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 /*
  * These tests are specifically for testing the WS CLI written in perl.
@@ -80,9 +73,6 @@ public class ScriptTestRunner {
 	static {
 		JsonTokenStreamOCStat.register();
 	}
-	
-	private static List<TempFilesManager> tfms =
-			new LinkedList<TempFilesManager>();;
 	
 	private static class ServerThread extends Thread {
 		private WorkspaceServer server;

@@ -385,7 +385,7 @@ public class HandleTest {
 	}
 	
 	@Test
-	public void nullHandle() throws Exception {
+	public void badHandle() throws Exception {
 		String workspace = "nullhandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		List<String> handleList = new LinkedList<String>();
@@ -402,6 +402,17 @@ public class HandleTest {
 			assertThat("correct exception msg", se.getMessage(),
 					is("Object #1 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /handles/0"));
 		}
+		handleList.set(0, "");
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj))
+							.withType(HANDLE_TYPE))));
+			fail("saved bad handle");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getMessage(),
+					is("Object #1 has an unparseable reference: IDs may not be null or the empty string"));
+		}
 	}
 	
 	@Test
@@ -417,7 +428,7 @@ public class HandleTest {
 		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
 		handlers.associateObject("foo1");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
-		assertThat("id count correct", handlers.getCurrentUniqueIdCount(), is(3));
+		assertThat("id count correct", handlers.size(), is(3));
 		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
 		try {
 			handlers.addStringId(new IdReference<String>(type, "KBH_3", null));

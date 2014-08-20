@@ -333,10 +333,6 @@ public class IdReferenceHandlerSet<T> {
 		return maxUniqueIdCount;
 	}
 	
-	public int getCurrentUniqueIdCount() {
-		return currentUniqueIdCount;
-	}
-	
 	@SuppressWarnings("serial")
 	public static class TooManyIdsException extends Exception {
 
