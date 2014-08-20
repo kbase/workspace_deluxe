@@ -11,6 +11,7 @@ ws-list	workspace
 ws-listobj	workspace
 ws-load	workspace
 ws-rename	workspace
+ws-renamews	workspace
 ws-revert	workspace
 ws-share	workspace
 ws-typespec-list	workspace
@@ -29,6 +30,7 @@ kbws-list	workspace
 kbws-listobj	workspace
 kbws-load	workspace
 kbws-rename	workspace
+kbws-renamews	workspace
 kbws-revert	workspace
 kbws-share	workspace
 kbws-typespec-list	workspace
