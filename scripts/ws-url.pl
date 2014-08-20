@@ -2,8 +2,7 @@
 ########################################################################
 # adpated for WS 0.1.0+ by Michael Sneddon, LBL
 # Original authors: Christopher Henry, Scott Devoid, Paul Frybarger
-# Contact email: chenry@mcs.anl.gov
-# Development location: Mathematics and Computer Science Division, Argonne National Lab
+# Contact email: mwsneddon@lbl.gov or chenry@mcs.anl.gov
 ########################################################################
 use strict;
 use warnings;
