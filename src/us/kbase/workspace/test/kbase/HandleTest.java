@@ -62,7 +62,7 @@ import us.kbase.workspace.kbase.HandleIdHandlerFactory;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 
-public class JSONRPCLayerHandleTest {
+public class HandleTest {
 
 	private static MySQLController MYSQL;
 	private static MongoController MONGO;
