@@ -4045,7 +4045,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new SubObjectIdentifier(oident2, new ObjectPaths(
 						Arrays.asList("/array/3", "/array/0")))),
 				new TypedObjectExtractionException(
-						"No element at position '3', at: /array/3"));
+						"Invalid selection: no array element exists at position '3', at: /array/3"));
 		
 		got = ws.getObjectsSubSet(user, Arrays.asList(
 				new SubObjectIdentifier(oident1, new ObjectPaths(
@@ -4072,9 +4072,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		failGetSubset(user, Arrays.asList(
 				new SubObjectIdentifier(oident1, new ObjectPaths(
-						Arrays.asList("/mappy/*/thing")))),
+						Arrays.asList("/map/id1/id/5")))),
 				new TypedObjectExtractionException(
-						"Malformed selection string, cannot get 'mappy', at: /mappy"));
+						"Invalid selection: the path given specifies fields or elements that do not exist "
+						+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id1/id"));
 		failGetSubset(user2, Arrays.asList(
 				new SubObjectIdentifier(oident1, new ObjectPaths(
 						Arrays.asList("/map/*/thing")))),

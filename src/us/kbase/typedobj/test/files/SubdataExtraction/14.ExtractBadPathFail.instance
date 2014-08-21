@@ -1,0 +1,13 @@
+{
+	"paths":["things/alpha"],
+	"strict":false,
+	"data": {
+		"things":[
+			{"name":"stuff", "description":"some gene", "extra":"stuff"},
+			{"extra":"stuff"},
+			{"name":"stuff", "extra":"stuff"},
+			{"extra":"stuff", "description":"some gene"}
+		]
+	},
+	"extract": "Invalid selection: data at '/things' is an array, so element selection must be an integer.  You requested element 'alpha', at: /things"
+}

@@ -1,5 +1,6 @@
 {
 	"paths":["/otherstuff/32"],
+	"strict":true,
 	"data": {
 		"name":"something",
 		"id":"madeup",
@@ -9,5 +10,5 @@
 		"otherstuff":[22,22,22,22],
 		"things":{}
 	},
-	"extract": "No element at position '32', at: /otherstuff/32"
+	"extract": "Invalid selection: no array element exists at position '32', at: /otherstuff/32"
 }

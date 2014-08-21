@@ -22,6 +22,7 @@ my $commandNames = [
     "ws-createws",
     "ws-delete",
     "ws-deletews",
+    "ws-diff",
     "ws-get",
     "ws-getsubset",
     "ws-hide",

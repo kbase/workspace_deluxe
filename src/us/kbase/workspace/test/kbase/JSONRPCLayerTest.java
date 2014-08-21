@@ -2215,11 +2215,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		try {
 			CLIENT1.getObjectSubset(Arrays.asList(
 					new SubObjectIdentity().withRef("subdata/1")
-					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))).get(0);
+					.withIncluded(Arrays.asList("/map/id1", "/map/id3/id/id/id/12")))).get(0);
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
+			System.err.println(se.getLocalizedMessage());
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Malformed selection string, cannot get 'id4', at: /map/id4"));
+					is("Invalid selection: the path given specifies fields or elements that do not exist "
+							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));
 		}
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
