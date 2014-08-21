@@ -1,0 +1,20 @@
+{
+	"paths":["things/[*]/name","things/[*]/description"],
+	"strict":false,
+	"data": {
+		"things":[
+			{"name":"stuff", "description":"some gene", "extra":"stuff"},
+			{"extra":"stuff"},
+			{"name":"stuff", "extra":"stuff"},
+			{"extra":"stuff", "description":"some gene"}
+		]
+	},
+	"extract": {
+		"things":[
+			{"name":"stuff", "description":"some gene"},
+			{},
+			{"name":"stuff"},
+			{"description":"some gene"}
+		]
+	}
+}

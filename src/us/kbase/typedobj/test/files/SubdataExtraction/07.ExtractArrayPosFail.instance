@@ -1,5 +1,6 @@
 {
 	"paths":["/otherstuff/32"],
+	"strict":true,
 	"data": {
 		"name":"something",
 		"id":"madeup",

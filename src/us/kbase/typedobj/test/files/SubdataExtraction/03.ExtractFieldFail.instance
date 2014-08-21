@@ -1,5 +1,6 @@
 {
 	"paths":["/notafield"],
+	"strict":true,
 	"data": {
 		"name":"something",
 		"id":"madeup",

@@ -26,16 +26,26 @@ import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 public class SubdataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
+	/** sets default behavior for extraction.  If strict is true, then errors are thrown if a field
+	 * or array element is requested but does not exist in the data object. If strict is false, then
+	 * if the field or array element is missing, nothing is returned.  This is useful for optional
+	 * fields, but may be prone to error if a user had a typo in the path...
+	 */
+	public static boolean STRICT_DEFAULT = false;
 	/**
-	 * This method should be used in testing purposes because it processes json data 
-	 * stores in memory as a tree rather than as token stream that could be processed
+	 * This method should be used only in tests because it processes json data 
+	 * stored in memory as a tree rather than as token stream that could be processed
 	 * directly from a file.
 	 */
 	public static JsonNode extract(ObjectPaths objpaths, JsonNode input) 
 			throws IOException, TypedObjectExtractionException {
+		return extract(objpaths, input, STRICT_DEFAULT);
+	}
+	public static JsonNode extract(ObjectPaths objpaths, JsonNode input, boolean strict) 
+			throws IOException, TypedObjectExtractionException {
 		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
-		extractFields(objpaths, tsp, jgen);
+		extractFields(objpaths, tsp, jgen, strict);
 		tsp.close();
 		jgen.close();
 		return jgen.getTree();
@@ -56,10 +66,14 @@ public class SubdataExtractor {
 	 */
 	public static void extract(ObjectPaths objpaths, JsonParser jp, JsonGenerator output) 
 			throws IOException, TypedObjectExtractionException {
-		extractFields(objpaths, createTokenSequenceProvider(jp), output);
+		extract(objpaths, jp, output, STRICT_DEFAULT);
+	}
+	public static void extract(ObjectPaths objpaths, JsonParser jp, JsonGenerator output, boolean strict) 
+			throws IOException, TypedObjectExtractionException {
+		extractFields(objpaths, createTokenSequenceProvider(jp), output, strict);
 	}
 	
-	private static void extractFields(ObjectPaths objpaths, TokenSequenceProvider jts, JsonGenerator output) 
+	private static void extractFields(ObjectPaths objpaths, TokenSequenceProvider jts, JsonGenerator output, boolean strict) 
 			throws IOException, TypedObjectExtractionException {
 		//if the selection is empty, we return without adding anything
 		SubdataExtractionNode root = new SubdataExtractionNode();
@@ -68,7 +82,7 @@ public class SubdataExtractor {
 			root.addPath(path);
 		}
 		JsonToken t = jts.nextToken();
-		extractFieldsWithOpenToken(jts, t, root, output, new ArrayList<String>());
+		extractFieldsWithOpenToken(jts, t, root, output, new ArrayList<String>(), strict);
 	}
 	
 	/*
@@ -238,7 +252,7 @@ public class SubdataExtractor {
 	 * just skip it.
 	 */
 	private static void extractFieldsWithOpenToken(TokenSequenceProvider jts, JsonToken current, 
-			SubdataExtractionNode selection, JsonGenerator jgen, List<String> path) 
+			SubdataExtractionNode selection, JsonGenerator jgen, List<String> path, boolean strict) 
 					throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		if (t == JsonToken.START_OBJECT) {	// we observe open of mapping/object in real json data
@@ -280,7 +294,7 @@ public class SubdataExtractor {
 						path.add(fieldName);
 						// process value corresponding to this field recursively
 						extractFieldsWithOpenToken(jts, t, all ? allChild : 
-							selection.getChildren().get(fieldName), jgen, path);
+							selection.getChildren().get(fieldName), jgen, path, strict);
 						// remove field from tail of path branch
 						path.remove(path.size() - 1);
 					} else {
@@ -290,9 +304,8 @@ public class SubdataExtractor {
 					}
 				}
 				// let's check have we visited all selected fields in this map
-				// TODO: this check could be wrong because fields can be optional and in this case
 				// we will not visit them in real data and hence will not delete them from selection
-				if (!selectedFields.isEmpty()) {
+				if (strict && !selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
 					throw new TypedObjectExtractionException("Malformed selection string, cannot get " +
 							"'" + notFound + "', at: " + getPathText(path, notFound));
@@ -348,13 +361,13 @@ public class SubdataExtractor {
 						// add element position to the tail of path branch
 						path.add("" + pos);
 						// process value of this element recursively
-						extractFieldsWithOpenToken(jts, t, child, jgen, path);
+						extractFieldsWithOpenToken(jts, t, child, jgen, path, strict);
 						// remove field from tail of path branch
 						path.remove(path.size() - 1);
 					}
 				}
 				// let's check have we visited all selected items in this array
-				if (!selectedFields.isEmpty()) {
+				if (strict && !selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
 					throw new TypedObjectExtractionException("No element at position " +
 							"'" + notFound + "', at: " + getPathText(path, notFound));

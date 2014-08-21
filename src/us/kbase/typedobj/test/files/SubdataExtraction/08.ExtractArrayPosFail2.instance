@@ -1,5 +1,6 @@
 {
 	"paths":["/otherstuff/2/i","/otherstuff/22/id"],
+	"strict":true,
 	"data": {
 		"name":"something",
 		"id":"madeup",
