@@ -378,7 +378,7 @@ public class SubdataExtractor {
 			}
 		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
-				throw new TypedObjectExtractionException("Invalid selection: the path given specifies fields or elements that do not exists becase data " +
+				throw new TypedObjectExtractionException("Invalid selection: the path given specifies fields or elements that do not exist because data " +
 						"at this location is a scalar value (i.e. string, integer, float), at: " + getPathText(path));
 			writeCurrentToken(jts, t, jgen);
 		}
