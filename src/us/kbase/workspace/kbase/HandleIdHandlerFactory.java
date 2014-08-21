@@ -14,7 +14,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
-import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
+//import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
@@ -89,15 +89,15 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			return unique;
 		}
 		
-		@Override
-		protected boolean addIdImpl(final T associatedObject, final Long id,
-				final List<String> attributes)
-				throws IdReferenceHandlerException, HandlerLockedException {
-			throw new IdParseException(
-					"Handle Service IDs are expected to be strings. Got: " +
-							id, type, associatedObject, "" + id, attributes,
-							null);
-		}
+//		@Override
+//		protected boolean addIdImpl(final T associatedObject, final Long id,
+//				final List<String> attributes)
+//				throws IdReferenceHandlerException, HandlerLockedException {
+//			throw new IdParseException(
+//					"Handle Service IDs are expected to be strings. Got: " +
+//							id, type, associatedObject, "" + id, attributes,
+//							null);
+//		}
 
 		@Override
 		protected void processIdsImpl() throws IdReferenceHandlerException {

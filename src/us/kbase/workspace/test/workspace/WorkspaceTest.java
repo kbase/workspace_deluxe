@@ -1662,7 +1662,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void idExtraction() throws Exception {
 		String idtype1 = "someid";
 		String idtype2 = "someid2";
-		String idtypeint = "someintid";
+//		String idtypeint = "someintid";
 		String mod = "TestIDExtraction";
 		String type = "IdType";
 		final String idSpec =
@@ -1671,15 +1671,16 @@ public class WorkspaceTest extends WorkspaceTester {
 					"typedef string some_id;" +
 					"/* @id " + idtype2 + " */" +
 					"typedef string some_id2;" +
-					"/* @id " + idtypeint + " */" +
-					"typedef int int_id;" +
+//					"/* @id " + idtypeint + " */" +
+//					"typedef int int_id;" +
 					"/* @optional an_id\n" +
 					"   @optional an_id2\n" +
-					"   @optional an_int_id */" +
+//					"   @optional an_int_id */" +
+					"*/" +
 					"typedef structure {" +
 						"some_id an_id;" +
 						"some_id2 an_id2;" +
-						"int_id an_int_id;" +
+//						"int_id an_int_id;" +
 					"} " + type + ";" +
 				"};";
 		WorkspaceUser user = new WorkspaceUser("foo");
@@ -1708,7 +1709,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		iddata.put("an_id", "id here");
 		iddata.put("an_id2", "foo");
-		iddata.put("an_int_id", 34);
+//		iddata.put("an_int_id", 34);
 		ws.saveObjects(user, wsi, data, fac); //should work
 		Map<String, List<String>> expected = new HashMap<String, List<String>>();
 		ObjectIdentifier obj1 = new ObjectIdentifier(wsi, "auto1");
@@ -1744,19 +1745,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.revertObject(user, new ObjectIdentifier(wsi, "copied", 2));
 		checkExternalIds(user, new ObjectIdentifier(wsi, "copied", 4), expected);
 		
-		//check int ids
-		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtypeint)));
-		
-		ws.saveObjects(user, wsi, data, fac); //should work
-		expected.put(idtype1, Arrays.asList("id here"));
-		expected.put(idtype2, Arrays.asList("foo"));
-		expected.put(idtypeint, Arrays.asList("34"));
-		checkExternalIds(user, new ObjectIdentifier(wsi, "auto7"), expected);
-		
-		iddata.put("an_int_id", null);
-		
-		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"integer\"]), at /an_int_id"));
+//		//check int ids
+//		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtypeint)));
+//		
+//		ws.saveObjects(user, wsi, data, fac); //should work
+//		expected.put(idtype1, Arrays.asList("id here"));
+//		expected.put(idtype2, Arrays.asList("foo"));
+//		expected.put(idtypeint, Arrays.asList("34"));
+//		checkExternalIds(user, new ObjectIdentifier(wsi, "auto7"), expected);
+//		
+//		iddata.put("an_int_id", null);
+//		
+//		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+//				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"integer\"]), at /an_int_id"));
 	}
 	
 	@Test

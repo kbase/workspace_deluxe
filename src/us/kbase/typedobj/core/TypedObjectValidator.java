@@ -210,14 +210,14 @@ public final class TypedObjectValidator {
 						}
 					}
 					
-					@Override
-					public void addLongIdRefMessage(IdReference<Long> ref)
-							throws TooManyIdsException,
-							IdReferenceHandlerException {
-						if (handlers.hasHandler(ref.getType())) {
-							handlers.addLongId(ref);
-						}
-					}
+//					@Override
+//					public void addLongIdRefMessage(IdReference<Long> ref)
+//							throws TooManyIdsException,
+//							IdReferenceHandlerException {
+//						if (handlers.hasHandler(ref.getType())) {
+//							handlers.addLongId(ref);
+//						}
+//					}
 
 					@Override
 					public void addSearchableWsSubsetMessage(JsonNode selection) {

@@ -5,9 +5,7 @@
 		},
 	"ids-found": {
 		"id1": 1,
-		"id2": 2,
-		"22": 2,
-		"44": 1
+		"id2": 2
 		},
 	"renamed-expected": {
 		"also_no_typechk": [{"foo": "id1"},

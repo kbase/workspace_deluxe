@@ -29,16 +29,16 @@ public interface JsonTokenValidationListener {
 	public void addStringIdRefMessage(IdReference<String> ref)
 			throws TooManyIdsException, IdReferenceHandlerException;
 	
-	/**
-	 * Method is for adding id-reference into a reference handler.
-	 * @param ref description of id-reference
-	 * @throws IdReferenceHandlerException if an ID could not be handled
-	 * appropriately due to a syntax error or other issue. 
-	 * @throws TooManyIdsException if the object undergoing validation
-	 * contains too many IDs.
-	 */
-	public void addLongIdRefMessage(IdReference<Long> ref)
-			throws TooManyIdsException, IdReferenceHandlerException;
+//	/**
+//	 * Method is for adding id-reference into a reference handler.
+//	 * @param ref description of id-reference
+//	 * @throws IdReferenceHandlerException if an ID could not be handled
+//	 * appropriately due to a syntax error or other issue. 
+//	 * @throws TooManyIdsException if the object undergoing validation
+//	 * contains too many IDs.
+//	 */
+//	public void addLongIdRefMessage(IdReference<Long> ref)
+//			throws TooManyIdsException, IdReferenceHandlerException;
 	
 	/**
 	 * Method is for registering searchable ws-subset object.

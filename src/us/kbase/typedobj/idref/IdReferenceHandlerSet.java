@@ -72,41 +72,41 @@ public class IdReferenceHandlerSet<T> {
 				throws IdReferenceHandlerException,
 				HandlerLockedException;
 		
-		/** Add an id to the handler
-		 * @param associatedObject an object associated with the ID.
-		 * @param id the id.
-		 * @param attributes the attributes of the ID.
-		 * @return boolean if this is a unique ID (on a per associated object
-		 * basis) stored in memory and thus should count towards the maximum ID
-		 * limit.
-		 * @throws IdReferenceHandlerException if the ID could not be added.
-		 * @throws HandlerLockedException if the handler is already locked.
-		 */
-		public boolean addId(T associatedObject, Long id,
-				List<String> attributes)
-				throws IdReferenceHandlerException,
-				HandlerLockedException {
-			if (locked) {
-				throw new HandlerLockedException("This handler is locked");
-			}
-			if (associatedObject == null) {
-				throw new NullPointerException(
-						"associatedObject cannot be null");
-			}
-			if (id == null) {
-				throw new IdParseException(
-						"IDs may not be null",
-						getIdType(), associatedObject, "" + id, attributes,
-						null);
-			}
-			return addIdImpl(associatedObject, id, attributes);
-		}
-		
-		/** Implementation of the addId method */
-		protected abstract boolean addIdImpl(T associatedObject, Long id,
-				List<String> attributes)
-				throws IdReferenceHandlerException,
-				HandlerLockedException;
+//		/** Add an id to the handler
+//		 * @param associatedObject an object associated with the ID.
+//		 * @param id the id.
+//		 * @param attributes the attributes of the ID.
+//		 * @return boolean if this is a unique ID (on a per associated object
+//		 * basis) stored in memory and thus should count towards the maximum ID
+//		 * limit.
+//		 * @throws IdReferenceHandlerException if the ID could not be added.
+//		 * @throws HandlerLockedException if the handler is already locked.
+//		 */
+//		public boolean addId(T associatedObject, Long id,
+//				List<String> attributes)
+//				throws IdReferenceHandlerException,
+//				HandlerLockedException {
+//			if (locked) {
+//				throw new HandlerLockedException("This handler is locked");
+//			}
+//			if (associatedObject == null) {
+//				throw new NullPointerException(
+//						"associatedObject cannot be null");
+//			}
+//			if (id == null) {
+//				throw new IdParseException(
+//						"IDs may not be null",
+//						getIdType(), associatedObject, "" + id, attributes,
+//						null);
+//			}
+//			return addIdImpl(associatedObject, id, attributes);
+//		}
+//		
+//		/** Implementation of the addId method */
+//		protected abstract boolean addIdImpl(T associatedObject, Long id,
+//				List<String> attributes)
+//				throws IdReferenceHandlerException,
+//				HandlerLockedException;
 
 		/** Perform any necessary batch processing of the IDs before
 		 * remapping and locks the handler.
@@ -189,18 +189,21 @@ public class IdReferenceHandlerSet<T> {
 		return this;
 	}
 	
-	/** Add a long ID to the appropriate ID handler.
-	 * @param id the new ID.
-	 * @throws TooManyIdsException if too many IDs are currently in memory.
-	 * @throws IdReferenceHandlerException if the id could not be handled
-	 */
-	public void addLongId(IdReference<Long> id)
-			throws TooManyIdsException, IdReferenceHandlerException {
-		checkIdRefValidity(id);
-		updateIdCount(handlers.get(id.getType()).addId(associated, 
-				id.getId(), id.getAttributes()));
-		
-	}
+	
+	//To re-enable this, need to think through the whole ID lifecycle,
+	//need new methods to get remapped IDs of various types
+//	/** Add a long ID to the appropriate ID handler.
+//	 * @param id the new ID.
+//	 * @throws TooManyIdsException if too many IDs are currently in memory.
+//	 * @throws IdReferenceHandlerException if the id could not be handled
+//	 */
+//	public void addLongId(IdReference<Long> id)
+//			throws TooManyIdsException, IdReferenceHandlerException {
+//		checkIdRefValidity(id);
+//		updateIdCount(handlers.get(id.getType()).addId(associated, 
+//				id.getId(), id.getAttributes()));
+//		
+//	}
 	
 	/** Add a string ID to the appropriate ID handler.
 	 * @param id the new ID.

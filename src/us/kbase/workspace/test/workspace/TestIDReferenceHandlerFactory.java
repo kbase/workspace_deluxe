@@ -49,12 +49,12 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 		private TestIDReferenceHandler() {
 		}
 		
-		@Override
-		protected boolean addIdImpl(T associatedObject,
-				Long id, List<String> attributes)
-				throws IdReferenceHandlerException, HandlerLockedException {
-			return addId(associatedObject, "" + id, attributes);
-		}
+//		@Override
+//		protected boolean addIdImpl(T associatedObject,
+//				Long id, List<String> attributes)
+//				throws IdReferenceHandlerException, HandlerLockedException {
+//			return addId(associatedObject, "" + id, attributes);
+//		}
 		
 		@Override
 		protected boolean addIdImpl(T associatedObject,

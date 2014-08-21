@@ -31,12 +31,12 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 			this.userFoundIDs = foundIDs;
 		}
 
-		@Override
-		protected boolean addIdImpl(T associatedObject, Long id,
-				List<String> attributes)
-				throws IdReferenceHandlerException, HandlerLockedException {
-			return addId(associatedObject, "" + id, attributes);
-		}
+//		@Override
+//		protected boolean addIdImpl(T associatedObject, Long id,
+//				List<String> attributes)
+//				throws IdReferenceHandlerException, HandlerLockedException {
+//			return addId(associatedObject, "" + id, attributes);
+//		}
 		
 		@Override
 		protected boolean addIdImpl(T associatedObject, String id,

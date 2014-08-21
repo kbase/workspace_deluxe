@@ -385,11 +385,11 @@ public class JsonTokenValidationSchema {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_NUMBER_INT) { // but found something else
-				//TODO 1 remove int ids?
+				
 				//if restoring int ids, make sure remapping works in the type validator
-				final boolean isID = idReference != null;
-				if (t != JsonToken.VALUE_NULL || isID) { // we allow nulls but not for references
-					lst.addError(generateError(type, t, path, isID));
+//				final boolean isID = idReference != null;
+				if (t != JsonToken.VALUE_NULL) { // || isID) { // we allow nulls but not for references
+					lst.addError(generateError(type, t, path, false)); // isID));
 				}
 				if (t == JsonToken.START_ARRAY
 						|| t == JsonToken.START_OBJECT) {
@@ -400,15 +400,15 @@ public class JsonTokenValidationSchema {
 //				if (intRange != null) {
 //					intRange.checkValue(jp, lst, path);
 //				}
-				if (idReference != null) {
-					// we can add this int value as requiring id-reference relabeling in case 
-					// there was defined idReference property in json-schema node describing this 
-					// string value
-					final IdReference<Long> ref = new IdReference<Long>(
-							idReference.idType, jp.getLongValue(),
-							idReference.attributes);
-					lst.addLongIdRefMessage(ref);
-				}
+//				if (idReference != null) {
+//					// we can add this int value as requiring id-reference relabeling in case 
+//					// there was defined idReference property in json-schema node describing this 
+//					// string value
+//					final IdReference<Long> ref = new IdReference<Long>(
+//							idReference.idType, jp.getLongValue(),
+//							idReference.attributes);
+//					lst.addLongIdRefMessage(ref);
+//				}
 			}
 		} else if (type == Type.number) {
 			// floating point value is expected, but we accept numbers that appear as integers as well

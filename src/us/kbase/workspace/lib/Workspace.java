@@ -45,7 +45,6 @@ import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
-import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
@@ -1404,13 +1403,13 @@ public class Workspace {
 			this.user = user;
 		}
 
-		@Override
-		protected boolean addIdImpl(T associatedObject, Long id,
-				List<String> attributes) throws IdReferenceHandlerException,
-				HandlerLockedException {
-			throw new IdReferenceException("Workspace IDs must be strings",
-					getIdType(), associatedObject, "" + id, attributes, null);
-		}
+//		@Override
+//		protected boolean addIdImpl(T associatedObject, Long id,
+//				List<String> attributes) throws IdReferenceHandlerException,
+//				HandlerLockedException {
+//			throw new IdReferenceException("Workspace IDs must be strings",
+//					getIdType(), associatedObject, "" + id, attributes, null);
+//		}
 		
 		/* To conserve memory the attributes are not copied to another list,
 		 * so modification of the attributes will modify the internal

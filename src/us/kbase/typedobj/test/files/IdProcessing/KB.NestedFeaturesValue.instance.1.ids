@@ -5,9 +5,7 @@
 		},
 	"ids-found": {
 		"id1": 1,
-		"id2": 2,
-		"11": 2,
-		"33": 1
+		"id2": 2
 		},
 	"renamed-expected": {
 		"nested_features": {"foo": {"foo": "id1remap"},
