@@ -742,13 +742,14 @@ public class Workspace {
 					"Object %s has an unparseable reference: ",
 					getObjectErrorId(wo, objcount)) + 
 					e.getMessage(), e);
+			//TODO 2 find path
 		} catch (IdReferenceException e) { //TODO 2 test with new handler impl
 			throw new TypedObjectValidationException(String.format(
 					"Object %s has an invalid reference: ",
 					getObjectErrorId(wo, objcount)) + 
 					e.getMessage(), e);
-		} catch (IdReferenceHandlerException e) {
 			//TODO 2 find path
+		} catch (IdReferenceHandlerException e) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking ",
 					getObjectErrorId(wo, objcount)) + 

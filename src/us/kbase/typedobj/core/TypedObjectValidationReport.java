@@ -16,7 +16,9 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -322,18 +324,21 @@ public class TypedObjectValidationReport {
 		return new IdRefTokenSequenceProvider(jts, schema, idHandler);
 	}
 	
-	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(JsonGenerator jgen) throws IOException {
+	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(
+			JsonGenerator jgen) throws IOException {
 		TokenSequenceProvider tsp = null;
 		try {
 			if (idHandler.isEmpty()) {
 				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				SortCheckingTokenSequenceProvider sortCheck = new SortCheckingTokenSequenceProvider(jts);
+				SortCheckingTokenSequenceProvider sortCheck =
+						new SortCheckingTokenSequenceProvider(jts);
 				tsp = sortCheck;
 				new JsonTokenStreamWriter().writeTokens(sortCheck, jgen);
 				return sortCheck.isSorted();
 			} else {
 				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, idHandler);
+				IdRefTokenSequenceProvider idSubst =
+						new IdRefTokenSequenceProvider(jts, schema, idHandler);
 				tsp = idSubst;
 				new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
 				idSubst.close();
@@ -343,6 +348,24 @@ public class TypedObjectValidationReport {
 			if (tsp != null)
 				tsp.close();
 		}
+	}
+	
+	public JsonDocumentLocation getIdReferenceLocation (
+			final IdReference<?> ref)
+					throws IOException {
+		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+		IdRefTokenSequenceProvider idSubst =
+				new IdRefTokenSequenceProvider(jts, schema,
+						new IdReferenceHandlerSetFactory(0)
+							.createHandlers(String.class));
+		idSubst.setFindMode(ref);
+		try {
+			new JsonTokenStreamWriter().writeTokens(
+					idSubst, new NullJsonGenerator());
+		} finally {
+			idSubst.close();
+		}
+		return idSubst.getReferencePath();
 	}
 	
 	private TokenSequenceProvider createTokenSequenceForWsSubset() throws IOException {
@@ -372,6 +395,10 @@ public class TypedObjectValidationReport {
 			@Override
 			public void close() throws IOException {
 				jts.close();
+			}
+			@Override
+			public boolean isComplete() {
+				return false;
 			}
 		};
 	}

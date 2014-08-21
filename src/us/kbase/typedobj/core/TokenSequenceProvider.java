@@ -34,4 +34,12 @@ public interface TokenSequenceProvider {
 	 * Closing token sequence.
 	 */
 	public void close() throws IOException;
+	
+	/** 
+	 * Signifies that the task of the token provider is complete. For instance,
+	 * the token provider may be required to advance through the JSON until
+	 * a particular position is found and then return information about that
+	 * position.
+	 */
+	public boolean isComplete();
 }

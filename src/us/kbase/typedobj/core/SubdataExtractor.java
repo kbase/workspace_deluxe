@@ -92,6 +92,10 @@ public class SubdataExtractor {
 			public void close() throws IOException {
 				jp.close();
 			}
+			@Override
+			public boolean isComplete() {
+				return false;
+			}
 		};
 	}
 	

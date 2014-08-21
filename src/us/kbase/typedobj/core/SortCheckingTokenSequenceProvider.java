@@ -28,6 +28,11 @@ public class SortCheckingTokenSequenceProvider implements TokenSequenceProvider 
 	}
 	
 	@Override
+	public boolean isComplete() {
+		return false;
+	}
+	
+	@Override
 	public JsonToken nextToken() throws IOException, JsonParseException {
 		JsonToken t = jts.nextToken();
 		if (t == JsonToken.START_OBJECT) {

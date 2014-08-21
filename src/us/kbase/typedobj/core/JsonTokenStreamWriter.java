@@ -26,6 +26,9 @@ public class JsonTokenStreamWriter {
 		JsonToken t = currentToken;
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
+				if (src.isComplete()) {
+					return;
+				}
 				t = writeNextToken(src, jgen);
 				if (t == JsonToken.END_OBJECT) {
 					break;
@@ -35,9 +38,13 @@ public class JsonTokenStreamWriter {
 			}
 		} else if (t == JsonToken.START_ARRAY) {
 			while (true) {
+				if (src.isComplete()) {
+					return;
+				}
 				t = writeNextToken(src, jgen);
-				if (t == JsonToken.END_ARRAY)
+				if (t == JsonToken.END_ARRAY) {
 					break;
+				}
 				writeTokensWithoutFirst(src, t, jgen);
 			}
 		}
@@ -46,7 +53,7 @@ public class JsonTokenStreamWriter {
 	private JsonToken writeNextToken(TokenSequenceProvider src, 
 			JsonGenerator jgen) throws IOException {
 		JsonToken t = src.nextToken();
-		if (jgen == null)
+		if (src.isComplete() || jgen == null)
 			return t;
 		if (t == JsonToken.START_ARRAY) {
 			jgen.writeStartArray();

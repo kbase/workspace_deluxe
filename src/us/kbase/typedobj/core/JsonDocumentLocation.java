@@ -28,7 +28,7 @@ public class JsonDocumentLocation {
 	}
 	
 	public JsonDocumentLocation(final JsonDocumentLocation jdl) {
-		this(DEFAULT_PATHSEP, jdl);
+		this(jdl.pathSep.charAt(0), jdl);
 	}
 	
 	public JsonDocumentLocation(final char pathSep,

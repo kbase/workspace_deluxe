@@ -6,12 +6,14 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,7 @@ import org.junit.Test;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -30,6 +33,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
@@ -155,6 +159,33 @@ public class TypedObjectValidationReportTest {
 		}
 		tfm.cleanup();
 	}
+	
+	@Test
+	public void findIds() throws Exception {
+		//TODO 1 find with various Id types and attribs
+		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";
+		TypedObjectValidationReport tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), 
+				new IdReferenceHandlerSetFactory(1).createHandlers(String.class));
+		IdReferenceType wsType = new IdReferenceType("ws");
+		List<String> mtAttribs = new LinkedList<String>();
+		
+		checkVariableLocation(tovr, wsType, "c", mtAttribs, "/m/c");
+		checkVariableLocation(tovr, wsType, "a", mtAttribs, "/m/c");
+		checkVariableLocation(tovr, wsType, "z", mtAttribs, "/m/z");
+		checkVariableLocation(tovr, wsType, "d", mtAttribs, "/m/z");
+		
+	}
+
+	private void checkVariableLocation(TypedObjectValidationReport tovr,
+			IdReferenceType wsType, final String id, List<String> mtAttribs,
+			String expectedLoc) throws IOException {
+		JsonDocumentLocation loc = tovr.getIdReferenceLocation(
+				new IdReference<String>(wsType, id, mtAttribs));
+		assertThat("correct id location", loc.getFullLocationAsString(),
+				is(expectedLoc));
+	}
+	
 	@Test
 	public void writeWithoutSort() throws Exception {
 		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";

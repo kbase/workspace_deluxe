@@ -385,6 +385,8 @@ public class JsonTokenValidationSchema {
 			// integer value is expected
 			JsonToken t = jp.getCurrentToken();
 			if (t != JsonToken.VALUE_NUMBER_INT) { // but found something else
+				//TODO 1 remove int ids?
+				//if restoring int ids, make sure remapping works in the type validator
 				final boolean isID = idReference != null;
 				if (t != JsonToken.VALUE_NULL || isID) { // we allow nulls but not for references
 					lst.addError(generateError(type, t, path, isID));

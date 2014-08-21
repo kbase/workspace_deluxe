@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonArrayLocation;
 import us.kbase.typedobj.core.JsonDocumentLocation.JsonLocation;
+import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceType;
 
@@ -38,6 +39,10 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	private String prevFieldName = null;
 	// sorted flag is switched into false after first occurrence of unsorted keys
 	private boolean sorted = true;
+	// reference to find
+	private IdReference<?> ref = null;
+	// path to found reference
+	private JsonDocumentLocation foundPath = null;
 	
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
 			final JsonTokenValidationSchema schema, 
@@ -50,6 +55,21 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	
 	public boolean isSorted() {
 		return sorted;
+	}
+	
+	public void setFindMode(final IdReference<?> ref) {
+		if (ref == null) {
+			throw new NullPointerException("ref cannot be null");
+		}
+		this.ref = ref;
+	}
+	
+	public boolean isComplete() {
+		return foundPath != null;
+	}
+	
+	public JsonDocumentLocation getReferencePath() {
+		return foundPath;
 	}
 	
 	@Override
@@ -132,7 +152,13 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		}
 		if (s != null && s.hasIdReference()) {
 			final IdReferenceType idType = s.getIdReferenceType();
-			if (handlers.hasHandler(idType)) {
+			final List<String> attribs = s.getIdReferenceAttributes();
+			if (ref != null) {
+				if (ref.equals(new IdReference<String>(
+						idType, ret, attribs))) {
+					foundPath = new JsonDocumentLocation(path);
+				}
+			} else if (handlers.hasHandler(idType)) {
 				return handlers.getRemappedId(idType, ret).getId();
 			}
 		}
