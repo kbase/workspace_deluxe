@@ -10,5 +10,6 @@
 		"otherstuff":[22],
 		"things":{}
 	},
-	"extract": "Malformed selection string, cannot get 'notafield', at: /notafield"
+	"extract": "Invalid selection: data does not contain a field or key named 'notafield', at: /notafield"
 }
+	

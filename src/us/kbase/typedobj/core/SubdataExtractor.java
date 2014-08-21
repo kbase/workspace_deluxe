@@ -266,8 +266,8 @@ public class SubdataExtractor {
 					selectedFields.remove("*");
 					allChild = selection.getChildren().get("*");
 					if (selectedFields.size() > 0)
-						throw new TypedObjectExtractionException("Subdata extraction path with * " +
-								"contains other fields " + selectedFields + ", at: " + getPathText(path));
+						throw new TypedObjectExtractionException("Invalid selection: the selection path contains both '*'" +
+								"to select all fields and selction of specific fields (" + selectedFields + "), at: " + getPathText(path));
 				}
 				// process first token standing for start of object
 				writeCurrentToken(jts, t, jgen);
@@ -307,7 +307,7 @@ public class SubdataExtractor {
 				// we will not visit them in real data and hence will not delete them from selection
 				if (strict && !selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
-					throw new TypedObjectExtractionException("Malformed selection string, cannot get " +
+					throw new TypedObjectExtractionException("Invalid selection: data does not contain a field or key named " +
 							"'" + notFound + "', at: " + getPathText(path, notFound));
 				}
 			} else {  // need all fields and values
@@ -324,8 +324,8 @@ public class SubdataExtractor {
 						try {
 							Integer.parseInt(item);
 						} catch (NumberFormatException ex) {
-							throw new TypedObjectExtractionException("Subdata extraction path contains " +
-									"non-numneric item on array level " + item + ", at: " + getPathText(path));
+							throw new TypedObjectExtractionException("Invalid selection: data at '"+getPathText(path)+"' is an array, so " +
+									"element selection must be an integer.  You requested element '" + item + "', at: " + getPathText(path));
 						}
 					}
 				}
@@ -334,8 +334,8 @@ public class SubdataExtractor {
 					allChild = selection.getChildren().get("[*]");
 					// if there is [*] keyword selected there shouldn't be anything else in selection
 					if (selectedFields.size() > 0)
-						throw new TypedObjectExtractionException("Subdata extraction path with [*] " +
-								"contains other fields " + selectedFields + ", at: " + getPathText(path));
+						throw new TypedObjectExtractionException("Invalid selection: the selection path contains both '[*]'" +
+								"to select all elements and selction of specific elements (" + selectedFields + "), at: " + getPathText(path));
 				}
 				writeCurrentToken(jts, t, jgen);  // write start of array into output
 				for (int pos = 0; ; pos++) {
@@ -367,9 +367,9 @@ public class SubdataExtractor {
 					}
 				}
 				// let's check have we visited all selected items in this array
-				if (strict && !selectedFields.isEmpty()) {
+				if (!selectedFields.isEmpty()) {
 					String notFound = selectedFields.iterator().next();
-					throw new TypedObjectExtractionException("No element at position " +
+					throw new TypedObjectExtractionException("Invalid selection: no array element exists at position " +
 							"'" + notFound + "', at: " + getPathText(path, notFound));
 				}
 			} else {
@@ -378,8 +378,8 @@ public class SubdataExtractor {
 			}
 		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
-				throw new TypedObjectExtractionException("Subdata extraction path contains " +
-						"non-empty level for scalar value, at: " + getPathText(path));
+				throw new TypedObjectExtractionException("Invalid selection: the path given specifies fields or elements that do not exists becase data " +
+						"at this location is a scalar value (i.e. string, integer, float), at: " + getPathText(path));
 			writeCurrentToken(jts, t, jgen);
 		}
 	}

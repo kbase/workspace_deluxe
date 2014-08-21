@@ -10,5 +10,5 @@
 		"otherstuff":[{"i":3},{"i":3},{"i":3},{"i":3},{"i":3}],
 		"things":{}
 	},
-	"extract": "No element at position '22', at: /otherstuff/22"
+	"extract": "Invalid selection: no array element exists at position '22', at: /otherstuff/22"
 }
