@@ -17,7 +17,7 @@ my $servercommand = "rename_workspace";
 my $translation = {};
 #Defining usage and options
 my ($opt, $usage) = describe_options(
-    'ws-rename <'.join("> <",@{$primaryArgs}).'> %o',
+    'ws-renamews <'.join("> <",@{$primaryArgs}).'> %o',
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
