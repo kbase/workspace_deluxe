@@ -37,7 +37,7 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.kbase.Util;
+//import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
@@ -67,8 +67,9 @@ public class TypedObjectValidationReportTest {
 		Files.createDirectories(storagedir);
 		db = new TypeDefinitionDB(
 				new FileTypeStorage(storagedir.toFile().getAbsolutePath()),
-				tempdir.toFile(), new Util().getKIDLpath(),
-				WorkspaceTestCommon.getKidlSource());
+				tempdir.toFile()); //, new Util().getKIDLpath(),
+//				WorkspaceTestCommon.getKidlSource());
+		//TODO 1 mike restore tests
 		addSpecs();
 	}
 	
@@ -77,8 +78,6 @@ public class TypedObjectValidationReportTest {
 		FileUtils.deleteDirectory(tempdir.toFile());
 	}
 	
-	
-	
 	private static void addSpecs() throws Exception {
 		String module = "TestIDMap";
 		String name = "IDMap";
@@ -86,8 +85,17 @@ public class TypedObjectValidationReportTest {
 				"module " + module + " {" +
 					"/* @id ws\n */" +
 					"typedef string id;" +
+					"/* @id foo1 Attrib\n */" +
+					"typedef string attrib1;" +
+					"/* @id foo1 Attrib Attrib1\n */" +
+					"typedef string attrib1_1;" +
+					"/* @id foo2 Attrib\n */" +
+					"typedef string attrib2;" +
+					"/* @optional att att2\n */" +
 					"typedef structure {" +
 						"mapping<id, id> m;" +
+						"tuple<attrib1, int foo, attrib1_1, attrib1, attrib2> att;" +
+						"tuple<attrib1, int foo, attrib1_1, attrib1, attrib2> att2;" +
 					"} " + name + ";" +
 				"};";
 		db.requestModuleRegistration(module, USER);
@@ -162,28 +170,65 @@ public class TypedObjectValidationReportTest {
 	
 	@Test
 	public void findIds() throws Exception {
-		//TODO 1 find with various Id types and attribs
-		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";
+		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}," +
+						"\"att\":[\"a1\", 3, \"a1\", \"a2\", \"a1\"]," +
+						"\"att2\":[\"b1\", 3, \"b2\", \"b3\", \"b4\"]}";
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), 
 				new IdReferenceHandlerSetFactory(1).createHandlers(String.class));
+		
 		IdReferenceType wsType = new IdReferenceType("ws");
+		IdReferenceType foo1Type = new IdReferenceType("foo1");
+		IdReferenceType foo2Type = new IdReferenceType("foo2");
 		List<String> mtAttribs = new LinkedList<String>();
+		List<String> attrib = Arrays.asList("Attrib");
+		List<String> attrib1 = Arrays.asList("Attrib", "Attrib1");
 		
-		checkVariableLocation(tovr, wsType, "c", mtAttribs, "/m/c");
-		checkVariableLocation(tovr, wsType, "a", mtAttribs, "/m/c");
-		checkVariableLocation(tovr, wsType, "z", mtAttribs, "/m/z");
-		checkVariableLocation(tovr, wsType, "d", mtAttribs, "/m/z");
+		checkIDLocation(tovr, wsType, "c", mtAttribs, "/m/c");
+		checkIDLocation(tovr, wsType, "a", mtAttribs, "/m/c");
+		checkIDLocation(tovr, wsType, "z", mtAttribs, "/m/z");
+		checkIDLocation(tovr, wsType, "d", mtAttribs, "/m/z");
 		
+		checkIDLocation(tovr, foo1Type, "a1", attrib, "/att/0");
+		checkIDLocation(tovr, foo1Type, "a1", attrib1, "/att/2");
+		checkIDLocation(tovr, foo1Type, "a2", attrib, "/att/3");
+		checkIDLocation(tovr, foo2Type, "a1", attrib, "/att/4");
+		
+		//"failing" tests
+		checkIDLocation(tovr, foo1Type, "b1", attrib, "/att2/0");
+		checkIDLocation(tovr, foo1Type, "b1", attrib1, null);
+		checkIDLocation(tovr, foo2Type, "b1", attrib, null);
+		
+		checkIDLocation(tovr, foo1Type, "b2", attrib1, "/att2/2");
+		checkIDLocation(tovr, foo1Type, "b2", attrib, null);
+		checkIDLocation(tovr, foo2Type, "b2", attrib1, null);
+		
+		checkIDLocation(tovr, foo1Type, "b3", attrib, "/att2/3");
+		checkIDLocation(tovr, foo1Type, "b3", attrib1, null);
+		checkIDLocation(tovr, foo2Type, "b3", attrib, null);
+		
+		checkIDLocation(tovr, foo2Type, "b4", attrib, "/att2/4");
+		checkIDLocation(tovr, foo1Type, "b4", attrib, null);
+		checkIDLocation(tovr, foo2Type, "b4", attrib1, null);
 	}
 
-	private void checkVariableLocation(TypedObjectValidationReport tovr,
+	private void checkIDLocation(TypedObjectValidationReport tovr,
 			IdReferenceType wsType, final String id, List<String> mtAttribs,
 			String expectedLoc) throws IOException {
 		JsonDocumentLocation loc = tovr.getIdReferenceLocation(
 				new IdReference<String>(wsType, id, mtAttribs));
-		assertThat("correct id location", loc.getFullLocationAsString(),
-				is(expectedLoc));
+		if (expectedLoc == null) {
+			if (loc != null) {
+				fail("expected null location, got " +
+						loc.getFullLocationAsString());
+			}
+		} else {
+			if (loc == null) {
+				fail("expected " + expectedLoc + " as location, got null");
+			}
+			assertThat("correct id location", loc.getFullLocationAsString(),
+					is(expectedLoc));
+		}
 	}
 	
 	@Test
