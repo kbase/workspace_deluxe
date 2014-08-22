@@ -25,10 +25,14 @@ NEW FEATURES:
 - The major change in this release is a major refactoring of the ID handling
   system. ID handling has been generalized to allow for registering custom
   ID handlers per ID type (e.g. the @id [ID_type] annotation).
+- The workspace now supports the @id handle annotation, which allows for
+  embedding HandleService handle IDs in workspace objects. When the object
+  is retrieved from the workspace, the user retrieving the object is given
+  read access to any data referenced by handles in the object.
 - There is now a limit of 100,000 IDs in objects per save_objects call.
   IDs duplicated in the same object do not count towards this limit.
 - Any IDs extracted from an object are returned in get_objects,
-  get_object_subset, and get_object_provenance.
+  get_referenced_objects, get_object_subset, and get_object_provenance.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - N/A
@@ -44,7 +48,6 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - Automatically populated metadata
 - Range annotation support to set limits on float/int values
 - Garbage collection
-- Pointers to shock data too large to fit in the workspace
 - ACLs based on KBase groups
 - KBase Search API
 - Service Search API (e.g. MongoDB queries on TOs)
