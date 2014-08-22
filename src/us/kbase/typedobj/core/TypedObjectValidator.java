@@ -17,6 +17,8 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 
@@ -170,8 +172,7 @@ public final class TypedObjectValidator {
 			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
-			TooManyIdsException, IdReferenceHandlerException,
-			JsonParseException, IOException {
+			TooManyIdsException, JsonParseException, IOException {
 		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
 		
 		// Actually perform the validation and return the report
@@ -202,14 +203,39 @@ public final class TypedObjectValidator {
 					}
 
 					@Override
-					public void addStringIdRefMessage(IdReference<String> ref)
+					public void addStringIdRefMessage(
+							final IdReference<String> ref,
+							final JsonDocumentLocation loc)
 							throws TooManyIdsException,
-							IdReferenceHandlerException {
+							JsonTokenValidationException {
+						//TODO 1 this needs testing
 						if (handlers.hasHandler(ref.getType())) {
-							handlers.addStringId(ref);
+							try {
+								handlers.addStringId(ref);
+							} catch (IdParseException e) {
+								addError(String.format(
+										"Unparseable id %s of type %s: %s at %s",
+										e.getId(),
+										e.getIdType().getType(),
+										e.getMessage(),
+										loc.getFullLocationAsString()));
+							} catch (IdReferenceException e) {
+								addError(String.format(
+										"Invalid id %s of type %s: %s at %s",
+										e.getId(),
+										e.getIdType().getType(),
+										e.getMessage(),
+										loc.getFullLocationAsString()));
+							} catch (IdReferenceHandlerException e) {
+								addError(String.format(
+										"Id handling error for id type %s: %s at %s",
+										e.getIdType().getType(),
+										e.getMessage(),
+										loc.getFullLocationAsString()));
+							}
 						}
 					}
-					
+
 //					@Override
 //					public void addLongIdRefMessage(IdReference<Long> ref)
 //							throws TooManyIdsException,

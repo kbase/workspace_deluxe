@@ -411,7 +411,7 @@ public class HandleTest {
 			fail("saved bad handle");
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getMessage(),
-					is("Object #1 has an unparseable reference: IDs may not be null or the empty string"));
+					is("Object #1 failed type checking:\nUnparseable id  of type handle: IDs may not be null or the empty string at /handles/0"));
 		}
 	}
 	

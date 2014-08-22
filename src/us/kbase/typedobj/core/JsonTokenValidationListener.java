@@ -21,13 +21,17 @@ public interface JsonTokenValidationListener {
 	/**
 	 * Method is for adding id-reference into a reference handler.
 	 * @param ref description of id-reference
+	 * @param loc the location of the id reference
 	 * @throws IdReferenceHandlerException if an ID could not be handled
 	 * appropriately due to a syntax error or other issue. 
 	 * @throws TooManyIdsException if the object undergoing validation
 	 * contains too many IDs.
+	 * @throws JsonTokenValidationException if a validation exception occurs
 	 */
-	public void addStringIdRefMessage(IdReference<String> ref)
-			throws TooManyIdsException, IdReferenceHandlerException;
+	public void addStringIdRefMessage(
+			IdReference<String> ref,
+			JsonDocumentLocation loc)
+			throws TooManyIdsException, JsonTokenValidationException;
 	
 //	/**
 //	 * Method is for adding id-reference into a reference handler.

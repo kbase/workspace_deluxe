@@ -547,7 +547,7 @@ public class Workspace {
 				validateObjectsAndExtractReferences(objects, idhandler);
 		
 		idhandler.lock();
-		processIds(objects, idhandler);
+		processIds(objects, idhandler, reports);
 		
 		//handle references and calculate size with new references
 		final List<ResolvedSaveObject> saveobjs =
@@ -676,7 +676,8 @@ public class Workspace {
 
 	private void processIds(
 			final List<WorkspaceSaveObject> objects,
-			final IdReferenceHandlerSet<IDAssociation> idhandler)
+			final IdReferenceHandlerSet<IDAssociation> idhandler,
+			final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports)
 			throws TypedObjectValidationException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
@@ -686,21 +687,26 @@ public class Workspace {
 					(IDAssociation) ipe.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
-					"Object %s has unparseable %sreference %s: %s",
+					"Object %s has unparseable %sreference %s: %s%s",
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
-					ipe.getId(), ipe.getLocalizedMessage()), ipe);
-					//TODO 2 add path
+					ipe.getId(),
+					ipe.getLocalizedMessage(),
+					idloc.provenance ? "" : " at " +
+							getIDPath(reports.get(wo), ipe.getIdReference())),
+					ipe);
 		} catch (IdReferenceException ire) {
 			final IDAssociation idloc =
 					(IDAssociation) ire.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
-					"Object %s has invalid %sreference: %s",
+					"Object %s has invalid %sreference: %s%s",
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
-					ire.getLocalizedMessage()), ire);
-			//TODO 2 add path
+					ire.getLocalizedMessage(),
+					idloc.provenance ? "" : " at " +
+							getIDPath(reports.get(wo), ire.getIdReference())),
+					ire);
 		} catch (IdReferenceHandlerException irhe) {
 			if (irhe.getCause() instanceof WorkspaceCommunicationException) {
 				throw (WorkspaceCommunicationException) irhe.getCause();
@@ -711,6 +717,16 @@ public class Workspace {
 						"An error occured while processing IDs: " +
 						irhe.getLocalizedMessage(), irhe);
 			}
+		}
+	}
+
+	private String getIDPath(TypedObjectValidationReport r,
+			IdReference<String> idReference) {
+		try {
+			return r.getIdReferenceLocation(idReference)
+					.getFullLocationAsString();
+		} catch (IOException ioe) {
+			return "[IO error getting path]";
 		}
 	}
 
@@ -736,24 +752,6 @@ public class Workspace {
 					+ nsme.getLocalizedMessage(), nsme);
 		} catch (TooManyIdsException e) { //TODO 1 test TooManyIdsException
 			throw wrapTooManyIDsException(objcount, idhandler, e);
-		} catch (IdParseException e) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s has an unparseable reference: ",
-					getObjectErrorId(wo, objcount)) + 
-					e.getMessage(), e);
-			//TODO 2 find path
-		} catch (IdReferenceException e) { //TODO 2 test with new handler impl
-			throw new TypedObjectValidationException(String.format(
-					"Object %s has an invalid reference: ",
-					getObjectErrorId(wo, objcount)) + 
-					e.getMessage(), e);
-			//TODO 2 find path
-		} catch (IdReferenceHandlerException e) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking ",
-					getObjectErrorId(wo, objcount)) + 
-					"- an embedded ID could not be processed: "
-					+ e.getMessage(), e);
 		} catch (JsonParseException jpe) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking ",
@@ -1493,7 +1491,7 @@ public class Workspace {
 					throw new IdReferenceException(String.format(
 							"The type %s of reference %s " + 
 							"in this object is not " +
-							"allowed. Allowed types are: %s",
+							"allowed - allowed types are %s",
 							type.getTypeString(), id, allowed),
 							getIdType(), assObj, id, allowed, null);
 				}

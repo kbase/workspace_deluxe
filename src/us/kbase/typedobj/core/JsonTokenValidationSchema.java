@@ -186,8 +186,7 @@ public class JsonTokenValidationSchema {
 	public void checkJsonData(final JsonParser jp,
 			final JsonTokenValidationListener lst) 
 			throws JsonParseException, IOException,
-			JsonTokenValidationException, TooManyIdsException,
-			IdReferenceHandlerException {
+			JsonTokenValidationException, TooManyIdsException {
 		checkJsonData(jp, lst, new JsonDocumentLocation());
 		jp.close();
 	}
@@ -196,8 +195,7 @@ public class JsonTokenValidationSchema {
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
 			throws JsonParseException, IOException,
-			JsonTokenValidationException, TooManyIdsException,
-			IdReferenceHandlerException {
+			JsonTokenValidationException, TooManyIdsException {
 		jp.nextToken();
 		checkJsonDataWithoutFirst(jp, lst, path);
 	}
@@ -206,8 +204,7 @@ public class JsonTokenValidationSchema {
 			final JsonTokenValidationListener lst, 
 			final JsonDocumentLocation path) 
 			throws JsonParseException, IOException,
-			JsonTokenValidationException, TooManyIdsException,
-			IdReferenceHandlerException {
+			JsonTokenValidationException, TooManyIdsException {
 		// This is main recursive validation procedure. The idea is we enter here every time we observe
 		// token starting nested block (which could be only mapping or array) or token for basic scalar 
 		// values (integer, floating, string, boolean and null). According to structure of nested blocks
@@ -288,7 +285,7 @@ public class JsonTokenValidationSchema {
 						final IdReference<String> ref = new IdReference<String>(
 								idReference.idType, fieldName,
 								idReference.attributes);
-						lst.addStringIdRefMessage(ref);
+						lst.addStringIdRefMessage(ref, path);
 					}
 				}
 				// check whether all required fields were occured
@@ -378,7 +375,7 @@ public class JsonTokenValidationSchema {
 					final IdReference<String> ref = new IdReference<String>(
 							idReference.idType, jp.getText(),
 							idReference.attributes);
-					lst.addStringIdRefMessage(ref);
+					lst.addStringIdRefMessage(ref, path);
 				}
 			}
 		} else if (type == Type.integer) {

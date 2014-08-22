@@ -1379,7 +1379,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data4.put("ref", "foo/bar/baz");
 		data.set(1, new WorkspaceSaveObject(data4, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
+				"Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer at /ref"));
 		
 		Map<String, Object> data5 = new HashMap<String, Object>(data1);
 		data5.put("ref", null);
@@ -1391,7 +1391,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data6.put("ref", "");
 		data.set(1, new WorkspaceSaveObject(data6, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has an unparseable reference: IDs may not be null or the empty string"));
+				"Object #2 failed type checking:\nUnparseable id  of type ws: IDs may not be null or the empty string at /ref"));
 		
 		
 		Provenance goodids = new Provenance(userfoo);
@@ -1434,7 +1434,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+						"Object #1 has invalid reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists at /ref"));
 		Provenance nowsref = new Provenance(userfoo);
 		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, nowsref,
@@ -1446,7 +1446,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "tobedeleted/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+						"Object #1 has invalid reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted at /ref"));
 		Provenance delwsref = new Provenance(userfoo);
 		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, delwsref,
@@ -1457,7 +1457,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "stingyworkspace/2/1");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+						"Object #1 has invalid reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace at /ref"));
 		Provenance privwsref = new Provenance(userfoo);
 		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, privwsref,
@@ -1486,7 +1486,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: No object with id 2 exists in workspace "
-								+ refwsid));
+								+ refwsid + " at /ref"));
 		Provenance noobjref = new Provenance(userfoo);
 		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, noobjref,
@@ -1500,7 +1500,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(userfoo, Arrays.asList(new ObjectIdentifier(reftest, 2)), true);
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
+						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted at /ref",
 								refwsid)));
 		Provenance delobjref = new Provenance(userfoo);
 		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
@@ -1513,7 +1513,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
 						"Object #1 has invalid reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
-								+ refwsid));
+								+ refwsid + " at /ref"));
 		Provenance noverref = new Provenance(userfoo);
 		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/2")));
 		failSave(userfoo, wspace, data1, abstype0, noverref,
@@ -1579,16 +1579,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
 				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory(userfoo)); //should work
-		
-		//TODO 2 restore path
-//		String err = "Object #1: The type SomeModule.AType-0.1 of " + 
-//				"reference %s at location /ref in this object is not " + 
-//				"allowed for this object's type, " + 
-//				"TestTypeCheckingRefType.CheckRefType-0.1. Allowed types " + 
-//				"are: [TestTypeChecking.CheckType]";
+
 		String err = "Object #1 has invalid reference: The type " +
 				"SomeModule.AType-0.1 of reference %s in this object is not " + 
-				"allowed. Allowed types are: [TestTypeChecking.CheckType]";
+				"allowed - allowed types are [TestTypeChecking.CheckType] at /ref";
 		
 		refdata.put("ref", "referencetypecheck/1/1");
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
@@ -1705,7 +1699,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
 
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 has an unparseable reference: Parse exception for ID parseExcept"));
+				"Object #2 failed type checking:\nUnparseable id parseExcept of type someid: Parse exception for ID parseExcept at /an_id"));
 		
 		iddata.put("an_id", "id here");
 		iddata.put("an_id2", "foo");

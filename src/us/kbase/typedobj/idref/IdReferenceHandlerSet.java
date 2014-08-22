@@ -376,7 +376,6 @@ public class IdReferenceHandlerSet<T> {
 		
 		private final IdReferenceType idType;
 		
-		
 		public IdReferenceHandlerException(
 				final String message,
 				final IdReferenceType idType,
@@ -433,6 +432,10 @@ public class IdReferenceHandlerSet<T> {
 		
 		public Object getAssociatedObject() {
 			return associatedObject;
+		}
+		
+		public IdReference<String> getIdReference() {
+			return new IdReference<String>(getIdType(), id, idAttributes);
 		}
 		
 	}
