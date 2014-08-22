@@ -40,11 +40,7 @@ DESCRIPTION
       -v, --versions     if set, list all versions of the given module or type instead
       
       -h, --help         display this help message, ignore all arguments
-
-AUTHOR
-     Michael Sneddon (LBL)
-     Roman Sutormin (LBL)
-     Gavin Price (LBL)
+      
 ";
       
 # first parse options; only one here is help
