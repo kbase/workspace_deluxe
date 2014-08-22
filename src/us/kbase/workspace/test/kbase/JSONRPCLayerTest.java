@@ -2822,7 +2822,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void testSpecRegError() throws Exception {
+	public void moduleOwnerShipAndSpecRegistration() throws Exception {
 		WorkspaceClient cl = CLIENT2;
 		cl.setIsInsecureHttpConnectionAllowed(true);
 		cl.requestModuleOwnership("TestModule2");
@@ -2834,12 +2834,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			CLIENT1.registerTypespec(new RegisterTypespecParams()
 				.withDryrun(0L)
 				.withSpec("module TestModule2{ typedef int IntegerType;};"));
-			Assert.fail();
-		} catch (Exception ex) {
-			Assert.assertEquals("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2", ex.getMessage());
+			fail("registered typespec to module with no perms");
+		} catch (ServerException ex) {
+			assertThat("got correct exception message", ex.getMessage(), 
+					is("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2"));
 		}
-//		administerCommand(CLIENT2, "grantModuleOwnership", "moduleName",
-//				"TestModule2", "newOwner", AUTH_USER1.getUserId(), "withGrantOption", "1");
 		
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"grantModuleOwnership\"," +
@@ -2849,6 +2848,20 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module TestModule2{ typedef int IntegerType;};"));
+		
+		CLIENT2.administer(new UObject(createData(
+				"{\"command\": \"removeModuleOwnership\"," +
+				" \"params\": {\"old_owner\": \"" + USER1 + "\", \"mod\": \"TestModule2\"}}")));
+		
+		try {
+			CLIENT1.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withSpec("module TestModule2{ typedef int IntegerType;};"));
+			fail("registered typespec to module with no perms");
+		} catch (ServerException ex) {
+			assertThat("got correct exception message", ex.getMessage(), 
+					is("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2"));
+		}
 	}
 	
 	@Test
