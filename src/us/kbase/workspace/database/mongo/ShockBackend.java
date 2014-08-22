@@ -100,13 +100,13 @@ public class ShockBackend implements BlobStore {
 					"Could not connect to the shock backend auth provider: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
-		//TODO 2 check that expiry time is at least X in the future
+		//TODO 2 use RefreshingToken
 		return u.getToken();
 	}
 	
 	private void checkAuth() throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		//TODO 2 check if token expiry is in X amount of time, if so get a new token
+		//TODO 2 use RefreshingToken
 		if(client.isTokenExpired()) {
 			try {
 				client.updateToken(getToken());

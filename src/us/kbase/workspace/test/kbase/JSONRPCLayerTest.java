@@ -1347,11 +1347,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"module TestKBaseRefParsing {" +
 					"/* @id ws */" +
 					"typedef string reference;" +
+					"/* @optional ref5\n */" +
 					"typedef structure {" +
 						"reference ref1;" +
-						"reference ref2;" + 
+						"reference ref2;" +
 						"reference ref3;" +
 						"reference ref4;" +
+						"reference ref5;" +
 					"} ParseRef;" +
 				"};";
 		CLIENT1.requestModuleOwnership("TestKBaseRefParsing");
@@ -1402,6 +1404,17 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("correct ref parse/rewrite", refs.get("ref4"), is(wsid + "/2/1"));
 		assertThat("correct refs returned", new HashSet<String>(od.getRefs()),
 				is(expectedRefs));
+		
+		data.put("ref5", "kb|ws." + wsid + ".obj.3");
+		assertThat("test param hasn't changed", MAX_UNIQUE_IDS_PER_CALL, is(4));
+		try {
+			CLIENT1.saveObjects(soc);
+			fail("saved object with too many refs");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getMessage(),
+					is("Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 4"));
+		}
+		
 	}
 	
 	@Test

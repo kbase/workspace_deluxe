@@ -58,10 +58,15 @@ public class WorkspaceServerMethods {
 	
 	final private Workspace ws;
 	final private URL handleServiceUrl;
+	final private int maximumIDCount;
 	
-	public WorkspaceServerMethods(final Workspace ws, URL handleServiceUrl) {
+	public WorkspaceServerMethods(
+			final Workspace ws,
+			final URL handleServiceUrl,
+			final int maximumIDCount) {
 		this.ws = ws;
 		this.handleServiceUrl = handleServiceUrl;
+		this.maximumIDCount = maximumIDCount;
 	}
 	
 	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
@@ -185,11 +190,9 @@ public class WorkspaceServerMethods {
 			}
 			count++;
 		}
-		params.setObjects(null); // garbage collect the objects, although
-		// just passing a pointer around so no biggie
-		// setting params = null won't help since the method caller still has a ref
+		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac =
-				new IdReferenceHandlerSetFactory(100000); //TODO 2 make this a parameter
+				new IdReferenceHandlerSetFactory(maximumIDCount);
 		fac.addFactory(ws.getHandlerFactory(user));
 		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl,
 				token));

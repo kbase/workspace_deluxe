@@ -20,7 +20,7 @@ import us.kbase.typedobj.idref.SimpleRemappedId;
 
 public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO 2 exercise all these errors
+	//TODO 1 exercise all these errors
 	
 	private final IdReferenceType type;
 	

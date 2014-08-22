@@ -1690,7 +1690,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
-		//TODO 2 lots more tests with more complicated structures
+		//TODO 1 lots more tests with more complicated structures
 		Map<String, Object> iddata = new HashMap<String, Object>();
 		iddata.put("an_id", "parseExcept");
 		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));

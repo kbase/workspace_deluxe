@@ -666,7 +666,7 @@ public class Workspace {
 						"Object %s has invalid provenance reference: ",
 						getObjectErrorId(wo, objcount)) + 
 						ihre.getMessage(), ihre);
-			} catch (TooManyIdsException tmie) { //TODO 2 test too many IDs exception
+			} catch (TooManyIdsException tmie) { //TODO 1 test too many IDs exception
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
 			objcount++;
@@ -779,7 +779,7 @@ public class Workspace {
 			final TooManyIdsException e) {
 		return new TypedObjectValidationException(String.format(
 				"Failed type checking at object #%s - the number of " +
-				"IDs in the saved objects exceeds the maximum " +
+				"unique IDs in the saved objects exceeds the maximum " +
 				"allowed, %s",
 				objcount, idhandler.getMaximumIdCount()), e);
 	}
@@ -1590,7 +1590,7 @@ public class Workspace {
 			return e;
 		}
 		
-		//TODO 2 method to drop associations but keep mapping
+		//TODO 1 method to drop associations but keep mapping
 
 		@Override
 		protected RemappedId getRemappedIdImpl(final String oldId)

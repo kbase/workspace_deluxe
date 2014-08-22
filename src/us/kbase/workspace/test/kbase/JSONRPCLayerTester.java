@@ -99,6 +99,7 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	protected static ObjectMapper MAPPER = new ObjectMapper();
+	protected final static int MAX_UNIQUE_IDS_PER_CALL = 4;
 	
 	private static MongoController mongo;
 	
@@ -323,6 +324,7 @@ public class JSONRPCLayerTester {
 
 		WorkspaceServer.setIgnoreHandleServiceForTests(true);
 		WorkspaceServer.clearConfigForTests();
+		WorkspaceServer.setMaximumUniqueIdCountForTests(MAX_UNIQUE_IDS_PER_CALL);
 		WorkspaceServer server = new WorkspaceServer();
 		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
 		server.setResourceUsageConfiguration(

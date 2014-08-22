@@ -149,6 +149,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
 	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
 	private static final int TOKEN_REFRESH_INTERVAL = 3 * 24 * 60 * 60;
+	private static int maxUniqueIdCountPerCall = 100000;
 
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
@@ -243,6 +244,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public static void setIgnoreHandleServiceForTests(final boolean ignore) {
 		ignoreHandleService = ignore;
+	}
+	
+	public static void setMaximumUniqueIdCountForTests(final int count) {
+		maxUniqueIdCountPerCall = count;
 	}
 	
 	@Override
@@ -517,7 +522,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				ws = new Workspace(db,
 						new ResourceUsageConfigurationBuilder().build(),
 						new KBaseReferenceParser());
-				wsmeth = new WorkspaceServerMethods(ws, handleServiceUrl);
+				wsmeth = new WorkspaceServerMethods(ws, handleServiceUrl,
+						maxUniqueIdCountPerCall);
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));
 				final String mem = String.format(
