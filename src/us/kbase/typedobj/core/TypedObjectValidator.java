@@ -208,7 +208,7 @@ public final class TypedObjectValidator {
 							final JsonDocumentLocation loc)
 							throws TooManyIdsException,
 							JsonTokenValidationException {
-						//TODO 1 this needs testing
+						//TODO 1 id handler errors need testing
 						if (handlers.hasHandler(ref.getType())) {
 							try {
 								handlers.addStringId(ref);

@@ -542,7 +542,6 @@ public class Workspace {
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
 		
-		//TODO 1 test max id limit
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				validateObjectsAndExtractReferences(objects, idhandler);
 		

@@ -148,7 +148,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
 	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
-	private static final int TOKEN_REFRESH_INTERVAL = 3 * 24 * 60 * 60;
+	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
 	private static int maxUniqueIdCountPerCall = 100000;
 
 	//directory for temp files

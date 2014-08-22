@@ -6,9 +6,7 @@ import java.net.URL;
 import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.AuthUser;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
@@ -25,6 +23,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.kbase.RefreshingToken;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.gc.iotools.stream.base.ExecutionModel;
@@ -41,11 +40,11 @@ public class ShockBackend implements BlobStore {
 	
 	public static final String COLLECTION_SUFFIX = "nodeMap";
 	
-	private String user;
-	private String password;
-	private BasicShockClient client;
-	private DBCollection mongoCol;
+	private final BasicShockClient client;
+	private final DBCollection mongoCol;
+	private final RefreshingToken token;
 	
+	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
 	private static final String IDX_UNIQ = "unique";
 	
 	public ShockBackend(final DB mongoDB, final String collectionPrefix,
@@ -64,8 +63,7 @@ public class ShockBackend implements BlobStore {
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
 		mongoCol.ensureIndex(dbo, opts);
-		this.user = user;
-		this.password = password;
+		token = getToken(user, password);
 		try {
 			client = new BasicShockClient(url, getToken());
 		} catch (InvalidShockUrlException isue) {
@@ -87,11 +85,11 @@ public class ShockBackend implements BlobStore {
 		//TODO check that a few nodes exist to ensure we're pointing at the right Shock instance
 	}
 	
-	private AuthToken getToken() throws BlobStoreAuthorizationException,
+	private RefreshingToken getToken(final String user, final String pwd)
+			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		final AuthUser u;
 		try {
-			u = AuthService.login(user, password);
+			return new RefreshingToken(user, pwd, TOKEN_REFRESH_INTERVAL);
 		} catch (AuthException ae) {
 			throw new BlobStoreAuthorizationException(
 					"Could not authenticate backend user", ae);
@@ -100,20 +98,31 @@ public class ShockBackend implements BlobStore {
 					"Could not connect to the shock backend auth provider: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
-		//TODO 2 use RefreshingToken
-		return u.getToken();
 	}
 	
-	private void checkAuth() throws BlobStoreAuthorizationException,
+	private AuthToken getToken()
+			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		//TODO 2 use RefreshingToken
-		if(client.isTokenExpired()) {
-			try {
-				client.updateToken(getToken());
-			} catch (TokenExpiredException ete) {
-				throw new RuntimeException(
-						"Auth service is handing out expired tokens", ete);
-			}
+		try {
+			return token.getToken();
+		} catch (AuthException ae) {
+			throw new BlobStoreAuthorizationException(
+					"Could not authenticate backend user", ae);
+		} catch (IOException ioe) {
+			throw new BlobStoreCommunicationException(
+					"Could not connect to the shock backend auth provider: " +
+							ioe.getLocalizedMessage(), ioe);
+		}
+	}
+	
+	private void updateAuth()
+			throws BlobStoreAuthorizationException,
+			BlobStoreCommunicationException {
+		try {
+			client.updateToken(getToken());
+		} catch (TokenExpiredException ete) {
+			throw new RuntimeException(
+					"Auth service is handing out expired tokens", ete);
 		}
 	}
 
@@ -131,7 +140,7 @@ public class ShockBackend implements BlobStore {
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
-		checkAuth();
+		updateAuth();
 		final ShockNode sn;
 		final OutputStreamToInputStream<ShockNode> osis =
 				new OutputStreamToInputStream<ShockNode>() {
@@ -248,7 +257,7 @@ public class ShockBackend implements BlobStore {
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException, NoSuchBlobException,
 			FileCacheLimitExceededException, FileCacheIOException {
-		checkAuth();
+		updateAuth();
 		final DBObject entry = getBlobEntry(md5);
 		final String node = (String)entry.get(Fields.SHOCK_NODE);
 		final boolean sorted;
@@ -306,7 +315,7 @@ public class ShockBackend implements BlobStore {
 	public void removeBlob(final MD5 md5)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		checkAuth();
+		updateAuth();
 		final String node;
 		try {
 			node = getNode(md5);
