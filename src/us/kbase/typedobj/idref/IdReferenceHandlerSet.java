@@ -16,7 +16,6 @@ public class IdReferenceHandlerSet<T> {
 	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
-	private boolean locked = false;
 	private boolean processed = false;
 	private T associated = null;
 	
@@ -34,7 +33,6 @@ public class IdReferenceHandlerSet<T> {
 	 */
 	public static abstract class IdReferenceHandler<T> {
 		
-		private boolean locked = false;
 		private boolean processed = false;
 		
 		/** Add an id to the handler
@@ -51,8 +49,9 @@ public class IdReferenceHandlerSet<T> {
 				List<String> attributes)
 				throws IdReferenceHandlerException,
 				HandlerLockedException {
-			if (locked) {
-				throw new HandlerLockedException("This handler is locked");
+			if (processed) {
+				throw new HandlerLockedException(
+						"This handler's ids have been processed and no more may be added");
 			}
 			if (associatedObject == null) {
 				throw new NullPointerException(
@@ -109,10 +108,13 @@ public class IdReferenceHandlerSet<T> {
 //				HandlerLockedException;
 
 		/** Perform any necessary batch processing of the IDs before
-		 * remapping and locks the handler.
+		 * remapping and locks the handler. Calling the method twice has no
+		 * effect.
 		 */
 		public void processIds() throws IdReferenceHandlerException {
-			locked = true;
+			if (processed) {
+				return;
+			}
 			processed = true;
 			processIdsImpl();
 		}
@@ -156,12 +158,6 @@ public class IdReferenceHandlerSet<T> {
 				T associatedObject);
 
 		public abstract IdReferenceType getIdType();
-		
-		/** Prevent addition of any more IDs.
-		 */
-		public void lock() {
-			locked = true;
-		}
 	}
 	
 	protected IdReferenceHandlerSet(final int maxUniqueIdCount,
@@ -227,9 +223,9 @@ public class IdReferenceHandlerSet<T> {
 	}
 
 	private void checkIdRefValidity(final IdReference<?> id) {
-		if (locked) {
+		if (processed) {
 			throw new IllegalStateException(
-					"This ID handler set instance is locked");
+					"This ID handler set instance's IDs have been processed and no more can be added");
 		}
 		if (associated == null) {
 			throw new IllegalStateException(
@@ -247,21 +243,21 @@ public class IdReferenceHandlerSet<T> {
 	
 	/** Process all the IDs saved in all the registered handlers and locks
 	 * the handlers. Calling this methond twice will have no effect.
+	 * @return 
 	 * @throws IdReferenceHandlerException if there was an error processing
 	 * the IDs.
 	 * 
 	 */
-	public void processIDs() throws IdReferenceHandlerException {
+	public IdReferenceHandlerSet<T> processIDs() throws IdReferenceHandlerException {
 		if (processed) {
-			return;
+			return this;
 		}
-		locked = true;
 		processed = true;
 		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
-			handlers.entrySet()) {
+				handlers.entrySet()) {
 			es.getValue().processIds();
-			es.getValue().lock();
 		}
+		return this;
 	}
 	
 	/** Check if processIds() has been called on this handler. Implies
@@ -312,15 +308,6 @@ public class IdReferenceHandlerSet<T> {
 					idType.getType());
 		}
 		return handlers.get(idType).getRemappedIds(associatedObject);
-	}
-	
-	public IdReferenceHandlerSet<T> lock() {
-		locked = true;
-		for (final Entry<IdReferenceType, IdReferenceHandler<T>> es:
-			handlers.entrySet()) {
-			es.getValue().lock();
-		}
-		return this;
 	}
 	
 	public int size() {

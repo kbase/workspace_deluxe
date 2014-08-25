@@ -524,7 +524,7 @@ public class Workspace {
 			return true;
 		}
 	}
-	
+	/** Note adds own handler factory for type ws */
 	public List<ObjectInformation> saveObjects(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, 
@@ -539,13 +539,13 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
 				"write to");
+		idHandlerFac.addFactory(getHandlerFactory(user));
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
 		
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				validateObjectsAndExtractReferences(objects, idhandler);
 		
-		idhandler.lock();
 		processIds(objects, idhandler, reports);
 		
 		//handle references and calculate size with new references
@@ -648,7 +648,7 @@ public class Workspace {
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
 				for (final Provenance.ProvenanceAction action:
-					wo.getProvenance().getActions()) {
+						wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
 						if (pref == null) {
 							throw new TypedObjectValidationException(
@@ -665,7 +665,7 @@ public class Workspace {
 						"Object %s has invalid provenance reference: ",
 						getObjectErrorId(wo, objcount)) + 
 						ihre.getMessage(), ihre);
-			} catch (TooManyIdsException tmie) { //TODO 1 test too many IDs exception
+			} catch (TooManyIdsException tmie) {
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
 			objcount++;
@@ -749,7 +749,7 @@ public class Workspace {
 					"Object %s failed type checking:\n",
 					getObjectErrorId(wo, objcount))
 					+ nsme.getLocalizedMessage(), nsme);
-		} catch (TooManyIdsException e) { //TODO 1 test TooManyIdsException
+		} catch (TooManyIdsException e) {
 			throw wrapTooManyIDsException(objcount, idhandler, e);
 		} catch (JsonParseException jpe) {
 			throw new TypedObjectValidationException(String.format(
@@ -1352,7 +1352,7 @@ public class Workspace {
 	
 	/* need to have an internal handler to reference this specific workspace instance
 	 */
-	public WorkspaceIDHandlerFactory getHandlerFactory(
+	private WorkspaceIDHandlerFactory getHandlerFactory(
 			final WorkspaceUser user) {
 		return new WorkspaceIDHandlerFactory(user);
 	}

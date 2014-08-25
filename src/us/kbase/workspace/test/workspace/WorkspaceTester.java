@@ -370,7 +370,6 @@ public class WorkspaceTester {
 	
 	protected IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user));
 		return fac;
 	}
 	
@@ -639,7 +638,6 @@ public class WorkspaceTester {
 			Map<String, Object> data, TypeDefId type, Provenance prov,
 			Throwable exception) throws Exception{
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user));
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(
 					new WorkspaceSaveObject(data, type, null, prov, false)), fac);
@@ -1080,7 +1078,6 @@ public class WorkspaceTester {
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user));
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
 					new WorkspaceSaveObject(data, type, meta, prov, hide)), fac)

@@ -1659,29 +1659,49 @@ public class WorkspaceTest extends WorkspaceTester {
 //		String idtypeint = "someintid";
 		String mod = "TestIDExtraction";
 		String type = "IdType";
+		String listtype = "ListIdType";
 		final String idSpec =
-				"module " + mod + " {" +
-					"/* @id " + idtype1 + " */" +
-					"typedef string some_id;" +
-					"/* @id " + idtype2 + " */" +
-					"typedef string some_id2;" +
+				"module " + mod + " {\n" +
+					"/* @id " + idtype1 + " */\n" +
+					"typedef string some_id;\n" +
+					"/* @id " + idtype2 + " */\n" +
+					"typedef string some_id2;\n" +
+					"/* @id " + idtype1 + " attrib1 */\n" +
+					"typedef string some_id_a1;\n" +
+					"/* @id " + idtype1 + " attrib2 */\n" +
+					"typedef string some_id_a2;\n" +
 //					"/* @id " + idtypeint + " */" +
 //					"typedef int int_id;" +
+					
 					"/* @optional an_id\n" +
 					"   @optional an_id2\n" +
 //					"   @optional an_int_id */" +
 					"*/" +
-					"typedef structure {" +
-						"some_id an_id;" +
-						"some_id2 an_id2;" +
+					"typedef structure {\n" +
+						"some_id an_id;\n" +
+						"some_id2 an_id2;\n" +
 //						"int_id an_int_id;" +
-					"} " + type + ";" +
-				"};";
+					"} " + type + ";\n" +
+
+					"/* @optional some_ids\n" +
+					"   @optional some_ids2\n" +
+					"   @optional some_ids_a1\n" +
+					"   @optional some_ids_a2\n" +
+					"*/\n" + 
+					"typedef structure {\n" +
+						"list<some_id> some_ids;\n" +
+						"list<some_id2> some_ids2;\n" +
+						"list<some_id_a1> some_ids_a1;\n" +
+						"list<some_id_a2> some_ids_a2;\n" +
+					"} " + listtype + ";\n" +
+				"};\n";
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, mod);
 		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type), null, null, false, null);
+		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type, listtype),
+				null, null, false, null);
 		TypeDefId idtype = new TypeDefId(new TypeDefName(mod, type), 0, 1);
+		TypeDefId listidtype = new TypeDefId(new TypeDefName(mod, listtype), 0, 1);
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("idextract");
@@ -1752,6 +1772,121 @@ public class WorkspaceTest extends WorkspaceTester {
 //		
 //		failSave(user, wsi, data, fac, new TypedObjectValidationException(
 //				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"integer\"]), at /an_int_id"));
+	}
+	
+	@Test
+	public void maxIdsPerCall() throws Exception {
+		String idtype1 = "someid";
+		String idtype2 = "someid2";
+		String mod = "TestMaxId";
+		String listtype = "ListIdType";
+		final String idSpec =
+				"module " + mod + " {\n" +
+					"/* @id ws */\n" +
+					"typedef string ws_id;\n" +
+					"/* @id " + idtype1 + " */\n" +
+					"typedef string some_id;\n" +
+					"/* @id " + idtype2 + " */\n" +
+					"typedef string some_id2;\n" +
+					"/* @id " + idtype1 + " attrib1 */\n" +
+					"typedef string some_id_a1;\n" +
+					"/* @id " + idtype1 + " attrib2 */\n" +
+					"typedef string some_id_a2;\n" +
+					"/* @optional ws_ids\n" + 
+					"   @optional some_ids\n" +
+					"   @optional some_ids2\n" +
+					"   @optional some_ids_a1\n" +
+					"   @optional some_ids_a2\n" +
+					"*/\n" + 
+					"typedef structure {\n" +
+						"list<ws_id> ws_ids;\n" +
+						"list<some_id> some_ids;\n" +
+						"list<some_id2> some_ids2;\n" +
+						"list<some_id_a1> some_ids_a1;\n" +
+						"list<some_id_a2> some_ids_a2;\n" +
+					"} " + listtype + ";\n" +
+				"};\n";
+		WorkspaceUser user = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(user, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(listtype),
+				null, null, false, null);
+		TypeDefId listidtype = new TypeDefId(new TypeDefName(mod, listtype), 0, 1);
+		
+		// test basic type checking with different versions
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("maxids");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		WorkspaceSaveObject mtobj = new WorkspaceSaveObject(
+				new HashMap<String, String>(), listidtype, null, emptyprov, false);
+		objs.add(mtobj);
+		objs.add(mtobj);
+		
+		IdReferenceHandlerSetFactory fac = makeFacForMaxIDTests(
+				Arrays.asList(idtype1, idtype2), user, 8);
+		ws.saveObjects(user, wsi, objs, fac);
+		objs.clear();
+		
+		Map<String, Object> data1 = new HashMap<String, Object>();
+		data1.put("ws_ids", Arrays.asList("maxids/auto1", "maxids/auto2", "maxids/auto1"));
+		data1.put("some_ids", Arrays.asList("foo", "bar", "foo"));
+		data1.put("some_ids2", Arrays.asList("foo", "baz", "foo"));
+		data1.put("some_ids_a1", Arrays.asList("foo", "bak", "foo"));
+		data1.put("some_ids_a2", Arrays.asList("foo", "baf", "foo"));
+		objs.add(new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
+		
+		//should work
+		ws.saveObjects(user, wsi, objs, fac);
+		
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 7);
+		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
+		
+		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						"maxids/auto1", "maxids/auto2", "maxids/auto1")));
+		
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 10);
+		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, p, false));
+		//should work
+		ws.saveObjects(user, wsi, objs, fac);
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 9);
+		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 9"));
+		
+		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
+		objs.add(new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 16);
+		
+		//should work
+		ws.saveObjects(user, wsi, objs, fac);
+		
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 15);
+		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 15"));
+		
+		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, p, false));
+		objs.set(1, new WorkspaceSaveObject(data1, listidtype, null, p, false));
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 20);
+		
+		//should work
+		ws.saveObjects(user, wsi, objs, fac);
+		
+		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 19);
+		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 19"));
+	}
+
+	private IdReferenceHandlerSetFactory makeFacForMaxIDTests(List<String> idtypes,
+			WorkspaceUser user, int max) {
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(max);
+//				.addFactory(ws.getHandlerFactory(user));
+		for (String idtype: idtypes) {
+			fac.addFactory(new TestIDReferenceHandlerFactory(
+					new IdReferenceType(idtype)));
+		}
+		return fac;
 	}
 	
 	@Test

@@ -51,6 +51,9 @@ public class MongoInternalsTest {
 	private static Workspace ws;
 	private static MongoController mongo;
 	
+	private static final IdReferenceHandlerSetFactory fac =
+			new IdReferenceHandlerSetFactory(100);
+	
 	public static final TypeDefId SAFE_TYPE =
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 
@@ -97,12 +100,6 @@ public class MongoInternalsTest {
 		}
 	}
 	
-	private IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		fac.addFactory(ws.getHandlerFactory(user));
-		return fac;
-	}
-	
 	@Test
 	public void refCounting() throws Exception {
 		final String refcntspec =
@@ -128,15 +125,12 @@ public class MongoInternalsTest {
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(ws.getHandlerFactory(userfoo));
-		
 		for (int i = 1; i < 5; i++) {
 			for (int j = 0; j < 4; j++) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("obj" + i),
 								new UObject(data1), SAFE_TYPE, null, emptyprov, false)),
-						getIdFactory(userfoo));
+								fac);
 			}
 		}
 		// now we've got a 4x4 set of objects
@@ -150,11 +144,11 @@ public class MongoInternalsTest {
 			if (i % 2 == 0) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, "obj" + obj, ver)),
-						refcounttype, null, emptyprov, false)), getIdFactory(userfoo));
+						refcounttype, null, emptyprov, false)), fac);
 			} else {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
 						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, obj, ver)),
-						refcounttype, null, emptyprov, false)), getIdFactory(userfoo));
+						refcounttype, null, emptyprov, false)), fac);
 			}
 		}
 		checkRefCounts(wsid, expected, 1);
@@ -282,7 +276,7 @@ public class MongoInternalsTest {
 		
 		ws.saveObjects(userfoo, subdataws, Arrays.asList(
 				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)),
-				getIdFactory(userfoo));
+				fac);
 		
 		((Map<String, Object>) expected.get("bugs")).remove("patronymic");
 		((Map<String, Object>) expected.get("bugs")).remove("charisma");
@@ -369,7 +363,7 @@ public class MongoInternalsTest {
 		
 		ws.saveObjects(userfoo, subdataws, Arrays.asList(
 				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)),
-				getIdFactory(userfoo));
+				fac);
 		
 		ResolvedWorkspaceID rwi = mwdb.resolveWorkspace(subdataws);
 		ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwi, 1L);
@@ -395,18 +389,16 @@ public class MongoInternalsTest {
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)),
-				getIdFactory(userfoo));
+				fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)),
-				getIdFactory(userfoo));
+				fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)),
-						getIdFactory(userfoo));
+						null, new Provenance(userfoo), hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)),
-						getIdFactory(userfoo));
+						null, new Provenance(userfoo), hide)), fac);
 		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2, 2),
 				new ObjectIdentifier(copyrev, "auto3"));
 		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2),
@@ -515,7 +507,7 @@ public class MongoInternalsTest {
 		ws.saveObjects(userfoo, dates, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
 						SAFE_TYPE, null, new Provenance(userfoo), false)),
-						getIdFactory(userfoo));
+						fac);
 		Date orig = getDate(wsid, 1);
 		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
 				new ObjectIdentifier(dates, "copy"));

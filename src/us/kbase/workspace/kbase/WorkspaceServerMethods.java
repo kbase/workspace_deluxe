@@ -193,7 +193,6 @@ public class WorkspaceServerMethods {
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac =
 				new IdReferenceHandlerSetFactory(maximumIDCount);
-		fac.addFactory(ws.getHandlerFactory(user));
 		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl,
 				token));
 		

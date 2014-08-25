@@ -502,7 +502,7 @@ public class ConfigurationsAndThreads {
 		public int performWrites() throws Exception {
 			for (JsonNode o: objs) {
 				final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
-				fac.addFactory(ws.getHandlerFactory(foo));
+//				fac.addFactory(ws.getHandlerFactory(foo));
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(
 								o, type, null, new Provenance(foo), false)), fac)

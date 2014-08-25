@@ -86,7 +86,7 @@ public class GetObjectsLibSpeedTest {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("fake");
 		TypeDefId td = new TypeDefId(new TypeDefName(module, type));
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
-		fac.addFactory(ws.getHandlerFactory(user));
+//		fac.addFactory(ws.getHandlerFactory(user));
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)), fac);
 		o = null;
