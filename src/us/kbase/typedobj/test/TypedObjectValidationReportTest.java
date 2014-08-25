@@ -37,7 +37,7 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-//import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
@@ -67,9 +67,8 @@ public class TypedObjectValidationReportTest {
 		Files.createDirectories(storagedir);
 		db = new TypeDefinitionDB(
 				new FileTypeStorage(storagedir.toFile().getAbsolutePath()),
-				tempdir.toFile()); //, new Util().getKIDLpath(),
-//				WorkspaceTestCommon.getKidlSource());
-		//TODO 1 mike restore tests
+				tempdir.toFile(), new Util().getKIDLpath(),
+				WorkspaceTestCommon.getKidlSource());
 		addSpecs();
 	}
 	
