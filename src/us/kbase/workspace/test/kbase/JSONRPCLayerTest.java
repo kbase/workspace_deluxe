@@ -2814,4 +2814,73 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Assert.assertEquals(1, CLIENT1.getAllTypeInfo("RefSpec").size());
 		Assert.assertEquals(1, CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size());
 	}
+	
+	@Test
+	public void testModuleDiamondDependency() throws Exception {
+		/////////////////////////// D v1 ////////////////////////////
+		String modD = "TestModuleD";
+		CLIENT1.requestModuleOwnership(modD);
+		administerCommand(CLIENT2, "approveModRequest", "module", modD);
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withNewTypes(Arrays.asList("dType"))
+			.withSpec("module " + modD + " { typedef int dType; };"));
+		CLIENT1.releaseModule(modD);
+		long dVer1 = CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(modD)).getVer();
+		/////////////////////////// B depends on D v1 ////////////////////////////
+		String modB = "TestModuleB";
+		CLIENT1.requestModuleOwnership(modB);
+		administerCommand(CLIENT2, "approveModRequest", "module", modB);
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withNewTypes(Arrays.asList("bType"))
+			.withSpec("#include <" + modD + ">\n" +
+					"module " + modB + " { " +
+					"typedef " + modD + ".dType bType; " +
+					"};"));
+		CLIENT1.releaseModule(modB);
+		long bVer = CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(modB)).getVer();
+		//////////////////////////// D v2 ///////////////////////////
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec("module " + modD + " { typedef string dType; };"));
+		CLIENT1.releaseModule(modD);
+		long dVer2 = CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(modD)).getVer();
+		//////////////////////////// C depends on D v2 //////////////////////////
+		String modC = "TestModuleC";
+		CLIENT1.requestModuleOwnership(modC);
+		administerCommand(CLIENT2, "approveModRequest", "module", modC);
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withNewTypes(Arrays.asList("cType"))
+			.withSpec("#include <" + modD + ">\n" +
+					"module " + modC + " { " +
+					"typedef " + modD + ".dType cType; " +
+					"};"));
+		CLIENT1.releaseModule(modC);
+		long cVer = CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(modC)).getVer();
+		/////////////////////////// A depends on B and C ////////////////////////////
+		String modA = "TestModuleA";
+		CLIENT1.requestModuleOwnership(modA);
+		administerCommand(CLIENT2, "approveModRequest", "module", modA);
+		try {
+			CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withNewTypes(Arrays.asList("aType"))
+			.withSpec("" +
+					"#include <" + modB + ">\n" +
+					"#include <" + modC + ">\n" +
+					"module " + modA + " { " +
+					"typedef structure {" +
+					" " + modB + ".bType valB; " +
+					" " + modC + ".cType valC; " +
+					"} aType; " +
+					"};"));
+			Assert.fail("Diamond dependency could not be allowed");
+		} catch (ServerException ex) {
+			String expectedError = "Incompatible module dependecies: TestModuleD(" + dVer1 + ")<-TestModuleB(" + 
+					bVer + ")<-RootModule and TestModuleD(" + dVer2 + ")<-TestModuleC(" + cVer + ")<-RootModule";
+			Assert.assertEquals(expectedError, ex.getMessage());
+		}
+	}
 }
