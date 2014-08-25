@@ -57,7 +57,7 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-//import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
@@ -242,12 +242,13 @@ public class WorkspaceTester {
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
-		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
-				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
-		//TODO 1 mike restore test
-//		final String kidlpath = new Util().getKIDLpath();
-//		wsdb = new MongoWorkspaceDB(host, db1, shockpwd, "foo", "foo",
-//				kidlpath, null, tfm);
+//		Code to create wsdb without checking against perl typecomp 
+//		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
+//				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
+		final String kidlpath = new Util().getKIDLpath();
+		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(), 
+				"WorkspaceBackendTest", shockpwd, "foo", "foo",
+				kidlpath, null, tfm);
 		Workspace work = new Workspace(wsdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
