@@ -1653,23 +1653,44 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void duplicateAutoIds() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("user1");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("dupAutoIds");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		Map<String, Object> d1 = new HashMap<String, Object>();
+		Map<String, Object> d2 = new HashMap<String, Object>();
+		d2.put("d", 2);
+		Provenance mtprov = new Provenance(user);
+		objs.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto5-foo"), d1, SAFE_TYPE1, null, mtprov, false));
+		objs.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto5-1-1"), d1, SAFE_TYPE1, null, mtprov, false));
+		objs.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto5"), d1, SAFE_TYPE1, null, mtprov, false));
+		objs.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto5-1"), d1, SAFE_TYPE1, null, mtprov, false));
+		objs.add(new WorkspaceSaveObject(d2, SAFE_TYPE1, null, mtprov, false));
+		
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		WorkspaceObjectData d =  ws.getObjects(user, Arrays.asList(
+				new ObjectIdentifier(wsi, "auto5-2"))).get(0);
+		assertThat("auto named correctly", d.getData(), is((Object) d2));
+	}
+	
+	@Test
 	public void idExtraction() throws Exception {
 		String idtype1 = "someid";
 		String idtype2 = "someid2";
 //		String idtypeint = "someintid";
 		String mod = "TestIDExtraction";
 		String type = "IdType";
-		String listtype = "ListIdType";
 		final String idSpec =
 				"module " + mod + " {\n" +
 					"/* @id " + idtype1 + " */\n" +
 					"typedef string some_id;\n" +
 					"/* @id " + idtype2 + " */\n" +
 					"typedef string some_id2;\n" +
-					"/* @id " + idtype1 + " attrib1 */\n" +
-					"typedef string some_id_a1;\n" +
-					"/* @id " + idtype1 + " attrib2 */\n" +
-					"typedef string some_id_a2;\n" +
 //					"/* @id " + idtypeint + " */" +
 //					"typedef int int_id;" +
 					
@@ -1682,26 +1703,13 @@ public class WorkspaceTest extends WorkspaceTester {
 						"some_id2 an_id2;\n" +
 //						"int_id an_int_id;" +
 					"} " + type + ";\n" +
-
-					"/* @optional some_ids\n" +
-					"   @optional some_ids2\n" +
-					"   @optional some_ids_a1\n" +
-					"   @optional some_ids_a2\n" +
-					"*/\n" + 
-					"typedef structure {\n" +
-						"list<some_id> some_ids;\n" +
-						"list<some_id2> some_ids2;\n" +
-						"list<some_id_a1> some_ids_a1;\n" +
-						"list<some_id_a2> some_ids_a2;\n" +
-					"} " + listtype + ";\n" +
 				"};\n";
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, mod);
 		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type, listtype),
+		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type),
 				null, null, false, null);
 		TypeDefId idtype = new TypeDefId(new TypeDefName(mod, type), 0, 1);
-		TypeDefId listidtype = new TypeDefId(new TypeDefName(mod, listtype), 0, 1);
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("idextract");

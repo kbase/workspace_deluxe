@@ -1589,8 +1589,6 @@ public class Workspace {
 			return e;
 		}
 		
-		//TODO 1 method to drop associations but keep mapping
-
 		@Override
 		protected RemappedId getRemappedIdImpl(final String oldId)
 				throws NoSuchIdException {

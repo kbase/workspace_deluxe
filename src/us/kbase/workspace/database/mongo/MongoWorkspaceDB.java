@@ -1411,18 +1411,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (@SuppressWarnings("rawtypes") Map m: ids) {
 				final String[] id = ((String) m.get(Fields.OBJ_NAME))
 						.split("-");
+				//regex for finding ids is ^prefix(-\d+)?$
 				if (id.length == 2) {
-					try {
-						suffixes.add(Long.parseLong(id[1]));
-					} catch (NumberFormatException e) {
-						// do nothing
-					}
-				} else if (id.length == 1) {
-					try {
-						exact = exact || prefix.equals(id[0]);
-					} catch (NumberFormatException e) {
-						// do nothing
-					}
+					//2nd element must be a number based on the query regex
+					suffixes.add(Long.parseLong(id[1]));
+				} else {
+					//must be identical to the id based on the query regex
+					exact = true;
 				}
 			}
 		} catch (MongoException me) {
