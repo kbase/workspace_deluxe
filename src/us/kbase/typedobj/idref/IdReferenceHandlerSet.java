@@ -11,8 +11,6 @@ import java.util.Set;
 public class IdReferenceHandlerSet<T> {
 	
 	//TODO unit tests, docs
-	//TODO 1 test extraction of various types
-	//TODO 1 read through all this & check docs, write any new tests, check coverage.
 	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
@@ -159,7 +157,7 @@ public class IdReferenceHandlerSet<T> {
 
 		public abstract IdReferenceType getIdType();
 	}
-	
+
 	protected IdReferenceHandlerSet(final int maxUniqueIdCount,
 			final Map<IdReferenceType, IdReferenceHandler<T>> handlers) {
 		this.maxUniqueIdCount = maxUniqueIdCount;
@@ -167,6 +165,12 @@ public class IdReferenceHandlerSet<T> {
 				handlers);
 	}
 
+	/** Returns true if this handler set contains a handler for the ID type
+	 * specified.
+	 * @param idType the type of ID to check.
+	 * @return true if this handler set contains a handler for the ID type
+	 * specified.
+	 */
 	public boolean hasHandler(final IdReferenceType idType) {
 		return handlers.containsKey(idType);
 	}
@@ -243,7 +247,7 @@ public class IdReferenceHandlerSet<T> {
 	
 	/** Process all the IDs saved in all the registered handlers and locks
 	 * the handlers. Calling this methond twice will have no effect.
-	 * @return 
+	 * @return this.
 	 * @throws IdReferenceHandlerException if there was an error processing
 	 * the IDs.
 	 * 
@@ -295,6 +299,11 @@ public class IdReferenceHandlerSet<T> {
 		return handlers.get(idType).getRemappedId(oldId);
 	}
 	
+	/** Gets the set of remapped IDs corresponding to an object.
+	 * @param idType the type of IDs to get.
+	 * @param associatedObject the object for which IDs will be returned.
+	 * @return
+	 */
 	public Set<RemappedId> getRemappedIds(
 			final IdReferenceType idType,
 			final T associatedObject) {
@@ -310,15 +319,24 @@ public class IdReferenceHandlerSet<T> {
 		return handlers.get(idType).getRemappedIds(associatedObject);
 	}
 	
+	/** Get the number of unique IDs in the handler set.
+	 * @return the number of unique IDs.
+	 */
 	public int size() {
 		return currentUniqueIdCount;
 	}
 	
+	/** Returns true if this handler set contains no IDs.
+	 * @return true if this handler set contains no IDs.
+	 */
 	public boolean isEmpty() {
 		return currentUniqueIdCount == 0;
 	}
 	
 
+	/** Returns the maximum ID count allowed for this handler.
+	 * @return the maximum ID count allowed for this handler.
+	 */
 	public int getMaximumIdCount() {
 		return maxUniqueIdCount;
 	}

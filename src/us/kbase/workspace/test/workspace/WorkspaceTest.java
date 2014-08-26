@@ -1402,32 +1402,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		Provenance badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
 		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));
 		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 has a null provenance reference"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 has a null provenance reference"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("")));
 		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
-		try {
-			ws.saveObjects(userfoo, wspace, data, getIdFactory(userfoo));
-		} catch (TypedObjectValidationException tove) {
-			assertThat("correct exception", tove.getLocalizedMessage(),
-					is("Object #2 has invalid provenance reference: IDs may not be null or the empty string"));
-		}
+		failSave(userfoo, wspace, data, new TypedObjectValidationException(
+				"Object #2 has invalid provenance reference: IDs may not be null or the empty string"));
 		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces
 		Map<String, Object> refdata = new HashMap<String, Object>(data1);
