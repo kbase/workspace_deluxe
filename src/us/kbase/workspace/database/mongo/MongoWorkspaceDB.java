@@ -2355,6 +2355,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			} catch (IllegalStateException e) {
 				cleanUpTempObjectFiles(chksumToData, ret);
 				throw e;
+			} catch (RuntimeException e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
+			} catch (Error e) {
+				cleanUpTempObjectFiles(chksumToData, ret);
+				throw e;
 			}
 		}
 		return ret;
