@@ -1464,7 +1464,6 @@ public class Workspace {
 			}
 		}
 
-		//TODO 1 test various type sets for the same id
 		private void typeCheckReference(
 				final String id,
 				final AbsoluteTypeDefId type,

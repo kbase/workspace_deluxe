@@ -1611,9 +1611,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/auto1")));
-		
-		//TODO 1 test different types, allowed types, and locations.
-		
+
 		//check references were rewritten correctly
 		for (int i = 3; i < 11; i++) {
 			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
@@ -1687,9 +1685,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectIdentifier(wsi, "auto5-2"))).get(0);
 		assertThat("auto named correctly", d.getData(), is((Object) d2));
 	}
-	
+
 	@Test
-	public void idExtraction() throws Exception {
+	public void genericIdExtraction() throws Exception {
+		
 		String idtype1 = "someid";
 		String idtype2 = "someid2";
 //		String idtypeint = "someintid";
@@ -1728,7 +1727,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
-		//TODO 1 lots more tests with more complicated structures
 		Map<String, Object> iddata = new HashMap<String, Object>();
 		
 
@@ -1815,6 +1813,157 @@ public class WorkspaceTest extends WorkspaceTester {
 		iddata.put("an_id", "procGenExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
 				"An error occured while processing IDs: Process General exception for ID procGenExcept"));
+	}
+	
+	
+	@Test
+	public void wsIDHandling() throws Exception {
+		String mod = "WsIDHandling";
+		String type = "IdType";
+		final String idSpec =
+				"module " + mod + " {\n" +
+		
+					"/* @optional foo */\n" +
+					"typedef structure {\n" +
+						"int foo;\n" +
+					"} Type1;\n" +
+		
+					"/* @optional foo */\n" +
+					"typedef structure {\n" +
+						"int foo;\n" +
+					"} Type2;\n" +
+					
+					"/* @optional foo */\n" +
+					"typedef structure {\n" +
+						"int foo;\n" +
+					"} Type3;\n" +
+					
+					"/* @id ws */\n" +
+					"typedef string ws_any;\n" +
+					
+					"/* @id ws " + mod + ".Type1 */\n" +
+					"typedef string ws_1;\n" +
+					
+					"/* @id ws " + mod + ".Type2 */\n" +
+					"typedef string ws_2;\n" +
+					
+					"/* @id ws " + mod + ".Type3 */\n" +
+					"typedef string ws_3;\n" +
+					
+					"/* @id ws " + mod + ".Type1 " + mod + ".Type2 */\n" +
+					"typedef string ws_12;\n" +
+					
+					"/* @id ws " + mod + ".Type1 " + mod + ".Type3 */\n" +
+					"typedef string ws_13;\n" +
+					
+					"/* @id ws " + mod + ".Type2 " + mod + ".Type3 */\n" +
+					"typedef string ws_23;\n" +
+
+					"/* @optional ws_any ws_1 ws_2 ws_3 ws_12 ws_13 ws_23 */\n" +
+					"typedef structure {\n" +
+						"list<ws_any> ws_any;\n" +
+						"list<mapping<ws_1, int>> ws_1;\n" +
+						"list<tuple<string, ws_2>> ws_2;\n" +
+						"list<list<ws_3>> ws_3;\n" +
+						"list<ws_12> ws_12;\n" +
+						"list<ws_13> ws_13;\n" +
+						"list<ws_23> ws_23;\n" +
+					"} " + type + ";\n" +
+				"};\n";
+		WorkspaceUser user = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(user, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type, "Type1", "Type2", "Type3"),
+				null, null, false, null);
+		TypeDefId type1 = new TypeDefId(new TypeDefName(mod, "Type1"), 0, 1);
+		TypeDefId type2 = new TypeDefId(new TypeDefName(mod, "Type2"), 0, 1);
+		TypeDefId type3 = new TypeDefId(new TypeDefName(mod, "Type3"), 0, 1);
+		
+		TypeDefId idtype = new TypeDefId(new TypeDefName(mod, type), 0, 1);
+		
+		// test basic type checking with different versions
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsIDHandling");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(user);
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(3);
+		
+		Map<String, Object> mt = new HashMap<String, Object>();
+		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("t1"), mt, type1, null, emptyprov, false));
+		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("t2"), mt, type2, null, emptyprov, false));
+		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("t3"), mt, type3, null, emptyprov, false));
+		ws.saveObjects(user, wsi, objs, fac);
+		
+		String ref1 = wsi.getName() + "/t1";
+		String ref2 = wsi.getName() + "/t2";
+		String ref3 = wsi.getName() + "/t3";
+		
+		List<String> all3 = Arrays.asList(ref1, ref2, ref3);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("ws_any", all3);
+		Map<String, Integer> innermap = new HashMap<String, Integer>();
+		data.put("ws_1", Arrays.asList(innermap));
+		innermap.put(ref1, 3);
+		ArrayList<List<String>> innertuple = new ArrayList<List<String>>();
+		data.put("ws_2", innertuple);
+		innertuple.add(Arrays.asList("foo", ref2));
+		ArrayList<String> innerlist = new ArrayList<String>();
+		data.put("ws_3", Arrays.asList(innerlist));
+		innerlist.add(ref3);
+		data.put("ws_12", Arrays.asList(ref1, ref2));
+		data.put("ws_13", Arrays.asList(ref1, ref3));
+		data.put("ws_23", Arrays.asList(ref2, ref3));
+		
+		objs.clear();
+		objs.add(new WorkspaceSaveObject(data, idtype, null, emptyprov, false));
+		//should work
+		ws.saveObjects(user, wsi, objs, fac);
+		
+		innermap.put(ref2, 4);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t2"));
+		
+		innermap.remove(ref2);
+		innermap.put(ref3, 6);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t3"));
+		
+		innermap.remove(ref3);
+		innertuple.add(Arrays.asList("bar", ref1));
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2] at /ws_2/1/1"));
+		
+		innertuple.clear();
+		innertuple.add(Arrays.asList("baz", ref3));
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type2] at /ws_2/0/1"));
+		
+		innertuple.set(0, Arrays.asList("foo", ref2));
+		innerlist.add(ref1);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type3] at /ws_3/0/1"));
+		
+		innerlist.set(1, ref3);
+		innerlist.add(ref2);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type3] at /ws_3/0/2"));
+		
+		innerlist.remove(2);
+		innerlist.remove(1);
+		data.put("ws_12", all3);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type1, WsIDHandling.Type2] at /ws_12/2"));
+		
+		data.put("ws_12", Arrays.asList(ref1, ref2));
+		data.put("ws_13", all3);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type1, WsIDHandling.Type3] at /ws_13/1"));
+		
+		data.put("ws_13", Arrays.asList(ref1, ref3));
+		data.put("ws_23", all3);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2, WsIDHandling.Type3] at /ws_23/0"));
+		
 	}
 	
 	@Test

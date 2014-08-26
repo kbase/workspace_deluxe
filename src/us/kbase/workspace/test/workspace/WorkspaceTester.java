@@ -213,7 +213,6 @@ public class WorkspaceTester {
 	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
-//		WorkspaceTestCommon.destroyAndSetupShockDB();
 		if (shock == null) {
 			shock = new ShockController(
 					WorkspaceTestCommon.getShockExe(),
@@ -245,6 +244,7 @@ public class WorkspaceTester {
 //		Code to create wsdb without checking against perl typecomp 
 //		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
 //				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
+//		code to create wsdb with checking against perl typecomp
 		final String kidlpath = new Util().getKIDLpath();
 		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(), 
 				"WorkspaceBackendTest", shockpwd, "foo", "foo",
