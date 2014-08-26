@@ -10,16 +10,18 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
  * typed object. The handler could, for example, check the ID format, check
  * that the ID refers to a valid item in a database, or both.
  * 
+ * The handler builder is expected to build a set of empty handlers that are
+ * ready to process IDs.
+ * 
  * ID handlers allow associating IDs with a particular object. This is useful
- * for batch processing of typed object, as the IDs can be associated with
+ * for batch processing of typed objects, as the IDs can be associated with
  * a particular object but the entire ID set can be processed as a batch.
  * @author gaprice@lbl.gov
  *
  */
 public class IdReferenceHandlerSetFactory {
 	
-	//TODO 1 read through all this & check docs, write any new tests, check coverage.
-	//TODO unit tests, docs
+	//TODO unit tests
 
 	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
 			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();
@@ -38,6 +40,12 @@ public class IdReferenceHandlerSetFactory {
 		public IdReferenceType getIDType();
 	}
 	
+	/** Create a handler set factory.
+	 * @param maxUniqueIdCount - the maximum number of unique IDs allowed in
+	 * this handler. The handler implementation defines what non-unique means,
+	 * but generally the definition is that the IDs are associated with the
+	 * same object and are the same ID.
+	 */
 	public IdReferenceHandlerSetFactory(final int maxUniqueIdCount) {
 		if (maxUniqueIdCount < 0) {
 			throw new IllegalArgumentException(
@@ -46,6 +54,10 @@ public class IdReferenceHandlerSetFactory {
 		this.maxUniqueIdCount = maxUniqueIdCount;
 	}
 	
+	/** Add a factory to this factory set.
+	 * @param factory the factory to add.
+	 * @return this.
+	 */
 	public IdReferenceHandlerSetFactory addFactory(
 			final IdReferenceHandlerFactory factory) {
 		if (factory == null) {
@@ -59,6 +71,10 @@ public class IdReferenceHandlerSetFactory {
 		return this;
 	}
 	
+	/** Create a set of ID handlers from this factory set.
+	 * @param clazz the class of object to associate with IDs.
+	 * @return the set of ID handlers.
+	 */
 	public <T> IdReferenceHandlerSet<T> createHandlers(final Class<T> clazz) {
 		final Map<IdReferenceType, IdReferenceHandler<T>> handlers =
 				new HashMap<IdReferenceType, IdReferenceHandler<T>>();
