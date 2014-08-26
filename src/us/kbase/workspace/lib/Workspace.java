@@ -1350,8 +1350,6 @@ public class Workspace {
 	}
 	
 	
-	/* need to have an internal handler to reference this specific workspace instance
-	 */
 	private WorkspaceIDHandlerFactory getHandlerFactory(
 			final WorkspaceUser user) {
 		return new WorkspaceIDHandlerFactory(user);
@@ -1360,8 +1358,6 @@ public class Workspace {
 	private class WorkspaceIDHandlerFactory
 			implements IdReferenceHandlerFactory {
 
-		//TODO 1 read through all this & check docs, write any new tests, check coverage.
-		
 		private final WorkspaceUser user;
 		
 		private WorkspaceIDHandlerFactory(final WorkspaceUser user) {
@@ -1496,8 +1492,7 @@ public class Workspace {
 		}
 
 		private Map<ObjectIDResolvedWS, TypeAndReference> getObjectTypes(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS>
-						wsresolvedids)
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids)
 				throws IdReferenceHandlerException {
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
 			if (!wsresolvedids.isEmpty()) {
@@ -1572,19 +1567,18 @@ public class Workspace {
 				final InaccessibleObjectException ioe,
 				final ObjectIdentifier originalObject,
 				final String exception) {
-			IdReferenceException e = null;
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = parser.parse(id);
 					if (oi.equals(originalObject)) {
-						e = new IdReferenceException(
+						return new IdReferenceException(
 								exception + id + ": " + ioe.getMessage(),
 								getIdType(), assObj,
 								id, null, ioe);
 					}
 				}
 			}
-			return e;
+			return null;
 		}
 		
 		@Override

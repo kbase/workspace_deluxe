@@ -1653,6 +1653,28 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void wsIdErrorOrder() throws Exception {
+		//test that an id error returns the right id if multiple IDs exist
+		WorkspaceUser user = new WorkspaceUser("user1");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsIdErrorOrder");
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		Map<String, Object> d = new HashMap<String, Object>();
+		Provenance mtprov = new Provenance(user);
+		objs.add(new WorkspaceSaveObject(d, SAFE_TYPE1, null, mtprov, false));
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						wsi.getName() + "/auto1", wsi.getName() + "/auto2")));
+		objs.set(0, new WorkspaceSaveObject(d, SAFE_TYPE1, null, p, false));
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid provenance reference: There is no object with id wsIdErrorOrder/auto2: No object with name auto2 exists in workspace "
+				+ wsid));
+		
+	}
+	
+	@Test
 	public void duplicateAutoIds() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("user1");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("dupAutoIds");
