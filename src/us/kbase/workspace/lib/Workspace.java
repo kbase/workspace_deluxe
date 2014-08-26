@@ -1385,8 +1385,6 @@ public class Workspace {
 	
 	public class WorkspaceIDHandler<T> extends IdReferenceHandler<T> {
 
-		//TODO 1 read through all this & check docs, write any new tests, check coverage.
-		
 		private final WorkspaceUser user;
 		
 		// associatedObject -> id -> list of attributes

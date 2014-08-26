@@ -1720,15 +1720,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//TODO 1 lots more tests with more complicated structures
 		Map<String, Object> iddata = new HashMap<String, Object>();
-		iddata.put("an_id", "parseExcept");
-		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
+		
 
 		IdReferenceHandlerSetFactory fac = getIdFactory(user).addFactory(
 				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
 
-		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\nUnparseable id parseExcept of type someid: Parse exception for ID parseExcept at /an_id"));
-		
+		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
 		iddata.put("an_id", "id here");
 		iddata.put("an_id2", "foo");
 //		iddata.put("an_int_id", 34);
@@ -1780,6 +1777,34 @@ public class WorkspaceTest extends WorkspaceTester {
 //		
 //		failSave(user, wsi, data, fac, new TypedObjectValidationException(
 //				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"integer\"]), at /an_int_id"));
+		
+		iddata.put("an_id", "parseExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 failed type checking:\nUnparseable id parseExcept of type someid: Parse exception for ID parseExcept at /an_id"));
+		
+		iddata.clear();
+		iddata.put("an_id2", "refExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 failed type checking:\nInvalid id refExcept of type someid2: Reference exception for ID refExcept at /an_id2"));
+		
+		iddata.clear();
+		iddata.put("an_id", "genExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 failed type checking:\nId handling error for id type someid: General exception for ID genExcept at /an_id"));
+		
+		iddata.put("an_id", "procParseExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 has unparseable reference procParseExcept: Process Parse exception for ID procParseExcept at /an_id"));
+		
+		iddata.clear();
+		iddata.put("an_id2", "procRefExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"Object #2 has invalid reference: Process Reference exception for ID procRefExcept at /an_id2"));
+		
+		iddata.clear();
+		iddata.put("an_id", "procGenExcept");
+		failSave(user, wsi, data, fac, new TypedObjectValidationException(
+				"An error occured while processing IDs: Process General exception for ID procGenExcept"));
 	}
 	
 	@Test

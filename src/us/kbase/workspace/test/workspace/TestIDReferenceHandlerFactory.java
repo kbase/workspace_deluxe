@@ -20,8 +20,6 @@ import us.kbase.typedobj.idref.SimpleRemappedId;
 
 public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO 1 exercise all these errors
-	
 	private final IdReferenceType type;
 	
 	public TestIDReferenceHandlerFactory(final IdReferenceType type) {
@@ -74,17 +72,17 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 						"General exception for ID " + id, type, null);
 			}
 			if ("procParseExcept".equals(id)) {
-				parseExcept = new IdParseException("Parse exception for ID " + id,
+				parseExcept = new IdParseException("Process Parse exception for ID " + id,
 						type, associatedObject, id, attributes, null);
 			}
 			if ("procRefExcept".equals(id)) {
 				refExcept = new IdReferenceException(
-						"Reference exception for ID " + id, type,
+						"Process Reference exception for ID " + id, type,
 						associatedObject, id, attributes, null);
 			}
 			if ("procGenExcept".equals(id)) {
 				genExcept = new IdReferenceHandlerException(
-						"General exception for ID " + id, type, null);
+						"Process General exception for ID " + id, type, null);
 			}
 			boolean unique = true;
 			if (!ids.containsKey(associatedObject)) {
