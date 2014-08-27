@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -74,6 +75,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsa
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.SubObjectIdentifier;
+import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
@@ -88,7 +90,6 @@ import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.RefreshingToken;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
-import us.kbase.workspace.lib.Workspace;
 //END_HEADER
 
 /**
@@ -1670,7 +1671,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			module = new ModuleDefId(params.getMod());
 		}
 		WorkspaceUser user = getUser(authPart);
-		final us.kbase.workspace.lib.ModuleInfo mi =
+		final us.kbase.workspace.database.ModuleInfo mi =
 				ws.getModuleInfo(user, module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {

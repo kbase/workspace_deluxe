@@ -1,4 +1,4 @@
-package us.kbase.workspace.lib;
+package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.Util.checkSize;
 
@@ -11,9 +11,6 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Reference;
 
 public class WorkspaceSaveObject {
 	
