@@ -217,11 +217,11 @@ public class JsonTokenValidationSchema {
 				// seachable ws-subset description is defined for this object/mapping
 				lst.addSearchableWsSubsetMessage(searchableWsSubset);
 			}
-			//TODO meta reinstate metadata extraction
-//			if (metadataWs != null) {
-//				// metadata ws description is defined for this object/mapping
-//				lst.addMetadataWsMessage(metadataWs);
-//			}
+			
+			if (metadataWs != null) {
+				// metadata ws description is defined for this object/mapping
+				lst.addMetadataWsMessage(metadataWs);
+			}
 			
 			try {
 				path.addMapStart();

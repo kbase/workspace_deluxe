@@ -839,7 +839,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 	
-	@Ignore //TODO meta restore when metadata restored
 	@Test
 	public void saveObjectsAndTestExtractedMeta() throws Exception {
 		String module = "TestMetaData";
@@ -1085,7 +1084,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
-		//TODO 2 should try these tests with bytes vs. maps
+		//TODO should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);

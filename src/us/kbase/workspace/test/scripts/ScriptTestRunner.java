@@ -51,7 +51,6 @@ public class ScriptTestRunner {
 	
 	//TODO should use common tester code from JSONRPCLayerTester
 	//TODO needs to run w/o dev container
-	//TODO needs to start up own copy of mongo like JRLT
 	
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
