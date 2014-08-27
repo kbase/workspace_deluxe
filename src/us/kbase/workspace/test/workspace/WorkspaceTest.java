@@ -839,7 +839,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 	
-	@Ignore //TODO meta restore when metadata restored
 	@Test
 	public void saveObjectsAndTestExtractedMeta() throws Exception {
 		String module = "TestMetaData";
