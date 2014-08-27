@@ -50,8 +50,7 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-//import us.kbase.workspace.kbase.Util;
-//import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /**
@@ -166,8 +165,8 @@ public class IdProcessingTest {
 			dir.mkdir();
 		
 		//TODO 1 mike restore test
-		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()), tempdir);//,
-				//new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()), tempdir,
+				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(db);
