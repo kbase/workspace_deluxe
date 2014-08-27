@@ -28,7 +28,6 @@ import junit.framework.Assert;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;

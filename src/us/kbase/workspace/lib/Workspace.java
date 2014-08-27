@@ -862,9 +862,10 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			ret.add(prov.get(ws.get(o)));
 		}
+		removeInaccessibleProvenanceCopyReferences(ret);
 		return ret;
 	}
-	
+
 	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,
@@ -881,6 +882,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			ret.add(data.get(ws.get(o)).get(null));
 		}
+		removeInaccessibleDataCopyReferences(ret);
 		return ret;
 	}
 	
@@ -916,9 +918,10 @@ public class Workspace {
 			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
 					.get(soi.getPaths()));
 		}
+		removeInaccessibleDataCopyReferences(ret);
 		return ret;
 	}
-	
+
 	public List<WorkspaceObjectData> getReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectChain> refchains)
@@ -958,7 +961,20 @@ public class Workspace {
 		for (final ObjectChain oc: refchains) {
 			ret.add(res.get(objs.get(oc)));
 		}
+		removeInaccessibleDataCopyReferences(ret);
 		return ret;
+	}
+	
+	private void removeInaccessibleDataCopyReferences(
+			final List<WorkspaceObjectData> ret) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private void removeInaccessibleProvenanceCopyReferences(
+			final List<WorkspaceObjectInformation> ret) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	public List<Set<ObjectInformation>> getReferencingObjects(

@@ -38,7 +38,6 @@ public class JsonTokenValidationSchema {
 	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
 	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
-	@SuppressWarnings("unused")
 	private JsonNode metadataWs;						// For structures: metadata-ws
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
 	private JsonTokenValidationSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
