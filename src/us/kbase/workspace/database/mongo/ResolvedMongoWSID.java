@@ -5,7 +5,7 @@ import static us.kbase.common.utils.StringUtils.checkString;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
-class ResolvedMongoWSID implements ResolvedWorkspaceID {
+public class ResolvedMongoWSID implements ResolvedWorkspaceID {
 	
 	private final long id;
 	private final String wsname;

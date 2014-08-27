@@ -5,14 +5,16 @@ import java.util.Set;
 
 import us.kbase.workspace.lib.ResolvedSaveObject;
 
-class ObjectSavePackage {
+public class ObjectSavePackage {
+	
+	ObjectSavePackage() {}
 
-	public ResolvedSaveObject wo;
-	public String name;
-	public TypeData td;
-	public Set<String> refs;
-	public List<String> provrefs;
-	public MongoProvenance mprov;
+	ResolvedSaveObject wo;
+	String name;
+	TypeData td;
+	Set<String> refs;
+	List<String> provrefs;
+	MongoProvenance mprov;
 	
 	@Override
 	public String toString() {

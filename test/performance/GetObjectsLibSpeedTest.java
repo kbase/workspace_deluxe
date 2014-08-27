@@ -45,8 +45,8 @@ public class GetObjectsLibSpeedTest {
 		XLATEOPS, PROFILE_JTS
 	};
 	
-	@SuppressWarnings("deprecation")
 	public static void main(String[] args) throws Exception {
+		@SuppressWarnings("unused")
 		String shockuser = args[0];
 		String shockpwd = args[1];
 		Op op = Op.XLATEOPS;
@@ -65,8 +65,9 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.mongo.db.types1", typeDB);
 		System.setProperty("test.mongo.host", mongohost);
 		System.setProperty("test.shock.url", shockurl);
-		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
-				1, WorkspaceTestCommon.SHOCK, shockuser, null);
+		//need to redo set up if this is used again
+//		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
+//				1, WorkspaceTestCommon.SHOCK, shockuser, null);
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, tfm, 0),

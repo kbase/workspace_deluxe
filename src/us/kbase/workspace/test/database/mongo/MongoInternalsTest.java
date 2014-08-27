@@ -5,7 +5,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.jongo.Jongo;
 import org.junit.AfterClass;
@@ -22,25 +29,38 @@ import org.junit.Test;
 
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.ObjectSavePackage;
+import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
+import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.kbase.Util;
+import us.kbase.workspace.lib.ResolvedSaveObject;
 import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
@@ -98,6 +118,82 @@ public class MongoInternalsTest {
 		if (mongo != null) {
 			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
+	}
+	
+	@Test
+	public void raceConditionRevertObjectId() throws Exception {
+		//TODO more tests like this to test internals that can't be tested otherwise
+		ws.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
+		
+		final Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, String> meta = new HashMap<String, String>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		meta.put("metastuff", "meta");
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
+				new TypeDefName("SomeModule", "AType"), 0, 1);
+		
+		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("testobj"),
+				new UObject(data), t, meta, p, false);
+		List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
+		wco.add(wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
+				new HashSet<Reference>(), new LinkedList<Reference>(),
+				new HashMap<IdReferenceType, Set<RemappedId>>()));
+		
+		Constructor<ObjectSavePackage> objConst =
+				ObjectSavePackage.class.getDeclaredConstructor();
+		objConst.setAccessible(true);
+		ObjectSavePackage pkg = objConst.newInstance();
+		Field wo = pkg.getClass().getDeclaredField("wo");
+		wo.setAccessible(true);
+		wo.set(pkg, wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
+				new HashSet<Reference>(), new LinkedList<Reference>(),
+				new HashMap<IdReferenceType, Set<RemappedId>>()));
+		Field td = pkg.getClass().getDeclaredField("td");
+		td.setAccessible(true);
+		td.set(pkg, new TypeData(new Writable() {
+			@Override
+			public void write(OutputStream os) throws IOException {
+				new ObjectMapper().writeValue(os, data);				
+			}
+			@Override
+			public void releaseResources() throws IOException {
+			}
+		}, at, data));
+		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				new WorkspaceIdentifier("ws"));
+		mwdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
+		
+		Method saveWorkspaceObject = mwdb.getClass()
+				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
+						long.class, String.class);
+		saveWorkspaceObject.setAccessible(true);
+		IDName r = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, 3L, "testobj");
+		
+		Field name = pkg.getClass().getDeclaredField("name");
+		name.setAccessible(true);
+		Field idname = r.getClass().getDeclaredField("name");
+		idname.setAccessible(true);
+		name.set(pkg, idname.get(r));
+		
+		Method saveProvenance = mwdb.getClass()
+				.getDeclaredMethod("saveProvenance", List.class);
+		saveProvenance.setAccessible(true);
+		saveProvenance.invoke(mwdb, Arrays.asList(pkg));
+		
+		Method saveObjectVersion = mwdb.getClass()
+				.getDeclaredMethod("saveObjectVersion", WorkspaceUser.class,
+						ResolvedMongoWSID.class, long.class, ObjectSavePackage.class);
+		saveObjectVersion.setAccessible(true);
+		Field idid = r.getClass().getDeclaredField("id");
+		idid.setAccessible(true);
+		ObjectInformation md = (ObjectInformation) saveObjectVersion.invoke(
+				mwdb, new WorkspaceUser("u"), rwsi, idid.get(r), pkg);
+		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 	}
 	
 	@Test
