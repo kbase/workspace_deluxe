@@ -143,23 +143,28 @@ public class SubsetAndMetadataExtractor {
 			String metadataName = entry.getKey();
 			String expression = entry.getValue().asText().trim();
 
-			// evaluate the metadata selection expression (right now we only support top-level field names, and the length(f) function)
+			// evaluate the metadata selection expression (right now we only support descending into structures, and the length(f) function)
+			boolean getLength = false;
 			if(expression.startsWith("length(") && expression.endsWith(")")) {
 				expression = expression.substring(7);
 				expression = expression.substring(0, expression.length()-1);
-				SubsetAndMetadataNode selectionNode = parent.getChild(expression);
-				if(selectionNode==null) {
-					selectionNode = new SubsetAndMetadataNode();
-					parent.addChild(expression, selectionNode);
+				getLength = true;
+			}
+			
+			String [] expTokens = expression.split("\\.");
+			SubsetAndMetadataNode currentNode = parent;
+			for(int k=0; k<expTokens.length; k++) {
+				SubsetAndMetadataNode childNode = currentNode.getChild(expTokens[k]);
+				if(childNode==null) {
+					childNode = new SubsetAndMetadataNode();
+					currentNode.addChild(expTokens[k], childNode);
 				}
-				selectionNode.addNeedLengthForMetadata(metadataName);
+				currentNode = childNode;
+			}
+			if(getLength) {
+				currentNode.addNeedLengthForMetadata(metadataName);
 			} else {
-				SubsetAndMetadataNode selectionNode = parent.getChild(expression);
-				if(selectionNode==null) {
-					selectionNode = new SubsetAndMetadataNode();
-					parent.addChild(expression, selectionNode);
-				}
-				selectionNode.addNeedValueForMetadata(metadataName);
+				currentNode.addNeedValueForMetadata(metadataName);
 			}
 		}
 	}
@@ -341,9 +346,8 @@ public class SubsetAndMetadataExtractor {
 	}
 
 	/*
-	 * This is main recursive method for tracking current token place in searchable schema tree
-	 * and making decisions whether or not we need to process this token or block of tokens or
-	 * just skip it.
+	 * This is main recursive method for tracking current token place in searchabl/metadata schema tree
+	 * and making decisions whether or not we need to process this token or block of tokens or just skip it.
 	 */
 	private static void extractFieldsWithOpenToken(
 			TokenSequenceProvider jts,
@@ -360,9 +364,43 @@ public class SubsetAndMetadataExtractor {
 		if (t == JsonToken.START_OBJECT) {
 			// we need everything at this node and below
 			if (selection.isNeedAll()) {
-				if(selection.hasChildren()) {  // if it has children, then we must need some metadata below
-					// TODO: handle this case, but not needed right now because this is not 
-					// possible because metadata is always at the top level
+				if(selection.hasChildren()) {  // if it has children, then we must need some specific metadata below and everything that is here
+					// we just go through the object and write everything....
+					writeCurrentToken(jts, t, jgen);
+					long n_elements = 0;
+					while (true) {
+						t = jts.nextToken();
+						n_elements++;
+						if (t == JsonToken.END_OBJECT) {
+							writeCurrentToken(jts, t, jgen);
+							break;
+						}
+						if (t != JsonToken.FIELD_NAME)
+							throw new TypedObjectExtractionException("Error parsing json format: " + t.asString());
+						
+						// we have to write everything, so do that...
+						writeCurrentToken(jts, t, jgen);
+						String fieldName = jts.getText();
+						
+						// read first token of value block in order to prepare state for recursive extractFieldsWithOpenToken call
+						t = jts.nextToken();
+						path.add(fieldName);
+						
+						// if child exists, then we pass that along, but if the child does not exist, then we need to
+						// create a child node so that we extract that as well (remember, we need every field here)
+						SubsetAndMetadataNode child = selection.getChild(fieldName);
+						if(child!=null) {
+							child.setNeedAll(true); // we need to tell the next recursive call that we need all fields below
+							extractFieldsWithOpenToken(jts, t, child, metadataHandler, jgen, path);
+						} else {
+							// we need to create a dummy node to just get everything below this node recursively 
+							SubsetAndMetadataNode fakeChild = new SubsetAndMetadataNode();
+							fakeChild.setNeedAll(true);
+							extractFieldsWithOpenToken(jts, t, fakeChild, metadataHandler, jgen, path);
+						}
+						// remove field from end of path branch
+						path.remove(path.size() - 1);
+					}
 				} else { // if it does not have children, then we just extract everything
 					long n_elements = writeTokensFromCurrent(jts, t, jgen);
 					addLengthMetadata(n_elements, selection, metadataHandler);
@@ -371,13 +409,10 @@ public class SubsetAndMetadataExtractor {
 
 			// we need only keys of this node
 			else if (selection.isNeedKeys()) {
-				//Set<String> selectedFields = null;
-				//if(selection.hasChildren()) { // if it has children, then we must need some metadata value below
-				//	selectedFields = new LinkedHashSet<String>();
-					// TODO: handle this case, but not needed right now because this is not 
-					// possible because metadata is always at the top level
-				//} else {
-				//	selectedFields = new LinkedHashSet<String> ();
+				// if it has children, then we must need some metadata value below
+				// BUT! we do not support extracting metadata from a mapping so this is impossible
+				//if(selection.hasChildren()) { 
+					// TODO: handle case where metadata selection is inside a mapping - this is not allowed right now 
 				//}
 				jgen.writeStartArray();  // write in output start of array instead of start of object
 				long n_elements = 0;
@@ -394,29 +429,19 @@ public class SubsetAndMetadataExtractor {
 					t = jts.nextToken();
 					n_elements++;
 
-					// it is impossible for now to have the selectedFields contain children, because
+					// it is impossible for now to have the selection contain children, because
 					// we do not allow subset below a 'keys_of' selection, and we only allow top-level metadata
 					// instead for now, we just skip the children
-					/* if (selectedFields.contains(fieldName)) {
-						// then we have to traverse down the tree, add the field to the path,
-						// and process the field recursively
-						SubsetAndMetadataNode child = selection.getChild(fieldName);
-						path.add(fieldName);
-						extractFieldsWithOpenToken(jts, t, child, metadataHandler, jgen, path);
-						path.remove(path.size() - 1);
-					} else {
-						// we can safely skip the children */
-						skipChildren(jts, t);
-					/*}*/
+					skipChildren(jts, t);
 				}
+				// we may need the number of elements in this mapping, in which case we add it
 				addLengthMetadata(n_elements, selection, metadataHandler);
-
 			}
 
 			// we have children, and these children have restrictions in subdata, so we go down the tree
 			else if (selection.hasChildren()) {
 				
-				// we will remove visited keys from selectedFields and check emptiness at object end
+				// we will remove visited keys from selectedFields, and we could check that we visited every node at the end
 				Set<String> selectedFields = new LinkedHashSet<String>(selection.getChildren().keySet());
 				boolean all = false;
 				SubsetAndMetadataNode allChild = null;
@@ -425,9 +450,11 @@ public class SubsetAndMetadataExtractor {
 					all = true;
 					selectedFields.remove("*"); // detach the subtree below the *
 					allChild = selection.getChildren().get("*");
-					if (selectedFields.size() > 0)
+					if (selectedFields.size() > 0) {
+						// NOTE! if we allow metadata extraction from a map, then this is not an error...
 						throw new TypedObjectExtractionException("WS subset path with * contains other " +
 								"fields (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
+					}
 				}
 				// process first token standing for start of object, only write if we need subset data below
 				if(selection.isNeedSubsetInChildren())
@@ -472,17 +499,12 @@ public class SubsetAndMetadataExtractor {
 					}
 				}
 				addLengthMetadata(n_elements, selection, metadataHandler); // add length of object to metadata if needed
-				/* 
-							// TODO: we temporary comment this check because fields can be optional
-							if (!selectedFields.isEmpty()) {
-								String notFound = selectedFields.iterator().next();
-								throw new TypedObjectExtractionException("Malformed selection string, cannot get " +
-										"'" + notFound + "', at: " + SubdataExtractor.getPathText(path));
-							}*/
 				
+				// note: fields can be optional, so if we did not visit a selected field, it is just left out of the subdata
+				// we do not need to check here to see if there are paths we did not visit
 			} 
 
-			// need (at most) just the length metadata field
+			// otherwise we need (at most) just the length metadata field
 			else {
 				// there are no children, and we didn't need subdata here, so the only thing possible is getting metadata
 				long n_elements = countElementsInCurrent(jts,t,jgen);
@@ -498,15 +520,17 @@ public class SubsetAndMetadataExtractor {
 				Set<String> selectedFields = new LinkedHashSet<String>(
 						selection.getChildren().keySet());
 				SubsetAndMetadataNode allChild = null;
-				// now we support only '[*]' keyword which means all elements
+				// now we support only '[*]' keyword which means all elements, and we cannot get metadata from inside a list/tuple
 				if (!selectedFields.contains("[*]"))
 					throw new TypedObjectExtractionException("WS subset path doesn't contain [*] on array " +
 							"level (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
 				selectedFields.remove("[*]");
 				allChild = selection.getChildren().get("[*]");
-				if (selectedFields.size() > 0)
+				if (selectedFields.size() > 0) {
+					// NOTE! if we allow metadata extraction from an array element, then this is not an error...
 					throw new TypedObjectExtractionException("WS subset path with [*] contains other " +
 							"fields (" + selectedFields + ") at " + SubdataExtractor.getPathText(path));
+				}
 				writeCurrentToken(jts, t, jgen);  // write start of array into output
 				long n_elements = 0;
 				for (int pos = 0; ; pos++) {
@@ -529,13 +553,13 @@ public class SubsetAndMetadataExtractor {
 					throw new TypedObjectExtractionException("WS subset path contains keys-of level for array " +
 							"value at " + SubdataExtractor.getPathText(path));
 				// need all elements
+				long n_elements = 0;
 				if(selection.isNeedAll()) { // need all elements, possibly also the length
-					long n_elements = writeTokensFromCurrent(jts, t, jgen);
-					addLengthMetadata(n_elements, selection, metadataHandler);
+					n_elements = writeTokensFromCurrent(jts, t, jgen);
 				} else { // only need the length of the object
-					long n_elements = countElementsInCurrent(jts,t,jgen);
-					addLengthMetadata(n_elements, selection, metadataHandler);
+					n_elements = countElementsInCurrent(jts,t,jgen);
 				}
+				addLengthMetadata(n_elements, selection, metadataHandler);
 			}
 		} else {	// we observe scalar value (text, integer, double, boolean, null) in real json data
 			if (selection.hasChildren())
