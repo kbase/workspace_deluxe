@@ -401,6 +401,7 @@ public class SubsetAndMetadataExtractor {
 						// remove field from end of path branch
 						path.remove(path.size() - 1);
 					}
+					addLengthMetadata(n_elements, selection, metadataHandler);
 				} else { // if it does not have children, then we just extract everything
 					long n_elements = writeTokensFromCurrent(jts, t, jgen);
 					addLengthMetadata(n_elements, selection, metadataHandler);
