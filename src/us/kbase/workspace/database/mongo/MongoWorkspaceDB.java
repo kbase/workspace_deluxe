@@ -1503,22 +1503,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static class ObjectSavePackage {
-		
-		public ResolvedSaveObject wo;
-		public String name;
-		public TypeData td;
-		public Set<String> refs;
-		public List<String> provrefs;
-		public MongoProvenance mprov;
-		
-		@Override
-		public String toString() {
-			return "ObjectSavePackage [wo=" + wo + ", name=" + name + ", td="
-					+ td + ", mprov =" + mprov +  "]";
-		}
-	}
-	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
