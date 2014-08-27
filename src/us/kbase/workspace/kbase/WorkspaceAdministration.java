@@ -31,6 +31,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -38,7 +39,6 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.lib.Workspace;
 
 public class WorkspaceAdministration {
 	

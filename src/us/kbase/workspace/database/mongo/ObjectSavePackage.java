@@ -3,7 +3,7 @@ package us.kbase.workspace.database.mongo;
 import java.util.List;
 import java.util.Set;
 
-import us.kbase.workspace.lib.ResolvedSaveObject;
+import us.kbase.workspace.database.ResolvedSaveObject;
 
 public class ObjectSavePackage {
 	

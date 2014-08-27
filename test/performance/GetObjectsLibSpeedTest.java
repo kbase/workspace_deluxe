@@ -28,12 +28,12 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
-import us.kbase.workspace.lib.Workspace;
-import us.kbase.workspace.lib.WorkspaceSaveObject;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class GetObjectsLibSpeedTest {

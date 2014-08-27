@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
 import org.junit.runner.RunWith;
@@ -47,6 +46,8 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Workspace;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -58,11 +59,8 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.Util;
-import us.kbase.workspace.lib.WorkspaceSaveObject;
-import us.kbase.workspace.lib.Workspace;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 

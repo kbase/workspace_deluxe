@@ -57,6 +57,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
@@ -83,7 +84,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.lib.ResolvedSaveObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

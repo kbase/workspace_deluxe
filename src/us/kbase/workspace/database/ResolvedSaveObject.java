@@ -1,4 +1,4 @@
-package us.kbase.workspace.lib;
+package us.kbase.workspace.database;
 
 import java.util.List;
 import java.util.Map;
@@ -7,10 +7,6 @@ import java.util.Set;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Reference;
-
 import static us.kbase.workspace.database.Util.checkSize;
 
 public class ResolvedSaveObject {

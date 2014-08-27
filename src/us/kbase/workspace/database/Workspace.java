@@ -1,4 +1,4 @@
-package us.kbase.workspace.lib;
+package us.kbase.workspace.database;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,27 +55,6 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.workspace.database.ObjectChain;
-import us.kbase.workspace.database.ObjectChainResolvedWS;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
-import us.kbase.workspace.database.PermissionSet;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Reference;
-import us.kbase.workspace.database.ReferenceParser;
-import us.kbase.workspace.database.SubObjectIdentifier;
-import us.kbase.workspace.database.TypeAndReference;
-import us.kbase.workspace.database.WorkspaceDatabase;
-import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.User;
-import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceInformation;
-import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
-import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
