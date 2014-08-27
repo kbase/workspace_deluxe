@@ -24,6 +24,8 @@ import us.kbase.common.service.Tuple11;
  *         timestamp created - the date the object was first saved to the
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
+ *         obj_ref copied - the reference of the source object if this object is
+ *                 a copy. null otherwise.
  *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
  *                 from the object.
  *         string handle_error - if an error occurs while setting ACLs on
@@ -40,6 +42,7 @@ import us.kbase.common.service.Tuple11;
     "creator",
     "created",
     "refs",
+    "copied",
     "extracted_ids",
     "handle_error",
     "handle_stacktrace"
@@ -56,6 +59,8 @@ public class ObjectProvenanceInfo {
     private java.lang.String created;
     @JsonProperty("refs")
     private List<String> refs;
+    @JsonProperty("copied")
+    private java.lang.String copied;
     @JsonProperty("extracted_ids")
     private Map<String, List<String>> extractedIds;
     @JsonProperty("handle_error")
@@ -139,6 +144,21 @@ public class ObjectProvenanceInfo {
         return this;
     }
 
+    @JsonProperty("copied")
+    public java.lang.String getCopied() {
+        return copied;
+    }
+
+    @JsonProperty("copied")
+    public void setCopied(java.lang.String copied) {
+        this.copied = copied;
+    }
+
+    public ObjectProvenanceInfo withCopied(java.lang.String copied) {
+        this.copied = copied;
+        return this;
+    }
+
     @JsonProperty("extracted_ids")
     public Map<String, List<String>> getExtractedIds() {
         return extractedIds;
@@ -196,7 +216,7 @@ public class ObjectProvenanceInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
