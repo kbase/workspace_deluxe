@@ -164,7 +164,6 @@ public class IdProcessingTest {
 		if (!dir.exists())
 			dir.mkdir();
 		
-		//TODO 1 mike restore test
 		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()), tempdir,
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
