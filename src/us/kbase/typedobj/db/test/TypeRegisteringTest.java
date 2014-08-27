@@ -73,18 +73,18 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-					"testSimple",
-					"testDescr",
-					"testBackward",
-					"testRollback",
-					"testRestrict",
-					"testMD5",
-					"testRegistration",
+//					"testSimple",
+//					"testDescr",
+//					"testBackward",
+//					"testRollback",
+//					"testRestrict",
+//					"testMD5",
+//					"testRegistration",
 					"testError",
-					"testStop",
-					"testDeps",
-					"testOwnership",
-					"testEmpty",
+//					"testStop",
+//					"testDeps",
+//					"testOwnership",
+//					"testEmpty",
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -539,6 +539,13 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (NoSuchTypeException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: Common.UnknownType-1.0"));
+		}
+		initModule("StructDuplication", adminUser);
+		try {
+			db.registerModule(loadSpec("error", "StructDuplication"), Arrays.asList("my_struct"), adminUser);
+			Assert.fail();
+		} catch (SpecParseException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Name duplication for field [val1]"));
 		}
 	}
 	
