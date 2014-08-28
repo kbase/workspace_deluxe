@@ -8,6 +8,8 @@ package us.kbase.typedobj.exceptions;
  */
 public class TypedObjectSchemaException extends TypedObjectException {
 
+	private static final long serialVersionUID = -7997106217710220872L;
+
 	public TypedObjectSchemaException(String message) {
 		super(message);
 	}
@@ -16,9 +18,5 @@ public class TypedObjectSchemaException extends TypedObjectException {
 		super(message,e);
 	}
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3322709388934700434L;
 
 }

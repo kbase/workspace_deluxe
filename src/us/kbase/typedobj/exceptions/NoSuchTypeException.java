@@ -8,6 +8,8 @@ package us.kbase.typedobj.exceptions;
  */
 public class NoSuchTypeException extends TypedObjectException {
 
+	private static final long serialVersionUID = -6774758738914836368L;
+
 	public NoSuchTypeException(String message) {
 		super(message);
 	}
@@ -15,10 +17,5 @@ public class NoSuchTypeException extends TypedObjectException {
 	public NoSuchTypeException(String message, Throwable e) {
 		super(message,e);
 	}
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3322709388934700434L;
 
 }

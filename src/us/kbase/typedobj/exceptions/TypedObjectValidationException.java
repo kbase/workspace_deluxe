@@ -8,6 +8,8 @@ package us.kbase.typedobj.exceptions;
  */
 public class TypedObjectValidationException extends TypedObjectException {
 
+	private static final long serialVersionUID = -3322709388934700434L;
+	
 	public TypedObjectValidationException(String message) {
 		super(message);
 	}
@@ -15,10 +17,5 @@ public class TypedObjectValidationException extends TypedObjectException {
 	public TypedObjectValidationException(String message, Throwable e) {
 		super(message,e);
 	}
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3322709388934700434L;
 
 }
