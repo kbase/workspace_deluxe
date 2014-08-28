@@ -47,6 +47,7 @@ public class SubsetAndMetadataExtractor {
 	 * the metadata extraction handler.  Then, after calling extract fields, you can use the metadata extraction
 	 * handler to get the metadata found.
 	 * @throws ExceededMaxMetadataSizeException 
+	 * @throws IOException 
 	 * 
 	 */
 	public static ExtractedSubsetAndMetadata extractFields(
@@ -56,7 +57,7 @@ public class SubsetAndMetadataExtractor {
 			long maxSubdataSize,
 			long maxMetadataSize,
 			MetadataExtractionHandler metadataExtractionHandler) 
-					throws IOException, TypedObjectExtractionException, ExceededMaxMetadataSizeException {
+					throws ExceededMaxMetadataSizeException, IOException {
 
 		//System.out.println(keysOfSelection);
 		//System.out.println(fieldsSelection);
@@ -82,7 +83,11 @@ public class SubsetAndMetadataExtractor {
 			} else {
 				// no subset, but we need metadata so run the extraction, but without the json tree generator
 				JsonToken t = jts.nextToken();
-				extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
+				try {
+					extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
+				} catch (TypedObjectExtractionException e) {
+					e.printStackTrace();
+				}
 				return new ExtractedSubsetAndMetadata(null,metadataExtractionHandler.getSavedMetadata());
 			}
 		}
@@ -91,7 +96,11 @@ public class SubsetAndMetadataExtractor {
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
 		jgen.setMaxDataSize(maxSubdataSize);
 		JsonToken t = jts.nextToken();
-		extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
+		try {
+			extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
+		} catch (TypedObjectExtractionException e) {
+			e.printStackTrace();
+		} 
 		jgen.close();
 		return new ExtractedSubsetAndMetadata(jgen.getTree(),metadataExtractionHandler.getSavedMetadata());
 	}

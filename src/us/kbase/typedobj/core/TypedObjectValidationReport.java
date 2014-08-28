@@ -16,6 +16,8 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
@@ -411,8 +413,12 @@ public class TypedObjectValidationReport {
 	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
 	 * deep copy of the original instance if you intend to modify it and subset data or meatdata has already
 	 * been extracted.
+	 * @throws IOException 
+	 * @throws ExceededMaxMetadataSizeException 
+	 * @throws TypedObjectExtractionException 
 	 */
-	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize, long maxMetadataSize) {
+	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize, long maxMetadataSize) 
+			throws ExceededMaxMetadataSizeException {
 		
 		// return nothing if instance does not validate
 		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
@@ -433,11 +439,10 @@ public class TypedObjectValidationReport {
 															wsMetadataExtractionHandler);
 			tsp.close();
 			return esam;
-		} catch (RuntimeException ex) {
-			throw ex;
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex);
-		} finally {
+		} catch (IOException e) {
+			// error that can happen if we cannot write to create the output subset json object! should never happen!
+			throw new RuntimeException("Something went very wrong when extracting subset- instance data or memory may have been corrupted.",e);
+		}  finally {
 			if (tsp != null)
 				try { tsp.close(); } catch (Exception ignore) {}
 		}

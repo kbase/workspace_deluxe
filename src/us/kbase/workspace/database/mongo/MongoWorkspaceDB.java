@@ -41,6 +41,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceType;
@@ -1503,7 +1504,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 			final Map<String, Object> subdata;
 			try {
-				// TODO: 2 handle new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
+				// TODO: 2 improved handling of new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
 				ExtractedSubsetAndMetadata extract = o.getRep().extractSearchableWsSubsetAndMetadata(MAX_SUBDATA_SIZE, MAX_WS_META_SIZE);
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
@@ -1515,6 +1516,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			} catch (JsonProcessingException jpe) {
 				throw new RuntimeException(
 						"Should never get a JSON exception here", jpe);
+			} catch (ExceededMaxMetadataSizeException e) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s %s size exceeds limit of %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						"metadata", MAX_WS_META_SIZE));
 			} catch (IllegalArgumentException e) {
 				if (e.getMessage().contains("" + MAX_SUBDATA_SIZE))
 					throw new IllegalArgumentException(String.format(
@@ -1522,7 +1528,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							getObjectErrorId(o.getObjectIdentifier(), objnum),
 							"subdata", MAX_SUBDATA_SIZE));
 				throw e;
-			}
+			} 
 			
 			
 			escapeSubdata(subdata);
