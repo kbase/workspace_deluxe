@@ -3,6 +3,8 @@ package us.kbase.typedobj.core;
 import java.util.Map.Entry;
 import java.util.Iterator;
 
+import us.kbase.common.utils.CountingOutputStream;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -16,6 +18,8 @@ public class MetadataExtractionHandler {
 
 	/** Place to build up the extracted metadata, maps metadata name to metadata value (string to string) **/
 	protected ObjectNode extracted;
+	protected long maxMetadataSize;
+	private CountingOutputStream cos;
 	
 	/** 
 	 * Place to store info on what should be extracted, maps a metadata name to an expression
@@ -28,10 +32,23 @@ public class MetadataExtractionHandler {
 		mapper = new ObjectMapper();
 	}
 	
-	public MetadataExtractionHandler(JsonNode selection) {
+	public MetadataExtractionHandler(JsonNode selection, long maxMetadataSize) {
+		
 		this.selection = mapper.createObjectNode();
-		extracted      = mapper.createObjectNode();
+		extracted = mapper.createObjectNode();
+		
+		cos = new CountingOutputStream();
+		this.maxMetadataSize = maxMetadataSize;
+		
 		addMetadataToExtract(selection);
+	}
+	
+	public void setMaxMetadataSize(long maxMetadataSize) {
+		this.maxMetadataSize = maxMetadataSize;
+		if(maxMetadataSize>=0) {
+			if (cos.getSize() > maxMetadataSize)
+				throw new IllegalArgumentException("Object metadata size exceeds limit of " + maxMetadataSize);
+		}
 	}
 	
 	/**
@@ -57,6 +74,10 @@ public class MetadataExtractionHandler {
 	
 	public void saveMetadata(String name, String value) {
 		extracted.put(name, value);
+		if(maxMetadataSize>=0) {
+			if (cos.getSize() > maxMetadataSize)
+				throw new IllegalArgumentException("Object metadata size exceeds limit of " + maxMetadataSize);
+		}
 	}
 	
 	public JsonNode getSavedMetadata() {

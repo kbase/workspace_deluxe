@@ -439,6 +439,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String description, final Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		// TODO: gavin merge check size code from Util and make new max size exception
 		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {

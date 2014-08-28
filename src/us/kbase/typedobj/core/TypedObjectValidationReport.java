@@ -105,7 +105,7 @@ public class TypedObjectValidationReport {
 			final IdReferenceHandlerSet<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
-		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);
+		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection,-1);
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
 		this.tokenStreamProvider = tokenStreamProvider;

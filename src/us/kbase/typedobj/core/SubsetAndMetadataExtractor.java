@@ -414,7 +414,7 @@ public class SubsetAndMetadataExtractor {
 				// if it has children, then we must need some metadata value below
 				// BUT! we do not support extracting metadata from a mapping so this is impossible
 				//if(selection.hasChildren()) { 
-					// TODO: handle case where metadata selection is inside a mapping - this is not allowed right now 
+					// handle case where metadata selection is inside a mapping - this is not allowed right now 
 				//}
 				jgen.writeStartArray();  // write in output start of array instead of start of object
 				long n_elements = 0;
