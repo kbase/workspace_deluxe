@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.utils.JsonTreeGenerator;
+import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -48,6 +49,7 @@ public class SubsetAndMetadataExtractor {
 	 * selections.  As metadata items are found during traversal for subset extraction, they are added to
 	 * the metadata extraction handler.  Then, after calling extract fields, you can use the metadata extraction
 	 * handler to get the metadata found.
+	 * @throws ExceededMaxMetadataSizeException 
 	 * 
 	 */
 	public static ExtractedSubsetAndMetadata extractFields(
@@ -57,7 +59,7 @@ public class SubsetAndMetadataExtractor {
 			long maxSubdataSize,
 			long maxMetadataSize,
 			MetadataExtractionHandler metadataExtractionHandler) 
-					throws IOException, TypedObjectExtractionException {
+					throws IOException, TypedObjectExtractionException, ExceededMaxMetadataSizeException {
 
 		//System.out.println(keysOfSelection);
 		//System.out.println(fieldsSelection);
@@ -329,7 +331,8 @@ public class SubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the length of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addLengthMetadata(long length, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addLengthMetadata(long length, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) 
+			throws ExceededMaxMetadataSizeException {
 		List<String> metadataNames = selection.getNeedLengthForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,Long.toString(length));
@@ -339,7 +342,8 @@ public class SubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the value of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addValueMetadata(String value, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addValueMetadata(String value, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) 
+			throws ExceededMaxMetadataSizeException {
 		List<String> metadataNames = selection.getNeedValueForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,value);
@@ -357,7 +361,7 @@ public class SubsetAndMetadataExtractor {
 			MetadataExtractionHandler metadataHandler,
 			JsonGenerator jgen,
 			List<String> path) 
-					throws IOException, TypedObjectExtractionException {
+					throws IOException, TypedObjectExtractionException, ExceededMaxMetadataSizeException {
 
 		JsonToken t = current;
 
