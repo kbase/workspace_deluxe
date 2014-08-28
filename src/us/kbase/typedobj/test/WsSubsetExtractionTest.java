@@ -64,7 +64,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class WsSubsetExtractionTest {
 	
-	public static final int TEST_COUNT = 14;
+	public static final int TEST_COUNT = 16;
 
 	/**
 	 * location to stash the temporary database for testing
@@ -206,8 +206,13 @@ public class WsSubsetExtractionTest {
 		JsonNode instanceRootNode = testdataJson.get("instance");
 		JsonNode expectedSubset = testdataJson.get("subset");
 		JsonNode expectedMetadata = testdataJson.get("metadata");
+		JsonNode exception = testdataJson.get("exception");
+		JsonNode maxMetadataSize = testdataJson.get("maxMetadataSize");
 		
-		// perform the initial validation, which must validate!
+		long maxMetadataSizeLong = -1;
+		if(maxMetadataSize!=null)
+			maxMetadataSizeLong = maxMetadataSize.asLong();
+		
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
 		IdReferenceHandlerSet<String> han =
 				fac.createHandlers(String.class).associateObject("foo");
@@ -222,13 +227,24 @@ public class WsSubsetExtractionTest {
 		}
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
-		
-		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,-1);
-		JsonNode actualSubset = extraction.getWsSearchableSubset();
-		JsonNode actualMetadata = extraction.getMetadata();
-		
-		compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
-		compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		try {
+			ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,maxMetadataSizeLong);
+			JsonNode actualSubset = extraction.getWsSearchableSubset();
+			JsonNode actualMetadata = extraction.getMetadata();
+			if(exception!=null) {
+				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");
+			}
+			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
+			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		} catch (Exception e) {
+			String exceptionName = e.getClass().getSimpleName();
+			if(exception==null) {
+				fail("  -("+instance.resourceName+") throws an exception '"+exceptionName+"' when getting subdata, but should not");
+			} else {
+				assertEquals("  -("+instance.resourceName+") exception thrown ("+exceptionName+") matches expected exception "+exception.asText(),
+						exceptionName, exception.asText());
+			}
+		}
 		System.out.println("       PASS");
 	}
 

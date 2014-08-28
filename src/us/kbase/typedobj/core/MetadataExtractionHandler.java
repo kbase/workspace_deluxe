@@ -55,7 +55,7 @@ public class MetadataExtractionHandler {
 		try {
 			currentByteSize = "{}".getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length;
 		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException("This is bad. There is an unexpected error when checking the byte size of metatdata",e);
 		}
 		
 		addMetadataToExtract(selection);
@@ -96,7 +96,8 @@ public class MetadataExtractionHandler {
 		try {
 			if(extracted.size()>0) { currentByteSize += ",".getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length; }
 			currentByteSize += ("\""+name+"\":\""+value+"\"").getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length;
-		} catch (Exception e) {}
+		} catch (Exception e) {
+			throw new RuntimeException("This is bad. There is an unexpected error when checking the byte size of metatdata",e);}
 		if(maxMetadataSize>=0) {
 			if (currentByteSize > maxMetadataSize) {
 				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+"b) after adding metadata "

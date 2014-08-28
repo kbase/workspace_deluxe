@@ -70,8 +70,10 @@ public class SubsetAndMetadataExtractor {
 			prepareWsSubsetTree(keysOfSelection, true, root);
 		if (fieldsSelection != null && fieldsSelection.size() > 0)
 			prepareWsSubsetTree(fieldsSelection, false, root);
-		if (metadataExtractionHandler != null)
+		if (metadataExtractionHandler != null) {
+			metadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
 			prepareMetadataSelectionTree(metadataExtractionHandler, root);
+		}
 
 		// if there is nothing to extract as subdata, then we create an empty node because the
 		// extractFieldsWithOpenToken method will not add anything to the stream unless something
@@ -86,7 +88,7 @@ public class SubsetAndMetadataExtractor {
 				try {
 					extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
 				} catch (TypedObjectExtractionException e) {
-					e.printStackTrace();
+					throw new RuntimeException("This is bad. There is an unexpected internal error when extracting object metadata",e);
 				}
 				return new ExtractedSubsetAndMetadata(null,metadataExtractionHandler.getSavedMetadata());
 			}
@@ -99,7 +101,7 @@ public class SubsetAndMetadataExtractor {
 		try {
 			extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
 		} catch (TypedObjectExtractionException e) {
-			e.printStackTrace();
+			throw new RuntimeException("This is bad. There is an unexpected internal error when extracting object subset or metadata",e);
 		} 
 		jgen.close();
 		return new ExtractedSubsetAndMetadata(jgen.getTree(),metadataExtractionHandler.getSavedMetadata());
