@@ -55,6 +55,7 @@ public class SubsetAndMetadataExtractor {
 			ObjectNode keysOfSelection,
 			ObjectNode fieldsSelection,
 			long maxSubdataSize,
+			long maxMetadataSize,
 			MetadataExtractionHandler metadataExtractionHandler) 
 					throws IOException, TypedObjectExtractionException {
 

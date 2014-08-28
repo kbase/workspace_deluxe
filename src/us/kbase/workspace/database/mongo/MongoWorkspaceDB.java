@@ -1502,7 +1502,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 			final Map<String, Object> subdata;
 			try {
-				ExtractedSubsetAndMetadata extract = o.getRep().extractSearchableWsSubsetAndMetadata(MAX_SUBDATA_SIZE);
+				ExtractedSubsetAndMetadata extract = o.getRep().extractSearchableWsSubsetAndMetadata(MAX_SUBDATA_SIZE, MAX_WS_META_SIZE);
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)
 						MAPPER.treeToValue(

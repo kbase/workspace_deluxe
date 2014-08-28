@@ -405,21 +405,14 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * If a searchable ws_subset was defined in the Json Schema, then you can use this method
+	 * If a searchable ws_subset or metadata ws was defined in the Json Schema, then you can use this method
 	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
 	 * so if you extract a subset, then modify the original instance that was validated, it can
 	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
-	 * deep copy of the original instance if you intend to modify it and subset data has already
+	 * deep copy of the original instance if you intend to modify it and subset data or meatdata has already
 	 * been extracted.
-	 * @deprecated
 	 */
-	public JsonNode extractSearchableWsSubset(long maxSubsetSize) {
-		ExtractedSubsetAndMetadata extraction = extractSearchableWsSubsetAndMetadata(maxSubsetSize);
-		return extraction.getWsSearchableSubset();
-	}
-
-	
-	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize) {
+	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize, long maxMetadataSize) {
 		
 		// return nothing if instance does not validate
 		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
@@ -436,7 +429,7 @@ public class TypedObjectValidationReport {
 			tsp = createTokenSequenceForWsSubset();
 			ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor.extractFields(
 															tsp, 
-															keys_of, fields, maxSubsetSize,
+															keys_of, fields, maxSubsetSize, maxMetadataSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
 			return esam;

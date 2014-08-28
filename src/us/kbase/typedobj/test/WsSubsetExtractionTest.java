@@ -160,7 +160,7 @@ public class WsSubsetExtractionTest {
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
 		List<String> kb_types =  Arrays.asList(
 				"NoExtractionData","SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData","KeysTest",
-				"MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
+				"MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4", "MetaDataT5", "MetaDataT6");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
 		db.registerModule(kbSpec ,kb_types, username);
@@ -223,7 +223,7 @@ public class WsSubsetExtractionTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		
-		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1);
+		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,-1);
 		JsonNode actualSubset = extraction.getWsSearchableSubset();
 		JsonNode actualMetadata = extraction.getMetadata();
 		
