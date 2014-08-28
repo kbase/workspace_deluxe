@@ -157,6 +157,14 @@ module KB {
 	typedef structure {
 		MetaDataT5 t5;
 	} MetaDataT6;
+
+	/*
+	@searchable ws_subset t5.otherthing
+	@metadata ws t5.t3.s AS my string
+	*/
+	typedef structure {
+		MetaDataT5 t5;
+	} MetaDataT7;
 	
 };
 

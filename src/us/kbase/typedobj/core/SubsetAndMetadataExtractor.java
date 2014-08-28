@@ -74,7 +74,8 @@ public class SubsetAndMetadataExtractor {
 			metadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
 			prepareMetadataSelectionTree(metadataExtractionHandler, root);
 		}
-
+		//root.printTree("  ");
+		
 		// if there is nothing to extract as subdata, then we create an empty node because the
 		// extractFieldsWithOpenToken method will not add anything to the stream unless something
 		// needs to be extracted as subdata
@@ -372,7 +373,6 @@ public class SubsetAndMetadataExtractor {
 					throws IOException, TypedObjectExtractionException, ExceededMaxMetadataSizeException {
 
 		JsonToken t = current;
-
 		// We observe the opening of a mapping/object in the JSON data
 		if (t == JsonToken.START_OBJECT) {
 			// we need everything at this node and below
@@ -471,8 +471,9 @@ public class SubsetAndMetadataExtractor {
 					}
 				}
 				// process first token standing for start of object, only write if we need subset data below
-				if(selection.isNeedSubsetInChildren())
+				if(selection.isNeedSubsetInChildren()) {
 					writeCurrentToken(jts, t, jgen);
+				}
 				long n_elements = 0;
 				while (true) {
 					t = jts.nextToken();
@@ -488,11 +489,17 @@ public class SubsetAndMetadataExtractor {
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
 						SubsetAndMetadataNode child = selection.getChild(fieldName);
-						// if we need all fields or the field is in list of necessary fields we process it and the value following after that
-						// We have to check if we need to write out this node!!!  only works because metadata can only
-						// be defined on fields at the top level!  
-						if(selection.isNeedSubsetInChildren()) {
-							writeCurrentToken(jts, t, jgen);
+						// tricky logic here: if we need all, then we are in a mapping and we need to write this field name
+						// if we are not all, then the child must be defined (or else we get some error). Then we can
+						// see if we need to write out anything related the child, such as the keys, everything, or something
+						// below.  If we do, then we write the token, if we do not, then all we need from this child is
+						// metadata, which means we do not have to write anything to the subset for this node but we must
+						// still recurse down...
+						if(all) { writeCurrentToken(jts, t, jgen); }
+						else {
+							if(child.isNeedSubsetInChildren() || child.isNeedAll() || child.isNeedKeys()) {
+								writeCurrentToken(jts, t, jgen);
+							}
 						}
 						// read first token of value block in order to prepare state for recursive 
 						// extractFieldsWithOpenToken call
