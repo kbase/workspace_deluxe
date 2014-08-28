@@ -48,9 +48,7 @@ public class JsonTokenValidationSchema {
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 	
-	@SuppressWarnings("unused")
 	private NumberRange numberRange;					// For number: minimum, maximum, exclusiveMinimum, exclusiveMaximum
-	@SuppressWarnings("unused")
 	private IntRange intRange;							// For integer: minimum, maximum, exclusiveMinimum, exclusiveMaximum
 
 	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";

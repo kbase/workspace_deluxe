@@ -1,17 +1,12 @@
 package us.kbase.typedobj.core;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Map.Entry;
 import java.util.Iterator;
 
-import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 
 import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
