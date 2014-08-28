@@ -1503,6 +1503,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 			final Map<String, Object> subdata;
 			try {
+				// TODO: 2 handle new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
 				ExtractedSubsetAndMetadata extract = o.getRep().extractSearchableWsSubsetAndMetadata(MAX_SUBDATA_SIZE, MAX_WS_META_SIZE);
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> subdata2 = (Map<String, Object>)

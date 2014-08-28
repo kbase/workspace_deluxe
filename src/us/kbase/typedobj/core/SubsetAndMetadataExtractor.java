@@ -30,9 +30,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class SubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
-	//TODO 1 mike meta data should descend into structures
-	//TODO 1 mike meta fail if metadata size > max metadata allowed
-
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
 	 * 
