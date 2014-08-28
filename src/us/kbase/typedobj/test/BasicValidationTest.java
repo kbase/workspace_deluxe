@@ -68,8 +68,8 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class BasicValidationTest {
 	
-	private static final int VALID_TEST_COUNT = 14;
-	private static final int INVALID_TEST_COUNT = 12;
+	private static final int VALID_TEST_COUNT = 16;
+	private static final int INVALID_TEST_COUNT = 29;
 
 	private final static Path TEST_DB_LOCATION =
 			Paths.get(WorkspaceTestCommon.getTempDir())

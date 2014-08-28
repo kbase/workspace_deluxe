@@ -392,10 +392,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}
 			} else {
-				//TODO range reinstate range checking
-//				if (intRange != null) {
-//					intRange.checkValue(jp, lst, path);
-//				}
+				//range check
+				if (intRange != null) {
+					intRange.checkValue(jp, lst, path);
+				}
 //				if (idReference != null) {
 //					// we can add this int value as requiring id-reference relabeling in case 
 //					// there was defined idReference property in json-schema node describing this 
@@ -418,10 +418,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				//TODO range reinstate range checking
-//				if (numberRange != null) {
-//					numberRange.checkValue(jp, lst, path);
-//				}
+				//range check
+				if (numberRange != null) {
+					numberRange.checkValue(jp, lst, path);
+				}
 			}
 		} else {
 			lst.addError("Unsupported node type: " + type + " at " +
