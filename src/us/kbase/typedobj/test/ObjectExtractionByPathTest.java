@@ -89,6 +89,8 @@ public class ObjectExtractionByPathTest {
 					"Incorrect test count, got: %s, expected %s",
 					instanceResources.size(), TEST_COUNT);
 			System.out.println(err);
+			//for(TestInstanceInfo i : instanceResources )
+			//	System.out.println(i.resourceName);
 			throw new TestException(err);
 		}
 		

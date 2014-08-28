@@ -64,7 +64,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class WsSubsetExtractionTest {
 	
-	public static final int TEST_COUNT = 16;
+	public static final int TEST_COUNT = 18;
 
 	/**
 	 * location to stash the temporary database for testing
