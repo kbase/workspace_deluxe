@@ -15,7 +15,7 @@ public class WorkspaceObjectData extends WorkspaceObjectInformation {
 			final ObjectInformation info,
 			final Provenance prov,
 			final List<String> references,
-			final String copied,
+			final Reference copied,
 			final Map<String, List<String>> extractedIds) {
 		super(info, prov, references, copied, extractedIds);
 		if (data == null) {

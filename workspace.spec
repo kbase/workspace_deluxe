@@ -750,7 +750,8 @@ module Workspace {
 			workspace.
 		list<obj_ref> - the references contained within the object.
 		obj_ref copied - the reference of the source object if this object is
-			a copy. null otherwise.
+			a copy and the copy source exists and is accessible.
+			null otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on
@@ -786,7 +787,8 @@ module Workspace {
 			workspace.
 		list<obj_ref> - the references contained within the object.
 		obj_ref copied - the reference of the source object if this object is
-			a copy. null otherwise.
+			a copy and the copy source exists and is accessible.
+			null otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on

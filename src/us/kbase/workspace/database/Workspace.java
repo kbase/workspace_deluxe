@@ -6,16 +6,16 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
@@ -51,8 +51,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
-import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -64,6 +64,8 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+
+import com.fasterxml.jackson.core.JsonParseException;
 
 public class Workspace {
 	
@@ -841,7 +843,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			ret.add(prov.get(ws.get(o)));
 		}
-		removeInaccessibleProvenanceCopyReferences(ret);
+		removeInaccessibleProvenanceCopyReferences(user, ret);
 		return ret;
 	}
 
@@ -861,7 +863,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			ret.add(data.get(ws.get(o)).get(null));
 		}
-		removeInaccessibleDataCopyReferences(ret);
+		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 	
@@ -897,7 +899,7 @@ public class Workspace {
 			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
 					.get(soi.getPaths()));
 		}
-		removeInaccessibleDataCopyReferences(ret);
+		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 
@@ -940,20 +942,94 @@ public class Workspace {
 		for (final ObjectChain oc: refchains) {
 			ret.add(res.get(objs.get(oc)));
 		}
-		removeInaccessibleDataCopyReferences(ret);
+		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 	
+	//TODO 1 test next 2 methods and MWDB methods
 	private void removeInaccessibleDataCopyReferences(
-			final List<WorkspaceObjectData> ret) {
-		// TODO Auto-generated method stub
+			final WorkspaceUser user,
+			final List<WorkspaceObjectData> data)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		
+		final List<WorkspaceObjectInformation> newdata =
+				new LinkedList<WorkspaceObjectInformation>();
+		for (final WorkspaceObjectData d: data) {
+			newdata.add((WorkspaceObjectInformation) d);
+		}
+		removeInaccessibleProvenanceCopyReferences(user, newdata);
 	}
 	
+	//TODO 1 test copied ref against deleted (incl ws) and unreadable refs 
 	private void removeInaccessibleProvenanceCopyReferences(
-			final List<WorkspaceObjectInformation> ret) {
-		// TODO Auto-generated method stub
+			final WorkspaceUser user,
+			final List<WorkspaceObjectInformation> info)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		
+		final Set<WorkspaceIdentifier> wsis =
+				new HashSet<WorkspaceIdentifier>();
+		for (final WorkspaceObjectInformation d: info) {
+			if (d.getCopyReference() != null) {
+				wsis.add(new WorkspaceIdentifier(
+						d.getCopyReference().getWorkspaceID()));
+			}
+		}
+		if (wsis.isEmpty()) {
+			return;
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
+		try {
+			rwsis = db.resolveWorkspaces(wsis, true, true);
+		} catch (NoSuchWorkspaceException nswe) {
+			throw new RuntimeException(
+					"Threw exception when explicitly told not to", nswe);
+		}
+		Iterator<Entry<WorkspaceIdentifier, ResolvedWorkspaceID>> i =
+				rwsis.entrySet().iterator();
+		while (i.hasNext()) {
+			if (i.next().getValue().isDeleted()) {
+				i.remove();
+			}
+		}
+		
+		final PermissionSet perms = db.getPermissions(user,
+						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		i = rwsis.entrySet().iterator();
+		while (i.hasNext()) {
+			if (!perms.hasPermission(i.next().getValue(), Permission.READ)) {
+				i.remove();
+			}
+		}
+		
+		final Map<WorkspaceObjectInformation, ObjectIDResolvedWS> rois =
+				new HashMap<WorkspaceObjectInformation, ObjectIDResolvedWS>();
+		for (final WorkspaceObjectInformation d: info) {
+			final Reference cref = d.getCopyReference();
+			if (cref == null) {
+				continue;
+			}
+			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+					cref.getWorkspaceID());
+			if (!rwsis.containsKey(wsi)) {
+				d.setCopySourceInaccessible();
+			} else {
+				rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
+						cref.getObjectID(), cref.getVersion()));
+			}
+		}
+		
+		final Map<ObjectIDResolvedWS, Boolean> objexists =
+				db.getObjectExists(
+						new HashSet<ObjectIDResolvedWS>(rois.values())); 
+		
+		for (final Entry<WorkspaceObjectInformation, ObjectIDResolvedWS> e:
+				rois.entrySet()) {
+			if (!objexists.get(e.getValue())) {
+				e.getKey().setCopySourceInaccessible();
+			}
+		}
 	}
 	
 	public List<Set<ObjectInformation>> getReferencingObjects(

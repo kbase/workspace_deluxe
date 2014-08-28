@@ -187,6 +187,10 @@ public interface WorkspaceDatabase {
 			boolean showAllVers, boolean includeMetaData, int skip, int limit)
 			throws WorkspaceCommunicationException;
 
+	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
+			Set<ObjectIDResolvedWS> objectIDs)
+			throws WorkspaceCommunicationException;
+	
 	public List<ObjectInformation> getObjectHistory(
 			ObjectIDResolvedWS objectIDResolvedWS)
 			throws NoSuchObjectException, WorkspaceCommunicationException;

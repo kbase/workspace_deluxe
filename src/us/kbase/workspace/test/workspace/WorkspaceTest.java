@@ -55,6 +55,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
@@ -2894,9 +2895,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
 		WorkspaceObjectData swod = ws.getObjectsSubSet(user1, objIDToSubObjID(Arrays.asList(oihide))).get(0);
 		WorkspaceObjectInformation woi = ws.getObjectProvenance(user1, Arrays.asList(oihide)).get(0);
-		assertThat("copy ref for obj is null", wod.getCopyReference(), is((String) null));
-		assertThat("copy ref for sub obj is null", swod.getCopyReference(), is((String) null));
-		assertThat("copy ref for prov is null", woi.getCopyReference(), is((String) null));
+		assertThat("copy ref for obj is null", wod.getCopyReference(), is((Reference) null));
+		assertThat("copy ref for sub obj is null", swod.getCopyReference(), is((Reference) null));
+		assertThat("copy ref for prov is null", woi.getCopyReference(), is((Reference) null));
 		
 		//copy entire stack of hidden objects
 		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();

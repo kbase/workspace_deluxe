@@ -2230,7 +2230,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withIncluded(Arrays.asList("/map/id1", "/map/id3/id/id/id/12")))).get(0);
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
-			System.err.println(se.getLocalizedMessage());
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is("Invalid selection: the path given specifies fields or elements that do not exist "
 							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));

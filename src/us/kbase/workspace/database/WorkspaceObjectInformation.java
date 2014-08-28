@@ -9,14 +9,15 @@ public class WorkspaceObjectInformation {
 	private final ObjectInformation info;
 	private final Provenance prov;
 	private final List<String> references;
-	private final String copied;
+	private Reference copied;
+	private boolean isCopySourceInaccessible = false;
 	private final Map<String, List<String>> extIDs;
 
 	public WorkspaceObjectInformation(
 			final ObjectInformation info,
 			final Provenance prov,
 			final List<String> references,
-			final String copied,
+			final Reference copied,
 			final Map<String, List<String>> extIDs) {
 		if (info == null || prov == null || references == null) {
 			throw new IllegalArgumentException(
@@ -42,13 +43,22 @@ public class WorkspaceObjectInformation {
 		return references;
 	}
 	
-	public String getCopyReference() {
+	public Reference getCopyReference() {
 		return copied;
 	}
 	
 	public Map<String, List<String>> getExtractedIds() {
 		return extIDs;
 		//could make this immutable I suppose
+	}
+	
+	void setCopySourceInaccessible() {
+		copied = null;
+		isCopySourceInaccessible = true;
+	}
+	
+	public boolean isCopySourceInaccessible() {
+		return isCopySourceInaccessible;
 	}
 
 	@Override

@@ -360,7 +360,8 @@ public class ArgUtils {
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference())
+					.withCopied(o.getCopyReference() == null ? null :
+						o.getCopyReference().getId())
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
@@ -387,7 +388,8 @@ public class ArgUtils {
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference())
+					.withCopied(o.getCopyReference() == null ? null :
+						o.getCopyReference().getId())
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));

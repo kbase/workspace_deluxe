@@ -2185,8 +2185,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final String copied =
+			final String copyref =
 					(String) vers.get(roi).get(Fields.VER_COPIED);
+			final Reference copied = copyref == null ? null :
+					new MongoReference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(
@@ -2274,8 +2276,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
-			final String copied =
+			final String copyref =
 					(String) vers.get(roi).get(Fields.VER_COPIED);
+			final Reference copied = copyref == null ? null :
+					new MongoReference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(
@@ -2362,7 +2366,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectIDResolvedWS o,
 			final MongoProvenance prov,
 			final List<String> refs,
-			final String copied,
+			final Reference copied,
 			final Map<String, List<String>> extIDs,
 			final MongoObjectInfo info,
 			final ObjectPaths op, final ByteArrayFileCacheManager bafcMan)
@@ -3105,19 +3109,64 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		m.put(LATEST_VERSION, latestVersion);
 	}
 	
-	private void verifyVersions(final Set<ResolvedMongoObjectID> objs)
+	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
+			final Set<ResolvedMongoObjectID> objs)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		return verifyVersions(objs, true);
+	}
+	
+	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
+			final Set<ResolvedMongoObjectID> objs,
+			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers =
 				query.queryVersions(objs, new HashSet<String>()); //don't actually need the data
+		final Map<ResolvedMongoObjectID, Boolean> ret =
+				new HashMap<ResolvedMongoObjectID, Boolean>();
 		for (final ResolvedMongoObjectID o: objs) {
 			if (!vers.containsKey(o)) {
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", o.getId(), o.getName(), 
-						o.getVersion(), 
-						o.getWorkspaceIdentifier().getID()));
+				if (exceptIfMissing) {
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s " +
+							"exists in workspace %s", o.getId(), o.getName(),
+							o.getVersion(), 
+							o.getWorkspaceIdentifier().getID()));
+				}
+				ret.put(o, false);
+			} else {
+				ret.put(o, true);
 			}
 		}
+		return ret;
+	}
+	
+
+	@Override
+	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
+			final Set<ObjectIDResolvedWS> objectIDs)
+			throws WorkspaceCommunicationException {
+		final Map<ResolvedMongoObjectID, Boolean> exists;
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> objs;
+		try {
+			objs = resolveObjectIDs(objectIDs, false, false);
+			exists = verifyVersions(new HashSet<ResolvedMongoObjectID>(
+					objs.values()), false);
+		} catch (NoSuchObjectException e) {
+			throw new RuntimeException(
+					"Explicitly told not to throw exception but did anyway",
+					e);
+		}
+		Map<ObjectIDResolvedWS, Boolean> ret =
+				new HashMap<ObjectIDResolvedWS, Boolean>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			if (!objs.containsKey(o)) {
+				ret.put(o, false);
+			} else {
+				ret.put(o, exists.get(objs.get(o)));
+			}
+			
+		}
+		return ret;
 	}
 
 	@Override
