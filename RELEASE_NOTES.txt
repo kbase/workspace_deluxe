@@ -33,9 +33,22 @@ NEW FEATURES:
   IDs duplicated in the same object do not count towards this limit.
 - Any IDs extracted from an object are returned in get_objects,
   get_referenced_objects, get_object_subset, and get_object_provenance.
+- New command line scripts added: ws-diff to compare (client side) two
+  workspace objects and ws-typespec-download to automatically download
+  registered typespecs and automatically resolve dependencies.
+- Support added for the '@metadata ws' annotation to automatically extract
+  ws metadata from the object data.  String/float/int fields in objects
+  or subobjects can be selected in addition to the length of lists and
+  mappings.
+- Support for @range annotation to set limits (inclusive or exclusive)
+  on int and float values.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
-- N/A
+- Updated timestamp format in ws-list and ws-listobj to display readable
+  local time by default instead of the ISO timestamp.
+- get_object_subset no longer generates an error if a selected field
+  or mapping key is not found, which provides better support for optional
+  fields.  Errors are still generated if an array element does not exist.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
@@ -45,8 +58,6 @@ KNOWN BUGS:
   returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
-- Automatically populated metadata
-- Range annotation support to set limits on float/int values
 - Garbage collection
 - ACLs based on KBase groups
 - KBase Search API
