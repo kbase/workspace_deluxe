@@ -25,7 +25,11 @@ import us.kbase.common.service.Tuple11;
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
  *         obj_ref copied - the reference of the source object if this object is
- *                 a copy. null otherwise.
+ *                 a copy and the copy source exists and is accessible.
+ *                 null otherwise.
+ *         boolean copy_source_inaccessible - true if the object was copied from
+ *                 another object, but that object is no longer accessible to the
+ *                 user. False otherwise.
  *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
  *                 from the object.
  *         string handle_error - if an error occurs while setting ACLs on
@@ -43,6 +47,7 @@ import us.kbase.common.service.Tuple11;
     "created",
     "refs",
     "copied",
+    "copy_source_inaccessible",
     "extracted_ids",
     "handle_error",
     "handle_stacktrace"
@@ -61,6 +66,8 @@ public class ObjectProvenanceInfo {
     private List<String> refs;
     @JsonProperty("copied")
     private java.lang.String copied;
+    @JsonProperty("copy_source_inaccessible")
+    private java.lang.Long copySourceInaccessible;
     @JsonProperty("extracted_ids")
     private Map<String, List<String>> extractedIds;
     @JsonProperty("handle_error")
@@ -159,6 +166,21 @@ public class ObjectProvenanceInfo {
         return this;
     }
 
+    @JsonProperty("copy_source_inaccessible")
+    public java.lang.Long getCopySourceInaccessible() {
+        return copySourceInaccessible;
+    }
+
+    @JsonProperty("copy_source_inaccessible")
+    public void setCopySourceInaccessible(java.lang.Long copySourceInaccessible) {
+        this.copySourceInaccessible = copySourceInaccessible;
+    }
+
+    public ObjectProvenanceInfo withCopySourceInaccessible(java.lang.Long copySourceInaccessible) {
+        this.copySourceInaccessible = copySourceInaccessible;
+        return this;
+    }
+
     @JsonProperty("extracted_ids")
     public Map<String, List<String>> getExtractedIds() {
         return extractedIds;
@@ -216,7 +238,7 @@ public class ObjectProvenanceInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

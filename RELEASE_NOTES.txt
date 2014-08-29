@@ -23,8 +23,8 @@ VERSION: 0.3.0 (Released TBD)
 --------------------------------------
 NEW FEATURES:
 - The major change in this release is a major refactoring of the ID handling
-  system. ID handling has been generalized to allow for registering custom
-  ID handlers per ID type (e.g. the @id [ID_type] annotation).
+  system. ID handling has been generalized to allow for custom ID handlers per
+  ID type (e.g. the @id [ID_type] annotation).
 - The workspace now supports the @id handle annotation, which allows for
   embedding HandleService handle IDs in workspace objects. When the object
   is retrieved from the workspace, the user retrieving the object is given
@@ -33,6 +33,8 @@ NEW FEATURES:
   IDs duplicated in the same object do not count towards this limit.
 - Any IDs extracted from an object are returned in get_objects,
   get_referenced_objects, get_object_subset, and get_object_provenance.
+- The source of a copied object, if visible to the user, is now exposed in the
+  various get_objects* methods.
 - New command line scripts added: ws-diff to compare (client side) two
   workspace objects and ws-typespec-download to automatically download
   registered typespecs and automatically resolve dependencies.

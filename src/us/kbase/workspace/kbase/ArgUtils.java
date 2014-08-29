@@ -362,6 +362,8 @@ public class ArgUtils {
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
+					.withCopySourceInaccessible(
+							o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
@@ -390,6 +392,8 @@ public class ArgUtils {
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
+					.withCopySourceInaccessible(
+						o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));

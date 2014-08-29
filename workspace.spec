@@ -752,6 +752,9 @@ module Workspace {
 		obj_ref copied - the reference of the source object if this object is
 			a copy and the copy source exists and is accessible.
 			null otherwise.
+		boolean copy_source_inaccessible - true if the object was copied from
+			another object, but that object is no longer accessible to the
+			user. False otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on
@@ -765,6 +768,7 @@ module Workspace {
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;
+		boolean copy_source_inaccessible;
 		mapping<id_type, list<extracted_id>> extracted_ids;
 		string handle_error;
 		string handle_stacktrace;
@@ -789,6 +793,9 @@ module Workspace {
 		obj_ref copied - the reference of the source object if this object is
 			a copy and the copy source exists and is accessible.
 			null otherwise.
+		boolean copy_source_inaccessible - true if the object was copied from
+			another object, but that object is no longer accessible to the
+			user. False otherwise.
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on
@@ -804,6 +811,7 @@ module Workspace {
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;
+		boolean copy_source_inaccessible;
 		mapping<id_type, list<extracted_id>> extracted_ids;
 		string handle_error;
 		string handle_stacktrace;

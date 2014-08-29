@@ -791,6 +791,7 @@ public class JSONRPCLayerTester {
 		assertThat("prov same", prov.get(1).getProvenance(), is(prov.get(0).getProvenance()));
 		assertThat("refs same", prov.get(1).getRefs(), is(prov.get(0).getRefs()));
 		assertThat("copy ref correct", prov.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", prov.get(1).getCopySourceInaccessible(), is(0L));
 		
 		List<ObjectData> objs = CLIENT1.getObjects(loi);
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
@@ -801,6 +802,7 @@ public class JSONRPCLayerTester {
 		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
 		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
 		assertThat("copy ref correct", objs.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", objs.get(1).getCopySourceInaccessible(), is(0L));
 		
 		objs = CLIENT1.getObjectSubset(objIDToSubObjID(loi));
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
@@ -811,6 +813,7 @@ public class JSONRPCLayerTester {
 		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
 		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
 		assertThat("copy ref correct", objs.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", objs.get(1).getCopySourceInaccessible(), is(0L));
 	}
 
 	protected void compareObjectInfo(

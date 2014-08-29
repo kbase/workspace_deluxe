@@ -1835,6 +1835,7 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -1868,6 +1869,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -1899,6 +1901,7 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -1932,6 +1935,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2027,6 +2031,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2060,6 +2065,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2092,6 +2098,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2125,6 +2132,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2222,6 +2230,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2255,6 +2264,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2289,6 +2299,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2322,6 +2333,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2820,6 +2832,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2853,6 +2866,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2886,6 +2900,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
+	copy_source_inaccessible has a value which is a Workspace.boolean
 	extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 	handle_error has a value which is a string
 	handle_stacktrace has a value which is a string
@@ -2919,6 +2934,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	description has a value which is a string
+boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -8748,7 +8764,11 @@ The provenance and supplemental info for an object.
                 workspace.
         list<obj_ref> - the references contained within the object.
         obj_ref copied - the reference of the source object if this object is
-                a copy. null otherwise.
+                a copy and the copy source exists and is accessible.
+                null otherwise.
+        boolean copy_source_inaccessible - true if the object was copied from
+                another object, but that object is no longer accessible to the
+                user. False otherwise.
         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
                 from the object.
         string handle_error - if an error occurs while setting ACLs on
@@ -8768,6 +8788,7 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
+copy_source_inaccessible has a value which is a Workspace.boolean
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 handle_error has a value which is a string
 handle_stacktrace has a value which is a string
@@ -8785,6 +8806,7 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
+copy_source_inaccessible has a value which is a Workspace.boolean
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 handle_error has a value which is a string
 handle_stacktrace has a value which is a string
@@ -8815,7 +8837,11 @@ The data and supplemental info for an object.
                 workspace.
         list<obj_ref> - the references contained within the object.
         obj_ref copied - the reference of the source object if this object is
-                a copy. null otherwise.
+                a copy and the copy source exists and is accessible.
+                null otherwise.
+        boolean copy_source_inaccessible - true if the object was copied from
+                another object, but that object is no longer accessible to the
+                user. False otherwise.
         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
                 from the object.
         string handle_error - if an error occurs while setting ACLs on
@@ -8836,6 +8862,7 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
+copy_source_inaccessible has a value which is a Workspace.boolean
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 handle_error has a value which is a string
 handle_stacktrace has a value which is a string
@@ -8854,6 +8881,7 @@ creator has a value which is a Workspace.username
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
+copy_source_inaccessible has a value which is a Workspace.boolean
 extracted_ids has a value which is a reference to a hash where the key is a Workspace.id_type and the value is a reference to a list where each element is a Workspace.extracted_id
 handle_error has a value which is a string
 handle_stacktrace has a value which is a string

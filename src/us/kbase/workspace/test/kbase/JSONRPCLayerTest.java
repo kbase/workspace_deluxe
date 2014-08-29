@@ -1468,6 +1468,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void copyRevert() throws Exception {
 		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("copyrev")).getE1();
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("copyrev")
+				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1484,12 +1486,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
 				.withName("myname");
-		ObjectData obj = CLIENT1.getObjects(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is null", obj.getCopied(), is((String) null));
-		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
-		assertThat("copy ref is null", obj.getCopied(), is((String) null));
-		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is null", prov.getCopied(), is((String) null));
+		checkObjectCopy(CLIENT1, nocopy, null, 0L);
 		
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
 				CLIENT1.copyObject(new CopyObjectParams().withFrom(new ObjectIdentity().withRef("copyrev/myname"))
@@ -1500,6 +1497,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfoAndData(objs.get(0), copystack.get(0), "copyrev", wsid, "myname2", 2L, 1);
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "copyrev", wsid, "myname2", 2L, 2);
 		
+		//check copy visibility
+		ObjectIdentity c = new ObjectIdentity().withRef("copyrev/myname2");
+		String ref = objs.get(1).getE7() + "/" + objs.get(1).getE1() + "/" + objs.get(1).getE5();
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
+		checkObjectCopy(CLIENT2, c, null, 1L); 
+		CLIENT1.undeleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
+		checkObjectCopy(CLIENT2, c, ref, 0L); 
+		
+		//test revert
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> rev =
 				CLIENT1.revertObject(new ObjectIdentity().withWorkspace("copyrev").withObjid(2L)
 				.withVer(1L));
@@ -1521,6 +1527,20 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 	
+	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
+			String ref, long copyInvisible) throws Exception {
+		ObjectData obj = cli.getObjects(Arrays.asList(nocopy)).get(0);
+		assertThat("copy ref is correct", obj.getCopied(), is(ref));
+		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
+		obj = cli.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
+		assertThat("copy ref is correct", obj.getCopied(), is(ref));
+		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
+		ObjectProvenanceInfo prov = cli.getObjectProvenance(Arrays.asList(nocopy)).get(0);
+		assertThat("copy ref is correct", prov.getCopied(), is(ref));
+		assertThat("copy vis is correct", prov.getCopySourceInaccessible(), is(copyInvisible));
+		
+	}
+
 	@Test
 	public void cloneWorkspace() throws Exception {
 		String source = "clonesource";
