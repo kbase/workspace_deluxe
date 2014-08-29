@@ -3149,6 +3149,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> objs;
 		try {
 			objs = resolveObjectIDs(objectIDs, false, false);
+			final Iterator<Entry<ObjectIDResolvedWS, ResolvedMongoObjectID>> i =
+					objs.entrySet().iterator();
+			while (i.hasNext()) {
+				if (i.next().getValue().isDeleted()) {
+					i.remove();
+				}
+			}
 			exists = verifyVersions(new HashSet<ResolvedMongoObjectID>(
 					objs.values()), false);
 		} catch (NoSuchObjectException e) {

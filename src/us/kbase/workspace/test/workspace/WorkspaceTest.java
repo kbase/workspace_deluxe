@@ -3113,6 +3113,103 @@ public class WorkspaceTest extends WorkspaceTester {
 						null, null, true, false, false, true, false, false, -1, -1);
 		assertThat("orig objects hidden", objs.size(), is(all));
 	}
+	
+	@Test
+	public void copyReferenceVisibility() throws Exception {
+		//TODO 1 test with 2 copied objects
+		WorkspaceUser user1 = new WorkspaceUser("foo");
+		WorkspaceUser user2 = new WorkspaceUser("foo2");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("copyRefVis1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("copyRefVis2");
+		long wsid1 = ws.createWorkspace(user1, wsi1.getName(), false, null, null).getId();
+		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.READ);
+		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
+		
+		Provenance emptyprov1 = new Provenance(user1);
+		Provenance emptyprov2 = new Provenance(user2);
+		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
+		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), SAFE_TYPE1, null, emptyprov1, false));
+		
+		ws.saveObjects(user1, wsi1, data, new IdReferenceHandlerSetFactory(0));
+		final ObjectIdentifier source = new ObjectIdentifier(wsi1, 1);
+		final ObjectIdentifier copied = new ObjectIdentifier(wsi2, "foo");
+		ws.copyObject(user2, source, copied);
+		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(0));
+		final ObjectIdentifier nocopy = new ObjectIdentifier(wsi2, 2L);
+
+		data.clear();
+		Map<String, Object> ref = new HashMap<String, Object>();
+		ref.put("refs", Arrays.asList("copyRefVis2/foo"));
+		data.add(new WorkspaceSaveObject(ref, REF_TYPE, null, emptyprov2, false));
+		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(1));
+		ObjectChain copyoc = new ObjectChain(new ObjectIdentifier(wsi2, 3L),
+				Arrays.asList(copied));
+		
+		ref.put("refs", Arrays.asList("copyRefVis2/2"));
+		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(1));
+		ObjectChain nocopyoc = new ObjectChain(new ObjectIdentifier(wsi2, 4L),
+				Arrays.asList(new ObjectIdentifier(wsi2, 2L)));
+		
+		
+		final TestReference expectedRef = new TestReference(wsid1, 1, 1);
+		List<ObjectIdentifier> testobjs = Arrays.asList(copied, nocopy);
+		List<ObjectChain> testocs = Arrays.asList(copyoc, nocopyoc);
+		
+		List<TestReference> allnull = Arrays.asList((TestReference) null, (TestReference) null);
+		List<Boolean> twofalse = Arrays.asList(false, false);
+		List<Boolean> truefalse = Arrays.asList(true, false);
+		
+		final List<TestReference> expecnull = Arrays.asList(expectedRef, null);
+		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		
+		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.NONE);
+		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
+		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.READ);
+		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		
+		ws.setObjectsDeleted(user1, Arrays.asList(source), true);
+		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
+		ws.setObjectsDeleted(user1, Arrays.asList(source), false);
+		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		
+		ws.setWorkspaceDeleted(user1, wsi1, true);
+		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
+		ws.setWorkspaceDeleted(user1, wsi1, false);
+		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+	}
+
+	private void checkCopyReference(WorkspaceUser user, List<ObjectIdentifier> testobjs,
+			List<ObjectChain> testocs, List<TestReference> testRef, List<Boolean> copyAccessible) throws Exception {
+		
+		List<List<WorkspaceObjectInformation>> infos =
+				new LinkedList<List<WorkspaceObjectInformation>>();
+		
+		infos.add(ws.getObjectProvenance(user, testobjs));
+		infos.add(fromObjectData(ws.getObjects(user, testobjs)));
+		infos.add(fromObjectData(ws.getObjectsSubSet(user, objIDToSubObjID(testobjs))));
+		infos.add(fromObjectData(ws.getReferencedObjects(user, testocs)));
+		
+		for (List<WorkspaceObjectInformation> info: infos) {
+			for (int i = 0; i < info.size(); i++) {
+				WorkspaceObjectInformation inf = info.get(i);
+				assertThat("correct reference ", inf.getCopyReference() == null ? null :
+					new TestReference(inf.getCopyReference()), is(testRef.get(i)));
+				assertThat("correct inaccessibility", inf.isCopySourceInaccessible(),
+						is(copyAccessible.get(i)));
+				
+			}
+		}
+		
+	}
+	
+	private List<WorkspaceObjectInformation> fromObjectData(
+			List<WorkspaceObjectData> data) {
+		List<WorkspaceObjectInformation> ret = new LinkedList<WorkspaceObjectInformation>();
+		for (WorkspaceObjectData d: data) {
+			ret.add((WorkspaceObjectInformation) d);
+		}
+		return ret;
+	}
 
 	@Test
 	public void cloneWorkspace() throws Exception {

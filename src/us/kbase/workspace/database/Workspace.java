@@ -946,7 +946,6 @@ public class Workspace {
 		return ret;
 	}
 	
-	//TODO 1 test next 2 methods and MWDB methods
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
 			final List<WorkspaceObjectData> data)
@@ -961,7 +960,6 @@ public class Workspace {
 		removeInaccessibleProvenanceCopyReferences(user, newdata);
 	}
 	
-	//TODO 1 test copied ref against deleted (incl ws) and unreadable refs 
 	private void removeInaccessibleProvenanceCopyReferences(
 			final WorkspaceUser user,
 			final List<WorkspaceObjectInformation> info)
@@ -994,11 +992,12 @@ public class Workspace {
 			}
 		}
 		
+		//only includes workspaces that are at least readable
 		final PermissionSet perms = db.getPermissions(user,
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
 		i = rwsis.entrySet().iterator();
 		while (i.hasNext()) {
-			if (!perms.hasPermission(i.next().getValue(), Permission.READ)) {
+			if (!perms.hasWorkspace(i.next().getValue())) {
 				i.remove();
 			}
 		}

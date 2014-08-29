@@ -133,6 +133,9 @@ public class WorkspaceTester {
 			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
 	protected static final TypeDefId SAFE_TYPE2_21 =
 			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
+	
+	protected static final TypeDefId REF_TYPE =
+			new TypeDefId(new TypeDefName("CopyRev", "RefType"), 0, 1);
 
 	static {
 		JsonTokenStreamOCStat.register();
