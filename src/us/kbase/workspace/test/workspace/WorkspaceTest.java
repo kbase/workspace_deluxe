@@ -3116,66 +3116,102 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void copyReferenceVisibility() throws Exception {
-		//TODO 1 test with 2 copied objects
 		WorkspaceUser user1 = new WorkspaceUser("foo");
 		WorkspaceUser user2 = new WorkspaceUser("foo2");
-		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("copyRefVis1");
-		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("copyRefVis2");
-		long wsid1 = ws.createWorkspace(user1, wsi1.getName(), false, null, null).getId();
-		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.READ);
-		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
+		WorkspaceIdentifier wsiSource1 = new WorkspaceIdentifier("copyRefVisSource1");
+		WorkspaceIdentifier wsiSource2 = new WorkspaceIdentifier("copyRefVisSource2");
+		WorkspaceIdentifier wsiCopied = new WorkspaceIdentifier("copyRefVisCopied");
+		long wsid1 = ws.createWorkspace(user1, wsiSource1.getName(), false, null, null).getId();
+		ws.setPermissions(user1, wsiSource1, Arrays.asList(user2), Permission.READ);
+		long wsid2 = ws.createWorkspace(user1, wsiSource2.getName(), false, null, null).getId();
+		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.READ);
+		ws.createWorkspace(user2, wsiCopied.getName(), false, null, null);
 		
 		Provenance emptyprov1 = new Provenance(user1);
 		Provenance emptyprov2 = new Provenance(user2);
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
 		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), SAFE_TYPE1, null, emptyprov1, false));
 		
-		ws.saveObjects(user1, wsi1, data, new IdReferenceHandlerSetFactory(0));
-		final ObjectIdentifier source = new ObjectIdentifier(wsi1, 1);
-		final ObjectIdentifier copied = new ObjectIdentifier(wsi2, "foo");
-		ws.copyObject(user2, source, copied);
-		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(0));
-		final ObjectIdentifier nocopy = new ObjectIdentifier(wsi2, 2L);
+		ws.saveObjects(user1, wsiSource1, data, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user1, wsiSource2, data, new IdReferenceHandlerSetFactory(0));
+		final ObjectIdentifier source1 = new ObjectIdentifier(wsiSource1, 1);
+		final ObjectIdentifier source2 = new ObjectIdentifier(wsiSource2, 1);
+		final ObjectIdentifier copied1 = new ObjectIdentifier(wsiCopied, "foo");
+		final ObjectIdentifier copied2 = new ObjectIdentifier(wsiCopied, "foo1");
+		ws.copyObject(user2, source1, copied1);
+		ws.copyObject(user2, source2, copied2);
+		
+		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(0));
+		final ObjectIdentifier nocopy = new ObjectIdentifier(wsiCopied, 3L);
 
 		data.clear();
 		Map<String, Object> ref = new HashMap<String, Object>();
-		ref.put("refs", Arrays.asList("copyRefVis2/foo"));
+		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo"));
 		data.add(new WorkspaceSaveObject(ref, REF_TYPE, null, emptyprov2, false));
-		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(1));
-		ObjectChain copyoc = new ObjectChain(new ObjectIdentifier(wsi2, 3L),
-				Arrays.asList(copied));
+		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ObjectChain copyoc1 = new ObjectChain(new ObjectIdentifier(wsiCopied, 4L),
+				Arrays.asList(copied1));
 		
-		ref.put("refs", Arrays.asList("copyRefVis2/2"));
-		ws.saveObjects(user2, wsi2, data, new IdReferenceHandlerSetFactory(1));
-		ObjectChain nocopyoc = new ObjectChain(new ObjectIdentifier(wsi2, 4L),
-				Arrays.asList(new ObjectIdentifier(wsi2, 2L)));
+		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo1"));
+		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ObjectChain copyoc2 = new ObjectChain(new ObjectIdentifier(wsiCopied, 5L),
+				Arrays.asList(copied2));
+		
+		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/3"));
+		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ObjectChain nocopyoc = new ObjectChain(new ObjectIdentifier(wsiCopied, 6L),
+				Arrays.asList(nocopy));
 		
 		
-		final TestReference expectedRef = new TestReference(wsid1, 1, 1);
-		List<ObjectIdentifier> testobjs = Arrays.asList(copied, nocopy);
-		List<ObjectChain> testocs = Arrays.asList(copyoc, nocopyoc);
+		final TestReference expectedRef1 = new TestReference(wsid1, 1, 1);
+		final TestReference expectedRef2 = new TestReference(wsid2, 1, 1);
+		List<ObjectIdentifier> testobjs = Arrays.asList(copied1, nocopy, copied2);
+		List<ObjectChain> testocs = Arrays.asList(copyoc1, nocopyoc, copyoc2);
 		
-		List<TestReference> allnull = Arrays.asList((TestReference) null, (TestReference) null);
-		List<Boolean> twofalse = Arrays.asList(false, false);
-		List<Boolean> truefalse = Arrays.asList(true, false);
+		List<TestReference> refnullref = Arrays.asList(
+				expectedRef1, (TestReference) null, expectedRef2);
+		List<TestReference> nullnullref = Arrays.asList(
+				(TestReference) null, (TestReference) null, expectedRef2);
+		List<TestReference> refnullnull = Arrays.asList(
+				expectedRef1, (TestReference) null, (TestReference) null);
 		
-		final List<TestReference> expecnull = Arrays.asList(expectedRef, null);
-		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		List<Boolean> fff = Arrays.asList(false, false, false);
+		List<Boolean> tff = Arrays.asList(true, false, false);
+		List<Boolean> fft = Arrays.asList(false, false, true);
 		
-		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.NONE);
-		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
-		ws.setPermissions(user1, wsi1, Arrays.asList(user2), Permission.READ);
-		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
-		ws.setObjectsDeleted(user1, Arrays.asList(source), true);
-		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
-		ws.setObjectsDeleted(user1, Arrays.asList(source), false);
-		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		//check 1st ref
+		ws.setPermissions(user1, wsiSource1, Arrays.asList(user2), Permission.NONE);
+		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		ws.setPermissions(user1, wsiSource1, Arrays.asList(user2), Permission.READ);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
-		ws.setWorkspaceDeleted(user1, wsi1, true);
-		checkCopyReference(user2, testobjs, testocs, allnull, truefalse);
-		ws.setWorkspaceDeleted(user1, wsi1, false);
-		checkCopyReference(user2, testobjs, testocs, expecnull, twofalse);
+		ws.setObjectsDeleted(user1, Arrays.asList(source1), true);
+		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		ws.setObjectsDeleted(user1, Arrays.asList(source1), false);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
+		
+		ws.setWorkspaceDeleted(user1, wsiSource1, true);
+		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		ws.setWorkspaceDeleted(user1, wsiSource1, false);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
+		
+		//check 2nd ref
+		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.NONE);
+		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.READ);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
+		
+		ws.setObjectsDeleted(user1, Arrays.asList(source2), true);
+		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		ws.setObjectsDeleted(user1, Arrays.asList(source2), false);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
+		
+		ws.setWorkspaceDeleted(user1, wsiSource2, true);
+		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		ws.setWorkspaceDeleted(user1, wsiSource2, false);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 	}
 
 	private void checkCopyReference(WorkspaceUser user, List<ObjectIdentifier> testobjs,

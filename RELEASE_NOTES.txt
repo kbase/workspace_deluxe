@@ -63,7 +63,6 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - KBase Search API
 - Service Search API (e.g. MongoDB queries on TOs)
 - Object sharing 'inbox' (share specific versions of objects)
-- Update copied objects from source
 - Improvements to returning the subset of an object
 
 VERSION: 0.2.1 (Released 7/11/14)
