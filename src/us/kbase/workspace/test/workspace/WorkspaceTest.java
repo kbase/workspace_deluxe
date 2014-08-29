@@ -922,7 +922,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved object with > 16kb of extracted metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata size of 19309 is > 16000 bytes"));
+					is("Object #1, bigextractedmeta : Object metadata size (19309 bytes) after adding metadata field 'val' exceeds limit of 16000 bytes"));
 		}
 	}
 	

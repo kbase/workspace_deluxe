@@ -132,7 +132,10 @@ public class SubsetAndMetadataExtractor {
 					parent.addChild(entry.getKey(), child);
 					parent.setNeedSubsetInChildren(true);
 				} else {
+					// we will only get here if you run prepareWsSubsetTree twice, which does
+					// not happen under any current code path
 					child = parent.getChildren().get(entry.getKey());
+					parent.setNeedSubsetInChildren(true);
 				}
 				prepareWsSubsetTree(entry.getValue(), keysOf, child);
 			}
@@ -600,6 +603,35 @@ public class SubsetAndMetadataExtractor {
 					throw new TypedObjectExtractionException("WS metadata path contains length() method called on a scalar " +
 							"value at " + SubdataExtractor.getPathText(path));
 			}
+			
+			/*else if (t == JsonToken.VALUE_NUMBER_INT) {
+				// VALUE_NUMBER_INT type corresponds to set of integer types
+				Number value = jts.getNumberValue();
+				if (value instanceof Short) {
+					jgen.writeNumber((Short)value);
+				} else if (value instanceof Integer) {
+					jgen.writeNumber((Integer)value);
+				} else if (value instanceof Long) {
+					jgen.writeNumber((Long)value);
+				} else if (value instanceof BigInteger) {
+					jgen.writeNumber((BigInteger)value);
+				} else {
+					jgen.writeNumber(value.longValue());
+				}
+			} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
+				// VALUE_NUMBER_FLOAT type corresponds to set of floating point types
+				Number value = jts.getNumberValue();
+				if (value instanceof Float) {
+					jgen.writeNumber((Float)value);
+				} else if (value instanceof Double) {
+					jgen.writeNumber((Double)value);
+				} else if (value instanceof BigDecimal) {
+					jgen.writeNumber((BigDecimal)value);
+				} else {
+					jgen.writeNumber(value.doubleValue());
+				}
+			}*/
+			
 			addValueMetadata(jts.getText(), selection, metadataHandler); // add the value to metadata if needed
 		}
 	}

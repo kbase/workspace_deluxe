@@ -165,6 +165,24 @@ module KB {
 	typedef structure {
 		MetaDataT5 t5;
 	} MetaDataT7;
+
+	/*
+	@searchable ws_subset stuff.*
+	@metadata ws length(stuff) as number of things
+	@metadata ws otherThing AS an int
+	*/
+	typedef structure {
+		mapping<string,string> stuff;
+		int otherThing;
+	} MetaDataT8;
+
+	/*
+	@searchable ws_subset t8.stuff
+	@metadata ws t8.otherThing AS my thing
+	*/
+	typedef structure {
+		MetaDataT8 t8;
+	} MetaDataT9;
 	
 };
 

@@ -1518,9 +1518,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Should never get a JSON exception here", jpe);
 			} catch (ExceededMaxMetadataSizeException e) {
 				throw new IllegalArgumentException(String.format(
-						"Object %s %s size exceeds limit of %s",
+						"Object %s : %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						"metadata", MAX_WS_META_SIZE));
+						e.getMessage()), e);
 			} catch (IllegalArgumentException e) {
 				if (e.getMessage().contains("" + MAX_SUBDATA_SIZE))
 					throw new IllegalArgumentException(String.format(

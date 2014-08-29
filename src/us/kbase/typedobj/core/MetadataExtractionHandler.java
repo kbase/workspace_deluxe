@@ -65,7 +65,7 @@ public class MetadataExtractionHandler {
 		this.maxMetadataSize = maxMetadataSize;
 		if(maxMetadataSize>=0) {
 			if (currentByteSize > maxMetadataSize)
-				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+"b) "
+				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+" bytes) "
 						+ "exceeds limit of " + maxMetadataSize+"b");
 		}
 	}
@@ -100,8 +100,8 @@ public class MetadataExtractionHandler {
 			throw new RuntimeException("This is bad. There is an unexpected error when checking the byte size of metatdata",e);}
 		if(maxMetadataSize>=0) {
 			if (currentByteSize > maxMetadataSize) {
-				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+"b) after adding metadata "
-						+ "field '"+name+"'exceeds limit of " + maxMetadataSize+"b");
+				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+" bytes) after adding metadata "
+						+ "field '"+name+"' exceeds limit of " + maxMetadataSize+" bytes");
 			}
 		}
 		extracted.put(name, value);
