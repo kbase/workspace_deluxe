@@ -48,9 +48,7 @@ public class JsonTokenValidationSchema {
 	private Integer arrayMinItems;						// For tuple: minItems
 	private Integer arrayMaxItems;						// For tuple: maxItems
 	
-	@SuppressWarnings("unused")
 	private NumberRange numberRange;					// For number: minimum, maximum, exclusiveMinimum, exclusiveMaximum
-	@SuppressWarnings("unused")
 	private IntRange intRange;							// For integer: minimum, maximum, exclusiveMinimum, exclusiveMaximum
 
 	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";
@@ -392,10 +390,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}
 			} else {
-				//TODO range reinstate range checking
-//				if (intRange != null) {
-//					intRange.checkValue(jp, lst, path);
-//				}
+				//range check
+				if (intRange != null) {
+					intRange.checkValue(jp, lst, path);
+				}
 //				if (idReference != null) {
 //					// we can add this int value as requiring id-reference relabeling in case 
 //					// there was defined idReference property in json-schema node describing this 
@@ -418,10 +416,10 @@ public class JsonTokenValidationSchema {
 					skipValueWithoutFirst(jp);
 				}	
 			} else {
-				//TODO range reinstate range checking
-//				if (numberRange != null) {
-//					numberRange.checkValue(jp, lst, path);
-//				}
+				//range check
+				if (numberRange != null) {
+					numberRange.checkValue(jp, lst, path);
+				}
 			}
 		} else {
 			lst.addError("Unsupported node type: " + type + " at " +

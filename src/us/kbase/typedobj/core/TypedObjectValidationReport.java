@@ -16,6 +16,8 @@ import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
@@ -105,7 +107,7 @@ public class TypedObjectValidationReport {
 			final IdReferenceHandlerSet<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
 		this.wsSubsetSelection = wsSubsetSelection;
-		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection);
+		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection,-1);
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
 		this.tokenStreamProvider = tokenStreamProvider;
@@ -405,21 +407,18 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * If a searchable ws_subset was defined in the Json Schema, then you can use this method
+	 * If a searchable ws_subset or metadata ws was defined in the Json Schema, then you can use this method
 	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
 	 * so if you extract a subset, then modify the original instance that was validated, it can
 	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
-	 * deep copy of the original instance if you intend to modify it and subset data has already
+	 * deep copy of the original instance if you intend to modify it and subset data or meatdata has already
 	 * been extracted.
-	 * @deprecated
+	 * @throws IOException 
+	 * @throws ExceededMaxMetadataSizeException 
+	 * @throws TypedObjectExtractionException 
 	 */
-	public JsonNode extractSearchableWsSubset(long maxSubsetSize) {
-		ExtractedSubsetAndMetadata extraction = extractSearchableWsSubsetAndMetadata(maxSubsetSize);
-		return extraction.getWsSearchableSubset();
-	}
-
-	
-	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize) {
+	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize, long maxMetadataSize) 
+			throws ExceededMaxMetadataSizeException {
 		
 		// return nothing if instance does not validate
 		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
@@ -436,15 +435,14 @@ public class TypedObjectValidationReport {
 			tsp = createTokenSequenceForWsSubset();
 			ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor.extractFields(
 															tsp, 
-															keys_of, fields, maxSubsetSize,
+															keys_of, fields, maxSubsetSize, maxMetadataSize,
 															wsMetadataExtractionHandler);
 			tsp.close();
 			return esam;
-		} catch (RuntimeException ex) {
-			throw ex;
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex);
-		} finally {
+		} catch (IOException e) {
+			// error that can happen if we cannot write to create the output subset json object! should never happen!
+			throw new RuntimeException("Something went very wrong when extracting subset- instance data or memory may have been corrupted.",e);
+		}  finally {
 			if (tsp != null)
 				try { tsp.close(); } catch (Exception ignore) {}
 		}

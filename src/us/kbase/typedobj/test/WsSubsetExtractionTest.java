@@ -64,7 +64,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class WsSubsetExtractionTest {
 	
-	public static final int TEST_COUNT = 14;
+	public static final int TEST_COUNT = 19;
 
 	/**
 	 * location to stash the temporary database for testing
@@ -78,6 +78,11 @@ public class WsSubsetExtractionTest {
 	 * relative location to find the input files
 	 */
 	private final static String TEST_RESOURCE_LOCATION = "files/SubsetAndMetadataExtraction/";
+	
+	private final static List<String> KB_TYPES =
+			Arrays.asList("NoExtractionData","SimpleStructure","MappingStruct","ListStruct",
+					"DeepMaps","NestedData","KeysTest","MetaDataT1", "MetaDataT2", "MetaDataT3", 
+					"MetaDataT4", "MetaDataT5", "MetaDataT6", "MetaDataT7");
 	
 	private final static boolean VERBOSE = true;
 
@@ -158,12 +163,9 @@ public class WsSubsetExtractionTest {
 		String username = "wstester1";
 		
 		String kbSpec = loadResourceFile(TEST_RESOURCE_LOCATION+"KB.spec");
-		List<String> kb_types =  Arrays.asList(
-				"NoExtractionData","SimpleStructure","MappingStruct","ListStruct","DeepMaps","NestedData","KeysTest",
-				"MetaDataT1", "MetaDataT2", "MetaDataT3", "MetaDataT4");
 		db.requestModuleRegistration("KB", username);
 		db.approveModuleRegistrationRequest(username, "KB", true);
-		db.registerModule(kbSpec ,kb_types, username);
+		db.registerModule(kbSpec ,KB_TYPES, username);
 		db.releaseModule("KB", username, false);
 		
 		if(VERBOSE) System.out.print("finding test instances...");
@@ -206,8 +208,13 @@ public class WsSubsetExtractionTest {
 		JsonNode instanceRootNode = testdataJson.get("instance");
 		JsonNode expectedSubset = testdataJson.get("subset");
 		JsonNode expectedMetadata = testdataJson.get("metadata");
+		JsonNode exception = testdataJson.get("exception");
+		JsonNode maxMetadataSize = testdataJson.get("maxMetadataSize");
 		
-		// perform the initial validation, which must validate!
+		long maxMetadataSizeLong = -1;
+		if(maxMetadataSize!=null)
+			maxMetadataSizeLong = maxMetadataSize.asLong();
+		
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
 		IdReferenceHandlerSet<String> han =
 				fac.createHandlers(String.class).associateObject("foo");
@@ -222,13 +229,25 @@ public class WsSubsetExtractionTest {
 		}
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
-		
-		ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1);
-		JsonNode actualSubset = extraction.getWsSearchableSubset();
-		JsonNode actualMetadata = extraction.getMetadata();
-		
-		compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
-		compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		try {
+			ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,maxMetadataSizeLong);
+			JsonNode actualSubset = extraction.getWsSearchableSubset();
+			JsonNode actualMetadata = extraction.getMetadata();
+			if(exception!=null) {
+				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");
+			}
+			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
+			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
+		} catch (Exception e) {
+			String exceptionName = e.getClass().getSimpleName();
+			if(exception==null) {
+				throw e;
+				//fail("  -("+instance.resourceName+") throws an exception '"+exceptionName+"' when getting subdata, but should not");
+			} else {
+				assertEquals("  -("+instance.resourceName+") exception thrown ("+exceptionName+") matches expected exception "+exception.asText(),
+						exceptionName, exception.asText());
+			}
+		}
 		System.out.println("       PASS");
 	}
 

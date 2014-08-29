@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.common.utils.JsonTreeGenerator;
+import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -29,9 +30,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class SubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
 	
-	//TODO 1 mike meta data should descend into structures
-	//TODO 1 mike meta fail if metadata size > max metadata allowed
-
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
 	 * 
@@ -48,6 +46,8 @@ public class SubsetAndMetadataExtractor {
 	 * selections.  As metadata items are found during traversal for subset extraction, they are added to
 	 * the metadata extraction handler.  Then, after calling extract fields, you can use the metadata extraction
 	 * handler to get the metadata found.
+	 * @throws ExceededMaxMetadataSizeException 
+	 * @throws IOException 
 	 * 
 	 */
 	public static ExtractedSubsetAndMetadata extractFields(
@@ -55,8 +55,9 @@ public class SubsetAndMetadataExtractor {
 			ObjectNode keysOfSelection,
 			ObjectNode fieldsSelection,
 			long maxSubdataSize,
+			long maxMetadataSize,
 			MetadataExtractionHandler metadataExtractionHandler) 
-					throws IOException, TypedObjectExtractionException {
+					throws ExceededMaxMetadataSizeException, IOException {
 
 		//System.out.println(keysOfSelection);
 		//System.out.println(fieldsSelection);
@@ -69,9 +70,12 @@ public class SubsetAndMetadataExtractor {
 			prepareWsSubsetTree(keysOfSelection, true, root);
 		if (fieldsSelection != null && fieldsSelection.size() > 0)
 			prepareWsSubsetTree(fieldsSelection, false, root);
-		if (metadataExtractionHandler != null)
+		if (metadataExtractionHandler != null) {
+			metadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
 			prepareMetadataSelectionTree(metadataExtractionHandler, root);
-
+		}
+		//root.printTree("  ");
+		
 		// if there is nothing to extract as subdata, then we create an empty node because the
 		// extractFieldsWithOpenToken method will not add anything to the stream unless something
 		// needs to be extracted as subdata
@@ -82,7 +86,11 @@ public class SubsetAndMetadataExtractor {
 			} else {
 				// no subset, but we need metadata so run the extraction, but without the json tree generator
 				JsonToken t = jts.nextToken();
-				extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
+				try {
+					extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, null, new ArrayList<String>());
+				} catch (TypedObjectExtractionException e) {
+					throw new RuntimeException("This is bad. There is an unexpected internal error when extracting object metadata",e);
+				}
 				return new ExtractedSubsetAndMetadata(null,metadataExtractionHandler.getSavedMetadata());
 			}
 		}
@@ -91,7 +99,11 @@ public class SubsetAndMetadataExtractor {
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
 		jgen.setMaxDataSize(maxSubdataSize);
 		JsonToken t = jts.nextToken();
-		extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
+		try {
+			extractFieldsWithOpenToken(jts, t, root, metadataExtractionHandler, jgen, new ArrayList<String>());
+		} catch (TypedObjectExtractionException e) {
+			throw new RuntimeException("This is bad. There is an unexpected internal error when extracting object subset or metadata",e);
+		} 
 		jgen.close();
 		return new ExtractedSubsetAndMetadata(jgen.getTree(),metadataExtractionHandler.getSavedMetadata());
 	}
@@ -328,7 +340,8 @@ public class SubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the length of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addLengthMetadata(long length, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addLengthMetadata(long length, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) 
+			throws ExceededMaxMetadataSizeException {
 		List<String> metadataNames = selection.getNeedLengthForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,Long.toString(length));
@@ -338,7 +351,8 @@ public class SubsetAndMetadataExtractor {
 	/**
 	 * helper method to add the value of an array/object to the metadata for every metadata named in metadataHandler
 	 */
-	private static void addValueMetadata(String value, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) {
+	private static void addValueMetadata(String value, SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) 
+			throws ExceededMaxMetadataSizeException {
 		List<String> metadataNames = selection.getNeedValueForMetadata();
 		for(String name:metadataNames) {
 			metadataHandler.saveMetadata(name,value);
@@ -356,10 +370,9 @@ public class SubsetAndMetadataExtractor {
 			MetadataExtractionHandler metadataHandler,
 			JsonGenerator jgen,
 			List<String> path) 
-					throws IOException, TypedObjectExtractionException {
+					throws IOException, TypedObjectExtractionException, ExceededMaxMetadataSizeException {
 
 		JsonToken t = current;
-
 		// We observe the opening of a mapping/object in the JSON data
 		if (t == JsonToken.START_OBJECT) {
 			// we need everything at this node and below
@@ -413,7 +426,7 @@ public class SubsetAndMetadataExtractor {
 				// if it has children, then we must need some metadata value below
 				// BUT! we do not support extracting metadata from a mapping so this is impossible
 				//if(selection.hasChildren()) { 
-					// TODO: handle case where metadata selection is inside a mapping - this is not allowed right now 
+					// handle case where metadata selection is inside a mapping - this is not allowed right now 
 				//}
 				jgen.writeStartArray();  // write in output start of array instead of start of object
 				long n_elements = 0;
@@ -458,8 +471,9 @@ public class SubsetAndMetadataExtractor {
 					}
 				}
 				// process first token standing for start of object, only write if we need subset data below
-				if(selection.isNeedSubsetInChildren())
+				if(selection.isNeedSubsetInChildren()) {
 					writeCurrentToken(jts, t, jgen);
+				}
 				long n_elements = 0;
 				while (true) {
 					t = jts.nextToken();
@@ -475,11 +489,17 @@ public class SubsetAndMetadataExtractor {
 					String fieldName = jts.getText();
 					if (all || selectedFields.contains(fieldName)) {
 						SubsetAndMetadataNode child = selection.getChild(fieldName);
-						// if we need all fields or the field is in list of necessary fields we process it and the value following after that
-						// We have to check if we need to write out this node!!!  only works because metadata can only
-						// be defined on fields at the top level!  
-						if(selection.isNeedSubsetInChildren()) {
-							writeCurrentToken(jts, t, jgen);
+						// tricky logic here: if we need all, then we are in a mapping and we need to write this field name
+						// if we are not all, then the child must be defined (or else we get some error). Then we can
+						// see if we need to write out anything related the child, such as the keys, everything, or something
+						// below.  If we do, then we write the token, if we do not, then all we need from this child is
+						// metadata, which means we do not have to write anything to the subset for this node but we must
+						// still recurse down...
+						if(all) { writeCurrentToken(jts, t, jgen); }
+						else {
+							if(child.isNeedSubsetInChildren() || child.isNeedAll() || child.isNeedKeys()) {
+								writeCurrentToken(jts, t, jgen);
+							}
 						}
 						// read first token of value block in order to prepare state for recursive 
 						// extractFieldsWithOpenToken call

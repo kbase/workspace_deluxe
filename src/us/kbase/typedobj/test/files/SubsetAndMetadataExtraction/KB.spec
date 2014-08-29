@@ -139,6 +139,32 @@ module KB {
 		mapping<string,mapping<string,int>> mm;
 		tuple<string,mapping<string,int>,int> t;
 	} MetaDataT4;
+
+
+	/*
+	@metadata ws t3.s AS my string
+	@metadata ws length(t3.s) AS len
+	*/
+	typedef structure {
+		MetaDataT3 t3;
+		string otherthing;
+	} MetaDataT5;
+
+	/*
+	@searchable ws_subset t5
+	@metadata ws t5.t3.s AS my string
+	*/
+	typedef structure {
+		MetaDataT5 t5;
+	} MetaDataT6;
+
+	/*
+	@searchable ws_subset t5.otherthing
+	@metadata ws t5.t3.s AS my string
+	*/
+	typedef structure {
+		MetaDataT5 t5;
+	} MetaDataT7;
 	
 };
 
