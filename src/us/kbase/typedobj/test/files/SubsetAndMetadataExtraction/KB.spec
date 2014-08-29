@@ -27,6 +27,18 @@ module KB {
 		float maxwidth;
 	} SimpleStructure;
 
+	/*
+	  @metadata ws f1
+	  @metadata ws f2
+	  @metadata ws f3
+	  @metadata ws f4
+	*/
+	typedef structure {
+		float f1;
+		float f2;
+		float f3;
+		float f4;
+	} FloatStructure;
 
 	/*
 	  @searchable ws_subset numbers

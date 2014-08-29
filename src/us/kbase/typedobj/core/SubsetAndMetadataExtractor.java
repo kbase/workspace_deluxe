@@ -3,6 +3,7 @@ package us.kbase.typedobj.core;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -29,6 +30,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class SubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
+	
+	private static final String FLOAT_PATTERN = "######0.0######E000";
 	
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
@@ -350,6 +353,13 @@ public class SubsetAndMetadataExtractor {
 			metadataHandler.saveMetadata(name,Long.toString(length));
 		}
 	}
+	private static void addNullLengthMetadata(SubsetAndMetadataNode selection, MetadataExtractionHandler metadataHandler) 
+			throws ExceededMaxMetadataSizeException {
+		List<String> metadataNames = selection.getNeedLengthForMetadata();
+		for(String name:metadataNames) {
+			metadataHandler.saveMetadata(name,"NaN");
+		}
+	}
 
 	/**
 	 * helper method to add the value of an array/object to the metadata for every metadata named in metadataHandler
@@ -596,43 +606,23 @@ public class SubsetAndMetadataExtractor {
 			if (selection.isNeedAll()) // if this is set, then save the data to the output stream
 				writeCurrentToken(jts, t, jgen);
 
+			// first handle the length of metadata extraction
 			if(t==JsonToken.VALUE_STRING) { // if a string, add the length to metadata if it was selected
 				addLengthMetadata(jts.getText().length(), selection, metadataHandler);
-			} else if(t!=JsonToken.VALUE_NULL) {
+			} else if(t==JsonToken.VALUE_NULL) {
+				// value is null, but we should still add it so that the metadata is not just completely missing
+				addNullLengthMetadata(selection, metadataHandler);
+			} else {
+				// if we got here, then the value is not a string and is not null, so this is not valid (although
+				// this should be caught as an error during type registration if using this lib with the workspace)
 				if (!selection.getNeedLengthForMetadata().isEmpty())
 					throw new TypedObjectExtractionException("WS metadata path contains length() method called on a scalar " +
 							"value at " + SubdataExtractor.getPathText(path));
 			}
 			
-			/*else if (t == JsonToken.VALUE_NUMBER_INT) {
-				// VALUE_NUMBER_INT type corresponds to set of integer types
-				Number value = jts.getNumberValue();
-				if (value instanceof Short) {
-					jgen.writeNumber((Short)value);
-				} else if (value instanceof Integer) {
-					jgen.writeNumber((Integer)value);
-				} else if (value instanceof Long) {
-					jgen.writeNumber((Long)value);
-				} else if (value instanceof BigInteger) {
-					jgen.writeNumber((BigInteger)value);
-				} else {
-					jgen.writeNumber(value.longValue());
-				}
-			} else if (t == JsonToken.VALUE_NUMBER_FLOAT) {
-				// VALUE_NUMBER_FLOAT type corresponds to set of floating point types
-				Number value = jts.getNumberValue();
-				if (value instanceof Float) {
-					jgen.writeNumber((Float)value);
-				} else if (value instanceof Double) {
-					jgen.writeNumber((Double)value);
-				} else if (value instanceof BigDecimal) {
-					jgen.writeNumber((BigDecimal)value);
-				} else {
-					jgen.writeNumber(value.doubleValue());
-				}
-			}*/
-			
-			addValueMetadata(jts.getText(), selection, metadataHandler); // add the value to metadata if needed
+			// get the actual value
+			String metadataValue = jts.getText();
+			addValueMetadata(metadataValue, selection, metadataHandler); // add the value to metadata if needed
 		}
 	}
 }
