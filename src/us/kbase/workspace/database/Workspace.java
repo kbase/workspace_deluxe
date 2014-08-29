@@ -427,7 +427,7 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
 		final PermissionSet perms = db.getPermissions(user, wsid);
-		if (Permission.ADMIN.compareTo(perms.getPermission(wsid, true)) > 0) {
+		if (Permission.WRITE.compareTo(perms.getPermission(wsid, true)) > 0) {
 			final Map<User, Permission> ret = new HashMap<User, Permission>();
 			ret.put(perms.getUser(), perms.getUserPermission(wsid, true));
 			if (perms.isWorldReadable(wsid, true)) {

@@ -579,9 +579,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		expect.put(BUSER, Permission.WRITE);
 		expect.put(CUSER, Permission.READ);
 		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
+		assertThat("write perms allow viewing all perms", ws.getPermissions(BUSER, wsiNG), is(expect));
 		expect.clear();
-		expect.put(BUSER, Permission.WRITE);
-		assertThat("no permission leakage", ws.getPermissions(BUSER, wsiNG), is(expect));
+		expect.put(CUSER, Permission.READ);
+		assertThat("no permission leakage", ws.getPermissions(CUSER, wsiNG), is(expect));
 		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
 				new WorkspaceAuthorizationException(
 						"User b may not alter other user's permissions on workspace perms_noglobal"));
