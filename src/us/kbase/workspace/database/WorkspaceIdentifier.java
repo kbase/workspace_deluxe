@@ -7,10 +7,9 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
-
 public class WorkspaceIdentifier {
 	
-	private final static String WS_NAME_DELIMITER = ":";
+	public final static String WS_NAME_DELIMITER = ":";
 	private final static Pattern INVALID_WS_NAMES = 
 			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "._-]");
 	public final static int MAX_NAME_LENGTH = 255;
@@ -83,6 +82,19 @@ public class WorkspaceIdentifier {
 		} catch (NumberFormatException nfe) {
 			//do nothing, name is ok
 		}
+	}
+	
+	//TODO unit tests (for entire class?)
+	public static String[] splitUser(final String wsName) {
+		final String[] user_ws = wsName.split(WS_NAME_DELIMITER);
+		if (user_ws.length == 2) {
+			return user_ws;
+		}
+		if (user_ws.length == 1) {
+			return new String[]{null, user_ws[0]};
+		}
+		throw new IllegalArgumentException("Illegal workspace name: " +
+				wsName);
 	}
 	
 	public Long getId() {

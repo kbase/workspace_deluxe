@@ -360,6 +360,49 @@ public class Workspace {
 				"read");
 		return db.getWorkspaceDescription(wsid);
 	}
+	
+	public WorkspaceInformation setWorkspaceOwner(
+			WorkspaceUser owner,
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUser newUser,
+			String newName,
+			final boolean asAdmin)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		if (newUser == null) {
+			throw new NullPointerException("newUser cannot be null");
+		}
+		final ResolvedWorkspaceID rwsi;
+		if (asAdmin) {
+			rwsi = db.resolveWorkspace(wsi);
+			owner = db.getWorkspaceOwner(rwsi);
+		} else {
+			rwsi = checkPerms(owner, wsi, Permission.OWNER,
+				"change the owner of");
+		}
+		final Permission p = db.getPermission(newUser, rwsi);
+		if (p.equals(Permission.OWNER)) {
+			throw new IllegalArgumentException(newUser.getUser() +
+					" already owns workspace " + rwsi.getName());
+		}
+		if (newName == null) {
+			final String[] oldWsName = WorkspaceIdentifier.splitUser(
+					rwsi.getName());
+			if (oldWsName[0] != null) { //includes user name
+				newName = newUser.getUser() +
+						WorkspaceIdentifier.WS_NAME_DELIMITER +
+						oldWsName[1];
+			} // else don't change the name
+		} else {
+			if (newName.equals(rwsi.getName())) {
+				newName = null; // no need to change name
+			} else {
+				new WorkspaceIdentifier(newName, newUser); //checks for illegal names
+			}
+		}
+		return db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+	}
+			
 
 	public void setPermissions(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,

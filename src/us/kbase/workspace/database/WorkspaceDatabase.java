@@ -66,6 +66,10 @@ public interface WorkspaceDatabase {
 	public void setPermissions(ResolvedWorkspaceID rwsi,
 			List<WorkspaceUser> users, Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+
+	public WorkspaceInformation setWorkspaceOwner(ResolvedWorkspaceID rwsi,
+			WorkspaceUser user, WorkspaceUser newUser, String newName)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
 			throws 	WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -180,6 +184,9 @@ public interface WorkspaceDatabase {
 			boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
+	public WorkspaceUser getWorkspaceOwner(ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	
 	public List<ObjectInformation> getObjectInformation(
 			PermissionSet pset, TypeDefId type, List<WorkspaceUser> savers,
 			Map<String, String> meta, Date after, Date before,

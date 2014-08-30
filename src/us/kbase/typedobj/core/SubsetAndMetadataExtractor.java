@@ -3,7 +3,6 @@ package us.kbase.typedobj.core;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -30,8 +29,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class SubsetAndMetadataExtractor {
 	private static ObjectMapper mapper = new ObjectMapper();
-	
-	private static final String FLOAT_PATTERN = "######0.0######E000";
 	
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset

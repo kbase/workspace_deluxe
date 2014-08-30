@@ -440,7 +440,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String description, final Map<String, String> meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		// TODO: gavin merge check size code from Util and make new max size exception
+		//TODO gavin merge check size code from Util and make new max size exception
 		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {
@@ -999,6 +999,51 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return "id " + wsi.getId();
 	}
 	
+	final private static String M_CHOWN_WS_NEWNAME_WTH = String.format(
+			"{$set: {%s: #, %s: #, %s: #}}",
+			Fields.WS_OWNER, Fields.WS_NAME, Fields.WS_MODDATE);
+	final private static String M_CHOWN_WS_WTH = String.format(
+			"{$set: {%s: #, %s: #}}",
+			Fields.WS_OWNER, Fields.WS_MODDATE);
+
+	@Override
+	public WorkspaceInformation setWorkspaceOwner(
+			final ResolvedWorkspaceID rwsi,
+			final WorkspaceUser owner,
+			final WorkspaceUser newUser,
+			final String newname)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		
+		try {
+			if (newname == null) {
+				wsjongo.getCollection(COL_WORKSPACES)
+						.update(M_WS_ID_QRY, rwsi.getID())
+						.with(M_CHOWN_WS_WTH,
+								newUser.getUser(), new Date());
+			} else {
+				wsjongo.getCollection(COL_WORKSPACES)
+					.update(M_WS_ID_QRY, rwsi.getID())
+					.with(M_CHOWN_WS_NEWNAME_WTH,
+							newUser.getUser(), newname, new Date());
+			}
+		} catch (MongoException.DuplicateKey medk) {
+			throw new IllegalArgumentException(
+					"There is already a workspace named " + newname);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		final ResolvedMongoWSID newRwsi = new ResolvedMongoWSID(
+				newname == null ? rwsi.getName() : newname,
+				rwsi.getID(), false, false);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser),
+				Permission.OWNER, false);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner),
+				Permission.ADMIN, false);
+		return getWorkspaceInformation(newUser, rwsi);
+	}
+	
 	@Override
 	public void setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
@@ -1178,6 +1223,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			own.add(wu.getUser());
 		}
 		return own;
+	}
+	
+	@Override
+	public WorkspaceUser getWorkspaceOwner(final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
+		final Map<String, Object> ws = query.queryWorkspace(m,
+				new HashSet<String>(Arrays.asList(Fields.WS_OWNER)));
+		return new WorkspaceUser((String) ws.get(Fields.WS_OWNER));
 	}
 	
 	@Override
