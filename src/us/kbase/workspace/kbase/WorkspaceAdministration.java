@@ -1,5 +1,7 @@
 package us.kbase.workspace.kbase;
 
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -32,6 +34,7 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.Workspace;
+import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -117,6 +120,16 @@ public class WorkspaceAdministration {
 			ws.removeAdmin(wsadmin);
 			return null;
 		}
+		if ("setWorkspaceOwner".equals(fn)) {
+			final SetWorkspaceOwnerParams params =
+					getParams(cmd, SetWorkspaceOwnerParams.class);
+			
+			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+							params.wsi);
+			return ws.setWorkspaceOwner(null, wsi, 
+					params.new_user == null ? null :
+						getUser(params.new_user, token), params.new_name, true);
+		}
 		if ("createWorkspace".equals(fn)) {
 			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
 			return wsmeth.createWorkspace(params, getUser(cmd, token));
@@ -172,6 +185,11 @@ public class WorkspaceAdministration {
 			final AuthToken token)
 			throws IOException, AuthException {
 		final String user = (String) cmd.getUser();
+		return getUser(user, token);
+	}
+
+	private WorkspaceUser getUser(final String user, final AuthToken token)
+			throws IOException, AuthException {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
@@ -191,7 +209,16 @@ public class WorkspaceAdministration {
 		}
 		return new WorkspaceUser(user);
 	}
-
+	
+	private static class SetWorkspaceOwnerParams {
+		public WorkspaceIdentity wsi;
+		public String new_user;
+		public String new_name;
+		
+		@SuppressWarnings("unused")
+		public SetWorkspaceOwnerParams() {}; //for jackson
+	}
+	
 	private <T> T getParams(final AdminCommand input, final Class<T> clazz)
 			throws IOException {
 		final UObject p = input.getParams();

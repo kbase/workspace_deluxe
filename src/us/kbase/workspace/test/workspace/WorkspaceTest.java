@@ -491,6 +491,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSetWorkspaceOwner(u2, wsi, null, null, false,
 				new NullPointerException("newUser cannot be null"));
 		
+		failSetWorkspaceOwner(null, null, u1, null, true,
+				new NullPointerException("wsi cannot be null"));
+		failSetWorkspaceOwner(u2, null, u1, null, false,
+				new NullPointerException("wsi cannot be null"));
+		
 		WorkspaceIdentifier fake = new WorkspaceIdentifier("wsfoofake");
 		failSetWorkspaceOwner(null, fake, u2, null, true,
 				new NoSuchWorkspaceException("No workspace with name wsfoofake exists", fake));

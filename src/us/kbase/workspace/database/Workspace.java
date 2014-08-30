@@ -372,6 +372,9 @@ public class Workspace {
 		if (newUser == null) {
 			throw new NullPointerException("newUser cannot be null");
 		}
+		if (wsi == null) {
+			throw new NullPointerException("wsi cannot be null");
+		}
 		final ResolvedWorkspaceID rwsi;
 		if (asAdmin) {
 			rwsi = db.resolveWorkspace(wsi);

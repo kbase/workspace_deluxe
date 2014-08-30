@@ -2616,6 +2616,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		expected.put(USER2, "w");
 		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
 				is(expected));
+		
+		Map<String, Object> setWSownerParams = new HashMap<String, Object>();
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace(wsstr);
+		setWSownerParams.put("wsi", wsi);
+		setWSownerParams.put("new_user", USER2);
+		setWSownerParams.put("new_name", "setWSOwnerParams");
+		adminParams.put("command", "setWorkspaceOwner");
+		adminParams.put("params", setWSownerParams);
+		CLIENT2.administer(new UObject(adminParams));
+		wsi = new WorkspaceIdentity().withWorkspace("setWSOwnerParams");
+		assertThat("owner changed correctly", CLIENT1.getWorkspaceInfo(wsi).getE3(), is(USER2));
+		
+		setWSownerParams.put("wsi", wsi);
+		setWSownerParams.put("new_user", null);
+		try {
+			CLIENT2.administer(new UObject(adminParams));
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getMessage(),
+					is("newUser cannot be null"));
+		}
 	}
 	
 	@Test
