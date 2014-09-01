@@ -46,6 +46,11 @@ NEW FEATURES:
   on int and float values.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+- Users with write permissions to a workspace can now view permissions for
+  all users to that workspace.
+- X-Forwarded-For and X-Real-IP headers are now taken into account when
+  logging the IP of method calls. Set dont_trust_x_ip_headers=true in
+  deploy.cfg to ignore them.
 - Updated timestamp format in ws-list and ws-listobj to display readable
   local time by default instead of the ISO timestamp.
 - get_object_subset no longer generates an error if a selected field
