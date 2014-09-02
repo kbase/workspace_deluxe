@@ -26,7 +26,11 @@ import us.kbase.common.service.UObject;
  *         workspace
  * UnspecifiedObject data - data to be saved in the workspace
  * Optional arguments:
- * usermeta metadata - a hash of metadata to be associated with the object
+ * usermeta metadata - arbitrary user-supplied metadata for the object,
+ *         not to exceed 16kb; if the object type specifies automatic
+ *         metadata extraction with the 'meta ws' annotation, and your
+ *         metadata name conflicts, then your metadata will be silently
+ *         overwritten.
  * string auth - the authentication token of the KBase account accessing
  *         the workspace. Overrides the client provided authorization
  *         credentials if they exist.

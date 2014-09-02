@@ -25,10 +25,6 @@ DESCRIPTION
                                             modules can be delimited by ','
       -e [MODULES], --exclude [MODULES]  (optional) download everything except for these modules,
 			                    multiple modules can be delimited by ','
-      [not implemented yet] --java       (optional) automatically build java client libraries for each module
-      [not implemented yet] --perl	 (optional) automatically build perl client libraries
-      [not implemented yet] --python	 (optional) automatically build python client libraries
-      [not implemented yet] --js	 (optional) automatically build javascript client libraries
       
       -u, --url          (optional) use this url to contact the Workspace, if not, uses the url
 			 set by the 'ws-url' command.

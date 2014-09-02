@@ -333,18 +333,22 @@ public class ScriptTestRunner {
 		if (HANDLE != null) {
 			System.out.print("Destroying handle service... ");
 			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			System.out.println("Done");
 		}
 		if (SHOCK != null) {
 			System.out.print("Destroying shock service... ");
 			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			System.out.println("Done");
 		}
 		if (MONGO != null) {
 			System.out.print("Destroying mongo test service... ");
 			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			System.out.println("Done");
 		}
 		if (MYSQL != null) {
 			System.out.print("Destroying mysql test service... ");
 			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			System.out.println("Done");
 		}
 	}
 	

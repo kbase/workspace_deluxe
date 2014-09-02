@@ -30,7 +30,10 @@ import us.kbase.common.service.UObject;
  *         obj_name name - the name of the object.
  *         obj_id objid - the id of the object to save over.
  *         usermeta meta - arbitrary user-supplied metadata for the object,
- *                 not to exceed 16kb.
+ *                 not to exceed 16kb; if the object type specifies automatic
+ *                 metadata extraction with the 'meta ws' annotation, and your
+ *                 metadata name conflicts, then your metadata will be silently
+ *                 overwritten.
  *         list<ProvenanceAction> provenance - provenance data for the object.
  *         boolean hidden - true if this object should not be listed when listing
  *                 workspace objects.

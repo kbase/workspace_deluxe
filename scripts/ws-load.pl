@@ -48,7 +48,9 @@ $usage .= "    type is released.  For instance, if a list type is released, you 
 $usage .= "    instances of that list type to the Workspace.\n\n";
 $usage .= "    If you want to set user meta data, the meta data should also be provided in JSON\n";
 $usage .= "    format as an object with string keys and string values. The meta data can be in a\n";
-$usage .= "    file or specified directly via the command line.\n";
+$usage .= "    file or specified directly via the command line.  If an object definition\n";
+$usage .= "    specifies automatic metadata extraction with the \@meta ws annotation, and your\n";
+$usage .= "    metadata name conflicts, then your metadata will be silently overwritten.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;
