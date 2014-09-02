@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.3.0 (Released TBD)
+VERSION: 0.3.0 (Released 9/2/2014)
 --------------------------------------
 NEW FEATURES:
 - The major change in this release is a major refactoring of the ID handling
