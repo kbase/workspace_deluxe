@@ -4,6 +4,7 @@ ws-copy	workspace
 ws-createws	workspace
 ws-delete	workspace
 ws-deletews	workspace
+ws-diff	workspace
 ws-get	workspace
 ws-getsubset	workspace
 ws-history	workspace
@@ -23,6 +24,7 @@ kbws-copy	workspace
 kbws-createws	workspace
 kbws-delete	workspace
 kbws-deletews	workspace
+kbws-diff	workspace
 kbws-get	workspace
 kbws-getsubset	workspace
 kbws-history	workspace

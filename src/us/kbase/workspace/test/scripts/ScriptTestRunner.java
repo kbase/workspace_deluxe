@@ -49,7 +49,6 @@ import us.kbase.workspace.test.controllers.handle.HandleServiceController;
  */
 public class ScriptTestRunner {
 	
-	//TODO should use common tester code from JSONRPCLayerTester
 	//TODO needs to run w/o dev container
 	
 	protected static WorkspaceClient CLIENT1 = null;
@@ -68,6 +67,8 @@ public class ScriptTestRunner {
 	private static WorkspaceServer SERVER;
 	
 	private static AbstractHandleClient HANDLE_CLIENT;
+	
+	final private static String TMP_FILE_SUBDIR = "tempForScriptTestRunner";
 	
 	static {
 		JsonTokenStreamOCStat.register();
@@ -102,13 +103,29 @@ public class ScriptTestRunner {
 	}
 	
 	@Test
-	public void runTests() {
+	public void runTestServerUp() {
 		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-server-up.t "+getTestURL()});
+	}
+	
+	@Test
+	public void runTestBasicResponses() {
 		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-basic-responses.t"});
+	}
+	
+	
+	
+	@Test
+	public void runTestScriptClientConfig() {
 		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-script-client-config.t "+getTestURL()});
+	}
+	
+	@Test
+	public void runTestTypeRegistering() {
 		runCommandAndCheckForSuccess(new String[]{"bash","-c","perl test/scripts/test-type-registering.t "+getTestURL()});
 	}
 
+	
+	
 	private static String getTestURL() {
 		int testport = SERVER.getServerPort();
 		return "http://localhost:"+testport;
@@ -186,15 +203,18 @@ public class ScriptTestRunner {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		
+		String tempDir = Paths.get(WorkspaceTestCommon.getTempDir())
+							.resolve(TMP_FILE_SUBDIR).toString();
+		
 		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(tempDir));
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
 		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
+				Paths.get(tempDir),
 				u3,
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
@@ -205,7 +225,7 @@ public class ScriptTestRunner {
 		MYSQL = new MySQLController(
 				WorkspaceTestCommon.getMySQLExe(),
 				WorkspaceTestCommon.getMySQLInstallExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(tempDir));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
 		HANDLE = new HandleServiceController(
@@ -218,7 +238,7 @@ public class ScriptTestRunner {
 				u3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(tempDir));
 		System.out.println("Using Handle Service temp dir " +
 				HANDLE.getTempDir());
 		
@@ -283,7 +303,7 @@ public class ScriptTestRunner {
 		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
-				.resolve("tempForJSONRPCLayerTester"));
+				.resolve(TMP_FILE_SUBDIR));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
@@ -311,15 +331,19 @@ public class ScriptTestRunner {
 			System.out.println("Done");
 		}
 		if (HANDLE != null) {
+			System.out.print("Destroying handle service... ");
 			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		if (SHOCK != null) {
+			System.out.print("Destroying shock service... ");
 			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		if (MONGO != null) {
+			System.out.print("Destroying mongo test service... ");
 			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 		if (MYSQL != null) {
+			System.out.print("Destroying mysql test service... ");
 			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
 		}
 	}
