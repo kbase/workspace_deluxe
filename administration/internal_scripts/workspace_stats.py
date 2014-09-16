@@ -26,7 +26,7 @@ PWD = 'pwd'
 WS_MONGO_HOST = 'localhost'
 WS_MONGO_PORT = 49990
 WS_MONGO_DB = 'workspace'
-#collection names
+# collection names
 COL_WS = 'workspaces'
 COL_ACLS = 'workspaceACLs'
 COL_OBJ = 'workspaceObjects'
@@ -124,7 +124,7 @@ if __name__ == '__main__':
             sys.stdout.flush()
             objtime = time.time()
             query = {'del': False, 'ws': ws,
-                      'id': {'$gt': lim - LIMIT, '$lte': lim}}
+                     'id': {'$gt': lim - LIMIT, '$lte': lim}}
             objs = db[COL_OBJ].find(query, ['ws', 'id', 'numver'])
             print('\ttotal obj query time: ' + str(time.time() - objtime))
             ttlstart = time.time()
