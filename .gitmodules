@@ -1,3 +1,3 @@
 [submodule "typecomp"]
 	path = typecomp
-	url = git@github.com:msneddon/typecomp.git
+	url = https://github.com/msneddon/typecomp.git
