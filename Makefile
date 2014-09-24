@@ -30,6 +30,7 @@ TARGET ?= /kb/deployment
 SERVICE_DIR ?= $(TARGET)/services/$(SERVICE)
 GLASSFISH_HOME ?= $(DEPLOY_RUNTIME)/glassfish3
 SERVICE_USER ?= kbase
+TPAGE ?= $(DEPLOY_RUNTIME)/bin/tpage
 
 ASADMIN = $(GLASSFISH_HOME)/glassfish/bin/asadmin
 
@@ -99,7 +100,7 @@ compile-typespec:
 
 # configure endpoints used by scripts, and possibly other script runtime options in the future
 configure-scripts:
-	$(DEPLOY_RUNTIME)/bin/tpage \
+	$(TPAGE) \
 		--define defaultURL=$(DEFAULT_SCRIPT_URL) \
 		--define localhostURL=http://127.0.0.1:$(SERVICE_PORT) \
 		--define devURL=$(DEV_SCRIPT_URL) \
