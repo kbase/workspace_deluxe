@@ -3,8 +3,8 @@ Created on Apr 27, 2014
 
 @author: crusherofheads
 
-Calculate disk usage by user, separated into public vs. private and
-deleted vs. undeleted data.
+Calculate disk usage and object counts  by user, separated into public vs.
+private and deleted vs. undeleted data.
 
 These figures are not actually related to the physical disk space for three
 reasons:
@@ -15,11 +15,12 @@ reasons:
 3) Only actual data objects are included (e.g. data stored in GridFS or Shock).
     Any data stored in MongoDB (other than GridFS files) is not included.
 
+All versions are included in the counts and disk usage statistics.
+
 Don't run this during high loads - runs through every object in the DB
 Hasn't been optimized much either
 '''
 
-# TODO: all this needs a rewrite
 # TODO: public vs. private, deleted vs undeleted
 # TODO: same for object counts
 
@@ -51,6 +52,11 @@ COL_VERS = 'workspaceObjVersions'
 
 PUBLIC = 'pub'
 PRIVATE = 'priv'
+
+WS_OBJ_CNT = 'numObj'
+DELETED = 'del'
+OWNER = 'owner'
+
 
 LIMIT = 10000
 OR_QUERY_SIZE = 100  # 75 was slower, 150 was slower
@@ -124,16 +130,20 @@ def get_config():
 
 
 def process_workspaces(db):
-    ws_cursor = db[COL_WS].find({}, ['ws', 'numObj', 'owner', 'del'])
-    pub_read = db[COL_ACLS].find({'user': '*'}, ['id'])
+    ws_id = 'ws'
+    user = 'user'
+    all_users = '*'
+    acl_id = 'id'
+    ws_cursor = db[COL_WS].find({}, [ws_id, WS_OBJ_CNT, OWNER, DELETED])
+    pub_read = db[COL_ACLS].find({user: all_users}, [acl_id])
     workspaces = defaultdict(dict)
     for ws in ws_cursor:
-        workspaces[ws['ws']]['pub'] = False
-        workspaces[ws['ws']]['numObj'] = ws['numObj']
-        workspaces[ws['ws']]['owner'] = ws['owner']
-        workspaces[ws['ws']]['del'] = ws['del']
+        workspaces[ws[ws_id]][PUBLIC] = False
+        workspaces[ws[ws_id]][WS_OBJ_CNT] = ws[WS_OBJ_CNT]
+        workspaces[ws[ws_id]][OWNER] = ws[OWNER]
+        workspaces[ws[ws_id]][DELETED] = ws[DELETED]
     for pr in pub_read:
-        workspaces[pr['id']]['pub'] = True
+        workspaces[pr[acl_id]][PUBLIC] = True
     return workspaces
 
 
