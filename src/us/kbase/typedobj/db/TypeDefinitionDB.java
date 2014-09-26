@@ -2231,7 +2231,11 @@ public class TypeDefinitionDB {
 		} else if (newType instanceof KbMapping) {
 			KbMapping oldIType = (KbMapping)oldType;
 			KbMapping newIType = (KbMapping)newType;
-			return findChange(oldIType.getValueType(), newIType.getValueType());
+			Change keyChange = findChange(oldIType.getKeyType(), newIType.getKeyType());
+			if (keyChange == Change.notCompatible)
+				return keyChange;
+			Change valueChange = findChange(oldIType.getValueType(), newIType.getValueType());
+			return Change.joinChanges(keyChange, valueChange);
 		} else if (newType instanceof KbTuple) {
 			KbTuple oldIType = (KbTuple)oldType;
 			KbTuple newIType = (KbTuple)newType;

@@ -73,18 +73,18 @@ public class TypeRegisteringTest {
 		for (boolean useMongoParam : storageParams) {
 			TypeRegisteringTest test = new TypeRegisteringTest(useMongoParam);
 			String[] methods = {
-//					"testSimple",
-//					"testDescr",
-//					"testBackward",
-//					"testRollback",
-//					"testRestrict",
-//					"testMD5",
-//					"testRegistration",
+					"testSimple",
+					"testDescr",
+					"testBackward",
+					"testRollback",
+					"testRestrict",
+					"testMD5",
+					"testRegistration",
 					"testError",
-//					"testStop",
-//					"testDeps",
-//					"testOwnership",
-//					"testEmpty",
+					"testStop",
+					"testDeps",
+					"testOwnership",
+					"testEmpty",
 			};
 			for (String method : methods) {
 				System.out.println("o-------------------------------------------------------");
@@ -314,6 +314,17 @@ public class TypeRegisteringTest {
 		Map<String, String> map4 = asMap(db.releaseModule(annMod, adminUser, false));
 		Assert.assertEquals("4.0", map4.get("Annotations.type2"));
 		Assert.assertEquals("3.0", map4.get("Annotations.type3"));
+		// Id refs
+		String exprName = "Expression";
+		String exprSpec = loadSpec("backward", exprName);
+		initModule(exprName, adminUser);
+		db.registerModule(exprSpec, Arrays.asList("ExpressionSeries"), adminUser);
+		db.releaseModule(exprName, adminUser, false);
+		checkTypeVer(exprName, "ExpressionSeries", "1.0");
+		exprSpec = loadSpec("backward", exprName, "2");
+		db.registerModule(exprSpec, Collections.<String>emptyList(), adminUser);
+		db.releaseModule(exprName, adminUser, false);
+		checkTypeVer(exprName, "ExpressionSeries", "2.0");
 	}
 	
 	private static Map<String, String> asMap(List<AbsoluteTypeDefId> list) {
