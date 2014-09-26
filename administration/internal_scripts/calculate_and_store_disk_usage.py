@@ -21,6 +21,7 @@ Hasn't been optimized much either
 
 # TODO: all this needs a rewrite
 # TODO: public vs. private, deleted vs undeleted
+# TODO: same for object counts
 
 
 from __future__ import print_function
@@ -32,14 +33,15 @@ import os
 from collections import defaultdict
 
 # where to get credentials (don't check these into git, idiot)
-DEFAULT_CFG_FILE = 'usage.cfg'
+CFG_FILE_DEFAULT = 'usage.cfg'
 CFG_SECTION_SOURCE = 'SourceMongo'
 CFG_SECTION_TARGET = 'TargetMongo'
 
-HOST = 'host'
-PORT = 'port'
-USER = 'user'
-PWD = 'pwd'
+CFG_HOST = 'host'
+CFG_PORT = 'port'
+CFG_DB = 'db'
+CFG_USER = 'user'
+CFG_PWD = 'pwd'
 
 # collection names
 COL_WS = 'workspaces'
@@ -87,7 +89,7 @@ def get_config():
     if len(sys.argv) > 1:
         cfgfile = sys.argv[1]
     else:
-        cfgfile = DEFAULT_CFG_FILE
+        cfgfile = CFG_FILE_DEFAULT
     if not os.path.isfile(cfgfile) and not os.access(cfgfile, os.R_OK):
         print ('Cannot read file ' + cfgfile)
         sys.exit(1)
@@ -100,26 +102,36 @@ def get_config():
             print('Missing config section {} from file {}'.format(
                   sec, cfgfile))
             sys.exit(1)
-        for key in (HOST, PORT):
+        for key in (CFG_HOST, CFG_PORT, CFG_DB):
             v = co[sec].get(key)
             if v == '' or v is None:
                 print('Missing config value {}.{} from file {}'.format(
                     sec, key, cfgfile))
                 sys.exit(1)
+        try:
+            co[sec][CFG_PORT] = int(co[sec][CFG_PORT])
+        except ValueError:
+            print('Port {} is not a valid port number at {}.{}'.format(
+                co[sec][CFG_PORT], sec, CFG_PORT))
     for sec in (s, t):
-        u = process_optional_key(co, sec, USER)
-        p = process_optional_key(co, sec, PWD)
+        u = process_optional_key(co, sec, CFG_USER)
+        p = process_optional_key(co, sec, CFG_PWD)
         if u is not None and p is None:
             print ('If {} specified, {} must be specified in section '.format(
-                USER, PWD) + '{} from file {}'.format(sec, cfgfile))
+                CFG_USER, CFG_PWD) + '{} from file {}'.format(sec, cfgfile))
             sys.exit(1)
-    return ConfigObj(cfgfile)[s], ConfigObj(cfgfile)[t]
+    return co[s], co[t]
 
 
 def main():
     sourcecfg, targetcfg = get_config()
-    print(sourcecfg)
-    print(targetcfg)
+    starttime = time.time()
+    srcmongo = MongoClient(sourcecfg[CFG_HOST], sourcecfg[CFG_PORT],
+                           slaveOk=True)
+    srcdb = srcmongo[sourcecfg[CFG_DB]]
+    if sourcecfg[CFG_USER]:
+        srcdb.authenticate(sourcecfg[CFG_USER], sourcecfg[CFG_PWD])
+    print(srcdb[COL_WS].find_one())
 
 if __name__ == '__main__':
     main()
