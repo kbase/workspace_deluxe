@@ -123,6 +123,20 @@ def get_config():
     return co[s], co[t]
 
 
+def process_workspaces(db):
+    ws_cursor = db[COL_WS].find({}, ['ws', 'numObj', 'owner', 'del'])
+    pub_read = db[COL_ACLS].find({'user': '*'}, ['id'])
+    workspaces = defaultdict(dict)
+    for ws in ws_cursor:
+        workspaces[ws['ws']]['pub'] = False
+        workspaces[ws['ws']]['numObj'] = ws['numObj']
+        workspaces[ws['ws']]['owner'] = ws['owner']
+        workspaces[ws['ws']]['del'] = ws['del']
+    for pr in pub_read:
+        workspaces[pr['id']]['pub'] = True
+    return workspaces
+
+
 def main():
     sourcecfg, targetcfg = get_config()
     starttime = time.time()
@@ -131,7 +145,8 @@ def main():
     srcdb = srcmongo[sourcecfg[CFG_DB]]
     if sourcecfg[CFG_USER]:
         srcdb.authenticate(sourcecfg[CFG_USER], sourcecfg[CFG_PWD])
-    print(srcdb[COL_WS].find_one())
+    ws = process_workspaces(srcdb)
+    print(ws)
 
 if __name__ == '__main__':
     main()
