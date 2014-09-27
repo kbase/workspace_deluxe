@@ -21,9 +21,6 @@ Don't run this during high loads - runs through every object in the DB
 Hasn't been optimized much either
 '''
 
-# TODO: public vs. private, deleted vs undeleted
-# TODO: same for object counts
-
 
 from __future__ import print_function
 from configobj import ConfigObj
@@ -57,10 +54,13 @@ WS_OBJ_CNT = 'numObj'
 DELETED = 'del'
 OWNER = 'owner'
 
+OBJ_CNT = 'objs'
+BYTES = 'b'
+
 
 LIMIT = 10000
 OR_QUERY_SIZE = 100  # 75 was slower, 150 was slower
-MAX_WS = -1  # for testing, set to < 1 for all ws
+MAX_WS = 10  # for testing, set to < 1 for all ws
 
 
 def chunkiter(iterable, size):
@@ -147,6 +147,67 @@ def process_workspaces(db):
     return workspaces
 
 
+def process_object_versions(db, userdata, objects, workspaces):
+    # note all objects are from the same workspace
+    obj_id = 'id'
+    ws_id = 'ws'
+    size = 'size'
+    odel = {}
+    ws = objects[0][ws_id]  # all objects in same ws
+    wsowner = workspaces[ws][OWNER]
+    wspub = workspaces[ws][PUBLIC]
+    vers = 0
+    for objs in chunkiter(objects, OR_QUERY_SIZE):
+        ids = []
+        for o in objs:
+            ids.append(o[obj_id])
+            odel[o[obj_id]] = o[DELETED]
+        res = db[COL_VERS].find({ws_id: ws, obj_id: {'$in': ids}},
+                                [ws_id, obj_id, size])
+        for v in res:
+            vers += 1
+            deleted = odel[v[obj_id]]
+            userdata[wsowner][wspub][deleted][OBJ_CNT] += 1
+            userdata[wsowner][wspub][deleted][BYTES] += v[size]
+    return vers
+
+
+def process_objects(db, workspaces):
+    ws_id = 'ws'
+    obj_id = 'id'
+    # user -> pub -> del -> du or objs -> #
+    d = defaultdict(lambda: defaultdict(lambda: defaultdict(
+        lambda: defaultdict(int))))
+    wscount = 0
+    for ws in workspaces:
+        if MAX_WS > 0 and wscount > MAX_WS:
+            break
+        wsobjcount = workspaces[ws][WS_OBJ_CNT]
+        print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
+        for lim in xrange(LIMIT, wsobjcount + LIMIT, LIMIT):
+            print('\tProcessing objects {} - {}'.format(
+                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim))
+            sys.stdout.flush()
+            objtime = time.time()
+            query = {ws_id: ws, obj_id: {'$gt': lim - LIMIT, '$lte': lim}}
+            objs = db[COL_OBJ].find(query, [ws_id, obj_id, DELETED])
+            print('\ttotal obj query time: ' + str(time.time() - objtime))
+            ttlstart = time.time()
+            vers = process_object_versions(db, d, objs, workspaces)
+#             size, objsproc = process_objects(
+#                 objs, unique_users, types, workspaces)
+
+#             total_size += size
+            print('\ttotal ver query time: ' + str(time.time() - ttlstart))
+            print('\ttotal object versions: ' + str(vers))
+#             print('\tobjects processed: ' + str(objsproc))
+#             objcount += objsproc
+#             print('total objects processed: ' + str(objcount))
+            sys.stdout.flush()
+        wscount += 1
+    return d
+
+
 def main():
     sourcecfg, targetcfg = get_config()
     starttime = time.time()
@@ -156,99 +217,28 @@ def main():
     if sourcecfg[CFG_USER]:
         srcdb.authenticate(sourcecfg[CFG_USER], sourcecfg[CFG_PWD])
     ws = process_workspaces(srcdb)
-    print(ws)
+
+    objdata = process_objects(srcdb, ws)
+    print(objdata)
+    print('name', 'pub', 'del', 'type', '#')
+    for n in objdata:
+        for pub in sorted(objdata[n], reverse=True):
+            for deleted in sorted(objdata[n][pub], reverse=True):
+                for t in sorted(objdata[n][pub][deleted]):
+                    print(n, pub, deleted, t, objdata[n][pub][deleted][t])
+    # print time, object data
 
 if __name__ == '__main__':
     main()
 
-# everything below here is not scottish
+def todostuff():
 
-def process_objects(objs, unique_users, types, workspaces):
-    objsproc = 0
-    size = 0
-    # note all objects are from the same workspace
-    for objs in chunkiter(objs, OR_QUERY_SIZE):
-        innerq = []
-        for o in objs:
-            innerq.append({'id': o['id'], 'ver': o['numver']})
-        res = db[COL_VERS].find({'ws': o['ws'], '$or': innerq},
-                                ['type', 'ws', 'savedby', 'size'])
-        for v in res:
-            unique_users.add(v['savedby'])
-            size += v['size']
-            tname, ver = v['type'].split('-')
-            if tname not in types:
-                types[tname] = {}
-            if ver not in types[tname]:
-                types[tname][ver] = {}
-                types[tname][ver][PUBLIC] = 0
-                types[tname][ver][PRIVATE] = 0
-            p = PUBLIC if workspaces[v['ws']]['pub'] else PRIVATE
-            types[tname][ver][p] += 1
-            objsproc += 1
-    return size, objsproc
-
-
-if __name__ == '__main__':
-    cfg = ConfigObj(CREDS_FILE)
-    user = cfg[CREDS_SECTION][USER]
-    pwd = cfg[CREDS_SECTION][PWD]
-    starttime = time.time()
-    mongo = MongoClient(WS_MONGO_HOST, WS_MONGO_PORT, slaveOk=True)
-    db = mongo[WS_MONGO_DB]
-    db.authenticate(user, pwd)
-    # may need to do this in chunks in the future, for now there's
-    # < 2000 workspaces
-    ws_cursor = db[COL_WS].find({'del': False}, ['ws', 'numObj'])
-    pub_read = db[COL_ACLS].find({'user': '*'}, ['id'])
-    workspaces = defaultdict(dict)
-    for ws in ws_cursor:
-        workspaces[ws['ws']]['pub'] = False
-        workspaces[ws['ws']]['numObj'] = ws['numObj']
-    for pr in pub_read:
-        if pr['id'] in workspaces:  # otherwise deleted
-            workspaces[pr['id']]['pub'] = True
-    print('Total workspaces: ' + str(len(workspaces)))
-    print("Total objects: " + str(db[COL_OBJ].count()))
-    types = {}
-    wscount = 0
-    objcount = 0
-    unique_users = set()
-    total_size = 0
-    for ws in workspaces:
-        if MAX_WS > 0 and wscount > MAX_WS:
-            break
-        wsobjcount = workspaces[ws]['numObj']
-        print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
-        for lim in xrange(LIMIT, wsobjcount + LIMIT, LIMIT):
-            print('\tProcessing objects {} - {}'.format(
-                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim))
-            sys.stdout.flush()
-            objtime = time.time()
-            query = {'del': False, 'ws': ws,
-                     'id': {'$gt': lim - LIMIT, '$lte': lim}}
-            objs = db[COL_OBJ].find(query, ['ws', 'id', 'numver'])
-            print('\ttotal obj query time: ' + str(time.time() - objtime))
-            ttlstart = time.time()
-
-            size, objsproc = process_objects(
-                objs, unique_users, types, workspaces)
-
-            total_size += size
-            print('\ttotal ver query time: ' + str(time.time() - ttlstart))
-            print('\tobjects processed: ' + str(objsproc))
-            objcount += objsproc
-            print('total objects processed: ' + str(objcount))
-            sys.stdout.flush()
-        wscount += 1
-
+    starttime = 0
     pubws = 0
     privws = 0
-    for ws in workspaces:
-        if workspaces[ws]['pub']:
-            pubws += 1
-        else:
-            privws += 1
+    unique_users = 0
+    total_size = 0
+    types = 0
 
     print('\nElapsed time: ' + str(time.time() - starttime))
 
