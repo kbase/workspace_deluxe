@@ -27,7 +27,7 @@ NEW FEATURES:
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where adding an @id annotation to the key of a mapping would
   result in a minor version increment vs. the expected major version increment.
-- Fixed a bug where a bad workspce @id (unparsable, deleted object, etc) with
+- Fixed a bug where a bad workspace @id (unparsable, deleted object, etc) with
   allowed types specified in the typespec would cause a NPE rather than a
   useful typechecking error.
 
