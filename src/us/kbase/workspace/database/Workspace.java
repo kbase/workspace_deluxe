@@ -1564,17 +1564,8 @@ public class Workspace {
 						oi = parser.parse(id);
 						//Illegal arg is probably not the right exception
 					} catch (IllegalArgumentException iae) {
-						final Set<List<String>> attribset =
-								ids.get(assObj).get(id);
-						final List<String> attribs;
-						if (attribset.isEmpty()) {
-							attribs = null;
-						} else {
-							//doesn't matter which attribute set we pick -
-							//if the id doesn't parse it doesn't parse 
-							//everywhere
-							attribs = attribset.iterator().next();
-						}
+						final List<String> attribs =
+								getAnyAttributeSet(assObj, id);
 						throw new IdParseException(iae.getMessage(),
 								getIdType(), assObj, id, attribs, iae);
 					}
@@ -1596,6 +1587,22 @@ public class Workspace {
 					remapped.put(id, tnr.getReference());
 				}
 			}
+		}
+
+		//use this method when an ID is bad regardless of the attribute set
+		//parse error, deleted object, etc.
+		private List<String> getAnyAttributeSet(final T assObj, final String id) {
+			final List<String> attribs;
+			final Set<List<String>> attribset =
+					ids.get(assObj).get(id);
+			if (attribset.isEmpty()) {
+				attribs = null;
+			} else {
+				//doesn't matter which attribute set we pick -
+				//if the id is bad it's bad everywhere
+				attribs = attribset.iterator().next();
+			}
+			return attribs;
 		}
 
 		private void typeCheckReference(
@@ -1704,10 +1711,12 @@ public class Workspace {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = parser.parse(id);
 					if (oi.equals(originalObject)) {
+						final List<String> attribs =
+								getAnyAttributeSet(assObj, id);
 						return new IdReferenceException(
 								exception + id + ": " + ioe.getMessage(),
 								getIdType(), assObj,
-								id, null, ioe); //TODO 1 bug possible bug, test with type
+								id, attribs, ioe);
 					}
 				}
 			}
