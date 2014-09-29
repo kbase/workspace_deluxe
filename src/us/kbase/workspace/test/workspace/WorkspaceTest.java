@@ -2064,6 +2064,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(user, wsi, objs, new TypedObjectValidationException(
 				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2, WsIDHandling.Type3] at /ws_23/0"));
 		
+		
+		//test id path returns on parse and inaccessible object exceptions
+		data.put("ws_23", Arrays.asList(ref2, ref3));
+		innertuple.set(0, Arrays.asList("foo", "YourMotherWasAHamster"));
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has unparseable reference YourMotherWasAHamster: Illegal number of separators / in object reference YourMotherWasAHamster at /ws_2/0/1"));
+		
+		//TODO 1 check coverage
 	}
 	
 	@Test

@@ -21,6 +21,7 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -748,8 +749,15 @@ public class Workspace {
 	private String getIDPath(TypedObjectValidationReport r,
 			IdReference<String> idReference) {
 		try {
-			return r.getIdReferenceLocation(idReference)
-					.getFullLocationAsString();
+			final JsonDocumentLocation loc = r.getIdReferenceLocation(
+					idReference);
+			if (loc == null) {
+				return "[An error occured when attemping to get the " +
+						"location of the id. Please report this to the " +
+						"server admin or help desk]";
+			} else {
+				return loc.getFullLocationAsString();
+			}
 		} catch (IOException ioe) {
 			return "[IO error getting path]";
 		}
@@ -1556,8 +1564,19 @@ public class Workspace {
 						oi = parser.parse(id);
 						//Illegal arg is probably not the right exception
 					} catch (IllegalArgumentException iae) {
+						final Set<List<String>> attribset =
+								ids.get(assObj).get(id);
+						final List<String> attribs;
+						if (attribset.isEmpty()) {
+							attribs = null;
+						} else {
+							//doesn't matter which attribute set we pick -
+							//if the id doesn't parse it doesn't parse 
+							//everywhere
+							attribs = attribset.iterator().next();
+						}
 						throw new IdParseException(iae.getMessage(),
-								getIdType(), assObj, id, null, iae);
+								getIdType(), assObj, id, attribs, iae);
 					}
 					idset.add(oi);
 				}
@@ -1688,7 +1707,7 @@ public class Workspace {
 						return new IdReferenceException(
 								exception + id + ": " + ioe.getMessage(),
 								getIdType(), assObj,
-								id, null, ioe);
+								id, null, ioe); //TODO 1 bug possible bug, test with type
 					}
 				}
 			}
