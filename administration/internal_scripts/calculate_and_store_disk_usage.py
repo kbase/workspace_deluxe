@@ -29,7 +29,6 @@ import time
 import sys
 import os
 from collections import defaultdict
-import datetime
 
 # where to get credentials (don't check these into git, idiot)
 CFG_FILE_DEFAULT = 'usage.cfg'
@@ -61,7 +60,7 @@ BYTES = 'b'
 
 LIMIT = 10000
 OR_QUERY_SIZE = 100  # 75 was slower, 150 was slower
-MAX_WS = 10  # for testing, set to < 1 for all ws
+MAX_WS = -1  # for testing, set to < 1 for all ws
 
 
 def chunkiter(iterable, size):
@@ -245,26 +244,30 @@ def main():
 
     objdata = process_objects(srcdb, ws)
 #     print(objdata)
-    print('name', 'pub', 'del', 'type', '#')
-    for name_ in objdata:
-        for pub in sorted(objdata[name_], reverse=True):
-            for deleted in sorted(objdata[name_][pub], reverse=True):
-                for t in sorted(objdata[name_][pub][deleted]):
-                    print(name_, pub, deleted, t, objdata[name_][pub][deleted][t])
+#     print('name', 'pub', 'del', 'type', '#')
+#     for name_ in sorted(objdata):
+#         for pub in sorted(objdata[name_], reverse=True):
+#             for deleted in sorted(objdata[name_][pub], reverse=True):
+#                 for t in sorted(objdata[name_][pub][deleted]):
+#                     print(name_, pub, deleted, t,
+#                           objdata[name_][pub][deleted][t])
     rows = [['user',
              'pub-bytes', 'pub-#', 'pub-del-bytes', 'pub-del-#',
              'priv-bytes', 'priv-#', 'priv-del-bytes', 'priv-del-#']]
 
     print('\nElapsed time: ' + str(time.time() - starttime))
-    for name_ in objdata:
+    for name_ in sorted(objdata):
         row = [name_]
         rows.append(row)
-        for pub in sorted(objdata[name_], reverse=True):
-            for deleted in sorted(objdata[name_][pub], reverse=True):
-                for t in sorted(objdata[name_][pub][deleted]):
-                    row.append(str(objdata[name_][pub][deleted][t]))
+        row.append(str(objdata[name_][True][False][BYTES]))
+        row.append(str(objdata[name_][True][False][OBJ_CNT]))
+        row.append(str(objdata[name_][True][True][BYTES]))
+        row.append(str(objdata[name_][True][True][OBJ_CNT]))
+        row.append(str(objdata[name_][False][False][BYTES]))
+        row.append(str(objdata[name_][False][False][OBJ_CNT]))
+        row.append(str(objdata[name_][False][True][BYTES]))
+        row.append(str(objdata[name_][False][True][OBJ_CNT]))
 
-    print(rows)
     print_table(rows)
     # print time, object data
 
