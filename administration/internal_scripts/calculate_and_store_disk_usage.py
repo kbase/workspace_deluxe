@@ -29,6 +29,7 @@ import time
 import sys
 import os
 from collections import defaultdict
+import datetime
 
 # where to get credentials (don't check these into git, idiot)
 CFG_FILE_DEFAULT = 'usage.cfg'
@@ -147,28 +148,32 @@ def process_workspaces(db):
     return workspaces
 
 
-def process_object_versions(db, userdata, objects, workspaces):
+def process_object_versions(db, userdata, objects, workspaces,
+                            start_id, end_id):
     # note all objects are from the same workspace
     obj_id = 'id'
     ws_id = 'ws'
     size = 'size'
+
     odel = {}
-    ws = objects[0][ws_id]  # all objects in same ws
+    for o in objects:
+        odel[o[obj_id]] = o[DELETED]
+    if not odel:
+        return 0
+
+    ws = o[ws_id]  # all objects in same ws
     wsowner = workspaces[ws][OWNER]
     wspub = workspaces[ws][PUBLIC]
+
+    res = db[COL_VERS].find({ws_id: ws,
+                             obj_id: {'$gt': start_id, '$lte': end_id}},
+                            [ws_id, obj_id, size])
     vers = 0
-    for objs in chunkiter(objects, OR_QUERY_SIZE):
-        ids = []
-        for o in objs:
-            ids.append(o[obj_id])
-            odel[o[obj_id]] = o[DELETED]
-        res = db[COL_VERS].find({ws_id: ws, obj_id: {'$in': ids}},
-                                [ws_id, obj_id, size])
-        for v in res:
-            vers += 1
-            deleted = odel[v[obj_id]]
-            userdata[wsowner][wspub][deleted][OBJ_CNT] += 1
-            userdata[wsowner][wspub][deleted][BYTES] += v[size]
+    for v in res:
+        vers += 1
+        deleted = odel[v[obj_id]]
+        userdata[wsowner][wspub][deleted][OBJ_CNT] += 1
+        userdata[wsowner][wspub][deleted][BYTES] += v[size]
     return vers
 
 
@@ -184,17 +189,20 @@ def process_objects(db, workspaces):
         if MAX_WS > 0 and wscount > MAX_WS:
             break
         wsobjcount = workspaces[ws][WS_OBJ_CNT]
-        print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
+        print('\nProcessing workspace {}, {} objects'.format(
+            ws, wsobjcount))
         for lim in xrange(LIMIT, wsobjcount + LIMIT, LIMIT):
-            print('\tProcessing objects {} - {}'.format(
-                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim))
+            print('\tProcessing objects {} - {} at {}'.format(
+                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim,
+                datetime.datetime.now()))
             sys.stdout.flush()
             objtime = time.time()
             query = {ws_id: ws, obj_id: {'$gt': lim - LIMIT, '$lte': lim}}
             objs = db[COL_OBJ].find(query, [ws_id, obj_id, DELETED])
             print('\ttotal obj query time: ' + str(time.time() - objtime))
             ttlstart = time.time()
-            vers = process_object_versions(db, d, objs, workspaces)
+            vers = process_object_versions(db, d, objs, workspaces,
+                                           lim - LIMIT, lim)
 #             size, objsproc = process_objects(
 #                 objs, unique_users, types, workspaces)
 
