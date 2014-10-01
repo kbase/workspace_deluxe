@@ -1983,7 +1983,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsIDHandling");
-		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		Provenance emptyprov = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(3);
@@ -2064,6 +2064,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(user, wsi, objs, new TypedObjectValidationException(
 				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2, WsIDHandling.Type3] at /ws_23/0"));
 		
+		
+		//test id path returns on parse and inaccessible object exceptions
+		data.put("ws_23", Arrays.asList(ref2, ref3));
+		innertuple.set(0, Arrays.asList("foo", "YourMotherWasAHamster"));
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has unparseable reference YourMotherWasAHamster: Illegal number of separators / in object reference YourMotherWasAHamster at /ws_2/0/1"));
+		
+		innertuple.set(0, Arrays.asList("foo", ref2));
+		data.remove("ws_any");
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, "t1")), true);
+		failSave(user, wsi, objs, new TypedObjectValidationException(
+				"Object #1 has invalid reference: There is no object with id wsIDHandling/t1: Object 1 (name t1) in workspace " +
+						wsid + " has been deleted at /ws_12/0"));
 	}
 	
 	@Test
