@@ -2624,7 +2624,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		setWSownerParams.put("new_name", "setWSOwnerParams");
 		adminParams.put("command", "setWorkspaceOwner");
 		adminParams.put("params", setWSownerParams);
-		CLIENT2.administer(new UObject(adminParams));
+		wsinfo = CLIENT2.administer(new UObject(adminParams)).asClassInstance(typeref);
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "setWSOwnerParams", USER2, 1, "a", "r", "unlocked", "mydesc", MT_META);
 		wsi = new WorkspaceIdentity().withWorkspace("setWSOwnerParams");
 		assertThat("owner changed correctly", CLIENT1.getWorkspaceInfo(wsi).getE3(), is(USER2));
 		

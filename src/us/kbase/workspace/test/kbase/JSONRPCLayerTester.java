@@ -400,7 +400,7 @@ public class JSONRPCLayerTester {
 		assertThat("moddates correct", info.getE4(), is(moddate));
 		assertThat("ws name correct", info.getE2(), is(name));
 		assertThat("user name correct", info.getE3(), is(user));
-		assertThat("obj counts are 0", info.getE5(), is(objects));
+		assertThat("obj counts correct", info.getE5(), is(objects));
 		assertThat("permission correct", info.getE6(), is(perm));
 		assertThat("global read correct", info.getE7(), is(globalperm));
 		assertThat("lockstate correct", info.getE8(), is(lockstat));
