@@ -59,6 +59,7 @@ public class MongoProvenance extends Provenance {
 			setWorkspaceObjects(pa.getWorkspaceObjects());
 			setIncomingArgs(pa.getIncomingArgs());
 			setOutgoingArgs(pa.getOutgoingArgs());
+			setExternalData(pa.getExternalData());
 			setDescription(pa.getDescription());
 		}
 		
@@ -80,14 +81,37 @@ public class MongoProvenance extends Provenance {
 
 		@Override
 		public String toString() {
-			return "MongoProvenanceAction [resolvedObjs=" + resolvedObjs
-					+ ", time=" + time + ", service=" + service
-					+ ", serviceVersion=" + serviceVersion + ", method="
-					+ method + ", methodParameters=" + methodParameters
-					+ ", script=" + script + ", scriptVersion=" + scriptVersion
-					+ ", commandLine=" + commandLine + ", wsobjs=" + wsobjs
-					+ ", incomingArgs=" + incomingArgs + ", outgoingArgs="
-					+ outgoingArgs + ", description=" + description + "]";
+			StringBuilder builder = new StringBuilder();
+			builder.append("MongoProvenanceAction [resolvedObjs=");
+			builder.append(resolvedObjs);
+			builder.append(", time=");
+			builder.append(time);
+			builder.append(", service=");
+			builder.append(service);
+			builder.append(", serviceVersion=");
+			builder.append(serviceVersion);
+			builder.append(", method=");
+			builder.append(method);
+			builder.append(", methodParameters=");
+			builder.append(methodParameters);
+			builder.append(", script=");
+			builder.append(script);
+			builder.append(", scriptVersion=");
+			builder.append(scriptVersion);
+			builder.append(", commandLine=");
+			builder.append(commandLine);
+			builder.append(", wsobjs=");
+			builder.append(wsobjs);
+			builder.append(", incomingArgs=");
+			builder.append(incomingArgs);
+			builder.append(", outgoingArgs=");
+			builder.append(outgoingArgs);
+			builder.append(", description=");
+			builder.append(description);
+			builder.append(", externalData=");
+			builder.append(externalData);
+			builder.append("]");
+			return builder.toString();
 		}
 	}
 }

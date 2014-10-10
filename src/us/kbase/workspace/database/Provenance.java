@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import us.kbase.common.exceptions.UnimplementedException;
 
+//TODO unit tests
+
 public class Provenance {
 	
 	private String user;
@@ -49,9 +51,143 @@ public class Provenance {
 	
 	@Override
 	public String toString() {
-		return "Provenance [user=" + user + ", actions=" + actions + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("Provenance [user=");
+		builder.append(user);
+		builder.append(", date=");
+		builder.append(date);
+		builder.append(", actions=");
+		builder.append(actions);
+		builder.append("]");
+		return builder.toString();
 	}
 
+	public static class ExternalData {
+		
+		private String resourceName;
+		private String resourceUrl;
+		private String resourceVersion;
+		private Date resourceReleaseDate;
+		private String dataUrl;
+		private String dataId;
+		private String description;
+		
+		public ExternalData() {}
+
+		public String getResourceName() {
+			return resourceName;
+		}
+
+		public void setResourceName(String resourceName) {
+			this.resourceName = resourceName;
+		}
+		
+		public ExternalData withResourceName(String resourceName) {
+			this.resourceName = resourceName;
+			return this;
+		}
+
+		public String getResourceUrl() {
+			return resourceUrl;
+		}
+
+		public void setResourceUrl(String resourceUrl) {
+			this.resourceUrl = resourceUrl;
+		}
+
+		public ExternalData withResourceUrl(String resourceUrl) {
+			this.resourceUrl = resourceUrl;
+			return this;
+		}
+
+		public String getResourceVersion() {
+			return resourceVersion;
+		}
+
+		public void setResourceVersion(String resourceVersion) {
+			this.resourceVersion = resourceVersion;
+		}
+		
+		public ExternalData withResourceVersion(String resourceVersion) {
+			this.resourceVersion = resourceVersion;
+			return this;
+		}
+
+		public Date getResourceReleaseDate() {
+			return resourceReleaseDate;
+		}
+		
+
+		public void setResourceReleaseDate(Date resourceReleaseDate) {
+			this.resourceReleaseDate = resourceReleaseDate;
+		}
+
+		public ExternalData withResourceReleaseDate(Date resourceReleaseDate) {
+			this.resourceReleaseDate = resourceReleaseDate;
+			return this;
+		}
+
+		public String getDataUrl() {
+			return dataUrl;
+		}
+
+		public void setDataUrl(String dataUrl) {
+			this.dataUrl = dataUrl;
+		}
+
+		public ExternalData withDataUrl(String dataUrl) {
+			this.dataUrl = dataUrl;
+			return this;
+		}
+
+		public String getDataId() {
+			return dataId;
+		}
+		
+		public void setDataId(String dataId) {
+			this.dataId = dataId;
+		}
+
+		public ExternalData withDataId(String dataId) {
+			this.dataId = dataId;
+			return this;
+		}
+
+		public String getDescription() {
+			return description;
+		}
+		
+		public void setDescription(String description) {
+			this.description = description;
+		}
+
+		public ExternalData withDescription(String description) {
+			this.description = description;
+			return this;
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("ExternalData [resourceName=");
+			builder.append(resourceName);
+			builder.append(", resourceUrl=");
+			builder.append(resourceUrl);
+			builder.append(", resourceVersion=");
+			builder.append(resourceVersion);
+			builder.append(", resourceReleaseDate=");
+			builder.append(resourceReleaseDate);
+			builder.append(", dataUrl=");
+			builder.append(dataUrl);
+			builder.append(", dataId=");
+			builder.append(dataId);
+			builder.append(", description=");
+			builder.append(description);
+			builder.append("]");
+			return builder.toString();
+		}
+	}
+	
 	public static class ProvenanceAction {
 		
 		protected Date time;
@@ -66,10 +202,12 @@ public class Provenance {
 		protected List<String> incomingArgs;
 		protected List<String> outgoingArgs;
 		protected String description;
+		protected List<ExternalData> externalData =
+				new LinkedList<ExternalData>();
 		
 		public ProvenanceAction() {}
 		
-		//copy constructor
+		//copy constructor - shallow copy
 		public ProvenanceAction(final ProvenanceAction action) {
 			time = action.time;
 			service = action.service;
@@ -83,6 +221,7 @@ public class Provenance {
 			incomingArgs = action.incomingArgs;
 			outgoingArgs = action.outgoingArgs;
 			description = action.description;
+			externalData = action.externalData;
 		}
 		
 		public Date getTime() {
@@ -250,6 +389,20 @@ public class Provenance {
 			this.description = description;
 			return this;
 		}
+		
+		public List<ExternalData> getExternalData() {
+			return externalData;
+		}
+
+		public void setExternalData(final List<ExternalData> externalData) {
+			this.externalData = externalData;
+		}
+		
+		public ProvenanceAction withExternalData(
+				final List<ExternalData> externalData) {
+			this.externalData = externalData;
+			return this;
+		}
 
 		// would prefer to make this abstract but Jackson doesn't like it
 		// and want to keep this class as unaware of the backend implementation
@@ -261,13 +414,35 @@ public class Provenance {
 
 		@Override
 		public String toString() {
-			return "ProvenanceAction [time=" + time + ", service=" + service
-					+ ", serviceVersion=" + serviceVersion + ", method="
-					+ method + ", methodParameters=" + methodParameters
-					+ ", script=" + script + ", scriptVersion=" + scriptVersion
-					+ ", commandLine=" + commandLine + ", wsobjs=" + wsobjs
-					+ ", incomingArgs=" + incomingArgs + ", outgoingArgs="
-					+ outgoingArgs + ", description=" + description + "]";
+			StringBuilder builder = new StringBuilder();
+			builder.append("ProvenanceAction [time=");
+			builder.append(time);
+			builder.append(", service=");
+			builder.append(service);
+			builder.append(", serviceVersion=");
+			builder.append(serviceVersion);
+			builder.append(", method=");
+			builder.append(method);
+			builder.append(", methodParameters=");
+			builder.append(methodParameters);
+			builder.append(", script=");
+			builder.append(script);
+			builder.append(", scriptVersion=");
+			builder.append(scriptVersion);
+			builder.append(", commandLine=");
+			builder.append(commandLine);
+			builder.append(", wsobjs=");
+			builder.append(wsobjs);
+			builder.append(", incomingArgs=");
+			builder.append(incomingArgs);
+			builder.append(", outgoingArgs=");
+			builder.append(outgoingArgs);
+			builder.append(", description=");
+			builder.append(description);
+			builder.append(", externalData=");
+			builder.append(externalData);
+			builder.append("]");
+			return builder.toString();
 		}
 	}
 }
