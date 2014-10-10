@@ -1527,9 +1527,18 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
 	description has a value which is a string
 timestamp is a string
 obj_ref is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
+	description has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1584,9 +1593,18 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
 	description has a value which is a string
 timestamp is a string
 obj_ref is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
+	description has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1868,6 +1886,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -1934,6 +1961,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2064,6 +2100,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2131,6 +2176,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2263,6 +2317,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2332,6 +2395,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2865,6 +2937,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -2933,6 +3014,15 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
+	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	description has a value which is a string
+ExternalDataUnit is a reference to a hash where the following keys are defined:
+	resource_name has a value which is a string
+	resource_url has a value which is a string
+	resource_version has a value which is a string
+	resource_release_date has a value which is a Workspace.timestamp
+	data_url has a value which is a string
+	data_id has a value which is a string
 	description has a value which is a string
 boolean is an int
 id_type is a string
@@ -8008,6 +8098,66 @@ a reference to a list containing 11 items:
 
 
 
+=head2 ExternalDataUnit
+
+=over 4
+
+
+
+=item Description
+
+An external data unit. A piece of data from a source outside the
+Workspace.
+
+string resource_name - the name of the resource, for example JGI.
+string resource_url - the url of the resource, for example
+        http://genome.jgi.doe.gov
+string resource_version - version of the resource
+timestamp resource_release_date - the release date of the resource
+string data_url - the url of the data, for example
+        http://genome.jgi.doe.gov/pages/dynamicOrganismDownload.jsf?
+                organism=BlaspURHD0036
+string data_id - the id of the data, for example
+        7625.2.79179.AGTTCC.adnq.fastq.gz
+string description - a free text description of the data.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+resource_name has a value which is a string
+resource_url has a value which is a string
+resource_version has a value which is a string
+resource_release_date has a value which is a Workspace.timestamp
+data_url has a value which is a string
+data_id has a value which is a string
+description has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+resource_name has a value which is a string
+resource_url has a value which is a string
+resource_version has a value which is a string
+resource_release_date has a value which is a Workspace.timestamp
+data_url has a value which is a string
+data_id has a value which is a string
+description has a value which is a string
+
+
+=end text
+
+=back
+
+
+
 =head2 ProvenanceAction
 
 =over 4
@@ -8062,6 +8212,9 @@ A provenance action.
                 unique ID here, in the order of the output values from this action.
                 These IDs can be used in the intermediate_incoming argument in the
                 next action.
+        list<ExternalDataUnit> external_data - data external to the workspace
+                that was either imported to the workspace or used to create a
+                workspace object.
         string description - a free text description of this action.
 
 
@@ -8083,6 +8236,7 @@ input_ws_objects has a value which is a reference to a list where each element i
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
+external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
 description has a value which is a string
 
 </pre>
@@ -8104,6 +8258,7 @@ input_ws_objects has a value which is a reference to a list where each element i
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
+external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
 description has a value which is a string
 
 
@@ -10289,8 +10444,6 @@ with_empty_modules has a value which is a Workspace.boolean
 
 package Bio::KBase::workspace::Client::RpcClient;
 use base 'JSON::RPC::Client';
-use POSIX;
-use strict;
 
 #
 # Override JSON::RPC::Client::call because it doesn't handle error returns properly.
@@ -10300,16 +10453,12 @@ sub call {
     my ($self, $uri, $obj) = @_;
     my $result;
 
-
-    {
-	if ($uri =~ /\?/) {
-	    $result = $self->_get($uri);
-	}
-	else {
-	    Carp::croak "not hashref." unless (ref $obj eq 'HASH');
-	    $result = $self->_post($uri, $obj);
-	}
-
+    if ($uri =~ /\?/) {
+       $result = $self->_get($uri);
+    }
+    else {
+        Carp::croak "not hashref." unless (ref $obj eq 'HASH');
+        $result = $self->_post($uri, $obj);
     }
 
     my $service = $obj->{method} =~ /^system\./ if ( $obj );

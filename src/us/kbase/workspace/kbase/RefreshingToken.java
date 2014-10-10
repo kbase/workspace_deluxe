@@ -38,6 +38,7 @@ public class RefreshingToken {
 	
 	public AuthToken getToken() throws AuthException, IOException {
 		if (new Date().getTime() - refreshDate.getTime() > refreshIntervalSec) {
+			//TODO 1 retry (in auth service client)
 			this.token = AuthService.login(user, password).getToken();
 			this.refreshDate = new Date();
 		}

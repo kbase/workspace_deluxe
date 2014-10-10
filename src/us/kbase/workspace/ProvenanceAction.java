@@ -61,6 +61,9 @@ import us.kbase.common.service.UObject;
  *                 unique ID here, in the order of the output values from this action.
  *                 These IDs can be used in the intermediate_incoming argument in the
  *                 next action.
+ *         list<ExternalDataUnit> external_data - data external to the workspace
+ *                 that was either imported to the workspace or used to create a
+ *                 workspace object.
  *         string description - a free text description of this action.
  * </pre>
  * 
@@ -80,6 +83,7 @@ import us.kbase.common.service.UObject;
     "resolved_ws_objects",
     "intermediate_incoming",
     "intermediate_outgoing",
+    "external_data",
     "description"
 })
 public class ProvenanceAction {
@@ -108,6 +112,8 @@ public class ProvenanceAction {
     private List<String> intermediateIncoming;
     @JsonProperty("intermediate_outgoing")
     private List<String> intermediateOutgoing;
+    @JsonProperty("external_data")
+    private List<ExternalDataUnit> externalData;
     @JsonProperty("description")
     private java.lang.String description;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -292,6 +298,21 @@ public class ProvenanceAction {
         return this;
     }
 
+    @JsonProperty("external_data")
+    public List<ExternalDataUnit> getExternalData() {
+        return externalData;
+    }
+
+    @JsonProperty("external_data")
+    public void setExternalData(List<ExternalDataUnit> externalData) {
+        this.externalData = externalData;
+    }
+
+    public ProvenanceAction withExternalData(List<ExternalDataUnit> externalData) {
+        this.externalData = externalData;
+        return this;
+    }
+
     @JsonProperty("description")
     public java.lang.String getDescription() {
         return description;
@@ -319,7 +340,7 @@ public class ProvenanceAction {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", externalData=")+ externalData)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

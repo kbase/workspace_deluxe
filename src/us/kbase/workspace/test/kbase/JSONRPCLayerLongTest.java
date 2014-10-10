@@ -32,7 +32,6 @@ import us.kbase.kidl.KbUnspecifiedObject;
 import us.kbase.kidl.KbStruct;
 import us.kbase.kidl.KbStructItem;
 import us.kbase.kidl.KbType;
-import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -40,9 +39,6 @@ import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SubObjectIdentity;
-import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.SubObjectIdentifier;
-import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.test.workspace.WorkspaceTest;
 
 import com.fasterxml.jackson.core.JsonEncoding;
