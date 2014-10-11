@@ -20,6 +20,7 @@ import java.util.zip.GZIPInputStream;
 
 import junit.framework.Assert;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
@@ -278,6 +279,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack
 	}
 	
+	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement
+	@Ignore
 	@SuppressWarnings("unchecked")
 	@Test
 	public void getObjectSubset() throws Exception {

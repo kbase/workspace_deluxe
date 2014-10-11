@@ -555,7 +555,7 @@ public class ArgUtils {
 			List<ExternalData> externalData) {
 		final List<ExternalDataUnit> ret = new LinkedList<ExternalDataUnit>();
 		if (externalData == null) {
-			return ret;
+			return ret; //this should never happen, but just in case
 		}
 		for (final ExternalData ed: externalData) {
 			ret.add(new ExternalDataUnit()
