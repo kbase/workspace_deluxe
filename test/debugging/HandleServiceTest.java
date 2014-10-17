@@ -1,4 +1,5 @@
 package debugging;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -58,19 +59,9 @@ public class HandleServiceTest {
 							args[0], args[1]).getToken();
 					conn.setRequestProperty("Authorization",
 							accessToken.toString());
-					OutputStream os = conn.getOutputStream();
-					JsonGenerator g = new ObjectMapper().getFactory()
-							.createGenerator(os,
-									JsonEncoding.UTF8);
-					g.writeStartObject();
-					g.writeObjectField("params",
-							Arrays.asList(Arrays.asList("KBH_3")));
-					g.writeStringField("method", "AbstractHandle.are_readable");
-					g.writeStringField("version", "1.1");
-					g.writeStringField("id", "12345");
-					g.writeEndObject();
-					g.close();
-					os.flush();
+					writeRequestData("AbstractHandle.are_readable",
+							Arrays.asList(Arrays.asList("KBH_3")),
+							conn.getOutputStream(), "12345");
 					System.out.print(conn.getResponseCode() + " ");
 					System.out.println(conn.getResponseMessage());
 				}
@@ -80,5 +71,20 @@ public class HandleServiceTest {
 			}
 			Thread.sleep(1000);
 		}
+	}
+	
+	public static void writeRequestData(String method, Object arg,
+			OutputStream os, String id) 
+			throws IOException {
+		JsonGenerator g = new ObjectMapper().getFactory()
+				.createGenerator(os, JsonEncoding.UTF8);
+		g.writeStartObject();
+		g.writeObjectField("params", arg);
+		g.writeStringField("method", method);
+		g.writeStringField("version", "1.1");
+		g.writeStringField("id", id);
+		g.writeEndObject();
+		g.close();
+		os.flush();
 	}
 }
