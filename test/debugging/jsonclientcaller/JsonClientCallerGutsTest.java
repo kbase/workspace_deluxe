@@ -14,7 +14,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class JsonClientCallerGutsTest {
-	private static final String URL = "http://dev03.berkeley.kbase.us:7058";
+
+//	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
+//	private static final String METHOD = "AbstractHandle.list_handles";
+	
+	private static final String URL = "http://localhost:5000";
+	private static final String METHOD = "PyLog.ver";
+	
+	
+//	private static final String URL = "http://localhost:20000";
+//	private static final String METHOD = "Workspace.ver";
 	private static final int SLEEP = 1000; //ms between requests
 	private static final int COUNT = 10;
 	
@@ -38,15 +47,14 @@ public class JsonClientCallerGutsTest {
 					@Override
 					public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
 				};
-				String method = "Workspace.ver";
 				Object arg = new ArrayList<Object>();
 				String id = "12345";
 				
-				writeRequestData(method, arg, os, id);
+				writeRequestData(METHOD, arg, os, id);
 				// Set content-length
 				conn.setFixedLengthStreamingMode(sizeWrapper[0]);
 				
-				writeRequestData(method, arg, conn.getOutputStream(), id);
+				writeRequestData(METHOD, arg, conn.getOutputStream(), id);
 				System.out.print(conn.getResponseCode() + " ");
 				System.out.println(conn.getResponseMessage());
 				InputStream istream = conn.getInputStream();
