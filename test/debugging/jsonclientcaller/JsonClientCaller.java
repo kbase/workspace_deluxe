@@ -232,7 +232,12 @@ public class JsonClientCaller {
 		// Parse response into json
 		UnclosableInputStream wrapStream = new UnclosableInputStream(istream);
 		if (fileForNextRpcResponse == null) {
+			// *** returning here is always successful ***
 			JsonParser jp = mapper.getFactory().createParser(wrapStream);
+			// ** returning here always fails
+			if (true) { //allow compile
+				return null;
+			}
 			try {
 				checkToken(JsonToken.START_OBJECT, jp.nextToken());
 			} catch (JsonParseException ex) {
