@@ -203,7 +203,8 @@ public class JsonClientCaller {
 			TypeReference<RET> cls, boolean ret, boolean authRequired)
 			throws IOException, JsonClientException {
 		HttpURLConnection conn = setupCall(authRequired);
-		String id = ("" + Math.random()).replace(".", "");
+//		String id = ("" + Math.random()).replace(".", "");
+		String id = "12345";
 		// Calculate content-length before
 		final long[] sizeWrapper = new long[] {0};
 		OutputStream os = new OutputStream() {
