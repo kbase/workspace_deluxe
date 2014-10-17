@@ -28,6 +28,7 @@ public class HandleServiceTest {
 	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 	private static final boolean PRIOR_GET = false;
 	private static final String TEST = "guts"; // guts or client or caller
+	private static final int SLEEP = 0; //ms between requests
 	
 
 	public static void main(String [] args) throws Exception{
@@ -35,6 +36,7 @@ public class HandleServiceTest {
 		String user = args[0];
 		String pwd = args[1];
 		int count = Integer.parseInt(args[2]);
+		int excepts = 0;
 		for (int i = 0; i < count; i++) {
 			System.out.print(i + "\n");
 			if (PRIOR_GET) {
@@ -61,11 +63,14 @@ public class HandleServiceTest {
 					throw new Exception("no such test");
 				}
 			} catch (Exception e) {
+				excepts++;
 				System.out.println(e.getClass().getName() + ": " +
 						e.getLocalizedMessage());
 			}
-			Thread.sleep(1000);
+			Thread.sleep(SLEEP);
 		}
+		System.out.println(String.format("Sleep: %s, failures %s/%s",
+				SLEEP, excepts, count));
 	}
 
 	private static void testCaller(String user, String pwd)
