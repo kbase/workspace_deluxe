@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.common.service.JsonClientCaller;
 
 
 public class HandleServiceTest {
@@ -74,7 +73,7 @@ public class HandleServiceTest {
 		args.add(Arrays.asList("KBH_3"));
 		TypeReference<List<Long>> retType = new TypeReference<List<Long>>() {};
 		List<Long> res = caller.jsonrpcCall("AbstractHandle.are_readable", args, retType, true, true);
-		System.out.println("res : 1");
+		System.out.println("res: " + res);
 		
 	}
 
