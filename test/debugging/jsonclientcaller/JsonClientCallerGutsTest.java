@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class JsonClientCallerGutsTest {
-	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
+	private static final String URL = "http://dev03.berkeley.kbase.us:7058";
 	private static final int SLEEP = 1000; //ms between requests
 	private static final int COUNT = 10;
 	
@@ -38,7 +38,7 @@ public class JsonClientCallerGutsTest {
 					@Override
 					public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
 				};
-				String method = "AbstractHandle.list_handles";
+				String method = "Workspace.ver";
 				Object arg = new ArrayList<Object>();
 				String id = "12345";
 				
