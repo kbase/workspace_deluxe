@@ -1,4 +1,7 @@
 package debugging.jsonclientcaller;
+
+import static debugging.jsonclientcaller.JsonClientCaller.streamToString;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,7 +27,7 @@ public class HandleServiceTest {
 			"{\"version\":\"1.1\",\"error\":{\"name\":\"JSONRPCError\",\"code\":-32300,\"message\":\"HTTP GET not allowed.\"},\"id\":";
 	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 	private static final boolean PRIOR_GET = false;
-	private static final String TEST = "caller"; // guts or client or caller
+	private static final String TEST = "guts"; // guts or client or caller
 	
 
 	public static void main(String [] args) throws Exception{
@@ -106,6 +109,15 @@ public class HandleServiceTest {
 		writeRequestData(method, arg, conn.getOutputStream(), id);
 		System.out.print(conn.getResponseCode() + " ");
 		System.out.println(conn.getResponseMessage());
+		conn.getResponseMessage();
+		InputStream istream;
+		if (conn.getResponseCode() == 500) {
+			istream = conn.getErrorStream();
+		} else {
+			istream = conn.getInputStream();
+		}
+		// Parse response into json
+		System.out.println(streamToString(istream));
 	}
 
 	private static void testClient(String user, String pwd)

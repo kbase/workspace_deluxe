@@ -198,6 +198,14 @@ public class JsonClientCaller {
 			throw new UnauthorizedException("Could not authenticate user", ex);
 		}
 	}
+	
+	public static String streamToString(InputStream os) {
+		Scanner s = new Scanner(os);
+		s.useDelimiter("\\A");
+		String ret = s.next();
+		s.close();
+		return ret;
+	}
 		
 	public <ARG, RET> RET jsonrpcCall(String method, ARG arg,
 			TypeReference<RET> cls, boolean ret, boolean authRequired)
@@ -230,14 +238,16 @@ public class JsonClientCaller {
 			istream = conn.getInputStream();
 		}
 		// Parse response into json
+		String r = streamToString(istream);
+		System.out.println(r);
+		if (true) {return null;}
 		UnclosableInputStream wrapStream = new UnclosableInputStream(istream);
 		if (fileForNextRpcResponse == null) {
 			// *** returning here is always successful ***
+			
 			JsonParser jp = mapper.getFactory().createParser(wrapStream);
 			// ** returning here always fails
-			if (true) { //allow compile
-				return null;
-			}
+			if (true) { return null; } //allow compile
 			try {
 				checkToken(JsonToken.START_OBJECT, jp.nextToken());
 			} catch (JsonParseException ex) {
