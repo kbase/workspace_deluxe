@@ -1,4 +1,4 @@
-package debugging;
+package debugging.jsonclientcaller;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;

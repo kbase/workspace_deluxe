@@ -1,4 +1,4 @@
-package debugging;
+package debugging.jsonclientcaller;
 
 /** 
  * A KBase JSONRPC exception raised by a client when the server responds with an error or the server response could not be handled.

@@ -1,4 +1,4 @@
-package debugging;
+package debugging.jsonclientcaller;
 
 /** 
  * Raised when a user cannot be authorized.

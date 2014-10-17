@@ -1,4 +1,4 @@
-package debugging;
+package debugging.jsonclientcaller;
 
 /** 
  * The base class of all KBase JSONRPC exceptions raised by a client.
