@@ -21,11 +21,13 @@ public class HandleServiceTest {
 			"{\"version\":\"1.1\",\"error\":{\"name\":\"JSONRPCError\",\"code\":-32300,\"message\":\"HTTP GET not allowed.\"},\"id\":";
 	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 	private static final boolean PRIOR_GET = false;
-	private static final boolean CLIENT = false;
+	private static final String TEST = "guts"; // guts or client or caller
 	
 
 	public static void main(String [] args) throws Exception{
 		System.out.println(URL);
+		String user = args[0];
+		String pwd = args[1];
 		int count = Integer.parseInt(args[2]);
 		for (int i = 0; i < count; i++) {
 			System.out.print(i + "\n");
@@ -43,42 +45,14 @@ public class HandleServiceTest {
 				s.close();
 			}
 			try {
-				if (CLIENT) {
-					final AbstractHandleClient hmc;
-					hmc = new AbstractHandleClient(new URL(URL),
-							args[0], args[1]);
-					hmc.setIsInsecureHttpConnectionAllowed(true);
-					hmc.setAllSSLCertificatesTrusted(true);
-					hmc.areReadable(Arrays.asList("KBH_3"));
+				if (TEST.equals("client")) {
+					testClient(user, pwd);
+				} else if (TEST.equals("guts")){
+					testGuts(user, pwd);
+				} else if (TEST.equals("caller")) {
+					testCaller(user, pwd);
 				} else {
-					HttpURLConnection conn =
-							(HttpURLConnection) new URL(URL).openConnection();
-					conn.setDoOutput(true);
-					conn.setRequestMethod("POST");
-					AuthToken accessToken = AuthService.login(
-							args[0], args[1]).getToken();
-					conn.setRequestProperty("Authorization",
-							accessToken.toString());
-					final long[] sizeWrapper = new long[] {0};
-					OutputStream os = new OutputStream() {
-						@Override
-						public void write(int b) {sizeWrapper[0]++;}
-						@Override
-						public void write(byte[] b) {sizeWrapper[0] += b.length;}
-						@Override
-						public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
-					};
-					String method = "AbstractHandle.are_readable";
-					Object arg = Arrays.asList(Arrays.asList("KBH_3"));
-					String id = "12345";
-					
-					writeRequestData(method, arg, os, id);
-					// Set content-length
-					conn.setFixedLengthStreamingMode(sizeWrapper[0]);
-					
-					writeRequestData(method, arg, conn.getOutputStream(), id);
-					System.out.print(conn.getResponseCode() + " ");
-					System.out.println(conn.getResponseMessage());
+					throw new Exception("no such test");
 				}
 			} catch (Exception e) {
 				System.out.println(e.getClass().getName() + ": " +
@@ -86,6 +60,52 @@ public class HandleServiceTest {
 			}
 			Thread.sleep(1000);
 		}
+	}
+
+	private static void testCaller(String user, String pwd) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private static void testGuts(String user, String pwd) throws Exception {
+		HttpURLConnection conn =
+				(HttpURLConnection) new URL(URL).openConnection();
+		conn.setDoOutput(true);
+		conn.setRequestMethod("POST");
+		AuthToken accessToken = AuthService.login(
+				user, pwd).getToken();
+		conn.setRequestProperty("Authorization",
+				accessToken.toString());
+		final long[] sizeWrapper = new long[] {0};
+		OutputStream os = new OutputStream() {
+			@Override
+			public void write(int b) {sizeWrapper[0]++;}
+			@Override
+			public void write(byte[] b) {sizeWrapper[0] += b.length;}
+			@Override
+			public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
+		};
+		String method = "AbstractHandle.are_readable";
+		Object arg = Arrays.asList(Arrays.asList("KBH_3"));
+		String id = "12345";
+		
+		writeRequestData(method, arg, os, id);
+		// Set content-length
+		conn.setFixedLengthStreamingMode(sizeWrapper[0]);
+		
+		writeRequestData(method, arg, conn.getOutputStream(), id);
+		System.out.print(conn.getResponseCode() + " ");
+		System.out.println(conn.getResponseMessage());
+	}
+
+	private static void testClient(String user, String pwd)
+			throws Exception {
+		final AbstractHandleClient hmc;
+		hmc = new AbstractHandleClient(new URL(URL),
+				user, pwd);
+		hmc.setIsInsecureHttpConnectionAllowed(true);
+		hmc.setAllSSLCertificatesTrusted(true);
+		hmc.areReadable(Arrays.asList("KBH_3"));
 	}
 	
 	public static void writeRequestData(String method, Object arg,
