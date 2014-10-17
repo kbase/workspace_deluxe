@@ -143,50 +143,50 @@ public class JsonClientCaller {
 
 	private HttpURLConnection setupCall(boolean authRequired) throws IOException, JsonClientException {
 		HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
-		conn.setConnectTimeout(10000);
-		if (connectionReadTimeOut != null) {
-			conn.setReadTimeout(connectionReadTimeOut);
-		}
+//		conn.setConnectTimeout(10000);
+//		if (connectionReadTimeOut != null) {
+//			conn.setReadTimeout(connectionReadTimeOut);
+//		}
 		conn.setDoOutput(true);
 		conn.setRequestMethod("POST");
-		if (authRequired || accessToken != null) {
-			if (!(conn instanceof HttpsURLConnection || allowInsecureHttp)) {
-				throw new UnauthorizedException("RPC method required authentication shouldn't " +
-						"be called through unsecured http, use https instead or call " +
-						"setAuthAllowedForHttp(true) for your client");
-			}
-			if (accessToken == null || accessToken.isExpired()) {
-				if (user == null) {
-					if (accessToken == null) {
-						throw new UnauthorizedException("RPC method requires authentication but neither " +
-								"user nor token was set");
-					} else {
-						throw new UnauthorizedException("Token is expired and can not be reloaded " +
-								"because user wasn't set");
-					}
-				}
-				accessToken = requestTokenFromKBase(user, password);
-			}
+//		if (authRequired || accessToken != null) {
+//			if (!(conn instanceof HttpsURLConnection || allowInsecureHttp)) {
+//				throw new UnauthorizedException("RPC method required authentication shouldn't " +
+//						"be called through unsecured http, use https instead or call " +
+//						"setAuthAllowedForHttp(true) for your client");
+//			}
+//			if (accessToken == null || accessToken.isExpired()) {
+//				if (user == null) {
+//					if (accessToken == null) {
+//						throw new UnauthorizedException("RPC method requires authentication but neither " +
+//								"user nor token was set");
+//					} else {
+//						throw new UnauthorizedException("Token is expired and can not be reloaded " +
+//								"because user wasn't set");
+//					}
+//				}
+//				accessToken = requestTokenFromKBase(user, password);
+//			}
 			conn.setRequestProperty("Authorization", accessToken.toString());
-		}
-		if (conn instanceof HttpsURLConnection && trustAllCerts) {
-			final HttpsURLConnection hc = (HttpsURLConnection) conn;
-			final SSLContext sc;
-			try {
-				sc = SSLContext.getInstance("SSL");
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException(
-						"Couldn't get SSLContext instance", e);
-			}
-			try {
-				sc.init(null, GULLIBLE_TRUST_MGR, new SecureRandom());
-			} catch (KeyManagementException e) {
-				throw new RuntimeException(
-						"Couldn't initialize SSLContext", e);
-			}
-			hc.setSSLSocketFactory(sc.getSocketFactory());
-			hc.setHostnameVerifier(GULLIBLE_HOSTNAME_VERIFIER);
-		}
+//		}
+//		if (conn instanceof HttpsURLConnection && trustAllCerts) {
+//			final HttpsURLConnection hc = (HttpsURLConnection) conn;
+//			final SSLContext sc;
+//			try {
+//				sc = SSLContext.getInstance("SSL");
+//			} catch (NoSuchAlgorithmException e) {
+//				throw new RuntimeException(
+//						"Couldn't get SSLContext instance", e);
+//			}
+//			try {
+//				sc.init(null, GULLIBLE_TRUST_MGR, new SecureRandom());
+//			} catch (KeyManagementException e) {
+//				throw new RuntimeException(
+//						"Couldn't initialize SSLContext", e);
+//			}
+//			hc.setSSLSocketFactory(sc.getSocketFactory());
+//			hc.setHostnameVerifier(GULLIBLE_HOSTNAME_VERIFIER);
+//		}
 		return conn;
 	}
 	
