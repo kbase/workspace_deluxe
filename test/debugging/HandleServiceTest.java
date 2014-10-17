@@ -59,9 +59,24 @@ public class HandleServiceTest {
 							args[0], args[1]).getToken();
 					conn.setRequestProperty("Authorization",
 							accessToken.toString());
-					writeRequestData("AbstractHandle.are_readable",
-							Arrays.asList(Arrays.asList("KBH_3")),
-							conn.getOutputStream(), "12345");
+					final long[] sizeWrapper = new long[] {0};
+					OutputStream os = new OutputStream() {
+						@Override
+						public void write(int b) {sizeWrapper[0]++;}
+						@Override
+						public void write(byte[] b) {sizeWrapper[0] += b.length;}
+						@Override
+						public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
+					};
+					String method = "AbstractHandle.are_readable";
+					Object arg = Arrays.asList(Arrays.asList("KBH_3"));
+					String id = "12345";
+					
+					writeRequestData(method, arg, os, id);
+					// Set content-length
+					conn.setFixedLengthStreamingMode(sizeWrapper[0]);
+					
+					writeRequestData(method, arg, conn.getOutputStream(), id);
 					System.out.print(conn.getResponseCode() + " ");
 					System.out.println(conn.getResponseMessage());
 				}
