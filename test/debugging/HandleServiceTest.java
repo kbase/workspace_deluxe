@@ -4,16 +4,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonClientCaller;
 
 
 public class HandleServiceTest {
@@ -21,7 +25,7 @@ public class HandleServiceTest {
 			"{\"version\":\"1.1\",\"error\":{\"name\":\"JSONRPCError\",\"code\":-32300,\"message\":\"HTTP GET not allowed.\"},\"id\":";
 	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 	private static final boolean PRIOR_GET = false;
-	private static final String TEST = "guts"; // guts or client or caller
+	private static final String TEST = "caller"; // guts or client or caller
 	
 
 	public static void main(String [] args) throws Exception{
@@ -62,8 +66,15 @@ public class HandleServiceTest {
 		}
 	}
 
-	private static void testCaller(String user, String pwd) {
-		// TODO Auto-generated method stub
+	private static void testCaller(String user, String pwd)
+			throws Exception {
+		JsonClientCaller caller = new JsonClientCaller(new URL(URL), user, pwd);
+		caller.setInsecureHttpConnectionAllowed(true);
+		List<Object> args = new ArrayList<Object>();
+		args.add(Arrays.asList("KBH_3"));
+		TypeReference<List<Long>> retType = new TypeReference<List<Long>>() {};
+		List<Long> res = caller.jsonrpcCall("AbstractHandle.are_readable", args, retType, true, true);
+		System.out.println("res : 1");
 		
 	}
 
