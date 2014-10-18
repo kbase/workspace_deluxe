@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -15,15 +16,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonClientCallerGutsTest {
 
+//	private static final String URL = "http://10.58.1.16:7057";
+//	private static final String METHOD = "ProteinInfo.fids_to_domains";
+//	private static final Object ARGS =
+//			Arrays.asList(Arrays.asList("kb|g.3899.CDS.10"));
+	
 //	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 //	private static final String METHOD = "AbstractHandle.list_handles";
 	
-	private static final String URL = "http://localhost:5000";
+//	private static final String URL = "http://localhost:7109";
+//	private static final String METHOD = "AbstractHandle.list_handles";
+	
+//	private static final String URL = "http://localhost:5000";
+//	private static final String METHOD = "PyLog.ver";
+	
+	private static final String URL = "http://localhost/services/pl";
 	private static final String METHOD = "PyLog.ver";
 	
 	
 //	private static final String URL = "http://localhost:20000";
 //	private static final String METHOD = "Workspace.ver";
+	
+	private static final Object ARGS = new ArrayList<Object>();
+	
 	private static final int SLEEP = 1000; //ms between requests
 	private static final int COUNT = 10;
 	
@@ -47,19 +62,20 @@ public class JsonClientCallerGutsTest {
 					@Override
 					public void write(byte[] b, int o, int l) {sizeWrapper[0] += l;}
 				};
-				Object arg = new ArrayList<Object>();
 				String id = "12345";
 				
-				writeRequestData(METHOD, arg, os, id);
+				writeRequestData(METHOD, ARGS, os, id);
 				// Set content-length
 				conn.setFixedLengthStreamingMode(sizeWrapper[0]);
+//				conn.setChunkedStreamingMode(0);
 				
-				writeRequestData(METHOD, arg, conn.getOutputStream(), id);
+				writeRequestData(METHOD, ARGS, conn.getOutputStream(), id);
 				System.out.print(conn.getResponseCode() + " ");
 				System.out.println(conn.getResponseMessage());
 				InputStream istream = conn.getInputStream();
 				// Parse response into json
 				System.out.println(streamToString(istream));
+//				conn.disconnect();
 			} catch (Exception e) {
 				excepts++;
 				System.out.println(e.getClass().getName() + ": " +
