@@ -8,18 +8,11 @@ import us.kbase.auth.TokenExpiredException;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.io.*;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
+//import java.security.KeyManagementException;
+//import java.security.NoSuchAlgorithmException;
+//import java.security.SecureRandom;
+//import java.security.cert.X509Certificate;
 import java.util.*;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -37,32 +30,34 @@ public class JsonClientCaller {
 
 	public final URL serviceUrl;
 	private ObjectMapper mapper;
+	@SuppressWarnings("unused")
 	private String user = null;
 	private char[] password = null;
 	private AuthToken accessToken = null;
 	private boolean allowInsecureHttp = false;
 	private boolean trustAllCerts = false;
+	@SuppressWarnings("unused")
 	private Integer connectionReadTimeOut = 30 * 60 * 1000;
 	private File fileForNextRpcResponse = null;
 	
-	private static TrustManager[] GULLIBLE_TRUST_MGR = new TrustManager[] {
-		new X509TrustManager() {
-			public X509Certificate[] getAcceptedIssuers() {
-				return new X509Certificate[0];
-			}
-			public void checkClientTrusted(X509Certificate[] certs,
-					String authType) {}
-			public void checkServerTrusted(X509Certificate[] certs,
-					String authType) {}
-		}
-	};
-		
-	private static HostnameVerifier GULLIBLE_HOSTNAME_VERIFIER =
-		new HostnameVerifier() {
-			public boolean verify(String hostname, SSLSession session) {
-				return true;
-			}
-	};
+//	private static TrustManager[] GULLIBLE_TRUST_MGR = new TrustManager[] {
+//		new X509TrustManager() {
+//			public X509Certificate[] getAcceptedIssuers() {
+//				return new X509Certificate[0];
+//			}
+//			public void checkClientTrusted(X509Certificate[] certs,
+//					String authType) {}
+//			public void checkServerTrusted(X509Certificate[] certs,
+//					String authType) {}
+//		}
+//	};
+//		
+//	private static HostnameVerifier GULLIBLE_HOSTNAME_VERIFIER =
+//		new HostnameVerifier() {
+//			public boolean verify(String hostname, SSLSession session) {
+//				return true;
+//			}
+//	};
 	
 	
 	public JsonClientCaller(URL url) {
@@ -241,6 +236,7 @@ public class JsonClientCaller {
 		String r = streamToString(istream);
 		System.out.println(r);
 		if (true) {return null;}
+		@SuppressWarnings("unused")
 		UnclosableInputStream wrapStream = new UnclosableInputStream(istream);
 		if (fileForNextRpcResponse == null) {
 			// *** returning here is always successful ***

@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
+//import java.util.Arrays;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -27,11 +27,11 @@ public class JsonClientCallerGutsTest {
 //	private static final String URL = "http://localhost:7109";
 //	private static final String METHOD = "AbstractHandle.list_handles";
 	
-//	private static final String URL = "http://localhost:5000";
-//	private static final String METHOD = "PyLog.ver";
-	
-	private static final String URL = "http://localhost/services/pl";
+	private static final String URL = "http://localhost:10000";
 	private static final String METHOD = "PyLog.ver";
+	
+//	private static final String URL = "http://localhost/services/pl";
+//	private static final String METHOD = "PyLog.ver";
 	
 	
 //	private static final String URL = "http://localhost:20000";
@@ -39,7 +39,7 @@ public class JsonClientCallerGutsTest {
 	
 	private static final Object ARGS = new ArrayList<Object>();
 	
-	private static final int SLEEP = 1000; //ms between requests
+	private static final int SLEEP = 000; //ms between requests
 	private static final int COUNT = 10;
 	
 
@@ -75,7 +75,7 @@ public class JsonClientCallerGutsTest {
 				InputStream istream = conn.getInputStream();
 				// Parse response into json
 				System.out.println(streamToString(istream));
-//				conn.disconnect();
+				conn.disconnect();
 			} catch (Exception e) {
 				excepts++;
 				System.out.println(e.getClass().getName() + ": " +
