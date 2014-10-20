@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.3.2 (Released TBD)
+VERSION: 0.3.2 (Released 10/20/14)
 --------------------------------------
 NEW FEATURES:
 - N/A
@@ -27,6 +27,11 @@ NEW FEATURES:
 UPDATED FEATURES / MAJOR BUG FIXES:
 - The ProvenanceAction data structure now has fields for entering external
   data sources.
+- The workspace client now has streaming mode off by default. To turn it back
+  on, do setStreamingModeOn(true).
+- Fixed a bug that would cause calls to the handle service or handle manager
+  to fail every other call if they were not behind nginx and the call 
+  frequency was between 1-4s.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
