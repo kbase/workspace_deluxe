@@ -27,8 +27,8 @@ public class HandleServiceTest {
 			"{\"version\":\"1.1\",\"error\":{\"name\":\"JSONRPCError\",\"code\":-32300,\"message\":\"HTTP GET not allowed.\"},\"id\":";
 	private static final String URL = "http://dev03.berkeley.kbase.us:7109";
 	private static final boolean PRIOR_GET = false;
-	private static final String TEST = "guts"; // guts or client or caller
-	private static final int SLEEP = 0; //ms between requests
+	private static final String TEST = "client"; // guts or client or caller
+	private static final int SLEEP = 1000; //ms between requests
 	
 
 	public static void main(String [] args) throws Exception{

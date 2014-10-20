@@ -216,6 +216,7 @@ public class JSONRPCLayerTester {
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
