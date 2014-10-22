@@ -45,6 +45,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -695,6 +696,7 @@ public class WorkspaceTester {
 			assertThat("service equal", gotpa.getServiceName(), is(exppa.getServiceName()));
 			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
 			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
+			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData());
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
 			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
 					is(gotpa.getWorkspaceObjects().size()));
@@ -709,6 +711,24 @@ public class WorkspaceTester {
 				assertThat("resolved refs equal", gotpa.getResolvedObjects(),
 						is(exppa.getResolvedObjects()));
 			}
+		}
+	}
+
+	private void checkProvenanceExternalData(List<ExternalData> got,
+			List<ExternalData> exp) {
+		assertThat("prov external data same size", got.size(), is(exp.size()));
+		Iterator<ExternalData> giter = got.iterator();
+		Iterator<ExternalData> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			ExternalData g = giter.next();
+			ExternalData e = eiter.next();
+			assertThat("same data id", g.getDataId(), is (e.getDataId()));
+			assertThat("same data url", g.getDataUrl(), is (e.getDataUrl()));
+			assertThat("same description", g.getDescription(), is (e.getDescription()));
+			assertThat("same resource name", g.getResourceName(), is (e.getResourceName()));
+			assertThat("same resource rel date", g.getResourceReleaseDate(), is (e.getResourceReleaseDate()));
+			assertThat("same resource url", g.getResourceUrl(), is (e.getResourceUrl()));
+			assertThat("same resource ver", g.getResourceVersion(), is (e.getResourceVersion()));
 		}
 	}
 

@@ -38,6 +38,7 @@ import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -79,7 +80,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.3.1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.3.2"));
 	}
 	
 	@Test
@@ -464,6 +465,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
 				.withObjects(objects);
+		List<ExternalDataUnit> edu = new LinkedList<ExternalDataUnit>();
+		edu.add(new ExternalDataUnit()
+				.withDataId("data id")
+				.withDataUrl("http://somedata.org/somedata")
+				.withDescription("a description")
+				.withResourceName("resource")
+				.withResourceReleaseDate("2013-04-26T12:52:06-0800")
+				.withResourceUrl("http://somedata.org")
+				.withResourceVersion("1.2.3")
+				);
+		edu.add(new ExternalDataUnit().withDataId("foo"));
+		
 		List<ProvenanceAction> prov = Arrays.asList(
 				new ProvenanceAction()
 					.withDescription("desc")
@@ -480,6 +493,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withScriptVer("1")
 					.withService("serv")
 					.withServiceVer("2")
+					.withExternalData(edu)
 					.withTime("2013-04-26T12:52:06-0800"),
 				new ProvenanceAction());
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
@@ -502,6 +516,20 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
 					is("Unexpected arguments in ProvenanceAction: foo"));
+		}
+		
+		ExternalDataUnit edusingle = new ExternalDataUnit();
+		edusingle.setAdditionalProperties("baz", "bar");
+		pa = new ProvenanceAction().withExternalData(Arrays.asList(edusingle));
+		objects.set(0, new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+				.withProvenance(Arrays.asList(pa)));
+		
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save prov external data w/ extra fields");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Unexpected arguments in ExternalDataUnit: baz"));
 		}
 		
 		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06-0800",
@@ -551,8 +579,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			String expectedTime) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 		
+		List<ExternalDataUnit> edu = Arrays.asList(
+				new ExternalDataUnit().withResourceReleaseDate(inputTime));
 		List<ProvenanceAction> prov = Arrays.asList(
-				new ProvenanceAction().withTime(inputTime));
+				new ProvenanceAction().withTime(inputTime)
+				.withExternalData(edu));
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
 				.withProvenance(prov));
@@ -2624,7 +2655,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		setWSownerParams.put("new_name", "setWSOwnerParams");
 		adminParams.put("command", "setWorkspaceOwner");
 		adminParams.put("params", setWSownerParams);
-		CLIENT2.administer(new UObject(adminParams));
+		wsinfo = CLIENT2.administer(new UObject(adminParams)).asClassInstance(typeref);
+		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), "setWSOwnerParams", USER2, 1, "a", "r", "unlocked", "mydesc", MT_META);
 		wsi = new WorkspaceIdentity().withWorkspace("setWSOwnerParams");
 		assertThat("owner changed correctly", CLIENT1.getWorkspaceInfo(wsi).getE3(), is(USER2));
 		

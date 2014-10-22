@@ -31,7 +31,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.6.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.7.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -86,8 +86,8 @@
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
     <!-- from github.com/brettin/handle-service -->
-    <include name="kbase/handle/HandleServiceClient-fb3de3c.jar"/>
-    <include name="kbase/handle/HandleManagerClient-d3c2e0b.jar"/>
+    <include name="kbase/handle/HandleServiceClient-141020-5eda76e.jar"/>
+    <include name="kbase/handle/HandleManagerClient-141020-ff26a5d.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="testlib">
@@ -324,6 +324,7 @@
           debug="true" classpathref="test.client.import.classpath">
       <src path="${test}"/>
       <exclude name="performance/**"/>
+      <exclude name="debugging/**"/>
     </javac>
     <junit failureproperty="test.failed">
       <classpath refid="test.client.import.classpath"/>

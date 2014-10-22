@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.zip.GZIPInputStream;
 
 import junit.framework.Assert;
 
@@ -36,6 +38,8 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SubObjectIdentity;
+import us.kbase.workspace.test.workspace.WorkspaceTest;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -429,4 +433,81 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		return "Unknown type: " + type.getClass().getSimpleName();
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testGetObjectSubset() throws Exception {
+		String moduleName = "TestGetObjectSubset";
+		CLIENT1.requestModuleOwnership(moduleName);
+		administerCommand(CLIENT2, "approveModRequest", "module", moduleName);
+		String typeName = "DomainAnnotation";
+		final String specDoc =
+				"module " + moduleName + " {\n" +
+					"typedef tuple<int start_in_feature,int stop_in_feature,float evalue,\n" +
+					"	float bitscore, float domain_coverage> domain_place;\n" +
+					"typedef tuple<string feature_id,int feature_start,int feature_stop,int feature_dir,\n" +
+					"	mapping<string domain_model_ref,list<domain_place>>> annotation_element;\n" +
+					"/* @optional alignments_ref */\n" +
+					"typedef structure {\n" +
+						"string genome_ref;\n" +
+						"mapping<string contig_id, list<annotation_element>> data;\n" +
+						"mapping<string contig_id, tuple<int size,int features>> contig_to_size_and_feature_count;\n" +
+						"mapping<string feature_id, tuple<string contig_id,int feature_index>> feature_to_contig_and_index;\n" +
+						"string alignments_ref\n;" +
+					"} " + typeName + ";\n" +
+				"};\n";
+		CLIENT1.registerTypespec(new RegisterTypespecParams().withDryrun(0L).withSpec(specDoc)
+				.withNewTypes(Arrays.asList(typeName)));
+		CLIENT1.releaseModule(moduleName);
+		String wsName = "testGetObjectSubset";
+		String objName = "domainAnnotation";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(wsName));
+		List<ObjectSaveData> saveDataList = new ArrayList<ObjectSaveData>();
+		InputStream is = new GZIPInputStream(WorkspaceTest.class.getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
+		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
+		saveDataList.add(new ObjectSaveData().withType(moduleName + "." + typeName)
+				.withData(new UObject(data)).withName(objName));		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(wsName).withObjects(saveDataList));
+		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
+		String contigId = null;
+		int featureCount = -1;
+		double avgTime1 = 0;
+		int len1 = -1;
+		int iterCount1 = 100;
+		for (int iter = 0; iter < iterCount1; iter++) {
+			long time1 = System.currentTimeMillis();
+			ObjectData wod1 = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withRef(wsName + "/" + objName))).get(0);
+			Map<String, Object> ret1 = wod1.getData().asClassInstance(Map.class);
+			String data1text = wod1.getData().toJsonString();
+			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
+			contigId = contigIdsToFeatures.keySet().iterator().next();
+			featureCount = ((List<Object>)contigIdsToFeatures.get(contigId)).size();
+			time1 = System.currentTimeMillis() - time1;
+			avgTime1 += time1;
+			len1 = data1text.length();
+		}
+		avgTime1 /= iterCount1;
+		System.out.println("[JSONRPCLayerLongTest] get_objects: time=" + avgTime1 + " ms, ret-object-length=" + len1 + " bytes");
+		//////////////////////////////////////// get_object_subset //////////////////////////////////////////
+		Random rnd = new Random(1234567890123456789L);
+		int[] includedPathsNumbers = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, featureCount};
+		for (int numberOfIncludedPaths : includedPathsNumbers) {
+			double avgTime2 = 0;
+			double avgLen = 0;
+			int iterCount2 = 100;
+			for (int iter = 0; iter < iterCount2; iter++) {
+				List<String> included = new ArrayList<String>();
+				for (int i = 0; i < numberOfIncludedPaths; i++)
+					included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
+				long time2 = System.currentTimeMillis();
+				ObjectData wod2 = CLIENT1.getObjectSubset(Arrays.asList(new SubObjectIdentity().withRef(wsName + "/" + objName).withIncluded(included))).get(0);
+				String data2text = wod2.getData().toJsonString();
+				time2 = System.currentTimeMillis() - time2;
+				avgTime2 += time2;
+				avgLen += data2text.length();
+			}
+			avgTime2 /= iterCount2;
+			avgLen /= iterCount2;
+			System.out.println("[JSONRPCLayerLongTest] get_object_subset: time=" + avgTime2 + " ms, input-path-size=" + numberOfIncludedPaths + ", ret-object-length=" + avgLen + " bytes");
+		}
+	}
 }

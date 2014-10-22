@@ -4,6 +4,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,27 +13,39 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.zip.GZIPInputStream;
 
 import junit.framework.Assert;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 
 public class WorkspaceLongTest extends WorkspaceTester {
@@ -263,5 +277,124 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		checkObjectPagination(user, wsi, 15000, 10000, 15001, 20000);
 		checkObjectPagination(user, wsi, 15000, 1, 15001, 15001);
 		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack
+	}
+	
+	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement
+	@Ignore
+	@SuppressWarnings("unchecked")
+	@Test
+	public void getObjectSubset() throws Exception {
+		String mod = "TestGetObjectSubset";
+		String typeName = "DomainAnnotation";
+		String type2 = "Empty";
+		final String specRef =
+				"module " + mod + " {\n" +
+					"typedef tuple<int start_in_feature,int stop_in_feature,float evalue,\n" +
+					"	float bitscore, float domain_coverage> domain_place;\n" +
+					"typedef tuple<string feature_id,int feature_start,int feature_stop,int feature_dir,\n" +
+					"	mapping<string domain_model_ref,list<domain_place>>> annotation_element;\n" +
+					"/* @optional alignments_ref */\n" +
+					"typedef structure {\n" +
+						"string genome_ref;\n" +
+						"mapping<string contig_id, list<annotation_element>> data;\n" +
+						"mapping<string contig_id, tuple<int size,int features>> contig_to_size_and_feature_count;\n" +
+						"mapping<string feature_id, tuple<string contig_id,int feature_index>> feature_to_contig_and_index;\n" +
+						"string alignments_ref\n;" +
+					"} " + typeName + ";\n" +
+					"/* @optional val */\n" +
+					"typedef structure {\n" +
+						"string val;" +
+					"} " + type2 + ";\n" +
+				"};\n";
+		WorkspaceUser userfoo = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(userfoo, mod);
+		ws.resolveModuleRegistration(mod, true);
+		ws.compileNewTypeSpec(userfoo, specRef,
+				Arrays.asList(typeName, type2), null, null, false, null);
+		TypeDefId daType = new TypeDefId(new TypeDefName(mod, typeName), 0, 1);
+		TypeDefId emptyType = new TypeDefId(new TypeDefName(mod, type2), 0, 1);
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("testGetObjectSubset");
+		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
+		Provenance emptyprov = new Provenance(userfoo);
+		InputStream is = new GZIPInputStream(this.getClass().getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
+		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
+		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		
+		wsos.add(new WorkspaceSaveObject(data, daType, null, emptyprov, false));
+		ObjectInformation oi = ws.saveObjects(userfoo, wspace, wsos, getIdFactory(userfoo)).get(0);
+		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
+		String contigId = null;
+		int featureCount = -1;
+		double avgTime1 = 0;
+		int len1 = -1;
+		int iterCount1 = 100;
+		for (int iter = 0; iter < iterCount1; iter++) {
+			long time1 = System.currentTimeMillis();
+			WorkspaceObjectData wod1 = ws.getObjects(userfoo,
+					Arrays.asList(new ObjectIdentifier(wspace, oi.getObjectId()))).get(0);
+			Map<String, Object> ret1 = (Map<String, Object>) wod1.getData();
+			String data1 = UObject.getMapper().writeValueAsString(ret1);
+			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
+			contigId = contigIdsToFeatures.keySet().iterator().next();
+			featureCount = ((List<Object>)contigIdsToFeatures.get(contigId)).size();
+			time1 = System.currentTimeMillis() - time1;
+			avgTime1 += time1;
+			len1 = data1.length();
+		}
+		avgTime1 /= iterCount1;
+		System.out.println("[WorkspaceLongTest] get_objects: time=" + avgTime1 + " ms, ret-object-length=" + len1 + " bytes");
+		//////////////////////////////////////// get_object_subset //////////////////////////////////////////
+		Random rnd = new Random(1234567890123456789L);
+		int[] includedPathsNumbers = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, featureCount};
+		for (int numberOfIncludedPaths : includedPathsNumbers) {
+			estimateGetSubsetTime(userfoo, wspace, oi, contigId, featureCount,
+					rnd, numberOfIncludedPaths, "get_object_subset");
+		}
+		//////////////////////////////////////// many_objects //////////////////////////////////////////
+		int numberOfIncludedPaths = 20;
+		int savedObejcts = 0;
+		for (int saveObjIter = 0; saveObjIter < 10; saveObjIter++) {
+			int iterCount2 = 1;
+			for (int iter = 0; iter < iterCount2; iter++) {
+				List<WorkspaceSaveObject> wsos2 = new LinkedList<WorkspaceSaveObject>();
+				for (int i = 0; i < 20000; i++) {
+					String val = "val" + (iter * 100 + i);
+					Map<String, String> emptyData = new TreeMap<String, String>();
+					emptyData.put("val", val);
+					wsos2.add(new WorkspaceSaveObject(emptyData, emptyType, null, emptyprov, false));
+					savedObejcts++;
+				}
+				ws.saveObjects(userfoo, wspace, wsos2, getIdFactory(userfoo));
+			}
+			System.out.println("[WorkspaceLongTest] objects saved: " + savedObejcts);
+			estimateGetSubsetTime(userfoo, wspace, oi, contigId, featureCount,
+					rnd, numberOfIncludedPaths, "get_object_subset with many objects");
+		}		
+	}
+
+	private void estimateGetSubsetTime(WorkspaceUser userfoo,
+			WorkspaceIdentifier wspace, ObjectInformation oi, String contigId,
+			int featureCount, Random rnd, int numberOfIncludedPaths, String caller)
+			throws CorruptWorkspaceDBException,
+			WorkspaceCommunicationException, InaccessibleObjectException,
+			TypedObjectExtractionException, JsonProcessingException {
+		double avgTime2 = 0;
+		double avgLen = 0;
+		int iterCount2 = 100;
+		for (int iter = 0; iter < iterCount2; iter++) {
+			List<String> included = new ArrayList<String>();
+			for (int i = 0; i < numberOfIncludedPaths; i++)
+				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
+			long time2 = System.currentTimeMillis();
+			WorkspaceObjectData wod2 = ws.getObjectsSubSet(userfoo, Arrays.asList(new SubObjectIdentifier(
+					new ObjectIdentifier(wspace, oi.getObjectId()), new ObjectPaths(included)))).get(0);
+			String data2 = UObject.getMapper().writeValueAsString(wod2.getData());
+			time2 = System.currentTimeMillis() - time2;
+			avgTime2 += time2;
+			avgLen += data2.length();
+		}
+		avgTime2 /= iterCount2;
+		avgLen /= iterCount2;
+		System.out.println("[WorkspaceLongTest] " + caller + ": time=" + avgTime2 + " ms, " +
+				"input-path-size=" + numberOfIncludedPaths + ", ret-object-length=" + avgLen + " bytes");
 	}
 }

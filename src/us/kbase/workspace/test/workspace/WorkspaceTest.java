@@ -55,6 +55,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -2284,6 +2285,17 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE1, null, emptyprov, false)),
 				getIdFactory(foo));
 		
+		List<ExternalData> ed = new LinkedList<ExternalData>();
+		ed.add(new ExternalData()
+				.withDataId("data id")
+				.withDataUrl("http://somedata.org/somedata")
+				.withDescription("a description")
+				.withResourceName("resource")
+				.withResourceReleaseDate(new Date(62))
+				.withResourceUrl("http://somedata.org")
+				.withResourceVersion("1.2.3")
+				);
+		ed.add(new ExternalData().withDataId("data id2"));
 		
 		Provenance p = new Provenance(foo);
 		p.addAction(new ProvenanceAction()
@@ -2298,6 +2310,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withServiceName("service")
 				.withServiceVersion("3")
 				.withTime(new Date(45))
+				.withExternalData(ed)
 				.withWorkspaceObjects(Arrays.asList("provenance/auto3", "provenance/auto1/2")));
 		p.addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
@@ -2407,7 +2420,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size 1000272 exceeds limit of 1000000"));
+					is("Object #1 provenance size 1000290 exceeds limit of 1000000"));
 		}
 	}
 	

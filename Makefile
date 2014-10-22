@@ -74,6 +74,7 @@ build-docs: build-libs
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
 	rm -f pod2htm?.tmp
 	cp $(SERVICE).spec docs/.
+	cp RELEASE_NOTES.txt docs/.
 
 compile: compile-typespec compile-typespec-java
 

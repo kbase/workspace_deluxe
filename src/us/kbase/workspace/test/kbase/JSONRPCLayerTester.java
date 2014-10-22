@@ -45,6 +45,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
+import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -215,6 +216,7 @@ public class JSONRPCLayerTester {
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
@@ -400,7 +402,7 @@ public class JSONRPCLayerTester {
 		assertThat("moddates correct", info.getE4(), is(moddate));
 		assertThat("ws name correct", info.getE2(), is(name));
 		assertThat("user name correct", info.getE3(), is(user));
-		assertThat("obj counts are 0", info.getE5(), is(objects));
+		assertThat("obj counts correct", info.getE5(), is(objects));
 		assertThat("permission correct", info.getE6(), is(perm));
 		assertThat("global read correct", info.getE7(), is(globalperm));
 		assertThat("lockstate correct", info.getE8(), is(lockstat));
@@ -476,6 +478,21 @@ public class JSONRPCLayerTester {
 			assertThat("correct exception", se.getLocalizedMessage(),
 					is(exception));
 		}
+		
+		sop.setObjects(Arrays.asList(new ObjectSaveData()
+				.withData(data).withType(SAFE_TYPE)
+				.withProvenance(Arrays.asList(new ProvenanceAction()
+						.withExternalData(Arrays.asList(
+								new ExternalDataUnit()
+									.withResourceReleaseDate(time)))))));
+		
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save w/ prov w/ bad time");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is(exception));
+		}
 	}
 	
 	protected void checkProvenance(List<ProvenanceAction> expected,
@@ -511,6 +528,7 @@ public class JSONRPCLayerTester {
 			assertThat("script ver equal", gotpa.getScriptVer(), is(exppa.getScriptVer()));
 			assertThat("service equal", gotpa.getService(), is(exppa.getService()));
 			assertThat("serv ver equal", gotpa.getServiceVer(), is(exppa.getServiceVer()));
+			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData(), timemap);
 			assertThat("time equal", gotpa.getTime(), is(timemap.get(exppa.getTime())));
 			assertThat("refs equal", gotpa.getInputWsObjects(),
 					is(exppa.getInputWsObjects() == null ? new ArrayList<String>() :
@@ -524,6 +542,31 @@ public class JSONRPCLayerTester {
 						is(refmap.get(gotrefs.next())));
 			}
 		}
+	}
+
+	private void checkProvenanceExternalData(
+			List<ExternalDataUnit> got,
+			List<ExternalDataUnit> exp, Map<String, String> timemap) {
+		if (exp == null) {
+			assertThat("prov eternal data empty", got.size(), is(0));
+			return;
+		}
+		assertThat("prov external data same size", got.size(), is(exp.size()));
+		Iterator<ExternalDataUnit> giter = got.iterator();
+		Iterator<ExternalDataUnit> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			ExternalDataUnit g = giter.next();
+			ExternalDataUnit e = eiter.next();
+			assertThat("same data id", g.getDataId(), is (e.getDataId()));
+			assertThat("same data url", g.getDataUrl(), is (e.getDataUrl()));
+			assertThat("same description", g.getDescription(), is (e.getDescription()));
+			assertThat("same resource name", g.getResourceName(), is (e.getResourceName()));
+			assertThat("same resource rel date", g.getResourceReleaseDate(),
+					is (timemap.get(e.getResourceReleaseDate())));
+			assertThat("same resource url", g.getResourceUrl(), is (e.getResourceUrl()));
+			assertThat("same resource ver", g.getResourceVersion(), is (e.getResourceVersion()));
+		}
+		
 	}
 
 	protected void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)

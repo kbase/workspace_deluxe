@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
@@ -126,9 +127,9 @@ public class WorkspaceAdministration {
 			
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 							params.wsi);
-			return ws.setWorkspaceOwner(null, wsi, 
+			return wsInfoToTuple(ws.setWorkspaceOwner(null, wsi,
 					params.new_user == null ? null :
-						getUser(params.new_user, token), params.new_name, true);
+					getUser(params.new_user, token), params.new_name, true));
 		}
 		if ("createWorkspace".equals(fn)) {
 			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);

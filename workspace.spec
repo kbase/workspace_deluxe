@@ -312,6 +312,33 @@ module Workspace {
 		ws_id wsid, ws_name workspace, string chsum, int size, usermeta meta>
 		object_info;
 	
+	/* An external data unit. A piece of data from a source outside the
+		Workspace.
+		
+		string resource_name - the name of the resource, for example JGI.
+		string resource_url - the url of the resource, for example
+			http://genome.jgi.doe.gov
+		string resource_version - version of the resource
+		timestamp resource_release_date - the release date of the resource
+		string data_url - the url of the data, for example
+			http://genome.jgi.doe.gov/pages/dynamicOrganismDownload.jsf?
+				organism=BlaspURHD0036
+		string data_id - the id of the data, for example
+			7625.2.79179.AGTTCC.adnq.fastq.gz
+		string description - a free text description of the data.
+	
+	*/
+	typedef structure {
+		string resource_name;
+		string resource_url;
+		string resource_version;
+		timestamp resource_release_date;
+		string data_url;
+		string data_id;
+		string description;
+	} ExternalDataUnit;
+		
+	
 	/* A provenance action.
 	
 		A provenance action is an action taken while transforming one data
@@ -358,6 +385,9 @@ module Workspace {
 			unique ID here, in the order of the output values from this action.
 			These IDs can be used in the intermediate_incoming argument in the
 			next action.
+		list<ExternalDataUnit> external_data - data external to the workspace
+			that was either imported to the workspace or used to create a
+			workspace object.
 		string description - a free text description of this action.
 	*/
 	typedef structure {
@@ -373,6 +403,7 @@ module Workspace {
 		list<obj_ref> resolved_ws_objects;
 		list<string> intermediate_incoming;
 		list<string> intermediate_outgoing;
+		list<ExternalDataUnit> external_data;
 		string description;
 	} ProvenanceAction;
 	

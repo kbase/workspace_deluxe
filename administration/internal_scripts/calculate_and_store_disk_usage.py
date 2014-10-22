@@ -29,6 +29,7 @@ import time
 import sys
 import os
 from collections import defaultdict
+import datetime
 
 # where to get credentials (don't check these into git, idiot)
 CFG_FILE_DEFAULT = 'usage.cfg'
@@ -60,7 +61,7 @@ BYTES = 'b'
 
 LIMIT = 10000
 OR_QUERY_SIZE = 100  # 75 was slower, 150 was slower
-MAX_WS = 10  # for testing, set to < 1 for all ws
+MAX_WS = -1  # for testing, set to < 1 for all ws
 
 
 def chunkiter(iterable, size):
@@ -147,28 +148,32 @@ def process_workspaces(db):
     return workspaces
 
 
-def process_object_versions(db, userdata, objects, workspaces):
+def process_object_versions(db, userdata, objects, workspaces,
+                            start_id, end_id):
     # note all objects are from the same workspace
     obj_id = 'id'
     ws_id = 'ws'
     size = 'size'
+
     odel = {}
-    ws = objects[0][ws_id]  # all objects in same ws
+    for o in objects:
+        odel[o[obj_id]] = o[DELETED]
+    if not odel:
+        return 0
+
+    ws = o[ws_id]  # all objects in same ws
     wsowner = workspaces[ws][OWNER]
     wspub = workspaces[ws][PUBLIC]
+
+    res = db[COL_VERS].find({ws_id: ws,
+                             obj_id: {'$gt': start_id, '$lte': end_id}},
+                            [ws_id, obj_id, size])
     vers = 0
-    for objs in chunkiter(objects, OR_QUERY_SIZE):
-        ids = []
-        for o in objs:
-            ids.append(o[obj_id])
-            odel[o[obj_id]] = o[DELETED]
-        res = db[COL_VERS].find({ws_id: ws, obj_id: {'$in': ids}},
-                                [ws_id, obj_id, size])
-        for v in res:
-            vers += 1
-            deleted = odel[v[obj_id]]
-            userdata[wsowner][wspub][deleted][OBJ_CNT] += 1
-            userdata[wsowner][wspub][deleted][BYTES] += v[size]
+    for v in res:
+        vers += 1
+        deleted = odel[v[obj_id]]
+        userdata[wsowner][wspub][deleted][OBJ_CNT] += 1
+        userdata[wsowner][wspub][deleted][BYTES] += v[size]
     return vers
 
 
@@ -184,17 +189,20 @@ def process_objects(db, workspaces):
         if MAX_WS > 0 and wscount > MAX_WS:
             break
         wsobjcount = workspaces[ws][WS_OBJ_CNT]
-        print('\nProcessing workspace {}, {} objects'.format(ws, wsobjcount))
+        print('\nProcessing workspace {}, {} objects'.format(
+            ws, wsobjcount))
         for lim in xrange(LIMIT, wsobjcount + LIMIT, LIMIT):
-            print('\tProcessing objects {} - {}'.format(
-                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim))
+            print('\tProcessing objects {} - {} at {}'.format(
+                lim - LIMIT + 1, wsobjcount if lim > wsobjcount else lim,
+                datetime.datetime.now()))
             sys.stdout.flush()
             objtime = time.time()
             query = {ws_id: ws, obj_id: {'$gt': lim - LIMIT, '$lte': lim}}
             objs = db[COL_OBJ].find(query, [ws_id, obj_id, DELETED])
             print('\ttotal obj query time: ' + str(time.time() - objtime))
             ttlstart = time.time()
-            vers = process_object_versions(db, d, objs, workspaces)
+            vers = process_object_versions(db, d, objs, workspaces,
+                                           lim - LIMIT, lim)
 #             size, objsproc = process_objects(
 #                 objs, unique_users, types, workspaces)
 
@@ -209,6 +217,29 @@ def process_objects(db, workspaces):
     return d
 
 
+# from https://gist.github.com/lonetwin/4721748
+def print_table(rows):
+    """print_table(rows)
+
+    Prints out a table using the data in `rows`, which is assumed to be a
+    sequence of sequences with the 0th element being the header.
+    """
+
+    # - figure out column widths
+    widths = [len(max(columns, key=len)) for columns in zip(*rows)]
+
+    # - print the header
+    header, data = rows[0], rows[1:]
+    print(' | '.join(format(title, "%ds" % width) for width, title in zip(widths, header))) #@IgnorePep8
+
+    # - print the separator
+    print('-+-'.join('-' * width for width in widths))
+
+    # - print the data
+    for row in data:
+        print(" | ".join(format(cdata, "%ds" % width) for width, cdata in zip(widths, row))) #@IgnorePep8
+
+
 def main():
     sourcecfg, targetcfg = get_config()
     starttime = time.time()
@@ -220,51 +251,33 @@ def main():
     ws = process_workspaces(srcdb)
 
     objdata = process_objects(srcdb, ws)
-    print(objdata)
-    print('name', 'pub', 'del', 'type', '#')
-    for n in objdata:
-        for pub in sorted(objdata[n], reverse=True):
-            for deleted in sorted(objdata[n][pub], reverse=True):
-                for t in sorted(objdata[n][pub][deleted]):
-                    print(n, pub, deleted, t, objdata[n][pub][deleted][t])
+#     print(objdata)
+#     print('name', 'pub', 'del', 'type', '#')
+#     for name_ in sorted(objdata):
+#         for pub in sorted(objdata[name_], reverse=True):
+#             for deleted in sorted(objdata[name_][pub], reverse=True):
+#                 for t in sorted(objdata[name_][pub][deleted]):
+#                     print(name_, pub, deleted, t,
+#                           objdata[name_][pub][deleted][t])
+    rows = [['user',
+             'pub-bytes', 'pub-#', 'pub-del-bytes', 'pub-del-#',
+             'priv-bytes', 'priv-#', 'priv-del-bytes', 'priv-del-#']]
+
+    print('\nElapsed time: ' + str(time.time() - starttime))
+    for name_ in sorted(objdata):
+        row = [name_]
+        rows.append(row)
+        row.append(str(objdata[name_][True][False][BYTES]))
+        row.append(str(objdata[name_][True][False][OBJ_CNT]))
+        row.append(str(objdata[name_][True][True][BYTES]))
+        row.append(str(objdata[name_][True][True][OBJ_CNT]))
+        row.append(str(objdata[name_][False][False][BYTES]))
+        row.append(str(objdata[name_][False][False][OBJ_CNT]))
+        row.append(str(objdata[name_][False][True][BYTES]))
+        row.append(str(objdata[name_][False][True][OBJ_CNT]))
+
+    print_table(rows)
     # print time, object data
 
 if __name__ == '__main__':
     main()
-
-def todostuff():
-
-    starttime = 0
-    pubws = 0
-    privws = 0
-    unique_users = 0
-    total_size = 0
-    types = 0
-
-    print('\nElapsed time: ' + str(time.time() - starttime))
-
-    print('\nResults:')
-    print('Total public workspaces ' + str(pubws))
-    print('Total private workspaces ' + str(privws))
-    print('Total users who have saved or copied an object: ' +
-          str(len(unique_users)))
-    print('Total size of stored data (double counts copies and identical ' +
-          'data saved > 1 times): ' + str(total_size))
-
-    print('\n' + '\t'.join(['Type', 'Version', 'Public', 'Private', 'TTL']))
-    pub_tot = 0
-    priv_tot = 0
-    for t in types:
-        pub_type_tot = 0
-        priv_type_tot = 0
-        for v in sorted(types[t]):
-            print('\t'.join([t, v, str(types[t][v][PUBLIC]),
-                             str(types[t][v][PRIVATE]),
-                             str(types[t][v][PUBLIC] + types[t][v][PRIVATE])]))
-            pub_type_tot += types[t][v][PUBLIC]
-            priv_type_tot += types[t][v][PRIVATE]
-        print('\t'.join([t, 'TTL', str(pub_type_tot), str(priv_type_tot),
-                         str(pub_type_tot + priv_type_tot)]))
-        pub_tot += pub_type_tot
-        priv_tot += priv_type_tot
-    print('\t'.join(['TTL', '-', str(pub_tot), str(priv_tot)]))

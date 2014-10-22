@@ -36,6 +36,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
+import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ProvenanceAction;
@@ -43,6 +44,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
@@ -87,12 +89,35 @@ public class ArgUtils {
 					.withWorkspaceObjects(a.getInputWsObjects())
 					.withIncomingArgs(a.getIntermediateIncoming())
 					.withOutgoingArgs(a.getIntermediateOutgoing())
+					.withExternalData(processExternalData(a.getExternalData()))
 					.withDescription(a.getDescription())
 					);
 		}
 		return p;
 	}
 	
+	private static List<ExternalData> processExternalData(
+			final List<ExternalDataUnit> externalData) throws ParseException {
+		final List<ExternalData> ret = new LinkedList<ExternalData>();
+		if (externalData == null) {
+			return ret;
+		}
+		for (final ExternalDataUnit edu: externalData) {
+			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
+			ret.add(new ExternalData()
+					.withDataId(edu.getDataId())
+					.withDataUrl(edu.getDataUrl())
+					.withDescription(edu.getDescription())
+					.withResourceName(edu.getResourceName())
+					.withResourceReleaseDate(
+							parseDate(edu.getResourceReleaseDate()))
+					.withResourceUrl(edu.getResourceUrl())
+					.withResourceVersion(edu.getResourceVersion())
+					);
+		}
+		return ret;
+	}
+
 	public static Date parseDate(final String date) throws ParseException {
 		if (date == null) {
 			return null;
@@ -518,12 +543,35 @@ public class ArgUtils {
 					.withResolvedWsObjects(a.getResolvedObjects())
 					.withIntermediateIncoming(a.getIncomingArgs())
 					.withIntermediateOutgoing(a.getOutgoingArgs())
+					.withExternalData(
+							translateExternalDataUnits(a.getExternalData()))
 					.withDescription(a.getDescription())
 					);
 		}
 		return pas;
 	}
 	
+	private static List<ExternalDataUnit> translateExternalDataUnits(
+			List<ExternalData> externalData) {
+		final List<ExternalDataUnit> ret = new LinkedList<ExternalDataUnit>();
+		if (externalData == null) {
+			return ret; //this should never happen, but just in case
+		}
+		for (final ExternalData ed: externalData) {
+			ret.add(new ExternalDataUnit()
+					.withDataId(ed.getDataId())
+					.withDataUrl(ed.getDataUrl())
+					.withDescription(ed.getDescription())
+					.withResourceName(ed.getResourceName())
+					.withResourceReleaseDate(
+							formatDate(ed.getResourceReleaseDate()))
+					.withResourceUrl(ed.getResourceUrl())
+					.withResourceVersion(ed.getResourceVersion())
+					);
+		}
+		return ret;
+	}
+
 	public static boolean longToBoolean(final Long b) {
 		if (b == null) {
 			return false;
