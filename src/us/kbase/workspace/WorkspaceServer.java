@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -125,7 +126,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
 	
-	private static final String VER = "0.3.2";
+	private static final String VER = "0.3.3";
 
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -280,8 +281,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 	public void setUpLogger() {
-		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
-				.setLevel(Level.OFF);
+		final Logger rootLogger = ((Logger) LoggerFactory.getLogger(
+				org.slf4j.Logger.ROOT_LOGGER_NAME));
+		rootLogger.setLevel(Level.OFF);
+		rootLogger.detachAndStopAllAppenders();
 		final Logger kbaseRootLogger = (Logger) LoggerFactory.getLogger(
 				"us.kbase");
 		//would be better to also set the level here on calls to the server

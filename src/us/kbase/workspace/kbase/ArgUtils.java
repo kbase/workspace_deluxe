@@ -21,6 +21,8 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -56,6 +58,9 @@ import us.kbase.workspace.database.WorkspaceUser;
  *
  */
 public class ArgUtils {
+	
+	private final static Logger LOGGER =
+			LoggerFactory.getLogger(ArgUtils.class);
 	
 	private final static DateTimeFormatter DATE_PARSER =
 			new DateTimeFormatterBuilder()
@@ -243,6 +248,8 @@ public class ArgUtils {
 			if (m == null) {
 				ret.add(null);
 			} else {
+				LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+						m.getObjectId(), m.getVersion(), m.getTypeString());
 				ret.add(new Tuple11<Long, String, String, String, Long,
 						String, Long, String, String, Long, Map<String, String>>()
 						.withE1(m.getObjectId())
@@ -280,6 +287,8 @@ public class ArgUtils {
 		String, String, String, String, Map<String, String>, Long>>();
 		
 		for (ObjectInformation m: info) {
+			LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+					m.getObjectId(), m.getVersion(), m.getTypeString());
 			ret.add(new Tuple12<String, String, String, Long, String, String, String,
 					String, String, String, Map<String, String>, Long>()
 					.withE1(m.getObjectName())
