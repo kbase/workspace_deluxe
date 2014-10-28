@@ -197,7 +197,7 @@ public class WorkspaceServerMethods {
 				token));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
-		return objInfoToTuple(meta);
+		return objInfoToTuple(meta, true);
 	}
 	
 	public void grantModuleOwnership(final GrantModuleOwnershipParams params,

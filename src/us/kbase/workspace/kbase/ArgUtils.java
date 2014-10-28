@@ -217,27 +217,33 @@ public class ArgUtils {
 	
 	public static Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>
-			objInfoToTuple(final ObjectInformation info) {
+			objInfoToTuple(
+					final ObjectInformation info,
+					final boolean logObjects) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToTuple(m).get(0);
+		return objInfoToTuple(m, logObjects).get(0);
 	}
 
 	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
 			translateObjectDataList(
-					final List<Set<ObjectInformation>> lsoi) {
+					final List<Set<ObjectInformation>> lsoi,
+					final boolean logObjects) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
 				Long, String, String, Long, Map<String, String>>>> ret = 
 				new LinkedList<List<Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
 		for (Set<ObjectInformation> soi: lsoi) {
-			ret.add(objInfoToTuple(new LinkedList<ObjectInformation>(soi)));
+			ret.add(objInfoToTuple(new LinkedList<ObjectInformation>(soi),
+					logObjects));
 		}
 		return ret;
 	}
 	
 	public static List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>>
-			objInfoToTuple(final List<ObjectInformation> info) {
+			objInfoToTuple(
+					final List<ObjectInformation> info,
+					final boolean logObjects) {
 
 		//oh the humanity
 		final List<Tuple11<Long, String, String, String, Long, String,
@@ -248,8 +254,11 @@ public class ArgUtils {
 			if (m == null) {
 				ret.add(null);
 			} else {
-				LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
-						m.getObjectId(), m.getVersion(), m.getTypeString());
+				if (logObjects) {
+					LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+							m.getObjectId(), m.getVersion(),
+							m.getTypeString());
+				}
 				ret.add(new Tuple11<Long, String, String, String, Long,
 						String, Long, String, String, Long, Map<String, String>>()
 						.withE1(m.getObjectId())
@@ -271,15 +280,19 @@ public class ArgUtils {
 	
 	public static Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>
-			objInfoToMetaTuple(final ObjectInformation info) {
+			objInfoToMetaTuple(
+					final ObjectInformation info,
+					final boolean logObjects) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToMetaTuple(m).get(0);
+		return objInfoToMetaTuple(m, logObjects).get(0);
 	}
 	
 	public static List<Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>>
-			objInfoToMetaTuple(final List<ObjectInformation> info) {
+			objInfoToMetaTuple(
+					final List<ObjectInformation> info,
+					final boolean logObjects) {
 		//oh the humanity
 		final List<Tuple12<String, String, String, Long, String, String, String,
 		String, String, String, Map<String, String>, Long>> ret = 
@@ -287,8 +300,10 @@ public class ArgUtils {
 		String, String, String, String, Map<String, String>, Long>>();
 		
 		for (ObjectInformation m: info) {
-			LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
-					m.getObjectId(), m.getVersion(), m.getTypeString());
+			if (logObjects) {
+				LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+						m.getObjectId(), m.getVersion(), m.getTypeString());
+			}
 			ret.add(new Tuple12<String, String, String, Long, String, String, String,
 					String, String, String, Map<String, String>, Long>()
 					.withE1(m.getObjectName())
@@ -379,7 +394,8 @@ public class ArgUtils {
 			final WorkspaceUser user,
 			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
-			final RefreshingToken handleManagertoken) {
+			final RefreshingToken handleManagertoken,
+			final boolean logObjects) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
@@ -387,7 +403,7 @@ public class ArgUtils {
 			final ByteArrayFileCache resource = o.getDataAsTokens();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
-					.withInfo(objInfoToTuple(o.getObjectInfo()))
+					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
@@ -410,14 +426,15 @@ public class ArgUtils {
 			final List<WorkspaceObjectInformation> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final RefreshingToken handleManagertoken) {
+			final RefreshingToken handleManagertoken,
+			final boolean logObjects) {
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
 		for (final WorkspaceObjectInformation o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
 			ret.add(new ObjectProvenanceInfo()
-					.withInfo(objInfoToTuple(o.getObjectInfo()))
+					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
