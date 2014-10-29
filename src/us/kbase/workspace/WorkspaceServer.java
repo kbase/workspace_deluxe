@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -125,7 +126,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
 	
-	private static final String VER = "0.3.2";
+	private static final String VER = "0.3.3";
 
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -280,8 +281,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 	public void setUpLogger() {
-		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
-				.setLevel(Level.OFF);
+		final Logger rootLogger = ((Logger) LoggerFactory.getLogger(
+				org.slf4j.Logger.ROOT_LOGGER_NAME));
+		rootLogger.setLevel(Level.OFF);
+		rootLogger.detachAndStopAllAppenders();
 		final Logger kbaseRootLogger = (Logger) LoggerFactory.getLogger(
 				"us.kbase");
 		//would be better to also set the level here on calls to the server
@@ -863,7 +866,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ByteArrayFileCache resource = ret.getDataAsTokens();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
-			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo()));
+			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
 			resourcesToDelete.set(new HashSet<ByteArrayFileCache>(
 					Arrays.asList(resource)));
         //END get_object
@@ -885,7 +888,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
 				ws.getObjectProvenance(getUser(authPart), loi),
-					getUser(authPart), handleManagerUrl, handleMgrToken);
+					getUser(authPart), handleManagerUrl, handleMgrToken, true);
         //END get_object_provenance
         return returnVal;
     }
@@ -907,7 +910,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
 				ws.getObjects(getUser(authPart), loi), getUser(authPart),
-					resources, handleManagerUrl, handleMgrToken);
+					resources, handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);
         //END get_objects
         return returnVal;
@@ -942,7 +945,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
 				ws.getObjectsSubSet(getUser(authPart), loi), getUser(authPart),
-						resources, handleManagerUrl, handleMgrToken);
+						resources, handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);
         //END get_object_subset
         return returnVal;
@@ -962,7 +965,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi));
+		returnVal = objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi),
+				true);
         //END get_object_history
         return returnVal;
     }
@@ -981,7 +985,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_referencing_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectDataList(
-				ws.getReferencingObjects(getUser(authPart), loi));
+				ws.getReferencingObjects(getUser(authPart), loi), false);
         //END list_referencing_objects
         return returnVal;
     }
@@ -1060,7 +1064,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(ws.getReferencedObjects(
 				getUser(authPart), chains), getUser(authPart), resources,
-					handleManagerUrl, handleMgrToken);
+					handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;
@@ -1128,7 +1132,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = objInfoToMetaTuple(
 				ws.listObjects(getUser(params.getAuth(), authPart),
 						Arrays.asList(wsi), type, null, null, null, null, null,
-						false, showDeleted, false, false, true, false, 0, 10000));
+						false, showDeleted, false, false, true, false,
+						0, 10000), false);
         //END list_workspace_objects
         return returnVal;
     }
@@ -1180,7 +1185,8 @@ public class WorkspaceServer extends JsonServerServlet {
 						params.getMeta(), parseDate(params.getAfter()),
 						parseDate(params.getBefore()), showHidden,
 						showDeleted, showOnlyDeleted, showAllVers,
-						includeMetadata, excludeGlobal, skip, limit));
+						includeMetadata, excludeGlobal, skip, limit),
+						false);
         //END list_objects
         return returnVal;
     }
@@ -1205,7 +1211,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		returnVal = objInfoToMetaTuple(
 				ws.getObjectInformation(getUser(params.getAuth(), authPart),
-						Arrays.asList(oi), true, false).get(0));
+						Arrays.asList(oi), true, false).get(0), true);
         //END get_objectmeta
         return returnVal;
     }
@@ -1231,7 +1237,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
-						longToBoolean(includeMetadata), false));
+						longToBoolean(includeMetadata), false), true);
         //END get_object_info
         return returnVal;
     }
@@ -1254,7 +1260,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
 						longToBoolean(params.getIncludeMetadata()),
-						longToBoolean(params.getIgnoreErrors())));
+						longToBoolean(params.getIgnoreErrors())), true);
         //END get_object_info_new
         return returnVal;
     }
@@ -1295,7 +1301,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
 		returnVal = objInfoToTuple(ws.renameObject(getUser(authPart),
-				oi, params.getNewName()));
+				oi, params.getNewName()), true);
         //END rename_object
         return returnVal;
     }
@@ -1315,7 +1321,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier from = processObjectIdentifier(params.getFrom());
 		final ObjectIdentifier to = processObjectIdentifier(params.getTo());
-		returnVal = objInfoToTuple(ws.copyObject(getUser(authPart), from, to));
+		returnVal = objInfoToTuple(ws.copyObject(getUser(authPart), from, to),
+				true);
         //END copy_object
         return returnVal;
     }
@@ -1335,7 +1342,8 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
         //BEGIN revert_object
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.revertObject(getUser(authPart), oi));
+		returnVal = objInfoToTuple(ws.revertObject(getUser(authPart), oi),
+				true);
         //END revert_object
         return returnVal;
     }
