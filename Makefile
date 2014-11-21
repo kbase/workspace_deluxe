@@ -136,14 +136,14 @@ deploy: deploy-client deploy-service
 
 deploy-client: deploy-client-libs deploy-docs deploy-scripts
 
-deploy-client-libs:
+deploy-client-libs: compile-java-client
 	mkdir -p $(TARGET)/lib/
 	cp dist/client/$(CLIENT_JAR) $(TARGET)/lib/
 	cp -rv lib/* $(TARGET)/lib/
 	echo $(GITCOMMIT) > $(TARGET)/lib/$(SERVICE).clientdist
 	echo $(TAGS) >> $(TARGET)/lib/$(SERVICE).clientdist
 
-deploy-docs:
+deploy-docs: build-docs
 	mkdir -p $(SERVICE_DIR)/webroot
 	cp  -r docs/* $(SERVICE_DIR)/webroot/.
 
