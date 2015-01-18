@@ -1256,6 +1256,27 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 
 	@Test
+	public void saveEmptyStringKey() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("foo");
+
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("saveEmptyStringKey");
+		ws.createWorkspace(user, wspace.getName(), false, null, null);
+		Provenance mtprov = new Provenance(user);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("", 3);
+		//should work
+		ws.saveObjects(user, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, mtprov,
+						false)
+				), getIdFactory(user));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> dataObj = (Map<String, Object>)
+				ws.getObjects(user, Arrays.asList(
+				new ObjectIdentifier(wspace, 1))).get(0).getData();
+		assertThat("data saved correctly", dataObj, is(data));
+	}
+	
+	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		final String specTypeCheck1 =
 				"module TestTypeChecking {" +

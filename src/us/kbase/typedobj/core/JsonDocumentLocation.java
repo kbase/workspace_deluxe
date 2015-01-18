@@ -271,9 +271,9 @@ public class JsonDocumentLocation {
 		private final String location;
 		
 		private JsonMapLocation(final String location) {
-			if (location == null || location.isEmpty()) {
+			if (location == null) {
 				throw new IllegalArgumentException(
-						"Map locations cannot be null or the empty string");
+						"Map locations cannot be null");
 			}
 			this.location = location;
 		}
