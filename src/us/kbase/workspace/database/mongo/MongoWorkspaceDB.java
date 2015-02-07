@@ -2668,10 +2668,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//this is another place where extremely rare failures could cause
 			//problems
 			final int ver;
+			final int latestver = (Integer) objdata.get(o).get(LATEST_VERSION);
 			if (o.getVersion() == null) {
-				ver = (Integer) objdata.get(o).get(LATEST_VERSION);
+				ver = latestver;
 			} else {
 				ver = o.getVersion();
+				if (ver > latestver) {
+					final Map<String, Object> obj = objdata.get(o);
+					final String name = (String) obj.get(Fields.OBJ_NAME);
+					final Long id = (Long) obj.get(Fields.OBJ_ID);
+					
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s exists "
+							+ "in workspace %s", id, name, ver,
+							o.getWorkspaceIdentifier().getID()), o);
+				}
 			}
 			@SuppressWarnings("unchecked")
 			final List<Integer> refs = (List<Integer>) objdata.get(o).get(
