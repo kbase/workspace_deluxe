@@ -19,6 +19,29 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.3.4 (Released TBD)
+--------------------------------------
+NEW FEATURES:
+- N/A
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Empty strings are now accepted as map keys
+- Fixed a NPE when calling list_referencing_object_counts with a non-existent
+  object version
+
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
+  
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- ACLs based on KBase groups
+- KBase Search API
+- Improvements to returning the subset of an object
+
 VERSION: 0.3.3 (Released 10/28/14)
 --------------------------------------
 NEW FEATURES:
