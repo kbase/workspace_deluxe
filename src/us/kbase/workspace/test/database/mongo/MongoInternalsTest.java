@@ -5,13 +5,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,7 +30,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -60,7 +56,6 @@ import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
@@ -139,40 +134,17 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"),
 				new UObject(data), t, meta, p, false);
-		List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-		wco.add(wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
+		ResolvedSaveObject rso = wso.resolve(
+				new DummyTypedObjectValidationReport(at, wso.getData()),
 				new HashSet<Reference>(), new LinkedList<Reference>(),
-				new HashMap<IdReferenceType, Set<RemappedId>>()));
-		
-		Constructor<ObjectSavePackage> objConst =
-				ObjectSavePackage.class.getDeclaredConstructor();
-		objConst.setAccessible(true);
-		ObjectSavePackage pkg = objConst.newInstance();
-		Field wo = pkg.getClass().getDeclaredField("wo");
-		wo.setAccessible(true);
-		wo.set(pkg, wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
-				new HashSet<Reference>(), new LinkedList<Reference>(),
-				new HashMap<IdReferenceType, Set<RemappedId>>()));
-		Field td = pkg.getClass().getDeclaredField("td");
-		td.setAccessible(true);
-		td.set(pkg, new TypeData(new Writable() {
-			@Override
-			public void write(OutputStream os) throws IOException {
-				new ObjectMapper().writeValue(os, data);				
-			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
-		}, at, data));
+				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				new WorkspaceIdentifier("ws"));
-		mwdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
+		mwdb.saveObjects(new WorkspaceUser("u"), rwsi, Arrays.asList(rso));
 		
-		Method saveWorkspaceObject = mwdb.getClass()
-				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
-						long.class, String.class);
-		saveWorkspaceObject.setAccessible(true);
-		IDName r = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, 3L, "testobj");
+		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
+		ObjectSavePackage pkg = inp.pkg;
+		IDName r = inp.idname;
 		
 		Field name = pkg.getClass().getDeclaredField("name");
 		name.setAccessible(true);
@@ -194,6 +166,43 @@ public class MongoInternalsTest {
 		ObjectInformation md = (ObjectInformation) saveObjectVersion.invoke(
 				mwdb, new WorkspaceUser("u"), rwsi, idid.get(r), pkg);
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
+	}
+	
+	class IDnPackage {
+		IDName idname;
+		ObjectSavePackage pkg;
+		
+		public IDnPackage(IDName idname, ObjectSavePackage pkg) {
+			super();
+			this.idname = idname;
+			this.pkg = pkg;
+		}
+	}
+	
+	private IDnPackage startSaveObject(
+			final ResolvedMongoWSID rwsi,
+			final ResolvedSaveObject rso,
+			final int objid,
+			final AbsoluteTypeDefId abstype) throws Exception {
+		
+		Constructor<ObjectSavePackage> objConst =
+				ObjectSavePackage.class.getDeclaredConstructor();
+		objConst.setAccessible(true);
+		ObjectSavePackage pkg = objConst.newInstance();
+		Field wo = pkg.getClass().getDeclaredField("wo");
+		wo.setAccessible(true);
+		wo.set(pkg, rso);
+		Field td = pkg.getClass().getDeclaredField("td");
+		td.setAccessible(true);
+		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype, null));
+		
+		Method saveWorkspaceObject = mwdb.getClass()
+				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
+						long.class, String.class);
+		saveWorkspaceObject.setAccessible(true);
+		String name = rso.getObjectIdentifier().getName();
+		IDName idn = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, objid, name);
+		return new IDnPackage(idn, pkg);
 	}
 	
 	@Test
