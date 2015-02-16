@@ -118,7 +118,10 @@ public class MongoInternalsTest {
 	@Test
 	public void raceConditionRevertObjectId() throws Exception {
 		//TODO more tests like this to test internals that can't be tested otherwise
-		ws.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
+		
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
+		WorkspaceUser user = new WorkspaceUser("u");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -139,8 +142,8 @@ public class MongoInternalsTest {
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				new WorkspaceIdentifier("ws"));
-		mwdb.saveObjects(new WorkspaceUser("u"), rwsi, Arrays.asList(rso));
+				wsi);
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
 		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
 		ObjectSavePackage pkg = inp.pkg;
@@ -166,6 +169,56 @@ public class MongoInternalsTest {
 		ObjectInformation md = (ObjectInformation) saveObjectVersion.invoke(
 				mwdb, new WorkspaceUser("u"), rwsi, idid.get(r), pkg);
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
+	}
+	
+	@Test
+	public void setGetRaceCondition() throws Exception {
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("setGetRace");
+		WorkspaceUser user = new WorkspaceUser("u");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final Map<String, Object> data = new HashMap<String, Object>();
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
+				new TypeDefName("SomeModule", "AType"), 0, 1);
+		
+		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("testobj"),
+				new UObject(data), t, null, p, false);
+		ResolvedSaveObject rso = wso.resolve(
+				new DummyTypedObjectValidationReport(at, wso.getData()),
+				new HashSet<Reference>(), new LinkedList<Reference>(),
+				new HashMap<IdReferenceType, Set<RemappedId>>());
+		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi);
+		
+		IDnPackage inp = startSaveObject(rwsi, rso, 1, at);
+		ObjectSavePackage pkg = inp.pkg;
+		IDName r = inp.idname;
+		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
+				wso.getObjectIdentifier().getName());
+		//TODO error condition one - no ver provided
+//		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>();
+//		oidset.add(oidrw);
+//		mwdb.getObjects(oidset);
+		
+		//TODO This works - says no such object - add try catch test
+		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
+				wso.getObjectIdentifier().getName(), 1);
+		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
+		oidsetver.add(oidrwWithVer);
+//		mwdb.getObjects(oidsetver);
+		
+		//TODO this reproduces the problem found very rarely in JGI jenkins tests
+		//race condition on save/get
+		jdb.getCollection("workspaceObjects").update("{id: 1, ws: #}",
+				rwsi.getID())
+			.with("{$inc: {numver: 1}}");
+		mwdb.getObjects(oidsetver);
+		
+		//TODO fix these issues across the board - all methods.
+		
 	}
 	
 	class IDnPackage {
