@@ -3,6 +3,7 @@ package us.kbase.workspace.test.database.mongo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -48,6 +49,7 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
@@ -173,9 +175,10 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void setGetRaceCondition() throws Exception {
+		String objname = "testobj";
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("setGetRace");
 		WorkspaceUser user = new WorkspaceUser("u");
-		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
@@ -184,7 +187,7 @@ public class MongoInternalsTest {
 				new TypeDefName("SomeModule", "AType"), 0, 1);
 		
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("testobj"),
+				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
 		ResolvedSaveObject rso = wso.resolve(
 				new DummyTypedObjectValidationReport(at, wso.getData()),
@@ -198,17 +201,33 @@ public class MongoInternalsTest {
 		IDName r = inp.idname;
 		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
 				wso.getObjectIdentifier().getName());
-		//TODO error condition one - no ver provided
-//		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>();
-//		oidset.add(oidrw);
-//		mwdb.getObjects(oidset);
+
+		//possible race condition 1 - no version provided, version not yet
+		//saved, version count not yet incremented
+		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>();
+		oidset.add(oidrw);
+		try {
+			mwdb.getObjects(oidset);
+			fail("got objects with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, wsid)));
+		}
 		
-		//TODO This works - says no such object - add try catch test
+		//possible race condition 2 - as 1, but version provided
 		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
 				wso.getObjectIdentifier().getName(), 1);
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
-//		mwdb.getObjects(oidsetver);
+		try {
+			mwdb.getObjects(oidsetver);
+			fail("got objects with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, wsid)));
+		}
 		
 		//TODO this reproduces the problem found very rarely in JGI jenkins tests
 		//race condition on save/get
