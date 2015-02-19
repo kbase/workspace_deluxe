@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -307,23 +308,41 @@ public class MongoInternalsTest {
 		}
 		
 		try {
-			//TODO fix NPE here, this is a queryVersions problem vs. queryAllVersions
 			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
 							objname, rwsi.getID())));
 		}
 		
-		//TODO fix & test queryVersions method. Handled queryAllVersions and queryCollections.
-
-		//TODO this reproduces the problem found very rarely in JGI jenkins tests
-		//race condition on save/get
-		mwdb.getObjects(oidsetver);
+		try {
+			mwdb.getObjects(oidsetver);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
 		
-		//TODO fix these issues across the board - all methods.
+		try {
+			mwdb.getObjectProvenance(oidsetver);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
 		
+		assertNull("can't get object mid save", mwdb.getObjectInformation(oidsetver, false, true).get(0));
+		try {
+			mwdb.getObjectInformation(oidsetver, false, false);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
 	}
 
 	private ResolvedSaveObject createResolvedWSObj(String objname,
