@@ -281,6 +281,7 @@ public class QueryMethods {
 		return ret;
 	}
 	
+	//method assumes at least one version exists
 	Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
 			final HashSet<ResolvedMongoObjectIDNoVer> objIDs,
 			final Set<String> fields)

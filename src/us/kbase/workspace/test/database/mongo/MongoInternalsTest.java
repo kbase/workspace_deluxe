@@ -176,9 +176,13 @@ public class MongoInternalsTest {
 	@Test
 	public void setGetRaceCondition() throws Exception {
 		String objname = "testobj";
+		String objname2 = "testobj2";
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("setGetRace");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("setGetRace2");
+		WorkspaceIdentifier wsi3 = new WorkspaceIdentifier("setGetRace3");
+		
 		WorkspaceUser user = new WorkspaceUser("u");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
@@ -186,38 +190,64 @@ public class MongoInternalsTest {
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
 				new TypeDefName("SomeModule", "AType"), 0, 1);
 		
-		WorkspaceSaveObject wso = new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer(objname),
-				new UObject(data), t, null, p, false);
-		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
-				new HashSet<Reference>(), new LinkedList<Reference>(),
-				new HashMap<IdReferenceType, Set<RemappedId>>());
+		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
+		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi);
 		
-		IDnPackage inp = startSaveObject(rwsi, rso, 1, at);
-		ObjectSavePackage pkg = inp.pkg;
-		IDName r = inp.idname;
-		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
-				wso.getObjectIdentifier().getName());
+		startSaveObject(rwsi, rso, 1, at);
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2));
 
+		
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
-		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>();
-		oidset.add(oidrw);
+		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
+				rso.getObjectIdentifier().getName());
+		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw));
 		try {
 			mwdb.getObjects(oidset);
 			fail("got objects with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),
 					is(String.format("No object with name %s exists in workspace %s",
-							objname, wsid)));
+							objname, rwsi.getID())));
 		}
+		
+		try {
+			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null, null);
+		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi2);
+		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
+				rso.getObjectIdentifier().getName());
+		try {
+			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
+					Arrays.asList(oidrw2_1)));
+			fail("cloned object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi2.getID())));
+		}
+		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
+				rso2.getObjectIdentifier().getName());
+		
+		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw2_2)), false, false).get(oidrw2_2).getObjectId();
+		assertThat("correct object id", id, is(1L));
+
 		
 		//possible race condition 2 - as 1, but version provided
 		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
-				wso.getObjectIdentifier().getName(), 1);
+				rso.getObjectIdentifier().getName(), 1);
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		try {
@@ -226,18 +256,87 @@ public class MongoInternalsTest {
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),
 					is(String.format("No object with name %s exists in workspace %s",
-							objname, wsid)));
+							objname, rwsi.getID())));
 		}
 		
+		try {
+			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		
+		//race condition 3 - as 1, but with version incremented 
+		//set the version to 1 in the workspace object. This state can
+		//occur if a get happens between the increment and the save of the
+		//version, although it's really rare
+		jdb.getCollection("workspaceObjects")
+			.update("{id: 1, ws: #}", rwsi.getID())
+			.with("{$inc: {numver: 1}}");
+		
+		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null, null);
+		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi3);
+		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
+				rso.getObjectIdentifier().getName());
+		try {
+			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
+					Arrays.asList(oidrw3_1)));
+			fail("cloned object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi3.getID())));
+		}
+		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
+				rso2.getObjectIdentifier().getName());
+		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw3_2)), false, false).get(oidrw3_2).getObjectId();
+		assertThat("correct object id", id, is(1L));
+		
+		try {
+			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			//TODO fix NPE here, this is a queryVersions problem vs. queryAllVersions
+			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		//TODO fix & test queryVersions method. Handled queryAllVersions and queryCollections.
+
 		//TODO this reproduces the problem found very rarely in JGI jenkins tests
 		//race condition on save/get
-		jdb.getCollection("workspaceObjects").update("{id: 1, ws: #}",
-				rwsi.getID())
-			.with("{$inc: {numver: 1}}");
 		mwdb.getObjects(oidsetver);
 		
 		//TODO fix these issues across the board - all methods.
 		
+	}
+
+	private ResolvedSaveObject createResolvedWSObj(String objname,
+			final Map<String, Object> data, Provenance p, TypeDefId t,
+			AbsoluteTypeDefId at) throws Exception {
+		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer(objname),
+				new UObject(data), t, null, p, false);
+		ResolvedSaveObject rso = wso.resolve(
+				new DummyTypedObjectValidationReport(at, wso.getData()),
+				new HashSet<Reference>(), new LinkedList<Reference>(),
+				new HashMap<IdReferenceType, Set<RemappedId>>());
+		return rso;
 	}
 	
 	class IDnPackage {
@@ -267,6 +366,12 @@ public class MongoInternalsTest {
 		Field td = pkg.getClass().getDeclaredField("td");
 		td.setAccessible(true);
 		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype, null));
+		
+		Method incrementWorkspaceCounter = mwdb.getClass()
+				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
+						int.class);
+		incrementWorkspaceCounter.setAccessible(true);
+		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
 		
 		Method saveWorkspaceObject = mwdb.getClass()
 				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
