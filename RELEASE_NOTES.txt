@@ -28,6 +28,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Empty strings are now accepted as map keys
 - Fixed a NPE when calling list_referencing_object_counts with a non-existent
   object version
+- Fixed a race condition that could occur when operating on an object that's in
+  mid save
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
