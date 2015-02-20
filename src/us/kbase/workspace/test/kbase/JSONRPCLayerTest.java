@@ -80,7 +80,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.3.3"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.3.4"));
 	}
 	
 	@Test
@@ -2292,7 +2292,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void listReferencingObjects() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referingobjs"));
+		long wsid = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referingobjs")).getE1();
 		
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("referingobjs")
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
@@ -2320,6 +2320,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
 		List<Long> refcnts = CLIENT1.listReferencingObjectCounts(loi);
 		assertThat("got correct refcounts", refcnts, is(Arrays.asList(2L)));
+		
+		loi.set(0, new ObjectIdentity().withRef("referingobjs/std/2"));
+		try {
+			refcnts = CLIENT1.listReferencingObjectCounts(loi);
+			fail("got ref counts with bad obj id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("No object with id 1 (name std) and version 2 exists in workspace " +
+							wsid));
+		}
 	}
 	
 	@Test

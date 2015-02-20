@@ -126,7 +126,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
 	
-	private static final String VER = "0.3.3";
+	private static final String VER = "0.3.4";
 
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";

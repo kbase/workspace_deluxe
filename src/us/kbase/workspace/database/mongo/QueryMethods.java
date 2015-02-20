@@ -205,6 +205,10 @@ public class QueryMethods {
 					rwsi.getID());
 			query.put(Fields.OBJ_NAME, new BasicDBObject(
 					"$in", names.get(rwsi).keySet()));
+			//if ver count < 1, we're in a race condition or the database went
+			//down after saving the object but before saving the version
+			//so don't look at objects with no versions
+			query.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
 			orquery.add(query);
 		}
 		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
@@ -212,6 +216,8 @@ public class QueryMethods {
 					rwsi.getID());
 			query.put(Fields.OBJ_ID, new BasicDBObject(
 					"$in", ids.get(rwsi).keySet()));
+			//see notes in loop above
+			query.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
 			orquery.add(query);
 		}
 		fields.add(Fields.OBJ_ID);
@@ -275,6 +281,7 @@ public class QueryMethods {
 		return ret;
 	}
 	
+	//method assumes at least one version exists
 	Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
 			final HashSet<ResolvedMongoObjectIDNoVer> objIDs,
 			final Set<String> fields)
