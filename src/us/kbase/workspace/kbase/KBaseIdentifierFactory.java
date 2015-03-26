@@ -170,8 +170,12 @@ public class KBaseIdentifierFactory {
 						+ objcount + ": " + e.getLocalizedMessage(), e);
 			}
 					
-			objs.add(new SubObjectIdentifier(oi,
-					new ObjectPaths(soi.getIncluded())));
+			ObjectPaths paths = new ObjectPaths(soi.getIncluded());
+			if (soi.getStrictMaps() != null)
+			    paths.withStringMaps(soi.getStrictMaps() != 0L);
+            if (soi.getStrictArrays() != null)
+                paths.withStringArrays(soi.getStrictArrays() != 0L);
+			objs.add(new SubObjectIdentifier(oi, paths));
 			objcount++;
 		}
 		return objs;

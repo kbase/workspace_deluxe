@@ -1,10 +1,17 @@
 package Bio::KBase::workspace::Client;
 
 use JSON::RPC::Client;
+use POSIX;
 use strict;
 use Data::Dumper;
 use URI;
 use Bio::KBase::Exceptions;
+my $get_time = sub { time, 0 };
+eval {
+    require Time::HiRes;
+    $get_time = sub { Time::HiRes::gettimeofday() };
+};
+
 use Bio::KBase::AuthToken;
 
 # Client version should match Impl version
@@ -57,7 +64,41 @@ sub new
     my $self = {
 	client => Bio::KBase::workspace::Client::RpcClient->new,
 	url => $url,
+	headers => [],
     };
+
+    chomp($self->{hostname} = `hostname`);
+    $self->{hostname} ||= 'unknown-host';
+
+    #
+    # Set up for propagating KBRPC_TAG and KBRPC_METADATA environment variables through
+    # to invoked services. If these values are not set, we create a new tag
+    # and a metadata field with basic information about the invoking script.
+    #
+    if ($ENV{KBRPC_TAG})
+    {
+	$self->{kbrpc_tag} = $ENV{KBRPC_TAG};
+    }
+    else
+    {
+	my ($t, $us) = &$get_time();
+	$us = sprintf("%06d", $us);
+	my $ts = strftime("%Y-%m-%dT%H:%M:%S.${us}Z", gmtime $t);
+	$self->{kbrpc_tag} = "C:$0:$self->{hostname}:$$:$ts";
+    }
+    push(@{$self->{headers}}, 'Kbrpc-Tag', $self->{kbrpc_tag});
+
+    if ($ENV{KBRPC_METADATA})
+    {
+	$self->{kbrpc_metadata} = $ENV{KBRPC_METADATA};
+	push(@{$self->{headers}}, 'Kbrpc-Metadata', $self->{kbrpc_metadata});
+    }
+
+    if ($ENV{KBRPC_ERROR_DEST})
+    {
+	$self->{kbrpc_error_dest} = $ENV{KBRPC_ERROR_DEST};
+	push(@{$self->{headers}}, 'Kbrpc-Errordest', $self->{kbrpc_error_dest});
+    }
 
     #
     # This module requires authentication.
@@ -129,7 +170,7 @@ sub ver
 							       "Invalid argument count for function ver (received $n, expecting 0)");
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.ver",
 	params => \@args,
     });
@@ -254,7 +295,7 @@ sub create_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.create_workspace",
 	params => \@args,
     });
@@ -353,7 +394,7 @@ sub alter_workspace_metadata
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.alter_workspace_metadata",
 	params => \@args,
     });
@@ -486,7 +527,7 @@ sub clone_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.clone_workspace",
 	params => \@args,
     });
@@ -615,7 +656,7 @@ sub lock_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.lock_workspace",
 	params => \@args,
     });
@@ -732,7 +773,7 @@ sub get_workspacemeta
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_workspacemeta",
 	params => \@args,
     });
@@ -853,7 +894,7 @@ sub get_workspace_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_workspace_info",
 	params => \@args,
     });
@@ -944,7 +985,7 @@ sub get_workspace_description
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_workspace_description",
 	params => \@args,
     });
@@ -1041,7 +1082,7 @@ sub set_permissions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.set_permissions",
 	params => \@args,
     });
@@ -1134,7 +1175,7 @@ sub set_global_permission
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.set_global_permission",
 	params => \@args,
     });
@@ -1225,7 +1266,7 @@ sub set_workspace_description
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.set_workspace_description",
 	params => \@args,
     });
@@ -1320,7 +1361,7 @@ sub get_permissions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_permissions",
 	params => \@args,
     });
@@ -1459,7 +1500,7 @@ sub save_object
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.save_object",
 	params => \@args,
     });
@@ -1655,7 +1696,7 @@ sub save_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.save_objects",
 	params => \@args,
     });
@@ -1796,7 +1837,7 @@ sub get_object
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object",
 	params => \@args,
     });
@@ -2009,7 +2050,7 @@ sub get_object_provenance
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object_provenance",
 	params => \@args,
     });
@@ -2224,7 +2265,7 @@ sub get_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_objects",
 	params => \@args,
     });
@@ -2269,6 +2310,8 @@ SubObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
+	strict_maps has a value which is a Workspace.boolean
+	strict_arrays has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 obj_name is a string
@@ -2276,6 +2319,7 @@ obj_id is an int
 obj_ver is an int
 obj_ref is a string
 object_path is a string
+boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
@@ -2327,7 +2371,6 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
-boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2347,6 +2390,8 @@ SubObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
+	strict_maps has a value which is a Workspace.boolean
+	strict_arrays has a value which is a Workspace.boolean
 ws_name is a string
 ws_id is an int
 obj_name is a string
@@ -2354,6 +2399,7 @@ obj_id is an int
 obj_ver is an int
 obj_ref is a string
 object_path is a string
+boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
@@ -2405,7 +2451,6 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
-boolean is an int
 id_type is a string
 extracted_id is a string
 
@@ -2455,7 +2500,7 @@ sub get_object_subset
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object_subset",
 	params => \@args,
     });
@@ -2595,7 +2640,7 @@ sub get_object_history
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object_history",
 	params => \@args,
     });
@@ -2734,7 +2779,7 @@ sub list_referencing_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_referencing_objects",
 	params => \@args,
     });
@@ -2845,7 +2890,7 @@ sub list_referencing_object_counts
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_referencing_object_counts",
 	params => \@args,
     });
@@ -3075,7 +3120,7 @@ sub get_referenced_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_referenced_objects",
 	params => \@args,
     });
@@ -3194,7 +3239,7 @@ sub list_workspaces
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_workspaces",
 	params => \@args,
     });
@@ -3329,7 +3374,7 @@ sub list_workspace_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_workspace_info",
 	params => \@args,
     });
@@ -3465,7 +3510,7 @@ sub list_workspace_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_workspace_objects",
 	params => \@args,
     });
@@ -3624,7 +3669,7 @@ sub list_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_objects",
 	params => \@args,
     });
@@ -3759,7 +3804,7 @@ sub get_objectmeta
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_objectmeta",
 	params => \@args,
     });
@@ -3911,7 +3956,7 @@ sub get_object_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object_info",
 	params => \@args,
     });
@@ -4060,7 +4105,7 @@ sub get_object_info_new
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_object_info_new",
 	params => \@args,
     });
@@ -4187,7 +4232,7 @@ sub rename_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.rename_workspace",
 	params => \@args,
     });
@@ -4332,7 +4377,7 @@ sub rename_object
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.rename_object",
 	params => \@args,
     });
@@ -4477,7 +4522,7 @@ sub copy_object
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.copy_object",
 	params => \@args,
     });
@@ -4619,7 +4664,7 @@ sub revert_object
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.revert_object",
 	params => \@args,
     });
@@ -4726,7 +4771,7 @@ sub hide_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.hide_objects",
 	params => \@args,
     });
@@ -4832,7 +4877,7 @@ sub unhide_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.unhide_objects",
 	params => \@args,
     });
@@ -4938,7 +4983,7 @@ sub delete_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.delete_objects",
 	params => \@args,
     });
@@ -5045,7 +5090,7 @@ sub undelete_objects
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.undelete_objects",
 	params => \@args,
     });
@@ -5134,7 +5179,7 @@ sub delete_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.delete_workspace",
 	params => \@args,
     });
@@ -5225,7 +5270,7 @@ sub undelete_workspace
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.undelete_workspace",
 	params => \@args,
     });
@@ -5307,7 +5352,7 @@ sub request_module_ownership
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.request_module_ownership",
 	params => \@args,
     });
@@ -5421,7 +5466,7 @@ sub register_typespec
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.register_typespec",
 	params => \@args,
     });
@@ -5518,7 +5563,7 @@ sub register_typespec_copy
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.register_typespec_copy",
 	params => \@args,
     });
@@ -5615,7 +5660,7 @@ sub release_module
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.release_module",
 	params => \@args,
     });
@@ -5704,7 +5749,7 @@ sub list_modules
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_modules",
 	params => \@args,
     });
@@ -5805,7 +5850,7 @@ sub list_module_versions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_module_versions",
 	params => \@args,
     });
@@ -5928,7 +5973,7 @@ sub get_module_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_module_info",
 	params => \@args,
     });
@@ -6013,7 +6058,7 @@ sub get_jsonschema
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_jsonschema",
 	params => \@args,
     });
@@ -6096,7 +6141,7 @@ sub translate_from_MD5_types
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.translate_from_MD5_types",
 	params => \@args,
     });
@@ -6179,7 +6224,7 @@ sub translate_to_MD5_types
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.translate_to_MD5_types",
 	params => \@args,
     });
@@ -6294,7 +6339,7 @@ sub get_type_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_type_info",
 	params => \@args,
     });
@@ -6411,7 +6456,7 @@ sub get_all_type_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_all_type_info",
 	params => \@args,
     });
@@ -6518,7 +6563,7 @@ sub get_func_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_func_info",
 	params => \@args,
     });
@@ -6627,7 +6672,7 @@ sub get_all_func_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.get_all_func_info",
 	params => \@args,
     });
@@ -6721,7 +6766,7 @@ sub grant_module_ownership
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.grant_module_ownership",
 	params => \@args,
     });
@@ -6811,7 +6856,7 @@ sub remove_module_ownership
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.remove_module_ownership",
 	params => \@args,
     });
@@ -6906,7 +6951,7 @@ sub list_all_types
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.list_all_types",
 	params => \@args,
     });
@@ -6987,7 +7032,7 @@ sub administer
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
 	method => "Workspace.administer",
 	params => \@args,
     });
@@ -7013,7 +7058,7 @@ sub administer
 
 sub version {
     my ($self) = @_;
-    my $result = $self->{client}->call($self->{url}, {
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
         method => "Workspace.version",
         params => [],
     });
@@ -7918,6 +7963,10 @@ OR an object reference string:
 AND a subset specification:
         list<object_path> included - the portions of the object to include
                 in the object subset.
+strict_maps - this parameter forbids to use included paths with keys absent in map or
+        object (default value is false)
+strict_arrays - this parameter forbids to use included paths with array positions large than 
+        array size (default value is true)
 
 
 =item Definition
@@ -7933,6 +7982,8 @@ objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
 included has a value which is a reference to a list where each element is a Workspace.object_path
+strict_maps has a value which is a Workspace.boolean
+strict_arrays has a value which is a Workspace.boolean
 
 </pre>
 
@@ -7948,6 +7999,8 @@ objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
 ref has a value which is a Workspace.obj_ref
 included has a value which is a reference to a list where each element is a Workspace.object_path
+strict_maps has a value which is a Workspace.boolean
+strict_arrays has a value which is a Workspace.boolean
 
 
 =end text
@@ -10444,21 +10497,27 @@ with_empty_modules has a value which is a Workspace.boolean
 
 package Bio::KBase::workspace::Client::RpcClient;
 use base 'JSON::RPC::Client';
+use POSIX;
+use strict;
 
 #
 # Override JSON::RPC::Client::call because it doesn't handle error returns properly.
 #
 
 sub call {
-    my ($self, $uri, $obj) = @_;
+    my ($self, $uri, $headers, $obj) = @_;
     my $result;
 
-    if ($uri =~ /\?/) {
-       $result = $self->_get($uri);
-    }
-    else {
-        Carp::croak "not hashref." unless (ref $obj eq 'HASH');
-        $result = $self->_post($uri, $obj);
+
+    {
+	if ($uri =~ /\?/) {
+	    $result = $self->_get($uri);
+	}
+	else {
+	    Carp::croak "not hashref." unless (ref $obj eq 'HASH');
+	    $result = $self->_post($uri, $headers, $obj);
+	}
+
     }
 
     my $service = $obj->{method} =~ /^system\./ if ( $obj );
@@ -10486,7 +10545,7 @@ sub call {
 
 
 sub _post {
-    my ($self, $uri, $obj) = @_;
+    my ($self, $uri, $headers, $obj) = @_;
     my $json = $self->json;
 
     $obj->{version} ||= $self->{version} || '1.1';
@@ -10513,6 +10572,7 @@ sub _post {
         Content_Type   => $self->{content_type},
         Content        => $content,
         Accept         => 'application/json',
+	@$headers,
 	($self->{token} ? (Authorization => $self->{token}) : ()),
     );
 }

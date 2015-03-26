@@ -131,10 +131,12 @@ public class ObjectExtractionByPathTest {
 		ObjectPaths op = new ObjectPaths(pathStrings);
 		try {
 			JsonNode extract;
-			if(strict!=null)
-				extract = SubdataExtractor.extract(op, data, strict.asBoolean());
-			else
+			if(strict!=null) {
+			    op.withStringMaps(strict.asBoolean());
 				extract = SubdataExtractor.extract(op, data);
+			} else {
+				extract = SubdataExtractor.extract(op, data);
+			}
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			

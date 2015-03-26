@@ -35,6 +35,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * AND a subset specification:
  *         list<object_path> included - the portions of the object to include
  *                 in the object subset.
+ * strict_maps - this parameter forbids to use included paths with keys absent in map or
+ *         object (default value is false)
+ * strict_arrays - this parameter forbids to use included paths with array positions large than 
+ *         array size (default value is true)
  * </pre>
  * 
  */
@@ -47,7 +51,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "objid",
     "ver",
     "ref",
-    "included"
+    "included",
+    "strict_maps",
+    "strict_arrays"
 })
 public class SubObjectIdentity {
 
@@ -65,6 +71,10 @@ public class SubObjectIdentity {
     private java.lang.String ref;
     @JsonProperty("included")
     private List<String> included;
+    @JsonProperty("strict_maps")
+    private Long strictMaps;
+    @JsonProperty("strict_arrays")
+    private Long strictArrays;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("workspace")
@@ -172,6 +182,36 @@ public class SubObjectIdentity {
         return this;
     }
 
+    @JsonProperty("strict_maps")
+    public Long getStrictMaps() {
+        return strictMaps;
+    }
+
+    @JsonProperty("strict_maps")
+    public void setStrictMaps(Long strictMaps) {
+        this.strictMaps = strictMaps;
+    }
+
+    public SubObjectIdentity withStrictMaps(Long strictMaps) {
+        this.strictMaps = strictMaps;
+        return this;
+    }
+
+    @JsonProperty("strict_arrays")
+    public Long getStrictArrays() {
+        return strictArrays;
+    }
+
+    @JsonProperty("strict_arrays")
+    public void setStrictArrays(Long strictArrays) {
+        this.strictArrays = strictArrays;
+    }
+
+    public SubObjectIdentity withStrictArrays(Long strictArrays) {
+        this.strictArrays = strictArrays;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -184,7 +224,7 @@ public class SubObjectIdentity {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((("SubObjectIdentity"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", included=")+ included)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((("SubObjectIdentity"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", included=")+ included)+", strictMaps=")+ strictMaps)+", strictArrays=")+ strictArrays)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -2286,6 +2286,40 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));
 		}
 		
+		Map<String, Object> data2 = createData( // intentionally unsorted
+		        "{\"features\": " +
+		        "    [{\"id\": 1, \"thing\": \"foo\"}," +
+		        "     {\"id\": 2, \"thing\": \"foo2\"}," +
+		        "     {\"id\": 3, \"thing\": \"foo3\"}" +
+		        "    ]," +
+		        " \"foobar\": \"somestuff\"" +
+		        "}"
+		        );
+
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("subdata")
+		        .withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data2))
+		                .withType(SAFE_TYPE).withName("std2")))).get(0);
+
+        try {
+            CLIENT1.getObjectSubset(Arrays.asList(
+                    new SubObjectIdentity().withRef("subdata/2")
+                    .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+            fail("listed objects with bad params");
+        } catch (ServerException se) {
+            assertThat("correct excep message", se.getLocalizedMessage(),
+                    is("Invalid selection: no array element exists at position '3', at: /features/3"));
+        }
+
+        ObjectData od2 = CLIENT1.getObjectSubset(Arrays.asList(
+                new SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
+                .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+        Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
+        Assert.assertEquals(1, od2map.size());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
+        Assert.assertEquals(1, features.size());
+        Assert.assertEquals("foo3", features.get(0).get("thing"));
+
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("subdata").withNewPermission("n"));
 	}
