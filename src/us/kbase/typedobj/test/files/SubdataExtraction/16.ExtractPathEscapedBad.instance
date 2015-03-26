@@ -1,0 +1,11 @@
+{
+	"paths":["/~id"],
+    "strict":true,
+	"data": {
+        "key1":"val1",
+		"name/":"val2",
+		"~id":"val3",
+		"key4":"val4"
+	},
+	"extract": "Wrong usage of ~ in json pointer path: /~id ([->]~id)"
+}

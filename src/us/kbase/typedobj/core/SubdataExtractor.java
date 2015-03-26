@@ -63,9 +63,13 @@ public class SubdataExtractor {
 	        throws IOException, TypedObjectExtractionException {
 		//if the selection is empty, we return without adding anything
 		SubdataExtractionNode root = new SubdataExtractionNode();
-		for (String p : objpaths.getPaths()) {
-			String[] path = parsePath(p);
-			root.addPath(path);
+		for (int i = 0; i < objpaths.size(); i++) {
+		    try {
+		        String[] path = trimPath(objpaths.getPath(i));
+		        root.addPath(path);
+		    } catch (JsonPointerParseException ex) {
+		        throw new TypedObjectExtractionException(ex.getMessage(), ex);
+		    }
 		}
 		JsonToken t = jts.nextToken();
 		extractFieldsWithOpenToken(jts, t, root, output, new ArrayList<String>(), 
@@ -101,11 +105,7 @@ public class SubdataExtractor {
 	}
 	
 	// remove trailing '*' and '[*]', because these select everything
-	private static String[] parsePath(String path) {
-		if (path.startsWith("/")) {
-			path = path.substring(1);
-		}
-		String [] pathToken = path.split("/");
+	private static String[] trimPath(String[] pathToken) {
 		int end = pathToken.length;
 		for(int k=pathToken.length-1; k>0; k--) {
 			if(pathToken[k].equals("*") || pathToken[k].equals("[*]")) {
@@ -381,7 +381,7 @@ public class SubdataExtractor {
 	public static String getPathText(List<String> path) {
 		StringBuilder ret = new StringBuilder();
 		for (String item : path)
-			ret.append("/").append(item);
+			ret.append("/").append(item.replace("~", "~0").replace("/", "~1"));
 		return ret.toString();
 	}
 }

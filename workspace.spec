@@ -232,6 +232,8 @@ module Workspace {
 			list mapped by the bar key in the map foo.
 		/foo/asterisk/baz - specifies the baz field of all the objects in the
 			values of the foo mapping. Swap 'asterisk' for * in the path.
+		In case you need to use '/' or '~' in path items use JSON Pointer 
+			notation defined here: http://tools.ietf.org/html/rfc6901
 	*/
 	typedef string object_path;
 	

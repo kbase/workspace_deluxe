@@ -5,11 +5,19 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Class is responsible for storing "JSON Pointer" paths pointing to particular places in 
+ * JSON data (that is constructed based on arrays and maps nested in each other in any
+ * combinations). Path elements are separated by '/' character. In order to be able to
+ * use '/' itself as part of mapping keys RFC6901 approach is used 
+ * (http://tools.ietf.org/html/rfc6901).
+ * @author rsutormin
+ */
 public class ObjectPaths implements Iterable<String> {
 	
 	private final List<String> paths;
-	private boolean strictMaps = STRICT_MAPS_DEFAULT;
-	private boolean strictArrays = STRICT_ARRAYS_DEFAULT;
+	private final boolean strictMaps;
+	private final boolean strictArrays;
 	
    /** sets default behavior for extraction.  If strict is true, then errors are thrown if a field
      * in map is requested but does not exist in the data object. If strict is false, then
@@ -24,30 +32,45 @@ public class ObjectPaths implements Iterable<String> {
      */
     public static boolean STRICT_ARRAYS_DEFAULT = true;
 
+    /**
+     * Construct set of JSON Pointer paths with default values for strictMaps (false)
+     * and strictArrays (true).
+     * @param paths JSON Pointer paths
+     */
 	public ObjectPaths(final List<String> paths) {
-		if (paths == null) {
+	    this(paths, STRICT_MAPS_DEFAULT, STRICT_ARRAYS_DEFAULT);
+	}
+
+	/**
+	 * Construct set of JSON Pointer paths.
+	 * @param paths JSON Pointer paths
+	 * @param strictMaps restriction mode for maps
+	 * @param strictArrays restriction mode for arrays
+	 */
+	public ObjectPaths(final List<String> paths, boolean strictMaps, boolean strictArrays) {
+	    if (paths == null) {
 			this.paths = Collections.unmodifiableList(
 					new LinkedList<String>());
 		} else {
 			this.paths = Collections.unmodifiableList(
 					new LinkedList<String>(paths));
 		}
+	    this.strictMaps = strictMaps;
+	    this.strictArrays = strictArrays;
 	}
 	
-	public ObjectPaths withStringMaps(boolean strictMaps) {
-	    this.strictMaps = strictMaps;
-	    return this;
-	}
-
-	public ObjectPaths withStringArrays(boolean strictArrays) {
-	    this.strictArrays = strictArrays;
-	    return this;
-	}
-
+	/**
+	 * Give restriction mode for maps
+	 * @return restriction mode for maps
+	 */
 	public boolean isStrictMaps() {
         return strictMaps;
     }
 	
+	/**
+	 * Give restriction mode for arrays
+	 * @return restriction mode for arrays
+	 */
 	public boolean isStrictArrays() {
         return strictArrays;
     }
@@ -65,8 +88,45 @@ public class ObjectPaths implements Iterable<String> {
 		return paths.isEmpty();
 	}
 	
-	public List<String> getPaths() {
-		return new LinkedList<String>(paths);
+	/**
+	 * Parse path according to JsonPointer rules (http://tools.ietf.org/html/rfc6901).
+	 * @param index number of path in set of paths
+	 * @return parsed path
+	 * @throws JsonPointerParseException in case there are '~' characters not followed by '0' or '1'
+	 */
+	public String[] getPath(int index) throws JsonPointerParseException {
+	    String p = paths.get(index);
+	    if (p.startsWith("/"))
+	        p = p.substring(1);
+	    if (p.endsWith("/"))
+	        p = p.substring(0, p.length() - 1);
+	    String[] ret = p.split("/");
+	    for (int pos = 0; pos < ret.length; pos++) {
+	        if (ret[pos].indexOf('~') >= 0) {
+	            StringBuilder item = new StringBuilder(ret[pos]);
+	            int n = 0;
+	            int origN = 0;
+	            while (n < item.length()) {
+	                if (item.charAt(n) == '~') {
+	                    char next = n + 1 < item.length() ? item.charAt(n + 1) : (char)0;
+	                    if (next == '1') {
+	                        item.setCharAt(n, '/');
+	                    } else if (next != '0') {
+	                        String errorBlock = ret[pos];
+	                        errorBlock = errorBlock.substring(0, origN) + "[->]" + errorBlock.substring(origN);
+	                        throw new JsonPointerParseException("Wrong usage of ~ in json pointer path: " + 
+	                                paths.get(index) + " (" + errorBlock + ")");
+	                    }
+	                    item.deleteCharAt(n + 1);
+	                    origN++;
+	                }
+	                n++;
+	                origN++;
+	            }
+	            ret[pos] = item.toString();
+	        }
+	    }
+		return ret;
 	}
 
 	@Override

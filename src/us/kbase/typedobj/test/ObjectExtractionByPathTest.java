@@ -43,7 +43,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 @RunWith(value = Parameterized.class)
 public class ObjectExtractionByPathTest {
 
-	private final static int TEST_COUNT = 14;
+	private final static int TEST_COUNT = 17;
 	private final static String TEST_RESOURCE_LOCATION = "files/SubdataExtraction/";
 	
 	private final static boolean VERBOSE = true;
@@ -128,15 +128,15 @@ public class ObjectExtractionByPathTest {
 		for(int k=0; k<paths.size(); k++) {
 			pathStrings.add(paths.get(k).asText());
 		}
-		ObjectPaths op = new ObjectPaths(pathStrings);
+		ObjectPaths op;
 		try {
 			JsonNode extract;
-			if(strict!=null) {
-			    op.withStringMaps(strict.asBoolean());
-				extract = SubdataExtractor.extract(op, data);
+			if (strict != null) {
+			    op = new ObjectPaths(pathStrings, strict.asBoolean(), ObjectPaths.STRICT_ARRAYS_DEFAULT);
 			} else {
-				extract = SubdataExtractor.extract(op, data);
+			    op = new ObjectPaths(pathStrings);
 			}
+            extract = SubdataExtractor.extract(op, data);
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			
