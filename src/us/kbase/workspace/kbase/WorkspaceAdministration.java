@@ -135,7 +135,7 @@ public class WorkspaceAdministration {
 		}
 		if ("setPermissions".equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
-			wsmeth.setPermissions(params, null, token, true);
+			wsmeth.setPermissions(params, null, true);
 			return null;
 		}
 		if ("getPermissions".equals(fn)) {
@@ -192,7 +192,7 @@ public class WorkspaceAdministration {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
-		return wsmeth.validateUsers(Arrays.asList(user), token).get(0);
+		return wsmeth.validateUsers(Arrays.asList(user)).get(0);
 	}
 	
 	private static class SetWorkspaceOwnerParams {

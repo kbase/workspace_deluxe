@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -54,8 +55,10 @@ import ch.qos.logback.core.AppenderBase;
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
+import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
@@ -140,6 +143,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	//mongo connection attempt limit
 	private static final String MONGO_RECONNECT = "mongodb-retry";
 	
+	//credentials to use for user queries
+	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
+	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
+	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE =
 			"ignore_handle_service";
@@ -156,6 +163,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
+	
+	private final static int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	
 	private static Map<String, String> wsConfig = null;
 	
@@ -412,6 +421,27 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		return false;
 	}
+	
+	private ConfigurableAuthService setUpAuthClient(
+			final String kbaseAdminUser,
+			final String kbaseAdminPwd) {
+		AuthConfig c = new AuthConfig();
+		ConfigurableAuthService auth;
+		try {
+			auth = new ConfigurableAuthService(c);
+			c.withRefreshingToken(auth.getRefreshingToken(
+					kbaseAdminUser, kbaseAdminPwd,
+					TOKEN_REFRESH_INTERVAL_SEC));
+			return auth;
+		} catch (AuthException e) {
+			fail("Couldn't log in the KBase administrative user " +
+					kbaseAdminUser + " : " + e.getLocalizedMessage());
+		} catch (IOException e) {
+			fail("Couldn't connect to authorization service at " +
+					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+		}
+		return null;
+	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -479,6 +509,17 @@ public class WorkspaceServer extends JsonServerServlet {
 			}
 		}
 		
+		if (!wsConfig.containsKey(KBASE_ADMIN_USER)) {
+			fail("Must provide param " + KBASE_ADMIN_USER + " in config file");
+			failed = true;
+		}
+		final String adminUser = wsConfig.get(KBASE_ADMIN_USER);
+		if (!wsConfig.containsKey(KBASE_ADMIN_PWD)) {
+			fail("Must provide param " + KBASE_ADMIN_PWD + " in config file");
+			failed = true;
+		}
+		final String adminPwd = wsConfig.get(KBASE_ADMIN_PWD);
+		
 		if (failed) {
 			fail("Server startup failed - all calls will error out.");
 			ws = null;
@@ -524,7 +565,8 @@ public class WorkspaceServer extends JsonServerServlet {
 						new ResourceUsageConfigurationBuilder().build(),
 						new KBaseReferenceParser());
 				wsmeth = new WorkspaceServerMethods(ws, handleServiceUrl,
-						maxUniqueIdCountPerCall);
+						maxUniqueIdCountPerCall,
+						setUpAuthClient(adminUser, adminPwd));
 				wsadmin = new WorkspaceAdministration(ws, wsmeth,
 						wsConfig.get(WSADMIN));
 				final String mem = String.format(
@@ -723,7 +765,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions")
     public void setPermissions(SetPermissionsParams params, AuthToken authPart) throws Exception {
         //BEGIN set_permissions
-		wsmeth.setPermissions(params, getUser(authPart), authPart);
+		wsmeth.setPermissions(params, getUser(authPart));
         //END set_permissions
     }
 
