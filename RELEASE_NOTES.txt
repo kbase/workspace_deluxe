@@ -22,7 +22,7 @@ TO provenance is limited to 1MB
 VERSION: 0.3.4 (Released TBD)
 --------------------------------------
 NEW FEATURES:
-- N/A
+- added CLI command for listing properly configured Narratives
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Empty strings are now accepted as map keys
