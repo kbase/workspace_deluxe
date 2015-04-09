@@ -12,6 +12,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
@@ -102,9 +104,31 @@ public class WorkspaceServerMethods {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
-		final List<WorkspaceUser> users = ArgUtils.validateUsers(
+		final List<WorkspaceUser> users = validateUsers(
 				params.getUsers(), token);
 		ws.setPermissions(user, wsi, users, p, asAdmin);
+	}
+	
+	public List<WorkspaceUser> validateUsers(
+			final List<String> users, final AuthToken token)
+			throws IOException, AuthException {
+		final List<WorkspaceUser> wsusers = ArgUtils.convertUsers(users);
+		final Map<String, Boolean> userok;
+		try {
+			userok = AuthService.isValidUserName(users, token);
+		} catch (UnknownHostException uhe) {
+			//message from UHE is only the host name
+			throw new AuthException(
+					"Could not contact Authorization Service host to validate user names: "
+							+ uhe.getMessage(), uhe);
+		}
+		for (String u: userok.keySet()) {
+			if (!userok.get(u)) {
+				throw new IllegalArgumentException(String.format(
+						"User %s is not a valid user", u));
+			}
+		}
+		return wsusers;
 	}
 
 	public void setGlobalPermission(final SetGlobalPermissionsParams params,

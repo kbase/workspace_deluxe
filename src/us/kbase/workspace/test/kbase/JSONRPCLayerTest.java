@@ -2462,7 +2462,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command: listAdmin");
 		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
 						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
-				"thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid KBase user");
+				"User thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid user");
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"addAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
@@ -2608,7 +2608,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"thisisnotarealuserihopeorthistestwillfail\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
 				"			   \"description\": \"mydesc\"}}",
-				"thisisnotarealuserihopeorthistestwillfail is not a valid KBase user");
+				"User thisisnotarealuserihopeorthistestwillfail is not a valid user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
@@ -2645,7 +2645,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
 						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
-				"thisisalsonotavalidkbaseuserihope is not a valid KBase user");
+				"User thisisalsonotavalidkbaseuserihope is not a valid user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 						" \"user\": \"" + USER1 + "\"," +
@@ -2668,7 +2668,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
 		
 		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
-		failAdmin(CLIENT2, adminParams, "thisisacrazykbaseuserthatdoesntexistforsure is not a valid KBase user");
+		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 		
 		String wsstr = USER1 + ":admintest";
