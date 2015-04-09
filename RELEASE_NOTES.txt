@@ -22,7 +22,7 @@ TO provenance is limited to 1MB
 VERSION: 0.3.4 (Released TBD)
 --------------------------------------
 NEW FEATURES:
-- N/A
+- added CLI command for listing properly configured Narratives
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Updated to the new auth client. Globus APIs changed in a way that broke
@@ -36,6 +36,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   object version
 - Fixed a race condition that could occur when operating on an object that's in
   mid save
+- 'strict_maps' and 'strict_arrays' properties are now present in 
+  'get_object_subset' method
+- Slashes are now supported in paths used in 'get_object_subset' method
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
