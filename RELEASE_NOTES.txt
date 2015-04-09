@@ -25,6 +25,12 @@ NEW FEATURES:
 - N/A
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+- Updated to the new auth client. Globus APIs changed in a way that broke
+  sharing with multiple users at the same time.
+- Added required fields to the deploy.cfg file for user credentials to use
+  when querying user data. These creds must be for an administrator of
+  kbase_users so that all users are visible to the workspace service when
+  attempting to share workspaces.
 - Empty strings are now accepted as map keys
 - Fixed a NPE when calling list_referencing_object_counts with a non-existent
   object version
