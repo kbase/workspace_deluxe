@@ -30,6 +30,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   object version
 - Fixed a race condition that could occur when operating on an object that's in
   mid save
+- 'strict_maps' and 'strict_arrays' properties are now present in 
+  'get_object_subset' method
+- Slashes are now supported in paths used in 'get_object_subset' method
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
