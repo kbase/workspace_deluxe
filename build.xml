@@ -43,7 +43,7 @@
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
 
   <fileset dir="${jardir}" id="sourceslib">
-    <include name="kbase/kbase-common-temp.jar"/>
+    <include name="${commonjar}"/>
   </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
