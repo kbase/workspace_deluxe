@@ -51,6 +51,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
@@ -325,24 +326,29 @@ public class HandleTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		
-		CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L)));
+		ObjectData ret = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L))).get(0);
+		checkHandleError(ret.getHandleError(), ret.getHandleStacktrace());
 		
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//object subset
-		CLIENT2.getObjectSubset(Arrays.asList(new SubObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L)));
+		ret = CLIENT2.getObjectSubset(Arrays.asList(new SubObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L))).get(0);
+		checkHandleError(ret.getHandleError(), ret.getHandleStacktrace());
 		
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//object provenance
-		CLIENT2.getObjectProvenance(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L)));
+		ObjectProvenanceInfo ret2 = CLIENT2.getObjectProvenance(Arrays.asList(
+				new ObjectIdentity().withWorkspace(workspace)
+				.withObjid(1L))).get(0);
+		checkHandleError(ret2.getHandleError(), ret2.getHandleStacktrace());
+		
 		
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
@@ -355,9 +361,10 @@ public class HandleTest {
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withData(new UObject(refdata))
 						.withType(HANDLE_REF_TYPE))));
-		CLIENT2.getReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
+		ret = CLIENT2.getReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(2L), new ObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L))));
+				.withObjid(1L)))).get(0);
+		checkHandleError(ret.getHandleError(), ret.getHandleStacktrace());
 		
 		checkReadAcl(node, twouser);
 		
@@ -377,6 +384,13 @@ public class HandleTest {
 		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
 				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
 						+ h1.getHid()));
+	}
+
+	private void checkHandleError(String err, String stack) {
+		if (err != null || stack != null) {
+			throw new TestException("Handle service reported an error: "
+					+ err + "\n" + stack);
+		}
 	}
 	
 	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
