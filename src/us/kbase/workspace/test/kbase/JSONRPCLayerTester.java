@@ -191,7 +191,7 @@ public class JSONRPCLayerTester {
 		
 		SERVER1 = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerTester1"), 
-				"JSONRPCLayerTester1_types");
+				"JSONRPCLayerTester1_types", p1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
@@ -245,7 +245,7 @@ public class JSONRPCLayerTester {
 		
 		SERVER2 = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerTester2"), 
-				"JSONRPCLayerTester2_types");
+				"JSONRPCLayerTester2_types", p1);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
 				SERVER2.getServerPort()), USER2, p2);
@@ -296,7 +296,7 @@ public class JSONRPCLayerTester {
 	}
 
 	private static WorkspaceServer startupWorkspaceServer(String mongohost,
-			DB db, String typedb)
+			DB db, String typedb, String user1Password)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -315,6 +315,8 @@ public class JSONRPCLayerTester {
 		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
+		ws.add("kbase-admin-user", USER1);
+		ws.add("kbase-admin-pwd", user1Password);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();

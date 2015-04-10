@@ -12,6 +12,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.Map;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
@@ -59,16 +61,19 @@ public class WorkspaceServerMethods {
 	final private Workspace ws;
 	final private URL handleServiceUrl;
 	final private int maximumIDCount;
+	final private ConfigurableAuthService auth;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
 			final URL handleServiceUrl,
-			final int maximumIDCount) {
+			final int maximumIDCount,
+			final ConfigurableAuthService auth) {
 		this.ws = ws;
 		this.handleServiceUrl = handleServiceUrl;
 		this.maximumIDCount = maximumIDCount;
+		this.auth = auth;
 	}
-	
+
 	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
 			createWorkspace(
 			final CreateWorkspaceParams params, final WorkspaceUser user)
@@ -83,15 +88,15 @@ public class WorkspaceServerMethods {
 	}
 	
 	public void setPermissions(final SetPermissionsParams params,
-			final WorkspaceUser user, final AuthToken token)
+			final WorkspaceUser user)
 			throws IOException, AuthException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		setPermissions(params, user, token, false);
+		setPermissions(params, user, false);
 	}
 	
 	public void setPermissions(final SetPermissionsParams params,
-			final WorkspaceUser user, final AuthToken token, boolean asAdmin)
+			final WorkspaceUser user, boolean asAdmin)
 			throws IOException, AuthException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
@@ -102,9 +107,29 @@ public class WorkspaceServerMethods {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
-		final List<WorkspaceUser> users = ArgUtils.validateUsers(
-				params.getUsers(), token);
+		final List<WorkspaceUser> users = validateUsers(params.getUsers());
 		ws.setPermissions(user, wsi, users, p, asAdmin);
+	}
+	
+	public List<WorkspaceUser> validateUsers(final List<String> users)
+			throws IOException, AuthException {
+		final List<WorkspaceUser> wsusers = ArgUtils.convertUsers(users);
+		final Map<String, Boolean> userok;
+		try {
+			userok = auth.isValidUserName(users);
+		} catch (UnknownHostException uhe) {
+			//message from UHE is only the host name
+			throw new AuthException(
+					"Could not contact Authorization Service host to validate user names: "
+							+ uhe.getMessage(), uhe);
+		}
+		for (String u: userok.keySet()) {
+			if (!userok.get(u)) {
+				throw new IllegalArgumentException(String.format(
+						"User %s is not a valid user", u));
+			}
+		}
+		return wsusers;
 	}
 
 	public void setGlobalPermission(final SetGlobalPermissionsParams params,

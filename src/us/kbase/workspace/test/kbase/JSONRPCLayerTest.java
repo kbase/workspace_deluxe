@@ -302,6 +302,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
 		
+		//test setting perms on multiple users at same time
+		//TODO add clearCaches method to auth client & use here
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
+				.withNewPermission("n").withUsers(Arrays.asList(USER2, USER3)));
+		expected.remove(USER2);
+		expected.remove(USER3);
+		perms = CLIENT1.getPermissions(new WorkspaceIdentity()
+			.withWorkspace("permspriv"));
+		assertThat("Permissions set correctly", perms, is(expected));
+		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("permspriv").withNewPermission("n"));
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
@@ -2286,6 +2296,40 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));
 		}
 		
+		Map<String, Object> data2 = createData( // intentionally unsorted
+		        "{\"features\": " +
+		        "    [{\"id\": 1, \"thing\": \"foo\"}," +
+		        "     {\"id\": 2, \"thing\": \"foo2\"}," +
+		        "     {\"id\": 3, \"thing\": \"foo3\"}" +
+		        "    ]," +
+		        " \"foobar\": \"somestuff\"" +
+		        "}"
+		        );
+
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("subdata")
+		        .withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data2))
+		                .withType(SAFE_TYPE).withName("std2")))).get(0);
+
+        try {
+            CLIENT1.getObjectSubset(Arrays.asList(
+                    new SubObjectIdentity().withRef("subdata/2")
+                    .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+            fail("listed objects with bad params");
+        } catch (ServerException se) {
+            assertThat("correct excep message", se.getLocalizedMessage(),
+                    is("Invalid selection: no array element exists at position '3', at: /features/3"));
+        }
+
+        ObjectData od2 = CLIENT1.getObjectSubset(Arrays.asList(
+                new SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
+                .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+        Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
+        Assert.assertEquals(1, od2map.size());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
+        Assert.assertEquals(1, features.size());
+        Assert.assertEquals("foo3", features.get(0).get("thing"));
+
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("subdata").withNewPermission("n"));
 	}
@@ -2418,7 +2462,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command: listAdmin");
 		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
 						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
-				"thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid KBase user");
+				"User thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid user");
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"addAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
@@ -2564,7 +2608,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"thisisnotarealuserihopeorthistestwillfail\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"r\"," +
 				"			   \"description\": \"mydesc\"}}",
-				"thisisnotarealuserihopeorthistestwillfail is not a valid KBase user");
+				"User thisisnotarealuserihopeorthistestwillfail is not a valid user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"createWorkspace\"," +
 				" \"user\": \"" + USER1 + "\"," +
@@ -2601,7 +2645,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
 						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
-				"thisisalsonotavalidkbaseuserihope is not a valid KBase user");
+				"User thisisalsonotavalidkbaseuserihope is not a valid user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 						" \"user\": \"" + USER1 + "\"," +
@@ -2624,7 +2668,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
 		
 		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
-		failAdmin(CLIENT2, adminParams, "thisisacrazykbaseuserthatdoesntexistforsure is not a valid KBase user");
+		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
 		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 		
 		String wsstr = USER1 + ":admintest";

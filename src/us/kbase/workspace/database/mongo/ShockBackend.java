@@ -6,7 +6,9 @@ import java.net.URL;
 import java.util.concurrent.ExecutionException;
 
 import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.auth.RefreshingToken;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
@@ -23,7 +25,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.kbase.RefreshingToken;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.gc.iotools.stream.base.ExecutionModel;
@@ -89,7 +90,8 @@ public class ShockBackend implements BlobStore {
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
 		try {
-			return new RefreshingToken(user, pwd, TOKEN_REFRESH_INTERVAL);
+			return AuthService.getRefreshingToken(
+					user, pwd, TOKEN_REFRESH_INTERVAL);
 		} catch (AuthException ae) {
 			throw new BlobStoreAuthorizationException(
 					"Could not authenticate backend user", ae);

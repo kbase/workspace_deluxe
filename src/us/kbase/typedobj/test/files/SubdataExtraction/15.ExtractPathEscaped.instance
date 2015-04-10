@@ -1,0 +1,14 @@
+{
+	"paths":["/na~1me/0/i\"d","/st\\uff/other~0stuff/0/b~0o~1t~1~0h","/st\\uff/ /"],
+    "strict":true,
+	"data": {
+        "key1":"val1",
+		"na/me":[{"i\"d":"something","key2":"val2"}],
+		"st\\uff":{"other~stuff":[{"b~o/t/~h":22}],"key3":"madeup"," ":{}},
+		"key4":"val4"
+	},
+	"extract": {
+		"na/me":[{"i\"d":"something"}],
+		"st\\uff":{"other~stuff":[{"b~o/t/~h":22}]," ":{}}
+	}
+}
