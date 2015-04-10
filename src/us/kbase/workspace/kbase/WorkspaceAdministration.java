@@ -4,7 +4,6 @@ import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +17,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JacksonTupleModule;
 import us.kbase.common.service.UObject;
@@ -137,7 +135,7 @@ public class WorkspaceAdministration {
 		}
 		if ("setPermissions".equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
-			wsmeth.setPermissions(params, null, token, true);
+			wsmeth.setPermissions(params, null, true);
 			return null;
 		}
 		if ("getPermissions".equals(fn)) {
@@ -194,21 +192,7 @@ public class WorkspaceAdministration {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
-		final boolean validUser;
-		try {
-			validUser = AuthService.isValidUserName(Arrays.asList(user),
-					token).get(user);
-		} catch (UnknownHostException uhe) {
-			//message from UHE is only the host name
-			throw new AuthException(
-					"Could not contact Authorization Service host to validate user name: "
-							+ uhe.getMessage(), uhe);
-		}
-		if (!validUser) {
-			throw new IllegalArgumentException(user +
-					" is not a valid KBase user");
-		}
-		return new WorkspaceUser(user);
+		return wsmeth.validateUsers(Arrays.asList(user)).get(0);
 	}
 	
 	private static class SetWorkspaceOwnerParams {

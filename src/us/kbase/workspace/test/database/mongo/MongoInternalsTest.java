@@ -1,17 +1,16 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -52,6 +50,7 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
@@ -60,7 +59,6 @@ import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
@@ -123,7 +121,10 @@ public class MongoInternalsTest {
 	@Test
 	public void raceConditionRevertObjectId() throws Exception {
 		//TODO more tests like this to test internals that can't be tested otherwise
-		ws.createWorkspace(new WorkspaceUser("u"), "ws", false, null, null);
+		
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
+		WorkspaceUser user = new WorkspaceUser("u");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -139,40 +140,17 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"),
 				new UObject(data), t, meta, p, false);
-		List<ResolvedSaveObject> wco = new ArrayList<ResolvedSaveObject>();
-		wco.add(wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
+		ResolvedSaveObject rso = wso.resolve(
+				new DummyTypedObjectValidationReport(at, wso.getData()),
 				new HashSet<Reference>(), new LinkedList<Reference>(),
-				new HashMap<IdReferenceType, Set<RemappedId>>()));
-		
-		Constructor<ObjectSavePackage> objConst =
-				ObjectSavePackage.class.getDeclaredConstructor();
-		objConst.setAccessible(true);
-		ObjectSavePackage pkg = objConst.newInstance();
-		Field wo = pkg.getClass().getDeclaredField("wo");
-		wo.setAccessible(true);
-		wo.set(pkg, wso.resolve(new DummyTypedObjectValidationReport(at, wso.getData()),
-				new HashSet<Reference>(), new LinkedList<Reference>(),
-				new HashMap<IdReferenceType, Set<RemappedId>>()));
-		Field td = pkg.getClass().getDeclaredField("td");
-		td.setAccessible(true);
-		td.set(pkg, new TypeData(new Writable() {
-			@Override
-			public void write(OutputStream os) throws IOException {
-				new ObjectMapper().writeValue(os, data);				
-			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
-		}, at, data));
+				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				new WorkspaceIdentifier("ws"));
-		mwdb.saveObjects(new WorkspaceUser("u"), rwsi, wco);
+				wsi);
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
-		Method saveWorkspaceObject = mwdb.getClass()
-				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
-						long.class, String.class);
-		saveWorkspaceObject.setAccessible(true);
-		IDName r = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, 3L, "testobj");
+		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
+		ObjectSavePackage pkg = inp.pkg;
+		IDName r = inp.idname;
 		
 		Field name = pkg.getClass().getDeclaredField("name");
 		name.setAccessible(true);
@@ -194,6 +172,233 @@ public class MongoInternalsTest {
 		ObjectInformation md = (ObjectInformation) saveObjectVersion.invoke(
 				mwdb, new WorkspaceUser("u"), rwsi, idid.get(r), pkg);
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
+	}
+	
+	@Test
+	public void setGetRaceCondition() throws Exception {
+		String objname = "testobj";
+		String objname2 = "testobj2";
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("setGetRace");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("setGetRace2");
+		WorkspaceIdentifier wsi3 = new WorkspaceIdentifier("setGetRace3");
+		
+		WorkspaceUser user = new WorkspaceUser("u");
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		
+		final Map<String, Object> data = new HashMap<String, Object>();
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
+				new TypeDefName("SomeModule", "AType"), 0, 1);
+		
+		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
+		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
+		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi);
+		
+		startSaveObject(rwsi, rso, 1, at);
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2));
+
+		
+		//possible race condition 1 - no version provided, version not yet
+		//saved, version count not yet incremented
+		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
+				rso.getObjectIdentifier().getName());
+		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw));
+		try {
+			mwdb.getObjects(oidset);
+			fail("got objects with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null, null);
+		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi2);
+		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
+				rso.getObjectIdentifier().getName());
+		try {
+			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
+					Arrays.asList(oidrw2_1)));
+			fail("cloned object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi2.getID())));
+		}
+		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
+				rso2.getObjectIdentifier().getName());
+		
+		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw2_2)), false, false).get(oidrw2_2).getObjectId();
+		assertThat("correct object id", id, is(1L));
+
+		
+		//possible race condition 2 - as 1, but version provided
+		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
+				rso.getObjectIdentifier().getName(), 1);
+		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
+		oidsetver.add(oidrwWithVer);
+		try {
+			mwdb.getObjects(oidsetver);
+			fail("got objects with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		
+		//race condition 3 - as 1, but with version incremented 
+		//set the version to 1 in the workspace object. This state can
+		//occur if a get happens between the increment and the save of the
+		//version, although it's really rare
+		jdb.getCollection("workspaceObjects")
+			.update("{id: 1, ws: #}", rwsi.getID())
+			.with("{$inc: {numver: 1}}");
+		
+		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null, null);
+		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
+				wsi3);
+		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
+				rso.getObjectIdentifier().getName());
+		try {
+			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
+					Arrays.asList(oidrw3_1)));
+			fail("cloned object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi3.getID())));
+		}
+		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
+				rso2.getObjectIdentifier().getName());
+		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw3_2)), false, false).get(oidrw3_2).getObjectId();
+		assertThat("correct object id", id, is(1L));
+		
+		try {
+			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with name %s exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
+			fail("copied object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			mwdb.getObjects(oidsetver);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		try {
+			mwdb.getObjectProvenance(oidsetver);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+		
+		assertNull("can't get object mid save", mwdb.getObjectInformation(oidsetver, false, true).get(0));
+		try {
+			mwdb.getObjectInformation(oidsetver, false, false);
+			fail("got object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+							objname, rwsi.getID())));
+		}
+	}
+
+	private ResolvedSaveObject createResolvedWSObj(String objname,
+			final Map<String, Object> data, Provenance p, TypeDefId t,
+			AbsoluteTypeDefId at) throws Exception {
+		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer(objname),
+				new UObject(data), t, null, p, false);
+		ResolvedSaveObject rso = wso.resolve(
+				new DummyTypedObjectValidationReport(at, wso.getData()),
+				new HashSet<Reference>(), new LinkedList<Reference>(),
+				new HashMap<IdReferenceType, Set<RemappedId>>());
+		return rso;
+	}
+	
+	class IDnPackage {
+		IDName idname;
+		ObjectSavePackage pkg;
+		
+		public IDnPackage(IDName idname, ObjectSavePackage pkg) {
+			super();
+			this.idname = idname;
+			this.pkg = pkg;
+		}
+	}
+	
+	private IDnPackage startSaveObject(
+			final ResolvedMongoWSID rwsi,
+			final ResolvedSaveObject rso,
+			final int objid,
+			final AbsoluteTypeDefId abstype) throws Exception {
+		
+		Constructor<ObjectSavePackage> objConst =
+				ObjectSavePackage.class.getDeclaredConstructor();
+		objConst.setAccessible(true);
+		ObjectSavePackage pkg = objConst.newInstance();
+		Field wo = pkg.getClass().getDeclaredField("wo");
+		wo.setAccessible(true);
+		wo.set(pkg, rso);
+		Field td = pkg.getClass().getDeclaredField("td");
+		td.setAccessible(true);
+		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype, null));
+		
+		Method incrementWorkspaceCounter = mwdb.getClass()
+				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
+						int.class);
+		incrementWorkspaceCounter.setAccessible(true);
+		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
+		
+		Method saveWorkspaceObject = mwdb.getClass()
+				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
+						long.class, String.class);
+		saveWorkspaceObject.setAccessible(true);
+		String name = rso.getObjectIdentifier().getName();
+		IDName idn = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, objid, name);
+		return new IDnPackage(idn, pkg);
 	}
 	
 	@Test

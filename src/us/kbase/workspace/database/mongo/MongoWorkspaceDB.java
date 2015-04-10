@@ -624,6 +624,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
 				wsinfo.getId(), wsinfo.isLocked(), false); //assume it's not deleted already
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
+		//skip any objects with no versions, likely a race condition
+		//or worse the db went down post version increment pre version save
+		//need to move to transactional backend or relationless schema
+		q.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
 		final List<Map<String, Object>> wsobjects =
 				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS);
 		for (Map<String, Object> o: wsobjects) {
@@ -635,9 +639,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
 			final ResolvedMongoObjectIDNoVer roi = 
 					new ResolvedMongoObjectIDNoVer(fromWS, name, oldid);
-			final List<Map<String, Object>> versions = query.queryAllVersions(
-					new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(roi)),
-					FLDS_VER_COPYOBJ).get(roi);
+			final List<Map<String, Object>> versions;
+			try {
+				versions = queryAllVersions(
+						new HashSet<ResolvedMongoObjectIDNoVer>(
+								Arrays.asList(roi)),
+						FLDS_VER_COPYOBJ).get(roi);
+			} catch (NoSuchObjectException nsoe) {
+				//The object was saved to the objects collections and the
+				//version was incremented at least once. However, no versions
+				//exist in the version collection. So either a race condition
+				//or the system died before versions could be saved, so skip
+				//it. Really need to move to a backend with transactions
+				//or simplify the schema so it's relationless.
+				continue;
+			}
 			for (final Map<String, Object> v: versions) {
 				final int ver = (Integer) v.get(Fields.VER_VER);
 				v.remove(Fields.MONGO_ID);
@@ -717,13 +733,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (rto == null && from.getVersion() == null) {
 			final ResolvedMongoObjectIDNoVer o =
 					new ResolvedMongoObjectIDNoVer(rfrom);
-			versions = query.queryAllVersions(
+			versions = queryAllVersions(
 					new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
 					FLDS_VER_COPYOBJ).get(o);
 		} else {
-			versions = Arrays.asList(query.queryVersions(
+			versions = Arrays.asList(queryVersions(
 					new HashSet<ResolvedMongoObjectID>(Arrays.asList(rfrom)),
-					FLDS_VER_COPYOBJ).get(rfrom));
+					FLDS_VER_COPYOBJ, false).get(rfrom));
 		}
 		for (final Map<String, Object> v: versions) {
 			int ver = (Integer) v.get(Fields.VER_VER);
@@ -2159,20 +2175,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
 				resolveObjectIDs(objectIDs);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_GET_OBJECT_SUBDATA);
+						FLDS_VER_GET_OBJECT_SUBDATA, false);
 		final Map<TypeDefId, Map<String, Set<ObjectIDResolvedWS>>> toGet =
 				new HashMap<TypeDefId, Map<String,Set<ObjectIDResolvedWS>>>();
 		for (final ObjectIDResolvedWS oid: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(oid);
-			if (!vers.containsKey(roi)) {
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", roi.getId(), roi.getName(), 
-						roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), oid);
-			}
 			final Map<String, Object> v = vers.get(roi);
 			final TypeDefId type = TypeDefId.fromTypeString(
 					(String) v.get(Fields.VER_TYPE));
@@ -2228,21 +2237,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
 				resolveObjectIDs(objectIDs);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT);
+						FLDS_VER_GET_OBJECT, false);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> ret =
 				new HashMap<ObjectIDResolvedWS, WorkspaceObjectInformation>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
-			if (!vers.containsKey(roi)) {
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", roi.getId(), roi.getName(), 
-						roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), o);
-			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
 			@SuppressWarnings("unchecked")
@@ -2312,9 +2314,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT);
+						FLDS_VER_GET_OBJECT, false);
 		checkTotalFileSize(paths, resobjs, vers);
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
@@ -2329,14 +2331,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				tfm);
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
-			if (!vers.containsKey(roi)) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", roi.getId(), roi.getName(), 
-						roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), o);
-			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
 			final String copyref =
@@ -2520,9 +2514,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>(resheads);
 		resall.putAll(reschains);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> foo =
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resall.values()),
-						FLDS_GETOBJREF);
+						FLDS_GETOBJREF, false);
 		final Map<ObjectIDResolvedWS, Set<String>> refs =
 				setUpRefs(resall, foo);
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> toGet =
@@ -2566,14 +2560,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Set<String>> ret =
 				new HashMap<ObjectIDResolvedWS, Set<String>>();
 		for (final ObjectIDResolvedWS oi: objs.keySet()) {
-			final ResolvedMongoObjectID roi = objs.get(oi);
-			if (!refs.containsKey(roi)) {
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", roi.getId(), roi.getName(), 
-						roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), oi);
-			}
 			final Map<String, Object> m = refs.get(objs.get(oi));
 			@SuppressWarnings("unchecked")
 			final List<String> r = (List<String>) m.get(Fields.VER_REF);
@@ -2668,10 +2654,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//this is another place where extremely rare failures could cause
 			//problems
 			final int ver;
+			final int latestver = (Integer) objdata.get(o).get(LATEST_VERSION);
 			if (o.getVersion() == null) {
-				ver = (Integer) objdata.get(o).get(LATEST_VERSION);
+				ver = latestver;
 			} else {
 				ver = o.getVersion();
+				if (ver > latestver) {
+					final Map<String, Object> obj = objdata.get(o);
+					final String name = (String) obj.get(Fields.OBJ_NAME);
+					final Long id = (Long) obj.get(Fields.OBJ_ID);
+					
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s exists "
+							+ "in workspace %s", id, name, ver,
+							o.getWorkspaceIdentifier().getID()), o);
+				}
 			}
 			@SuppressWarnings("unchecked")
 			final List<Integer> refs = (List<Integer>) objdata.get(o).get(
@@ -2747,20 +2744,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
 				resolveObjectIDs(objectIDs);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_TYPE);
+						FLDS_VER_TYPE, false);
 		final Map<ObjectIDResolvedWS, TypeAndReference> ret =
 				new HashMap<ObjectIDResolvedWS, TypeAndReference>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
-			if (!vers.containsKey(roi)) {
-				throw new NoSuchObjectException(String.format(
-						"No object with id %s (name %s) and version %s exists "
-						+ "in workspace %s", roi.getId(), roi.getName(), 
-						roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), o);
-			}
 			ret.put(o, new TypeAndReference(
 					AbsoluteTypeDefId.fromAbsoluteTypeString(
 							(String) vers.get(roi).get(Fields.VER_TYPE)),
@@ -2847,6 +2837,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			fields = FLDS_LIST_OBJ_VER;
 		}
+		//querying on versions directly so no need to worry about race 
+		//condition where the workspace object was saved but no versions
+		//were saved yet
 		final List<Map<String, Object>> verobjs = query.queryCollection(
 				COL_WORKSPACE_VERS, verq, fields, skip, limit);
 		if (verobjs.isEmpty()) {
@@ -2885,6 +2878,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject objq = new BasicDBObject("$or", orquery);
 		//could include / exclude hidden and deleted objects here? Prob
 		// not worth the effort
+		//we're querying with known versions, so there's no need to exclude
+		//workspace objects with 0 versions
 		final Map<Long, Map<Long, Map<String, Object>>> objdata =
 				organizeObjData(query.queryCollection(
 						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
@@ -2941,7 +2936,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashSet<ObjectIDResolvedWS>(Arrays.asList(oi))).get(oi);
 		final ResolvedMongoObjectIDNoVer o =
 				new ResolvedMongoObjectIDNoVer(roi);
-		final List<Map<String, Object>> versions = query.queryAllVersions(
+		final List<Map<String, Object>> versions = queryAllVersions(
 				new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
 				FLDS_VER_OBJ_HIST).get(o);
 		final LinkedList<ObjectInformation> ret =
@@ -3012,22 +3007,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			fields = FLDS_VER_META;
 		}
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				query.queryVersions(
+				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						fields);
+						fields, ignoreMissingAndDeleted);
 		final Map<ObjectIDResolvedWS, ObjectInformation> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectInformation>();
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
-			if (!vers.containsKey(roi)) {
-				if (!ignoreMissingAndDeleted) {
-					throw new NoSuchObjectException(String.format(
-							"No object with id %s (name %s) and version %s " +
-							" exists in workspace %s", roi.getId(),
-							roi.getName(), roi.getVersion(), 
-							roi.getWorkspaceIdentifier().getID()), o);
-				}
-			} else {
+			if (vers.containsKey(roi)) {
 				ret.put(o, generateObjectInfo(roi, vers.get(roi)));
 			}
 		}
@@ -3160,6 +3147,60 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return ret;
 	}
+	
+	//In rare race conditions an object may exist with a ver count of 1 but
+	//no versions. Really need to move this code to a backend DB with
+	//transactions if we want autoincrementing counters.
+	private Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
+			final Set<ResolvedMongoObjectID> objectIds,
+			final Set<String> fields,
+			boolean ignoreMissing)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
+		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+				query.queryVersions(objectIds, fields);
+		if (ignoreMissing) {
+			return vers;
+		}
+		for (ResolvedMongoObjectID roi: objectIds) {
+			if (!vers.containsKey(roi)) {
+				ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
+						roi.getWorkspaceIdentifier(), roi.getId());
+				throw new NoSuchObjectException(String.format(
+						"No object with id %s (name %s) and version %s " +
+						"exists in workspace %s", roi.getId(),
+						roi.getName(), roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID()), oid);
+			}
+		}
+		return vers;
+	}
+	
+	
+	//In rare race conditions an object may exist with a ver count of 1 but
+	//no versions. Really need to move this code to a backend DB with
+	//transactions if we want autoincrementing counters.
+	private Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>>
+		queryAllVersions(
+			final HashSet<ResolvedMongoObjectIDNoVer> objectIDs,
+			final Set<String> fields)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
+		
+		final Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> ret =
+				query.queryAllVersions(objectIDs, fields);
+		for (final Entry<ResolvedMongoObjectIDNoVer,
+				List<Map<String, Object>>> s: ret.entrySet()) {
+			if (s.getValue().isEmpty()) {
+				final ResolvedMongoObjectIDNoVer oid = s.getKey();
+				final ObjectIDResolvedWS oidrws = new ObjectIDResolvedWS(
+						oid.getWorkspaceIdentifier(), oid.getName());
+				throw new NoSuchObjectException(String.format(
+						"No object with name %s exists in workspace %s",
+						oid.getName(),
+						oid.getWorkspaceIdentifier().getID()), oidrws);
+			}
+		}
+		return ret;
+	}
 
 	private void calcLatestObjVersion(Map<String, Object> m) {
 		final Integer latestVersion;
@@ -3183,22 +3224,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers =
-				query.queryVersions(objs, new HashSet<String>()); //don't actually need the data
+				queryVersions(objs, new HashSet<String>(), !exceptIfMissing); //don't actually need the data
 		final Map<ResolvedMongoObjectID, Boolean> ret =
 				new HashMap<ResolvedMongoObjectID, Boolean>();
 		for (final ResolvedMongoObjectID o: objs) {
-			if (!vers.containsKey(o)) {
-				if (exceptIfMissing) {
-					throw new NoSuchObjectException(String.format(
-							"No object with id %s (name %s) and version %s " +
-							"exists in workspace %s", o.getId(), o.getName(),
-							o.getVersion(), 
-							o.getWorkspaceIdentifier().getID()));
-				}
-				ret.put(o, false);
-			} else {
-				ret.put(o, true);
-			}
+			ret.put(o, vers.containsKey(o));
 		}
 		return ret;
 	}

@@ -19,6 +19,40 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
+VERSION: 0.3.4 (Released 4/10/15)
+--------------------------------------
+NEW FEATURES:
+- added CLI command for listing properly configured Narratives
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Updated to the new auth client. Globus APIs changed in a way that broke
+  sharing with multiple users at the same time.
+- Added required fields to the deploy.cfg file for user credentials to use
+  when querying user data. These creds must be for an administrator of
+  kbase_users so that all users are visible to the workspace service when
+  attempting to share workspaces.
+- Empty strings are now accepted as map keys
+- Fixed a NPE when calling list_referencing_object_counts with a non-existent
+  object version
+- Fixed a race condition that could occur when operating on an object that's in
+  mid save
+- 'strict_maps' and 'strict_arrays' properties are now present in 
+  'get_object_subset' method
+- Slashes are now supported in paths used in 'get_object_subset' method
+
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
+  
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- ACLs based on KBase groups
+- KBase Search API
+- Improvements to returning the subset of an object
+
 VERSION: 0.3.3 (Released 10/28/14)
 --------------------------------------
 NEW FEATURES:

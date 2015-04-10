@@ -51,6 +51,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -1255,6 +1256,27 @@ public class WorkspaceTest extends WorkspaceTester {
 				getIdFactory(userfoo));
 	}
 
+	@Test
+	public void saveEmptyStringKey() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("foo");
+
+		WorkspaceIdentifier wspace = new WorkspaceIdentifier("saveEmptyStringKey");
+		ws.createWorkspace(user, wspace.getName(), false, null, null);
+		Provenance mtprov = new Provenance(user);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("", 3);
+		//should work
+		ws.saveObjects(user, wspace, Arrays.asList(
+				new WorkspaceSaveObject(data, SAFE_TYPE1, null, mtprov,
+						false)
+				), getIdFactory(user));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> dataObj = (Map<String, Object>)
+				ws.getObjects(user, Arrays.asList(
+				new ObjectIdentifier(wspace, 1))).get(0).getData();
+		assertThat("data saved correctly", dataObj, is(data));
+	}
+	
 	@Test
 	public void saveObjectWithTypeChecking() throws Exception {
 		final String specTypeCheck1 =
@@ -4686,7 +4708,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier wsisrcdel1 = new WorkspaceIdentifier("refssourcedel1");
 		WorkspaceIdentifier wsisrc2gl = new WorkspaceIdentifier("refssourcegl");
 		
-		ws.createWorkspace(user1, wsitar1.getName(), false, null, null);
+		long wsid = ws.createWorkspace(user1, wsitar1.getName(), false, null, null).getId();
 		ws.setPermissions(user1, wsitar1, Arrays.asList(user2), Permission.READ);
 		ws.createWorkspace(user2, wsitar2.getName(), false, null, null);
 		ws.setPermissions(user2, wsitar2, Arrays.asList(user1), Permission.READ);
@@ -4979,6 +5001,26 @@ public class WorkspaceTest extends WorkspaceTester {
 					is("Object 1 cannot be accessed: User refUser2 may not read workspace refssource1"));
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(new ObjectIdentifier(wsisrc1, 1)));
+		}
+		
+		try {
+			ws.getReferencingObjectCounts(user1, Arrays.asList(
+					new ObjectIdentifier(wsitar1, "single", 2)));
+			fail("Able to get ref obj count for non-existant obj version");
+		} catch (NoSuchObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is("No object with id 7 (name single) and version 2 exists in workspace " + wsid));
+			ObjectIDResolvedWS resobj = ioe.getResolvedInaccessibleObject();
+			assertThat("correct ws id in returned oid", resobj.getWorkspaceIdentifier().getID(),
+					is(wsid));
+			assertThat("correct ws name in returned oid", resobj.getWorkspaceIdentifier().getName(),
+					is(wsitar1.getName()));
+			assertThat("correct objid in returned oid", resobj.getId(),
+					is((Long) null));
+			assertThat("correct obj name in returned oid", resobj.getName(),
+					is("single"));
+			assertThat("correct obj ver in returned oid", resobj.getVersion(),
+					is(2));
 		}
 		
 		ws.setGlobalPermission(user2, wsisrc2gl, Permission.NONE);

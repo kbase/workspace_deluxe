@@ -239,6 +239,8 @@ public class HandleTest {
 		ws.add("handle-manager-user", handleUser);
 		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
+		ws.add("kbase-admin-user", handleUser);
+		ws.add("kbase-admin-pwd", handlePwd);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);
