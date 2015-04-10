@@ -35,6 +35,7 @@ import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
+import us.kbase.auth.RefreshingToken;
 import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;

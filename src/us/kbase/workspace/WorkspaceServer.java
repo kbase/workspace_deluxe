@@ -59,6 +59,7 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.auth.RefreshingToken;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
@@ -89,7 +90,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
-import us.kbase.workspace.kbase.RefreshingToken;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -366,7 +366,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			return null;
 		}
 		try {
-			return new RefreshingToken(user, pwd, TOKEN_REFRESH_INTERVAL);
+			return AuthService.getRefreshingToken(
+					user, pwd, TOKEN_REFRESH_INTERVAL);
 		} catch (AuthException e) {
 			fail("Couldn't log in with handle manager credentials for user " +
 					user + ": " + e.getLocalizedMessage());
