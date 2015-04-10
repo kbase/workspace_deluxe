@@ -19,7 +19,7 @@ TOs are limited to 1GB
 TO subdata is limited to 15MB
 TO provenance is limited to 1MB
 
-VERSION: 0.3.4 (Released TBD)
+VERSION: 0.3.4 (Released 4/10/15)
 --------------------------------------
 NEW FEATURES:
 - added CLI command for listing properly configured Narratives
