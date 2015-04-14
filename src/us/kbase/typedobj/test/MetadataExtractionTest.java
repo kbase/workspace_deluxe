@@ -55,10 +55,9 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
  * To add new tests of the ID processing machinery, add files named in the format:
  *   [ModuleName].[TypeName].instance.[label] 
  *        - json encoding of a valid type instance
- *   [ModuleName].[TypeName].instance.[label].subset
- *        - json encoding of the expected '\@searchable ws_subset' output
  *
  * @author msneddon
+ * @author gaprice
  */
 @RunWith(value = Parameterized.class)
 public class MetadataExtractionTest {

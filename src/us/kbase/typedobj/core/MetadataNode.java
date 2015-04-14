@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class describes nodes in the tree representing the structure of the objects that need
- * to be extracted as part of the WS searchable subdata or metadata.
+ * This class describes nodes in the tree representing the structure of the
+ * objects that need to be extracted as part of the WS metadata.
  * @author rsutormin
  * @author gaprice
  */
