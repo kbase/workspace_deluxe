@@ -49,6 +49,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
+//TODO clean up test instance classes
 
 /**
  * Tests that ensure the proper subset is extracted from a typed object instance
@@ -207,7 +208,6 @@ public class WsSubsetExtractionTest {
 		String testdata = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 		JsonNode testdataJson = mapper.readTree(testdata);
 		JsonNode instanceRootNode = testdataJson.get("instance");
-		JsonNode expectedSubset = testdataJson.get("subset");
 		JsonNode expectedMetadata = testdataJson.get("metadata");
 		JsonNode exception = testdataJson.get("exception");
 		JsonNode maxMetadataSize = testdataJson.get("maxMetadataSize");
@@ -232,12 +232,10 @@ public class WsSubsetExtractionTest {
 				report.isInstanceValid());
 		try {
 			ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,maxMetadataSizeLong);
-			JsonNode actualSubset = extraction.getWsSearchableSubset();
 			JsonNode actualMetadata = extraction.getMetadata();
 			if(exception!=null) {
 				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");
 			}
-			compare(expectedSubset, actualSubset, instance.resourceName+" -- subset");
 			compare(expectedMetadata, actualMetadata, instance.resourceName+" -- metadata");
 		} catch (Exception e) {
 			String exceptionName = e.getClass().getSimpleName();

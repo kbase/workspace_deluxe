@@ -11,9 +11,6 @@ import java.util.Map;
  * @author rsutormin
  */
 public class SubsetAndMetadataNode {
-	private boolean needKeys = false;
-	private boolean needAll = false;
-	private boolean needSubsetInChildren = false;
 	private List<String> needValueForMetadata;  // if this is non-empty, then we need the value at this node for metadata
 	private List<String> needLengthForMetadata; // if this is non-empty, then we need the length of this node for metadata
 	private Map<String, SubsetAndMetadataNode> children = null;
@@ -47,30 +44,6 @@ public class SubsetAndMetadataNode {
 		return children.get(name);
 	}
 	
-	public boolean isNeedSubsetInChildren() {
-		return needSubsetInChildren;
-	}
-	
-	public void setNeedSubsetInChildren(boolean needSubsetInChildren) {
-		this.needSubsetInChildren = needSubsetInChildren;
-	}
-	
-	public boolean isNeedAll() {
-		return needAll;
-	}
-	
-	public void setNeedAll(boolean needAll) {
-		this.needAll = needAll;
-	}
-	
-	public boolean isNeedKeys() {
-		return needKeys;
-	}
-	
-	public void setNeedKeys(boolean needKeys) {
-		this.needKeys = needKeys;
-	}
-	
 	public void addNeedValueForMetadata(String metadataName) {
 		this.needValueForMetadata.add(metadataName);
 	}
@@ -95,8 +68,7 @@ public class SubsetAndMetadataNode {
 	}
 	
 	public void printTree(String offset) {
-		System.out.println(offset+"needKeys="+needKeys+";needAll="+needAll+";mdvalues:"+needValueForMetadata.size()+";mdlenghts:"+needLengthForMetadata.size() +
-				";needBelow="+needSubsetInChildren);
+		System.out.println(offset+";mdvalues:"+needValueForMetadata.size()+";mdlenghts:"+needLengthForMetadata.size());
 		if(children!=null) {
 			for (Map.Entry<String, SubsetAndMetadataNode> entry : children.entrySet()) {
 				System.out.println(offset+"==="+entry.getKey());
