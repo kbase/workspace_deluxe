@@ -16,8 +16,33 @@ Interface Description Language (KIDL). It has the following primary features:
 
 Size limits:
 TOs are limited to 1GB
-TO subdata is limited to 15MB
 TO provenance is limited to 1MB
+
+VERSION: 0.3.5 (Released TBD)
+--------------------------------------
+NEW FEATURES:
+- N/A
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+- Removed internal data subsetting (intended for indexing of data contents)
+  code. No plan to use this code and drastically increases database size and
+  codebase complexity. All workspace mongo database type_[MD5] collections may
+  be deleted after upgrading.
+- Fixed a bug where mongo connections would not be released when redeploying
+  the server in an already running glassfish instance.
+
+KNOWN BUGS:
+- When filtering list_object output, deleted, hidden and early versions of
+  objects are filtered *after* the limit is applied. This means that fewer
+  objects than the limit may be returned, and in extreme cases where many
+  hidden, deleted, or lower version objects are found no objects may be
+  returned.
+  
+ANTICIPATED FUTURE DEVELOPMENTS:
+- Garbage collection
+- ACLs based on KBase groups
+- KBase Search API
+- Improvements to returning the subset of an object
 
 VERSION: 0.3.4 (Released 4/10/15)
 --------------------------------------

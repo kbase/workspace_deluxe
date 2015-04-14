@@ -14,7 +14,6 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 //TODO cleanup file names
 
@@ -39,10 +38,6 @@ public class SubsetAndMetadataExtractor {
 	 */
 	public static ExtractedSubsetAndMetadata extractFields(
 			final TokenSequenceProvider jts, 
-			final ObjectNode keysOfSelection,
-			final ObjectNode fieldsSelection,
-			final long maxSubdataSize,
-			final long maxMetadataSize,
 			final MetadataExtractionHandler metadataExtractionHandler) 
 			throws ExceededMaxMetadataSizeException, IOException {
 
@@ -53,7 +48,6 @@ public class SubsetAndMetadataExtractor {
 			throw new NullPointerException("metadata handler cannot be null");
 		}
 		final SubsetAndMetadataNode root = new SubsetAndMetadataNode();
-		metadataExtractionHandler.setMaxMetadataSize(maxMetadataSize); //TODO in calling class
 		prepareMetadataSelectionTree(metadataExtractionHandler, root);
 
 		//		root.printTree("  ");

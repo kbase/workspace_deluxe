@@ -231,7 +231,7 @@ public class WsSubsetExtractionTest {
 		assertTrue("  -("+instance.resourceName+") does not validate, but should",
 				report.isInstanceValid());
 		try {
-			ExtractedSubsetAndMetadata extraction = report.extractSearchableWsSubsetAndMetadata(-1,maxMetadataSizeLong);
+			ExtractedSubsetAndMetadata extraction = report.extractMetadata(maxMetadataSizeLong);
 			JsonNode actualMetadata = extraction.getMetadata();
 			if(exception!=null) {
 				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");

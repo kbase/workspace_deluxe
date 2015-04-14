@@ -9,6 +9,7 @@ import java.util.Map;
  * This class describes nodes in the tree representing the structure of the objects that need
  * to be extracted as part of the WS searchable subdata or metadata.
  * @author rsutormin
+ * @author gaprice
  */
 public class SubsetAndMetadataNode {
 	// if this is non-empty, then we need the value at this node for metadata

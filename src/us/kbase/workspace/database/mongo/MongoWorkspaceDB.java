@@ -112,7 +112,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private ResourceUsageConfiguration rescfg;
 
-	private static final long MAX_SUBDATA_SIZE = 15000000;
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int MAX_WS_META_SIZE = 16000;
 	
@@ -1547,8 +1546,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			try {
 				// TODO: 2 improved handling of new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
 				ExtractedSubsetAndMetadata extract = o.getRep()
-						.extractSearchableWsSubsetAndMetadata(
-								MAX_SUBDATA_SIZE, MAX_WS_META_SIZE);
+						.extractMetadata(MAX_WS_META_SIZE);
 				pkg.wo.addUserMeta(extract.getMetadataAsMap());
 			} catch (ExceededMaxMetadataSizeException e) {
 				throw new IllegalArgumentException(String.format(
