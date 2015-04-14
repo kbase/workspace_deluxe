@@ -31,7 +31,7 @@ public class DummyTypedObjectValidationReport extends
 	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
 			final UObject data) throws Exception {
 		
-		super(data, type, Collections.<String>emptyList(), null, null, null,
+		super(data, type, Collections.<String>emptyList(), null, null,
 				new IdReferenceHandlerSetFactory(6).createHandlers(String.class).processIDs());
 		this.data = data;
 	}

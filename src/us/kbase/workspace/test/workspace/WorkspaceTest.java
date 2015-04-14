@@ -2447,46 +2447,6 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void saveWithLargeSubdata() throws Exception {
-		final String specSubdata =
-				"module TestSubdata {" +
-					"/* @searchable ws_subset subset */" +
-					"typedef structure {" +
-						"list<string> subset;" +
-					"} SubSetType;" +
-				"};";
-		String mod = "TestSubdata";
-		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetType"), null, null, false, null);
-		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetType"), 0, 1);
-		
-		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("bigsubdata");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
-		Map<String, Object> data = new HashMap<String, Object>();
-		List<String> subdata = new LinkedList<String>();
-		data.put("subset", subdata);
-		for (int i = 0; i < 14955; i++) {
-			subdata.add(TEXT1000);
-		}
-		ws.saveObjects(userfoo, subdataws, Arrays.asList( //should work
-				new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)),
-				getIdFactory(userfoo));
-		
-		subdata.add(TEXT1000);
-		try {
-			ws.saveObjects(userfoo, subdataws, Arrays.asList(
-					new WorkspaceSaveObject(data, subsettype, null, new Provenance(userfoo), false)),
-					getIdFactory(userfoo));
-			fail("saved too big subdata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 subdata size exceeds limit of 15000000"));
-		}
-	}
-	
-	@Test
 	public void bigUserMetaErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");

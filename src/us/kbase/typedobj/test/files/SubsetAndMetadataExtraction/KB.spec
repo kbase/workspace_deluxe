@@ -10,9 +10,6 @@ module KB {
 	
 	/*
 	  @optional size
-	  @searchable ws_subset name,alias
-	  @searchable ws_subset size
-	  @searchable ws_subset width
 	  @metadata ws name AS My Name
 	  @metadata ws size AS Size
 	  @metadata ws width as width
@@ -41,8 +38,6 @@ module KB {
 	} FloatStructure;
 
 	/*
-	  @searchable ws_subset numbers
-	  @searchable ws_subset floaters.*
 	  @metadata ws length(numbers) as n numbers
 	*/
 	typedef structure {
@@ -53,65 +48,9 @@ module KB {
 	
 	
 	/*
-	  @searchable ws_subset names
-	  @searchable ws_subset numbers.[*]
-	*/
-	typedef structure {
-		list<string> names;
-		list<int> numbers;
-		string throwAwayData;
-	} ListStruct;
-
-
-	/*
-	  @searchable ws_subset keys_of(crazydata.*.*)
-	*/
-	typedef structure {
-		mapping<string,mapping<string,mapping<string,int>>> crazydata;
-	} DeepMaps;
-	
-	/*
-	  @searchable ws_subset keys_of(d1) keys_of(d2) keys_of(d3)
-	  @searchable ws_subset keys_of(d4) keys_of(d5) keys_of(d6)
-	*/
-	typedef structure {
-		mapping<string,mapping<string,int>> d1;
-		mapping<string,list<float>> d2;
-		mapping<string,tuple<int,int>> d3;
-		mapping<string,string> d4;
-		mapping<string,int> d5;
-		mapping<string,float> d6;
-	} KeysTest;
-
-
-	/*
-	@searchable ws_subset name
-	*/
-	typedef structure {
-		string name;
-		string seq;
-		int length;
-	} Subdata;
-
-	/*
-	@optional dl dm dml
-	@searchable ws_subset d.(name,length)
-	@searchable ws_subset dl.[*].name
-	@searchable ws_subset dm.*.(seq,length)
-	@searchable ws_subset dml.*.[*].name
-	*/
-	typedef structure {
-		Subdata d;
-		list<Subdata> dl;
-		mapping<string,Subdata> dm;
-		mapping<string,list<Subdata>> dml;
-	} NestedData;
-	
-	/*
-	searchable ws_subset s i
 	@metadata ws s As String Data
 	@metadata ws i As Integer
-	@metadata ws	f	as floater
+	@metadata ws f as floater
 	*/
 	typedef structure {
 		string s;
@@ -163,7 +102,6 @@ module KB {
 	} MetaDataT5;
 
 	/*
-	@searchable ws_subset t5
 	@metadata ws t5.t3.s AS my string
 	*/
 	typedef structure {
@@ -171,7 +109,6 @@ module KB {
 	} MetaDataT6;
 
 	/*
-	@searchable ws_subset t5.otherthing
 	@metadata ws t5.t3.s AS my string
 	*/
 	typedef structure {
@@ -179,7 +116,6 @@ module KB {
 	} MetaDataT7;
 
 	/*
-	@searchable ws_subset stuff.*
 	@metadata ws length(stuff) as number of things
 	@metadata ws otherThing AS an int
 	*/
@@ -189,12 +125,10 @@ module KB {
 	} MetaDataT8;
 
 	/*
-	@searchable ws_subset t8.stuff
 	@metadata ws t8.otherThing AS my thing
 	*/
 	typedef structure {
 		MetaDataT8 t8;
 	} MetaDataT9;
-	
 };
 

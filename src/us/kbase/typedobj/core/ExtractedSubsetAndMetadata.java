@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class ExtractedSubsetAndMetadata {
 
-	private JsonNode wsSearchableSubset;
 	private JsonNode metadata;
 	private static final ObjectMapper mapper = new ObjectMapper();
 	/**
@@ -26,21 +25,12 @@ public class ExtractedSubsetAndMetadata {
 	 * @param wsSearchableSubset
 	 * @param metadata
 	 */
-	public ExtractedSubsetAndMetadata(JsonNode wsSearchableSubset, JsonNode metadata) {
-		if(wsSearchableSubset == null) {
-			this.wsSearchableSubset = mapper.createObjectNode();
-		} else {
-			this.wsSearchableSubset = wsSearchableSubset;
-		}
+	public ExtractedSubsetAndMetadata(JsonNode metadata) {
 		if(metadata == null) {
 			this.metadata = mapper.createObjectNode();
 		} else {
 			this.metadata = metadata;
 		}
-	}
-	
-	public JsonNode getWsSearchableSubset() {
-		return wsSearchableSubset;
 	}
 	
 	public JsonNode getMetadata() {

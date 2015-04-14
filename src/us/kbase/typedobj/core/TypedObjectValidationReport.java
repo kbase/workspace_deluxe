@@ -17,7 +17,6 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
-import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
@@ -29,7 +28,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * The report generated when a typed object instance is validated.  If the type definition indicates
@@ -48,11 +46,6 @@ public class TypedObjectValidationReport {
 	 * first 10 may be reported).
 	 */
 	protected List<String> errors;
-	
-	/**
-	 * The typedef author selection indicating in the JSON Schema what data to subset for fast indexing/searching via the WS
-	 */
-	private JsonNode wsSubsetSelection; //used to be: searchData
 	
 	/**
 	 * The typedef author selection indicating in the JSON Schema what data should be extracted as metadata
@@ -101,12 +94,10 @@ public class TypedObjectValidationReport {
 			final UObject tokenStreamProvider,
 			final AbsoluteTypeDefId validationTypeDefId, 
 			final List<String> errors,
-			final JsonNode wsSubsetSelection,
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
 			final IdReferenceHandlerSet<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
-		this.wsSubsetSelection = wsSubsetSelection;
 		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection,-1);
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
@@ -370,7 +361,8 @@ public class TypedObjectValidationReport {
 		return idSubst.getReferencePath();
 	}
 	
-	private TokenSequenceProvider createTokenSequenceForWsSubset() throws IOException {
+	private TokenSequenceProvider createTokenSequenceForMetaDataExtraction()
+			throws IOException {
 		if (cacheForSorting != null || fileForSorting != null) {
 			final JsonTokenStream afterSort = new JsonTokenStream(
 					cacheForSorting != null ? cacheForSorting : fileForSorting);
@@ -407,41 +399,36 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * If a searchable ws_subset or metadata ws was defined in the Json Schema, then you can use this method
+	 * If metadata ws was defined in the Json Schema, then you can use this method
 	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
-	 * so if you extract a subset, then modify the original instance that was validated, it can
-	 * (in some but not all cases) modify this subdata as well.  So you should always perform a
-	 * deep copy of the original instance if you intend to modify it and subset data or meatdata has already
+	 * so if you extract metadata, then modify the original instance that was validated, it can
+	 * (in some but not all cases) modify this metadata as well.  So you should always perform a
+	 * deep copy of the original instance if you intend to modify it and  metadata has already
 	 * been extracted.
-	 * @throws IOException 
 	 * @throws ExceededMaxMetadataSizeException 
-	 * @throws TypedObjectExtractionException 
 	 */
-	public ExtractedSubsetAndMetadata extractSearchableWsSubsetAndMetadata(long maxSubsetSize, long maxMetadataSize) 
+	public ExtractedSubsetAndMetadata extractMetadata(
+			final long maxMetadataSize) 
 			throws ExceededMaxMetadataSizeException {
 		
 		// return nothing if instance does not validate
-		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
-		
-		// Identify what we need to extract
-		ObjectNode keys_of  = null;
-		ObjectNode fields   = null;
-		if (wsSubsetSelection != null) {
-			keys_of = (ObjectNode)wsSubsetSelection.get("keys");
-			fields = (ObjectNode)wsSubsetSelection.get("fields");
+		if (!isInstanceValid()) {
+			return new ExtractedSubsetAndMetadata(null);
 		}
+		wsMetadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
+		// Identify what we need to extract
 		TokenSequenceProvider tsp = null;
 		try {
-			tsp = createTokenSequenceForWsSubset();
-			ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor.extractFields(
-															tsp, 
-															keys_of, fields, maxSubsetSize, maxMetadataSize,
-															wsMetadataExtractionHandler);
+			tsp = createTokenSequenceForMetaDataExtraction();
+			final ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor
+					.extractFields(tsp, wsMetadataExtractionHandler);
 			tsp.close();
 			return esam;
 		} catch (IOException e) {
 			// error that can happen if we cannot write to create the output subset json object! should never happen!
-			throw new RuntimeException("Something went very wrong when extracting subset- instance data or memory may have been corrupted.",e);
+			throw new RuntimeException(
+					"Something went very wrong when extracting subset- instance data or memory may have been corrupted.",
+					e);
 		}  finally {
 			if (tsp != null)
 				try { tsp.close(); } catch (Exception ignore) {}
