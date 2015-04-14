@@ -33,7 +33,7 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.ExtractedSubsetAndMetadata;
+import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -1545,7 +1545,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			
 			try {
 				// TODO: 2 improved handling of new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
-				ExtractedSubsetAndMetadata extract = o.getRep()
+				ExtractedMetadata extract = o.getRep()
 						.extractMetadata(MAX_WS_META_SIZE);
 				pkg.wo.addUserMeta(extract.getMetadataAsMap());
 			} catch (ExceededMaxMetadataSizeException e) {
