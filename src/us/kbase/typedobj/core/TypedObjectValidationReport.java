@@ -421,7 +421,9 @@ public class TypedObjectValidationReport {
 			throws ExceededMaxMetadataSizeException {
 		
 		// return nothing if instance does not validate
-		if(!isInstanceValid()) { return new ExtractedSubsetAndMetadata(null,null); }
+		if (!isInstanceValid()) {
+			return new ExtractedSubsetAndMetadata(null);
+		}
 		
 		// Identify what we need to extract
 		ObjectNode keys_of  = null;

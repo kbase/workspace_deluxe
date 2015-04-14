@@ -59,7 +59,7 @@ public class SubsetAndMetadataExtractor {
 		//		root.printTree("  ");
 		if(!root.hasChildren()) {
 			//Tree is empty, so we just return an empty extraction
-			return new ExtractedSubsetAndMetadata(null,null);
+			return new ExtractedSubsetAndMetadata(null);
 		} else {
 			final JsonToken t = jts.nextToken();
 			try {
@@ -70,7 +70,7 @@ public class SubsetAndMetadataExtractor {
 						"This is bad. There is an unexpected internal error when extracting object metadata",
 						e);
 			}
-			return new ExtractedSubsetAndMetadata(null,
+			return new ExtractedSubsetAndMetadata(
 					metadataExtractionHandler.getSavedMetadata());
 		}
 

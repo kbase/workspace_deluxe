@@ -382,7 +382,7 @@ public class MongoInternalsTest {
 		wo.set(pkg, rso);
 		Field td = pkg.getClass().getDeclaredField("td");
 		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype, null));
+		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
