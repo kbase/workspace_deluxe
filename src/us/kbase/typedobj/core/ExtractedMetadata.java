@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * stream via the SubsetAndMetadataExtractor.
  * @author msneddon
  */
-public class ExtractedSubsetAndMetadata {
+public class ExtractedMetadata {
 
 	private JsonNode metadata;
 	private static final ObjectMapper mapper = new ObjectMapper();
@@ -25,7 +25,7 @@ public class ExtractedSubsetAndMetadata {
 	 * @param wsSearchableSubset
 	 * @param metadata
 	 */
-	public ExtractedSubsetAndMetadata(JsonNode metadata) {
+	public ExtractedMetadata(JsonNode metadata) {
 		if(metadata == null) {
 			this.metadata = mapper.createObjectNode();
 		} else {

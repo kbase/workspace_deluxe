@@ -407,20 +407,20 @@ public class TypedObjectValidationReport {
 	 * been extracted.
 	 * @throws ExceededMaxMetadataSizeException 
 	 */
-	public ExtractedSubsetAndMetadata extractMetadata(
+	public ExtractedMetadata extractMetadata(
 			final long maxMetadataSize) 
 			throws ExceededMaxMetadataSizeException {
 		
 		// return nothing if instance does not validate
 		if (!isInstanceValid()) {
-			return new ExtractedSubsetAndMetadata(null);
+			return new ExtractedMetadata(null);
 		}
 		wsMetadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
 		// Identify what we need to extract
 		TokenSequenceProvider tsp = null;
 		try {
 			tsp = createTokenSequenceForMetaDataExtraction();
-			final ExtractedSubsetAndMetadata esam = SubsetAndMetadataExtractor
+			final ExtractedMetadata esam = MetadataExtractor
 					.extractFields(tsp, wsMetadataExtractionHandler);
 			tsp.close();
 			return esam;

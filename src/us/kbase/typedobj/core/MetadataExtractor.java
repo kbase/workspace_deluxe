@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author rsutormin
  * @author gaprice
  */
-public class SubsetAndMetadataExtractor {
+public class MetadataExtractor {
 	
 	/**
 	 * Metadata extraction happens by creating a metadataExtractionHandler
@@ -36,7 +36,7 @@ public class SubsetAndMetadataExtractor {
 	 * @throws IOException 
 	 * 
 	 */
-	public static ExtractedSubsetAndMetadata extractFields(
+	public static ExtractedMetadata extractFields(
 			final TokenSequenceProvider jts, 
 			final MetadataExtractionHandler metadataExtractionHandler) 
 			throws ExceededMaxMetadataSizeException, IOException {
@@ -47,13 +47,13 @@ public class SubsetAndMetadataExtractor {
 		if (metadataExtractionHandler == null) {
 			throw new NullPointerException("metadata handler cannot be null");
 		}
-		final SubsetAndMetadataNode root = new SubsetAndMetadataNode();
+		final MetadataNode root = new MetadataNode();
 		prepareMetadataSelectionTree(metadataExtractionHandler, root);
 
 		//		root.printTree("  ");
 		if(!root.hasChildren()) {
 			//Tree is empty, so we just return an empty extraction
-			return new ExtractedSubsetAndMetadata(null);
+			return new ExtractedMetadata(null);
 		} else {
 			final JsonToken t = jts.nextToken();
 			try {
@@ -64,7 +64,7 @@ public class SubsetAndMetadataExtractor {
 						"This is bad. There is an unexpected internal error when extracting object metadata",
 						e);
 			}
-			return new ExtractedSubsetAndMetadata(
+			return new ExtractedMetadata(
 					metadataExtractionHandler.getSavedMetadata());
 		}
 
@@ -79,7 +79,7 @@ public class SubsetAndMetadataExtractor {
 	 */
 	private static void prepareMetadataSelectionTree(
 			final MetadataExtractionHandler metadataExtractionHandler,
-			final SubsetAndMetadataNode parent) {
+			final MetadataNode parent) {
 		// currently, we can only extract fields from the top level
 		final JsonNode selection =
 				metadataExtractionHandler.getMetadataSelection();
@@ -99,12 +99,12 @@ public class SubsetAndMetadataExtractor {
 			}
 			
 			final String [] expTokens = expression.split("\\.");
-			SubsetAndMetadataNode currentNode = parent;
+			MetadataNode currentNode = parent;
 			for(int k=0; k<expTokens.length; k++) {
-				SubsetAndMetadataNode childNode =
+				MetadataNode childNode =
 						currentNode.getChild(expTokens[k]);
 				if(childNode==null) {
-					childNode = new SubsetAndMetadataNode();
+					childNode = new MetadataNode();
 					currentNode.addChild(expTokens[k], childNode);
 				}
 				currentNode = childNode;
@@ -189,7 +189,7 @@ public class SubsetAndMetadataExtractor {
 	 * every metadata named in metadataHandler
 	 */
 	private static void addLengthMetadata(
-			final long length, SubsetAndMetadataNode selection,
+			final long length, MetadataNode selection,
 			final MetadataExtractionHandler metadataHandler) 
 			throws ExceededMaxMetadataSizeException {
 		final List<String> metadataNames = selection.getNeedLengthForMetadata();
@@ -198,7 +198,7 @@ public class SubsetAndMetadataExtractor {
 		}
 	}
 	private static void addNullLengthMetadata(
-			final SubsetAndMetadataNode selection,
+			final MetadataNode selection,
 			final MetadataExtractionHandler metadataHandler) 
 			throws ExceededMaxMetadataSizeException {
 		final List<String> metadataNames = selection.getNeedLengthForMetadata();
@@ -213,7 +213,7 @@ public class SubsetAndMetadataExtractor {
 	 */
 	private static void addValueMetadata(
 			final String value,
-			final SubsetAndMetadataNode selection,
+			final MetadataNode selection,
 			final MetadataExtractionHandler metadataHandler) 
 			throws ExceededMaxMetadataSizeException {
 		final List<String> metadataNames = selection.getNeedValueForMetadata();
@@ -229,7 +229,7 @@ public class SubsetAndMetadataExtractor {
 	private static void extractFieldsWithOpenToken(
 			final TokenSequenceProvider jts,
 			final JsonToken current, 
-			final SubsetAndMetadataNode selection,
+			final MetadataNode selection,
 			final MetadataExtractionHandler metadataHandler,
 			final List<String> path) 
 			throws IOException, TypedObjectExtractionException,
@@ -256,7 +256,7 @@ public class SubsetAndMetadataExtractor {
 					final String fieldName = jts.getText();
 					t = jts.nextToken();
 					if (selectedFields.contains(fieldName)) {
-						final SubsetAndMetadataNode child =
+						final MetadataNode child =
 								selection.getChild(fieldName);
 						path.add(fieldName);
 						extractFieldsWithOpenToken(

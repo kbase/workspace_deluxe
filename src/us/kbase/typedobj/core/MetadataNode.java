@@ -11,24 +11,24 @@ import java.util.Map;
  * @author rsutormin
  * @author gaprice
  */
-public class SubsetAndMetadataNode {
+public class MetadataNode {
 	// if this is non-empty, then we need the value at this node for metadata
 	private List<String> needValueForMetadata;
 	// if this is non-empty, then we need the length of this node for metadata
 	private List<String> needLengthForMetadata;
-	private Map<String, SubsetAndMetadataNode> children =
-			new LinkedHashMap<String, SubsetAndMetadataNode>();
+	private Map<String, MetadataNode> children =
+			new LinkedHashMap<String, MetadataNode>();
 	
-	public SubsetAndMetadataNode() {
+	public MetadataNode() {
 		needValueForMetadata  = new ArrayList<String>();
 		needLengthForMetadata = new ArrayList<String>();
 	}
 	
-	public Map<String, SubsetAndMetadataNode> getChildren() {
+	public Map<String, MetadataNode> getChildren() {
 		return children;
 	}
 	
-	public void addChild(String key, SubsetAndMetadataNode child) {
+	public void addChild(String key, MetadataNode child) {
 		children.put(key, child);
 	}
 
@@ -36,7 +36,7 @@ public class SubsetAndMetadataNode {
 		return children.size() > 0;
 	}
 	
-	public SubsetAndMetadataNode getChild(String name) {
+	public MetadataNode getChild(String name) {
 		return children.get(name);
 	}
 	
