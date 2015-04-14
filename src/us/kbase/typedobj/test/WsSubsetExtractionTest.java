@@ -65,7 +65,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 @RunWith(value = Parameterized.class)
 public class WsSubsetExtractionTest {
 	
-	public static final int TEST_COUNT = 25;
+	public static final int TEST_COUNT = 18;
 
 	/**
 	 * location to stash the temporary database for testing
@@ -81,10 +81,10 @@ public class WsSubsetExtractionTest {
 	private final static String TEST_RESOURCE_LOCATION = "files/SubsetAndMetadataExtraction/";
 	
 	private final static List<String> KB_TYPES =
-			Arrays.asList("NoExtractionData","SimpleStructure","MappingStruct","ListStruct", "FloatStructure",
-					"DeepMaps","NestedData","KeysTest","MetaDataT1", "MetaDataT2", "MetaDataT3", 
-					"MetaDataT4", "MetaDataT5", "MetaDataT6", "MetaDataT7","MetaDataT8",
-					"MetaDataT9");
+			Arrays.asList("NoExtractionData", "SimpleStructure", "MappingStruct",
+					"FloatStructure", "MetaDataT1", "MetaDataT2", "MetaDataT3",
+					"MetaDataT4", "MetaDataT5", "MetaDataT6", "MetaDataT7",
+					"MetaDataT8", "MetaDataT9");
 	
 	private final static boolean VERBOSE = true;
 
