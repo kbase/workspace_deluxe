@@ -1,4 +1,8 @@
-
+/*
+  Note that @searchable (some missing an @) annotations are kept in the spec to
+  ensure that they do not interfere with metadata extraction and for spec
+  backwards compatibility purposes.
+*/
 module KB {
 
 	/*
@@ -10,6 +14,9 @@ module KB {
 	
 	/*
 	  @optional size
+	  @searchable ws_subset name,alias
+	  @searchable ws_subset size
+	  @searchable ws_subset width
 	  @metadata ws name AS My Name
 	  @metadata ws size AS Size
 	  @metadata ws width as width
@@ -38,6 +45,8 @@ module KB {
 	} FloatStructure;
 
 	/*
+	  @searchable ws_subset numbers
+	  @searchable ws_subset floaters.*
 	  @metadata ws length(numbers) as n numbers
 	*/
 	typedef structure {
@@ -48,9 +57,11 @@ module KB {
 	
 	
 	/*
+	searchable ws_subset s i
 	@metadata ws s As String Data
 	@metadata ws i As Integer
-	@metadata ws f as floater
+	The line below has tabs vs. spaces for parser testing purposes.
+	@metadata ws	f	as floater
 	*/
 	typedef structure {
 		string s;
@@ -102,6 +113,7 @@ module KB {
 	} MetaDataT5;
 
 	/*
+	@searchable ws_subset t5
 	@metadata ws t5.t3.s AS my string
 	*/
 	typedef structure {
@@ -109,6 +121,7 @@ module KB {
 	} MetaDataT6;
 
 	/*
+	@searchable ws_subset t5.otherthing
 	@metadata ws t5.t3.s AS my string
 	*/
 	typedef structure {
@@ -116,6 +129,7 @@ module KB {
 	} MetaDataT7;
 
 	/*
+	@searchable ws_subset stuff.*
 	@metadata ws length(stuff) as number of things
 	@metadata ws otherThing AS an int
 	*/
@@ -125,6 +139,7 @@ module KB {
 	} MetaDataT8;
 
 	/*
+	@searchable ws_subset t8.stuff
 	@metadata ws t8.otherThing AS my thing
 	*/
 	typedef structure {

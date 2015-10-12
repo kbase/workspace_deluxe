@@ -15,8 +15,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 
-//TODO cleanup file names
-
 /**
  * Extraction of selected metadata based on a json token stream.
  * 

@@ -87,7 +87,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * After validation, assemble the validation result into a report for later use. The report contains
 	 * information on validation errors (if any), the IDs found in the object, and information about the
-	 * subdata and metadata extraction selection.
+	 * metadata extraction selection.
 	 * 
 	 */
 	protected TypedObjectValidationReport(

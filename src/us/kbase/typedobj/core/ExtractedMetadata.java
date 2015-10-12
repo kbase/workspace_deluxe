@@ -9,19 +9,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * A thin container to return both the WS Searchable Subset (indicated
- * by the \@searchable ws annotation) and the Metadata (indicated by
- * the \@metadata ws annotation) during a single pass over an object
- * stream via the SubsetAndMetadataExtractor.
+ * A thin container to return extracted Metadata (indicated by
+ * the \@metadata ws annotation) during a pass over an object
+ * stream via the MetadataExtractor.
  * @author msneddon
+ * @author gaprice
  */
 public class ExtractedMetadata {
 
 	private JsonNode metadata;
 	private static final ObjectMapper mapper = new ObjectMapper();
 	/**
-	 * The metadata JsonNode must be an object node with String type values for all
-	 * fields.  We assume that this has already been validated earlier.
+	 * The metadata JsonNode must be an object node with String type values for
+	 * all fields.  We assume that this has already been validated earlier.
 	 * @param wsSearchableSubset
 	 * @param metadata
 	 */
