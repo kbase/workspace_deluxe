@@ -18,7 +18,7 @@ Size limits:
 TOs are limited to 1GB
 TO provenance is limited to 1MB
 
-VERSION: 0.3.5 (Released TBD)
+VERSION: 0.3.6 (Released TBD)
 --------------------------------------
 NEW FEATURES:
 - N/A
@@ -44,10 +44,17 @@ ANTICIPATED FUTURE DEVELOPMENTS:
 - KBase Search API
 - Improvements to returning the subset of an object
 
+VERSION: 0.3.5 (Released 5/15/15)
+--------------------------------------
+BUG FIXES:
+ - Updated auth library dependency that prevented validating user names
+   not in the KBase group, which was preventing sharing with a subset
+   of real and active KBase users.
+
 VERSION: 0.3.4 (Released 4/10/15)
 --------------------------------------
 NEW FEATURES:
-- added CLI command for listing properly configured Narratives
+- Added CLI command for listing properly configured Narratives
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Updated to the new auth client. Globus APIs changed in a way that broke
