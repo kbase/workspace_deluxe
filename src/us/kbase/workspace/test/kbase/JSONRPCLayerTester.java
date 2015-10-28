@@ -318,6 +318,7 @@ public class JSONRPCLayerTester {
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		ws.add("ignore_handle_service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
@@ -326,7 +327,6 @@ public class JSONRPCLayerTester {
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.setIgnoreHandleServiceForTests(true);
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer.setMaximumUniqueIdCountForTests(MAX_UNIQUE_IDS_PER_CALL);
 		WorkspaceServer server = new WorkspaceServer();

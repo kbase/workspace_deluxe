@@ -128,7 +128,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     
-    //TODO make handle manager package and pass in to WS on creation
+    //TODO make handle manager package?
 	
 	private static final String VER = "0.3.5";
 
@@ -183,8 +183,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
 			new ThreadLocal<Set<ByteArrayFileCache>>();
-	
-	private static boolean ignoreHandleService = false;
 	
 	private WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd,
@@ -249,10 +247,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public static void clearConfigForTests() {
 		wsConfig = null;
-	}
-	
-	public static void setIgnoreHandleServiceForTests(final boolean ignore) {
-		ignoreHandleService = ignore;
 	}
 	
 	public static void setMaximumUniqueIdCountForTests(final int count) {
@@ -488,8 +482,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			failed = true;
 		}
 		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
-		ignoreHandleService = ignoreHandleService ||
-				(ignoreHandle != null && !ignoreHandle.isEmpty());
+		final boolean ignoreHandleService = 
+				ignoreHandle != null && !ignoreHandle.isEmpty();
 		URL handleServiceUrl = null;
 		if (ignoreHandleService) {
 			logInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
