@@ -127,6 +127,8 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO timestamps for startup script
     //TODO check shock version
     //TODO shock client should ignore extra fields
+    
+    //TODO make handle manager package and pass in to WS on creation
 	
 	private static final String VER = "0.3.5";
 
@@ -176,7 +178,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
-	private final URL handleServiceUrl;
 	private final URL handleManagerUrl;
 	private final RefreshingToken handleMgrToken;
 	
@@ -379,7 +380,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 
-	private boolean checkHandleServiceConnection() {
+	private boolean checkHandleServiceConnection(final URL handleServiceUrl) {
 		try {
 			final AbstractHandleClient cli = new AbstractHandleClient(
 					handleServiceUrl, handleMgrToken.getToken());
@@ -489,10 +490,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
 		ignoreHandleService = ignoreHandleService ||
 				(ignoreHandle != null && !ignoreHandle.isEmpty());
+		URL handleServiceUrl = null;
 		if (ignoreHandleService) {
 			logInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
 			System.out.println("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
-			handleServiceUrl = null;
 			handleManagerUrl = null;
 			handleMgrToken = null;
 		} else {
@@ -503,7 +504,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			handleMgrToken = getHandleToken();
 			failed = failed || handleMgrToken == null;
 			if (!failed) {
-				failed = checkHandleServiceConnection();
+				failed = checkHandleServiceConnection(handleServiceUrl);
 			}
 			if (!failed) {
 				failed = checkHandleManagerConnection();
