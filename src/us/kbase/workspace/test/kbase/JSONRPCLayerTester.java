@@ -66,6 +66,7 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.FakeObjectInfo;
@@ -328,7 +329,8 @@ public class JSONRPCLayerTester {
 		env.put("KB_SERVICE_NAME", "Workspace");
 
 		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer.setMaximumUniqueIdCountForTests(MAX_UNIQUE_IDS_PER_CALL);
+		InitWorkspaceServer.setMaximumUniqueIdCountForTests(
+				MAX_UNIQUE_IDS_PER_CALL);
 		WorkspaceServer server = new WorkspaceServer();
 		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
 		server.setResourceUsageConfiguration(
