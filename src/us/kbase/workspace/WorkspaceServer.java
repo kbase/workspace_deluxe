@@ -77,6 +77,7 @@ import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
+import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -236,10 +237,33 @@ public class WorkspaceServer extends JsonServerServlet {
 			wsConfig.putAll(super.config);
 		}
 		
+		final KBaseWorkspaceConfig cfg = new KBaseWorkspaceConfig(wsConfig);
+		for (final String info: cfg.getInfoMessages()) {
+			logInfo(info);
+			System.out.println(info);
+		}
+		for (final String error: cfg.getErrors()) {
+			logErr(error);
+			System.out.println(error);
+		}
+		
+		if (!cfg.getErrors().isEmpty()) {
+			tfm = null;
+			ws = null;
+			wsmeth = null;
+			wsadmin = null;
+			handleManagerUrl = null;
+			handleMgrToken = null;
+			logErr("Configuration errors - all calls will fail");
+			System.out.println("Configuration errors - all calls will fail");
+			startupFailed();
+			return;
+		}
+		
 		final WorkspaceInitReporter rep = new WorkspaceInitReporter();
 		
 		final WorkspaceInitResults res =
-				InitWorkspaceServer.initWorkspaceServer(wsConfig, rep);
+				InitWorkspaceServer.initWorkspaceServer(cfg, rep);
 		
 		if (rep.failed) {
 			tfm = null;

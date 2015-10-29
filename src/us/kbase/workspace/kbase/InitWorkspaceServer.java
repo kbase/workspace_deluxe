@@ -2,13 +2,10 @@ package us.kbase.workspace.kbase;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
@@ -31,38 +28,8 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 
 public class InitWorkspaceServer {
 	
-	//required deploy parameters:
-	private static final String HOST = "mongodb-host";
-	private static final String DB = "mongodb-database";
-	//startup workspace admin user
-	private static final String WSADMIN = "ws-admin";
-	//required backend param:
-	private static final String BACKEND_SECRET = "backend-secret"; 
-	//mongo db auth params:
-	private static final String USER = "mongodb-user";
-	private static final String PWD = "mongodb-pwd";
-	//mongo connection attempt limit
-	private static final String MONGO_RECONNECT = "mongodb-retry";
-
-	//credentials to use for user queries
-	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
-	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
-
-	//handle service / manager info
-	private static final String IGNORE_HANDLE_SERVICE =
-			"ignore_handle_service";
-	private static final String HANDLE_SERVICE_URL = "handle-service-url";
-	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
-	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
-	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
-	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
+	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static int maxUniqueIdCountPerCall = 100000;
-
-	//directory for temp files
-	private static final String TEMP_DIR = "temp-dir";
-
-	
-	private final static int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 
 	private static int instanceCount = 0;
 	private static boolean wasTempFileCleaningDone = false;
@@ -126,119 +93,55 @@ public class InitWorkspaceServer {
 	}
 	
 	public static WorkspaceInitResults initWorkspaceServer(
-			final Map<String,String> wsConfig,
+			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		TempFilesManager tfm = initTempFilesManager(wsConfig, rep);
-		boolean failed = tfm == null;
-		final String host = wsConfig.get(HOST);
-		if (host == null || host.isEmpty()) {
-			rep.reportFail("Must provide param " + HOST + " in config file");
-			failed = true;
-		}
-		final String dbs = wsConfig.get(DB);
-		if (dbs == null || dbs.isEmpty()) {
-			rep.reportFail("Must provide param " + DB + " in config file");
-			failed = true;
-		}
-		final String secret = wsConfig.get(BACKEND_SECRET);
-		if (secret == null || secret.isEmpty()) {
-			rep.reportFail("Must provide param " + BACKEND_SECRET +
-					" in config file");
-			failed = true;
-		}
-		final String user = wsConfig.get(USER);
-		final String pwd = wsConfig.get(PWD);
-		final boolean hasUser = user != null && !user.isEmpty();
-		final boolean hasPwd = pwd != null && !pwd.isEmpty();
 		
-		if (hasUser ^ hasPwd) {
-			rep.reportFail(String.format("Must provide both %s and %s ",
-					USER, PWD) + "params in config file if authentication " + 
-					"is to be used");
-			failed = true;
-		}
-		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
-		final boolean ignoreHandleService = 
-				ignoreHandle != null && !ignoreHandle.isEmpty();
-		URL handleServiceUrl = null;
-		URL handleManagerUrl = null;
+		TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
+		boolean failed = tfm == null;
+		
 		RefreshingToken handleMgrToken = null;
-		if (ignoreHandleService) {
-			rep.reportInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
-		} else {
-			handleServiceUrl = getHandleUrl(wsConfig, HANDLE_SERVICE_URL, rep);
-			failed = failed || handleServiceUrl == null;
-			handleManagerUrl = getHandleUrl(wsConfig, HANDLE_MANAGER_URL, rep);
-			failed = failed || handleManagerUrl == null;
-			handleMgrToken = getHandleToken(wsConfig, rep);
+		if (!cfg.ignoreHandleService()) {
+			handleMgrToken = getHandleToken(cfg, rep);
 			failed = failed || handleMgrToken == null;
 			if (!failed) {
-				failed = checkHandleServiceConnection(handleServiceUrl,
+				failed = handleServiceConnectionFails(cfg.getHandleServiceURL(),
 						handleMgrToken, rep);
 			}
 			if (!failed) {
-				failed = checkHandleManagerConnection(handleManagerUrl,
+				failed = handleManagerConnectionFails(cfg.getHandleManagerURL(),
 						handleMgrToken, rep);
 			}
 		}
-		
-		if (!wsConfig.containsKey(KBASE_ADMIN_USER)) {
-			rep.reportFail("Must provide param " + KBASE_ADMIN_USER +
-					" in config file");
-			failed = true;
-		}
-		final String adminUser = wsConfig.get(KBASE_ADMIN_USER);
-		if (!wsConfig.containsKey(KBASE_ADMIN_PWD)) {
-			rep.reportFail("Must provide param " + KBASE_ADMIN_PWD +
-					" in config file");
-			failed = true;
-		}
-		final String adminPwd = wsConfig.get(KBASE_ADMIN_PWD);
 		
 		if (failed) {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		} 
-		String params = "";
-		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, USER));
-		if (!ignoreHandleService) {
-			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
-					HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
-		}
-		for (final String s: paramSet) {
-			if (wsConfig.containsKey(s)) {
-				params += s + "=" + wsConfig.get(s) + "\n";
-			}
-		}
-		params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
-		if (pwd != null && !pwd.isEmpty()) {
-			params += PWD + "=[redacted for your safety and comfort]\n";
-		}
 		rep.reportInfo("Starting server using connection parameters:\n" +
-				params);
+				cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
-		final int mongoConnectRetry = getReconnectCount(wsConfig, rep);
-		final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd,
-				tfm, mongoConnectRetry, rep);
+
+		final WorkspaceDatabase db = getDB(
+				cfg.getHost(), cfg.getDBname(), cfg.getBackendSecret(),
+				cfg.getMongoUser(), cfg.getMongoPassword(), tfm,
+				cfg.getMongoReconnectAttempts(), rep);
 		if (db == null) {
 			rep.reportFail(
 					"Server startup failed - all calls will error out.");
 			return null;
 		}
-		System.out.println(String.format("Initialized %s backend",
-				db.getBackendType()));
 		rep.reportInfo(String.format("Initialized %s backend",
 				db.getBackendType()));
 		Workspace ws = new Workspace(db,
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, handleServiceUrl,
+				ws, cfg.getHandleServiceURL(),
 				maxUniqueIdCountPerCall,
-				setUpAuthClient(adminUser, adminPwd, rep));
+				setUpAuthClient(cfg.getKbaseAdminUser(),
+						cfg.getKbaseAdminPassword(), rep));
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, wsConfig.get(WSADMIN));
+				ws, wsmeth, cfg.getWorkspaceAdmin());
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -246,7 +149,8 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, tfm, handleManagerUrl, handleMgrToken);
+				ws, wsmeth, wsadmin, tfm, cfg.getHandleManagerURL(),
+				handleMgrToken);
 	}
 	
 	private static WorkspaceDatabase getDB(final String host, final String dbs,
@@ -287,16 +191,11 @@ public class InitWorkspaceServer {
 	}
 
 	private static TempFilesManager initTempFilesManager(
-			final Map<String, String> wsConfig,
+			final String tempDir,
 			final InitReporter rep) {
-		if (!wsConfig.containsKey(TEMP_DIR)) {
-			rep.reportFail("Must provide param " + TEMP_DIR +
-					" in config file");
-			return null;
-		}
 		try {
 			final TempFilesManager tfm = new TempFilesManager(
-					new File(wsConfig.get(TEMP_DIR)));
+					new File(tempDir));
 			if (!wasTempFileCleaningDone) {
 				wasTempFileCleaningDone = true;
 				tfm.cleanup();
@@ -308,66 +207,15 @@ public class InitWorkspaceServer {
 		}
 	}
 	
-	private static int getReconnectCount(
-			final Map<String, String> wsConfig,
-			final InitReporter rep) {
-		final String rec = wsConfig.get(MONGO_RECONNECT);
-		Integer recint = null;
-		try {
-			recint = Integer.parseInt(rec); 
-		} catch (NumberFormatException nfe) {
-			//do nothing
-		}
-		if (recint == null) {
-			rep.reportInfo("Couldn't parse MongoDB reconnect value to an integer: " +
-					rec + ", using 0");
-			recint = 0;
-		} else if (recint < 0) {
-			rep.reportInfo("MongoDB reconnect value is < 0 (" + recint +
-					"), using 0");
-			recint = 0;
-		} else {
-			rep.reportInfo("MongoDB reconnect value is " + recint);
-		}
-		return recint;
-	}
-	
-
-	private static URL getHandleUrl(
-			final Map<String, String> wsConfig,
-			final String configKey,
-			final InitReporter rep) {
-		final String urlStr = wsConfig.get(configKey);
-		if (urlStr == null || urlStr.isEmpty()) {
-			rep.reportFail("Must provide param " + configKey +
-					" in config file");
-			return null;
-		}
-		try {
-			return new URL(urlStr);
-		} catch (MalformedURLException e) {
-			rep.reportFail("Invalid url for parameter " + configKey + ": " +
-					urlStr);
-		}
-		return null;
-	}
-	
 	private static RefreshingToken getHandleToken(
-			final Map<String, String> wsConfig,
+			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		final String user = wsConfig.get(HANDLE_MANAGER_USER);
-		final String pwd =  wsConfig.get(HANDLE_MANAGER_PWD);
-		if (user == null || user.isEmpty() || pwd == null || pwd.isEmpty()) {
-			rep.reportFail("Must provide params " + HANDLE_MANAGER_USER +
-					" and " + HANDLE_MANAGER_PWD + " in config file");
-			return null;
-		}
 		try {
-			return AuthService.getRefreshingToken(
-					user, pwd, TOKEN_REFRESH_INTERVAL);
+			return AuthService.getRefreshingToken(cfg.getHandleManagerUser(),
+					cfg.getHandleManagerPassword(), TOKEN_REFRESH_INTERVAL_SEC);
 		} catch (AuthException e) {
 			rep.reportFail("Couldn't log in with handle manager credentials for user " +
-					user + ": " + e.getLocalizedMessage());
+					cfg.getHandleManagerUser() + ": " + e.getLocalizedMessage());
 		} catch (IOException e) {
 			rep.reportFail("Couldn't contact the auth service to obtain a token for the handle manager: "
 					+ e.getLocalizedMessage());
@@ -376,7 +224,7 @@ public class InitWorkspaceServer {
 	}
 	
 
-	private static boolean checkHandleServiceConnection(
+	private static boolean handleServiceConnectionFails(
 			final URL handleServiceUrl,
 			final RefreshingToken handleMgrToken,
 			final InitReporter rep) {
@@ -400,7 +248,7 @@ public class InitWorkspaceServer {
 		return false;
 	}
 	
-	private static boolean checkHandleManagerConnection(
+	private static boolean handleManagerConnectionFails(
 			final URL handleManagerUrl,
 			final RefreshingToken handleMgrToken,
 			final InitReporter rep) {
