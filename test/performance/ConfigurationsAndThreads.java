@@ -492,7 +492,7 @@ public class ConfigurationsAndThreads {
 							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
 							tfm.getTempDir()));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBackend(db, "shock_map", shockURL, "baduser", "badpwd"),
+					new ShockBackend(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
 					tfm, val);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -551,8 +551,8 @@ public class ConfigurationsAndThreads {
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0),
-					"temp_shock_node_map", shockURL, token.getUserName(), password);
+			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
+					"temp_shock_node_map"), shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

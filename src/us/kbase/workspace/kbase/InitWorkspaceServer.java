@@ -48,7 +48,7 @@ public class InitWorkspaceServer {
 	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static final String COL_SETTINGS = "settings";
-	private static final String COL_SHOCK_NODES = "shock_"; //TODO switch to entire collection name
+	private static final String COL_SHOCK_NODES = "shock_nodeMap";
 	
 	
 	private static int maxUniqueIdCountPerCall = 100000;
@@ -232,7 +232,7 @@ public class InitWorkspaceServer {
 			}
 			BlobStore bs = null;
 			try {
-				bs = new ShockBackend(db, COL_SHOCK_NODES,
+				bs = new ShockBackend(db.getCollection(COL_SHOCK_NODES),
 						shockurl, blobStoreUser, blobStoreSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				rep.reportFail(

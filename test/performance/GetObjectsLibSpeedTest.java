@@ -83,7 +83,7 @@ public class GetObjectsLibSpeedTest {
 						GetMongoDB.getDB(mongohost, typeDB)),
 						tfm.getTempDir()));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new ShockBackend(db, "shock_map", new URL(shockurl), shockuser, shockpwd),
+				new ShockBackend(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
 				tfm, val);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),

@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
@@ -53,7 +54,7 @@ public class ShockBackendTest {
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
 	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-	private static final String COLLECTION = "shock_";
+	private static final String COLLECTION = "shock_nodeMap";
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -82,7 +83,7 @@ public class ShockBackendTest {
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
-			sb = new ShockBackend(mongo, COLLECTION, url, u1, p1);
+			sb = new ShockBackend(mongo.getCollection(COLLECTION), url, u1, p1);
 		} catch (BlobStoreAuthorizationException bsae) {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", bsae);
@@ -124,18 +125,18 @@ public class ShockBackendTest {
 	
 	@Test
 	public void badInit() throws Exception {
-		failInit(null, COLLECTION, new URL("http://foo.com"), "u", "p");
-		failInit(mongo, null, new URL("http://foo.com"), "u", "p");
-		failInit(mongo, COLLECTION, null, "u", "p");
-		failInit(mongo, COLLECTION, new URL("http://foo.com"), null, "p");
-		failInit(mongo, COLLECTION, new URL("http://foo.com"), "u", null);
+		DBCollection col = mongo.getCollection(COLLECTION);
+		failInit(null, new URL("http://foo.com"), "u", "p");
+		failInit(col, null, "u", "p");
+		failInit(col, new URL("http://foo.com"), null, "p");
+		failInit(col, new URL("http://foo.com"), "u", null);
 	}
 	
-	private void failInit(DB db, String collection, URL url, String user,
+	private void failInit(DBCollection collection, URL url, String user,
 			String pwd)
 			throws Exception {
 		try {
-			new ShockBackend(db, collection, url, user, pwd);
+			new ShockBackend(collection, url, user, pwd);
 		} catch (NullPointerException npe) {
 			assertThat("correct exception message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
@@ -149,7 +150,7 @@ public class ShockBackendTest {
 		DBObject rec = new BasicDBObject(Fields.SHOCK_CHKSUM, A32);
 		rec.put(Fields.SHOCK_NODE, sn.getId().getId());
 		rec.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
-		mongo.getCollection(COLLECTION + ShockBackend.COLLECTION_SUFFIX).save(rec);
+		mongo.getCollection(COLLECTION).save(rec);
 		MD5 md5 = new MD5(A32);
 		ByteArrayFileCache d = sb.getBlob(md5, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));

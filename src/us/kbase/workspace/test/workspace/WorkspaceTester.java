@@ -231,7 +231,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBackend(wsdb, "shock_nodes", shockUrl,
+		BlobStore bs = new ShockBackend(wsdb.getCollection("shock_nodes"), shockUrl,
 				shockuser, shockpwd);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
