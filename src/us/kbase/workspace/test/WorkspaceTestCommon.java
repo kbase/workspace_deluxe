@@ -87,14 +87,19 @@ public class WorkspaceTestCommon {
 		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
 	}
 	
+	//useful for tests starting a server with GFS as the backend
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
-		destroyDB(mdb);
-		destroyDB(mdb.getSisterDB(typedb));
+		destroyWSandTypeDBs(mdb, typedb);
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", GRIDFS);
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", GRIDFS));
+	}
+
+	public static void destroyWSandTypeDBs(DB mdb, String typedb) {
+		destroyDB(mdb);
+		destroyDB(mdb.getSisterDB(typedb));
 	}
 	
 	public static void destroyDB(DB db) {
@@ -105,10 +110,10 @@ public class WorkspaceTestCommon {
 		}
 	}
 	
+	//useful for tests starting a server with shock as the backend
 	public static void initializeShockWorkspaceDB(DB mdb, String shockuser,
 			URL shockURL, String typedb) {
-		destroyDB(mdb);
-		destroyDB(mdb.getSisterDB(typedb));
+		destroyWSandTypeDBs(mdb, typedb);
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", SHOCK);

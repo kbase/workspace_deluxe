@@ -80,8 +80,6 @@ public class ShockBackendTest {
 				"foo");
 		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
-		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, u1, url,
-				"ShockBackendTest_types");
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
 			sb = new ShockBackend(mongo, COLLECTION, url, u1, p1);

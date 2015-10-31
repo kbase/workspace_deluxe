@@ -23,6 +23,7 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -34,7 +35,10 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -61,6 +65,9 @@ import us.kbase.workspaceservice.SaveObjectParams;
 import us.kbase.workspaceservice.WorkspaceServiceClient;
 
 /* DO NOT run these tests on production workspaces.
+ * WARNING: extensive changes have been made to the workspace initialization
+ * sequence. Read through the code before using, probably doesn't work 
+ * correctly any more. See TODOs
  * 
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
@@ -166,8 +173,16 @@ public class ConfigurationsAndThreads {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
-		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
-				password, tfm, 0),
+		//TODO this setup is just to make it compile, not tested yet
+		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+						tfm.getTempDir()));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				new GridFSBackend(db), tfm, val);
+		
+		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -470,7 +485,16 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, tfm, 0),
+			//TODO check this still works
+			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+			TypedObjectValidator val = new TypedObjectValidator(
+					new TypeDefinitionDB(new MongoTypeStorage(
+							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+							tfm.getTempDir()));
+			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+					new ShockBackend(db, "shock_map", shockURL, "baduser", "badpwd"),
+					tfm, val);
+			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
 					new KBaseReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)

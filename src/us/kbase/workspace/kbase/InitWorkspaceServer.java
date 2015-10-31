@@ -2,10 +2,17 @@ package us.kbase.workspace.kbase;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.LinkedList;
+
+import org.jongo.Jongo;
+import org.jongo.MongoCollection;
+import org.jongo.marshall.MarshallingException;
+
+import com.mongodb.DB;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
@@ -13,22 +20,37 @@ import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.auth.RefreshingToken;
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
-import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.GridFSBackend;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.Settings;
+import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
 
 public class InitWorkspaceServer {
 	
+	//TODO move files around appropriately
+	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
+	private static final String COL_SETTINGS = "settings";
+	private static final String COL_SHOCK_NODES = "shock_"; //TODO switch to entire collection name
+	
+	
 	private static int maxUniqueIdCountPerCall = 100000;
 
 	private static int instanceCount = 0;
@@ -96,6 +118,7 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
 		
+		//TODO pretty sure the logic here is messed up, check
 		TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
 		boolean failed = tfm == null;
 		
@@ -157,14 +180,92 @@ public class InitWorkspaceServer {
 			final String secret, final String user, final String pwd,
 			final TempFilesManager tfm, final int mongoReconnectRetry,
 			final InitReporter rep) {
+		
+		final DB db = getMongoDBInstance(host, dbs, user, pwd,
+				mongoReconnectRetry, rep);
+		if (db == null) {return null;}
+		
+		final Settings settings = getSettings(db, rep);
+		if (settings == null) {return null;}
+		
+		final String bsType = settings.isGridFSBackend() ? "GridFS" : "Shock";
+		final BlobStore bs = setupBlobStore(db, bsType, settings.getShockUrl(),
+				settings.getShockUser(), secret, rep);
+		if (bs == null) {return null;}
+		
+		final DB typeDB = getMongoDBInstance(host, settings.getTypeDatabase(),
+				user, pwd, mongoReconnectRetry, rep);
+		if (typeDB == null) {return null;}
+		
+		TypedObjectValidator typeValidator = null;
 		try {
-			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm,
-						mongoReconnectRetry);
-			} else {
-				return new MongoWorkspaceDB(host, dbs, secret, tfm,
-						mongoReconnectRetry);
+			typeValidator = new TypedObjectValidator(new TypeDefinitionDB(
+					new MongoTypeStorage(typeDB)));
+		} catch (TypeStorageException e) {
+			rep.reportFail("Couldn't set up the type database: " +
+					e.getLocalizedMessage());
+			return null;
+		}
+		
+		return new MongoWorkspaceDB(db, bs, tfm, typeValidator);
+	}
+	
+	private static BlobStore setupBlobStore(
+			final DB db,
+			final String blobStoreType,
+			final String blobStoreURL,
+			final String blobStoreUser,
+			final String blobStoreSecret,
+			final InitReporter rep) {
+		
+		if (blobStoreType.equals("GridFS")) {
+			return new GridFSBackend(db);
+		}
+		if (blobStoreType.equals("Shock")) {
+			URL shockurl = null;
+			try {
+				shockurl = new URL(blobStoreURL);
+			} catch (MalformedURLException mue) {
+				rep.reportFail("Workspace database settings document has bad shock url: "
+								+ blobStoreURL);
+				return null;
 			}
+			BlobStore bs = null;
+			try {
+				bs = new ShockBackend(db, COL_SHOCK_NODES,
+						shockurl, blobStoreUser, blobStoreSecret);
+			} catch (BlobStoreAuthorizationException e) {
+				rep.reportFail(
+						"Not authorized to access the blob store backend database: "
+						+ e.getLocalizedMessage());
+			} catch (BlobStoreException e) {
+				rep.reportFail(
+						"The blob store backend database could not be initialized: " +
+						e.getLocalizedMessage());
+			}
+			// TODO if shock, check a few random nodes to make sure they match
+			// the internal representation, die otherwise
+			return bs;
+		}
+		rep.reportFail("Unknown backend type: " + blobStoreType);
+		return null;
+	}
+
+	private static DB getMongoDBInstance(final String host, final String dbs,
+			final String user, final String pwd, final int mongoReconnectRetry,
+			final InitReporter rep) {
+		DB db = null;
+		try {
+		if (user != null) {
+			db = GetMongoDB.getDB(
+					host, dbs, user, pwd, mongoReconnectRetry, 10);
+		} else {
+			db = GetMongoDB.getDB(host, dbs, mongoReconnectRetry, 10);
+		}
+		} catch (InterruptedException ie) {
+			rep.reportFail("Connection to MongoDB was interrupted. This should never " +
+					"happen and indicates a programming problem. Error: " +
+					ie.getLocalizedMessage());
 		} catch (UnknownHostException uhe) {
 			rep.reportFail("Couldn't find mongo host " + host + ": " +
 					uhe.getLocalizedMessage());
@@ -172,22 +273,55 @@ public class InitWorkspaceServer {
 			rep.reportFail("Couldn't connect to mongo host " + host + ": " +
 					io.getLocalizedMessage());
 		} catch (MongoAuthException ae) {
-			rep.reportFail("Not authorized: " + ae.getLocalizedMessage());
+			rep.reportFail("Not authorized for mongo database " + dbs + ": " +
+					ae.getLocalizedMessage());
 		} catch (InvalidHostException ihe) {
-			rep.reportFail(host + " is an invalid database host: "  +
+			rep.reportFail(host + " is an invalid mongo database host: "  +
 					ihe.getLocalizedMessage());
-		} catch (WorkspaceDBException uwde) {
-			rep.reportFail("The workspace database is invalid: " +
-					uwde.getLocalizedMessage());
-		} catch (TypeStorageException tse) {
-			rep.reportFail("There was a problem setting up the type storage system: " +
-					tse.getLocalizedMessage());
-		} catch (InterruptedException ie) {
-			rep.reportFail("Connection to MongoDB was interrupted. This should never " +
-					"happen and indicates a programming problem. Error: " +
-					ie.getLocalizedMessage());
 		}
-		return null;
+		return db;
+	}
+	
+	private static Settings getSettings(final DB db, final InitReporter rep) {
+		
+		if (!db.collectionExists(COL_SETTINGS)) {
+			rep.reportFail(
+					"There is no settings collection in the workspace database");
+			return null;
+		}
+		MongoCollection settings = new Jongo(db).getCollection(COL_SETTINGS);
+		if (settings.count() != 1) {
+			rep.reportFail(
+					"More than one settings document exists in the workspace database settings collection");
+			return null;
+		}
+		Settings wsSettings = null;
+		try {
+			wsSettings = settings.findOne().as(Settings.class);
+		} catch (MarshallingException me) {
+			Throwable ex1 = me.getCause();
+			if (ex1 == null) {
+				rep.reportFail(
+						"Unable to unmarshal settings workspace database document: " +
+						me.getLocalizedMessage());
+			} else {
+				Throwable ex2 = ex1.getCause();
+				if (ex2 == null) {
+					ex2 = ex1;
+				}
+				rep.reportFail(
+						"Unable to unmarshal settings workspace database document: " +
+								ex2.getLocalizedMessage());
+			}
+			return null;
+		}
+		if (db.getName().equals(wsSettings.getTypeDatabase())) {
+			rep.reportFail(
+					"The type database name is the same as the workspace database name: "
+							+ db.getName());
+			return null;
+		}
+		return wsSettings;
 	}
 
 	private static TempFilesManager initTempFilesManager(

@@ -247,40 +247,39 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println(error);
 		}
 		
-		if (!cfg.getErrors().isEmpty()) {
-			tfm = null;
-			ws = null;
-			wsmeth = null;
-			wsadmin = null;
-			handleManagerUrl = null;
-			handleMgrToken = null;
+		TempFilesManager tfm = null;
+		Workspace ws = null;
+		WorkspaceServerMethods wsmeth = null;
+		WorkspaceAdministration wsadmin = null;
+		URL handleManagerUrl = null;
+		RefreshingToken handleMgrToken = null;
+		
+		if (cfg.hasErrors()) {
 			logErr("Configuration errors - all calls will fail");
 			System.out.println("Configuration errors - all calls will fail");
 			startupFailed();
-			return;
-		}
-		
-		final WorkspaceInitReporter rep = new WorkspaceInitReporter();
-		
-		final WorkspaceInitResults res =
-				InitWorkspaceServer.initWorkspaceServer(cfg, rep);
-		
-		if (rep.failed) {
-			tfm = null;
-			ws = null;
-			wsmeth = null;
-			wsadmin = null;
-			handleManagerUrl = null;
-			handleMgrToken = null;
 		} else {
-			tfm = res.getTempFilesManager();
-			ws = res.getWs();
-			wsmeth = res.getWsmeth();
-			wsadmin = res.getWsAdmin();
-			handleManagerUrl = res.getHandleManagerUrl();
-			handleMgrToken = res.getHandleMgrToken();
-			setRpcDiskCacheTempDir(tfm.getTempDir());
+
+			final WorkspaceInitReporter rep = new WorkspaceInitReporter();
+			final WorkspaceInitResults res =
+					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
+
+			if (!rep.failed) {
+				tfm = res.getTempFilesManager();
+				ws = res.getWs();
+				wsmeth = res.getWsmeth();
+				wsadmin = res.getWsAdmin();
+				handleManagerUrl = res.getHandleManagerUrl();
+				handleMgrToken = res.getHandleMgrToken();
+				setRpcDiskCacheTempDir(tfm.getTempDir());
+			}
 		}
+		this.tfm = tfm;
+		this.ws = ws;
+		this.wsmeth = wsmeth;
+		this.wsadmin = wsadmin;
+		this.handleManagerUrl = handleManagerUrl;
+		this.handleMgrToken = handleMgrToken;
         //END_CONSTRUCTOR
     }
 

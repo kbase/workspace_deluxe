@@ -72,7 +72,8 @@ public class KBaseWorkspaceConfig {
 		for (final String param: REQUIRED_PARAMS) {
 			final String paramval = config.get(param);
 			if (paramval == null || paramval.isEmpty()) {
-				paramErrors.add("Must provide param " + HOST + " in config file");
+				paramErrors.add("Must provide param " + HOST +
+						" in config file");
 			}
 		}
 		host = config.get(HOST);
@@ -91,8 +92,8 @@ public class KBaseWorkspaceConfig {
 		
 		if (hasUser ^ hasPwd) {
 			paramErrors.add(String.format("Must provide both %s and %s ",
-					MONGO_USER, MONGO_PWD) + "params in config file if MongoDB " +
-					"authentication " + "is to be used");
+					MONGO_USER, MONGO_PWD) + "params in config file if " +
+					" MongoDB authentication is to be used");
 		}
 		
 		if (hasUser && hasPwd) {
@@ -106,7 +107,8 @@ public class KBaseWorkspaceConfig {
 		final String ignoreHandle = config.get(IGNORE_HANDLE_SERVICE);
 		ignoreHandleService = ignoreHandle != null && !ignoreHandle.isEmpty();
 		if (ignoreHandleService) {
-			infoMsgs.add("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
+			infoMsgs.add("Ignoring Handle Service config. Objects with " +
+					"handle IDs will fail typechecking.");
 			handleServiceURL = null;
 			handleManagerURL = null;
 			handleManagerUser = null;
@@ -273,5 +275,9 @@ public class KBaseWorkspaceConfig {
 	
 	public String getParamReport() {
 		return paramReport;
+	}
+	
+	public boolean hasErrors() {
+		return !errors.isEmpty();
 	}
 }
