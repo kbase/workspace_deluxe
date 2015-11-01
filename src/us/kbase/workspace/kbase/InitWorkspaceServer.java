@@ -43,8 +43,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
 public class InitWorkspaceServer {
 	
-	//TODO move files around appropriately
-	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static final String COL_SETTINGS = "settings";
 	private static final String COL_SHOCK_NODES = "shock_nodeMap";
@@ -55,9 +53,22 @@ public class InitWorkspaceServer {
 	private static int instanceCount = 0;
 	private static boolean wasTempFileCleaningDone = false;
 	
-	public interface InitReporter {
-		public void reportInfo(final String info);
-		public void reportFail(final String fail);
+	public static abstract class InitReporter {
+		
+		private boolean failed = false;
+		
+		public abstract void reportInfo(final String info);
+		
+		public void reportFail(final String fail) {
+			failed = true;
+			handleFail(fail);
+		}
+		
+		public abstract void handleFail(final String fail);
+		
+		public boolean isFailed() {
+			return failed;
+		}
 	}
 	
 	public static class WorkspaceInitResults {
@@ -116,26 +127,27 @@ public class InitWorkspaceServer {
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		
-		//TODO pretty sure the logic here is messed up, check
+		//TODO ** test this
+		//TODO in get DB just throw exceptions instead of returning null all over & handle in 1 spot
 		TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
-		boolean failed = tfm == null;
 		
 		RefreshingToken handleMgrToken = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep);
-			failed = failed || handleMgrToken == null;
-			if (!failed) {
-				failed = handleServiceConnectionFails(cfg.getHandleServiceURL(),
+			if (!rep.isFailed()) {
+				checkHandleServiceConnection(cfg.getHandleServiceURL(),
 						handleMgrToken, rep);
 			}
-			if (!failed) {
-				failed = handleManagerConnectionFails(cfg.getHandleManagerURL(),
+			if (!rep.isFailed()) {
+				checkHandleManagerConnection(cfg.getHandleManagerURL(),
 						handleMgrToken, rep);
 			}
 		}
 		
-		if (failed) {
+		final ConfigurableAuthService auth = setUpAuthClient(
+				cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(), rep);
+		
+		if (rep.isFailed()) {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		} 
@@ -159,9 +171,7 @@ public class InitWorkspaceServer {
 				new KBaseReferenceParser());
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, cfg.getHandleServiceURL(),
-				maxUniqueIdCountPerCall,
-				setUpAuthClient(cfg.getKbaseAdminUser(),
-						cfg.getKbaseAdminPassword(), rep));
+				maxUniqueIdCountPerCall, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
 				ws, wsmeth, cfg.getWorkspaceAdmin());
 		final String mem = String.format(
@@ -357,7 +367,7 @@ public class InitWorkspaceServer {
 	}
 	
 
-	private static boolean handleServiceConnectionFails(
+	private static void checkHandleServiceConnection(
 			final URL handleServiceUrl,
 			final RefreshingToken handleMgrToken,
 			final InitReporter rep) {
@@ -370,18 +380,15 @@ public class InitWorkspaceServer {
 			}
 			cli.areReadable(new LinkedList<String>());
 		} catch (Exception e) {
-			if (!(e instanceof ServerException) ||
-					!e.getMessage().contains(
+			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"can not execute select * from Handle")) {
 				rep.reportFail("Could not establish a connection to the Handle Service at "
 						+ handleServiceUrl + ": " + e.getMessage());
-				return true;
 			}
 		}
-		return false;
 	}
 	
-	private static boolean handleManagerConnectionFails(
+	private static void checkHandleManagerConnection(
 			final URL handleManagerUrl,
 			final RefreshingToken handleMgrToken,
 			final InitReporter rep) {
@@ -394,15 +401,12 @@ public class InitWorkspaceServer {
 			}
 			cli.addReadAcl(Arrays.asList("FAKEHANDLE_-100"), "fakeuser");
 		} catch (Exception e) {
-			if (!(e instanceof ServerException) ||
-					!e.getMessage().contains(
+			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
 				rep.reportFail("Could not establish a connection to the Handle Manager Service at "
 						+ handleManagerUrl + ": " + e.getMessage());
-				return true;
 			}
 		}
-		return false;
 	}
 	
 	private static ConfigurableAuthService setUpAuthClient(

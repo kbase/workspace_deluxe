@@ -201,10 +201,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		kbaseRootLogger.addAppender(kbaseAppender);
 	}
 	
-	private class WorkspaceInitReporter implements InitReporter {
+	private class WorkspaceInitReporter extends InitReporter {
 
-		public boolean failed = false;
-		
 		@Override
 		public void reportInfo(final String info) {
 			logInfo(info);
@@ -212,11 +210,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 
 		@Override
-		public void reportFail(final String fail) {
+		public void handleFail(final String fail) {
 			logErr(fail);
 			System.err.println(fail);
 			startupFailed();
-			failed = true;
 		}
 		
 	}
@@ -264,7 +261,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			final WorkspaceInitResults res =
 					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
 
-			if (!rep.failed) {
+			if (!rep.isFailed()) {
 				tfm = res.getTempFilesManager();
 				ws = res.getWs();
 				wsmeth = res.getWsmeth();
