@@ -42,7 +42,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
-public class ShockBackendTest {
+public class ShockBlobStoreTest {
 	
 	private static ShockBlobStore sb;
 	private static DB mongo;

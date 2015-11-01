@@ -1,6 +1,7 @@
-package us.kbase.workspace.database.mongo;
+package us.kbase.workspace.kbase;
 
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.mongo.Fields;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

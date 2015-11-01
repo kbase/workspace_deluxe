@@ -30,7 +30,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
-public class GridFSBackendTest {
+public class GridFSBlobStoreTest {
 	
 	
 	private static GridFSBlobStore gfsb;
