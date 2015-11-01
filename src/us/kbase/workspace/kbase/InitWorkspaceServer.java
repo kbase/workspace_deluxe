@@ -33,6 +33,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -127,9 +128,8 @@ public class InitWorkspaceServer {
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		//TODO ** test this
-		//TODO in get DB just throw exceptions instead of returning null all over & handle in 1 spot
-		TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
+		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(),
+				rep);
 		
 		RefreshingToken handleMgrToken = null;
 		if (!cfg.ignoreHandleService()) {
@@ -155,11 +155,13 @@ public class InitWorkspaceServer {
 				cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
-		final WorkspaceDatabase db = getDB(
-				cfg.getHost(), cfg.getDBname(), cfg.getBackendSecret(),
+		final WorkspaceDatabase db;
+		try {
+			db = getDB(cfg.getHost(), cfg.getDBname(), cfg.getBackendSecret(),
 				cfg.getMongoUser(), cfg.getMongoPassword(), tfm,
-				cfg.getMongoReconnectAttempts(), rep);
-		if (db == null) {
+				cfg.getMongoReconnectAttempts());
+		} catch (WorkspaceInitException wie) {
+			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
 					"Server startup failed - all calls will error out.");
 			return null;
@@ -187,33 +189,28 @@ public class InitWorkspaceServer {
 	
 	private static WorkspaceDatabase getDB(final String host, final String dbs,
 			final String secret, final String user, final String pwd,
-			final TempFilesManager tfm, final int mongoReconnectRetry,
-			final InitReporter rep) {
+			final TempFilesManager tfm, final int mongoReconnectRetry)
+			throws WorkspaceInitException {
 		
 		final DB db = getMongoDBInstance(host, dbs, user, pwd,
-				mongoReconnectRetry, rep);
-		if (db == null) {return null;}
+				mongoReconnectRetry);
 		
-		final Settings settings = getSettings(db, rep);
-		if (settings == null) {return null;}
-		
+		final Settings settings = getSettings(db);
 		final String bsType = settings.isGridFSBackend() ? "GridFS" : "Shock";
+		
 		final BlobStore bs = setupBlobStore(db, bsType, settings.getShockUrl(),
-				settings.getShockUser(), secret, rep);
-		if (bs == null) {return null;}
+				settings.getShockUser(), secret);
 		
 		final DB typeDB = getMongoDBInstance(host, settings.getTypeDatabase(),
-				user, pwd, mongoReconnectRetry, rep);
-		if (typeDB == null) {return null;}
+				user, pwd, mongoReconnectRetry);
 		
-		TypedObjectValidator typeValidator = null;
+		final TypedObjectValidator typeValidator;
 		try {
 			typeValidator = new TypedObjectValidator(new TypeDefinitionDB(
 					new MongoTypeStorage(typeDB)));
 		} catch (TypeStorageException e) {
-			rep.reportFail("Couldn't set up the type database: " +
-					e.getLocalizedMessage());
-			return null;
+			throw new WorkspaceInitException("Couldn't set up the type database: "
+					+ e.getLocalizedMessage(), e);
 		}
 		
 		return new MongoWorkspaceDB(db, bs, tfm, typeValidator);
@@ -224,111 +221,103 @@ public class InitWorkspaceServer {
 			final String blobStoreType,
 			final String blobStoreURL,
 			final String blobStoreUser,
-			final String blobStoreSecret,
-			final InitReporter rep) {
+			final String blobStoreSecret)
+			throws WorkspaceInitException {
 		
 		if (blobStoreType.equals("GridFS")) {
 			return new GridFSBlobStore(db);
 		}
 		if (blobStoreType.equals("Shock")) {
-			URL shockurl = null;
+			final URL shockurl;
 			try {
 				shockurl = new URL(blobStoreURL);
 			} catch (MalformedURLException mue) {
-				rep.reportFail("Workspace database settings document has bad shock url: "
-								+ blobStoreURL);
-				return null;
+				throw new WorkspaceInitException(
+						"Workspace database settings document has bad shock url: "
+						+ blobStoreURL, mue);
 			}
-			BlobStore bs = null;
 			try {
-				bs = new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
+				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
 						shockurl, blobStoreUser, blobStoreSecret);
 			} catch (BlobStoreAuthorizationException e) {
-				rep.reportFail(
+				throw new WorkspaceInitException(
 						"Not authorized to access the blob store backend database: "
-						+ e.getLocalizedMessage());
+						+ e.getLocalizedMessage(), e);
 			} catch (BlobStoreException e) {
-				rep.reportFail(
+				throw new WorkspaceInitException(
 						"The blob store backend database could not be initialized: " +
-						e.getLocalizedMessage());
+						e.getLocalizedMessage(), e);
 			}
-			// TODO if shock, check a few random nodes to make sure they match
-			// the internal representation, die otherwise
-			return bs;
 		}
-		rep.reportFail("Unknown backend type: " + blobStoreType);
-		return null;
+		throw new WorkspaceInitException("Unknown backend type: " + blobStoreType);
 	}
 
 	private static DB getMongoDBInstance(final String host, final String dbs,
-			final String user, final String pwd, final int mongoReconnectRetry,
-			final InitReporter rep) {
-		DB db = null;
+			final String user, final String pwd, final int mongoReconnectRetry)
+			throws WorkspaceInitException {
 		try {
 		if (user != null) {
-			db = GetMongoDB.getDB(
+			return GetMongoDB.getDB(
 					host, dbs, user, pwd, mongoReconnectRetry, 10);
 		} else {
-			db = GetMongoDB.getDB(host, dbs, mongoReconnectRetry, 10);
+			return GetMongoDB.getDB(host, dbs, mongoReconnectRetry, 10);
 		}
 		} catch (InterruptedException ie) {
-			rep.reportFail("Connection to MongoDB was interrupted. This should never " +
-					"happen and indicates a programming problem. Error: " +
-					ie.getLocalizedMessage());
+			throw new WorkspaceInitException(
+					"Connection to MongoDB was interrupted. This should never "
+					+ "happen and indicates a programming problem. Error: " +
+					ie.getLocalizedMessage(), ie);
 		} catch (UnknownHostException uhe) {
-			rep.reportFail("Couldn't find mongo host " + host + ": " +
-					uhe.getLocalizedMessage());
+			throw new WorkspaceInitException("Couldn't find mongo host "
+					+ host + ": " + uhe.getLocalizedMessage(), uhe);
 		} catch (IOException io) {
-			rep.reportFail("Couldn't connect to mongo host " + host + ": " +
-					io.getLocalizedMessage());
+			throw new WorkspaceInitException("Couldn't connect to mongo host " 
+					+ host + ": " + io.getLocalizedMessage(), io);
 		} catch (MongoAuthException ae) {
-			rep.reportFail("Not authorized for mongo database " + dbs + ": " +
-					ae.getLocalizedMessage());
+			throw new WorkspaceInitException("Not authorized for mongo database "
+					+ dbs + ": " + ae.getLocalizedMessage(), ae);
 		} catch (InvalidHostException ihe) {
-			rep.reportFail(host + " is an invalid mongo database host: "  +
-					ihe.getLocalizedMessage());
+			throw new WorkspaceInitException(host +
+					" is an invalid mongo database host: "  +
+					ihe.getLocalizedMessage(), ihe);
 		}
-		return db;
 	}
 	
-	private static Settings getSettings(final DB db, final InitReporter rep) {
+	private static Settings getSettings(final DB db)
+			throws WorkspaceInitException {
 		
 		if (!db.collectionExists(COL_SETTINGS)) {
-			rep.reportFail(
+			throw new WorkspaceInitException(
 					"There is no settings collection in the workspace database");
-			return null;
 		}
 		MongoCollection settings = new Jongo(db).getCollection(COL_SETTINGS);
 		if (settings.count() != 1) {
-			rep.reportFail(
+			throw new WorkspaceInitException(
 					"More than one settings document exists in the workspace database settings collection");
-			return null;
 		}
-		Settings wsSettings = null;
+		final Settings wsSettings;
 		try {
 			wsSettings = settings.findOne().as(Settings.class);
 		} catch (MarshallingException me) {
-			Throwable ex1 = me.getCause();
-			if (ex1 == null) {
-				rep.reportFail(
+			Throwable ex = me.getCause();
+			if (ex == null) {
+				throw new WorkspaceInitException(
 						"Unable to unmarshal settings workspace database document: " +
-						me.getLocalizedMessage());
-			} else {
-				Throwable ex2 = ex1.getCause();
-				if (ex2 == null) {
-					ex2 = ex1;
-				}
-				rep.reportFail(
-						"Unable to unmarshal settings workspace database document: " +
-								ex2.getLocalizedMessage());
+						me.getLocalizedMessage(), me);
 			}
-			return null;
+			ex = ex.getCause();
+			if (ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
+				throw new WorkspaceInitException(
+						"Unable to unmarshal settings document", me);
+			}
+			throw new WorkspaceInitException(
+					"Unable to unmarshal settings workspace database document: " +
+							ex.getLocalizedMessage(), ex);
 		}
 		if (db.getName().equals(wsSettings.getTypeDatabase())) {
-			rep.reportFail(
+			throw new WorkspaceInitException(
 					"The type database name is the same as the workspace database name: "
 							+ db.getName());
-			return null;
 		}
 		return wsSettings;
 	}
@@ -431,4 +420,18 @@ public class InitWorkspaceServer {
 		return null;
 	}
 
+	
+	private static class WorkspaceInitException extends Exception {
+		
+		private static final long serialVersionUID = 1L;
+
+		public WorkspaceInitException(final String message) {
+			super(message);
+		}
+		
+		public WorkspaceInitException(final String message,
+				final Throwable throwable) {
+			super(message, throwable);
+		}
+	}
 }
