@@ -1,7 +1,6 @@
 package us.kbase.workspace.kbase;
 
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
-import us.kbase.workspace.database.mongo.Fields;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,12 +14,17 @@ public class Settings {
 	
 	private static final String SHOCK = "shock";
 	private static final String GFS = "gridFS";
+	// settings fields
+	public static final String SET_TYPE_DB = "type_db";
+	public static final String SET_BACKEND = "backend";
+	public static final String SET_SHOCK_USER = "shock_user";
+	public static final String SET_SHOCK_LOC = "shock_location";
 
 	@JsonCreator
-	private Settings(@JsonProperty(Fields.SET_SHOCK_LOC) final String shockUrl,
-			@JsonProperty(Fields.SET_SHOCK_USER) final String shockUser,
-			@JsonProperty(Fields.SET_BACKEND) final String backendType,
-			@JsonProperty(Fields.SET_TYPE_DB) final String typeDatabase) throws 
+	private Settings(@JsonProperty(SET_SHOCK_LOC) final String shockUrl,
+			@JsonProperty(SET_SHOCK_USER) final String shockUser,
+			@JsonProperty(SET_BACKEND) final String backendType,
+			@JsonProperty(SET_TYPE_DB) final String typeDatabase) throws 
 			CorruptWorkspaceDBException {
 		this.shockUrl = shockUrl;
 		this.shockUser = shockUser;
@@ -30,6 +34,9 @@ public class Settings {
 		}
 		this.backendType = backendType;
 		this.typeDatabase = typeDatabase;
+		if (typeDatabase == null || typeDatabase.isEmpty()) {
+			throw new CorruptWorkspaceDBException("No type database provided");
+		}
 	}
 	
 	public String getShockUrl() {

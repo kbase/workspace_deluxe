@@ -212,7 +212,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		@Override
 		public void handleFail(final String fail) {
 			logErr(fail);
-			System.err.println(fail);
+			System.out.println(fail);
 			startupFailed();
 		}
 		
@@ -252,8 +252,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		RefreshingToken handleMgrToken = null;
 		
 		if (cfg.hasErrors()) {
-			logErr("Configuration errors - all calls will fail");
-			System.out.println("Configuration errors - all calls will fail");
+			logErr("Workspace server configuration has errors - all calls will fail");
+			System.out.println(
+					"Workspace server configuration has errors - all calls will fail");
 			startupFailed();
 		} else {
 

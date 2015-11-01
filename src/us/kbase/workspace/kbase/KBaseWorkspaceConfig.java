@@ -72,7 +72,7 @@ public class KBaseWorkspaceConfig {
 		for (final String param: REQUIRED_PARAMS) {
 			final String paramval = config.get(param);
 			if (paramval == null || paramval.isEmpty()) {
-				paramErrors.add("Must provide param " + HOST +
+				paramErrors.add("Must provide param " + param +
 						" in config file");
 			}
 		}
@@ -146,7 +146,7 @@ public class KBaseWorkspaceConfig {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
 				Arrays.asList(HOST, DB, MONGO_USER));
-		if (ignoreHandleService) {
+		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
 					HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
 		}

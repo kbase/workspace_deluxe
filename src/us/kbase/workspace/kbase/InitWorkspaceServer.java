@@ -308,7 +308,7 @@ public class InitWorkspaceServer {
 			ex = ex.getCause();
 			if (ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
 				throw new WorkspaceInitException(
-						"Unable to unmarshal settings document", me);
+						"Unable to unmarshal settings workspace database document", me);
 			}
 			throw new WorkspaceInitException(
 					"Unable to unmarshal settings workspace database document: " +
@@ -334,7 +334,8 @@ public class InitWorkspaceServer {
 			}
 			return tfm;
 		} catch (Exception e) {
-			rep.reportFail(e.getLocalizedMessage());
+			rep.reportFail("There was an error initializing the temporary " +
+					"file location: " +e.getLocalizedMessage());
 			return null;
 		}
 	}
