@@ -61,9 +61,9 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.BlobStore;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -213,7 +213,7 @@ public class WorkspaceTester {
 	}
 	
 	private Workspace setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces(wsdb, new GridFSBackend(wsdb), maxMemoryUsePerCall);
+		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpShock(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
@@ -231,7 +231,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBackend(wsdb.getCollection("shock_nodes"), shockUrl,
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl,
 				shockuser, shockpwd);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}

@@ -39,7 +39,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -83,7 +83,7 @@ public class GetObjectsLibSpeedTest {
 						GetMongoDB.getDB(mongohost, typeDB)),
 						tfm.getTempDir()));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new ShockBackend(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
+				new ShockBlobStore(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
 				tfm, val);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),

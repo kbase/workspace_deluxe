@@ -26,14 +26,14 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class GridFSBackendTest {
 	
 	
-	private static GridFSBackend gfsb;
+	private static GridFSBlobStore gfsb;
 	private static GridFS gfs;
 	private static MongoController mongo;
 	private static TempFilesManager tfm;
@@ -51,7 +51,7 @@ public class GridFSBackendTest {
 		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
 		DB db = mongoClient.getDB("GridFSBackendTest");
 		gfs = new GridFS(db);
-		gfsb = new GridFSBackend(db);
+		gfsb = new GridFSBlobStore(db);
 		
 	}
 	

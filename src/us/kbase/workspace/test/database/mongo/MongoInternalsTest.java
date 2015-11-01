@@ -53,7 +53,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
@@ -99,7 +99,7 @@ public class MongoInternalsTest {
 				new TypeDefinitionDB(new MongoTypeStorage(
 						GetMongoDB.getDB(mongohost, typedb)),
 						null, kidlpath, "both"));
-		mwdb = new MongoWorkspaceDB(db, new GridFSBackend(db), tfm, val);
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm, val);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());

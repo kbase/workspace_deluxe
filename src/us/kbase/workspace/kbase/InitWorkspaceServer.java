@@ -34,10 +34,10 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.mongo.BlobStore;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.Settings;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
@@ -219,7 +219,7 @@ public class InitWorkspaceServer {
 			final InitReporter rep) {
 		
 		if (blobStoreType.equals("GridFS")) {
-			return new GridFSBackend(db);
+			return new GridFSBlobStore(db);
 		}
 		if (blobStoreType.equals("Shock")) {
 			URL shockurl = null;
@@ -232,7 +232,7 @@ public class InitWorkspaceServer {
 			}
 			BlobStore bs = null;
 			try {
-				bs = new ShockBackend(db.getCollection(COL_SHOCK_NODES),
+				bs = new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
 						shockurl, blobStoreUser, blobStoreSecret);
 			} catch (BlobStoreAuthorizationException e) {
 				rep.reportFail(

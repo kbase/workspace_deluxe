@@ -54,9 +54,9 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspaceservice.DeleteWorkspaceParams;
@@ -180,7 +180,7 @@ public class ConfigurationsAndThreads {
 						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
 						tfm.getTempDir()));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new GridFSBackend(db), tfm, val);
+				new GridFSBlobStore(db), tfm, val);
 		
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
@@ -492,7 +492,7 @@ public class ConfigurationsAndThreads {
 							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
 							tfm.getTempDir()));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBackend(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
+					new ShockBlobStore(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
 					tfm, val);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -544,14 +544,14 @@ public class ConfigurationsAndThreads {
 	
 	public static class ShockBackendOnly extends AbstractReadWriteTest {
 		
-		private ShockBackend sb;
+		private ShockBlobStore sb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
+			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
 					"temp_shock_node_map"), shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
@@ -586,14 +586,14 @@ public class ConfigurationsAndThreads {
 	
 	public static class GridFSBackendOnly extends AbstractReadWriteTest {
 		
-		private GridFSBackend gfsb;
+		private GridFSBlobStore gfsb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			this.gfsb = new GridFSBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

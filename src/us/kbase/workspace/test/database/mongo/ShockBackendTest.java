@@ -37,14 +37,14 @@ import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.Fields;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class ShockBackendTest {
 	
-	private static ShockBackend sb;
+	private static ShockBlobStore sb;
 	private static DB mongo;
 	private static BasicShockClient client;
 	private static ShockController shock;
@@ -83,7 +83,7 @@ public class ShockBackendTest {
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		try {
-			sb = new ShockBackend(mongo.getCollection(COLLECTION), url, u1, p1);
+			sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, u1, p1);
 		} catch (BlobStoreAuthorizationException bsae) {
 			throw new TestException("Unable to login with test.user1: " + u1 +
 					"\nPlease check the credentials in the test configuration.", bsae);
@@ -136,7 +136,7 @@ public class ShockBackendTest {
 			String pwd)
 			throws Exception {
 		try {
-			new ShockBackend(collection, url, user, pwd);
+			new ShockBlobStore(collection, url, user, pwd);
 		} catch (NullPointerException npe) {
 			assertThat("correct exception message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));

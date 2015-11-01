@@ -36,7 +36,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
-public class ShockBackend implements BlobStore {
+public class ShockBlobStore implements BlobStore {
 	
 	private final BasicShockClient client;
 	private final DBCollection mongoCol;
@@ -45,7 +45,7 @@ public class ShockBackend implements BlobStore {
 	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBackend(final DBCollection mongoCollection,
+	public ShockBlobStore(final DBCollection mongoCollection,
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
 			BlobStoreException {
