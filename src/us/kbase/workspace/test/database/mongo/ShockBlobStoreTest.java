@@ -64,7 +64,8 @@ public class ShockBlobStoreTest {
 		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
 		WorkspaceTestCommon.stfuLoggers();
 		mongoCon = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		
 		String mongohost = "localhost:" + mongoCon.getServerPort();
@@ -94,10 +95,10 @@ public class ShockBlobStoreTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (mongoCon != null) {
-			mongoCon.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongoCon.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	

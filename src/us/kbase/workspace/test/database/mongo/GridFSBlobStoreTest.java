@@ -44,7 +44,8 @@ public class GridFSBlobStoreTest {
 	public static void setUpClass() throws Exception {
 		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " +
 				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
@@ -58,7 +59,7 @@ public class GridFSBlobStoreTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	
