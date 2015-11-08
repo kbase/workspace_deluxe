@@ -21,7 +21,7 @@ TO provenance is limited to 1MB
 VERSION: 0.3.6 (Released TBD)
 --------------------------------------
 NEW FEATURES:
-- N/A
+- Added get_permissions_mass function.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Removed internal data subsetting (intended for indexing of data contents)
