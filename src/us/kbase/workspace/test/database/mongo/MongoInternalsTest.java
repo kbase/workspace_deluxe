@@ -81,7 +81,8 @@ public class MongoInternalsTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
@@ -120,7 +121,7 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	

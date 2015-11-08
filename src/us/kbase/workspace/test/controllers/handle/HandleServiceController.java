@@ -217,7 +217,7 @@ public class HandleServiceController {
 				Paths.get("workspacetesttemp"));
 		MongoController monc = new MongoController(
 				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp")); 
+				Paths.get("workspacetesttemp"), false); 
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
 				Paths.get("workspacetesttemp"),

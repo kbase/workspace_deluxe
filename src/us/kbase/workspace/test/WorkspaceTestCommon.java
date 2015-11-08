@@ -12,6 +12,7 @@ public class WorkspaceTestCommon {
 	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
+	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String MYSQLEXE = "test.mysql.exe";
 	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
 	public static final String PLACKUPEXE = "test.plackup.exe";
@@ -83,8 +84,12 @@ public class WorkspaceTestCommon {
 		return getProp(HANDLE_PERL5LIB);
 	}
 	
-	public static boolean getDeleteTempFiles() {
+	public static boolean deleteTempFiles() {
 		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
+	}
+	
+	public static boolean useWiredTigerEngine() {
+		return "true".equals(System.getProperty(MONGO_USE_WIRED_TIGER));
 	}
 	
 	//useful for tests starting a server with GFS as the backend

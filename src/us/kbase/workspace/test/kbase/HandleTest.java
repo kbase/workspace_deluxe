@@ -116,7 +116,8 @@ public class HandleTest {
 		WorkspaceTestCommon.stfuLoggers();
 		
 		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
@@ -270,16 +271,16 @@ public class HandleTest {
 			System.out.println("Done");
 		}
 		if (HANDLE != null) {
-			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			HANDLE.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (SHOCK != null) {
-			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			SHOCK.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (MONGO != null) {
-			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			MONGO.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (MYSQL != null) {
-			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			MYSQL.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 
