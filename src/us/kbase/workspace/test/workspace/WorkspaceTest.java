@@ -481,7 +481,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<User, Permission> pexp = new HashMap<User, Permission>();
 		pexp.put(u1, Permission.ADMIN);
 		pexp.put(u2, Permission.OWNER);
-		assertThat("permissions correct", ws.getPermissions(u2, wsi), is (pexp));
+		assertThat("permissions correct", ws.getPermissions(
+				u2, Arrays.asList(wsi)).get(0), is (pexp));
 		
 		failSetWorkspaceOwner(null, wsi, u2, null, true,
 				new IllegalArgumentException("bar already owns workspace wsfoo"));
@@ -514,7 +515,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		pexp.put(u1, Permission.OWNER);
 		pexp.put(u2, Permission.ADMIN);
-		assertThat("permissions correct", ws.getPermissions(u2, wsi), is (pexp));
+		assertThat("permissions correct", ws.getPermissions(
+				u2, Arrays.asList(wsi)).get(0), is (pexp));
 		
 		//test basic name change
 		wsinfo = ws.setWorkspaceOwner(u1, wsi, u2, "wsfoonew", false);
@@ -604,14 +606,18 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceAuthorizationException("User b may not set permissions on workspace perms_noglobal"));
 		//check basic permissions for new private and public workspaces
 		expect.put(AUSER, Permission.OWNER);
-		assertThat("ws has correct perms for owner", ws.getPermissions(AUSER, wsiNG), is(expect));
+		assertThat("ws has correct perms for owner", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.put(STARUSER, Permission.READ);
-		assertThat("ws has correct perms for owner", ws.getPermissions(AUSER, wsiGL), is(expect));
+		assertThat("ws has correct perms for owner", ws.getPermissions(
+				AUSER, Arrays.asList(wsiGL)).get(0), is(expect));
 		expect.clear();
 		expect.put(BUSER, Permission.NONE);
-		assertThat("ws has correct perms for random user", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("ws has correct perms for random user", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.put(STARUSER, Permission.READ);
-		assertThat("ws has correct perms for random user", ws.getPermissions(BUSER, wsiGL), is(expect));
+		assertThat("ws has correct perms for random user", ws.getPermissions(
+				BUSER, Arrays.asList(wsiGL)).get(0), is(expect));
 		//test read permissions
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
@@ -622,10 +628,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.READ);
 		expect.put(CUSER, Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
-		assertThat("no permission leakage", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("no permission leakage", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		
 		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
 				new WorkspaceAuthorizationException(
@@ -639,21 +647,24 @@ public class WorkspaceTest extends WorkspaceTester {
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.ADMIN);
 		expect.put(CUSER, Permission.READ);
-		assertThat("asAdmin boolean works", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("asAdmin boolean works", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
-		assertThat("reduce own permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("reduce own permissions", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		ws.setPermissions(null, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.ADMIN);
 		expect.put(CUSER, Permission.READ);
-		assertThat("asAdmin boolean works with null user",
-				ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("asAdmin boolean works with null user",ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
-		assertThat("reduced permissions", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("reduced permissions", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		
 		
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ); //should have no effect
@@ -661,30 +672,37 @@ public class WorkspaceTest extends WorkspaceTester {
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.READ);
 		expect.put(CUSER, Permission.READ);
-		assertThat("user setting same perms has no effect", ws.getPermissions(AUSER, wsiNG), is(expect));
+		assertThat("user setting same perms has no effect", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
-		assertThat("setting own perms to same has no effect", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("setting own perms to same has no effect", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.NONE);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(CUSER, Permission.READ);
-		assertThat("user removed own perms", ws.getPermissions(AUSER, wsiNG), is(expect));
+		assertThat("user removed own perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.clear();
 		expect.put(BUSER, Permission.NONE);
-		assertThat("can remove own perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("can remove own perms", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		
 		//test write permissions
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(BUSER), Permission.WRITE);
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.WRITE);
 		expect.put(CUSER, Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
-		assertThat("write perms allow viewing all perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
+		assertThat("write perms allow viewing all perms", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		expect.clear();
 		expect.put(CUSER, Permission.READ);
-		assertThat("no permission leakage", ws.getPermissions(CUSER, wsiNG), is(expect));
+		assertThat("no permission leakage", ws.getPermissions(
+				CUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		failSetPermissions(BUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ,
 				new WorkspaceAuthorizationException(
 						"User b may not alter other user's permissions on workspace perms_noglobal"));
@@ -693,17 +711,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.ADMIN);
 		expect.put(CUSER, Permission.READ);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
-		assertThat("admin can see all perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
+		assertThat("admin can see all perms", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(AUSER, CUSER), Permission.WRITE);
 		expect.put(CUSER, Permission.WRITE);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
-		assertThat("admin can correctly set perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
+		assertThat("admin can correctly set perms", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		//test remove permissions
 		ws.setPermissions(BUSER, wsiNG, Arrays.asList(AUSER, CUSER), Permission.NONE);
 		expect.remove(CUSER);
-		assertThat("ws doesn't replace owner perms", ws.getPermissions(AUSER, wsiNG), is(expect));
-		assertThat("admin can't overwrite owner perms", ws.getPermissions(BUSER, wsiNG), is(expect));
+		assertThat("ws doesn't replace owner perms", ws.getPermissions(
+				AUSER, Arrays.asList(wsiNG)).get(0), is(expect));
+		assertThat("admin can't overwrite owner perms", ws.getPermissions(
+				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
 		
 		ws.setGlobalPermission(AUSER, new WorkspaceIdentifier("perms_global"), Permission.NONE);
 	}
@@ -2694,7 +2718,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<User, Permission> p = new HashMap<User, Permission>();
 		p.put(user, Permission.OWNER);
 		p.put(bar, Permission.ADMIN);
-		assertThat("can get perms", ws.getPermissions(user, read), is(p));
+		assertThat("can get perms", ws.getPermissions(
+				user, Arrays.asList(read)).get(0), is(p));
 		try {
 			ws.setWorkspaceDeleted(bar, read, true);
 			fail("Non owner deleted workspace");
@@ -2728,7 +2753,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					is("Workspace deleteundelete is deleted"));
 		}
 		try {
-			ws.getPermissions(user, read);
+			ws.getPermissions(user, Arrays.asList(read));
 			fail("got perms from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
@@ -2765,7 +2790,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				is("descrip"));
 		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
 		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
-		assertThat("can get perms", ws.getPermissions(user, read), is(p));
+		assertThat("can get perms", ws.getPermissions(
+				user, Arrays.asList(read)).get(0), is(p));
 		
 		assertTrue("date changed on delete", read1.getModDate().before(read2.getModDate()));
 		assertTrue("date changed on undelete", read2.getModDate().before(read3.getModDate()));
@@ -3506,7 +3532,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);
-		ws.getPermissions(user, wsi);
+		ws.getPermissions(user, Arrays.asList(wsi));
 		ws.getWorkspaceDescription(user, wsi);
 		ws.getWorkspaceInformation(user, wsi);
 		ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
@@ -3778,7 +3804,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetWorkspaceDesc(user2, wsi, new WorkspaceAuthorizationException(
 				"User setGlobalUser2 may not read workspace global"));
 		ws.setGlobalPermission(user, wsi, Permission.READ);
-		assertThat("read set correctly", ws.getPermissions(user, wsi).get(new AllUsers('*')),
+		assertThat("read set correctly", ws.getPermissions(user,
+				Arrays.asList(wsi)).get(0).get(new AllUsers('*')),
 				is(Permission.READ));
 		ws.getWorkspaceDescription(user2, wsi);
 		failSetGlobalPerm(user, wsi, Permission.WRITE, new IllegalArgumentException(

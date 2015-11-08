@@ -511,6 +511,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass, AuthToken authPart) throws Exception {
         WorkspacePermissions returnVal = null;
         //BEGIN get_permissions_mass
+        returnVal = wsmeth.getPermissions(
+                mass.getWorkspaces(), getUser(authPart));
         //END get_permissions_mass
         return returnVal;
     }
@@ -527,7 +529,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-		returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
+        returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
         //END get_permissions
         return returnVal;
     }
