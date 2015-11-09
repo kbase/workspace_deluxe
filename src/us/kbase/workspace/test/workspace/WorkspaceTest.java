@@ -568,6 +568,80 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct exception type", got, is(expected.getClass()));
 		}
 	}
+	
+	@Test
+	public void permissionsBulk() throws Exception {
+		/* This test was added after the getPermissions method was converted
+		 * to take a list of workspaces rather than a single workspace.
+		 * Hence it mostly tests the aspects of the method dealing with
+		 * multiple workspaces - the prior tests, which exercise the same
+		 * method, test the remainder of the functionality.
+		 */
+		WorkspaceIdentifier wiow = new WorkspaceIdentifier("permmass-owner");
+		WorkspaceIdentifier wiad = new WorkspaceIdentifier("permmass-admin");
+		WorkspaceIdentifier wiwr = new WorkspaceIdentifier("permmass-write");
+		WorkspaceIdentifier wird = new WorkspaceIdentifier("permmass-read");
+		WorkspaceIdentifier wigr = new WorkspaceIdentifier("permmass-globalread");
+		WorkspaceIdentifier wino = new WorkspaceIdentifier("permmass-none");
+		ws.createWorkspace(AUSER, wiow.getName(), false, null, null).getId();
+		ws.createWorkspace(BUSER, wiad.getName(), false, null, null).getId();
+		ws.createWorkspace(BUSER, wiwr.getName(), false, null, null).getId();
+		ws.createWorkspace(CUSER, wird.getName(), false, null, null).getId();
+		ws.createWorkspace(CUSER, wigr.getName(), false, null, null).getId();
+		ws.createWorkspace(CUSER, wino.getName(), false, null, null).getId();
+		ws.setPermissions(BUSER, wiad, Arrays.asList(AUSER), Permission.ADMIN);
+		ws.setPermissions(BUSER, wiwr, Arrays.asList(AUSER), Permission.WRITE);
+		ws.setPermissions(CUSER, wird, Arrays.asList(AUSER), Permission.READ);
+		ws.setGlobalPermission(CUSER, wigr, Permission.READ);
+		
+		
+		List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>(
+				Arrays.asList(wiow, wiad, wiwr, wird, wigr, wino));
+		Map<User, Permission> e1 = new HashMap<User, Permission>();
+		e1.put(AUSER, Permission.OWNER);
+		Map<User, Permission> e2 = new HashMap<User, Permission>();
+		e2.put(AUSER, Permission.ADMIN);
+		e2.put(BUSER, Permission.OWNER);
+		Map<User, Permission> e3 = new HashMap<User, Permission>();
+		e3.put(AUSER, Permission.WRITE);
+		e3.put(BUSER, Permission.OWNER);
+		Map<User, Permission> e4 = new HashMap<User, Permission>();
+		e4.put(AUSER, Permission.READ);
+		Map<User, Permission> e5 = new HashMap<User, Permission>();
+		e5.put(AUSER, Permission.NONE);
+		e5.put(STARUSER, Permission.READ);
+		Map<User, Permission> e6 = new HashMap<User, Permission>();
+		e6.put(AUSER, Permission.NONE);
+		List<Map<User, Permission>> exp = Arrays.asList(e1, e2, e3, e4, e5, e6);
+		List<Map<User, Permission>> got = ws.getPermissions(AUSER, wsis);
+		assertThat("got correct mass permissions", got, is(exp));
+		ws.setGlobalPermission(CUSER, wigr, Permission.NONE);
+		
+		failGetPermissions(null, wsis, new NullPointerException(
+				"User cannot be null"));
+		failGetPermissions(AUSER, null, new NullPointerException(
+				"wslist cannot be null"));
+		
+		List<WorkspaceIdentifier> huge = new LinkedList<WorkspaceIdentifier>();
+		for (int i = 1; i <= 1002; i++) {
+			huge.add(new WorkspaceIdentifier(i));
+		}
+		failGetPermissions(AUSER, huge, new IllegalArgumentException(
+				"Maximum number of workspaces allowed for input is 1000"));
+		
+		ws.setWorkspaceDeleted(AUSER, wiow, true);
+		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
+				String.format("Workspace %s is deleted", wiow.getName()), wiow));
+		ws.setWorkspaceDeleted(AUSER, wiow, false);
+		
+		wsis.add(new WorkspaceIdentifier("permmass-doesntexist"));
+		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
+				"No workspace with name permmass-doesntexist exists", wiow));
+		
+		wsis.add(new WorkspaceIdentifier(100000000));
+		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
+				"No workspace with id 100000000 exists", wiow));
+	}
 
 	@Test
 	public void permissions() throws Exception {

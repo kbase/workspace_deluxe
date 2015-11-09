@@ -984,13 +984,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Map<User, Permission> getAllPermissions(
-			final ResolvedWorkspaceID rwsi) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return query.queryPermissions(query.convertResolvedWSID(rwsi));
-	}
-	
-	@Override
 	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
 			final Set<ResolvedWorkspaceID> rwsis) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {

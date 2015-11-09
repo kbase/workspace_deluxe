@@ -101,11 +101,6 @@ public interface WorkspaceDatabase {
 			boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	/** Returns all users' permissions for a workspace */
-	public Map<User, Permission> getAllPermissions(
-			ResolvedWorkspaceID rwsi) throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
-	
 	/** Returns all users' permissions for a set of workspaces */
 	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
 			Set<ResolvedWorkspaceID> rwsi)

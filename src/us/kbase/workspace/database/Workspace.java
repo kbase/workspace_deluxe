@@ -468,21 +468,20 @@ public class Workspace {
 		db.setGlobalPermission(wsid, permission);
 	}
 
-	//TODO NOW test this method and workspace DB method
 	public List<Map<User, Permission>> getPermissions(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wslist)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
+			throw new NullPointerException("User cannot be null");
 		}
 		if (wslist == null) {
-			throw new IllegalArgumentException("wslist cannot be null");
+			throw new NullPointerException("wslist cannot be null");
 		}
 		if (wslist.size() > MAX_WS_COUNT_PERMS) {
 			throw new IllegalArgumentException(
-					"Maximum workspace count allowed for function input is " +
+					"Maximum number of workspaces allowed for input is " +
 							MAX_WS_COUNT_PERMS);
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =

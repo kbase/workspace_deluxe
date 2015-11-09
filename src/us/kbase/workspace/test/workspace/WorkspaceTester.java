@@ -488,6 +488,16 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetPermissions(WorkspaceUser user, List<WorkspaceIdentifier> wsis,
+			Exception e) throws Exception {
+		try {
+			ws.getPermissions(user, wsis);
+			fail("set perms when should fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
 	protected void checkObjInfo(ObjectInformation info, long id,
 			String name, String type, int version, WorkspaceUser user,
 			long wsid, String wsname, String chksum, long size,
