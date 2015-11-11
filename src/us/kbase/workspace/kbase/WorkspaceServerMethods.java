@@ -153,7 +153,6 @@ public class WorkspaceServerMethods {
 		return getPermissions(Arrays.asList(wsi), user).getPerms().get(0);
 	}
 	
-	//TODO NOW test this method
 	public WorkspacePermissions getPermissions(
 			List<WorkspaceIdentity> workspaces, WorkspaceUser user)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
