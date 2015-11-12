@@ -23,16 +23,25 @@ public class DocServer extends HttpServlet {
 			final HttpServletResponse response)
 			throws ServletException, IOException {
 		//TODO needs logging
+		//TODO stop listing files in dir if there's no file
+		// not totally sure if requiring a server restart to update docs
+		// is the best idea... on the other hand it makes things very simple
+		// deploy wise
 		
 		String path = request.getPathInfo();
-		if (path.equals("/")) {
+		
+		if (path == null) { // for /docs
+			response.sendError(404);
+			return;
+		}
+		if (path.equals("/")) { // for /docs/
 			path = "/index.html";
 		}
-		path = "" + path; //TODO add resources dir
+		path = "/workspace_docs" + path;
 		System.out.println("path: " + path);
 		final InputStream is = getClass().getResourceAsStream(path);
 		if (is == null) {
-			response.sendError(404, path); //path here
+			response.sendError(404, path.replace("/workspace_docs", ""));
 			return;
 		}
 		final byte[] page = IOUtils.toByteArray(is);

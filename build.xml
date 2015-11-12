@@ -201,11 +201,17 @@
     <copy todir="${war.dir}/lib/" flatten="true">
       <union refid="serverside"/>
     </copy>
+    <mkdir dir="workspace_docs/workspace_docs"/>
+    <copy todir="workspace_docs/workspace_docs">
+      <fileset dir="docs"/>
+    </copy>
     <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
       <classes dir="${classes}"/>
       <lib dir="${war.dir}/lib/"/>
+      <classes dir="workspace_docs"/>
     </war>
     <delete dir="${war.dir}/lib"/>
+    <delete dir="workspace_docs"/>
   </target>
 
   <target name="javadoc" description="build javadocs">
