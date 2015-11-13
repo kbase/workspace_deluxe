@@ -130,7 +130,8 @@ public class TypeRegisteringTest {
 	public static DB createMongoDbConnection() throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()));
+					Paths.get(WorkspaceTestCommon.getTempDir()),
+					WorkspaceTestCommon.useWiredTigerEngine());
 			System.out.println("Using mongo temp dir " + 
 					mongo.getTempDir());
 		}
@@ -162,7 +163,7 @@ public class TypeRegisteringTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	

@@ -21,19 +21,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
@@ -51,14 +54,16 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
-import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -69,7 +74,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
-import com.mongodb.MongoClient;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
@@ -166,10 +170,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -185,18 +189,23 @@ public class WorkspaceTester {
 			throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()));
+					Paths.get(WorkspaceTestCommon.getTempDir()),
+					WorkspaceTestCommon.useWiredTigerEngine());
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 		}
 		if (!configs.containsKey(config)) {
+			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+					"WorkspaceBackendTest");
+			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
+					"WorkspaceBackendTest_types");
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
 			if ("shock".equals(backend)) {
-				configs.put(config, setUpShock(maxMemoryUsePerCall));
+				configs.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
 			} else if("mongo".equals(backend)) {
-				configs.put(config, setUpMongo(maxMemoryUsePerCall));
+				configs.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
@@ -204,15 +213,11 @@ public class WorkspaceTester {
 		ws = configs.get(config);
 	}
 	
-	private Workspace setUpMongo(Integer maxMemoryUsePerCall) throws Exception {
-		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(mongo,
-				"WorkspaceBackendTest_types");
-		return setUpWorkspaces("gridFS", "foo", maxMemoryUsePerCall);
+	private Workspace setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
+		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
 	
-	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
+	private Workspace setUpShock(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
 		if (shock == null) {
@@ -226,32 +231,31 @@ public class WorkspaceTester {
 					"foo");
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
-		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, shockuser,
-				shockUrl, "WorkspaceBackendTest_types");
-		return setUpWorkspaces("shock", shockpwd, maxMemoryUsePerCall);
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl,
+				shockuser, shockpwd);
+		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpWorkspaces(
-			String type,
-			String shockpwd,
+			DB db,
+			BlobStore bs,
 			Integer maxMemoryUsePerCall)
 					throws Exception {
 		
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
-//		Code to create wsdb without checking against perl typecomp 
-//		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
-//				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
-//		code to create wsdb with checking against perl typecomp
 		final String kidlpath = new Util().getKIDLpath();
-		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(), 
-				"WorkspaceBackendTest", shockpwd, "foo", "foo",
-				kidlpath, null, tfm);
-		Workspace work = new Workspace(wsdb,
+		
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+								"WorkspaceBackendTest_types")),
+						null, kidlpath, "both"));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				bs, tfm, val);
+		Workspace work = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
 		if (maxMemoryUsePerCall != null) {
@@ -260,7 +264,6 @@ public class WorkspaceTester {
 			work.setResourceConfig(build.withMaxIncomingDataMemoryUsage(maxMemoryUsePerCall)
 					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
-		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		return work;
 	}

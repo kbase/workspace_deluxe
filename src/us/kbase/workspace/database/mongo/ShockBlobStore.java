@@ -31,15 +31,12 @@ import com.gc.iotools.stream.base.ExecutionModel;
 import com.gc.iotools.stream.base.ExecutorServiceFactory;
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
-public class ShockBackend implements BlobStore {
-	
-	public static final String COLLECTION_SUFFIX = "nodeMap";
+public class ShockBlobStore implements BlobStore {
 	
 	private final BasicShockClient client;
 	private final DBCollection mongoCol;
@@ -48,17 +45,16 @@ public class ShockBackend implements BlobStore {
 	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBackend(final DB mongoDB, final String collectionPrefix,
+	public ShockBlobStore(final DBCollection mongoCollection,
 			final URL url, final String user, final String password)
 			throws BlobStoreAuthorizationException,
 			BlobStoreException {
-		if (collectionPrefix == null || mongoDB == null || url == null
+		if (mongoCollection == null || url == null
 				|| user == null || password == null) {
 			throw new NullPointerException(
 					"Arguments cannot be null");
 		}
-		this.mongoCol = mongoDB.getCollection(collectionPrefix +
-				COLLECTION_SUFFIX);
+		this.mongoCol = mongoCollection;
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();

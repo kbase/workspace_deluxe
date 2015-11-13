@@ -25,12 +25,16 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -49,6 +53,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
@@ -76,22 +81,26 @@ public class MongoInternalsTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(
-				db, "MongoInternalsTest_types");
+		String typedb = "MongoInternalsTest_types";
+		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
 		jdb = new Jongo(db);
 		final String kidlpath = new Util().getKIDLpath();
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo",
-				"foo", "foo", kidlpath, null, tfm);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(mongohost, typedb)),
+						null, kidlpath, "both"));
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm, val);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
@@ -112,7 +121,7 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	

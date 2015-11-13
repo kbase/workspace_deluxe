@@ -66,6 +66,7 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.FakeObjectInfo;
@@ -183,7 +184,8 @@ public class JSONRPCLayerTester {
 		
 		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
@@ -318,6 +320,7 @@ public class JSONRPCLayerTester {
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		ws.add("ignore_handle_service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
@@ -326,9 +329,9 @@ public class JSONRPCLayerTester {
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.setIgnoreHandleServiceForTests(true);
 		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer.setMaximumUniqueIdCountForTests(MAX_UNIQUE_IDS_PER_CALL);
+		InitWorkspaceServer.setMaximumUniqueIdCountForTests(
+				MAX_UNIQUE_IDS_PER_CALL);
 		WorkspaceServer server = new WorkspaceServer();
 		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
 		server.setResourceUsageConfiguration(
@@ -359,7 +362,7 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
 	}

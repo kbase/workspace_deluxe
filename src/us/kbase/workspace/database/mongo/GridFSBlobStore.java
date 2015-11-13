@@ -21,11 +21,11 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 
-public class GridFSBackend implements BlobStore {
+public class GridFSBlobStore implements BlobStore {
 	
 	private final GridFS gfs;
 	
-	public GridFSBackend(DB mongodb) {
+	public GridFSBlobStore(DB mongodb) {
 		gfs = new GridFS(mongodb);
 	}
 
