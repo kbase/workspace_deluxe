@@ -15,7 +15,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +41,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -147,14 +150,30 @@ public class WorkspaceServerMethods {
 			WorkspaceUser user)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		Map<String, String> ret = new HashMap<String, String>(); 
-		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		final Map<User, Permission> acls = ws.getPermissions(
-				user, wksp);
-		for (User acl: acls.keySet()) {
-			ret.put(acl.getUser(), translatePermission(acls.get(acl)));
+		return getPermissions(Arrays.asList(wsi), user).getPerms().get(0);
+	}
+	
+	public WorkspacePermissions getPermissions(
+			List<WorkspaceIdentity> workspaces, WorkspaceUser user)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		
+		final List<WorkspaceIdentifier> wsil =
+				new LinkedList<WorkspaceIdentifier>();
+		for (final WorkspaceIdentity wsi: workspaces) {
+			wsil.add(processWorkspaceIdentifier(wsi));
 		}
-		return ret;
+		final List<Map<User, Permission>> perms = ws.getPermissions(user, wsil);
+		final List<Map<String, String>> ret =
+				new LinkedList<Map<String,String>>();
+		for (final Map<User, Permission> acls: perms){
+			final Map<String, String> inner = new HashMap<String, String>();
+			for (User acl: acls.keySet()) {
+				inner.put(acl.getUser(), translatePermission(acls.get(acl)));
+			}
+			ret.add(inner);
+		}
+		return new WorkspacePermissions().withPerms(ret);
 	}
 
 	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> saveObjects(

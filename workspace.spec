@@ -631,6 +631,28 @@ module Workspace {
 	funcdef set_workspace_description(SetWorkspaceDescriptionParams params)
 		returns ();
 	
+	/* Input parameters for the "get_permissions_mass" function.
+		workspaces - the workspaces for which to return the permissions,
+			maximum 1000.
+	*/
+	typedef structure {
+		list<WorkspaceIdentity> workspaces;
+	} GetPermissionsMassParams;
+	
+	/* A set of workspace permissions.
+		perms - the list of permissions for each requested workspace
+	
+	*/
+	typedef structure {
+		list<mapping<username, permission>> perms;
+	} WorkspacePermissions;
+	
+	/* 
+		Get permissions for multiple workspaces.
+	*/
+	funcdef get_permissions_mass(GetPermissionsMassParams mass)
+		returns(WorkspacePermissions perms);
+	
 	/* 
 		Get permissions for a workspace.
 	*/
@@ -1014,7 +1036,7 @@ module Workspace {
 			access. Overrides the client provided authorization credentials if
 			they exist.
 			
-		@deprecated Workspaces.ListWorkspaceInfoParams
+		@deprecated Workspace.ListObjectsParams
 	*/
 	typedef structure { 
 	   ws_name workspace;

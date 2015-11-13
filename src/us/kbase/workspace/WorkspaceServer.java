@@ -2,7 +2,6 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -501,6 +500,25 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_permissions_mass</p>
+     * <pre>
+     * Get permissions for multiple workspaces.
+     * </pre>
+     * @param   mass   instance of type {@link us.kbase.workspace.GetPermissionsMassParams GetPermissionsMassParams}
+     * @return   parameter "perms" of type {@link us.kbase.workspace.WorkspacePermissions WorkspacePermissions}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_permissions_mass")
+    public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass, AuthToken authPart) throws Exception {
+        WorkspacePermissions returnVal = null;
+        //BEGIN get_permissions_mass
+		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
+		returnVal = wsmeth.getPermissions(
+				mass.getWorkspaces(), getUser(authPart));
+        //END get_permissions_mass
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_permissions</p>
      * <pre>
      * Get permissions for a workspace.
@@ -512,7 +530,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-		returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
+        returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
         //END get_permissions
         return returnVal;
     }

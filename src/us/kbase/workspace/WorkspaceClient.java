@@ -155,7 +155,7 @@ public class WorkspaceClient {
         caller.setInsecureHttpConnectionAllowed(allowed);
     }
 
-    /** Deprecated. Use setIsInsecureHttpConnectionAllowed().
+    /** Deprecated. Use setInsecureHttpConnectionAllowed().
      * @deprecated
      */
     public void setAuthAllowedForHttp(boolean isAuthAllowedForHttp) {
@@ -392,6 +392,24 @@ public class WorkspaceClient {
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
         caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true);
+    }
+
+    /**
+     * <p>Original spec-file function name: get_permissions_mass</p>
+     * <pre>
+     * Get permissions for multiple workspaces.
+     * </pre>
+     * @param   mass   instance of type {@link us.kbase.workspace.GetPermissionsMassParams GetPermissionsMassParams}
+     * @return   parameter "perms" of type {@link us.kbase.workspace.WorkspacePermissions WorkspacePermissions}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(mass);
+        TypeReference<List<WorkspacePermissions>> retType = new TypeReference<List<WorkspacePermissions>>() {};
+        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, true);
+        return res.get(0);
     }
 
     /**

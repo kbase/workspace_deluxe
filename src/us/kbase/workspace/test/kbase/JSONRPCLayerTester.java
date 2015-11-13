@@ -94,6 +94,7 @@ public class JSONRPCLayerTester {
 	protected static String USER1 = null;
 	protected static String USER2 = null;
 	protected static String USER3 = null;
+	protected static String STARUSER = "*";
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	protected static WorkspaceServer SERVER2 = null;

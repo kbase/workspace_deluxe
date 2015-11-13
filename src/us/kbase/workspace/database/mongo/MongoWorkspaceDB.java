@@ -52,6 +52,7 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -89,7 +90,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static final String COL_WORKSPACE_OBJS = "workspaceObjects";
 	public static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	public static final String COL_PROVENANCE = "provenance";
-	private static final User ALL_USERS = new AllUsers('*');
+	public static final User ALL_USERS = Workspace.ALL_USERS;
 	
 	private ResourceUsageConfiguration rescfg;
 
@@ -983,10 +984,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Map<User, Permission> getAllPermissions(
-			final ResolvedWorkspaceID rwsi) throws
+	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
+			final Set<ResolvedWorkspaceID> rwsis) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return query.queryPermissions(query.convertResolvedWSID(rwsi));
+		final Map<ResolvedMongoWSID, Map<User, Permission>> res =
+				query.queryPermissions(query.convertResolvedWSID(rwsis), null);
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
+				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
+		//probably a better way to do this
+		for (final ResolvedMongoWSID r: res.keySet()) {
+			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
+		}
+		return ret;
 	}
 
 	private static final Set<String> FLDS_WS_NO_DESC = 

@@ -85,8 +85,11 @@ public class Workspace {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
+	public static final User ALL_USERS = new AllUsers('*');
+	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_INFO_COUNT = 10000;
+	private final static int MAX_WS_COUNT_PERMS = 1000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -465,23 +468,50 @@ public class Workspace {
 		db.setGlobalPermission(wsid, permission);
 	}
 
-	public Map<User, Permission> getPermissions(final WorkspaceUser user,
-				final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-				WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	public List<Map<User, Permission>> getPermissions(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wslist)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
+			throw new NullPointerException("User cannot be null");
 		}
-		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-		final PermissionSet perms = db.getPermissions(user, wsid);
-		if (Permission.WRITE.compareTo(perms.getPermission(wsid, true)) > 0) {
-			final Map<User, Permission> ret = new HashMap<User, Permission>();
-			ret.put(perms.getUser(), perms.getUserPermission(wsid, true));
-			if (perms.isWorldReadable(wsid, true)) {
-				ret.put(perms.getGlobalUser(), Permission.READ);
+		if (wslist == null) {
+			throw new NullPointerException("wslist cannot be null");
+		}
+		if (wslist.size() > MAX_WS_COUNT_PERMS) {
+			throw new IllegalArgumentException(
+					"Maximum number of workspaces allowed for input is " +
+							MAX_WS_COUNT_PERMS);
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
+				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
+				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
+						rwslist.values()));
+		final List<Map<User, Permission>> ret =
+				new LinkedList<Map<User,Permission>>();
+		for (final WorkspaceIdentifier wsi: wslist) {
+			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
+			final Map<User, Permission> wsperm = perms.get(rwsi);
+			final Permission p = wsperm.get(user);
+			if (p == null || Permission.WRITE.compareTo(p) > 0) { //read or no perms
+				final Map<User, Permission> wsp =
+						new HashMap<User, Permission>();
+				if (wsperm.containsKey(ALL_USERS)) {
+					wsp.put(ALL_USERS, wsperm.get(ALL_USERS));
+				}
+				if (p == null) {
+					wsp.put(user, Permission.NONE);
+				} else {
+					wsp.put(user, p);
+				}
+				ret.add(wsp);
+			} else {
+				ret.add(wsperm);
 			}
-			return ret;
 		}
-		return db.getAllPermissions(wsid);
+		return ret;
 	}
 
 	public WorkspaceInformation getWorkspaceInformation(

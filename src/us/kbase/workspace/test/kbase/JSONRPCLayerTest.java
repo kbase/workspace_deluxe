@@ -41,6 +41,7 @@ import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
@@ -63,6 +64,7 @@ import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -311,6 +313,32 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		perms = CLIENT1.getPermissions(new WorkspaceIdentity()
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
+		
+		List<WorkspaceIdentity> wslist = Arrays.asList(
+				new WorkspaceIdentity().withWorkspace("permspriv"),
+				new WorkspaceIdentity().withWorkspace("permsglob"));
+		WorkspacePermissions permsl = CLIENT1.getPermissionsMass(
+				new GetPermissionsMassParams().withWorkspaces(wslist));
+		List<Map<String, String>> exp = new LinkedList<Map<String,String>>();
+		exp.add(expected);
+		Map<String, String> gl = new HashMap<String, String>();
+		gl.put(STARUSER, "r");
+		gl.put(USER1, "a");
+		exp.add(gl);
+		assertThat("Permissions read correctly", permsl.getPerms(),
+				is(exp));
+		
+		GetPermissionsMassParams p = new GetPermissionsMassParams()
+			.withWorkspaces(wslist);
+		p.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.getPermissionsMass(p);
+			fail("passed extra args");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Unexpected arguments in GetPermissionsMassParams: foo"));
+		}
+				
 		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("permspriv").withNewPermission("n"));

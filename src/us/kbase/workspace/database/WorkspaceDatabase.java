@@ -74,26 +74,37 @@ public interface WorkspaceDatabase {
 	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
 			throws 	WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a workspace for one user. */
 	public Permission getPermission(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a workspace for one user. This method will also
+	 *  return whether the workspace is globally readable. 
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a set of workspaces for one user. If the user is
+	 * null, only the global readability of the workspaces will be returned. 
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a set of workspaces for one user. If the user is
+	 * null, only the global readability of the workspaces will be returned. 
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Set<ResolvedWorkspaceID> rwsis, Permission perm,
 			boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public Map<User, Permission> getAllPermissions(
-			ResolvedWorkspaceID rwsi) throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
+	/** Returns all users' permissions for a set of workspaces */
+	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
+			Set<ResolvedWorkspaceID> rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public WorkspaceInformation getWorkspaceInformation(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
@@ -173,7 +184,11 @@ public interface WorkspaceDatabase {
 
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
-
+	
+	/** Returns all the workspaces for which the user has the specified
+	 *  permission. If the user is null, only globally readable workspaces will
+	 *  be returned if specified.
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Permission perm, boolean excludeGlobal)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
