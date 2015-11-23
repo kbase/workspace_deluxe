@@ -374,7 +374,7 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
-	protected IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
+	protected IdReferenceHandlerSetFactory getIdFactory() {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		return fac;
 	}
@@ -535,7 +535,7 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
 			List<WorkspaceSaveObject> wso, Exception exp)
 			throws Exception {
-		failSave(user, wsi, wso, getIdFactory(user), exp);
+		failSave(user, wsi, wso, getIdFactory(), exp);
 	}
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
