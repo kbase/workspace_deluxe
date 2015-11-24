@@ -868,8 +868,6 @@ public class Workspace {
 				showDeleted, showOnlyDeleted);
 	}
 	
-	//TODO NOW check other methods that use permset - might be getting deleted ws when not wanted
-	
 	//insanely long method signatures get me hot
 	public List<ObjectInformation> listObjects(final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
