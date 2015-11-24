@@ -4174,7 +4174,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void listObjectsDeleted() throws Exception {
+	public void listObjectsWithDeletedObjects() throws Exception {
 		/* Test that deleted objects only show up in the objects list when 
 		 * requested *and* when the user has permission to write to the
 		 * workspace, which is required for listing deleted objects.
@@ -4227,6 +4227,40 @@ public class WorkspaceTest extends WorkspaceTester {
 				null, null, false, false, true, false, true, false, -1, -1),
 				Arrays.asList(del));
 		
+	}
+	
+	@Test
+	public void listObjectsWithDeletedWorkspace() throws Exception {
+		/* Test that objects from a deleted workspace don't show up in 
+		 * listObjects output.
+		 */
+		WorkspaceUser u1 = new WorkspaceUser("listObjDelWSUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObjDelWS");
+		WorkspaceIdentifier wsdel = new WorkspaceIdentifier("listObjDelWS_Deleted");
+		ws.createWorkspace(u1, wsi.getName(), false, null, null);
+		ws.createWorkspace(u1, wsdel.getName(), false, null, null);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("test", "listObjDelWS");
+		
+		ObjectInformation std = ws.saveObjects(u1, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("std"), new HashMap<String, String>(), SAFE_TYPE1,
+				meta, new Provenance(u1), false)), getIdFactory()).get(0);
+		ws.saveObjects(u1, wsdel, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("del"), new HashMap<String, String>(), SAFE_TYPE1,
+				meta, new Provenance(u1), false)), getIdFactory()).get(0);
+		ws.setWorkspaceDeleted(u1, wsdel, true);
+		
+		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
+		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
+				null, null, false, false, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
+				null, null, false, true, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
+				null, null, false, false, true, false, true, false, -1, -1),
+				new LinkedList<ObjectInformation>());
 	}
 	
 	@Test
