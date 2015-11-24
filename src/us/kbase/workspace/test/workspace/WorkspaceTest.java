@@ -4182,15 +4182,50 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser u1 = new WorkspaceUser("listObjDelUser1");
 		WorkspaceUser u2 = new WorkspaceUser("listObjDelUser2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObjDel");
-		long wsid = ws.createWorkspace(u1, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(u1, wsi.getName(), false, null, null);
 		ws.setPermissions(u1, wsi, Arrays.asList(u2), Permission.READ);
-		
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("meta1", "1");
 		
 		ObjectInformation std = ws.saveObjects(u1, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("std"), new HashMap<String, String>(), SAFE_TYPE1,
 				null, new Provenance(u1), false)), getIdFactory()).get(0);
+		ObjectInformation del = ws.saveObjects(u1, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("del"), new HashMap<String, String>(), SAFE_TYPE1,
+				null, new Provenance(u1), false)), getIdFactory()).get(0);
+		ws.setObjectsDeleted(u1, Arrays.asList(new ObjectIdentifier(wsi, "del")), true);
+		
+		//test user1 - owner. Should always see deleted if requested.
+		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, true, false, false, true, false, -1, -1),
+				Arrays.asList(std, del));
+		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, true, false, true, false, -1, -1),
+				Arrays.asList(del));
+		
+		//test user2 with only read perms. Should never see deleted objects.
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, true, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, true, false, true, false, -1, -1),
+				new LinkedList<ObjectInformation>());
+		
+		//test user2 with write perms. Should always see deleted if requested.
+		ws.setPermissions(u1, wsi, Arrays.asList(u2), Permission.WRITE);
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, false, false, true, false, -1, -1),
+				Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, true, false, false, true, false, -1, -1),
+				Arrays.asList(std, del));
+		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
+				null, null, false, false, true, false, true, false, -1, -1),
+				Arrays.asList(del));
 		
 	}
 	
