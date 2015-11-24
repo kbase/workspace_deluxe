@@ -30,6 +30,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   be deleted after upgrading.
 - Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
+- Fixed a bug where objects from deleted workspaces could be listed in 
+  list_objects output.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
