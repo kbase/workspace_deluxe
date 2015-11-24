@@ -917,7 +917,8 @@ module Workspace {
 		 returns (list<object_info> history);
 	
 	/* 
-		List objects that reference one or more objects.
+		List objects that reference one or more specified objects. References
+		in the deleted state are not returned.
 	*/
 	funcdef list_referencing_objects(list<ObjectIdentity> object_ids)
 		returns (list<list<object_info>> referrers);
