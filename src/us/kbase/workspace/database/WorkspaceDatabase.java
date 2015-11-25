@@ -7,7 +7,6 @@ import java.util.Set;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -256,10 +255,7 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public List<ObjectInformation> getObjectInformation(
-			PermissionSet pset, TypeDefId type, List<WorkspaceUser> savers,
-			Map<String, String> meta, Date after, Date before,
-			boolean showHidden, boolean showDeleted, boolean showOnlyDeleted,
-			boolean showAllVers, boolean includeMetaData, int skip, int limit)
+			GetObjectInformationParameters perms)
 			throws WorkspaceCommunicationException;
 
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(

@@ -28,7 +28,6 @@ import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
@@ -40,6 +39,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -2406,12 +2406,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	@Override
 	public List<ObjectInformation> getObjectInformation(
-			final PermissionSet pset, final TypeDefId type,
-			final List<WorkspaceUser> savedby, final Map<String, String> meta,
-			final Date after, final Date before,
-			final boolean showHidden, final boolean showDeleted,
-			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetadata, final int skip, final int limit)
+			final GetObjectInformationParameters params)
 			throws WorkspaceCommunicationException {
 		/* Could make this method more efficient by doing different queries
 		 * based on the filters. If there's no filters except the workspace,
@@ -2420,6 +2415,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * recent versions for the remaining objects. For now, just go
 		 * with a dumb general method and add smarter heuristics as needed.
 		 */
+		final PermissionSet pset = params.getPermissionSet();
 		if (!(pset instanceof MongoPermissionSet)) {
 			throw new IllegalArgumentException(
 					"Illegal implementation of PermissionSet: " +
@@ -2434,17 +2430,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
-		if (type != null) {
-			verq.put(Fields.VER_TYPE,
-					new BasicDBObject("$regex", "^" + type.getTypePrefix()));
+		if (params.getType() != null) {
+			verq.put(Fields.VER_TYPE, new BasicDBObject(
+					"$regex", "^" + params.getType().getTypePrefix()));
 		}
-		if (savedby != null && !savedby.isEmpty()) {
-			verq.put(Fields.VER_SAVEDBY,
-					new BasicDBObject("$in", convertWorkspaceUsers(savedby)));
+		if (!params.getSavers().isEmpty()) {
+			verq.put(Fields.VER_SAVEDBY, new BasicDBObject(
+					"$in", convertWorkspaceUsers(params.getSavers())));
 		}
-		if (meta != null && !meta.isEmpty()) {
+		if (!params.getMetadata().isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
-			for (final Entry<String, String> e: meta.entrySet()) {
+			for (final Entry<String, String> e:
+					params.getMetadata().entrySet()) {
 				final DBObject mentry = new BasicDBObject();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());
@@ -2452,18 +2449,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
 		}
-		if (before != null || after != null) {
+		if (params.getBefore() != null || params.getAfter() != null) {
 			final DBObject d = new BasicDBObject();
-			if (before != null) {
-				d.put("$lt", before);
+			if (params.getBefore() != null) {
+				d.put("$lt", params.getBefore());
 			}
-			if (after != null) {
-				d.put("$gt", after);
+			if (params.getAfter() != null) {
+				d.put("$gt", params.getAfter());
 			}
 			verq.put(Fields.VER_SAVEDATE, d);
 		}
 		final Set<String> fields;
-		if (includeMetadata) {
+		if (params.isIncludeMetaData()) {
 			fields = new HashSet<String>(FLDS_LIST_OBJ_VER);
 			fields.add(Fields.VER_META);
 		} else {
@@ -2473,13 +2470,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//condition where the workspace object was saved but no versions
 		//were saved yet
 		final List<Map<String, Object>> verobjs = query.queryCollection(
-				COL_WORKSPACE_VERS, verq, fields, skip, limit);
+				COL_WORKSPACE_VERS, verq, fields,
+				params.getSkip(), params.getLimit());
 		if (verobjs.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
-		return new LinkedList<ObjectInformation>(
-				generateObjectInfo(pset, verobjs, showHidden, showDeleted,
-				showOnlyDeleted, showAllVers).values());
+		return new LinkedList<ObjectInformation>(generateObjectInfo(
+				pset, verobjs, params.isShowHidden(), params.isShowDeleted(),
+				params.isShowOnlyDeleted(), params.isShowAllVersions())
+				.values());
 	}
 
 	private Map<Map<String, Object>, ObjectInformation> generateObjectInfo(

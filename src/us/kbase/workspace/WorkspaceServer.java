@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -62,6 +63,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.SubObjectIdentifier;
@@ -886,13 +888,17 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null);
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final boolean showDeleted = longToBoolean(
-				params.getShowDeletedObject());
-		returnVal = objInfoToMetaTuple(
-				ws.listObjects(getUser(params.getAuth(), authPart),
-						Arrays.asList(wsi), type, null, null, null, null, null,
-						false, showDeleted, false, false, true, false,
-						0, 10000), false);
+		
+		final WorkspaceUser user = getUser(params.getAuth(), authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
+		} else {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi), type);
+		}
+		lop.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
+			.withIncludeMetaData(true);
+		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
         //END list_workspace_objects
         return returnVal;
     }
@@ -923,29 +929,35 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final Permission p = params.getPerm() == null ? null :
-			translatePermission(params.getPerm());
-		final boolean showHidden = longToBoolean(params.getShowHidden());
-		final boolean showDeleted = longToBoolean(params.getShowDeleted());
-		final boolean showOnlyDeleted = longToBoolean(
-				params.getShowOnlyDeleted());
-		final boolean showAllVers = longToBoolean(
-				params.getShowAllVersions());
-		final boolean includeMetadata = longToBoolean(
-				params.getIncludeMetadata());
-		final boolean excludeGlobal = longToBoolean(
-				params.getExcludeGlobal());
-		final int skip = longToInt(params.getSkip(), "Skip", -1);
-		final int limit = longToInt(params.getLimit(), "Limit", -1);
-		returnVal = objInfoToTuple(
-				//this sig is insane
-				ws.listObjects(getUser(authPart), wsis, type, p,
-						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), parseDate(params.getAfter()),
-						parseDate(params.getBefore()), showHidden,
-						showDeleted, showOnlyDeleted, showAllVers,
-						includeMetadata, excludeGlobal, skip, limit),
-						false);
+		if (type == null && wsis.isEmpty()) {
+			throw new IllegalArgumentException(
+					"At least one filter must be specified.");
+		}
+		final WorkspaceUser user = getUser(authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, wsis);
+		} else if (wsis.isEmpty()) {
+			lop = new ListObjectsParameters(user, type);
+		} else {
+			lop = new ListObjectsParameters(user, wsis, type);
+		}
+		lop.withMinimumPermission(params.getPerm() == null ? null :
+				translatePermission(params.getPerm()))
+			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
+			.withMetadata(params.getMeta())
+			.withAfter(parseDate(params.getAfter()))
+			.withBefore(parseDate(params.getBefore()))
+			.withShowHidden(longToBoolean(params.getShowHidden()))
+			.withShowDeleted(longToBoolean(params.getShowDeleted()))
+			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
+			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
+			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
+			.withSkip(longToInt(params.getSkip(), "Skip", -1))
+			.withLimit(longToInt(params.getLimit(), "Limit", -1));
+		
+		returnVal = objInfoToTuple(ws.listObjects(lop), false);
         //END list_objects
         return returnVal;
     }

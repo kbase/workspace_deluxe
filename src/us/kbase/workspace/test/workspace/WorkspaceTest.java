@@ -48,6 +48,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -3313,13 +3314,14 @@ public class WorkspaceTest extends WorkspaceTester {
 	private void checkUnhiddenObjectCount(WorkspaceUser user,
 			WorkspaceIdentifier wsi, int unhidden, int all)
 			throws Exception {
-		List<ObjectInformation> objs =
-				ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-						null, null, false, false, false, true, false, false, -1, -1);
+		ListObjectsParameters lop = new ListObjectsParameters(
+				user, Arrays.asList(wsi))
+				.withShowAllVersions(true);
+		List<ObjectInformation> objs = ws.listObjects(lop);
 		assertThat("orig objects hidden", objs.size(), is(unhidden));
-		objs =
-				ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-						null, null, true, false, false, true, false, false, -1, -1);
+		
+		lop.withShowHidden(true);
+		objs = ws.listObjects(lop);
 		assertThat("orig objects hidden", objs.size(), is(all));
 	}
 	
@@ -3609,8 +3611,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getPermissions(user, Arrays.asList(wsi));
 		ws.getWorkspaceDescription(user, wsi);
 		ws.getWorkspaceInformation(user, wsi);
-		ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, false, false, -1, -1);
+		ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi)));
 		
 		//these should not work
 		try {
@@ -3778,8 +3779,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertWorkspaceDateUpdated(user, wsi, lastWSDate, "ws date updated on rename");
 		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE1.getTypeString(), 1, user,
 				wsid1, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
-		String newname = ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false,false, false, false, false, -1, -1).get(0).getObjectName();
+		String newname = ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi)))
+				.get(0).getObjectName();
 		assertThat("object renamed", newname, is("mynewname"));
 		
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
@@ -3922,23 +3923,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<ObjectInformation> expected = new ArrayList<ObjectInformation>();
 		expected.add(auto1);
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1), expected);
+		ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(wsi))
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), expected);
 		
 		expected.add(auto2);
 		expected.add(obj1);
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, true, false, false, false, true, false, -1, -1), expected);
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(true)), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 3), new ObjectIdentifier(wsi, "auto2")), false);
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1), expected);
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(false)), expected);
 		
 		ws.setObjectsHidden(user, Arrays.asList(new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "obj1")), true);
 		expected.remove(auto1);
 		expected.remove(obj1);
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1), expected);
+		compareObjectInfo(ws.listObjects(lop), expected);
 		
 		failSetHide(user, new ObjectIdentifier(wsi, "fake"), true, new NoSuchObjectException(
 				"No object with name fake exists in workspace " + wsid1));
@@ -4193,38 +4192,30 @@ public class WorkspaceTest extends WorkspaceTester {
 				null, new Provenance(u1), false)), getIdFactory()).get(0);
 		ws.setObjectsDeleted(u1, Arrays.asList(new ObjectIdentifier(wsi, "del")), true);
 		
+		ListObjectsParameters lop = new ListObjectsParameters(u1, Arrays.asList(wsi))
+				.withIncludeMetaData(true);
 		//test user1 - owner. Should always see deleted if requested.
-		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1),
-				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, true, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(true)),
 				Arrays.asList(std, del));
-		compareObjectInfo(ws.listObjects(u1, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, true, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(false).withShowOnlyDeleted(true)),
 				Arrays.asList(del));
 		
+		lop = new ListObjectsParameters(u2, Arrays.asList(wsi))
+				.withIncludeMetaData(true);
 		//test user2 with only read perms. Should never see deleted objects.
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(true)),
 				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, true, false, false, true, false, -1, -1),
-				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, true, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(false).withShowOnlyDeleted(true)),
 				new LinkedList<ObjectInformation>());
 		
 		//test user2 with write perms. Should always see deleted if requested.
 		ws.setPermissions(u1, wsi, Arrays.asList(u2), Permission.WRITE);
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, false, false, true, false, -1, -1),
-				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, true, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowOnlyDeleted(false)), Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(true)),
 				Arrays.asList(std, del));
-		compareObjectInfo(ws.listObjects(u2, Arrays.asList(wsi), null, null, null, null, 
-				null, null, false, false, true, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(false).withShowOnlyDeleted(true)),
 				Arrays.asList(del));
 		
 	}
@@ -4251,15 +4242,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				meta, new Provenance(u1), false)), getIdFactory()).get(0);
 		ws.setWorkspaceDeleted(u1, wsdel, true);
 		
-		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
-		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
-				null, null, false, false, false, false, true, false, -1, -1),
+		ListObjectsParameters lop = new ListObjectsParameters(u1, SAFE_TYPE1)
+				.withMetadata(meta).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std));
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(true)),
 				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
-				null, null, false, true, false, false, true, false, -1, -1),
-				Arrays.asList(std));
-		compareObjectInfo(ws.listObjects(u1, emptyWS, SAFE_TYPE1, null, null, meta, 
-				null, null, false, false, true, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowDeleted(false).withShowOnlyDeleted(true)),
 				new LinkedList<ObjectInformation>());
 	}
 	
@@ -4379,15 +4367,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;
 		try {
-			List<ObjectInformation> foo = ws.listObjects(user, Arrays.asList(lockWS),
-					null, null, null, null, null, null, false, false, false, false, true, false, -1, -1);
+			ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(lockWS))
+				.withIncludeMetaData(true);
+			List<ObjectInformation> foo = ws.listObjects(lop);
 			if (foo.size() > 1) {
 				fail("found more than one object in the locked workspace, this is unexpected");
 			}
 			if (foo.size() == 1) {
 				lock = foo.get(0);
-				locknometa = ws.listObjects(user, Arrays.asList(lockWS), null, null, 
-						null, null, null, null, false, false, false, false, false, false, -1, -1).get(0);
+				locknometa = ws.listObjects(lop.withIncludeMetaData(false)).get(0);
 			}
 		} catch (NoSuchWorkspaceException nswe) {
 			//do nothing, lock workspace wasn't created yet
@@ -4395,188 +4383,229 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
-		ArrayList<WorkspaceIdentifier> emptyWS = new ArrayList<WorkspaceIdentifier>();
 		
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, true, true, false, true, true, false, -1, -1),
+		ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable))
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, true, true, true, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowOnlyDeleted(true)),
 				Arrays.asList(deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), null, null, null, null, 
-				null, null, true, true, true, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi))
+				.withShowHidden(true).withShowDeleted(true).withShowOnlyDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, false, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(false).withShowOnlyDeleted(false)),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, true, false, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(true).withShowDeleted(false)),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, false, false, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(false)),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, true, true, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(false)),
 				Arrays.asList(std, objstack2, type2_4, stdws2, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, false, false, false, false, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(false).withShowDeleted(false)
+				.withIncludeMetaData(false)),
 				Arrays.asList(stdnometa, objstack2nometa, type2_4nometa, stdws2nometa));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null, null, 
-				null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true)),
 				Arrays.asList(stdnometa, objstack1nometa, objstack2nometa, type2_1nometa,
 						type2_2nometa, type2_3nometa, type2_4nometa,
 						stdws2nometa, hiddennometa, deletednometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null, null, null, 
-				null, null, true, true, false, true, true, false, -1, -1),
+		
+		lop = new ListObjectsParameters(user, allType1)
+				.withShowHidden(true).withShowDeleted(true).withShowAllVersions(true)
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
 						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null, new ArrayList<WorkspaceUser>(), 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withSavers(new ArrayList<WorkspaceUser>())),
 				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
 						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
 		
 		//exclude globally readable workspaces
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null, null, null, 
-				null, null, true, true, false, true, true, true, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
 				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
 						deleted, readobj, adminobj));
 		//if the globally readable workspace is explicitly listed, should ignore excludeGlobal
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable, thirdparty),
-				null, null, null, null, null, null, true, true, false, true, true, false, -1, -1),
+		lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable, thirdparty))
+				.withShowHidden(true).withShowDeleted(true).withShowAllVersions(true)
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted, thirdobj));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable, thirdparty),
-				null, null, null, null, null, null, true, true, false, true, true, true, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted, thirdobj));
 		
 		//test user filtering
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
-				Arrays.asList(user, user2, user3), null, 
-				null, null, true, true, false, true, true, false, -1, -1),
+		lop = new ListObjectsParameters(user, allType1)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop.withSavers(Arrays.asList(user, user2, user3))),
 				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
 						deleted, readobj, adminobj, thirdobj));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
-				Arrays.asList(user2, user3), null, 
-				null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withSavers(Arrays.asList(user2, user3))),
 				Arrays.asList(stdws2, deleted, readobj, adminobj, thirdobj));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
-				Arrays.asList(user, user3), null, 
-				null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withSavers(Arrays.asList(user, user3))),
 				Arrays.asList(std, hidden, objstack1, objstack2, thirdobj));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
-				Arrays.asList(user3), null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withSavers(Arrays.asList(user3))),
 				Arrays.asList(thirdobj));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType1, null,
-				Arrays.asList(user), null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withSavers(Arrays.asList(user))),
 				Arrays.asList(std, hidden, objstack1, objstack2));
 		
 		//meta filtering
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				new HashMap<String, String>(), null, null, true, true, false, true, true, false, -1, -1),
+		lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable))
+				.withMetadata(new HashMap<String, String>())
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				Arrays.asList(std, objstack1, objstack2, type2_1, type2_2, type2_3, type2_4,
 						stdws2, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				meta, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMetadata(meta)),
 				Arrays.asList(objstack1, type2_1, stdws2));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				meta2, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMetadata(meta2)),
 				Arrays.asList(objstack2, type2_2, type2_3, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				meta3, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMetadata(meta3)),
 				Arrays.asList(type2_3, type2_4, deleted));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				meta, null, null, true, true, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMetadata(meta).withShowAllVersions(false)),
 				Arrays.asList(stdws2));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi, writeable), null, null, null,
-				meta2, null, null, true, true, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMetadata(meta2)),
 				Arrays.asList(objstack2, hidden, deleted));
 		
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(wsi), allType1, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		//type filtering
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi), allType1)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(std, objstack1, objstack2));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(writeable), allType1, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, Arrays.asList(writeable), allType1)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(stdws2, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user, emptyWS, allType2, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, allType2)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_1, type2_2, type2_3, type2_4));
-		compareObjectInfo(ws.listObjects(user, Arrays.asList(writeable), allType2, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, Arrays.asList(writeable), allType2)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		
+		//permission filtering
+		lop = new ListObjectsParameters(user, SAFE_TYPE1)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted,
 						readobj, adminobj, thirdobj), lock));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, null, null, 
-				null, null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withIncludeMetaData(false)),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
 						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.NONE, null, 
-				null, null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.NONE)),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
 						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.READ, null, 
-				null, null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.READ)),
 				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
 						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.WRITE, null, 
-				null, null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.WRITE)),
 				Arrays.asList(stdnometa, stdws2nometa, hiddennometa, deletednometa, adminobjnometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1, Permission.ADMIN, null, 
-				null, null, null, true, true, false, true, false, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.ADMIN)),
 				Arrays.asList(stdnometa, adminobjnometa));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_10, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		
+		//more type filtering
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, SAFE_TYPE1_10)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(objstack1));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE1_20, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, SAFE_TYPE1_20)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(objstack2));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, SAFE_TYPE2)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_1));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_10, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, SAFE_TYPE2_10)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_2));
-		compareObjectInfo(ws.listObjects(user, emptyWS, SAFE_TYPE2_20, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user, SAFE_TYPE2_20)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_3));
-		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_20.getType(),
-				SAFE_TYPE2_20.getMajorVersion()), null, null, null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(
+				user, new TypeDefId(SAFE_TYPE2_20.getType(), SAFE_TYPE2_20.getMajorVersion()))
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_3, type2_4));
-		compareObjectInfo(ws.listObjects(user, emptyWS, new TypeDefId(SAFE_TYPE2_10.getType(),
-				SAFE_TYPE2_10.getMajorVersion()), null, null, null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(
+				user, new TypeDefId(SAFE_TYPE2_10.getType(), SAFE_TYPE2_10.getMajorVersion()))
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(type2_2));
 		
-		compareObjectInfo(ws.listObjects(user2, emptyWS, allType1, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, allType1)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted, readobj,
 						adminobj, thirdobj), lock));
-		compareObjectInfo(ws.listObjects(user2, Arrays.asList(writeable), null, 
-				null, null, null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, Arrays.asList(writeable))
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				Arrays.asList(stdws2, hidden, deleted));
-		compareObjectInfo(ws.listObjects(user2, emptyWS, allType2, null, null, 
-				null, null, null, true, true, false, true, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, allType2)
+				.withShowHidden(true).withShowDeleted(true)
+				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
-//		
-		failListObjects(user, new ArrayList<WorkspaceIdentifier>(), null, null, true, true, false, true, true,
-				new IllegalArgumentException("At least one filter must be specified."));
-		failListObjects(user2, Arrays.asList(wsi, writeable), null, null, true, true, false, true, true,
+		
+		//TODO move these to unit tests for LOP
+		// can't test 2 argument constructor with the 2nd constructor argument
+		// null since then constructor is ambiguous
+		try {
+			new ListObjectsParameters(user, new LinkedList<WorkspaceIdentifier>());
+			fail("Created list objs param with bad init");
+		} catch (IllegalArgumentException e) {
+			assertThat("Correct exception msg", e.getLocalizedMessage(),
+					is("Must provide at least one workspace"));
+		}
+		try {
+			new ListObjectsParameters(user, null, SAFE_TYPE1);
+			fail("Created list objs param with bad init");
+		} catch (IllegalArgumentException e) {
+			assertThat("Correct exception msg", e.getLocalizedMessage(),
+					is("Must provide at least one workspace"));
+		}
+		try {
+			new ListObjectsParameters(user, new LinkedList<WorkspaceIdentifier>(), SAFE_TYPE1);
+			fail("Created list objs param with bad init");
+		} catch (IllegalArgumentException e) {
+			assertThat("Correct exception msg", e.getLocalizedMessage(),
+					is("Must provide at least one workspace"));
+		}
+		try {
+			new ListObjectsParameters(user, Arrays.asList(wsi), null);
+			fail("Created list objs param with bad init");
+		} catch (NullPointerException e) {
+			assertThat("Correct exception msg", e.getLocalizedMessage(),
+					is("Type cannot be null"));
+		}
+	
+		failListObjects(user2, Arrays.asList(wsi, writeable), null,
 				new WorkspaceAuthorizationException("User listObjUser2 may not read workspace listObj1"));
-		failListObjects(null, Arrays.asList(wsi, writeable), null, null, true, true, false, true, true,
+		failListObjects(null, Arrays.asList(wsi, writeable), null,
 				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
-		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listfake")), null, null, true, true, false, true, true,
+		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listfake")), null,
 				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
-		failListObjects(user, Arrays.asList(wsi, writeable), null, meta32, true, true, false, true, true,
+		failListObjects(user, Arrays.asList(wsi, writeable), meta32,
 				new IllegalArgumentException("Only one metadata spec allowed"));
 		
 		ws.createWorkspace(user, "listdel", false, null, null);
 		ws.setWorkspaceDeleted(user, new WorkspaceIdentifier("listdel"), true);
-		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listdel")), null, null, true, true, false, true, true,
+		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listdel")), null,
 				new NoSuchWorkspaceException("Workspace listdel is deleted", wsi));
 		
 		assertThat("correct object history for std", 
@@ -4636,29 +4665,24 @@ public class WorkspaceTest extends WorkspaceTester {
 		Date beforeall = new Date(o1.getSavedDate().getTime() - 1);
 		Date afterall = new Date(o5.getSavedDate().getTime() + 1);
 		
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, null, null, false, false, false, false, true, false, -1, -1),
+		ListObjectsParameters lop = new ListObjectsParameters(u, Arrays.asList(wsi))
+			.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
 				Arrays.asList(o1, o2, o3, o4, o5));
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, beforeall, afterall, false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(beforeall).withBefore(afterall)),
 				Arrays.asList(o1, o2, o3, o4, o5));
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, afterall, beforeall, false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(afterall).withBefore(beforeall)),
 				new ArrayList<ObjectInformation>());
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, o3.getSavedDate(), o4.getSavedDate(), false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(o3.getSavedDate()).withBefore(o4.getSavedDate())),
 				new ArrayList<ObjectInformation>());
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, o2.getSavedDate(), null, false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(o2.getSavedDate()).withBefore(null)),
 				Arrays.asList(o3, o4, o5));
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, null, o4.getSavedDate(), false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(null).withBefore(o4.getSavedDate())),
 				Arrays.asList(o1, o2, o3));
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, o2.getSavedDate(), o4.getSavedDate(), false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(o2.getSavedDate()).withBefore(o4.getSavedDate())),
 				Arrays.asList(o3));
-		compareObjectInfo(ws.listObjects(u, Arrays.asList(wsi), null, null, null,
-				null, new Date(o2.getSavedDate().getTime() -1), o5.getSavedDate(), false, false, false, false, true, false, -1, -1),
+		compareObjectInfo(ws.listObjects(lop.withAfter(new Date(o2.getSavedDate().getTime() -1))
+				.withBefore(o5.getSavedDate())),
 				Arrays.asList(o2, o3, o4));
 		
 	}
