@@ -4363,6 +4363,11 @@ public class WorkspaceTest extends WorkspaceTester {
 				new Provenance(user), false)), getIdFactory()).get(0);
 		ObjectInformation thirdobjnometa = ws.getObjectInformation(user,
 				Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobj")), false, false).get(0);
+		//this should be invisible to anyone except user3
+		ws.saveObjects(user3, thirdparty, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("thirdobjdel"), new HashMap<String, String>(), SAFE_TYPE1, meta,
+				new Provenance(user), false)), getIdFactory()).get(0);
+		ws.setObjectsDeleted(user3, Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobjdel")), true);
 		
 		ObjectInformation lock = null;
 		ObjectInformation locknometa = null;
@@ -4384,7 +4389,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
 		
-		ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable))
+		//test with anon user
+		ListObjectsParameters lop = new ListObjectsParameters(null, SAFE_TYPE1)
+				.withShowDeleted(true).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop),
+				setUpListObjectsExpected(Arrays.asList(thirdobj), lock));
+		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
+				new LinkedList<ObjectInformation>());
+		
+		//test basics
+		lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable))
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true);
 		compareObjectInfo(ws.listObjects(lop),
