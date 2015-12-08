@@ -73,6 +73,7 @@ build-docs: build-libs
 	$(ANT) javadoc
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
 	rm -f pod2htm?.tmp
+	sphinx-build docsource/ docs
 	cp $(SERVICE).spec docs/.
 	cp RELEASE_NOTES.txt docs/.
 
