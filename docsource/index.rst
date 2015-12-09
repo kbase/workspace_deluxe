@@ -35,6 +35,7 @@ Manual
    fundamentals
    users
    admins
+   docTODOs
    
 `Release notes <./RELEASE_NOTES.txt>`_
 --------------------------------------
@@ -42,6 +43,7 @@ Manual
 .. todo::
    read through release notes, lots of stuff to add
    
-.. todolist::
+   
+
 
 
