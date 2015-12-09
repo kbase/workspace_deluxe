@@ -39,9 +39,12 @@ Manual
    
 `Release notes <./RELEASE_NOTES.txt>`_
 --------------------------------------
-
+   
 .. todo::
-   read through release notes, lots of stuff to add
+   incorporate release notes if possible. What's the current rule?
+   
+.. todo::
+   automatically incorporate KIDL spec into the documentation?
    
    
 

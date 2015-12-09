@@ -17,6 +17,7 @@ Maximum extracted searchable subdata size		15MB
 Maximum user metadata size						16KB
 Maximum memory use for sorting objects			200MB
 Maximum object_infos returned by list_objects	10000
+Maximum workspace references per save			100000
 =============================================	=======
 
 .. _sorting_notes:
@@ -42,3 +43,13 @@ Thus, objects may violate this limit if 1) they have very large maps,
 
 As a point of reference, sorting a 550MB Network object required only ~10MB of
 memory for keys.
+
+Notes on workspace references
+-----------------------------
+
+The workspace service supports a maximum of 100,000 object references (e.g.
+a reference specified by @id ws in a typespec) per saveObjects() call. The
+references may be in a single object, or spread across many objects.
+
+References that are duplicated in a single object only count once towards this
+limit.
