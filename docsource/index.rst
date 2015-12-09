@@ -35,16 +35,8 @@ Manual
    fundamentals
    users
    admins
+   releasenotes
    docTODOs
-   
-`Release notes <./RELEASE_NOTES.txt>`_
---------------------------------------
-   
-.. todo::
-   incorporate release notes if possible. What's the current rule?
-   
-.. todo::
-   automatically incorporate KIDL spec into the documentation?
    
    
 

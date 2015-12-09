@@ -75,7 +75,6 @@ build-docs: build-libs
 	rm -f pod2htm?.tmp
 	sphinx-build docsource/ docs
 	cp $(SERVICE).spec docs/.
-	cp RELEASE_NOTES.txt docs/.
 
 compile: compile-typespec compile-typespec-java
 
