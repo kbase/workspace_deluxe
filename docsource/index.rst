@@ -35,5 +35,13 @@ Manual
    fundamentals
    users
    admins
+   
+`Release notes <./RELEASE_NOTES.txt>`_
+--------------------------------------
+
+.. todo::
+   read through release notes, lots of stuff to add
+   
+.. todolist::
 
 

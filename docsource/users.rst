@@ -5,6 +5,7 @@ User Documentation
    :maxdepth: 2
    
    limits
+   knownuserbugs
    api
 
 

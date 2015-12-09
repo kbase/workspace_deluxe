@@ -1,22 +1,5 @@
-WORKSPACE SERVICE OVERVIEW
------------------------------------------
-The Workspace Service (WSS) is primarily a language independent remote storage
-and retrieval system for KBase typed objects (TO) defined with the KBase
-Interface Description Language (KIDL). It has the following primary features:
-- Immutable storage of TOs with
-	- user defined metadata 
-	- data provenance
-- Versioning of TOs
-- Referencing from TO to TO
-- Typechecking of all saved objects against a KIDL specification
-- Collecting typed objects into a workspace
-- Sharing workspaces with specific KBase users or the world
-- Freezing and publishing workspaces
-- Serverside extraction of portions of an object
-
-Size limits:
-TOs are limited to 1GB
-TO provenance is limited to 1MB
+Workspace Service Release Notes
+===============================
 
 VERSION: 0.3.6 (Released TBD)
 --------------------------------------
@@ -30,13 +13,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   be deleted after upgrading.
 - Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -71,13 +47,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - 'strict_maps' and 'strict_arrays' properties are now present in 
   'get_object_subset' method
 - Slashes are now supported in paths used in 'get_object_subset' method
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -92,13 +61,6 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - N/A
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -119,13 +81,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug that would cause calls to the handle service or handle manager
   to fail every other call if they were not behind nginx and the call 
   frequency was between 1-4s.
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -144,13 +99,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where a bad workspace @id (unparsable, deleted object, etc) with
   allowed types specified in the typespec would cause a NPE rather than a
   useful typechecking error.
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -195,13 +143,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - get_object_subset no longer generates an error if a selected field
   or mapping key is not found, which provides better support for optional
   fields.  Errors are still generated if an array element does not exist.
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Garbage collection
@@ -238,13 +179,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - kbase user is now configurable for deploy-upstart target
 - there is now an option in deploy.cfg to specify the number of times to
   attempt to contact MongoDB on startup
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
   
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Automatically populated metadata
@@ -288,13 +222,6 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   in a major version increment instead of a minor version increment.
 - Fixed a bug where get_referencing_objects would throw an error if an object
   has no references.
-
-KNOWN BUGS:
-- When filtering list_object output, deleted, hidden and early versions of
-  objects are filtered *after* the limit is applied. This means that fewer
-  objects than the limit may be returned, and in extreme cases where many
-  hidden, deleted, or lower version objects are found no objects may be
-  returned.
 
 ANTICIPATED FUTURE DEVELOPMENTS:
 - Automatically populated metadata
