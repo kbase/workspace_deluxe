@@ -1,16 +1,11 @@
 User Documentation
 ==================
 
+.. toctree::
+   :maxdepth: 2
+   
+   limits
+   api
 
 
-API documentation
------------------
 
-`KIDL <./workspace.spec>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`Perl <./workspace.html>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`Java <./javadoc/index.html>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

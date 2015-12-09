@@ -26,7 +26,8 @@ Interface Description Language (KIDL). It has the following primary features:
 * Freezing and publishing workspaces
 * Serverside extraction of portions of an object
 
-Contents:
+Manual
+------
 
 .. toctree::
    :maxdepth: 2
