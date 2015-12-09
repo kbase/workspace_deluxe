@@ -1,5 +1,5 @@
-Known Bugs
-==========
+Known User-facing Bugs
+======================
 
 * When filtering list_objects output, deleted, hidden and early versions of
   objects are filtered *after* the limit is applied. This means that fewer

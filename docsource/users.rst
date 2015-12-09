@@ -4,15 +4,14 @@ User Documentation
 .. toctree::
    :maxdepth: 2
    
+   typedobjects
+   scripts
    limits
    knownuserbugs
    api
    
 .. todo::
    roadmap doc
-   
-.. todo::
-   list of annotations supported by the WSS
    
 .. todo::
    document deploy.cgf options not in the file, namely turning the handle
@@ -29,6 +28,12 @@ User Documentation
    
 .. todo::
    subdata example
+   
+.. todo::
+   handle docs
+   
+.. todo::
+   typed object faq
 
 
 
