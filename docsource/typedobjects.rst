@@ -36,7 +36,7 @@ be saved.  The basic process for registering a TO is:
 * Developer requests ownership of a module name via the Workspace API or CLI
 
   * see script ``ws-typespec-register --request``, or API method
-     ``request_module_ownership(...)``
+    ``request_module_ownership(...)``
 
 * WSS admin approves the request
 * Developer uploads (i.e. registers) a type specification file (typespec) in
