@@ -268,7 +268,7 @@ allow users to automatically extract external IDs from typed objects.
 Currently there is no standard dictionary of sources.
 
 .. todo::
-   add autometa & range to list of annotations supported by the WSS
+   add autometa to list of annotations supported by the WSS
 
 Deprecated Annotation
 """""""""""""""""""""
@@ -284,6 +284,45 @@ query workspace objects (e.g. list all objects of a type that is not
 deprecated).
 
 .. _releasetypespecexample:
+
+Range Annotation
+""""""""""""""""
+::
+
+    @range [RANGE SPECIFICATION]
+    
+The range annotation is attached to either a float or int typedef and specifies
+the minimum and / or maximum value of the int or float. The
+``[RANGE SPECIFICATION]`` is a tuple of the minimum and maximum numbers,
+separated by a comma. Omit the minimum or maximum to specify an infinite
+negative or positive range, respectively. Bracketing the
+``[RANGE SPECIFICATION]`` with parentheses indicates the range extents are
+exclusive; square brackets or no brackets indicates an inclusive range.
+
+Examples:
+
+=======     =============================================
+Range       Explanation
+=======     =============================================
+0, 30       Range from 0 - 30, inclusive
+[0, 30]     Range from 0 - 30, inclusive
+[0, 30)     Range from 0 - 30, including 0, excluding 30
+(0,         Range from 0 - +inf, excluding 0
+,30]        Range from -inf - 30, including 30
+=======     =============================================
+
+Example specification::
+
+    /*
+       @range -4.5,7.6)
+    */
+    typedef float my_float;
+    
+    /*
+       @range [2,10]
+    */
+    typedef int my_int;
+
 
 Example: Release a typespec with the CLI
 ----------------------------------------
