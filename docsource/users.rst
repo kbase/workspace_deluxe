@@ -9,6 +9,7 @@ User Documentation
    shockintegration
    scripts
    limits
+   userfaq
    knownuserbugs
    api
    
