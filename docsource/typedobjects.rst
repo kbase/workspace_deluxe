@@ -1,3 +1,5 @@
+.. _typedobjects:
+
 Workspace Typed Objects
 =======================
 
@@ -187,8 +189,10 @@ structure are optional.::
         list <string> functional_assignments;
     } Feature;
 
-ID Annotation
-"""""""""""""
+.. _idannotations:
+
+ID Annotations
+""""""""""""""
 Mark a string as an ID that references another object or entity. ID annotations
 can only be associated to type definitions which resolve to a string. ID
 annotations are declared in the general form::
@@ -250,11 +254,7 @@ The ID must reference a Handle ID from the
 in the format KBH_XXX. When saving an object containing one or more handles to
 the WSS, the WSS checks that the handles are readable by the user before
 completing the save. Furthermore, the handle data is shared as the workspace
-object is shared. See the Linking Workspace objects to Shock nodes via Handles
-for more details.
-
-.. todo::
-   add reference to WS->Shock handles document when it exists
+object is shared. See :ref:`shockintegration` for more details.
 
 **External ID**
 ::

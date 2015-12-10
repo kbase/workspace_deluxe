@@ -1,3 +1,5 @@
+.. _limits:
+
 Workspace Limits
 ================
 
