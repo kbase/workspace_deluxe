@@ -2,7 +2,7 @@ Known Administration Bugs
 =========================
 
 * The WSS occasionally fails to start after a redeploy without restarting
-  Glassfish, usually after 10-15 redeploys. Workaround by killing and
+  Glassfish, usually after 25-30 redeploys. Workaround by killing and
   restarting Glassfish.
   
 * Due to application level locks in the type database portion of the server,

@@ -15,10 +15,6 @@ User Documentation
    api
    
 .. todo::
-   document deploy.cgf options not in the file, namely turning the handle
-   service off and ip forwarding.
-   
-.. todo::
    client init examples
    
 .. todo::

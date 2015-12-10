@@ -35,6 +35,7 @@ Manual
    fundamentals
    users
    admins
+   developers
    releasenotes
    docTODOs
    
