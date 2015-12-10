@@ -83,7 +83,7 @@ remote_sha1     unused
 The remainder of the document covers the procedure for linking a Workspace
 object to a Shock node.
 
-Step 1 - Save data to Shock with a Handle in the Handle Service
+Step 1 - save data to Shock with a Handle in the Handle Service
 ---------------------------------------------------------------
 
 Method 1 - use the Perl HandleService client
@@ -239,7 +239,7 @@ Step 4 - share data in the Workspace
 
 Sharing data works completely normally.
 
-Step 5 - Retrieve the data from the Workspace
+Step 5 - retrieve the data from the Workspace
 ---------------------------------------------
 
 Retrieving the data from the workspace also works normally, but there’s a
