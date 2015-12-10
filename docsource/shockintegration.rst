@@ -41,12 +41,6 @@ Resources
 
 :ref:`typedobjects` describes how to create workspace types.
 
-.. todo::
-   link to the dev guide / FAQ here
-
-KBase Typed Object Developer’s Guide / FAQ
-Various points about creating objects and typechecking.
-
 `Shock API <https://github.com/MG-RAST/Shock/wiki/API>`_
 
 Handles

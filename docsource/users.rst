@@ -5,6 +5,7 @@ User Documentation
    :maxdepth: 2
    
    typedobjects
+   devtypedobjects
    typecheckingerrors
    shockintegration
    scripts
@@ -28,9 +29,6 @@ User Documentation
    
 .. todo::
    subdata example
-   
-.. todo::
-   typed object faq
 
 
 
