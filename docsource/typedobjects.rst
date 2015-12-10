@@ -280,8 +280,6 @@ but may be used by the Workspace in the future to better display, list, or
 query workspace objects (e.g. list all objects of a type that is not
 deprecated).
 
-.. _releasetypespecexample:
-
 Range Annotation
 """"""""""""""""
 ::
@@ -390,6 +388,7 @@ Example::
         mapping<string, string> outerstrmap;
     } MyStruct;
     
+.. _releasetypespecexample:
 
 Example: Release a typespec with the CLI
 ----------------------------------------
