@@ -267,9 +267,6 @@ allow users to automatically extract external IDs from typed objects.
 ``[SOURCE]`` provides an optional way to specify the external source.
 Currently there is no standard dictionary of sources.
 
-.. todo::
-   add autometa to list of annotations supported by the WSS
-
 Deprecated Annotation
 """""""""""""""""""""
 ::
@@ -291,8 +288,8 @@ Range Annotation
 
     @range [RANGE SPECIFICATION]
     
-The range annotation is attached to either a float or int typedef and specifies
-the minimum and / or maximum value of the int or float. The
+The range annotation is associated with either a float or int typedef and
+specifies the minimum and / or maximum value of the int or float. The
 ``[RANGE SPECIFICATION]`` is a tuple of the minimum and maximum numbers,
 separated by a comma. Omit the minimum or maximum to specify an infinite
 negative or positive range, respectively. Bracketing the
@@ -322,7 +319,77 @@ Example specification::
        @range [2,10]
     */
     typedef int my_int;
+    
+Metadata Annotation
+"""""""""""""""""""
+::
 
+    @metadata [CONTEXT] [ACTION] [as NAME]
+    
+The metadata annotation specifies data that an application should extract from
+a TO as metadata about the TO. Typically this metadata is very small compared
+to the TO and is therefore suitable for use when only a summary of the TO is
+necessary for an operation. As of this writing, the WSS uses the annotation
+to automatically generate user metadata for a TO.
+
+The metadata annotation may only be associated with ``structure``
+``typedef`` s. Metadata annotations on nested ``structure`` s are ignored.
+
+``[CONTEXT]`` specifies where the metadata annotation is applicable. In the
+case of the WSS, the ``[CONTEXT]`` is ``ws``. ``[CONTEXT]`` is always required.
+
+``[ACTION]`` specifies what metadata should be extracted and any operations
+to perform on said metadata. At minimum, the ``[ACTION]`` must provide the
+path (dot separated) to the item of interest. Note that the path may only
+proceed through ``structure`` ``typedef`` s, not ``mapping`` s or ``list`` s. A
+bare path must terminate at a primitive type - either a ``string``, ``int``, or
+``float``.
+
+``[ACTION]`` s may also specify a function to apply to the item specified by
+the path. Currently, the only available function is ``length()``, which may be
+applied to ``list`` s, ``mapping`` s, ``tuple`` s, and ``string`` s.
+``length()`` returns the number of items in a ``list``, ``mapping``, or 
+``tuple``, or the length of a ``string``.
+
+``[as NAME]`` allows specifying an optional ``NAME`` for the extracted
+metadata. If a ``NAME`` is not provided, the application will use the
+``[ACTION]`` string as the metadata name. The ``NAME`` is entirety of the
+remainder of the line after "as".
+
+Example::
+
+    /* Nested structure, metadata annotations have no effect here
+       Cannot provide a path into the mapping in a metadata annotation
+    */
+    typedef structure {
+        mapping<string, string> strmap;
+        int an_int;
+    } InnerStruct;
+
+    /*
+       Specifies the metadata ("str" -> value of str in TO)
+       @metadata ws str
+       
+       Specifies the metadata ("my rad string" -> value of str in TO)
+       @metadata ws str as my rad string
+       
+       Specifies the metadata ("inner.an_int" -> value of inner.an_int in TO)
+       @metadata ws inner.an_int
+       
+       Specifies the metadata ("length(str)" -> length of str in TO)
+       @metadata ws length(str)
+       
+       Specifies the metadata ("num strings" -> # of items in inner.strmap)
+       @metadata ws length(inner.strmap) as num strings 
+       
+       Note that metadata paths cannot enter outerstrmap.
+    */
+    typedef structure {
+        InnerStruct inner;
+        string str;
+        mapping<string, string> outerstrmap;
+    } MyStruct;
+    
 
 Example: Release a typespec with the CLI
 ----------------------------------------
