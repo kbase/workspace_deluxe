@@ -5,11 +5,8 @@ Server Administrator Documentation
    :maxdepth: 2
    
    buildandconfigure
+   test
    resourcereqs
+   administrationinterface
    knownadminbugs
 
-.. todo::
-   administrate() interface
-   
-.. todo::
-   running tests 

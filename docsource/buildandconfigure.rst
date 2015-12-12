@@ -1,3 +1,5 @@
+.. _buildconfigdeploy:
+
 Build, Configure, and Deploy
 ============================
 
@@ -74,6 +76,8 @@ necessary::
    >= 1.3::
    
        $ sudo pip install sphinx --upgrade
+
+.. _servicedeps:
 
 Service Dependencies
 --------------------
