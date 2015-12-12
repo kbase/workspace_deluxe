@@ -4,9 +4,12 @@ Server Administrator Documentation
 .. toctree::
    :maxdepth: 2
    
-   configuration
+   buildandconfigure
    resourcereqs
    knownadminbugs
 
 .. todo::
    administrate() interface
+   
+.. todo::
+   running tests 

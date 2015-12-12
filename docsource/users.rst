@@ -7,6 +7,7 @@ User Documentation
    typedobjects
    devtypedobjects
    typecheckingerrors
+   buildinitclient
    shockintegration
    scripts
    limits
