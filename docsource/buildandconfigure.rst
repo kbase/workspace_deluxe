@@ -356,7 +356,9 @@ a global configuration and this step is not necessary.
 
     ~/kb/workspace_deluxe$ export KB_DEPLOYMENT_CONFIG=~/kb/workspace_deluxe/deploy.cfg
 
-Start the service::
+Next, start the service. If using Shock or the Handle services, ensure they are
+up and running before starting the WSS.
+::
 
     ~/kb/workspace_deluxe$ /kb/deployment/services/workspace/start_service 
     Creating domain Workspace at /kb/deployment/services/workspace/glassfish_domain
@@ -405,9 +407,12 @@ Stop the service::
     Command delete-threadpool executed successfully.
     Command delete-virtual-server executed successfully
 
+Note that the ``stop_service`` script leaves the Glassfish server running.
+``kill`` the Glassfish instance to completely shut down the server.
+
 If any problems occur, check the glassfish logs (by default at
 ``/kb/deployment/services/workspace/glassfish_domain/Workspace/logs/server.log``
-and system logs (on Ubuntu, at ``/var/log/syslog``. If the JVM can't start at
+and system logs (on Ubuntu, at ``/var/log/syslog``). If the JVM can't start at
 all (for instance, if the JVM can't allocate enough memory), the glassfish
 logs are the most likely place to look. If the JVM starts but the workspace
 application does not, the system logs should provide answers.
