@@ -30,7 +30,7 @@ public class KBaseWorkspaceConfig {
 
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE =
-			"ignore_handle_service";
+			"ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_USER = "handle-manager-user";

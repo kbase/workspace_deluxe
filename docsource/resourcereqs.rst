@@ -16,6 +16,8 @@ min-memory        10000           In MB.
 max-memory        15000           In MB.
 ==============    ============    ==========================================
 
+.. _tempdir:
+
 temp-dir
 ^^^^^^^^
 **temp-dir** determines where the workspace writes temporary files. The
@@ -23,14 +25,18 @@ workspace is by default configured to need no more than 80GB of space at one
 time (see :ref:`disk_usage` below). The faster the drive on which the temp
 files directory is located, the faster the workspace will process large TOs.
 
+.. _serverthreads:
+
 server-threads
 ^^^^^^^^^^^^^^
 **server-threads** determines how many threads the server will run, which
 determines the maximum number of concurrent serviced connections. If more than
 this number of connections occur at the same time, they will be processed in
-the order received. **server-threads** dictates how much memory and disk space is
-needed for the server as a whole - see :ref:`memory_usage` and
+the order received. **server-threads** dictates how much memory and disk space
+is needed for the server as a whole - see :ref:`memory_usage` and
 :ref:`disk_usage` below.
+
+.. _minmaxmemory:
 
 min-memory and max-memory
 ^^^^^^^^^^^^^^^^^^^^^^^^^
