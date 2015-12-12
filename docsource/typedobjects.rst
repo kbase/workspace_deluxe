@@ -3,9 +3,6 @@
 Workspace Typed Objects
 =======================
 
-.. todo::
-   Update this document to use the kb-sdk tools.
-
 The Workspace Service (WSS) provides storage, sharing, versioning, validation
 and provenance tracking of typed object (TO) data.  This document describes
 basic information for developers who need to define and register TOs for use
@@ -99,6 +96,9 @@ Typed Object Validation
 Instances of TOs can be validated against type definitions registered with the
 WSS. Instances of TOs must pass this validation process to be stored in the
 WSS, thereby guaranteeing that WSS data is structurally valid.
+
+.. todo::
+   Update this document to use the kb-sdk tools.
 
 The WSS by validates the TO instance against a
 `JSON Schema V4 <http://json-schema.org/documentation.html>`_ encoding of the

@@ -4,12 +4,12 @@ User Documentation
 .. toctree::
    :maxdepth: 2
    
+   buildinitclient
+   scripts
    typedobjects
    devtypedobjects
    typecheckingerrors
-   buildinitclient
    shockintegration
-   scripts
    limits
    userfaq
    knownuserbugs
