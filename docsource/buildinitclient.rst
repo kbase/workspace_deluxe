@@ -1,3 +1,5 @@
+.. _buildinitclient:
+
 Build and Initialize the Workspace Client
 =========================================
 

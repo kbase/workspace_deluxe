@@ -10,20 +10,15 @@ User Documentation
    typedobjects
    devtypedobjects
    typecheckingerrors
+   workspaces
+   saveobjects
+   getobjectsubdata
+   traversereferences
    shockintegration
    limits
    userfaq
    knownuserbugs
    api
-   
-.. todo::
-   save object example w/ prov, meta
-   
-.. todo::
-   traverse network example
-   
-.. todo::
-   subdata example
 
 
 
