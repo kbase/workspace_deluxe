@@ -38,3 +38,6 @@ Release checklist
   ``staging``
 * When satisfied with testing on ``next.kbase.us`` merge ``staging`` to
   ``master``.
+  
+.. todo::
+   add compilation instructions with the kb-sdk. Update Makefile to use kb-sdk.
