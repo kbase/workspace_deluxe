@@ -18,7 +18,7 @@ depending on the Python version, can be
 `tricky to install securely <http://stackoverflow.com/questions/29099404/ssl-insecureplatform-error-when-using-requests-package>`_.
 The following incantation worked for the author::
 
-    sudo aptitude install python-dev libffi-dev libssl-dev
+    sudo apt-get install python-dev libffi-dev libssl-dev
     curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
     sudo python get-pip.py
     sudo pip install --upgrade requests
@@ -57,19 +57,77 @@ Java JDK 6+ (`install instructions <https://www.digitalocean.com/community/tutor
 
     sudo apt-get install ant
 
+Build the client::
 
+    bareubuntu@bu:~/ws/workspace_deluxe$ make compile-java-client
+    ant compile_client
+    Buildfile: /home/bareubuntu/ws/workspace_deluxe/build.xml
 
+    compile_client:
+        [mkdir] Created dir: /home/bareubuntu/ws/workspace_deluxe/client_classes
+        [javac] Compiling 48 source files to /home/bareubuntu/ws/workspace_deluxe/client_classes
+          [jar] Building jar: /home/bareubuntu/ws/workspace_deluxe/dist/client/WorkspaceClient.jar
+       [delete] Deleting directory /home/bareubuntu/ws/workspace_deluxe/client_classes
+
+    BUILD SUCCESSFUL
+    Total time: 3 seconds
+    
+The client jar is created in ``dist/client/WorkspaceClient.jar``.
+
+For simplicity, copy the required jars into a single directory::
+
+    bareubuntu@bu:~/ws$ mkdir tryjavaclient
+    bareubuntu@bu:~/ws$ cd tryjavaclient/
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/dist/client/WorkspaceClient.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/jackson/jackson-*-2.2.3.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/kbase/auth/kbase-auth-0.3.1.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/kbase/common/kbase-common-0.0.10.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ ls
+    jackson-annotations-2.2.3.jar  kbase-auth-0.3.1.jar
+    jackson-core-2.2.3.jar         kbase-common-0.0.10.jar
+    jackson-databind-2.2.3.jar     WorkspaceClient.jar
+
+When creating an application using the WSS it's advisable to use a build tool
+like ``ant``, ``maven``, or ``gradle`` to organize the required jars.
+
+This simple program initializes and calls a method on the WSS client::
+
+    bareubuntu@bu:~/ws/tryjavaclient$ cat TryWorkspaceClient.java 
+
+.. code-block:: java
+
+    import java.net.URL;
+
+    import us.kbase.workspace.WorkspaceClient;
+
+    public class TryWorkspaceClient {
+	
+        public static void main(String[] args) throws Exception {
+            WorkspaceClient client = new WorkspaceClient(
+                    new URL("https://kbase.us/services/ws"),
+                    "kbasetest", [redacted]);
+            System.out.println(client.ver());
+        }
+    }
+
+Compile and run::
+
+    bareubuntu@bu:~/ws/tryjavaclient$ javac -cp "./*" TryWorkspaceClient.java 
+    bareubuntu@bu:~/ws/tryjavaclient$ java -cp "./:./*" TryWorkspaceClient
+    0.3.5
+
+For more client initialization and configuration options, see :ref:`apidocs`.
+
+Perl client
+-----------
 
 .. todo::
    Build and initialization instructions for the Perl client. If this can
    be done without the KBase runtime & dev_container that'd be ideal.
-   
+
+Javascript client
+-----------------
+
 .. todo::
    Build (probably not needed) and initialization instructions for the
    Javascript client.
-
-.. todo::
-   build & init client instructions
-   
-   on v26 image, just need jars, java 6, and w_d to make compile-java-client,
-   winds up in dist. Check on ubuntu 12.04

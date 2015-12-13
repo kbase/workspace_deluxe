@@ -1,3 +1,5 @@
+.. _apidocs:
+
 Workspace API Documentation
 ===========================
 
