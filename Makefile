@@ -68,7 +68,7 @@ build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
 	$(ANT) compile
 
-build-docs: build-libs
+build-docs:
 	-rm -r docs 
 	$(ANT) javadoc
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html

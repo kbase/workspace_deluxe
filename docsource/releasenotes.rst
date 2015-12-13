@@ -15,6 +15,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   be deleted after upgrading.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
+* The ``list_objects`` ``skip`` parameter is deprecated. It will be removed in
+  a future version.
 
 VERSION: 0.3.5 (Released 5/15/15)
 ---------------------------------

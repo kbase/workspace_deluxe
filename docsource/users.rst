@@ -4,6 +4,7 @@ User Documentation
 .. toctree::
    :maxdepth: 2
    
+   builddocs
    buildinitclient
    scripts
    typedobjects
@@ -14,9 +15,6 @@ User Documentation
    userfaq
    knownuserbugs
    api
-   
-.. todo::
-   client init examples
    
 .. todo::
    save object example w/ prov, meta
