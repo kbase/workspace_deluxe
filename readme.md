@@ -42,20 +42,17 @@ assume that the KBase runtime or `dev_container` are installed.
 
 The build requires:
 
-* Java JDK 6+
+Java JDK 6+ ([install instructions](https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get))
 
-  * [install instructions](https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get)
-  
-* [Java ant](http://ant.apache.org)
+[Java ant](http://ant.apache.org):
 
-  * `sudo apt-get install ant`
+    sudo apt-get install ant
   
-* [Python](https://www.python.org) [Sphinx](http://sphinx-doc.org/) 1.3+
+[Python](https://www.python.org) [Sphinx](http://sphinx-doc.org/) 1.3+:
 
-  * `sudo apt-get install python-pip`
-  * `sudo pip install sphinx`
-  
-    * if already installed but < 1.3: `sudo pip install sphinx --upgrade`
+    curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
+    sudo python get-pip.py
+    sudo pip install sphinx --upgrade
 
 Clone the jars and workspace_deluxe repos:
 
