@@ -17,12 +17,12 @@ Create a workspace called MyWorkspace:
 
     In [4]: ws.create_workspace({'workspace': 'MyWorkspace'})
     Out[4]: 
-    [12,                             # the workspace numerical ID
-     u'MyWorkspace',                 # the workspace name
-     u'kbasetest',                   # the workspace creator
-     u'2015-12-13T20:48:00+0000',    # the modification date of the workspace
-     0,                              # the number of objects created in this workspace
-     u'a',                           # the user's permission for the workspace
+    [12,                             # workspace numerical ID
+     u'MyWorkspace',                 # workspace name
+     u'kbasetest',                   # workspace creator
+     u'2015-12-13T20:48:00+0000',    # modification date of the workspace
+     0,                              # number of objects created in this workspace
+     u'a',                           # user's permission for the workspace
      u'n',                           # global permissions for the workspace
      u'unlocked',                    # whether the workspace is locked
      {}]                             # user provided metadata
