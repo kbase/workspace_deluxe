@@ -117,13 +117,18 @@ Create one or more handles to Shock data
 """"""""""""""""""""""""""""""""""""""""
 
 If you’re working in a language other than Perl, you can use the AbstractHandle
-client to persist handles. Here’s a python example::
+client to persist handles. Here’s a python example:
 
-    $ ipython
+.. code-block:: python
+
+
     In [1]: from biokbase.AbstractHandle.Client import AbstractHandle
-    In [2]: ah = AbstractHandle('https://[handle url]', user_id="kbasetest", password=[redacted])
+    In [2]: ah = AbstractHandle('https://[handle url]', user_id='kbasetest', password=[redacted])
 
-    In [3]: handle = {'type': 'shock', 'url': 'https://[shock url]', 'id': "e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e"}
+    In [3]: handle = {'type': 'shock', 'url':
+                      'https://[shock url]',
+                      'id': 'e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e'
+                      }
 
     In [4]: ah.persist_handle(handle)
     Out[4]: u'KBH_8'
@@ -133,10 +138,13 @@ Method 3 - new Shock data without the HandleService client
 Create one or more handles for your data
 """"""""""""""""""""""""""""""""""""""""
 
-Use the Handle Service new_handle method to create handles::
+Use the Handle Service new_handle method to create handles:
+
+.. code-block:: python
 
     In [48]: from biokbase.AbstractHandle.Client import AbstractHandle
-    In [49]: ah = AbstractHandle('https://[handle url]', user_id="kbasetest", password=[redacted])
+    In [49]: ah = AbstractHandle('https://[handle url]',
+                                 user_id='kbasetest', password=[redacted])
 
     In [50]: ah.new_handle()
     Out[50]:
@@ -209,20 +217,49 @@ Step 3 - save data with embedded Handles to the Workspace
 Saving data with embedded handles is identical to saving any other WSS object.
 This example assumes the the type described in the previous section is present
 in the VeryImportantModule module and has been registered and released.
-::
 
-    $ ipython
+.. code-block:: python
+
     In [1]: from biokbase.workspace.client import Workspace
-    In [3]: ws = Workspace('https://[workspace url]', user_id='kbasetest', password=[redacted])
+    In [3]: ws = Workspace('https://[workspace url]',
+                           user_id='kbasetest', password=[redacted])
 
-    In [13]: handle1 = {'hid': 'KBH_8', 'id': "e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e", 'url': 'https://[shock url]', 'type': 'shock'}
-    In [14]: handle2 = {'hid': 'KBH_5', 'id': "ed732169-31a6-4acb-a59c-401d95cc7e3e", 'url': 'https://[shock url]', 'type': 'shock'}
-    In [20]: vip_data = {"handle": handle1, "handles": [handle2], "veryimportantstring": "My word, I am important", "veryimportantint": 42}
+    In [13]: handle1 = {'hid': 'KBH_8',
+                        'id': 'e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e',
+                        'url': 'https://[shock url]',
+                        'type': 'shock'
+                        }
+    In [14]: handle2 = {'hid': 'KBH_5',
+                        'id': 'ed732169-31a6-4acb-a59c-401d95cc7e3e',
+                        'url': 'https://[shock url]',
+                        'type': 'shock'
+                        }
+    In [20]: vip_data = {'handle': handle1,
+                         'handles': [handle2],
+                         'veryimportantstring': 'My word, I am important',
+                         'veryimportantint': 42
+                         }
 
-    In [23]: ws.save_objects({"workspace": "foo", "objects": [{'name': 'foo', "type": "VeryImportantModule.VeryImportantData-2.0", "data": vip_data}]})
+    In [23]: ws.save_objects(
+                 {'workspace': 'foo',
+                  'objects': [{'name': 'foo',
+                               'type': 'VeryImportantModule.VeryImportantData-2.0',
+                               'data': vip_data
+                               }
+                              ]
+                  })
     Out[23]:
-    [[1, u'foo', u'VeryImportantModule.VeryImportantData-2.0',   u'2014-08-01T20:20:58+0000', 13, u'kbasetest', 2, u'foo',
-      u'e62152ed3bd328e3001083d0d230ecc0', 302, {}]]
+    [[1,
+      u'foo',
+      u'VeryImportantModule.VeryImportantData-2.0',
+      u'2014-08-01T20:20:58+0000',
+      13,
+      u'kbasetest',
+      2,
+      u'foo',
+      u'e62152ed3bd328e3001083d0d230ecc0',
+      302,
+      {}]]
 
 During the save, the Workspace checks with the Handle Service to confirm the
 user has rights to access the Shock data. If such is not the case, the save
@@ -248,19 +285,45 @@ couple of important points. When calling the ``get_objects``,
 
 This means that, mostly invisibly, the shock nodes embedded via Handles in a
 Workspace object are shared as the object is shared.
-::
 
-    In [18]: ws.get_objects([{"ref": "foo/foo"}])
-    Out[18]: [{u'created': u'2014-08-01T20:20:58+0000', u'creator': u'kbasetest',  
-      u'data': {u'handle': {u'hid': u'KBH_8', u’id': u'e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e',
-        u'type': u'shock', u'url': u'http://localhost:7044'},
-      u'handles': [{u'hid': u'KBH_5', u'id': u'ed732169-31a6-4acb-a59c-401d95cc7e3e',
-        u'type': u'shock', u'url': u'http://localhost:7044'}],
-      u'veryimportantint': 42,  u'veryimportantstring': u'My word, I am important'},
-      u'extracted_ids': {u'handle': [u'KBH_8', u'KBH_5']}, <- note extracted handle IDs
-      u'info': [1,  u'foo', u'VeryImportantModule.VeryImportantData-2.0', 
-      u'2014-08-01T20:20:58+0000', 13, u'kbasetest', 2, u'foo', u'e62152ed3bd328e3001083d0d230ecc0', 302, {}],
-      u'provenance': [], u'refs': []}]
+.. code-block:: python
+    :emphasize-lines: 19-22
+
+    In [18]: ws.get_objects([{'ref': 'foo/foo'}])
+    Out[18]:
+    [{u'created': u'2014-08-01T20:20:58+0000',
+      u'creator': u'kbasetest',  
+      u'data': {u'handle': {u'hid': u'KBH_8',
+                            u’id': u'e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e',
+                            u'type': u'shock',
+                            u'url': [shock url]
+                            },
+                u'handles': [{u'hid': u'KBH_5',
+                              u'id': u'ed732169-31a6-4acb-a59c-401d95cc7e3e',
+                              u'type': u'shock',
+                              u'url': [shock url]
+                              }
+                             ],
+                u'veryimportantint': 42,
+                u'veryimportantstring': u'My word, I am important'
+                },
+      u'extracted_ids': {u'handle': [u'KBH_8',
+                                     u'KBH_5'
+                                     ]
+                         },
+      u'info': [1,
+                u'foo',
+                u'VeryImportantModule.VeryImportantData-2.0', 
+                u'2014-08-01T20:20:58+0000',
+                13,
+                u'kbasetest',
+                2,
+                u'foo',
+                u'e62152ed3bd328e3001083d0d230ecc0',
+                302,
+                {}],
+      u'provenance': [],
+      u'refs': []}]
 
 The Shock data can then be retrieved via the Shock API using the handle
 information embedded in the object.
@@ -272,9 +335,11 @@ the error will be embedded in the returned data structure. The handle_error
 field will contain a brief description of the error, and the handle_stacktrace
 field will contain the full stacktrace. If these fields are populated the ACLs
 of some or all of the Shock nodes embedded in the object could not be updated.
-::
 
-    In [26]: ws.get_objects([{"ref": "foo/foo"}])
+.. code-block:: python
+    :emphasize-lines: 7, 8
+
+    In [26]: ws.get_objects([{'ref': 'foo/foo'}])
     Out[26]:
     [{u'created': u'2014-08-08T00:07:10+0000',
       u'creator': u'kbasetest',
@@ -283,10 +348,24 @@ of some or all of the Shock nodes embedded in the object could not be updated.
       u'handle_error': u'The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles KBH_6, KBH_5',
       u'handle_stacktrace': u'us.kbase.common.service.ServerException: Unable to set acl(s) on handles KBH_6, KBH_5\n
       \tat us.kbase.common.service.JsonClientCaller.jsonrpcCall(JsonClientCaller.java:269)\n
-    *snip*
+      
+      *snip*
+      
       \tat java.lang.Thread.run(Thread.java:724)\n',
-      u'info': [1, u'foo', u'ListHandleIds.HandleList-0.1', u'2014-08-08T00:07:12+0000',
-       5, u'kbasetest', 334, u'foo', u'd98067db987ccdf5321819b39f73440d', 29, {}],
+      u'info': [1,
+                u'foo',
+                u'ListHandleIds.HandleList-0.1',
+                u'2014-08-08T00:07:12+0000',
+                5,
+                u'kbasetest',
+                334,
+                u'foo',
+                u'd98067db987ccdf5321819b39f73440d',
+                29,
+                {}
+                ],
       u'provenance': [],
-      u'refs': []}]
+      u'refs': []
+      }
+     ]
 

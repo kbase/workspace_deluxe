@@ -609,7 +609,9 @@ spec file, upload the new spec file, and release the module.  You’ll notice
 that the types are now updated in the WSS and a new version number is
 automatically assigned.  The types that you have added already will remain, so
 you no longer need to specify any new typed objects to add.
-::
+
+.. code-block:: none
+    :emphasize-lines: 8
 
     root@mws-ws-test:/kb/dev_container# cat MyModule.spec
     /* my module, hands off */

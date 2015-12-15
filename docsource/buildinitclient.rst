@@ -43,6 +43,9 @@ Here we use the iPython interpreter to demonstrate initializing the client,
 but the standard python interpreter will also work::
 
     bareubuntu@bu:~/ws/workspace_deluxe/lib$ ipython
+    
+.. code-block:: python
+
     In [1]: from biokbase.workspace.client import Workspace
     In [2]: ws = Workspace('https://kbase.us/services/ws', user_id='kbasetest', password=[redacted])
     In [3]: ws.ver()
