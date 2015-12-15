@@ -62,7 +62,7 @@ and the object data.
       
 Once created, an object's numerical ID is permanent and unchangeable.
 
-The MD5 is calculated *after* any references are rewritten (see below) and
+The MD5 is calculated *after* any references are translated (see below) and
 the object ``structure`` and ``mapping`` keys are sorted.
 
 Saving an object that does not match the typespec causes an error:
@@ -308,7 +308,7 @@ field has been added to the provenance. This field contains the translated
 object references supplied in ``input_ws_objects``:
 
 .. code-block:: python
-    :emphasize-lines: 24, 27
+    :emphasize-lines: 24, 29
 
     In [32]: ws.get_objects([{'ref': 'MyWorkspace/simpleWithProv'}])
     Out[32]: 
@@ -335,7 +335,9 @@ object references supplied in ``input_ws_objects``:
         u'external_data': [],
         u'input_ws_objects': [u'MyWorkspace/simple/1'],
         u'method': u'annotatePairedReads',
-        u'method_params': [{u'objname': u'simple', u'workspace': u'MyWorkspace'}],
+        u'method_params': [{u'objname': u'simple',
+                            u'workspace': u'MyWorkspace'
+                            u'ver': 1}],
         u'resolved_ws_objects': [u'12/1/1'],
         u'service': u'Annotation',
         u'service_ver': u'2.1.3',
@@ -375,8 +377,143 @@ An application or user needs the object referred to in a dependency reference
 to compute on the referencing object; they do not need any provenance
 references. A dependent object may or may not be part of the referring object's
 provenance - for example a Genome and ContigSet could be produced at the same
-time from a GeneBank file and so the ContigSet would not be part of the
+time from a GenBank file and so the ContigSet would not be part of the
 Genome's provenance. Rather, they would share the same provenance.
+
+The following types will be used to demonstrate saving objects with
+dependency references:
+
+.. code-block:: python
+
+    In [52]: print ws.get_module_info({'mod': 'SimpleObjects'})['spec']
+    module SimpleObjects {
+
+        /* @optional opt */
+        typedef structure {
+            list<mapping<string, int>> array_of_maps;
+            int an_int;
+            float a_float;
+            string a_string; 
+            int opt;
+        } SimpleObject;
+    
+        typedef structure {
+            int i;
+            string thing;
+        } SimplerObject;
+    
+        /* @id ws */
+        typedef string ref;
+        
+        /* @id ws SimpleObjects.SimplerObject */
+        typedef string typedref;
+        
+        typedef structure {
+            ref r;
+            string thing;
+        } RefObject;
+    
+        typedef structure {
+            typedref r;
+            string thing;
+        } TypeRefObject;
+    };
+
+Saving an object with a dependency reference required by the typespec is just
+like saving any other object:
+
+.. code-block:: python
+    :emphasize-lines: 1, 8, 31, 47
+
+    In [57]: refobj = {'r': 'MyWorkspace/simple',
+                       'thing': 'this object has a reference'
+                       }
+
+    In [58]: ws.save_objects(
+                 {'workspace': 'MyWorkspace',
+                  'objects': [{'name': 'ref',
+                               'type': u'SimpleObjects.RefObject-2.0',
+                               'data': refobj,
+                               }
+                              ]
+                  })
+    Out[58]: 
+    [[6,
+      u'ref',
+      u'SimpleObjects.RefObject-2.0',
+      u'2015-12-15T03:12:41+0000',
+      1,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'44e0ef9dff44c4840ddf77abbfc555bd',
+      52,
+      {}]]
+
+    In [59]: ws.get_objects([{'workspace': 'MyWorkspace', 'name': 'ref'}])
+    Out[59]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-15T03:12:41+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'r': u'12/1/2',
+                u'thing': u'this object has a reference'
+                },
+      u'extracted_ids': {},
+      u'info': [6,
+       u'ref',
+       u'SimpleObjects.RefObject-2.0',
+       u'2015-12-15T03:12:41+0000',
+       1,
+       u'kbasetest',
+       12,
+       u'MyWorkspace',
+       u'44e0ef9dff44c4840ddf77abbfc555bd',
+       52,
+       {}],
+      u'provenance': [],
+      u'refs': [u'12/1/2']}]
+
+Note that the reference in the saved object was translated to a permanent
+reference, and that the references are extracted into the ``refs`` ``list`` in
+the returned data.
+
+If the referenced object is not accessible to the user saving the object,
+the save will fail. If the save succeeds, the referent will be forever
+accessible to users with access to the referencing object as described
+previously.
+
+Types may specify that a reference must point to an object with a specific
+type, as in the ``TypeRefObject`` type. In this case, saving with a reference
+that does not point to an object with type ``SimpleObjects.SimplerObject`` will
+fail:
+
+.. code-block:: python
+    :emphasize-lines: 4
+
+    In [73]: ws.save_objects(
+                 {'workspace': 'MyWorkspace',
+                  'objects': [{'name': 'typedref',
+                               'type': u'SimpleObjects.TypeRefObject',
+                               'data': refobj,
+                               }
+                              ]
+                  })
+    ---------------------------------------------------------------------------
+    ServerError                               Traceback (most recent call last)
+    <ipython-input-73-80b8ab6aabd0> in <module>()
+          3               'objects': [{'name': 'typedref',
+          4                            'type': u'SimpleObjects.TypeRefObject',
+    ----> 5                            'data': refobj,
+          6                            }
+          7                           ]
+
+    *snip*
+
+    ServerError: JSONRPCError: -32500. Object #1, typedref has invalid
+    reference: The type SimpleObjects.SimpleObject-1.0 of reference
+    MyWorkspace/simple in this object is not allowed - allowed types are
+    [SimpleObjects.SimplerObject] at /r
+
 
 
 Copy an object
