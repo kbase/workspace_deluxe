@@ -1041,16 +1041,16 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	protected void failListObjectsByDate(String date, String exception) throws Exception {
+	protected void failListObjectsByDate(String ws, String date, String exception) throws Exception {
 		try {
-			CLIENT1.listObjects(new ListObjectsParams().withAfter(date));
+			CLIENT1.listObjects(new ListObjectsParams().withAfter(date).withWorkspaces(Arrays.asList(ws)));
 			fail("listed obj info with bad date");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
 		try {
-			CLIENT1.listObjects(new ListObjectsParams().withBefore(date));
+			CLIENT1.listObjects(new ListObjectsParams().withBefore(date).withWorkspaces(Arrays.asList(ws)));
 			fail("listed obj info with bad date");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),

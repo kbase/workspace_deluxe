@@ -2853,7 +2853,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-List objects that reference one or more objects.
+List objects that reference one or more specified objects. References
+in the deleted state are not returned.
 
 =back
 
