@@ -6,7 +6,6 @@ User Documentation
    
    builddocs
    buildinitclient
-   scripts
    typedobjects
    devtypedobjects
    typecheckingerrors
@@ -16,6 +15,7 @@ User Documentation
    traversereferences
    shockintegration
    limits
+   scripts
    userfaq
    knownuserbugs
    api
