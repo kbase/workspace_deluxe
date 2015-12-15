@@ -516,18 +516,78 @@ fail:
 
 
 
-Copy an object
---------------
-
-discuss references
-
 List objects
 ------------
 
+Listing objects is similar to listing workspaces:
 
+.. code-block:: python
 
+    In [74]: ws.list_objects({'ids': [12]})
+    Out[74]: 
+    [[2,
+      u'simple3',
+      u'SimpleObjects.SimpleObject-1.0',
+      u'2015-12-14T22:58:01+0000',
+      1,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'8aba51168748e7a7a91847f510ce2807',
+      77,
+      None],
+     
+     *snip*
+     
+     [4,
+      u'simpleWithProv',
+      u'SimpleObjects.SimpleObject-1.0',
+      u'2015-12-14T23:44:35+0000',
+      2,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'6b76d883ffa1357e52e1020594317dd7',
+      70,
+      None]]
 
+Listing also works by type:
 
+.. code-block:: python
 
-.. todo::
-   save object example w/ prov, meta
+    In [78]: ws.list_objects({'type': 'SimpleObjects.RefObject'})
+    Out[78]: 
+    [[6,
+      u'ref',
+      u'SimpleObjects.RefObject-2.0',
+      u'2015-12-15T03:12:41+0000',
+      1,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'44e0ef9dff44c4840ddf77abbfc555bd',
+      52,
+      None]]
+      
+A large number of filters exist for ``list_objects`` - see the :ref:`apidocs`
+for comprehensive coverage. In this example, the list is filtered by the object
+metadata:
+
+.. code-block:: python
+
+    In [82]: ws.list_objects({'ids': [12],
+                              'meta': {'Wowbagger': 'Prolonged'},
+                              'includeMetadata': 1
+                              })
+    Out[82]: 
+    [[2,
+      u'simple3',
+      u'SimpleObjects.SimpleObject-1.0',
+      u'2015-12-14T22:58:01+0000',
+      1,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'8aba51168748e7a7a91847f510ce2807',
+      77,
+      {u'Eccentrica': u'Gallumbits', u'Wowbagger': u'Prolonged'}]]
