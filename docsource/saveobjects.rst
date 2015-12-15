@@ -1,8 +1,8 @@
 Objects
 =======
 
-This documentation describes how to save objects to a workspace and 
-demonstrates some of the most common options (see
+This documentation describes some of the most common operations on objects
+in the workspace, with a focus on saving objects (see
 :ref:`apidocs` for the full API). It assumes that
 a functional client is available (see :ref:`buildinitclient`). The examples
 use the Python client, but translating to other clients is trivial.
@@ -15,21 +15,22 @@ defined as:
 
 .. code-block:: python
 
-    In [15]: print ws.get_module_info({'mod': 'SimpleObjects'})['spec']
-    module SimpleObjects {
+    In [4]: print ws.get_type_info('SimpleObjects.SimpleObject-1.0')['spec_def']
+    /*
+    @optional opt
+    */
+    typedef structure {
+      list<mapping<string, int>> array_of_maps;
+      int an_int;
+      float a_float;
+      string a_string;
+      int opt;
+    } SimpleObject;
 
-        /* @optional opt */
-        typedef structure {
-            list<mapping<string, int>> array_of_maps;
-            int an_int;
-            float a_float;
-            string a_string; 
-            int opt;
-        } SimpleObject;
-    };
 
 Saving an object requires specifying either the name or id of the workspace,
-the name or id of the object, the type of the object, and the object data.
+and for each object the name or id of the object, the type of the object,
+and the object data.
 
 .. code-block:: python
 
@@ -80,14 +81,50 @@ Saving an object that does not match the typespec causes an error:
                   })
     ---------------------------------------------------------------------------
     ServerError                               Traceback (most recent call last)
-    <ipython-input-24-16c91c62f5fe> in <module>()
-    ----> 1 ws.save_objects({'workspace': 'MyWorkspace', 'objects': [{'name': 'simple2', 'type': u'SimpleObjects.SimpleObject-1.0', 'data': obj}]})
+    <ipython-input-11-91a2d5e7f85e> in <module>()
+          3               'objects': [{'name': 'simple2',
+          4                            'type': u'SimpleObjects.SimpleObject-1.0',
+    ----> 5                            'data': obj
+          6                            }
+          7                           ]
 
     *snip*
 
     ServerError: JSONRPCError: -32500. Object #1, simple2 failed type checking:
     instance type (integer) does not match any allowed primitive type (allowed: ["string"]), at /a_string
     *snip*
+
+Saving an object with ``null`` s (or in Python's case ``None`` s) where an
+``int``, ``float``, or ``string`` is expected is allowed:
+
+.. code-block:: python
+
+    In [21]: obj = {'array_of_maps': [],
+                    'an_int': None,
+                    'a_float': None,
+                    'a_string': None}
+
+    In [22]: ws.save_objects(
+                 {'id': 12,
+                  'objects': [{'name': 'nullobj',
+                               'type': u'SimpleObjects.SimpleObject-1.0',
+                               'data': obj 
+                               }
+                              ]
+                  })
+    Out[22]: 
+    [[3,
+      u'nullobj',
+      u'SimpleObjects.SimpleObject-1.0',
+      u'2015-12-14T22:58:55+0000',
+      1,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'0eb7130429570c6fe23017091df0a654',
+      65,
+      {}]]
+
 
 Save a new version
 ------------------
@@ -97,7 +134,10 @@ of a new object version:
 
 .. code-block:: python
 
-    In [20]: obj['a_string'] = 'hoopty frood'
+    In [20]: obj = {'array_of_maps': [],
+                    'an_int': 42,
+                    'a_float': 6.02e-23,
+                    'a_string': 'hoopty frood'}
 
     In [22]: ws.save_objects(
                  {'id': 12,
@@ -155,11 +195,194 @@ objects:
 Save an object with provenance
 ------------------------------
 
+Establishing data provenance is required for usable data and repeatable
+science. Without provenance data for a data object, said object might as well
+have been made from the whole cloth. Reproducing the data is impossible, and
+it is impossible to judge the data's reliability.
 
-Save an object with object references
--------------------------------------
+Provenance data may be saved along with the object data as a list of 
+provenance actions (PAs). Each PA represents a step taken to convert a data
+unit into another - for example, passing a genome sequence to a server
+which returns a metabolic model for that sequence. The PA contains
+fields for recording how an object was generated. See the :ref:`apidocs` for
+the full specification, but some common fields are:
+
+===========    ================================================
+Field          Description
+===========    ================================================
+time           The time the action took place
+service        The name of the service that produced the object
+service_ver    The version of the service
+method         The method called on the service
+description    A free text description of the action
+===========    ================================================
+
+Some fields require special explanation. The ``intermediate_incoming`` and
+``intermediate_outgoing`` fields allow linking the outputs of one PA with
+the inputs of the next. The list of PAs is assumed to be in the order the
+actions took place, so, for example, if workspace object ``A`` was passed to
+a service method as ``X.process(A)`` which produced the object tuple
+``[B, C]``, and those results were passed to a service method as 
+``Y.dothing(C, B)`` which produced the object ``D``, the provenance list might
+look like:
+
+.. code-block:: python
+
+    pl = [{'service': 'X',
+           'method': 'process',
+           'intermediate_outgoing': ['B', 'C']
+           },
+          {'service': 'Y',
+           'method': 'dothing',
+           'intermediate_incoming': ['C', 'B']
+           'method_params': ['C', 'B']
+           }
+          ]
+
+``B`` and ``C``, in this example, are merely symbols that describe the ordering
+of the inputs and outputs of each step and any permutations of those orders
+from step to step. Any unique names could be used.
+
+The ``input_ws_objects`` field allows specifying workspace objects that were
+used in the creation of the current object and therefore are part of its
+provenance. In the example above, object ``A`` is part of the provenance of
+object ``D``, and should therefore be specified in ``input_ws_objects``:
+
+.. code-block:: python
+
+    pl = [{'service': 'X',
+           'method': 'process',
+           'intermediate_outgoing': ['B', 'C'],
+           'input_ws_objects': ['MyWorkspace/2/2']
+           },
+          {'service': 'Y',
+          ...
+
+In this case, ``A`` was the 2nd version of object ID ``2`` in ``MyWorkspace``.
+The name or ID of the workspace and object may be used in the reference string.
+Names will always be translated to IDs by the WSS before the provenance is
+saved, since IDs are permanent and names are not.
+
+For example:
+
+.. code-block:: python
+
+    In [27]: ps = [{'description': 'assemble paired end reads',
+                    'input_ws_objects': ['MyWorkspace/simple/1'],
+                    'method': 'annotatePairedReads',
+                    'method_params': [{'objname': 'simple',
+                                       'workspace': 'MyWorkspace',
+                                       'ver': 1
+                                       }
+                                      ],
+                    'service': 'Annotation',
+                    'service_ver': '2.1.3',
+                    'time': '2015-12-15T22:58:55+0000'
+                    }
+                   ]
+
+    In [30]: ws.save_objects(
+                 {'workspace': 'MyWorkspace',
+                  'objects': [{'name': 'simpleWithProv',
+                               'type': u'SimpleObjects.SimpleObject-1.0',
+                               'data': obj,
+                               'provenance': ps
+                               }
+                              ]
+                  })
+    Out[30]: 
+    [[4,
+      u'simpleWithProv',
+      u'SimpleObjects.SimpleObject-1.0',
+      u'2015-12-14T23:44:35+0000',
+      2,
+      u'kbasetest',
+      12,
+      u'MyWorkspace',
+      u'6b76d883ffa1357e52e1020594317dd7',
+      70,
+      {}]]
+
+If the object is retrieved, it can be seen that the ``resolved_ws_objects``
+field has been added to the provenance. This field contains the translated
+object references supplied in ``input_ws_objects``:
+
+.. code-block:: python
+    :emphasize-lines: 24, 27
+
+    In [32]: ws.get_objects([{'ref': 'MyWorkspace/simpleWithProv'}])
+    Out[32]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-14T23:44:35+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'a_float': 6.02e-23,
+       u'a_string': u'towel',
+       u'an_int': 42,
+       u'array_of_maps': []},
+      u'extracted_ids': {},
+      u'info': [4,
+       u'simpleWithProv',
+       u'SimpleObjects.SimpleObject-1.0',
+       u'2015-12-14T23:44:35+0000',
+       2,
+       u'kbasetest',
+       12,
+       u'MyWorkspace',
+       u'6b76d883ffa1357e52e1020594317dd7',
+       70,
+       {}],
+      u'provenance': [{u'description': u'assemble paired end reads',
+        u'external_data': [],
+        u'input_ws_objects': [u'MyWorkspace/simple/1'],
+        u'method': u'annotatePairedReads',
+        u'method_params': [{u'objname': u'simple', u'workspace': u'MyWorkspace'}],
+        u'resolved_ws_objects': [u'12/1/1'],
+        u'service': u'Annotation',
+        u'service_ver': u'2.1.3',
+        u'time': u'2015-12-15T22:58:55+0000'}],
+      u'refs': []}]
+
+Saving provenance with objects is optional, but strongly encouraged.
+
+.. warning::
+   The WSS does not inherently know anything about the provenance of the
+   objects it stores, and cannot evaluate the reliability or completeness of
+   the provenance. It is entirely up to the user or application storing the
+   objects to ensure accurate and complete provenance. Clearly the provenance
+   in the examples above is fradulent.
+   
+Provenance references, along with dependency references (see below), have
+another special property - they guarantee access to the referent, regardless
+of permissions or deletion state, as long as the user has access to the
+referring object. The philosophy behind this permanent access is that a data
+object is useless without provenance, as described above, and dependencies,
+as described below.
+
+Save an object with dependency references
+-----------------------------------------
+
+A dependency reference is a reference that implies an object is dependent on
+another object to function - a Genome on a ContigSet, for example. Dependency
+references are embedded in the object itself and are called out in the type
+specification. They can thus be required, if desired, and an object without
+such a dependency reference will fail to save.
+
+In contrast, a provenance reference implies that an object was produced
+from another object. These are not called out in the type specification and are
+not embedded in the object.
+
+An application or user needs the object referred to in a dependency reference
+to compute on the referencing object; they do not need any provenance
+references. A dependent object may or may not be part of the referring object's
+provenance - for example a Genome and ContigSet could be produced at the same
+time from a GeneBank file and so the ContigSet would not be part of the
+Genome's provenance. Rather, they would share the same provenance.
 
 
+Copy an object
+--------------
+
+discuss references
 
 List objects
 ------------
