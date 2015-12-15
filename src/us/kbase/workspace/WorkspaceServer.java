@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -62,6 +63,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.SubObjectIdentifier;
@@ -732,7 +734,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_referencing_objects</p>
      * <pre>
-     * List objects that reference one or more objects.
+     * List objects that reference one or more specified objects. References
+     * in the deleted state are not returned.
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "referrers" of list of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -885,13 +888,17 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null);
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final boolean showDeleted = longToBoolean(
-				params.getShowDeletedObject());
-		returnVal = objInfoToMetaTuple(
-				ws.listObjects(getUser(params.getAuth(), authPart),
-						Arrays.asList(wsi), type, null, null, null, null, null,
-						false, showDeleted, false, false, true, false,
-						0, 10000), false);
+		
+		final WorkspaceUser user = getUser(params.getAuth(), authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
+		} else {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi), type);
+		}
+		lop.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
+			.withIncludeMetaData(true);
+		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
         //END list_workspace_objects
         return returnVal;
     }
@@ -922,29 +929,35 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final Permission p = params.getPerm() == null ? null :
-			translatePermission(params.getPerm());
-		final boolean showHidden = longToBoolean(params.getShowHidden());
-		final boolean showDeleted = longToBoolean(params.getShowDeleted());
-		final boolean showOnlyDeleted = longToBoolean(
-				params.getShowOnlyDeleted());
-		final boolean showAllVers = longToBoolean(
-				params.getShowAllVersions());
-		final boolean includeMetadata = longToBoolean(
-				params.getIncludeMetadata());
-		final boolean excludeGlobal = longToBoolean(
-				params.getExcludeGlobal());
-		final int skip = longToInt(params.getSkip(), "Skip", -1);
-		final int limit = longToInt(params.getLimit(), "Limit", -1);
-		returnVal = objInfoToTuple(
-				//this sig is insane
-				ws.listObjects(getUser(authPart), wsis, type, p,
-						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), parseDate(params.getAfter()),
-						parseDate(params.getBefore()), showHidden,
-						showDeleted, showOnlyDeleted, showAllVers,
-						includeMetadata, excludeGlobal, skip, limit),
-						false);
+		if (type == null && wsis.isEmpty()) {
+			throw new IllegalArgumentException(
+					"At least one filter must be specified.");
+		}
+		final WorkspaceUser user = getUser(authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, wsis);
+		} else if (wsis.isEmpty()) {
+			lop = new ListObjectsParameters(user, type);
+		} else {
+			lop = new ListObjectsParameters(user, wsis, type);
+		}
+		lop.withMinimumPermission(params.getPerm() == null ? null :
+				translatePermission(params.getPerm()))
+			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
+			.withMetadata(params.getMeta())
+			.withAfter(parseDate(params.getAfter()))
+			.withBefore(parseDate(params.getBefore()))
+			.withShowHidden(longToBoolean(params.getShowHidden()))
+			.withShowDeleted(longToBoolean(params.getShowDeleted()))
+			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
+			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
+			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
+			.withSkip(longToInt(params.getSkip(), "Skip", -1))
+			.withLimit(longToInt(params.getLimit(), "Limit", -1));
+		
+		returnVal = objInfoToTuple(ws.listObjects(lop), false);
         //END list_objects
         return returnVal;
     }

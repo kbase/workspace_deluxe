@@ -40,6 +40,7 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -374,7 +375,7 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
-	protected IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
+	protected IdReferenceHandlerSetFactory getIdFactory() {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		return fac;
 	}
@@ -535,7 +536,7 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
 			List<WorkspaceSaveObject> wso, Exception exp)
 			throws Exception {
-		failSave(user, wsi, wso, getIdFactory(user), exp);
+		failSave(user, wsi, wso, getIdFactory(), exp);
 	}
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
@@ -1238,8 +1239,9 @@ public class WorkspaceTester {
 	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
 			int skip, int limit, int minid, int maxid) 
 			throws Exception {
-		List<ObjectInformation> res = ws.listObjects(user, Arrays.asList(wsi), null, null, null, 
-				null, null, null, false, false, false, false, false, false, skip, limit);
+		List<ObjectInformation> res = ws.listObjects(
+				new ListObjectsParameters(user, Arrays.asList(wsi))
+				.withSkip(skip).withLimit(limit));
 		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
 		for (ObjectInformation oi: res) {
 			if (oi.getObjectId() < minid || oi.getObjectId() > maxid) {
@@ -1277,13 +1279,11 @@ public class WorkspaceTester {
 	}
 
 	protected void failListObjects(WorkspaceUser user,
-			List<WorkspaceIdentifier> wsis, TypeDefId type, Map<String, String> meta,
-			boolean showHidden, boolean showDeleted, boolean showAllDeleted,
-			boolean showAllVers, boolean includeMetaData,
+			List<WorkspaceIdentifier> wsis, Map<String, String> meta,
 			Exception e) {
 		try {
-			ws.listObjects(user, wsis, type, null, null, meta, null, null, showHidden, showDeleted, showAllDeleted,
-					showAllVers, includeMetaData, false, -1, -1);
+			ws.listObjects(new ListObjectsParameters(user, wsis)
+					.withMetadata(meta));
 			fail("listed obj when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

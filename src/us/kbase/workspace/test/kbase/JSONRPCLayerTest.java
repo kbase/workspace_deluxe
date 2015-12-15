@@ -2258,7 +2258,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
 		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
 		
-		failListObjectsByDate("crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
+		failListObjectsByDate(ws, "crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
 	}
 	
 	@Test

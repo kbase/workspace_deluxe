@@ -88,7 +88,6 @@ public class Workspace {
 	public static final User ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
-	private final static int MAX_INFO_COUNT = 10000;
 	private final static int MAX_WS_COUNT_PERMS = 1000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
@@ -868,47 +867,24 @@ public class Workspace {
 				showDeleted, showOnlyDeleted);
 	}
 	
-	//insanely long method signatures get me hot
-	public List<ObjectInformation> listObjects(final WorkspaceUser user,
-			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
-			Permission minPerm, final List<WorkspaceUser> savers,
-			final Map<String, String> meta, final Date after, final Date before,
-			final boolean showHidden, final boolean showDeleted,
-			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetaData, final boolean excludeGlobal,
-			int skip, int limit)
+	public List<ObjectInformation> listObjects(
+			final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		if (skip < 0) {
-			skip = 0;
-		}
-		if (limit < 1 || limit > MAX_INFO_COUNT) {
-			limit = MAX_INFO_COUNT;
-		}
-		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
-			minPerm = Permission.READ;
-		}
-		if (wsis.isEmpty() && type == null) {
-			throw new IllegalArgumentException("At least one filter must be specified.");
-		}
-		if (meta != null && meta.size() > 1) {
-			throw new IllegalArgumentException("Only one metadata spec allowed");
-		}
+
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
+				db.resolveWorkspaces(params.getWorkspaces());
 		final HashSet<ResolvedWorkspaceID> rw =
 				new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(user, rw, minPerm,
-				excludeGlobal);
-		if (!wsis.isEmpty()) {
-			for (final WorkspaceIdentifier wsi: wsis) {
-				comparePermission(user, Permission.READ,
+		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
+				params.getMinimumPermission(), params.isExcludeGlobal(), true);
+		if (!params.getWorkspaces().isEmpty()) {
+			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
+				comparePermission(params.getUser(), Permission.READ,
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, savers, meta, after, before,
-				showHidden, showDeleted, showOnlyDeleted, showAllVers,
-				includeMetaData, skip, limit);
+		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
 	public List<WorkspaceObjectInformation> getObjectProvenance(
