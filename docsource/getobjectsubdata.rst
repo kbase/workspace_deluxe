@@ -1,126 +1,196 @@
 Subsetting objects
 ==================
 
-Hi all,
+When retrieving objects from the WSS, the user may specify which parts of the
+object to retrieve. This is useful for quickly retrieving small portions of
+large objects (to a webpage, for example) rather than having to fetch the
+entire object which might be hundreds of megabytes.
 
-I've received enough questions about how to do subobject extraction from workspace objects that I think it's worthwhile spamming the list with an example.
+Note that performing subsetting on small objects may provide little to no
+benefit, and in some cases may be slower, since the WSS has to parse the
+serialized object rather than directly returning the serialized form to the
+client.
 
-There's really only one major catch right now, which is that you can't select subobjects from a list based on the contents of the subobjects. This is something we hope to improve in the future. For now, there's a workaround which may or may not be more efficient than just fetching the entire array:
+As usual, it is assumed that a functional client is available (see
+:ref:`buildinitclient`). The examples use the Python client, but translating to
+other clients is trivial. Only the most common cases are covered - see the
+:ref:`apidocs` for complete coverage.
 
-1) Fetch the key by which you want to select the subobjects from all the subobjects in the array (e.g. /array/[*]/key)
-2) Find the index of the subobject you're interested in from the list of {key: value}s
-3) Fetch the subobject (e.g. /array/36)
+For the examples, the following spec was used:
 
-There's an example of this approach below.
+.. code-block:: python
 
-Also, be sure to read the API docs and the note about array compression: http://140.221.84.209/workspace.html#get_object_subset
+    In [16]: print ws.get_type_info("SubSetExample.SubSetExample")['spec_def']
+    typedef structure {
+        mapping<string, mapping<string, string>> map;
+        list<mapping<string, string>> array;
+    } SubSetExample;
 
-On with the examples:
+The object in question:
 
-~/localgit/workspace_deluxe/lib$ ipython
+.. code-block:: python
 
-In [1]: from biokbase.workspace.client import Workspace
+    In [20]: data = {'map': {'mid1': {'id': 'id1', 'stuff': 'foo'},
+       ....:                 'mid2': {'id': 'id2', 'stuff': 'bar'}
+       ....:                 },
+       ....:         'array': [{'id': 'id1', 'stuff': 'foo'},
+       ....:                   {'id': 'id2', 'stuff': 'bar'},
+       ....:                   {'id': 'id3', 'stuff': 'baz'}
+       ....:                   ]
+       ....:         }
+    
+    In [24]: ws.save_objects(
+                 {'workspace': 'MyWorkspace',
+                  'objects': [{'name': 'subsetexample',
+                               'type': u'SubSetExample.SubSetExample',
+                               'data': data,
+                               }
+                              ]
+                  })
+    Out[24]: 
+    [[1,
+      u'subsetexample',
+      u'SubSetExample.SubSetExample-1.0',
+      u'2015-12-16T03:57:03+0000',
+      1,
+      u'kbasetest',
+      13,
+      u'MyWorkspace',
+      u'f9449880abc5722c7add56e773544719',
+      168,
+      {}]]
 
-In [2]: ws = Workspace('http://140.221.84.209:7058', user_id='kbasetest', password=[censored])
+Get the contents of a single key of the mapping:
 
-In [3]: ws.create_workspace({"workspace": "subdatatest", 'globalread': 'r', 'description': 'test ws for subdata extraction'})
-Out[3]:
-[632,
- u'subdatatest',
- u'kbasetest',
- u'2014-01-09T19:39:48+0000',
- 0,
- u'a',
- u'r',
- u'unlocked']
+.. code-block:: python
+    :emphasize-lines: 11
 
-In [4]: testobj = {'map': {'id1': {'id': 'id1', 'stuff': 'foo'},
-'id2': {'id': 'id2', 'stuff': 'bar'}},
-   ...: 'array': [{'id': 'id1', 'stuff': 'foo'},
-   ...: {'id': 'id2', 'stuff': 'bar'}]
-   ...: }
+    In [11]: ws.get_object_subset(
+                 [{'workspace': 'MyWorkspace',
+                   'name': 'subsetexample',
+                   'included': ['/map/mid1']
+                   }
+                  ])
+    Out[25]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-16T03:57:03+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'map': {u'mid1': {u'id': u'id1', u'stuff': u'foo'}}},
+      u'extracted_ids': {},
+      u'info': [1,
+       u'subsetexample',
+       u'SubSetExample.SubSetExample-1.0',
+       u'2015-12-16T03:57:03+0000',
+       1,
+       u'kbasetest',
+       13,
+       u'MyWorkspace',
+       u'f9449880abc5722c7add56e773544719',
+       168,
+       {}],
+      u'provenance': [],
+      u'refs': []}]
 
-In [5]: testobj
-Out[5]:
-{'array': [{'id': 'id1', 'stuff': 'foo'}, {'id': 'id2', 'stuff': 'bar'}],
- 'map': {'id1': {'id': 'id1', 'stuff': 'foo'},
-  'id2': {'id': 'id2', 'stuff': 'bar'}}}
+Get all the ``stuff`` fields from the mapping:
 
-In [10]: ws.save_objects({"workspace": "subdatatest", "objects": [{'name': 'sub', "type": "Empty.AType-0.1", "data": testobj}]})
-Out[10]:
-[[1,
-  u'sub',
-  u'Empty.AType-0.1',
-  u'2014-01-09T19:46:40+0000',
-  1,
-  u'kbasetest',
-  632,
-  u'subdatatest',
-  u'9af59bca2dd6d4a9d173404a9a815c14',
-  139,
-  {}]]
+.. code-block:: python
+    :emphasize-lines: 11-12
 
-In [11]: ws.get_object_subset([{'workspace': 'subdatatest', 'name': 'sub',
-   ....: 'included': ['/map/id1']}])
-Out[11]:
-[{u'created': u'2014-01-09T19:46:40+0000',
-  u'creator': u'kbasetest',
-  u'data': {u'map': {u'id1': {u'id': u'id1', u'stuff': u'foo'}}},
-  u'info': [1,
-   u'sub',
-   u'Empty.AType-0.1',
-   u'2014-01-09T19:46:40+0000',
-   1,
-   u'kbasetest',
-   632,
-   u'subdatatest',
-   u'9af59bca2dd6d4a9d173404a9a815c14',
-   139,
-   {}],
-  u'provenance': [],
-  u'refs': []}]
+    In [39]: ws.get_object_subset(
+                 [{'workspace': 'MyWorkspace',
+                   'name': 'subsetexample',
+                   'included': ['/map/*/stuff']
+                   }
+                  ])
+    Out[39]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-16T04:04:59+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'map': {u'mid1': {u'stuff': u'foo'},
+        u'mid2': {u'stuff': u'bar'}}},
+      u'extracted_ids': {},
+      u'info': [1,
+       u'subsetexample',
+       u'SubSetExample.SubSetExample-1.0',
+       u'2015-12-16T04:04:59+0000',
+       2,
+       u'kbasetest',
+       13,
+       u'MyWorkspace',
+       u'24cd918528461efcb9d6f6a02c3a7965',
+       168,
+       {}],
+      u'provenance': [],
+      u'refs': []}]
 
-In [12]: ws.get_object_subset([{'workspace': 'subdatatest', 'name': 'sub',
-'included': ['/array/[*]/id']}])
-Out[12]:
-[{u'created': u'2014-01-09T19:46:40+0000',
-  u'creator': u'kbasetest',
-  u'data': {u'array': [{u'id': u'id1'}, {u'id': u'id2'}]},
-  u'info': [1,
-   u'sub',
-   u'Empty.AType-0.1',
-   u'2014-01-09T19:46:40+0000',
-   1,
-   u'kbasetest',
-   632,
-   u'subdatatest',
-   u'9af59bca2dd6d4a9d173404a9a815c14',
-   139,
-   {}],
-  u'provenance': [],
-  u'refs': []}]
+Get all the ``id`` fields from the array:
 
-In [13]: ws.get_object_subset([{'workspace': 'subdatatest', 'name': 'sub',
-'included': ['/array/1']}])
-Out[13]:
-[{u'created': u'2014-01-09T19:46:40+0000',
-  u'creator': u'kbasetest',
-  u'data': {u'array': [{u'id': u'id2', u'stuff': u'bar'}]},
-  u'info': [1,
-   u'sub',
-   u'Empty.AType-0.1',
-   u'2014-01-09T19:46:40+0000',
-   1,
-   u'kbasetest',
-   632,
-   u'subdatatest',
-   u'9af59bca2dd6d4a9d173404a9a815c14',
-   139,
-   {}],
-  u'provenance': [],
-  u'refs': []}]
+.. code-block:: python
+    :emphasize-lines: 11
 
-   
-   
-.. todo::
-   subdata example
+    In [33]: ws.get_object_subset(
+                 [{'workspace': 'MyWorkspace',
+                   'name': 'subsetexample',
+                   'included': ['/array/[*]/id']
+                   }
+                  ])
+    Out[33]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-16T04:04:59+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'array': [{u'id': u'id1'}, {u'id': u'id2'}, {u'id': u'id3'}]},
+      u'extracted_ids': {},
+      u'info': [1,
+       u'subsetexample',
+       u'SubSetExample.SubSetExample-1.0',
+       u'2015-12-16T04:04:59+0000',
+       2,
+       u'kbasetest',
+       13,
+       u'MyWorkspace',
+       u'24cd918528461efcb9d6f6a02c3a7965',
+       168,
+       {}],
+      u'provenance': [],
+      u'refs': []}]
+
+Get the first and third elements of the array (note that the returned array
+is compressed to only 2 cells, but the ordering of the source array is
+maintained):
+
+.. code-block:: python
+    :emphasize-lines: 11
+
+    In [35]: ws.get_object_subset(
+                 [{'workspace': 'MyWorkspace',
+                   'name': 'subsetexample',
+                   'included': ['/array/2', '/array/0']
+                   }
+                  ])
+    Out[35]: 
+    [{u'copy_source_inaccessible': 0,
+      u'created': u'2015-12-16T04:04:59+0000',
+      u'creator': u'kbasetest',
+      u'data': {u'array': [{u'id': u'id1', u'stuff': u'foo'},
+        {u'id': u'id3', u'stuff': u'baz'}]},
+      u'extracted_ids': {},
+      u'info': [1,
+       u'subsetexample',
+       u'SubSetExample.SubSetExample-1.0',
+       u'2015-12-16T04:04:59+0000',
+       2,
+       u'kbasetest',
+       13,
+       u'MyWorkspace',
+       u'24cd918528461efcb9d6f6a02c3a7965',
+       168,
+       {}],
+      u'provenance': [],
+      u'refs': []}]
+
+The previous two calls can be used to find and fetch portions of an array.
+First fetch the parts of the subdocuments to be used to determine which
+portions of the array are desired, and next fetch the array subdocuments of
+interest based on processing the first query. This approach may or may not
+be faster than fetching the entire array, so the user should test their
+particular use case.
