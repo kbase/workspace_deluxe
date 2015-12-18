@@ -7,6 +7,8 @@ in the workspace, with a focus on saving objects (see
 a functional client is available (see :ref:`buildinitclient`). The examples
 use the Python client, but translating to other clients is trivial.
 
+.. _saveobjects:
+
 Save an object
 --------------
 
@@ -359,6 +361,8 @@ of permissions or deletion state, as long as the user has access to the
 referring object. The philosophy behind this permanent access is that a data
 object is useless without provenance, as described above, and dependencies,
 as described below.
+
+.. _saveobjectwithrefs:
 
 Save an object with dependency references
 -----------------------------------------
