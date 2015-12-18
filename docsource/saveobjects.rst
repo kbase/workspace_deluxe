@@ -7,6 +7,11 @@ in the workspace, with a focus on saving objects (see
 a functional client is available (see :ref:`buildinitclient`). The examples
 use the Python client, but translating to other clients is trivial.
 
+.. warning::
+   Objects saved to the WSS cannot contain binary data anywhere within
+   their hierarchy. Binary data must be endoded (e.g. via Base64) prior to
+   saving to the WSS.
+
 .. _saveobjects:
 
 Save an object
