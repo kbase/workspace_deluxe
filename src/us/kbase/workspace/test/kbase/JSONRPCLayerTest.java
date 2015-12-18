@@ -347,6 +347,42 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void permissionsWithNoCreds() throws Exception {
+		/* Tests the case for getting permissions for a workspace without
+		 * supplying credentials.
+		 */
+		final WorkspaceIdentity privWS = new WorkspaceIdentity()
+				.withWorkspace("PnoCpriv");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("PnoCpriv"));
+		final WorkspaceIdentity globWS = new WorkspaceIdentity()
+				.withWorkspace("PnoCglob");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("PnoCglob").withGlobalread("r"));
+		
+		Map<String, String> expected1 = new HashMap<String, String>();
+		Map<String, String> res = CLIENT_NO_AUTH.getPermissions(privWS);
+		
+		assertThat("No perms for private WS", res, is(expected1));
+		
+		Map<String, String> expected2 = new HashMap<String, String>();
+		expected2.put(STARUSER, "r");
+		res = CLIENT_NO_AUTH.getPermissions(globWS);
+
+		assertThat("Read perm for global WS", res, is(expected2));
+		
+		WorkspacePermissions wpres = CLIENT_NO_AUTH.getPermissionsMass(
+				new GetPermissionsMassParams().withWorkspaces(
+						Arrays.asList(privWS, globWS)));
+		
+		assertThat("Mass perms correct for user w/o creds", wpres.getPerms(),
+				is(Arrays.asList(expected1, expected2)));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("PnoCglob").withNewPermission("n"));
+	}
+	
+	@Test
 	public void badIdent() throws Exception {
 		try {
 			CLIENT1.getPermissions(new WorkspaceIdentity());
