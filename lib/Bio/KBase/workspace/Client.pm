@@ -39,16 +39,6 @@ Interface Description Language (KIDL). It has the following primary features:
 - Sharing workspaces with specific KBase users or the world
 - Freezing and publishing workspaces
 
-Size limits:
-TOs are limited to 1GB
-TO subdata is limited to 15MB
-TO provenance is limited to 1MB
-User provided metadata for workspaces and objects is limited to 16kB
-
-NOTE ON BINARY DATA:
-All binary data must be hex encoded prior to storage in a workspace. 
-Attempting to send binary data via a workspace client will cause errors.
-
 
 =cut
 
@@ -1350,7 +1340,7 @@ sub get_permissions_mass
 {
     my($self, @args) = @_;
 
-# Authentication: required
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -1445,7 +1435,7 @@ sub get_permissions
 {
     my($self, @args) = @_;
 
-# Authentication: required
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
