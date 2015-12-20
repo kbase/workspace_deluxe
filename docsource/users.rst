@@ -1,4 +1,4 @@
-User Documentation
+User documentation
 ==================
 
 .. toctree::
@@ -13,6 +13,7 @@ User Documentation
    saveobjects
    getobjectsubdata
    traversereferences
+   lockpublish
    shockintegration
    limits
    scripts

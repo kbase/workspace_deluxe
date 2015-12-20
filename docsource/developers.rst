@@ -1,4 +1,4 @@
-Developer Documentation
+Developer documentation
 =======================
 
 Contributions and branches

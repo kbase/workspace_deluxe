@@ -1,4 +1,4 @@
-Known User-facing Bugs
+Known user-facing bugs
 ======================
 
 * When filtering ``list_objects`` output, deleted, hidden and early versions of

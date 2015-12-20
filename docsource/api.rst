@@ -1,6 +1,6 @@
 .. _apidocs:
 
-Workspace API Documentation
+Workspace API documentation
 ===========================
 
 * `KIDL <./workspace.spec>`_

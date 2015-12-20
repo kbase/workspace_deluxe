@@ -1,6 +1,6 @@
 .. _limits:
 
-Workspace Limits
+Workspace limits
 ================
 
 This document provides a list of limits of the WSS.

@@ -1,4 +1,4 @@
-Administration Interface
+Administration interface
 ========================
 
 This document describes the administration functions available via the
@@ -56,7 +56,7 @@ Reject module ownership request::
 
     wsadmin.administer({'command': 'denyModRequest', 'module': 'KBaseLolCats'})
 
-Managing Workspaces
+Managing workspaces
 -------------------
 
 Change the owner of a workspace:
@@ -102,7 +102,7 @@ List all workspace owners::
      u'yetanotheruser',
      u'jkbaumohl']
 
-General Workspace Commands
+General workspace commands
 --------------------------
 
 The ``administer`` interface allows running normal WSS API methods while

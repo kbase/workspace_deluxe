@@ -1,4 +1,4 @@
-Build Documentation
+Build documentation
 ===================
 
 This documentation assumes the documentation build occurs on Ubuntu 12.04LTS,

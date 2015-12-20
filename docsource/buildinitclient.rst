@@ -1,6 +1,6 @@
 .. _buildinitclient:
 
-Build and Initialize the Workspace Client
+Build and initialize the workspace client
 =========================================
 
 This documentation describes how to build and initialize the workspace clients.

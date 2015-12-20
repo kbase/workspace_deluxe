@@ -1,6 +1,6 @@
 .. _scripts:
 
-Workspace Scripts
+Workspace scripts
 =================
 
 .. todo::

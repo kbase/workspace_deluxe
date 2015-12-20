@@ -1,4 +1,4 @@
-Known Administration Bugs
+Known administration bugs
 =========================
 
 * The WSS occasionally fails to start after a redeploy without restarting

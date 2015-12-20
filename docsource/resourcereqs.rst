@@ -1,4 +1,4 @@
-Workspace Resource Requirements
+Workspace resource requirements
 ===============================
 
 Several configuration variables define resources which are assigned to the

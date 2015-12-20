@@ -8,6 +8,8 @@ demonstrate some of the most common operations on workspaces (see
 a functional client is available (see :ref:`buildinitclient`). The examples
 use the Python client, but translating to other clients is trivial.
 
+.. _createworkspaces:
+
 Creating workspaces
 -------------------
 

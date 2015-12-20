@@ -1,6 +1,6 @@
 .. _typedobjects:
 
-Workspace Typed Objects
+Workspace typed objects
 =======================
 
 The Workspace Service (WSS) provides storage, sharing, versioning, validation
@@ -8,7 +8,7 @@ and provenance tracking of typed object (TO) data.  This document describes
 basic information for developers who need to define and register TOs for use
 with the WSS.
 
-Typed Object Basics
+Typed object basics
 -------------------
 
 TOs in the WSS are hierarchical data objects that conform to type
@@ -29,7 +29,7 @@ generally in the format ``ModuleName.TypeName``.
 
 .. _typedobjectregandver:
 
-Typed Object Registration & Versioning
+Typed object registration & versioning
 --------------------------------------
 
 TO definitions must be registered with the WSS before instances of the TOs can
@@ -90,7 +90,7 @@ that are released. Owners of a module can list all versions of TOs
 in modules that they own.
 
 
-Typed Object Validation
+Typed object validation
 -----------------------
 
 Instances of TOs can be validated against type definitions registered with the
@@ -130,7 +130,7 @@ available in the
 
 .. _typedobjectannotations:
 
-Typed Object Annotations
+Typed object annotations
 ------------------------
 
 Annotations provide an infrastructure for attaching structured meta data to
@@ -162,10 +162,10 @@ annotation::
     } MyExperimentData;
 
 
-Currently Supported Type Definition Annotations
+Currently supported type definition annotations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Optional Annotation
+Optional annotation
 """""""""""""""""""
 Mark a specific field of a structure as an optional field.  The optional
 annotation can only be declared where a structure is first defined.  On
@@ -190,7 +190,7 @@ structure are optional.::
 
 .. _idannotations:
 
-ID Annotations
+ID annotations
 """"""""""""""
 Mark a string as an ID that references another object or entity. ID annotations
 can only be associated to type definitions which resolve to a string. ID
@@ -266,7 +266,7 @@ allow users to automatically extract external IDs from typed objects.
 ``[SOURCE]`` provides an optional way to specify the external source.
 Currently there is no standard dictionary of sources.
 
-Deprecated Annotation
+Deprecated annotation
 """""""""""""""""""""
 ::
 
@@ -279,7 +279,7 @@ but may be used by the Workspace in the future to better display, list, or
 query workspace objects (e.g. list all objects of a type that is not
 deprecated).
 
-Range Annotation
+Range annotation
 """"""""""""""""
 ::
 
@@ -317,7 +317,7 @@ Example specification::
     */
     typedef int my_int;
     
-Metadata Annotation
+Metadata annotation
 """""""""""""""""""
 ::
 
@@ -666,6 +666,3 @@ the latest version.::
     LATEST VERSION: MyModule.ValueSet-2.0
     DESCRIPTION:
     this typed object stores a set of values
-
-
-

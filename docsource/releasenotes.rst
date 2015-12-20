@@ -1,4 +1,4 @@
-Workspace Service Release Notes
+Workspace service release notes
 ===============================
 
 VERSION: 0.3.6 (Released TBD)

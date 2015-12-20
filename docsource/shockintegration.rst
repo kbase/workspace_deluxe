@@ -1,6 +1,6 @@
 .. _shockintegration:
 
-Shock integration with the Workspace Service
+Shock integration with the workspace service
 ============================================
 
 Overview

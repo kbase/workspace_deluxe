@@ -1,6 +1,6 @@
 .. _buildconfigdeploy:
 
-Build, Configure, and Deploy
+Build, configure, and deploy
 ============================
 
 These instructions assume the reader is familiar with the process of deploying
@@ -16,7 +16,7 @@ address the scripts. Building outside the ``dev_container`` means the Makefile
 uses several default values for deployment - if you wish to use other values
 deploy from the ``dev_container`` as usual.
 
-Build the Workspace Service
+Build the workspace service
 ---------------------------
 
 First checkout the ``dev_container``::
@@ -79,7 +79,7 @@ necessary::
 
 .. _servicedeps:
 
-Service Dependencies
+Service dependencies
 --------------------
 
 The WSS requires `MongoDB <https://mongodb.org>`_ 2.4+ to run. The workspace
@@ -116,7 +116,7 @@ MongoDB database itself and is set once by the configuration script (see
 
 .. _configurationparameters:
 
-Configuration Parameters
+Configuration parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 mongodb-host
@@ -256,7 +256,7 @@ for a request, in order of precedence, is 1) the first address in
 
 .. _configurationscript:
 
-Configuration Script
+Configuration script
 ^^^^^^^^^^^^^^^^^^^^
 
 Before starting the WSS for the first time, the database must be configured

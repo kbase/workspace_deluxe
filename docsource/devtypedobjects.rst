@@ -1,4 +1,4 @@
-Developing Typed Object Definitions
+Developing typed object definitions
 ===================================
 
 Providing a comprehensive guide for developing type specifications (typespecs)
@@ -28,7 +28,7 @@ TO size and composition
   Objects like this (for example DNA sequence or raw FASTA files) might be
   candidates for storage in `Shock <https://github.com/kbase/shock_service>`_.
 
-Very Large Objects
+Very large objects
 ------------------
 
 * Although in general, one larger object is better than many smaller objects,

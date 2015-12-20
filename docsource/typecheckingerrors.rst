@@ -1,4 +1,4 @@
-Type Checking Error Messages
+Type checking error messages
 ============================
 
 This document provides explanations of several common type checking errors
