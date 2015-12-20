@@ -114,6 +114,19 @@ invocation of the workspace service. The second is contained in the workspace
 MongoDB database itself and is set once by the configuration script (see
 :ref:`configurationscript`).
 
+.. warning::
+   ``deploy.cfg`` contains several sets of credentials, and thus should be
+   protected like any other file containing unencryted passwords. It is especially important to protect the
+   password that the WSS uses to talk to Shock (``backend-secret``) as if
+   access to that account is lost, the new account owner has access to all
+   the workspace object data, and recovery will be extremely time consuming
+   (use shock admin account to change all the acls for every WSS owned object
+   to the new account). At minimum, only the user that runs the WSS (which
+   should **not** be ``root``) should have read access to ``deploy.cfg``. Also be
+   aware that the ``deploy.cfg`` contents are copied to, by default,
+   ``/kb/deployment/deployment.cfg`` when the workspace is deployed from the
+   ``dev_container``.
+
 .. _configurationparameters:
 
 Configuration parameters
