@@ -1,3 +1,5 @@
+.. _objects:
+
 Objects
 =======
 
@@ -202,11 +204,6 @@ objects:
 Save an object with provenance
 ------------------------------
 
-Establishing data provenance is required for usable data and repeatable
-science. Without provenance data for a data object, said object might as well
-have been made from the whole cloth. Reproducing the data is impossible, and
-it is impossible to judge the data's reliability.
-
 Provenance data may be saved along with the object data as a list of 
 provenance actions (PAs). Each PA represents a step taken to convert a data
 unit into another - for example, passing a genome sequence to a server
@@ -360,34 +357,10 @@ Saving provenance with objects is optional, but strongly encouraged.
    objects to ensure accurate and complete provenance. Clearly the provenance
    in the examples above is fradulent.
    
-Provenance references, along with dependency references (see below), have
-another special property - they guarantee access to the referent, regardless
-of permissions or deletion state, as long as the user has access to the
-referring object. The philosophy behind this permanent access is that a data
-object is useless without provenance, as described above, and dependencies,
-as described below.
-
 .. _saveobjectwithrefs:
 
 Save an object with dependency references
 -----------------------------------------
-
-A dependency reference is a reference that implies an object is dependent on
-another object to function - a Genome on a ContigSet, for example. Dependency
-references are embedded in the object itself and are called out in the type
-specification. They can thus be required, if desired, and an object without
-such a dependency reference will fail to save.
-
-In contrast, a provenance reference implies that an object was produced
-from another object. These are not called out in the type specification and are
-not embedded in the object.
-
-An application or user needs the object referred to in a dependency reference
-to compute on the referencing object; they do not need any provenance
-references. A dependent object may or may not be part of the referring object's
-provenance - for example a Genome and ContigSet could be produced at the same
-time from a GenBank file and so the ContigSet would not be part of the
-Genome's provenance. Rather, they would share the same provenance.
 
 The following types will be used to demonstrate saving objects with
 dependency references:
