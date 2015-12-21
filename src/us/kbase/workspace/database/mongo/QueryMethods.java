@@ -27,26 +27,72 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
+	//TODO unit tests
+	//TODO javadocs
+	
 	private final DB wsmongo;
 	private final AllUsers allUsers;
 	private final String workspaceCollection;
-	private final String pointerCollection;
+	private final String objectCollection;
 	private final String versionCollection;
 	private final String workspaceACLCollection;
 	
-	QueryMethods(final DB wsmongo, final AllUsers allUsers,
-			final String workspaceCollection, final String pointerCollection,
+	QueryMethods(
+			final DB wsmongo,
+			final AllUsers allUsers,
+			final String workspaceCollection,
+			final String objectCollection,
 			final String versionCollection,
 			final String workspaceACLCollection) {
+		if (wsmongo == null ||
+				allUsers == null ||
+				workspaceCollection == null ||
+				objectCollection == null ||
+				versionCollection == null ||
+				workspaceACLCollection == null) {
+			throw new NullPointerException("No arguments may be null");
+		}
+		if (workspaceCollection.isEmpty() ||
+				objectCollection.isEmpty() ||
+				versionCollection.isEmpty() ||
+				workspaceACLCollection.isEmpty()) {
+			throw new IllegalArgumentException(
+					"No collection names may be empty strings");
+		}
+				
 		this.wsmongo = wsmongo;
 		this.allUsers = allUsers;
 		this.workspaceCollection = workspaceCollection;
-		this.pointerCollection = pointerCollection;
+		this.objectCollection = objectCollection;
 		this.versionCollection = versionCollection;
 		this.workspaceACLCollection = workspaceACLCollection;
 	}
 	
 	
+	DB getDatabase() {
+		return wsmongo;
+	}
+
+	String getWorkspaceCollection() {
+		return workspaceCollection;
+	}
+
+
+	String getObjectCollection() {
+		return objectCollection;
+	}
+
+
+	String getVersionCollection() {
+		return versionCollection;
+	}
+
+
+	String getWorkspaceACLCollection() {
+		return workspaceACLCollection;
+	}
+
+
 	Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -223,7 +269,7 @@ public class QueryMethods {
 		fields.add(Fields.OBJ_NAME);
 		fields.add(Fields.OBJ_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
-				pointerCollection, new BasicDBObject("$or", orquery), fields);
+				objectCollection, new BasicDBObject("$or", orquery), fields);
 
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
