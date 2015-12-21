@@ -406,14 +406,7 @@ public class QueryMethods {
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields) throws
-			WorkspaceCommunicationException {
-		return queryCollection(collection, query, fields, -1, -1);
-	}
-	
-	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields, final int skip,
-			final int limit)
+			final DBObject query, final Set<String> fields)
 			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		for (final String field: fields) {
@@ -424,12 +417,6 @@ public class QueryMethods {
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
-			if (skip > -1) {
-				im.skip(skip);
-			}
-			if (limit > 0) {
-				im.limit(limit);
-			}
 			for (final DBObject o: im) {
 				result.add(dbObjectToMap(o));
 			}
@@ -441,7 +428,7 @@ public class QueryMethods {
 	}
 	
 	//since LazyBsonObject.toMap() is not supported
-	private Map<String, Object> dbObjectToMap(final DBObject o) {
+	static Map<String, Object> dbObjectToMap(final DBObject o) {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		for (final String name: o.keySet()) {
 			m.put(name, o.get(name));

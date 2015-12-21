@@ -20,7 +20,9 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 
 /** A collection of utility methods mainly for generating ObjectInfomation
  * objects from mongo records.
@@ -63,6 +65,11 @@ public class ObjectInfoUtils {
 		 * recent versions for the remaining objects. For now, just go
 		 * with a dumb general method and add smarter heuristics as needed.
 		 */
+		
+		// if the limit = 1 don't want to keep querying for 1 object
+		// until one is found that's not deleted/hidden/early version
+		final int querysize = params.getLimit() < 100 ? 100 :
+				params.getLimit();
 		final PermissionSet pset = params.getPermissionSet();
 		if (!(pset instanceof MongoPermissionSet)) {
 			throw new IllegalArgumentException(
@@ -72,8 +79,61 @@ public class ObjectInfoUtils {
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
+		final DBObject verq = buildQuery(params);
+		final DBObject projection = buildProjection(params);
+		final List<ObjectInformation> ret =
+				new LinkedList<ObjectInformation>();
+		
+
+		//TODO LO should continue getting objects until ret.size() == limit or
+		// no more objects
+		//TODO LO add tests to ensure 
+		//querying on versions directly so no need to worry about race 
+		//condition where the workspace object was saved but no versions
+		//were saved yet
+		final List<Map<String, Object>> verobjs =
+				new ArrayList<Map<String,Object>>();
+		try {
+			final DBCursor im = query.getDatabase().getCollection(
+					query.getVersionCollection())
+					.find(verq, projection);
+			//TODO skip is deprecated, remove when possible
+			if (params.getSkip() > -1) {
+				im.skip(params.getSkip());
+			}
+			im.limit(params.getLimit()); //always > 0
+			for (final DBObject o: im) {
+				verobjs.add(QueryMethods.dbObjectToMap(o));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		if (verobjs.isEmpty()) {
+			return new LinkedList<ObjectInformation>();
+		}
+		return new LinkedList<ObjectInformation>(generateObjectInfo(
+				pset, verobjs, params.isShowHidden(), params.isShowDeleted(),
+				params.isShowOnlyDeleted(), params.isShowAllVersions())
+				.values());
+	}
+
+	private DBObject buildProjection(
+			final GetObjectInformationParameters params) {
+		final DBObject projection = new BasicDBObject();
+		for (final String field: FLDS_LIST_OBJ_VER) {
+			projection.put(field, 1);
+		}
+		if (params.isIncludeMetaData()) {
+			projection.put(Fields.VER_META, 1);
+		}
+		return projection;
+	}
+
+	private DBObject buildQuery(final GetObjectInformationParameters params) {
 		final Set<Long> ids = new HashSet<Long>();
-		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
+		for (final ResolvedWorkspaceID rwsi:
+				params.getPermissionSet().getWorkspaces()) {
 			ids.add(rwsi.getID());
 		}
 		final DBObject verq = new BasicDBObject();
@@ -107,27 +167,7 @@ public class ObjectInfoUtils {
 			}
 			verq.put(Fields.VER_SAVEDATE, d);
 		}
-		final Set<String> fields;
-		if (params.isIncludeMetaData()) {
-			fields = new HashSet<String>(FLDS_LIST_OBJ_VER);
-			fields.add(Fields.VER_META);
-		} else {
-			fields = FLDS_LIST_OBJ_VER;
-		}
-		//querying on versions directly so no need to worry about race 
-		//condition where the workspace object was saved but no versions
-		//were saved yet
-		//TODO LO Don't use query here eventually
-		final List<Map<String, Object>> verobjs = query.queryCollection(
-				query.getVersionCollection(), verq, fields,
-				params.getSkip(), params.getLimit());
-		if (verobjs.isEmpty()) {
-			return new LinkedList<ObjectInformation>();
-		}
-		return new LinkedList<ObjectInformation>(generateObjectInfo(
-				pset, verobjs, params.isShowHidden(), params.isShowDeleted(),
-				params.isShowOnlyDeleted(), params.isShowAllVersions())
-				.values());
+		return verq;
 	}
 	
 	Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
