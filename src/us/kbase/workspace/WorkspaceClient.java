@@ -33,14 +33,6 @@ import us.kbase.common.service.UnauthorizedException;
  * - Collecting typed objects into a workspace
  * - Sharing workspaces with specific KBase users or the world
  * - Freezing and publishing workspaces
- * Size limits:
- * TOs are limited to 1GB
- * TO subdata is limited to 15MB
- * TO provenance is limited to 1MB
- * User provided metadata for workspaces and objects is limited to 16kB
- * NOTE ON BINARY DATA:
- * All binary data must be hex encoded prior to storage in a workspace. 
- * Attempting to send binary data via a workspace client will cause errors.
  * </pre>
  */
 public class WorkspaceClient {
@@ -408,7 +400,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mass);
         TypeReference<List<WorkspacePermissions>> retType = new TypeReference<List<WorkspacePermissions>>() {};
-        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, true);
+        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false);
         return res.get(0);
     }
 
@@ -426,7 +418,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, true);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false);
         return res.get(0);
     }
 

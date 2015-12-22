@@ -618,8 +618,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("got correct mass permissions", got, is(exp));
 		ws.setGlobalPermission(CUSER, wigr, Permission.NONE);
 		
-		failGetPermissions(null, wsis, new NullPointerException(
-				"User cannot be null"));
 		failGetPermissions(AUSER, null, new NullPointerException(
 				"wslist cannot be null"));
 		
@@ -806,7 +804,34 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		ws.setGlobalPermission(AUSER, new WorkspaceIdentifier("perms_global"), Permission.NONE);
 	}
+	
+	@Test
+	public void permissionsWithNoUser() throws Exception {
+		/* Tests the case that no user credentials are supplied and thus the
+		 * user is null. Only globally readable workspaces should return
+		 * permissions other than NONE.
+		 */
 		
+		WorkspaceIdentifier wsiNG = new WorkspaceIdentifier("PnoU_noglobal");
+		ws.createWorkspace(AUSER, "PnoU_noglobal", false, null, null);
+		WorkspaceIdentifier wsiGL = new WorkspaceIdentifier("PnoU_global");
+		ws.createWorkspace(AUSER, "PnoU_global", true, "globaldesc", null);
+		
+		Map<User, Permission> expect = new HashMap<User, Permission>();
+		
+		assertThat("No permissions for private WS",
+				ws.getPermissions(null, Arrays.asList(wsiNG)).get(0),
+				is(expect));
+		
+		expect.put(STARUSER, Permission.READ);
+		
+		assertThat("Read permissions for public WS",
+				ws.getPermissions(null, Arrays.asList(wsiGL)).get(0),
+				is(expect));
+		
+		ws.setGlobalPermission(AUSER, wsiGL, Permission.NONE);
+	}
+	
 	@Test
 	public void saveObjectsAndGetMetaSimple() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");

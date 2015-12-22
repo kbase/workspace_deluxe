@@ -13,16 +13,6 @@ Interface Description Language (KIDL). It has the following primary features:
 - Sharing workspaces with specific KBase users or the world
 - Freezing and publishing workspaces
 
-Size limits:
-TOs are limited to 1GB
-TO subdata is limited to 15MB
-TO provenance is limited to 1MB
-User provided metadata for workspaces and objects is limited to 16kB
-
-NOTE ON BINARY DATA:
-All binary data must be hex encoded prior to storage in a workspace. 
-Attempting to send binary data via a workspace client will cause errors.
-
 */
 module Workspace {
 	
@@ -418,9 +408,7 @@ module Workspace {
 	/*
 		Returns the version of the workspace service.
 	*/
-	funcdef ver() returns(string ver);
-
-	 authentication required;
+	funcdef ver() returns(string ver) authentication none;
 
 	/* Input parameters for the "create_workspace" function.
 	
@@ -446,7 +434,7 @@ module Workspace {
 		Creates a new workspace.
 	*/
 	funcdef create_workspace(CreateWorkspaceParams params) returns
-		(workspace_info info);
+		(workspace_info info) authentication required;
 	
 	/* Input parameters for the "alter_workspace_metadata" function.
 		
@@ -469,7 +457,7 @@ module Workspace {
 		Change the metadata associated with a workspace.
 	*/
 	funcdef alter_workspace_metadata(AlterWorkspaceMetadataParams params)
-		returns();
+		returns() authentication required;
 	
 	/* Input parameters for the "clone_workspace" function.
 	
@@ -501,7 +489,7 @@ module Workspace {
 		Clones a workspace.
 	*/
 	funcdef clone_workspace(CloneWorkspaceParams params) returns
-		(workspace_info info);
+		(workspace_info info) authentication required;
 	
 	/* Lock a workspace, preventing further changes.
 	
@@ -513,9 +501,8 @@ module Workspace {
 		thus permanently publishing the workspace. A locked, globally readable
 		workspace cannot be made private.
 	*/
-	funcdef lock_workspace(WorkspaceIdentity wsi) returns(workspace_info info);
-	
-	authentication optional;
+	funcdef lock_workspace(WorkspaceIdentity wsi) returns(workspace_info info)
+		authentication required;
 	
 	/* Input parameters for the "get_workspacemeta" function. Provided for
 		backwards compatibility.
@@ -544,21 +531,19 @@ module Workspace {
 		@deprecated Workspace.get_workspace_info
 	*/
 	funcdef get_workspacemeta(get_workspacemeta_params params) 
-		returns(workspace_metadata metadata);
+		returns(workspace_metadata metadata) authentication optional;
 	
 	/*
 		Get information associated with a workspace.
 	*/
 	funcdef get_workspace_info(WorkspaceIdentity wsi)
-		returns (workspace_info info);
+		returns (workspace_info info) authentication optional;
 	
 	/* 
 		Get a workspace's description.
 	*/
 	funcdef get_workspace_description(WorkspaceIdentity wsi)
-		returns (string description);
-	
-	authentication required;
+		returns (string description) authentication optional;
 	
 	/* Input parameters for the "set_permissions" function.
 	
@@ -581,7 +566,8 @@ module Workspace {
 	/* 
 		Set permissions for a workspace.
 	*/
-	funcdef set_permissions(SetPermissionsParams params) returns ();
+	funcdef set_permissions(SetPermissionsParams params) returns()
+		authentication required;
 	
 	/* Input parameters for the "set_global_permission" function.
 	
@@ -605,7 +591,8 @@ module Workspace {
 	/* 
 		Set the global permission for a workspace.
 	*/
-	funcdef set_global_permission(SetGlobalPermissionsParams params) returns ();
+	funcdef set_global_permission(SetGlobalPermissionsParams params) returns()
+		authentication required;
 	
 	/* Input parameters for the "set_workspace_description" function.
 	
@@ -629,7 +616,7 @@ module Workspace {
 		Set the description for a workspace.
 	*/
 	funcdef set_workspace_description(SetWorkspaceDescriptionParams params)
-		returns ();
+		returns() authentication required;
 	
 	/* Input parameters for the "get_permissions_mass" function.
 		workspaces - the workspaces for which to return the permissions,
@@ -651,13 +638,13 @@ module Workspace {
 		Get permissions for multiple workspaces.
 	*/
 	funcdef get_permissions_mass(GetPermissionsMassParams mass)
-		returns(WorkspacePermissions perms);
+		returns(WorkspacePermissions perms) authentication optional;
 	
 	/* 
 		Get permissions for a workspace.
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
-		(mapping<username, permission> perms);
+		(mapping<username, permission> perms) authentication optional;
 	
 	/* Input parameters for the "save_object" function. Provided for backwards
 		compatibility.
@@ -757,9 +744,7 @@ module Workspace {
 		it.
 	*/
 	funcdef save_objects(SaveObjectsParams params)
-		returns (list<object_info> info);
-	
-	authentication optional;
+		returns (list<object_info> info) authentication required;
 	
 	/* Input parameters for the "get_object" function. Provided for backwards
 		compatibility.
@@ -806,7 +791,7 @@ module Workspace {
 		@deprecated Workspace.get_objects
 	*/
 	funcdef get_object(get_object_params params)
-		returns (get_object_output output);	
+		returns (get_object_output output) authentication optional;
 	
 	/* The provenance and supplemental info for an object.
 	
@@ -846,7 +831,7 @@ module Workspace {
 		Get object provenance from the workspace.
 	*/
 	funcdef get_object_provenance(list<ObjectIdentity> object_ids)
-		returns (list<ObjectProvenanceInfo> data);
+		returns (list<ObjectProvenanceInfo> data) authentication optional;
 	
 	/* The data and supplemental info for an object.
 	
@@ -889,7 +874,7 @@ module Workspace {
 		Get objects from the workspace.
 	*/
 	funcdef get_objects(list<ObjectIdentity> object_ids)
-		returns (list<ObjectData> data);
+		returns (list<ObjectData> data) authentication optional;
 		
 	/* 
 		Get portions of objects from the workspace.
@@ -907,21 +892,21 @@ module Workspace {
 		original array.
 	*/
 	funcdef get_object_subset(list<SubObjectIdentity> sub_object_ids)
-		returns (list<ObjectData> data);
+		returns (list<ObjectData> data) authentication optional;
 		
 	/* 
 		Get an object's history. The version argument of the ObjectIdentity is
 		ignored.
 	*/
 	funcdef get_object_history(ObjectIdentity object)
-		 returns (list<object_info> history);
+		 returns (list<object_info> history) authentication optional;
 	
 	/* 
 		List objects that reference one or more specified objects. References
 		in the deleted state are not returned.
 	*/
 	funcdef list_referencing_objects(list<ObjectIdentity> object_ids)
-		returns (list<list<object_info>> referrers);
+		returns (list<list<object_info>> referrers) authentication optional;
 		
 	/* 
 		List the number of times objects have been referenced.
@@ -931,7 +916,7 @@ module Workspace {
 		inaccessible to the user.
 	*/
 	funcdef list_referencing_object_counts(list<ObjectIdentity> object_ids)
-		returns (list<int> counts);
+		returns (list<int> counts) authentication optional;
 	
 	/* Get objects by references from other objects.
 	
@@ -950,7 +935,7 @@ module Workspace {
 	
 	*/
 	funcdef get_referenced_objects(list<ref_chain> ref_chains)
-		returns (list<ObjectData> data);
+		returns (list<ObjectData> data) authentication optional;
 		
 	/* 
 		Input parameters for the "list_workspaces" function. Provided for
@@ -978,7 +963,7 @@ module Workspace {
 		@deprecated Workspace.list_workspace_info
 	*/
 	funcdef list_workspaces(list_workspaces_params params)
-		returns (list<workspace_metadata> workspaces);
+		returns (list<workspace_metadata> workspaces) authentication optional;
 	
 	/* 
 		Input parameters for the "list_workspace_info" function.
@@ -1018,7 +1003,7 @@ module Workspace {
 		List workspaces viewable by the user.
 	 */
 	funcdef list_workspace_info(ListWorkspaceInfoParams params)
-		returns(list<workspace_info> wsinfo);
+		returns(list<workspace_info> wsinfo) authentication optional;
 	
 	/* Input parameters for the "list_workspace_objects" function. Provided
 		for backwards compatibility.
@@ -1053,7 +1038,7 @@ module Workspace {
 		@deprecated Workspace.list_objects
 	*/
 	funcdef list_workspace_objects(list_workspace_objects_params params)
-		returns(list<object_metadata> objects);
+		returns(list<object_metadata> objects) authentication optional;
 	
 	/* Parameters for the 'list_objects' function.
 
@@ -1128,7 +1113,7 @@ module Workspace {
 		List objects in one or more workspaces.
 	*/
 	funcdef list_objects(ListObjectsParams params)
-		returns(list<object_info> objinfo);
+		returns(list<object_info> objinfo) authentication optional;
 	
 	/* Input parameters for the "get_objectmeta" function.
 	
@@ -1161,7 +1146,7 @@ module Workspace {
 		@deprecated Workspace.get_object_info
 	*/
 	funcdef get_objectmeta(get_objectmeta_params params) 
-		returns(object_metadata metadata); 
+		returns(object_metadata metadata) authentication optional; 
 	
 	/* 
 		Get information about objects from the workspace.
@@ -1175,7 +1160,8 @@ module Workspace {
 		@deprecated Workspace.get_object_info_new
 	*/
 	funcdef get_object_info(list<ObjectIdentity> object_ids,
-		boolean includeMetadata) returns (list<object_info> info);
+		boolean includeMetadata) returns (list<object_info> info)
+		authentication optional;
 	
 	/* Input parameters for the "get_object_info_new" function.
 	
@@ -1202,9 +1188,7 @@ module Workspace {
 		
 	*/
 	funcdef get_object_info_new(GetObjectInfoNewParams params)
-		returns (list<object_info> info);
-	
-	authentication required;
+		returns (list<object_info> info) authentication optional;
 	
 	/* Input parameters for the 'rename_workspace' function.
 		
@@ -1221,7 +1205,7 @@ module Workspace {
 		Rename a workspace.
 	*/
 	funcdef rename_workspace(RenameWorkspaceParams params)
-		returns(workspace_info renamed);
+		returns(workspace_info renamed) authentication required;
 	
 	/* Input parameters for the 'rename_object' function.
 		
@@ -1238,7 +1222,7 @@ module Workspace {
 		Rename an object. User meta data is always returned as null.
 	*/
 	funcdef rename_object(RenameObjectParams params)
-		returns(object_info renamed);
+		returns(object_info renamed) authentication required;
 		
 	/* Input parameters for the 'copy_object' function. 
 	
@@ -1262,7 +1246,7 @@ module Workspace {
 		Copy an object. Returns the object_info for the newest version.
 	*/
 	funcdef copy_object(CopyObjectParams params)
-		returns(object_info copied);
+		returns(object_info copied) authentication required;
 	
 	/* Revert an object.
 	
@@ -1270,45 +1254,51 @@ module Workspace {
 		specified in the ObjectIdentity. 
 	*/
 	funcdef revert_object(ObjectIdentity object)
-		returns(object_info reverted);
+		returns(object_info reverted) authentication required;
 	
 	/* 
 		Hide objects. All versions of an object are hidden, regardless of
 		the version specified in the ObjectIdentity. Hidden objects do not
 		appear in the list_objects method.
 	*/
-	funcdef hide_objects(list<ObjectIdentity> object_ids) returns();
+	funcdef hide_objects(list<ObjectIdentity> object_ids) returns()
+		authentication required;
 	
 	/* 
 		Unhide objects. All versions of an object are unhidden, regardless
 		of the version specified in the ObjectIdentity.
 	*/
-	funcdef unhide_objects(list<ObjectIdentity> object_ids) returns();
+	funcdef unhide_objects(list<ObjectIdentity> object_ids) returns()
+		authentication required;
 	
 	/* 
 		Delete objects. All versions of an object are deleted, regardless of
 		the version specified in the ObjectIdentity.
 	*/
-	funcdef delete_objects(list<ObjectIdentity> object_ids) returns();
+	funcdef delete_objects(list<ObjectIdentity> object_ids) returns()
+		authentication required;
 	
 	/* 
 		Undelete objects. All versions of an object are undeleted, regardless
 		of the version specified in the ObjectIdentity. If an object is not
 		deleted, no error is thrown.
 	*/
-	funcdef undelete_objects(list<ObjectIdentity> object_ids) returns();
+	funcdef undelete_objects(list<ObjectIdentity> object_ids) returns()
+		authentication required;
 	
 	/*
 		Delete a workspace. All objects contained in the workspace are deleted.
 	*/
-	funcdef delete_workspace(WorkspaceIdentity wsi) returns();
+	funcdef delete_workspace(WorkspaceIdentity wsi) returns()
+		authentication required;
 	
 	/* 
 		Undelete a workspace. All objects contained in the workspace are
 		undeleted, regardless of their state at the time the workspace was
 		deleted.
 	*/
-	funcdef undelete_workspace(WorkspaceIdentity wsi) returns();
+	funcdef undelete_workspace(WorkspaceIdentity wsi) returns()
+		authentication required;
 	
 	/* **************** Type registering functions ******************** */
 	
@@ -1363,12 +1353,11 @@ module Workspace {
 	/* The JSON Schema (v4) representation of a type definition. */
 	typedef string jsonschema;
 	
-	authentication required;
-	
 	/* Request ownership of a module name. A Workspace administrator
 		must approve the request.
 	*/
-	funcdef request_module_ownership(modulename mod) returns();
+	funcdef request_module_ownership(modulename mod) returns()
+		authentication required;
 	
 	/* Parameters for the register_typespec function.
 	
@@ -1413,7 +1402,7 @@ module Workspace {
 		Also see the release_types function.
 	*/
 	funcdef register_typespec(RegisterTypespecParams params)
-		returns (mapping<type_string,jsonschema>);
+		returns (mapping<type_string,jsonschema>) authentication required;
 	
 	/* Parameters for the register_typespec_copy function.
 	
@@ -1440,7 +1429,7 @@ module Workspace {
 		Also see the release_types function.
 	*/
 	funcdef register_typespec_copy(RegisterTypespecCopyParams params)
-		returns(spec_version new_local_version);
+		returns(spec_version new_local_version) authentication required;
 	
 	/* Release a module for general use of its types.
 		
@@ -1456,9 +1445,8 @@ module Workspace {
 			will be used. This means that newer, unreleased versions of the
 			type may be skipped.
 	*/
-	funcdef release_module(modulename mod) returns(list<type_string> types);
-	
-	authentication none;
+	funcdef release_module(modulename mod) returns(list<type_string> types)
+		authentication required;
 	
 	/* Parameters for the list_modules() function.
 	
@@ -1471,7 +1459,7 @@ module Workspace {
 	
 	/* List typespec modules. */
 	funcdef list_modules(ListModulesParams params)
-		returns(list<modulename> modules);
+		returns(list<modulename> modules) authentication none;
 	
 	/* Parameters for the list_module_versions function.
 	
@@ -1549,15 +1537,18 @@ module Workspace {
 		returns(ModuleInfo info) authentication optional;
 		
 	/* Get JSON schema for a type. */
-	funcdef get_jsonschema(type_string type) returns (jsonschema schema) authentication optional;
+	funcdef get_jsonschema(type_string type) returns(jsonschema schema)
+		authentication optional;
 
 	/* Translation from types qualified with MD5 to their semantic versions */
 	funcdef translate_from_MD5_types(list<type_string> md5_types) 
-		returns(mapping<type_string, list<type_string>> sem_types);
+		returns(mapping<type_string, list<type_string>> sem_types)
+		authentication none;
 
 	/* Translation from types qualified with semantic versions to their MD5'ed versions */
 	funcdef translate_to_MD5_types(list<type_string> sem_types) 
-		returns(mapping<type_string, type_string> md5_types) authentication optional;
+		returns(mapping<type_string, type_string> md5_types)
+		authentication optional;
 
 	/* Information about a type
 	
@@ -1596,9 +1587,11 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} TypeInfo;
 	
-	funcdef get_type_info(type_string type) returns (TypeInfo info) authentication optional;
+	funcdef get_type_info(type_string type) returns(TypeInfo info)
+		authentication optional;
 	
-	funcdef get_all_type_info(modulename mod) returns (list<TypeInfo>) authentication optional;
+	funcdef get_all_type_info(modulename mod) returns(list<TypeInfo>)
+		authentication optional;
 	
 	/* Information about a function
 	
@@ -1630,9 +1623,11 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} FuncInfo;
 	
-	funcdef get_func_info(func_string func) returns (FuncInfo info) authentication optional;
+	funcdef get_func_info(func_string func) returns(FuncInfo info)
+		authentication optional;
 	
-	funcdef get_all_func_info(modulename mod) returns (list<FuncInfo> info) authentication optional;
+	funcdef get_all_func_info(modulename mod) returns(list<FuncInfo> info)
+		authentication optional;
 	
 	/* Parameters for the grant_module_ownership function.
 		
@@ -1655,7 +1650,7 @@ module Workspace {
 		module.
 	*/
 	funcdef grant_module_ownership(GrantModuleOwnershipParams params) 
-		returns () authentication required;
+		returns() authentication required;
 	
 	/* Parameters for the remove_module_ownership function.
 		
@@ -1673,7 +1668,7 @@ module Workspace {
 		on the module.
 	*/
 	funcdef remove_module_ownership(RemoveModuleOwnershipParams params) 
-		returns () authentication required;
+		returns() authentication required;
 	
 	/* Parameters for list_all_types function.
 		

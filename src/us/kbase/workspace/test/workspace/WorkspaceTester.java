@@ -493,7 +493,7 @@ public class WorkspaceTester {
 			Exception e) throws Exception {
 		try {
 			ws.getPermissions(user, wsis);
-			fail("set perms when should fail");
+			fail("get perms when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}

@@ -98,14 +98,6 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  * - Collecting typed objects into a workspace
  * - Sharing workspaces with specific KBase users or the world
  * - Freezing and publishing workspaces
- * Size limits:
- * TOs are limited to 1GB
- * TO subdata is limited to 15MB
- * TO provenance is limited to 1MB
- * User provided metadata for workspaces and objects is limited to 16kB
- * NOTE ON BINARY DATA:
- * All binary data must be hex encoded prior to storage in a workspace. 
- * Attempting to send binary data via a workspace client will cause errors.
  * </pre>
  */
 public class WorkspaceServer extends JsonServerServlet {
@@ -509,7 +501,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   mass   instance of type {@link us.kbase.workspace.GetPermissionsMassParams GetPermissionsMassParams}
      * @return   parameter "perms" of type {@link us.kbase.workspace.WorkspacePermissions WorkspacePermissions}
      */
-    @JsonServerMethod(rpc = "Workspace.get_permissions_mass")
+    @JsonServerMethod(rpc = "Workspace.get_permissions_mass", authOptional=true)
     public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass, AuthToken authPart) throws Exception {
         WorkspacePermissions returnVal = null;
         //BEGIN get_permissions_mass
@@ -528,7 +520,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
      * @return   parameter "perms" of mapping from original type "username" (Login name of a KBase user account.) to original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
      */
-    @JsonServerMethod(rpc = "Workspace.get_permissions")
+    @JsonServerMethod(rpc = "Workspace.get_permissions", authOptional=true)
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
