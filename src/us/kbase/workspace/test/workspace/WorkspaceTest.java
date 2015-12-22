@@ -4714,10 +4714,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 200; i++) {
-			final Map<String, String> meta = new HashMap<String, String>();
-			meta.put("num", "" + (i/10 + 1));
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				meta, new Provenance(user), false));
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 
@@ -4750,10 +4748,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		objs.clear();
 		for (int i = 0; i < 20; i++) {
-			final Map<String, String> meta = new HashMap<String, String>();
-			meta.put("num", "" + (i/10 + 1));
 			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				meta, new Provenance(user), false));
+				null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
@@ -4769,10 +4765,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		objs.clear();
 		for (int i = 21; i < 31; i++) {
-			final Map<String, String> meta = new HashMap<String, String>();
-			meta.put("num", "" + (i/10 + 1));
 			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				meta, new Provenance(user), false));
+				null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
@@ -4786,6 +4780,40 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
 		checkObjectPagination(user, wsi, 13, 30, 14, 30, nums(15, 17));
 		checkObjectPagination(user, wsi, 14, 30, 16, 30, nums(17));
+		
+		wsi = new WorkspaceIdentifier("skiplimit3");
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		objs.clear();
+		for (int i = 1; i < 251; i++) {
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		for (int i = 1; i < 251; i++) {
+			List<ObjectIdentifier> oi =
+					Arrays.asList(new ObjectIdentifier(wsi, i));
+			if (i % 2 == 0) {
+				ws.setObjectsDeleted(user, oi, true);
+			} else {
+				ws.setObjectsHidden(user, oi, true);
+			}
+		}
+		objs.clear();
+		for (int i = 251; i < 301; i++) {
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		//test several rounds of retrieving objects (the minimum # of objects
+		//pulled from mongo at a time is 100
+		checkObjectPagination(user, wsi, 0, 5, 251, 255);
+		checkObjectPagination(user, wsi, 20, 5, 251, 255);
+		checkObjectPagination(user, wsi, 130, 5, 251, 255);
+		checkObjectPagination(user, wsi, 206, 5, 251, 255);
+		checkObjectPagination(user, wsi, 255, 5, 256, 260);
+		checkObjectPagination(user, wsi, 0, 60, 251, 300);
 	}
 	
 	private Set<Long> nums(Integer... nums) {
