@@ -14,19 +14,21 @@ import us.kbase.typedobj.core.TypeDefId;
  */
 public class GetObjectInformationParameters {
 	
-	final PermissionSet pset;
-	final TypeDefId type;
-	final List<WorkspaceUser> savers;
-	final Map<String, String> meta;
-	final Date after;
-	final Date before;
-	final boolean showHidden;
-	final boolean showDeleted;
-	final boolean showOnlyDeleted;
-	final boolean showAllVers;
-	final boolean includeMetaData;
-	final int skip;
-	final int limit;
+	final private PermissionSet pset;
+	final private TypeDefId type;
+	final private List<WorkspaceUser> savers;
+	final private Map<String, String> meta;
+	final private Date after;
+	final private Date before;
+	final private long minObjectID;
+	final private long maxObjectID;
+	final private boolean showHidden;
+	final private boolean showDeleted;
+	final private boolean showOnlyDeleted;
+	final private boolean showAllVers;
+	final private boolean includeMetaData;
+	final private int skip;
+	final private int limit;
 	
 	GetObjectInformationParameters(
 			final PermissionSet pset,
@@ -35,6 +37,8 @@ public class GetObjectInformationParameters {
 			final Map<String, String> meta,
 			final Date after,
 			final Date before,
+			final long minObjectID,
+			final long maxObjectID,
 			final boolean showHidden,
 			final boolean showDeleted,
 			final boolean showOnlyDeleted,
@@ -49,6 +53,8 @@ public class GetObjectInformationParameters {
 		this.meta = meta;
 		this.after = after;
 		this.before = before;
+		this.minObjectID = minObjectID;
+		this.maxObjectID = maxObjectID;
 		this.showHidden = showHidden;
 		this.showDeleted = showDeleted;
 		this.showOnlyDeleted = showOnlyDeleted;
@@ -102,6 +108,20 @@ public class GetObjectInformationParameters {
 	 */
 	public Date getBefore() {
 		return before;
+	}
+
+	/** Get the minimum object ID for objects that should be listed.
+	 * @return the minimum object ID.
+	 */
+	public long getMinObjectID() {
+		return minObjectID;
+	}
+
+	/** Get the maximum object ID for objects that should be listed.
+	 * @return the maxium object ID.
+	 */
+	public long getMaxObjectID() {
+		return maxObjectID;
 	}
 
 	/** Returns whether hidden objects should be listed

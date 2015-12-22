@@ -191,6 +191,17 @@ public class ObjectInfoUtils {
 			}
 			verq.put(Fields.VER_SAVEDATE, d);
 		}
+		if (params.getMinObjectID() > 1 || params.getMaxObjectID() > 0) {
+			final DBObject id = new BasicDBObject();
+			if (params.getMinObjectID() > 1) {
+				id.put("$gte", params.getMinObjectID());
+			}
+			if (params.getMaxObjectID() > 0) {
+				id.put("$lte", params.getMaxObjectID());
+			}
+			verq.put(Fields.VER_ID, id);
+		}
+		
 		return verq;
 	}
 	

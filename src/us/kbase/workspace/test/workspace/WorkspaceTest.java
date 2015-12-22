@@ -4797,6 +4797,58 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void listObjectsFilterByObjectID() throws Exception {
+		/* test filtering list objects results by object ID */
+		WorkspaceUser user = new WorkspaceUser("filterID");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("filterID1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("filterID2");
+		
+		ws.createWorkspace(user, wsi1.getName(), false, null, null);
+		ws.createWorkspace(user, wsi2.getName(), false, null, null);
+		
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		for (int i = 0; i < 10; i++) {
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi1, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi2, objs, new IdReferenceHandlerSetFactory(0));
+		
+		checkObjectFilter(user, Arrays.asList(wsi1, wsi2), -1L, -1L, 1, 10);
+		checkObjectFilter(user, Arrays.asList(wsi1, wsi2), 1L, 11L, 1, 10);
+		checkObjectFilter(user, Arrays.asList(wsi1, wsi2), 2L, 9L, 2, 9);
+		checkObjectFilter(user, Arrays.asList(wsi1), 2L, 9L, 2, 9);
+		checkObjectFilter(user, Arrays.asList(wsi1), 2L, 100L, 2, 10);
+		checkObjectFilter(user, Arrays.asList(wsi1), -100L, 1L, 1, 1);
+		checkObjectFilter(user, Arrays.asList(wsi1), 3L, 3L, 3, 3);
+		checkObjectFilter(user, Arrays.asList(wsi1), 10L, 100L, 10, 10);
+		checkObjectFilter(user, Arrays.asList(wsi1), 10L, -1L, 10, 10);
+	}
+	
+	private void checkObjectFilter(
+			WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis,
+			long minObjectID,
+			long maxObjectID,
+			int minIDexpected,
+			int maxIDexpected) 
+			throws Exception {
+		
+		List<ObjectInformation> res = ws.listObjects(
+				new ListObjectsParameters(user, wsis)
+				.withMinObjectID(minObjectID).withMaxObjectID(maxObjectID));
+		assertThat("correct number of objects returned", res.size(),
+				is(wsis.size() * (maxIDexpected - minIDexpected + 1)));
+		for (ObjectInformation oi: res) {
+			if (oi.getObjectId() < minIDexpected ||
+					oi.getObjectId() > maxIDexpected) {
+				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
+						oi.getObjectId(), minIDexpected, maxIDexpected));
+			}
+		}
+	}
+
+	@Test
 	public void getObjectSubdata() throws Exception {
 		/* note most tests are performed at the same time as getObjects, so
 		 * only issues specific to subsets are tested here
