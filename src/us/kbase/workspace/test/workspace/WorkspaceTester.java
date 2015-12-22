@@ -1236,17 +1236,31 @@ public class WorkspaceTester {
 		
 	}
 	
+	/* depends on inherent mongo ordering */
 	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
-			int skip, int limit, int minid, int maxid) 
+			int skip, int limit, int minid, int maxid)
+			throws Exception {
+		checkObjectPagination(user, wsi, skip, limit, minid, maxid,
+				new HashSet<Long>());
+	}
+	
+	/* depends on inherent mongo ordering */
+	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
+			int skip, int limit, int minid, int maxid, Set<Long> exlude) 
 			throws Exception {
 		List<ObjectInformation> res = ws.listObjects(
 				new ListObjectsParameters(user, Arrays.asList(wsi))
 				.withSkip(skip).withLimit(limit));
-		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
+		assertThat("correct number of objects returned", res.size(),
+				is(maxid - minid + 1 - exlude.size()));
 		for (ObjectInformation oi: res) {
 			if (oi.getObjectId() < minid || oi.getObjectId() > maxid) {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getObjectId(), minid, maxid));
+			}
+			if (exlude.contains(oi.getObjectId())) {
+				fail("Got object ID that should have been exluded: "
+						+ oi.getObjectId());
 			}
 		}
 	}

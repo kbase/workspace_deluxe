@@ -4698,7 +4698,102 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectInfo(ws.listObjects(lop.withAfter(new Date(o2.getSavedDate().getTime() -1))
 				.withBefore(o5.getSavedDate())),
 				Arrays.asList(o2, o3, o4));
+	}
+	
+	@Test
+	public void listObjectsSkipLimit() throws Exception {
+		/* Test the skip and limit parameters on list_objects. In particular,
+		 * test that hidden/deleted/early version objects are taken into
+		 * account properly, which makes skip act weird, which is one reason
+		 * it needs to be removed.
+		 */
 		
+		WorkspaceUser user = new WorkspaceUser("skiplimitUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("skiplimit1");
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		
+		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
+		for (int i = 0; i < 200; i++) {
+			final Map<String, String> meta = new HashMap<String, String>();
+			meta.put("num", "" + (i/10 + 1));
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
+				meta, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+
+		//simple tests on full object ranges, depends on natural mongo ordering
+		checkObjectPagination(user, wsi, -1, 99, 1, 99);
+		checkObjectPagination(user, wsi, -1, 100, 1, 100);
+		checkObjectPagination(user, wsi, -1, 101, 1, 101);
+		checkObjectPagination(user, wsi, -1, 300, 1, 200);
+		checkObjectPagination(user, wsi, 150, 25, 151, 175);
+		checkObjectPagination(user, wsi, 150, 51, 151, 200);
+		checkObjectPagination(user, wsi, 200, 1, 2, 1); //hack so the method expects 0 objects
+		
+		objs.clear();
+		for (int i = 191; i < 201; i++) {
+			final Map<String, String> meta = new HashMap<String, String>();
+			meta.put("num", "" + (i/10 + 1));
+			objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(i),
+					new HashMap<String, String>(), SAFE_TYPE1, meta,
+					new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		//test the weird skip behavior with old versions
+		//skips over the old versions internally since they're interleaved in the last 20 objects
+		checkObjectPagination(user, wsi, 190, 100, 191, 200);
+		//skips over the first 5 objects, so only 5 new objects left (e.g. old new old new etc)
+		checkObjectPagination(user, wsi, 200, 100, 196, 200);
+		
+		wsi = new WorkspaceIdentifier("skiplimit2");
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		objs.clear();
+		for (int i = 0; i < 20; i++) {
+			final Map<String, String> meta = new HashMap<String, String>();
+			meta.put("num", "" + (i/10 + 1));
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
+				meta, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		List<ObjectIdentifier> loi = new LinkedList<ObjectIdentifier>();
+		loi.add(new ObjectIdentifier(wsi, 5));
+		loi.add(new ObjectIdentifier(wsi, 15));
+		ws.setObjectsDeleted(user, loi, true);
+		
+		loi.clear();
+		loi.add(new ObjectIdentifier(wsi, 7));
+		loi.add(new ObjectIdentifier(wsi, 17));
+		ws.setObjectsHidden(user, loi, true);
+		
+		objs.clear();
+		for (int i = 21; i < 31; i++) {
+			final Map<String, String> meta = new HashMap<String, String>();
+			meta.put("num", "" + (i/10 + 1));
+			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
+				meta, new Provenance(user), false));
+		}
+		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		
+		//test object pagination with deleted and hidden objects
+		checkObjectPagination(user, wsi, -1, 26, 1, 30, nums(5, 7, 15, 17));
+		checkObjectPagination(user, wsi, 14, 10, 16, 26, nums(17));
+		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
+		checkObjectPagination(user, wsi, 16, 10, 18, 27);
+		checkObjectPagination(user, wsi, 17, 10, 18, 27);
+		checkObjectPagination(user, wsi, 13, 10, 14, 25, nums(15, 17));
+		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
+		checkObjectPagination(user, wsi, 13, 30, 14, 30, nums(15, 17));
+		checkObjectPagination(user, wsi, 14, 30, 16, 30, nums(17));
+	}
+	
+	private Set<Long> nums(Integer... nums) {
+		Set<Long> ret = new HashSet<Long>();
+		for (int i = 0; i < nums.length; i++) {
+			ret.add(new Long(nums[i]));
+		}
+		return ret;
 	}
 	
 	@Test

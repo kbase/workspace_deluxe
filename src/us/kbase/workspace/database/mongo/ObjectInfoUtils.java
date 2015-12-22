@@ -84,15 +84,9 @@ public class ObjectInfoUtils {
 		final DBObject projection = buildProjection(params);
 		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
 		
-		
-		
-		//TODO LO limit testing in short tests
 		//TODO LO add filters for object ID
-		//TODO LO add tests to show that remaining or limit objects is returned
-		//TODO LO add tests on skip even though behavior is odd
-		//TODO LO add tests with no return expected
-		//TODO LO add tests with limit < and > 100
 		//TODO LO coverage
+		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
@@ -138,7 +132,7 @@ public class ObjectInfoUtils {
 					query.getVersionCollection())
 					.find(verq, projection);
 			//TODO skip is deprecated, remove when possible
-			if (skip > -1) {
+			if (skip > 0) {
 				cur.skip(skip);
 			}
 		} catch (MongoException me) {
