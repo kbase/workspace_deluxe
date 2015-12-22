@@ -13,6 +13,7 @@ import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -947,6 +948,8 @@ public class WorkspaceServer extends JsonServerServlet {
 			.withMetadata(params.getMeta())
 			.withAfter(parseDate(params.getAfter()))
 			.withBefore(parseDate(params.getBefore()))
+			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
+			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
 			.withShowHidden(longToBoolean(params.getShowHidden()))
 			.withShowDeleted(longToBoolean(params.getShowDeleted()))
 			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))

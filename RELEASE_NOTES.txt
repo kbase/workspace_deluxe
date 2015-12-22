@@ -18,10 +18,19 @@ Size limits:
 TOs are limited to 1GB
 TO provenance is limited to 1MB
 
-VERSION: 0.3.6 (Released TBD)
+VERSION: 0.4.0 (Released TBD)
 --------------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+- The behavior of list_objects has changed. list_objects is now guaranteed
+  to return either all the remaining objects that match the filters or
+  ``limit`` objects. Skip now behaves in an unintuitive way...
+  TODO: when merged with dev-docs write this up correctly with an example
+  As such, skip is now deprecated and will be removed in a future version.
+
 NEW FEATURES:
 - Added get_permissions_mass function.
+- list_objects output may now be filtered by minimum and maximum object IDs.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Removed internal data subsetting (intended for indexing of data contents)

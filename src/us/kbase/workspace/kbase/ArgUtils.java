@@ -583,7 +583,10 @@ public class ArgUtils {
 		return b != 0;
 	}
 	
-	public static int longToInt(final Long l, final String name, final int deflt) {
+	public static int longToInt(
+			final Long l,
+			final String name,
+			final int deflt) {
 		if (l == null) {
 			return deflt;
 		}
@@ -592,6 +595,15 @@ public class ArgUtils {
 						name + " can be no greater than " + Integer.MAX_VALUE);
 		}
 		return new Long(l).intValue();
+	}
+	
+	public static long checkLong(
+			final Long l,
+			final long deflt) {
+		if (l == null) {
+			return deflt;
+		}
+		return l;
 	}
 	
 	public static Permission getGlobalWSPerm(final String globalRead) {

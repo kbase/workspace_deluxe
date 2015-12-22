@@ -84,9 +84,6 @@ public class ObjectInfoUtils {
 		final DBObject projection = buildProjection(params);
 		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
 		
-		//TODO LO add filters for object ID
-		//TODO LO coverage
-		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet

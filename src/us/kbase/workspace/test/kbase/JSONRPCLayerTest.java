@@ -2262,6 +2262,47 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void listObjectsFilterByID() throws Exception {
+		String ws = "listObjectsFilterByID";
+		UObject d = new UObject(new HashMap<String, String>());
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
+		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
+		for (int i = 1; i < 11; i++) {
+			objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE));
+		}
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws)
+				.withObjects(objs));
+		
+		checkObjectFilter(ws, -1, -1, 1, 10);
+		checkObjectFilter(ws, 2, 5, 2, 5);
+	}
+	
+	private void checkObjectFilter(
+			String ws,
+			long minObjectID,
+			long maxObjectID,
+			int minIDexpected,
+			int maxIDexpected) 
+			throws Exception {
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> res =
+				CLIENT1.listObjects(new ListObjectsParams()
+						.withWorkspaces(Arrays.asList(ws))
+						.withMinObjectID(minObjectID)
+						.withMaxObjectID(maxObjectID));
+		
+		assertThat("correct number of objects returned", res.size(),
+				is(maxIDexpected - minIDexpected + 1));
+		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> oi: res) {
+			if (oi.getE1() < minIDexpected ||
+					oi.getE1() > maxIDexpected) {
+				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
+						oi.getE1(), minIDexpected, maxIDexpected));
+			}
+		}
+	}
+	
+	@Test
 	public void getObjectSubset() throws Exception {
 		/* note most tests are performed at the same time as getObjects, so
 		 * only issues specific to subsets are tested here
