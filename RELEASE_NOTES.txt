@@ -32,6 +32,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   the server in an already running glassfish instance.
 - Fixed a bug where objects from deleted workspaces could be listed in 
   list_objects output.
+- get_permissions no longer requires authentication.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
