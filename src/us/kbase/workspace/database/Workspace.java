@@ -472,9 +472,6 @@ public class Workspace {
 			final List<WorkspaceIdentifier> wslist)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		if (user == null) {
-			throw new NullPointerException("User cannot be null");
-		}
 		if (wslist == null) {
 			throw new NullPointerException("wslist cannot be null");
 		}
@@ -493,17 +490,19 @@ public class Workspace {
 		for (final WorkspaceIdentifier wsi: wslist) {
 			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
 			final Map<User, Permission> wsperm = perms.get(rwsi);
-			final Permission p = wsperm.get(user);
+			final Permission p = wsperm.get(user); // will be null for null user
 			if (p == null || Permission.WRITE.compareTo(p) > 0) { //read or no perms
 				final Map<User, Permission> wsp =
 						new HashMap<User, Permission>();
 				if (wsperm.containsKey(ALL_USERS)) {
 					wsp.put(ALL_USERS, wsperm.get(ALL_USERS));
 				}
-				if (p == null) {
-					wsp.put(user, Permission.NONE);
-				} else {
-					wsp.put(user, p);
+				if (user != null) {
+					if (p == null) {
+						wsp.put(user, Permission.NONE);
+					} else {
+						wsp.put(user, p);
+					}
 				}
 				ret.add(wsp);
 			} else {

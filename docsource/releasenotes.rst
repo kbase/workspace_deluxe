@@ -19,6 +19,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   list_objects output.
 * The ``list_objects`` ``skip`` parameter is deprecated. It will be removed in
   a future version.
+* get_permissions no longer requires authentication.
 
 VERSION: 0.3.5 (Released 5/15/15)
 ---------------------------------
