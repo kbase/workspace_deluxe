@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -81,41 +82,70 @@ public class ObjectInfoUtils {
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final List<ObjectInformation> ret =
-				new LinkedList<ObjectInformation>();
+		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
 		
-
-		//TODO LO should continue getting objects until ret.size() == limit or
-		// no more objects
-		//TODO LO add tests to ensure 
+		
+		
+		//TODO LO limit testing in short tests
+		//TODO LO add filters for object ID
+		//TODO LO add tests to show that remaining or limit objects is returned
+		//TODO LO add tests on skip even though behavior is odd
+		//TODO LO add tests with no return expected
+		//TODO LO add tests with limit < and > 100
+		//TODO LO coverage
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
-		final List<Map<String, Object>> verobjs =
-				new ArrayList<Map<String,Object>>();
+		
+		final List<ObjectInformation> ret =
+				new LinkedList<ObjectInformation>();
+		while (cur.hasNext() && ret.size() < params.getLimit()) {
+			final List<Map<String, Object>> verobjs =
+					new ArrayList<Map<String,Object>>();
+			while (cur.hasNext() && verobjs.size() < querysize) {
+				try {
+					verobjs.add(QueryMethods.dbObjectToMap(cur.next()));
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(
+							"There was a problem communicating with the database", me);
+				}
+			}
+			final Map<Map<String, Object>, ObjectInformation> objs =
+					generateObjectInfo(pset, verobjs, params.isShowHidden(),
+							params.isShowDeleted(), params.isShowOnlyDeleted(),
+							params.isShowAllVersions()
+							);
+			//maintain the natural DB ordering 
+			final Iterator<Map<String, Object>> veriter = verobjs.iterator();
+			while (veriter.hasNext() && ret.size() < params.getLimit()) {
+				final Map<String, Object> v = veriter.next();
+				if (objs.containsKey(v)) {
+					ret.add(objs.get(v));
+				}
+			}
+		}
+		return ret;
+	}
+
+	private DBCursor buildCursor(
+			final DBObject verq,
+			final DBObject projection,
+			final int skip)
+			throws WorkspaceCommunicationException {
+		final DBCursor cur;
 		try {
-			final DBCursor im = query.getDatabase().getCollection(
+			cur = query.getDatabase().getCollection(
 					query.getVersionCollection())
 					.find(verq, projection);
 			//TODO skip is deprecated, remove when possible
-			if (params.getSkip() > -1) {
-				im.skip(params.getSkip());
-			}
-			im.limit(params.getLimit()); //always > 0
-			for (final DBObject o: im) {
-				verobjs.add(QueryMethods.dbObjectToMap(o));
+			if (skip > -1) {
+				cur.skip(skip);
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		if (verobjs.isEmpty()) {
-			return new LinkedList<ObjectInformation>();
-		}
-		return new LinkedList<ObjectInformation>(generateObjectInfo(
-				pset, verobjs, params.isShowHidden(), params.isShowDeleted(),
-				params.isShowOnlyDeleted(), params.isShowAllVersions())
-				.values());
+		return cur;
 	}
 
 	private DBObject buildProjection(
