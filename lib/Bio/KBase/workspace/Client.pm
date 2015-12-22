@@ -3660,6 +3660,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	minObjectID has a value which is a Workspace.obj_id
+	maxObjectID has a value which is a Workspace.obj_id
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -3675,6 +3677,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+obj_id is an int
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -3688,7 +3691,6 @@ object_info is a reference to a list containing 11 items:
 	8: (chsum) a string
 	9: (size) an int
 	10: (meta) a Workspace.usermeta
-obj_id is an int
 obj_name is a string
 
 </pre>
@@ -3708,6 +3710,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	minObjectID has a value which is a Workspace.obj_id
+	maxObjectID has a value which is a Workspace.obj_id
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
 	showHidden has a value which is a Workspace.boolean
@@ -3723,6 +3727,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+obj_id is an int
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -3736,7 +3741,6 @@ object_info is a reference to a list containing 11 items:
 	8: (chsum) a string
 	9: (size) an int
 	10: (meta) a Workspace.usermeta
-obj_id is an int
 obj_name is a string
 
 
@@ -9494,6 +9498,10 @@ Parameters for the 'list_objects' function.
                         date.
                 timestamp before - only return objects that were created before this
                         date.
+                obj_id minObjectID - only return objects with an object id greater or
+                        equal to this value.
+                obj_id maxObjectID - only return objects with an object id less than or
+                        equal to this value.
                 boolean showDeleted - show deleted objects in workspaces to which the
                         user has write access.
                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -9506,8 +9514,8 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - skip the first X objects. Maximum value is 2^31, skip values
-                        < 0 are treated as 0, the default.
+                int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
+                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 
@@ -9526,6 +9534,8 @@ savedby has a value which is a reference to a list where each element is a Works
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+minObjectID has a value which is a Workspace.obj_id
+maxObjectID has a value which is a Workspace.obj_id
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
@@ -9550,6 +9560,8 @@ savedby has a value which is a reference to a list where each element is a Works
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+minObjectID has a value which is a Workspace.obj_id
+maxObjectID has a value which is a Workspace.obj_id
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
 showHidden has a value which is a Workspace.boolean
