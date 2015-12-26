@@ -48,11 +48,14 @@ Very large objects
   amounts of resources due to repeated keys. Consider using ``tuple`` s instead
   of ``mapping`` s or ``structure`` s.
 
-TO to TO references
--------------------
+Annotations
+-----------
 
-* TO to TO references (e.g. using the ``@id ws`` annotation [see
-  :ref:`idannotations`]) greatly enhance the utility of typed objects.
+TO to TO references (@id ws)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* TO to TO references using the ``@id ws`` annotation [see
+  :ref:`idannotations`] greatly enhance the utility of typed objects.
 * For example, linking a data set TO to the genome TO that the data set
   references enforces and records the relationship in the workspace database.
 * If a TO to be saved references a TO that doesn’t exist, the error is caught
@@ -61,6 +64,16 @@ TO to TO references
   TO, regardless of the workspace in which they’re stored.
 * However, there is a performance cost - each reference must be checked for
   existence in the database. For tens or even hundreds of references this cost
-  is not high, but thousands or more of unique references will likely slow
+  is not high, but thousands or more unique references will likely slow
   saving of the TO.
+  
+@optional
+^^^^^^^^^
+
+* Avoid the ``@optional`` annotation whenever possible. In some cases its use
+  is required, but every ``@optional`` annotation in a typespec makes the 
+  associated TOs more difficult to use for downstream programmers.
+  If a typespec has no ``@optional`` annotations, a programmer knows exactly
+  what data the TO contains and so the code to manipulate it can be simpler and
+  therefore less buggy, easier to maintain, and less work to test.
 
