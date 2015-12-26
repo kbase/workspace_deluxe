@@ -13,16 +13,27 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
+import us.kbase.common.service.JsonServerSyslog;
+
 public class DocServer extends HttpServlet {
+	
+	private static final String DOCS_LOC = "/workspace_docs";
+	private static final String SERVICE_NAME = "WorkspaceDocServ";
 
+	private final JsonServerSyslog logger;
 	private static final long serialVersionUID = 1L;
-
+	
+	public DocServer() {
+		logger = new JsonServerSyslog(SERVICE_NAME, null);
+	}
+	
 	@Override
 	protected void doGet(
 			final HttpServletRequest request,
 			final HttpServletResponse response)
 			throws ServletException, IOException {
 		//TODO needs logging
+		//TODO IP check
 		//TODO stop listing files in dir if there's no file
 		// not totally sure if requiring a server restart to update docs
 		// is the best idea... on the other hand it makes things very simple
@@ -34,21 +45,20 @@ public class DocServer extends HttpServlet {
 			response.sendError(404);
 			return;
 		}
-		if (path.equals("/")) { // for /docs/
-			path = "/index.html";
+		if (path.endsWith("/")) { // for /docs/
+			path = path + "index.html";
 		}
-		path = "/workspace_docs" + path;
-		System.out.println("path: " + path);
+		path = DOCS_LOC + path;
 		final InputStream is = getClass().getResourceAsStream(path);
 		if (is == null) {
-			response.sendError(404, path.replace("/workspace_docs", ""));
+			response.sendError(404, path.replace(DOCS_LOC, ""));
 			return;
 		}
 		final byte[] page = IOUtils.toByteArray(is);
-		System.out.println("page length: " + page.length);
 		
 		response.getOutputStream().write(page);
 	}
+	
 	
 	public void startupServer(int port) throws Exception {
 		Server jettyServer = new Server(port);
