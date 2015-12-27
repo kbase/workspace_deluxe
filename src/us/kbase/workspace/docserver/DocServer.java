@@ -44,8 +44,6 @@ public class DocServer extends HttpServlet {
 	 */
 	public static final String DEFAULT_DOCS_LOC = "/server_docs";
 	
-	//TODO DS add these to config
-	//TODO DS add docs loc variable to build.xml
 	private static final String CFG_SERVICE_NAME = "doc-server-name";
 	private static final String CFG_DOCS_LOC = "doc-server-docs-location";
 	

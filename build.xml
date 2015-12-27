@@ -11,6 +11,7 @@
   <property name="dist" location="dist"/>
   <property name="test" location="test"/>
   <property name="doc" location="docs/javadoc"/>
+  <property name="doc_server_doc_loc" location="/server_docs"/>
   <property name="tempunpack" location="unpackedjars"/>
   <property name="classes" location="classes"/>
   <property name="client_classes" location="client_classes"/>
@@ -201,8 +202,8 @@
     <copy todir="${war.dir}/lib/" flatten="true">
       <union refid="serverside"/>
     </copy>
-    <mkdir dir="workspace_docs/workspace_docs"/>
-    <copy todir="workspace_docs/workspace_docs">
+    <mkdir dir="workspace_docs/${doc_server_doc_loc}"/>
+    <copy todir="workspace_docs/${doc_server_doc_loc}">
       <fileset dir="docs"/>
     </copy>
     <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
