@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,6 +15,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -175,6 +179,23 @@ public class DocServerTest {
 	@Before
 	public void beforeTest() throws Exception {
 		logout.reset();
+	}
+	
+	@Test
+	public void badRead() throws Exception {
+		DocServer s = new DocServer();
+		Method doGet = s.getClass()
+				.getDeclaredMethod("doGet", HttpServletRequest.class,
+						HttpServletResponse.class);
+		doGet.setAccessible(true);
+		HttpServletRequestMock req = new HttpServletRequestMock();
+		HttpServletResponseMock res = new HttpServletResponseMock();
+		req.setIpAddress("123.123.123.123");
+		req.setPathInfo("/");
+		
+		doGet.invoke(s, (HttpServletRequest) req, (HttpServletResponse) res);
+		assertThat("correct status code", res.getStatusCode(), is(500));
+		
 	}
 	
 	@Test

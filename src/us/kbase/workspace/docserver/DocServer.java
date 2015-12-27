@@ -148,6 +148,7 @@ public class DocServer extends HttpServlet {
 			logger.logErr(path + " 500 " + request.getHeader(USER_AGENT));
 			logger.logErr(ioe);
 			response.sendError(500);
+			return;
 		}
 		logger.logInfo(request.getRequestURI() + " 200 " +
 				request.getHeader(USER_AGENT));
