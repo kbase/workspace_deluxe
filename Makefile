@@ -75,7 +75,6 @@ build-docs: build-libs
 	rm -f pod2htm?.tmp
 	cp $(SERVICE).spec docs/.
 	cp RELEASE_NOTES.txt docs/.
-	cp -R static_docs/* docs/.
 
 compile: compile-typespec compile-typespec-java
 
